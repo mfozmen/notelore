@@ -15,6 +15,8 @@ Tell it things. It writes tidy, human-readable Markdown notes on your disk. Ask 
 
 Download the latest `notelore-<version>-windows-x64.zip` or `notelore-<version>-macos-arm64.zip` from the [releases page](https://github.com/mfozmen/notelore/releases), unzip, and run `notelore`. The macOS binary is not notarized yet: right-click it and choose *Open* the first time.
 
+Notelore checks for a newer release once a day (silently skipped when offline) and tells you when one exists. `notelore update` downloads it and replaces the executable in place; a Python install gets the matching `uv tool upgrade notelore` hint instead.
+
 Releases are cut automatically from the Conventional Commit history on `main`: a `feat` commit bumps the minor version, `fix` or `perf` the patch version; other types (`docs`, `chore`, `ci`...) do not release.
 
 ## Development

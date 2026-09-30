@@ -64,6 +64,7 @@ Open question: ship a shared OAuth client ID with the app (needs Google brand ve
 - [ ] Python Semantic Release (reuse littlepress-ai's `release.yml` and `[tool.semantic_release]` config)
 - [ ] Publish to PyPI; `uvx notelore` works on Windows and macOS
 - [ ] README: install, first run, provider setup, Drive setup
+- [x] Update check once a day + `notelore update` self-update for the packaged executables
 
 ## Later (not planned yet)
 
