@@ -54,6 +54,12 @@ def test_note_path_per_kind(root: Path) -> None:
         notes.note_path(root, "diary", "x")
 
 
+@pytest.mark.parametrize("slug", ["../../etc/passwd", "..", "Mopsos", "a b", "x/y", "con", ""])
+def test_note_path_rejects_anything_but_a_canonical_slug(root: Path, slug: str) -> None:
+    with pytest.raises(ValueError, match="slug"):
+        notes.note_path(root, "project", slug)
+
+
 # ---------------------------------------------------------------- atomic writes
 
 

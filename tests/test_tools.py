@@ -153,8 +153,24 @@ def test_archive_entries_and_whole_file(box: Toolbox, tmp_path: Path) -> None:
     assert (tmp_path / "notes" / "_archive" / "2026-09-30" / "projects" / "mopsos-2.md").exists()
 
 
-def test_errors_come_back_as_messages_not_exceptions(box: Toolbox) -> None:
+def test_a_locked_file_is_an_error_message(box: Toolbox, monkeypatch: pytest.MonkeyPatch) -> None:
+    call(box, "create_note", kind="project", title="Mopsos")
+
+    def locked(*args: object, **kwargs: object) -> None:
+        raise PermissionError("held by another process")
+
+    monkeypatch.setattr("notelore.store.notes.atomic_write", locked)
+    assert call(box, "add_note_entry", slug="mopsos", text="x") == "Error: held by another process"
+
+
+def test_errors_come_back_as_messages_not_exceptions(box: Toolbox, tmp_path: Path) -> None:
     assert call(box, "read_note", slug="nope") == "Error: no note with slug 'nope'."
+    outside = tmp_path / "secret.md"
+    outside.write_text("private\n", encoding="utf-8")
+    for tool, extra in (("read_note", {}), ("add_note_entry", {"text": "x"}), ("archive", {})):
+        result = call(box, tool, slug="../../secret", **extra)
+        assert result.startswith("Error: invalid slug"), tool
+    assert outside.read_text(encoding="utf-8") == "private\n"
     assert call(box, "create_note", kind="diary", title="x").startswith("Error: unknown note kind")
     call(box, "create_note", kind="project", title="Dup")
     call(box, "create_note", kind="topic", title="Dup")

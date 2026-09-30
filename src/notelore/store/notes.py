@@ -54,6 +54,8 @@ def slugify(title: str) -> str:
 def note_path(root: Path, kind: str, slug: str) -> Path:
     if kind not in KINDS:
         raise ValueError(f"unknown note kind {kind!r}; expected one of {sorted(KINDS)}")
+    if not slug or slug != slugify(slug):  # a canonical slug is a bare file stem: no path escape
+        raise ValueError(f"invalid slug {slug!r}; use the slug exactly as list_notes shows it")
     return root / KINDS[kind] / f"{slug}.md"
 
 
