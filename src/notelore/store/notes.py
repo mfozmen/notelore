@@ -36,6 +36,7 @@ _TURKISH = str.maketrans("çğıöşüÇĞİÖŞÜ", "cgiosucgiosu")
 _RESERVED = {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(1, 10))}
 _RESERVED |= {f"lpt{i}" for i in range(1, 10)}
 _REPLACE_ATTEMPTS = 5
+_FORBIDDEN = '<>:"/\\|?*\n'
 
 
 # ---------------------------------------------------------------- paths
@@ -54,7 +55,8 @@ def slugify(title: str) -> str:
 def note_path(root: Path, kind: str, slug: str) -> Path:
     if kind not in KINDS:
         raise ValueError(f"unknown note kind {kind!r}; expected one of {sorted(KINDS)}")
-    if not slug or slug != slugify(slug):  # a canonical slug is a bare file stem: no path escape
+    # A slug is a bare file stem: hand-made names like "My Note" are fine, path escapes are not.
+    if not slug or slug in (".", "..") or any(ch in slug for ch in _FORBIDDEN):
         raise ValueError(f"invalid slug {slug!r}; use the slug exactly as list_notes shows it")
     return root / KINDS[kind] / f"{slug}.md"
 

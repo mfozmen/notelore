@@ -54,10 +54,14 @@ def test_note_path_per_kind(root: Path) -> None:
         notes.note_path(root, "diary", "x")
 
 
-@pytest.mark.parametrize("slug", ["../../etc/passwd", "..", "Mopsos", "a b", "x/y", "con", ""])
-def test_note_path_rejects_anything_but_a_canonical_slug(root: Path, slug: str) -> None:
+@pytest.mark.parametrize("slug", ["../../etc/passwd", "..", ".", "x/y", "x\\y", "a:b", "", "a\nb"])
+def test_note_path_rejects_path_escapes(root: Path, slug: str) -> None:
     with pytest.raises(ValueError, match="slug"):
         notes.note_path(root, "project", slug)
+
+
+def test_note_path_accepts_hand_made_file_names(root: Path) -> None:
+    assert notes.note_path(root, "topic", "My Note") == root / "topics" / "My Note.md"
 
 
 # ---------------------------------------------------------------- atomic writes
