@@ -61,3 +61,15 @@ def test_an_answer_without_the_tags_leaves_the_conflict_open() -> None:
 def test_a_provider_failure_leaves_the_conflict_open() -> None:
     resolver = ModelResolver(Scripted(ConnectionError("offline")))
     assert resolver(CONFLICT) is None
+
+
+def test_model_output_is_nfc_and_a_deletion_is_visible_in_the_report() -> None:
+    import unicodedata
+
+    nfd = unicodedata.normalize("NFD", "- 2026-09-01: toplantı Salı\n")
+    assert ModelResolver(Scripted(f"<merged>\n{nfd}</merged><why>ok</why>"))(CONFLICT) == [
+        unicodedata.normalize("NFC", nfd)
+    ]
+    resolver = ModelResolver(Scripted("<merged>\n</merged><why>Both sides dropped it.</why>"))
+    resolver(CONFLICT)
+    assert resolver.explanations == ["Removed the conflicting lines: Both sides dropped it."]
