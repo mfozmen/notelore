@@ -96,7 +96,10 @@ def apply(exe: Path, system: str, machine: str, fetch: Fetch = _fetch) -> str | 
         raise ValueError(f"release {version} has no {name}; download it by hand from GitHub")
     if f"{name}.sha256" not in assets:
         raise ValueError(f"release {version} publishes no checksum for {name}; not installing it")
-    expected = fetch(assets[f"{name}.sha256"]).decode("ascii", "replace").split()[0].lower()
+    fields = fetch(assets[f"{name}.sha256"]).decode("ascii", "replace").split()
+    if not fields:
+        raise ValueError(f"the checksum for {name} is empty; not installing it")
+    expected = fields[0].lower()
     data = fetch(assets[name])
     if hashlib.sha256(data).hexdigest() != expected:
         raise ValueError(f"checksum mismatch for {name}; the download was not installed")

@@ -146,8 +146,12 @@ def test_apply_replaces_the_executable_and_keeps_the_old_one(tmp_path: Path) -> 
     [
         (lambda n: download(n, "notelore.exe", b"new", digest="0" * 64), "checksum mismatch"),
         (lambda n: download(n, "evil.exe", b"new"), "has no notelore.exe"),
+        (
+            lambda n: {**download(n, "notelore.exe", b"new"), f"https://dl/{n}.sha256": b" \n"},
+            "empty",
+        ),
     ],
-    ids=["tampered", "wrong-member"],
+    ids=["tampered", "wrong-member", "empty-checksum"],
 )
 def test_apply_refuses_an_unverified_download(tmp_path: Path, pages: Any, message: str) -> None:
     exe = tmp_path / "notelore.exe"
