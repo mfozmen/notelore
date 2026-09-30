@@ -27,7 +27,9 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy
       - name: CI helper scripts self-test
-        run: python3 .github/scripts/test_review_verdict_gate.py
+        run: |
+          python3 .github/scripts/test_review_verdict_gate.py
+          python3 .github/scripts/test_review_range.py
 
   test:
     name: Test (${{ matrix.os }}, py${{ matrix.python }})
