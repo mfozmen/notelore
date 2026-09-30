@@ -1,0 +1,146 @@
+name: Claude Review
+
+# AI code review using anthropics/claude-code-action@v1, adapted from
+# mfozmen/conflict.
+#
+# Auth: the Claude subscription via claude_code_oauth_token, NOT an API key.
+# Reviews draw from the subscription quota rather than pay-as-you-go billing.
+#
+# The review never approves a PR: merge stays a human decision and ci.yml is
+# the deterministic gate. It does BLOCK on a Critical finding: the reviewer
+# ends its summary with a machine-readable verdict line and the step after it
+# turns CRITICAL into a failed check. Warning and Suggestion findings annotate
+# without blocking.
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+  # On-demand re-review by commenting @claude on the PR.
+  issue_comment:
+    types: [created]
+
+# Cancel an in-flight review for the same PR when a newer push arrives.
+# Scoped by event type too, so a comment-triggered run never cancels a
+# pull_request review of the same PR.
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number || github.event.issue.number }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  claude-review:
+    # Fork safety: `pull_request` (never `pull_request_target`) and only when
+    # the PR head repo is THIS repo, so the token is never exposed to forks.
+    # Comment-triggered runs need @claude from a collaborator or above.
+    if: >
+      ( github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository ) ||
+      ( github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request != null &&
+        contains(github.event.comment.body, '@claude') &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) )
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      actions: read  # lets claude-code-action's github_ci MCP server read CI status
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Claude review
+        id: review
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Subscription auth. Do NOT add an Anthropic API key here.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # The action writes the agent's output into a tracking comment itself,
+          # so a result is visible even if the agent never posts one.
+          track_progress: true
+          # allowedTools is what lets the reviewer read the checkout and POST its
+          # findings. Without Read/Grep/Glob every file inspection is denied and
+          # the run ends as a silent no-op.
+          claude_args: |
+            --model claude-sonnet-5-5
+            --max-turns 60
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Read,Grep,Glob,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
+          prompt: |
+            PR number: ${{ github.event.pull_request.number || github.event.issue.number }}
+
+            You are reviewing this pull request for Notelore, a cross-platform
+            (Windows, macOS, Linux) Python CLI note-taking assistant. Read
+            CLAUDE.md and docs/note-format.md first; they are the standards.
+
+            You must NOT approve the PR: merging stays a human decision and
+            ci.yml is the deterministic gate. You DO decide whether this check
+            passes: a Critical finding fails it.
+
+            How to publish your review:
+            - Fetch the diff once with `gh pr diff <number>` and do not re-fetch.
+            - Use `mcp__github_inline_comment__create_inline_comment` for the
+              handful of most important concrete findings on changed lines.
+            - Write the summary into your tracking comment via
+              `mcp__github_comment__update_claude_comment`. Always write it,
+              even if you find nothing notable. Use `gh pr comment` only as a
+              fallback if the tracking-comment tool is unavailable.
+
+            Review the diff against CLAUDE.md:
+
+            - Core invariants: Markdown files are the single source of truth;
+              notes stay human-readable and the format round-trips byte for
+              byte; no tool overwrites a file wholesale or hard-deletes; the
+              parser/index answers deterministic questions, not the model.
+            - Cross-platform rules: pathlib only; text I/O with
+              encoding="utf-8" and newline="\n"; atomic writes with the Windows
+              retry; NFC normalization before hashing/comparing; ASCII slugs
+              with Turkish transliteration and no Windows-reserved names;
+              no shell-specific subprocess calls.
+            - Never touch real user data: every path comes from notelore.paths;
+              tests use tmp_path via the NOTELORE_HOME fixture.
+            - No network in tests; external services are faked.
+            - TDD: new production code arrives with tests that mirror the
+              source tree; bug fixes start with a regression test.
+            - Language: code, comments, docs and commit messages in English.
+            - README.md updated for any user-visible change; docs/PLAN.md
+              ticked for landed roadmap items.
+
+            Group every finding by severity:
+              - **Critical**: correctness bugs, a broken core invariant, data
+                loss or a path that can touch real user data, Windows/macOS
+                breakage, untested store logic.
+              - **Warning**: risky or non-idiomatic code that should be addressed.
+              - **Suggestion**: optional improvements and nitpicks.
+
+            Be concise and specific, and always cite the file and line.
+
+            THE LAST LINE of your summary comment is your verdict, exactly one
+            of these, with nothing after it:
+
+                REVIEW-VERDICT: CRITICAL
+                REVIEW-VERDICT: WARNING
+                REVIEW-VERDICT: CLEAN
+
+            A step reads that line and fails this check on CRITICAL, so use it
+            only for what the severity list calls Critical. Style, naming and
+            nitpicks are WARNING or CLEAN; blocking a PR on those trains
+            everyone to ignore the gate. If unsure, say so and choose WARNING.
+            Write the line even when you find nothing: CLEAN is a real verdict.
+
+            IMPORTANT: you are already in the repository root. Run every
+            command bare (e.g. `gh pr diff 19`), never prefixed with `cd`,
+            `&&` or subshells: the tool allowlist matches on the exact command
+            start and prefixed commands are denied.
+
+      # Turns the reviewer's verdict into the check's result. A separate step
+      # so an execution failure (quota, timeout) stays distinguishable from a
+      # real Critical finding. The script reads ONLY the review action's own
+      # finished comment, so a verdict typed by any commenter is not a gate.
+      - name: Block on a Critical finding
+        if: steps.review.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+        run: python3 .github/scripts/review_verdict_gate.py
