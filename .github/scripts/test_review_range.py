@@ -98,5 +98,48 @@ check(
     ],
 )
 
+# own_commits against a real throwaway repo: the --no-merges and ^main filtering
+# is the subtle part, and a failing git log must raise, not read as "nothing new".
+import os  # noqa: E402
+
+from review_range import git, own_commits  # noqa: E402
+
+for name in ("AUTHOR", "COMMITTER"):
+    os.environ[f"GIT_{name}_NAME"], os.environ[f"GIT_{name}_EMAIL"] = "t", "t@example.com"
+start = Path.cwd()
+with tempfile.TemporaryDirectory() as folder:
+    os.chdir(folder)
+    try:
+
+        def commit(message):
+            git("commit", "--allow-empty", "-q", "-m", message)
+            return git("rev-parse", "HEAD").stdout.strip()
+
+        git("init", "-q", "-b", "main")
+        commit("A on main")
+        git("checkout", "-q", "-b", "feature")
+        reviewed = commit("B reviewed")
+        git("checkout", "-q", "main")
+        commit("M new on main")
+        git("checkout", "-q", "feature")
+        git("merge", "-q", "--no-edit", "main")
+        commit("C new on feature")
+        subjects = [
+            line.split(" ", 1)[1] for line in own_commits(reviewed, "HEAD", "main").splitlines()
+        ]
+        check(
+            "only the PR's own new commits: no merge, nothing from main",
+            subjects,
+            ["C new on feature"],
+        )
+        try:
+            own_commits("0" * 40, "HEAD", "main")
+            raised = False
+        except RuntimeError:
+            raised = True
+        check("an unreachable base raises instead of skipping the review", raised, True)
+    finally:
+        os.chdir(start)
+
 print("ALL PASS" if failures == 0 else f"{failures} FAILURE(S)")
 sys.exit(1 if failures else 0)

@@ -70,11 +70,17 @@ def is_ancestor(base, head):
     return git("merge-base", "--is-ancestor", base, head).returncode == 0
 
 
-def own_commits(base, head):
-    """This PR's commits since `base`, oldest first, without merges or main's commits."""
+def own_commits(base, head, main_ref="origin/main"):
+    """This PR's commits since `base`, oldest first, without merges or main's commits.
+
+    A failing `git log` raises: an empty answer would read as "nothing new" and
+    silently skip the review.
+    """
     listed = git(
-        "log", "--no-merges", "--reverse", "--format=%h %s", f"{base}..{head}", "^origin/main"
+        "log", "--no-merges", "--reverse", "--format=%h %s", f"{base}..{head}", f"^{main_ref}"
     )
+    if listed.returncode != 0:
+        raise RuntimeError(f"git log failed: {listed.stderr.strip()}")
     return listed.stdout.strip()
 
 
