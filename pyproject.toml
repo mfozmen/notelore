@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "notelore"
-version = "0.1.0"
+version = "0.0.0"
 description = "Talk to an LLM, get tidy human-readable Markdown notes on your disk, ask them questions later. Backed up to Google Drive."
 readme = "README.md"
 license = { file = "LICENSE" }
