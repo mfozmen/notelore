@@ -69,6 +69,7 @@ def atomic_write(path: Path, text: str) -> None:
             handle.write(text)
             handle.flush()
             os.fsync(handle.fileno())
+        Path(tmp).chmod(0o644)  # mkstemp gives 0600; notes are meant for other tools too
         for attempt in range(_REPLACE_ATTEMPTS - 1):
             try:
                 Path(tmp).replace(path)
@@ -88,7 +89,7 @@ def read_note(path: Path) -> Note:
 def write_note(path: Path, note: Note, today: datetime.date | None = None) -> None:
     """Persist ``note``; ``updated`` is maintained here, never by the caller."""
     note.meta["updated"] = today or datetime.date.today()
-    atomic_write(path, serialize(note))
+    atomic_write(path, unicodedata.normalize("NFC", serialize(note)))
 
 
 # ---------------------------------------------------------------- sections and entries
@@ -129,11 +130,12 @@ def _text(text: str) -> str:
     return "\n  ".join(line.strip() for line in text.replace("\r\n", "\n").strip().splitlines())
 
 
-def _numbered(section: Section, number: int) -> AnyEntry:
-    typed = [entry for entry in section.entries if not isinstance(entry, Raw)]
-    if not 1 <= number <= len(typed):
-        raise IndexError(f"{section.heading} has {len(typed)} entries, no #{number}")
-    return typed[number - 1]
+def _position(section: Section, number: int) -> int:
+    """Index into ``section.entries`` of the ``number``-th real (non-Raw) entry, 1-based."""
+    positions = [i for i, entry in enumerate(section.entries) if not isinstance(entry, Raw)]
+    if not 1 <= number <= len(positions):
+        raise IndexError(f"{section.heading} has {len(positions)} entries, no #{number}")
+    return positions[number - 1]
 
 
 # ---------------------------------------------------------------- operations
@@ -178,9 +180,11 @@ def add_todo(
 def complete_todo(path: Path, number: int, today: datetime.date | None = None) -> None:
     note = read_note(path)
     section = _section(note, "todo")
-    todo = _numbered(section, number)
-    assert isinstance(todo, Todo)  # the parser yields only Todo (or Raw) under this heading
-    section.entries[section.entries.index(todo)] = dataclasses.replace(todo, done=True)
+    todos = [(i, entry) for i, entry in enumerate(section.entries) if isinstance(entry, Todo)]
+    if not 1 <= number <= len(todos):
+        raise IndexError(f"{section.heading} has {len(todos)} todos, no #{number}")
+    position, todo = todos[number - 1]
+    section.entries[position] = dataclasses.replace(todo, done=True)
     write_note(path, note, today)
 
 
@@ -192,12 +196,15 @@ def record_decision(
     today: datetime.date | None = None,
 ) -> None:
     """Append a decision; the active one for the same topic is superseded in the same write."""
+    topic = _text(topic).lower()
+    if not topic or "*" in topic or "\n" in topic:
+        raise ValueError(f"decision topic must be a short one-line key, got {topic!r}")
     note, today = read_note(path), today or datetime.date.today()
     section = _section(note, "decisions")
     for index, entry in enumerate(section.entries):
         if isinstance(entry, Decision) and entry.topic == topic and entry.superseded is None:
             section.entries[index] = dataclasses.replace(entry, superseded=today)
-    text = value.rstrip(".") + "." + (f" {_text(reason)}" if reason else "")
+    text = _text(value).rstrip(".") + "." + (f" {_text(reason)}" if reason else "")
     _append(section, Decision(today, topic, text))
     write_note(path, note, today)
 
@@ -239,10 +246,13 @@ def archive_entries(
         section = note.section(key)
         if section is None or section.key is None:
             raise ValueError(f"no known section {key!r} in {path.name}")
-        picked = [_numbered(section, number) for number in numbers]
-        for entry in picked:
-            section.entries.remove(entry)
-            _append(_section(archive, key, _lang(note)), entry)
+        if len(set(numbers)) != len(numbers):
+            raise ValueError(f"an entry of {key!r} is listed twice: {numbers}")
+        positions = [_position(section, number) for number in numbers]
+        for position in positions:
+            _append(_section(archive, key, _lang(note)), section.entries[position])
+        for position in sorted(positions, reverse=True):  # delete from the end: indexes stay valid
+            del section.entries[position]
     write_note(target, archive, today)  # archive first: a failure here loses nothing
     write_note(path, note, today)
     return target
