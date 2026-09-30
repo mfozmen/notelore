@@ -35,7 +35,7 @@ class Entry:
     modified: str  # Drive's modifiedTime, RFC 3339 UTC
 
 
-def _checked(rel: str) -> PurePosixPath:
+def checked_rel(rel: str) -> PurePosixPath:
     """``rel`` as a safe relative path: it can come from Drive, so it is untrusted."""
     path = PurePosixPath(rel)
     if (
@@ -54,7 +54,7 @@ def _entry(rel: str, fields: object) -> Entry | None:
     if not isinstance(fields, dict):
         return None
     try:
-        _checked(rel)
+        checked_rel(rel)
     except ValueError:
         return None
     names = [f.name for f in dataclasses.fields(Entry)]
@@ -83,7 +83,7 @@ class Manifest:
         atomic_write(self._file, json.dumps(data, indent=1, ensure_ascii=False) + "\n")
 
     def _base_file(self, rel: str) -> Path:
-        return self._dir / "base" / Path(*_checked(rel).parts)
+        return self._dir / "base" / Path(*checked_rel(rel).parts)
 
     def paths(self) -> list[str]:
         return sorted(self._entries)
