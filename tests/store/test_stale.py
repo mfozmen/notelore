@@ -19,6 +19,8 @@ def root(tmp_path: Path) -> Path:
     notes.record_decision(mopsos, "database", "SQLite", today=date(2026, 3, 1))  # supersedes: old
     notes.record_decision(mopsos, "hosting", "Fly", today=date(2026, 9, 1))
     notes.record_decision(mopsos, "hosting", "Hetzner", today=date(2026, 9, 20))  # recent
+    text = mopsos.read_text(encoding="utf-8")  # a stray hand-written line must not shift numbers
+    notes.atomic_write(mopsos, text.replace("## Decisions\n", "## Decisions\nstray line\n"))
     notes.add_todo(mopsos, "Overdue", due=date(2026, 9, 1), today=date(2026, 8, 1))
     notes.add_todo(mopsos, "Done long ago", due=date(2026, 2, 1), today=date(2026, 2, 1))
     notes.complete_todo(mopsos, 2, today=date(2026, 2, 1))
