@@ -107,9 +107,8 @@ def test_empty_answer_leaves_history_consistent(box: Toolbox) -> None:
     provider = ScriptedProvider(AgentResponse([], "end_turn"), text("now"))
     agent = Agent(provider, box, today=TODAY)
     assert agent.ask("x") == ""
-    assert agent.messages == [{"role": "user", "content": "x"}]
     assert agent.ask("again") == "now"
-    assert [m["role"] for m in agent.messages] == ["user", "user", "assistant"]
+    assert [m["role"] for m in agent.messages] == ["user", "assistant", "user", "assistant"]
 
 
 def test_runaway_tool_loop_is_cut_off(box: Toolbox) -> None:
@@ -118,6 +117,12 @@ def test_runaway_tool_loop_is_cut_off(box: Toolbox) -> None:
     answer = agent.ask("loop")
     assert "stopped" in answer
     assert len(provider.turns) == 3
+    assert agent.messages[-1] == {
+        "role": "assistant",
+        "content": [{"type": "text", "text": answer}],
+    }
+    roles = [m["role"] for m in agent.messages]
+    assert all(a != b for a, b in zip(roles, roles[1:], strict=False))  # roles alternate
 
 
 def test_system_prompt_rules() -> None:
