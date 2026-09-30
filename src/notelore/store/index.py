@@ -18,17 +18,20 @@ from notelore.store.format import Decision, Raw, parse
 from notelore.store.notes import KINDS
 
 SCHEMA = """
-CREATE TABLE IF NOT EXISTS files(
+CREATE TABLE files(
     path TEXT PRIMARY KEY, slug TEXT, kind TEXT, title TEXT, updated TEXT,
     mtime_ns INTEGER, hash TEXT);
-CREATE TABLE IF NOT EXISTS decisions(path TEXT, date TEXT, topic TEXT, text TEXT, superseded TEXT);
-CREATE INDEX IF NOT EXISTS decisions_by_topic ON decisions(path, topic);
+CREATE TABLE decisions(path TEXT, date TEXT, topic TEXT, text TEXT, superseded TEXT);
+CREATE INDEX decisions_by_topic ON decisions(path, topic);
 """
 FTS_TABLE = (
-    "CREATE VIRTUAL TABLE IF NOT EXISTS content USING fts5("
-    "slug, title, section, text, kind UNINDEXED, path UNINDEXED)"
+    "CREATE VIRTUAL TABLE content USING fts5("
+    "slug, title, section, text, kind UNINDEXED, path UNINDEXED, superseded UNINDEXED)"
 )
-PLAIN_TABLE = "CREATE TABLE IF NOT EXISTS content(slug, title, section, text, kind, path, folded)"
+PLAIN_TABLE = "CREATE TABLE content(slug, title, section, text, kind, path, superseded, folded)"
+# Bump when the tables change; the FTS flag is part of it because the content
+# table has a different shape per backend. A mismatch drops and recreates everything.
+SCHEMA_VERSION = 1
 
 
 def fts5_available(conn: sqlite3.Connection) -> bool:
@@ -55,6 +58,7 @@ class Hit:
     title: str
     section: str
     text: str
+    superseded: bool  # a crossed-out decision, never to be presented as current
 
 
 class Index:
@@ -63,8 +67,14 @@ class Index:
         self.root = root
         self.conn = sqlite3.connect(db_path)
         self.fts = fts5_available(self.conn)
-        self.conn.executescript(SCHEMA)
-        self.conn.execute(FTS_TABLE if self.fts else PLAIN_TABLE)
+        version = SCHEMA_VERSION * 2 + int(self.fts)
+        if self.conn.execute("PRAGMA user_version").fetchone()[0] != version:
+            self.conn.executescript(
+                "DROP TABLE IF EXISTS files; DROP TABLE IF EXISTS decisions;"
+                "DROP TABLE IF EXISTS content;" + SCHEMA + (FTS_TABLE if self.fts else PLAIN_TABLE)
+            )
+            self.conn.execute(f"PRAGMA user_version = {version}")
+            self.conn.commit()
 
     def close(self) -> None:
         self.conn.close()
@@ -81,11 +91,15 @@ class Index:
         for kind, folder in KINDS.items():
             for file in sorted((self.root / folder).glob("*.md")):
                 rel = file.relative_to(self.root).as_posix()
+                try:
+                    mtime = file.stat().st_mtime_ns
+                    if rel in known and known[rel][0] == mtime:
+                        seen.add(rel)
+                        continue
+                    text = unicodedata.normalize("NFC", file.read_text(encoding="utf-8"))
+                except (OSError, UnicodeDecodeError):
+                    continue  # gone or not text: one bad file never takes down the index
                 seen.add(rel)
-                mtime = file.stat().st_mtime_ns
-                if rel in known and known[rel][0] == mtime:
-                    continue
-                text = unicodedata.normalize("NFC", file.read_text(encoding="utf-8"))
                 digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
                 if rel in known and known[rel][1] == digest:
                     self.conn.execute("UPDATE files SET mtime_ns = ? WHERE path = ?", (mtime, rel))
@@ -120,26 +134,41 @@ class Index:
         )
         for section in note.sections:
             for entry in section.entries:
+                superseded = False
                 if isinstance(entry, Raw):
                     if not entry.text.strip():
                         continue
                     body = entry.text
                 elif isinstance(entry, Decision):
-                    superseded = entry.superseded.isoformat() if entry.superseded else None
+                    superseded = entry.superseded is not None
                     self.conn.execute(
                         "INSERT INTO decisions VALUES (?, ?, ?, ?, ?)",
-                        (rel, entry.date.isoformat(), entry.topic, entry.text, superseded),
+                        (
+                            rel,
+                            entry.date.isoformat(),
+                            entry.topic,
+                            entry.text,
+                            entry.superseded.isoformat() if entry.superseded else None,
+                        ),
                     )
                     body = f"{entry.topic}: {entry.text}"
                 else:
                     body = entry.text
-                row = (slug, note.title, section.key or section.heading, body, kind, rel)
+                row = (
+                    slug,
+                    note.title,
+                    section.key or section.heading,
+                    body,
+                    kind,
+                    rel,
+                    superseded,
+                )
                 if self.fts:
-                    self.conn.execute("INSERT INTO content VALUES (?, ?, ?, ?, ?, ?)", row)
+                    self.conn.execute("INSERT INTO content VALUES (?, ?, ?, ?, ?, ?, ?)", row)
                 else:
                     folded = _fold(f"{note.title}\n{body}")
                     self.conn.execute(
-                        "INSERT INTO content VALUES (?, ?, ?, ?, ?, ?, ?)", (*row, folded)
+                        "INSERT INTO content VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (*row, folded)
                     )
 
     # ------------------------------------------------------------ queries
@@ -155,46 +184,68 @@ class Index:
             for slug, kind_, title, upd in rows
         ]
 
-    def get_decision(self, slug: str, topic: str) -> Decision | None:
+    def _path(self, slug: str, kind: str | None) -> str | None:
+        """The one file for ``slug``; a slug present as both project and topic needs ``kind``."""
+        rows = self.conn.execute(
+            "SELECT path, kind FROM files WHERE slug = ? AND title IS NOT NULL"
+            " AND (? IS NULL OR kind = ?) ORDER BY kind",
+            (unicodedata.normalize("NFC", slug), kind, kind),
+        ).fetchall()
+        if len(rows) > 1:
+            kinds = " and ".join(row[1] for row in rows)
+            raise LookupError(f"{slug!r} exists as {kinds}; pass kind")
+        return str(rows[0][0]) if rows else None
+
+    def get_decision(self, slug: str, topic: str, kind: str | None = None) -> Decision | None:
         """The current decision for ``topic`` in ``slug``: newest entry not superseded."""
         rows = self.conn.execute(
-            "SELECT d.date, d.topic, d.text, d.superseded FROM decisions d"
-            " JOIN files f ON f.path = d.path"
-            " WHERE f.slug = ? AND d.topic = ? AND d.superseded IS NULL"
-            " ORDER BY d.date DESC, d.rowid DESC LIMIT 1",
-            (slug, topic),
+            "SELECT date, topic, text, superseded FROM decisions"
+            " WHERE path = ? AND topic = ? AND superseded IS NULL"
+            " ORDER BY date DESC, rowid DESC LIMIT 1",
+            (self._path(slug, kind), _topic(topic)),
         ).fetchall()
         return _decision(rows[0]) if rows else None
 
-    def decision_history(self, slug: str, topic: str | None = None) -> list[Decision]:
+    def decision_history(
+        self, slug: str, topic: str | None = None, kind: str | None = None
+    ) -> list[Decision]:
+        key = _topic(topic) if topic else None
         rows = self.conn.execute(
-            "SELECT d.date, d.topic, d.text, d.superseded FROM decisions d"
-            " JOIN files f ON f.path = d.path"
-            " WHERE f.slug = ? AND (? IS NULL OR d.topic = ?) ORDER BY d.date, d.rowid",
-            (slug, topic, topic),
+            "SELECT date, topic, text, superseded FROM decisions"
+            " WHERE path = ? AND (? IS NULL OR topic = ?) ORDER BY date, rowid",
+            (self._path(slug, kind), key, key),
         )
         return [_decision(row) for row in rows]
 
     def search(self, query: str, kind: str | None = None) -> list[Hit]:
+        """Hits containing every word of ``query`` in any order."""
         words = query.split()
         if not words:
             return []
+        columns = "SELECT slug, kind, title, section, text, superseded FROM content WHERE "
         if self.fts:
             # Every word as a quoted phrase: user text never hits FTS5 query syntax.
             match = " ".join('"' + word.replace('"', '""') + '"' for word in words)
             rows = self.conn.execute(
-                "SELECT slug, kind, title, section, text FROM content"
-                " WHERE content MATCH ? AND (? IS NULL OR kind = ?) ORDER BY rank",
+                columns + "content MATCH ? AND (? IS NULL OR kind = ?) ORDER BY rank",
                 (match, kind, kind),
             )
         else:
-            pattern = "%" + _escape_like(_fold(" ".join(words))) + "%"
+            clauses = " AND ".join("folded LIKE ? ESCAPE '\\'" for _ in words)
+            patterns = ["%" + _escape_like(_fold(word)) + "%" for word in words]
             rows = self.conn.execute(
-                "SELECT slug, kind, title, section, text FROM content"
-                " WHERE folded LIKE ? ESCAPE '\\' AND (? IS NULL OR kind = ?) ORDER BY path, rowid",
-                (pattern, kind, kind),
+                columns + clauses + " AND (? IS NULL OR kind = ?) ORDER BY path, rowid",
+                (*patterns, kind, kind),
             )
-        return [Hit(*row) for row in rows]
+        return [
+            Hit(slug, kind_, title, section, text, bool(sup))
+            for slug, kind_, title, section, text, sup in rows
+        ]
+
+
+def _topic(topic: str) -> str:
+    """The same key the writer stores: NFC, trimmed, lowercase."""
+    return unicodedata.normalize("NFC", topic).strip().lower()
 
 
 def _fold(text: str) -> str:
