@@ -1,0 +1,107 @@
+name: Release
+
+# Automatic on every push to main. Python Semantic Release scans the commits
+# since the last tag and bumps per Conventional Commits (feat -> minor,
+# fix/perf -> patch, BREAKING CHANGE -> major), writes CHANGELOG.md, tags
+# vX.Y.Z and cuts a GitHub Release. The build job then attaches a Windows
+# and a macOS executable to that release. Adapted from mfozmen/littlepress-ai.
+#
+# PSR's own "chore(release): x.y.z [skip ci]" commit is pushed with
+# GITHUB_TOKEN, which never re-triggers workflows, so there is no loop.
+#
+# Force a bump level by hand: gh workflow run release.yml -f force=<level>
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - CHANGELOG.md
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Force the bump level instead of scanning commits
+        required: false
+        default: ""
+        type: choice
+        options: ["", patch, minor, major]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Semantic release
+    runs-on: ubuntu-latest
+    if: github.repository == 'mfozmen/notelore'
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    outputs:
+      released: ${{ steps.release.outputs.released }}
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Python Semantic Release
+        id: release
+        uses: python-semantic-release/python-semantic-release@v10.7.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          push: "true"
+          force: ${{ inputs.force }}
+
+  build:
+    name: Executable (${{ matrix.name }})
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows-x64
+            exe: notelore.exe
+          - os: macos-latest
+            name: macos-arm64
+            exe: notelore
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.tag }}  # the bumped version, not the pre-release commit
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: "3.12"
+      - run: uv sync --locked
+
+      - name: Build with PyInstaller
+        run: uv run pyinstaller --noconfirm --clean --onefile --name notelore --paths src src/notelore/__main__.py
+
+      - name: Smoke test
+        run: dist/${{ matrix.exe }} --version
+
+      - name: Package
+        id: pkg
+        shell: bash
+        run: |
+          asset="notelore-${{ needs.release.outputs.version }}-${{ matrix.name }}.zip"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            7z a -tzip "$asset" ./dist/${{ matrix.exe }} > /dev/null
+          else
+            (cd dist && zip -q "../$asset" ${{ matrix.exe }})
+          fi
+          echo "asset=$asset" >> "$GITHUB_OUTPUT"
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ needs.release.outputs.tag }} ${{ steps.pkg.outputs.asset }} --clobber
