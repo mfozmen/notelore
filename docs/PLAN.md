@@ -47,7 +47,7 @@ No tool overwrites a file or deletes anything.
 
 - [ ] OAuth desktop flow (`google-auth-oauthlib`), scope `https://www.googleapis.com/auth/drive.file` only; token in keyring
 - [ ] App creates a `Notelore` folder in Drive and mirrors the notes tree by relative path (`appProperties.relpath`)
-- [ ] `sync/manifest.py`: per device, per file: last synced local hash, Drive file id, Drive `md5Checksum` and `modifiedTime`; plus a copy of the last synced content (merge base) in the state dir
+- [x] `sync/manifest.py`: per device, per file: last synced local hash, Drive file id, Drive `md5Checksum` and `modifiedTime`; plus a copy of the last synced content (merge base) in the state dir
 - [ ] Sync on startup, after each write (debounced) and on `/sync`
 - [x] `sync/merge.py` decision table (pure part: `decide`, `three_way`, `updated:` resolver; the LLM fallback lands with the orchestration):
   - only local changed → push
