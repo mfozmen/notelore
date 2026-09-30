@@ -56,13 +56,22 @@ class Agent:
             kept = _KEPT if calling else {"text"}
             blocks = [b for b in response.content if b.get("type") in kept]
             if not blocks:
-                return ""  # nothing to keep: an empty assistant turn would be rejected next time
+                return self._close("")
             self.messages.append({"role": "assistant", "content": blocks})
             uses = [b for b in blocks if b["type"] == "tool_use"]
             if not uses:
                 return "\n".join(b["text"] for b in blocks if b["type"] == "text")
             self.messages.append({"role": "user", "content": [self._run(u) for u in uses]})
-        return "I stopped after too many tool calls in a row. Please rephrase the request."
+        return self._close(
+            "I stopped after too many tool calls in a row. Please rephrase the request."
+        )
+
+    def _close(self, answer: str) -> str:
+        """End the turn with an assistant message so user and assistant keep alternating."""
+        self.messages.append(
+            {"role": "assistant", "content": [{"type": "text", "text": answer or "(no answer)"}]}
+        )
+        return answer
 
     def _run(self, use: Block) -> Block:
         args = use.get("input") or {}
