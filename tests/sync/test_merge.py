@@ -130,3 +130,8 @@ def test_first_sync_with_no_base_merges_against_empty() -> None:
 
 def test_text_without_trailing_newline_survives() -> None:
     assert three_way("a\nb", "a\nb", "a\nB").text() == "a\nB"
+
+
+def test_abutting_edits_on_neighbouring_lines_merge() -> None:
+    base = "a\nb\nc\nd\n"
+    assert three_way(base, "a\nB\nc\nd\n", "a\nb\nC\nd\n").text() == "a\nB\nC\nd\n"
