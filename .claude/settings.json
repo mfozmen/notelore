@@ -1,0 +1,32 @@
+{
+  "env": {
+    "NOTELORE_HOME": ".dev-home"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(uv sync:*)",
+      "Bash(uv add:*)",
+      "Bash(uv lock:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(uv run ruff:*)",
+      "Bash(uv run mypy:*)",
+      "Bash(uv run pre-commit:*)",
+      "Bash(uv run notelore:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(git checkout -b:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr checks:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(pip install:*)"
+    ]
+  }
+}
