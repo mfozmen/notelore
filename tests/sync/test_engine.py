@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import datetime
 import hashlib
+import os
+import unicodedata
 from pathlib import Path
 
 import pytest
@@ -247,3 +249,81 @@ def test_gone_on_both_sides_is_forgotten(root: Path, manifest: Manifest) -> None
     report = run(root, manifest, drive)
     assert report.changed == 0
     assert manifest.get("topics/t.md") is None
+
+
+def test_nfd_local_names_match_nfc_remote_names(root: Path, manifest: Manifest) -> None:
+    nfc = unicodedata.normalize("NFC", "topics/café.md")
+    write(root, unicodedata.normalize("NFD", nfc), NOTE)
+    drive = FakeDrive()
+    drive.put(nfc, NOTE)
+    report = run(root, manifest, drive)
+    assert report.changed == 0
+    assert manifest.paths() == [nfc]
+    assert list(drive.files) == [nfc]
+
+
+def test_paths_differing_only_in_case_are_not_touched(root: Path, manifest: Manifest) -> None:
+    drive = FakeDrive()
+    drive.put("topics/A.md", NOTE)
+    drive.put("topics/a.md", NOTE.replace("one", "two"))
+    report = run(root, manifest, drive)
+    assert report.ignored == ["topics/A.md", "topics/a.md"]
+    assert not (root / "topics").exists()
+
+
+def test_a_file_that_is_not_utf8_is_skipped_not_fatal(root: Path, manifest: Manifest) -> None:
+    (root / "topics").mkdir(parents=True)
+    (root / "topics" / "latin1.md").write_bytes(b"caf\xe9\n")
+    write(root, "topics/fine.md", NOTE)
+    drive = FakeDrive()
+    drive.files["topics/remote-latin1.md"] = ("r1", b"caf\xe9\n")
+    report = run(root, manifest, drive)
+    assert report.skipped == ["topics/latin1.md", "topics/remote-latin1.md"]
+    assert report.pushed == ["topics/fine.md"]
+
+
+def test_a_failed_upload_after_a_merge_changes_nothing(
+    root: Path, manifest: Manifest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write(root, "projects/a.md", NOTE)
+    drive = FakeDrive()
+    run(root, manifest, drive)
+    local = NOTE.replace("- 2026-09-01: one\n", "- 2026-09-01: one\n- 2026-09-02: laptop\n")
+    write(root, "projects/a.md", local)
+    drive.put("projects/a.md", NOTE + "- [ ] 2026-09-03: mac\n")
+
+    def offline(rel: str, data: bytes, file_id: str | None) -> RemoteFile:
+        raise OSError("offline")
+
+    monkeypatch.setattr(drive, "upload", offline)
+    with pytest.raises(OSError, match="offline"):
+        run(root, manifest, drive)
+    assert read(root, "projects/a.md") == local
+    assert manifest.base("projects/a.md") == NOTE
+
+
+def test_history_and_archive_files_sync_like_notes(root: Path, manifest: Manifest) -> None:
+    write(root, f".notelore/history/{STAMP}/projects/a.local.md", NOTE)
+    drive = FakeDrive()
+    assert run(root, manifest, drive).pushed == [f".notelore/history/{STAMP}/projects/a.local.md"]
+
+
+def test_removal_waits_for_a_file_windows_holds(
+    root: Path, manifest: Manifest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write(root, "topics/t.md", NOTE)
+    drive = FakeDrive()
+    run(root, manifest, drive)
+    del drive.files["topics/t.md"]
+    real_replace = os.replace
+    failures: list[object] = []
+
+    def flaky(src: str | os.PathLike[str], dst: str | os.PathLike[str]) -> None:
+        if not failures:
+            failures.append(dst)
+            raise PermissionError("held by Obsidian")
+        real_replace(src, dst)
+
+    monkeypatch.setattr(os, "replace", flaky)
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    assert run(root, manifest, drive).removed_local == ["topics/t.md"]

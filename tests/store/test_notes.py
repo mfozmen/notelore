@@ -322,3 +322,25 @@ def test_raw_lines_are_never_archived_as_entries(root: Path) -> None:
     notes.write_note(path, note, today=TODAY)
     with pytest.raises(IndexError):
         notes.archive_entries(root, path, {"notes": [1]}, today=TODAY)
+
+
+def test_move_with_retry_waits_for_a_file_windows_holds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source, target = tmp_path / "a.md", tmp_path / "sub" / "a.md"
+    source.write_text("x", encoding="utf-8")
+    target.parent.mkdir()
+    real_replace = os.replace
+    failures: list[object] = []
+
+    def flaky(src: str | os.PathLike[str], dst: str | os.PathLike[str]) -> None:
+        if not failures:
+            failures.append(dst)
+            raise PermissionError("held by Obsidian")
+        real_replace(src, dst)
+
+    monkeypatch.setattr(os, "replace", flaky)
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    notes.move_with_retry(source, target)
+    assert target.read_text(encoding="utf-8") == "x"
+    assert not source.exists()
