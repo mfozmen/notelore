@@ -26,12 +26,16 @@ Fetch = Callable[[str], bytes]
 
 
 def _fetch(url: str) -> bytes:
-    with urllib.request.urlopen(url, timeout=10) as response:
+    with urllib.request.urlopen(url, timeout=3) as response:  # runs at startup: stay short
         return bytes(response.read())
 
 
 def is_newer(candidate: str, current: str) -> bool:
-    return tuple(map(int, candidate.split("."))) > tuple(map(int, current.split(".")))
+    """Numeric compare; anything unparsable (a pre-release tag, a garbled cache) is not newer."""
+    try:
+        return tuple(map(int, candidate.split("."))) > tuple(map(int, current.split(".")))
+    except ValueError:
+        return False
 
 
 def asset_name(version: str, system: str, machine: str) -> str:
@@ -64,8 +68,11 @@ def check(cache: Path, now: float, current: str, fetch: Fetch = _fetch) -> str |
             version, _ = latest(fetch)
         except (OSError, ValueError, KeyError, TypeError):
             return None  # offline or a garbled response: try again next time
-        cache.parent.mkdir(parents=True, exist_ok=True)
-        cache.write_text(json.dumps({"version": version, "checked_at": now}), encoding="utf-8")
+        try:
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            cache.write_text(json.dumps({"version": version, "checked_at": now}), encoding="utf-8")
+        except OSError:
+            pass  # read-only or full state dir: the check just repeats next start
     return version if is_newer(version, current) else None
 
 
@@ -87,8 +94,13 @@ def apply(exe: Path, system: str, machine: str, fetch: Fetch = _fetch) -> str | 
     new.write_bytes(archive.read(archive.namelist()[0]))
     new.chmod(0o755)
     # A running executable can be renamed on every OS, but not overwritten on Windows.
-    exe.replace(exe.with_suffix(".old"))
-    new.replace(exe)
+    old = exe.with_suffix(".old")
+    exe.replace(old)
+    try:
+        new.replace(exe)
+    except OSError:
+        old.replace(exe)  # never leave the user without an executable
+        raise
     return version
 
 

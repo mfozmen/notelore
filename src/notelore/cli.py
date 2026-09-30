@@ -17,7 +17,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     sub.add_parser("update", help="download and install the latest release")
     args = parser.parse_args(argv)
 
-    update.cleanup(Path(sys.executable))
+    if getattr(sys, "frozen", False):  # a PyInstaller build may have left its previous self behind
+        update.cleanup(Path(sys.executable))
     if args.command == "update":
         return update.run_update()
 
