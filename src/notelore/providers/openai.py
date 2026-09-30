@@ -99,7 +99,7 @@ def from_openai(completion: Any) -> AgentResponse:
             }
         )
     tool_use = any(b["type"] == "tool_use" for b in blocks)
-    finish = str(getattr(choices[0], "finish_reason", "stop"))
-    if not tool_use and finish not in {"stop", "None"}:
+    finish = getattr(choices[0], "finish_reason", None)
+    if not tool_use and finish not in (None, "stop"):
         blocks.append({"type": "text", "text": f"[The model stopped early: {finish}.]"})
     return AgentResponse(blocks, "tool_use" if tool_use else "end_turn")

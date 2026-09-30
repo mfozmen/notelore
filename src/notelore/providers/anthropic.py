@@ -30,17 +30,17 @@ class AnthropicProvider:
                 for t in tools
             ]
         response = client.messages.create(**kwargs)
-        return AgentResponse(
-            [block_to_dict(b) for b in response.content],
-            "tool_use" if response.stop_reason == "tool_use" else "end_turn",
-        )
+        blocks = [block_to_dict(b) for b in response.content]
+        if response.stop_reason not in ("end_turn", "tool_use", "stop_sequence"):
+            blocks.append(
+                {"type": "text", "text": f"[The model stopped early: {response.stop_reason}.]"}
+            )
+        stop = "tool_use" if response.stop_reason == "tool_use" else "end_turn"
+        return AgentResponse(blocks, stop)
 
 
 def block_to_dict(block: Any) -> Block:
-    """A response block as a plain dict, with or without pydantic's ``model_dump``."""
-    if hasattr(block, "model_dump"):
-        dumped: Block = block.model_dump()
-        return dumped
+    """A response block as a plain dict, holding only the fields the API accepts back."""
     kind = getattr(block, "type", None)
     if kind == "text":
         return {"type": "text", "text": block.text}
