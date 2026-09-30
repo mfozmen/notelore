@@ -203,3 +203,37 @@ def test_apply_rolls_back_when_the_new_binary_cannot_move_in(
         update.apply(exe, "Windows", "AMD64", fetch=fetch)
     assert exe.read_bytes() == b"old"
     assert not exe.with_suffix(".old").exists()
+
+
+def test_cleanup_tolerates_a_locked_old_executable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old = tmp_path / "notelore.old"
+    old.write_bytes(b"old")
+
+    def unlink(self: Path, missing_ok: bool = False) -> None:
+        raise PermissionError("held by another process")
+
+    monkeypatch.setattr(Path, "unlink", unlink)
+    update.cleanup(tmp_path / "notelore.exe")  # must not raise: retried next start
+
+
+def test_apply_removes_the_download_when_the_running_binary_cannot_be_renamed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    exe = tmp_path / "notelore.exe"
+    exe.write_bytes(b"old")
+    original = Path.replace
+
+    def replace(self: Path, target: Path) -> Path:
+        if self == exe:
+            raise PermissionError("locked")
+        return original(self, target)
+
+    monkeypatch.setattr(Path, "replace", replace)
+    name = f"notelore-{V}-windows-x64.zip"
+    fetch = Fetch({API: release(), f"https://dl/{name}": zipped("notelore.exe", b"new")})
+    with pytest.raises(PermissionError):
+        update.apply(exe, "Windows", "AMD64", fetch=fetch)
+    assert exe.read_bytes() == b"old"
+    assert not exe.with_suffix(".new").exists()
