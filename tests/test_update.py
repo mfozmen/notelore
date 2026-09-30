@@ -106,15 +106,15 @@ def test_fetch_is_a_plain_http_get(monkeypatch: pytest.MonkeyPatch) -> None:
         def __exit__(self, *exc: object) -> None:
             self.close()
 
-    seen: list[str] = []
+    seen: list[tuple[str, float]] = []
 
     def urlopen(url: str, timeout: float) -> Response:
-        seen.append(url)
+        seen.append((url, timeout))
         return Response(b"body")
 
     monkeypatch.setattr("urllib.request.urlopen", urlopen)
     assert update._fetch("https://x/") == b"body"
-    assert seen == ["https://x/"]
+    assert seen == [("https://x/", 3)]  # short: this runs at startup
 
 
 def test_apply_replaces_the_executable_and_keeps_the_old_one(tmp_path: Path) -> None:
@@ -170,3 +170,36 @@ def test_cleanup_removes_the_previous_executable(tmp_path: Path) -> None:
     update.cleanup(tmp_path / "notelore.exe")
     assert not old.exists()
     update.cleanup(tmp_path / "notelore.exe")  # nothing left: still fine
+
+
+def test_prerelease_or_garbled_versions_never_crash_the_check(tmp_path: Path) -> None:
+    assert not update.is_newer("0.2.0-rc1", "0.1.0")
+    fetch = Fetch({API: release("0.2.0-rc1")})
+    assert update.check(tmp_path / "c.json", now=1.0, current="0.1.0", fetch=fetch) is None
+
+
+def test_check_survives_an_unwritable_cache(tmp_path: Path) -> None:
+    (tmp_path / "file").write_bytes(b"")
+    cache = tmp_path / "file" / "c.json"  # parent is a file: mkdir fails
+    assert update.check(cache, now=1.0, current="0.1.0", fetch=Fetch({API: release()})) == V
+
+
+def test_apply_rolls_back_when_the_new_binary_cannot_move_in(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    exe = tmp_path / "notelore.exe"
+    exe.write_bytes(b"old")
+    original = Path.replace
+
+    def replace(self: Path, target: Path) -> Path:
+        if self.suffix == ".new":
+            raise PermissionError("locked")
+        return original(self, target)
+
+    monkeypatch.setattr(Path, "replace", replace)
+    name = f"notelore-{V}-windows-x64.zip"
+    fetch = Fetch({API: release(), f"https://dl/{name}": zipped("notelore.exe", b"new")})
+    with pytest.raises(PermissionError):
+        update.apply(exe, "Windows", "AMD64", fetch=fetch)
+    assert exe.read_bytes() == b"old"
+    assert not exe.with_suffix(".old").exists()

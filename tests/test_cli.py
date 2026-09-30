@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import pytest
 
 from notelore import __version__, update
@@ -32,3 +35,15 @@ def test_no_hint_when_current(
 def test_update_subcommand(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(update, "run_update", lambda: 7)
     assert main(["update"]) == 7
+
+
+def test_old_executable_is_cleaned_only_in_a_frozen_build(monkeypatch: pytest.MonkeyPatch) -> None:
+    cleaned: list[Path] = []
+    monkeypatch.setattr(update, "cleanup", cleaned.append)
+    monkeypatch.setattr(update, "hint", lambda: None)
+    main([])
+    assert cleaned == []
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", "C:/apps/notelore.exe")
+    main([])
+    assert cleaned == [Path("C:/apps/notelore.exe")]
