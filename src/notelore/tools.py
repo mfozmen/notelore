@@ -144,11 +144,9 @@ class Toolbox:
             return _dumps(method(**args))
         except (
             ValueError,
-            KeyError,
             LookupError,
             TypeError,
-            FileNotFoundError,
-            FileExistsError,
+            OSError,  # incl. a Windows PermissionError while another app holds the file
         ) as exc:
             return f"Error: {_message(exc)}"
 
