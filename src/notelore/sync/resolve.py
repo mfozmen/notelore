@@ -10,6 +10,7 @@ the engine then skips the file and tries again on the next sync.
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass, field
 
 from notelore.providers import LLMProvider
@@ -49,13 +50,16 @@ class ModelResolver:
         )
         try:
             response = self.provider.turn(SYSTEM, [{"role": "user", "content": prompt}], [])
-        except Exception:
+        except Exception:  # any provider failure (offline, quota, auth): the conflict stays open
             return None
         text = "".join(b.get("text", "") for b in response.content if b.get("type") == "text")
         merged, why = _MERGED.search(text), _WHY.search(text)
         if merged is None or why is None:
             return None
-        body = merged.group(1)
+        body = unicodedata.normalize("NFC", merged.group(1))  # model output may come back NFD
         lines = [f"{line}\n" for line in body.splitlines()]
-        self.explanations.append(why.group(1).strip())
+        explanation = why.group(1).strip()
+        if not lines:  # dropping facts must be visible to the user, not just reversible
+            explanation = f"Removed the conflicting lines: {explanation}"
+        self.explanations.append(explanation)
         return lines
