@@ -37,18 +37,35 @@ jobs:
       tag: ${{ steps.release.outputs.tag }}
       version: ${{ steps.release.outputs.version }}
     steps:
+      # main is protected by a ruleset whose only bypass is a deploy key: the
+      # version commit and tag go out over SSH with RELEASE_DEPLOY_KEY. The
+      # GitHub Release itself is an API call and uses GITHUB_TOKEN.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
 
       - name: Python Semantic Release
         id: release
         uses: python-semantic-release/python-semantic-release@v10.7.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          push: "true"
+          # Commit and tag locally only: the action runs in a container that
+          # cannot use the checkout's SSH setup, so the push is the next step.
+          push: "false"
+          vcs_release: "false"
           force: ${{ inputs.force }}
+
+      - name: Push the version commit and tag
+        if: steps.release.outputs.released == 'true'
+        run: git push origin HEAD:main "refs/tags/${{ steps.release.outputs.tag }}"
+
+      - name: Create the GitHub Release
+        if: steps.release.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NOTES: ${{ steps.release.outputs.release_notes }}
+        run: gh release create "${{ steps.release.outputs.tag }}" --title "${{ steps.release.outputs.tag }}" --notes "$NOTES"
 
   build:
     name: Executable (${{ matrix.name }})
