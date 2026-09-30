@@ -76,16 +76,21 @@ def atomic_write(path: Path, text: str) -> None:
             handle.write(text)
             handle.flush()
             os.fsync(handle.fileno())
-        for attempt in range(_REPLACE_ATTEMPTS - 1):
-            try:
-                tmp.replace(path)
-                return
-            except PermissionError:  # Windows: antivirus or an editor holds the file
-                time.sleep(0.05 * 2**attempt)
-        tmp.replace(path)  # the last attempt lets the error out
+        move_with_retry(tmp, path)
     except BaseException:
         tmp.unlink(missing_ok=True)
         raise
+
+
+def move_with_retry(source: Path, target: Path) -> None:
+    """``source.replace(target)``, retried briefly while Windows reports the file as held."""
+    for attempt in range(_REPLACE_ATTEMPTS - 1):
+        try:
+            source.replace(target)
+            return
+        except PermissionError:  # Windows: antivirus or an editor holds the file
+            time.sleep(0.05 * 2**attempt)
+    source.replace(target)  # the last attempt lets the error out
 
 
 def read_note(path: Path) -> Note:
@@ -239,7 +244,7 @@ def archive_note(root: Path, path: Path, today: datetime.date | None = None) -> 
     while target.exists():
         number += 1
         target = target.with_name(f"{stem}-{number}.md")
-    path.replace(target)
+    move_with_retry(path, target)
     return target
 
 

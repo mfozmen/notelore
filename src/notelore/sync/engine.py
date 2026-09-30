@@ -16,11 +16,13 @@ plug in the same way.
 from __future__ import annotations
 
 import datetime
+import unicodedata
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
-from notelore.store.notes import atomic_write
+from notelore.store.notes import atomic_write, move_with_retry
 from notelore.sync.manifest import Entry, Manifest, checked_rel, content_hash
 from notelore.sync.merge import Action, Conflict, Resolver, auto_resolve, decide, three_way
 
@@ -77,17 +79,33 @@ def sync(
     now: datetime.datetime | None = None,
 ) -> Report:
     stamp = (now or datetime.datetime.now(datetime.UTC)).strftime("%Y-%m-%dT%H%M%SZ")
-    local = {p.relative_to(root).as_posix() for p in root.rglob("*.md")} if root.exists() else set()
-    remote_files = remote.list()
+    # Keys are NFC: macOS hands back NFD names for the same note Drive stores as NFC.
+    local = (
+        {_nfc(p.relative_to(root).as_posix()): p for p in root.rglob("*.md")}
+        if root.exists()
+        else {}
+    )
+    remote_files = {_nfc(rel): meta for rel, meta in remote.list().items()}
     report = Report()
-    for rel in sorted(local | set(remote_files) | set(manifest.paths())):
+    keys = set(local) | set(remote_files) | set(manifest.paths())
+    # Windows and macOS file systems ignore case: two such paths would overwrite each other.
+    folded = Counter(key.casefold() for key in keys)
+    run = _Pass(root, manifest, remote, resolve, stamp, report)
+    for rel in sorted(keys):
         try:
             checked_rel(rel)
         except ValueError:
             report.ignored.append(rel)
             continue
-        _Pass(root, manifest, remote, resolve, stamp, report).file(rel, remote_files.get(rel))
+        if folded[rel.casefold()] > 1:
+            report.ignored.append(rel)
+            continue
+        run.file(rel, remote_files.get(rel), local.get(rel))
     return report
+
+
+def _nfc(text: str) -> str:
+    return unicodedata.normalize("NFC", text)
 
 
 @dataclass
@@ -105,19 +123,23 @@ class _Pass:
     def _history(self, rel: str) -> Path:
         return self._path(rel, self.root / ".notelore" / "history" / self.stamp)
 
-    def file(self, rel: str, meta: RemoteFile | None) -> None:
-        path = self._path(rel)
-        local_text = path.read_bytes().decode("utf-8") if path.exists() else None
+    def file(self, rel: str, meta: RemoteFile | None, found: Path | None) -> None:
+        path = found or self._path(rel)  # the name on disk may be NFD; new files are written NFC
         entry = self.manifest.get(rel)
         base_hash = entry.local_hash if entry else None
         remote_text: str | None = None
-        if meta is None:
-            remote_hash = None
-        elif entry is not None and meta.md5 == entry.md5:
-            remote_hash = base_hash  # untouched since the last sync: no download needed
-        else:
-            remote_text = self.remote.download(meta.id).decode("utf-8")
-            remote_hash = content_hash(remote_text)
+        try:
+            local_text = path.read_bytes().decode("utf-8") if found else None
+            if meta is None:
+                remote_hash = None
+            elif entry is not None and meta.md5 == entry.md5:
+                remote_hash = base_hash  # untouched since the last sync: no download needed
+            else:
+                remote_text = self.remote.download(meta.id).decode("utf-8")
+                remote_hash = content_hash(remote_text)
+        except UnicodeDecodeError:
+            self.report.skipped.append(rel)  # not a UTF-8 note; one bad file never stops the rest
+            return
         local_hash = content_hash(local_text) if local_text is not None else None
         action = decide(base_hash, local_hash, remote_hash)
 
@@ -145,7 +167,7 @@ class _Pass:
         elif action is Action.REMOVE_LOCAL:
             target = self._history(rel)
             target.parent.mkdir(parents=True, exist_ok=True)
-            path.replace(target)
+            move_with_retry(path, target)
             self.manifest.forget(rel)
             self.report.removed_local.append(rel)
             self.report.history.append(target.relative_to(self.root).as_posix())
@@ -161,6 +183,8 @@ class _Pass:
     def _merge(
         self, rel: str, path: Path, meta: RemoteFile, local_text: str, remote_text: str
     ) -> None:
+        # No base (first sync, or a damaged copy) merges against empty: the whole file is
+        # then one conflict, which goes to the model or is skipped, never guessed.
         base = self.manifest.base(rel) or ""
         asked_model = False
 
@@ -177,6 +201,8 @@ class _Pass:
         except ValueError:
             self.report.skipped.append(rel)  # nothing written or recorded: retried next time
             return
+        # Upload first: if it fails, neither side has changed and the next sync starts over.
+        uploaded = self.remote.upload(rel, text.encode("utf-8"), meta.id)
         if asked_model:  # the losing sides stay available, never silently dropped
             for side, content in (("local", local_text), ("remote", remote_text)):
                 kept = self._history(rel)
@@ -184,6 +210,5 @@ class _Pass:
                 atomic_write(kept, content)
                 self.report.history.append(kept.relative_to(self.root).as_posix())
         atomic_write(path, text)
-        uploaded = self.remote.upload(rel, text.encode("utf-8"), meta.id)
         self._record(rel, uploaded, text)
         self.report.merged.append(rel)
