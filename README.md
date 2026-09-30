@@ -17,7 +17,7 @@ Download the latest `notelore-<version>-windows-x64.zip` or `notelore-<version>-
 
 Notelore checks for a newer release once a day (silently skipped when offline) and tells you when one exists. `notelore update` downloads it and replaces the executable in place; a Python install gets the matching `uv tool upgrade notelore` hint instead.
 
-Releases are cut automatically from the Conventional Commit history on `main`: a `feat` commit bumps the minor version, `fix` or `perf` the patch version; other types (`docs`, `chore`, `ci`...) do not release.
+Releases are cut on demand from the Conventional Commit history on `main`: a `feat` commit bumps the minor version, `fix` or `perf` the patch version; other types (`docs`, `chore`, `ci`...) do not.
 
 ## Development
 
