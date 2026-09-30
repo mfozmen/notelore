@@ -135,3 +135,13 @@ def test_serialize_writes_canonical_entries() -> None:
 def test_missing_front_matter_raises() -> None:
     with pytest.raises(ValueError, match="front matter"):
         parse("# No front matter\n")
+
+
+@pytest.mark.parametrize(
+    "front",
+    ["- a\n- b\n", "just a scalar\n", "title: [unclosed\n", "kind: topic\n"],
+    ids=["list", "scalar", "malformed", "no-title"],
+)
+def test_invalid_front_matter_raises_value_error(front: str) -> None:
+    with pytest.raises(ValueError, match="front matter"):
+        parse(f"---\n{front}---\n# T\n")

@@ -116,7 +116,12 @@ def parse(text: str) -> Note:
     end = text.find("\n---\n", 4)
     if end < 0:
         raise ValueError("unterminated YAML front matter")
-    meta = yaml.safe_load(text[4 : end + 1]) or {}
+    try:
+        meta = yaml.safe_load(text[4 : end + 1])
+    except yaml.YAMLError as exc:
+        raise ValueError(f"invalid YAML front matter: {exc}") from exc
+    if not isinstance(meta, dict) or "title" not in meta:
+        raise ValueError("front matter must be a mapping with a title")
     body = text[end + 5 :].removesuffix("\n")
     lines = body.split("\n") if body else []
     if not lines or not lines[0].startswith("# "):
