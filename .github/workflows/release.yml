@@ -120,9 +120,14 @@ jobs:
           else
             (cd dist && zip -q "../$asset" ${{ matrix.exe }})
           fi
+          # sha256sum format; notelore update refuses a download without it.
+          python3 -c "import hashlib, sys; d = open(sys.argv[1], 'rb').read(); print(f'{hashlib.sha256(d).hexdigest()}  {sys.argv[1]}')" "$asset" > "$asset.sha256"
+          cat "$asset.sha256"
           echo "asset=$asset" >> "$GITHUB_OUTPUT"
 
       - name: Attach to the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ needs.release.outputs.tag }} ${{ steps.pkg.outputs.asset }} --clobber
+          TAG: ${{ needs.release.outputs.tag }}
+          ASSET: ${{ steps.pkg.outputs.asset }}
+        run: gh release upload "$TAG" "$ASSET" "$ASSET.sha256" --clobber
