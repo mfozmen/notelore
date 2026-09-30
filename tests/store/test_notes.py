@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import unicodedata
 from datetime import date
 from pathlib import Path
 
@@ -181,6 +182,38 @@ def test_todos(root: Path) -> None:
         notes.complete_todo(path, 3, today=TODAY)
 
 
+def test_identical_todos_are_completed_by_position(root: Path) -> None:
+    path = notes.create_note(root, "project", "Mopsos", today=TODAY)
+    notes.add_todo(path, "same", today=TODAY)
+    notes.add_todo(path, "same", today=TODAY)
+    notes.complete_todo(path, 2, today=TODAY)
+    assert entries(path, "todo")[:2] == [Todo(TODAY, "same"), Todo(TODAY, "same", done=True)]
+
+
+def test_written_text_is_nfc(root: Path) -> None:
+    nfd = unicodedata.normalize("NFD", "Şükrü")
+    path = notes.create_note(root, "topic", nfd, today=TODAY)
+    notes.add_entry(path, nfd, today=TODAY)
+    notes.record_decision(path, nfd, nfd, reason=nfd, today=TODAY)
+    text = path.read_text(encoding="utf-8")
+    assert unicodedata.is_normalized("NFC", text)
+    assert text.count("Şükrü") == 5  # title, heading, entry, topic, value(+reason)
+
+
+def test_decision_value_and_topic_are_normalized(root: Path) -> None:
+    path = notes.create_note(root, "project", "Mopsos", today=TODAY)
+    notes.record_decision(path, " Database ", "SQLite\r\nsingle file.", today=TODAY)
+    assert entries(path, "decisions")[0] == Decision(TODAY, "database", "SQLite\n  single file.")
+    with pytest.raises(ValueError, match="topic"):
+        notes.record_decision(path, "a*b", "x", today=TODAY)
+
+
+def test_note_files_are_readable_by_other_tools(root: Path) -> None:
+    path = notes.create_note(root, "project", "Mopsos", today=TODAY)
+    if os.name != "nt":
+        assert path.stat().st_mode & 0o777 == 0o644
+
+
 def test_record_decision_supersedes_the_active_one_for_the_topic(root: Path) -> None:
     path = notes.create_note(root, "project", "Mopsos", today=TODAY)
     notes.record_decision(path, "database", "PostgreSQL", today=date(2026, 9, 12))
@@ -238,6 +271,9 @@ def test_archive_entries_rejects_bad_indexes(root: Path) -> None:
         notes.archive_entries(root, path, {"notes": [1]}, today=TODAY)
     with pytest.raises(ValueError, match="section"):
         notes.archive_entries(root, path, {"links": [1]}, today=TODAY)
+    notes.add_entry(path, "one", today=TODAY)
+    with pytest.raises(ValueError, match="twice"):
+        notes.archive_entries(root, path, {"notes": [1, 1]}, today=TODAY)
 
 
 def test_raw_lines_are_never_archived_as_entries(root: Path) -> None:
