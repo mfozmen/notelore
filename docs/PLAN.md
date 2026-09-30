@@ -49,7 +49,7 @@ No tool overwrites a file or deletes anything.
 - [ ] App creates a `Notelore` folder in Drive and mirrors the notes tree by relative path (`appProperties.relpath`)
 - [ ] `sync/manifest.py`: per device, per file: last synced local hash, Drive file id, Drive `md5Checksum` and `modifiedTime`; plus a copy of the last synced content (merge base) in the state dir
 - [ ] Sync on startup, after each write (debounced) and on `/sync`
-- [ ] `sync/merge.py` decision table:
+- [x] `sync/merge.py` decision table (pure part: `decide`, `three_way`, `updated:` resolver; the LLM fallback lands with the orchestration):
   - only local changed → push
   - only remote changed → pull
   - both changed, non-overlapping → automatic line-level three-way merge
