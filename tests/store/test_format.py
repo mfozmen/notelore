@@ -145,3 +145,35 @@ def test_missing_front_matter_raises() -> None:
 def test_invalid_front_matter_raises_value_error(front: str) -> None:
     with pytest.raises(ValueError, match="front matter"):
         parse(f"---\n{front}---\n# T\n")
+
+
+@pytest.mark.parametrize(
+    ("text", "match"),
+    [
+        ("---\ntitle: T\n", "unterminated"),
+        ("---\ntitle: T\n---\n", "missing '#"),
+        ("---\ntitle: T\n---\nno heading\n", "missing '#"),
+    ],
+)
+def test_structural_errors_raise_value_error(text: str, match: str) -> None:
+    with pytest.raises(ValueError, match=match):
+        parse(text)
+
+
+def test_unknown_section_lookup_returns_none() -> None:
+    assert parse(MOPSOS.decode("utf-8")).section("nope") is None
+
+
+def test_unparsable_bullets_in_known_sections_stay_raw() -> None:
+    text = (
+        "---\ntitle: T\n---\n# T\n"
+        "## Decisions\n- 2026-13-45 — **x**: bad month.\n- free bullet\n"
+        "## Notes\n- [ ] 2026-09-30: todo syntax in notes\n"
+        "## Todo\n- 2026-09-30: note syntax in todo\n"
+    )
+    note = parse(text)
+    for key in ("decisions", "notes", "todo"):
+        section = note.section(key)
+        assert section is not None
+        assert all(isinstance(e, Raw) for e in section.entries), key
+    assert serialize(note) == text
