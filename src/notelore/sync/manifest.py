@@ -5,6 +5,9 @@ the local content hash, the Drive file id, Drive's ``md5Checksum`` and
 ``modifiedTime`` at that moment, and a copy of the content itself: the base for
 the next three-way merge. All of it is derived state; losing it only means the
 next sync compares everything again.
+
+Keys are case-sensitive while the Windows and macOS file systems are not; the
+note slugs are lowercase, so two keys differing only in case do not occur.
 """
 
 from __future__ import annotations
@@ -46,6 +49,20 @@ def _checked(rel: str) -> PurePosixPath:
     return path
 
 
+def _entry(rel: str, fields: object) -> Entry | None:
+    """A loaded entry, or None when its path is unsafe or its fields are not all strings."""
+    if not isinstance(fields, dict):
+        return None
+    try:
+        _checked(rel)
+    except ValueError:
+        return None
+    names = [f.name for f in dataclasses.fields(Entry)]
+    if sorted(fields) != sorted(names) or not all(isinstance(v, str) for v in fields.values()):
+        return None
+    return Entry(**fields)
+
+
 class Manifest:
     def __init__(self, state_dir: Path) -> None:
         self._dir = state_dir / "sync"
@@ -55,9 +72,11 @@ class Manifest:
     def _load(self) -> dict[str, Entry]:
         try:
             raw = json.loads(self._file.read_text(encoding="utf-8"))
-            return {rel: Entry(**fields) for rel, fields in raw.items()}
-        except (OSError, ValueError, TypeError, AttributeError):
+        except (OSError, ValueError):
             return {}  # missing or damaged: derived state, start over
+        if not isinstance(raw, dict):
+            return {}
+        return {rel: entry for rel, fields in raw.items() if (entry := _entry(rel, fields))}
 
     def _save(self) -> None:
         data = {rel: dataclasses.asdict(e) for rel, e in sorted(self._entries.items())}
@@ -73,9 +92,10 @@ class Manifest:
         return self._entries.get(rel)
 
     def base(self, rel: str) -> str | None:
+        path = self._base_file(rel)
         try:
-            return self._base_file(rel).read_text(encoding="utf-8")
-        except FileNotFoundError:
+            return path.read_text(encoding="utf-8")
+        except (OSError, ValueError):  # missing or damaged: no base, the next sync compares all
             return None
 
     def record(self, rel: str, entry: Entry, content: str) -> None:
@@ -85,6 +105,7 @@ class Manifest:
         self._save()
 
     def forget(self, rel: str) -> None:
+        base_file = self._base_file(rel)  # validates rel before anything is written
         self._entries.pop(rel, None)
         self._save()
-        self._base_file(rel).unlink(missing_ok=True)
+        base_file.unlink(missing_ok=True)

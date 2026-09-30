@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import unicodedata
 from pathlib import Path
 
@@ -48,11 +49,33 @@ def test_a_corrupt_manifest_is_derived_state_and_starts_empty(tmp_path: Path) ->
     assert Manifest(tmp_path).paths() == []
 
 
-def test_an_entry_with_a_missing_base_copy_has_no_base(tmp_path: Path) -> None:
+def test_an_entry_with_a_missing_or_damaged_base_copy_has_no_base(tmp_path: Path) -> None:
     manifest = Manifest(tmp_path)
     manifest.record("topics/x.md", ENTRY, "x\n")
-    (tmp_path / "sync" / "base" / "topics" / "x.md").unlink()
+    base_file = tmp_path / "sync" / "base" / "topics" / "x.md"
+    base_file.write_bytes(b"\xff\xfe not utf-8")
     assert manifest.base("topics/x.md") is None
+    base_file.unlink()
+    assert manifest.base("topics/x.md") is None
+
+
+def test_unsafe_or_malformed_entries_are_dropped_on_load(tmp_path: Path) -> None:
+    manifest_file = tmp_path / "sync" / "manifest.json"
+    manifest_file.parent.mkdir(parents=True)
+    good = {"local_hash": "h", "drive_id": "d", "md5": "m", "modified": "t"}
+    manifest_file.write_text(
+        json.dumps(
+            {
+                "topics/ok.md": good,
+                "../escape.md": good,
+                "topics/numbers.md": {**good, "md5": 5},
+                "topics/missing.md": {"local_hash": "h"},
+                "topics/scalar.md": "oops",
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert Manifest(tmp_path).paths() == ["topics/ok.md"]
 
 
 @pytest.mark.parametrize(
@@ -64,3 +87,8 @@ def test_relative_paths_from_drive_cannot_escape(tmp_path: Path, rel: str) -> No
         manifest.record(rel, ENTRY, "x\n")
     with pytest.raises(ValueError, match="relative path"):
         manifest.base(rel)
+    manifest.record("topics/keep.md", ENTRY, "k\n")
+    before = (tmp_path / "sync" / "manifest.json").read_bytes()
+    with pytest.raises(ValueError, match="relative path"):
+        manifest.forget(rel)
+    assert (tmp_path / "sync" / "manifest.json").read_bytes() == before  # untouched
