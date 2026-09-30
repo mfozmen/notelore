@@ -56,16 +56,25 @@ jobs:
           vcs_release: "false"
           force: ${{ inputs.force }}
 
+      # The container ran as root on this checkout; take .git back before pushing.
+      # --atomic: the commit and the tag land together or not at all.
       - name: Push the version commit and tag
         if: steps.release.outputs.released == 'true'
-        run: git push origin HEAD:main "refs/tags/${{ steps.release.outputs.tag }}"
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          sudo chown -R "$(id -u):$(id -g)" .git
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git push --atomic origin HEAD:main "refs/tags/$TAG"
 
+      # Re-runnable: an existing release for the tag is left as it is.
       - name: Create the GitHub Release
         if: steps.release.outputs.released == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.release.outputs.tag }}
           NOTES: ${{ steps.release.outputs.release_notes }}
-        run: gh release create "${{ steps.release.outputs.tag }}" --title "${{ steps.release.outputs.tag }}" --notes "$NOTES"
+        run: gh release view "$TAG" > /dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes "$NOTES"
 
   build:
     name: Executable (${{ matrix.name }})
