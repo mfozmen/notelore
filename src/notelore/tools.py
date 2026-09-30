@@ -256,13 +256,39 @@ def _check_arguments(tool: Tool, args: dict[str, Any]) -> str | None:
     for key, value in args.items():
         if key not in properties:
             return f"{tool.name} got an unknown argument {key!r}."
-        expected = properties[key]["type"]
-        if value is not None and (
-            not isinstance(value, _JSON_TYPES[expected])
-            or (expected == "integer" and isinstance(value, bool))
-        ):
-            return f"{tool.name} expects {key!r} to be {expected}, got {type(value).__name__}."
+        problem = _check_value(tool.name, key, value, properties[key])
+        if problem:
+            return problem
     return None
+
+
+def _check_value(tool: str, key: str, value: Any, schema: dict[str, Any]) -> str | None:
+    """Type check one value, descending into array items and object values."""
+    expected = schema["type"]
+    if value is None:
+        return None
+    if not _is(value, expected):
+        return f"{tool} expects {key!r} to be {expected}, got {type(value).__name__}."
+    if expected == "array":
+        item_type = schema["items"]["type"]
+        for item in value:
+            if not _is(item, item_type):
+                return (
+                    f"{tool} expects every item of {key!r} to be {item_type}, "
+                    f"got {type(item).__name__}."
+                )
+    if expected == "object" and "additionalProperties" in schema:
+        for name, nested in value.items():
+            problem = _check_value(tool, f"{key}.{name}", nested, schema["additionalProperties"])
+            if problem:
+                return problem
+    return None
+
+
+def _is(value: Any, json_type: str) -> bool:
+    if json_type == "integer" and isinstance(value, bool):
+        return False  # bool is an int subclass in Python, never a JSON integer
+    return isinstance(value, _JSON_TYPES[json_type])
 
 
 def _decision(decision: Any) -> dict[str, Any]:

@@ -78,7 +78,8 @@ def to_gemini(messages: list[Message], types: Any) -> list[Any]:
             )
             for r in results
         ]
-        role = "user" if message["role"] == "user" else "model"  # function responses: user
+        # Gemini expects function responses under role "user", like plain user text.
+        role = "user" if message["role"] == "user" else "model"
         contents.append(types.Content(role=role, parts=parts))
     return contents
 
