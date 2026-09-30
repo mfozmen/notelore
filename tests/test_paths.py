@@ -23,6 +23,6 @@ def test_relative_home_resolves_against_cwd(
 
 
 def test_defaults_without_override(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("NOTELORE_HOME")
+    monkeypatch.delenv("NOTELORE_HOME", raising=False)
     assert paths.notes_dir() == Path.home() / "Notelore"
     assert paths.state_dir() == Path(platformdirs.user_data_dir("notelore"))
