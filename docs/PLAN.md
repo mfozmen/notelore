@@ -12,8 +12,8 @@ Single roadmap. Tick items as PRs land; delete finished milestones once they are
 
 Everything here is pure, deterministic and fully unit-tested.
 
-- [ ] `paths.py`: `NOTELORE_HOME` override, `~/Notelore` + platformdirs defaults
-- [ ] `store/format.py`: parse and serialize the format in `docs/note-format.md`; byte-for-byte round-trip tests over `tests/fixtures/notes/` (include Turkish content, CRLF input normalization, unknown sections, empty sections)
+- [x] `paths.py`: `NOTELORE_HOME` override, `~/Notelore` + platformdirs defaults
+- [x] `store/format.py`: parse and serialize the format in `docs/note-format.md`; byte-for-byte round-trip tests over `tests/fixtures/notes/` (include Turkish content, CRLF input normalization, unknown sections, empty sections)
 - [ ] `store/notes.py`: create note, append note entry, add/complete todo, record decision (supersedes previous), archive entry/file, slugging rules, atomic writes with Windows retry
 - [ ] `store/index.py`: SQLite FTS5 index rebuilt from files (incremental by mtime + hash), `LIKE` fallback, `get_decision`, `decision_history`, `search`
 - [ ] `find_stale_notes` per the staleness signals
