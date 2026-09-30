@@ -12,9 +12,9 @@ import dataclasses
 import datetime
 import os
 import re
-import tempfile
 import time
 import unicodedata
+import uuid
 from pathlib import Path
 
 from notelore.i18n import SECTION_HEADINGS, section_heading
@@ -64,31 +64,27 @@ def note_path(root: Path, kind: str, slug: str) -> Path:
 # ---------------------------------------------------------------- I/O
 
 
-def _umask() -> int:
-    current = os.umask(0)  # the only portable way to read it is to set it and set it back
-    os.umask(current)
-    return current
-
-
 def atomic_write(path: Path, text: str) -> None:
     """UTF-8, LF, written to a temp file next to ``path`` and moved into place."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    tmp = path.parent / f".{path.name}.{uuid.uuid4().hex}.tmp"
+    # Created like any new file (0o666 minus the umask, applied by the OS), not
+    # mkstemp's 0600: notes are meant to be opened by other tools too.
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0), 0o666)
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
             handle.write(text)
             handle.flush()
             os.fsync(handle.fileno())
-        Path(tmp).chmod(0o666 & ~_umask())  # mkstemp gives 0600; honour the user's umask
         for attempt in range(_REPLACE_ATTEMPTS - 1):
             try:
-                Path(tmp).replace(path)
+                tmp.replace(path)
                 return
             except PermissionError:  # Windows: antivirus or an editor holds the file
                 time.sleep(0.05 * 2**attempt)
-        Path(tmp).replace(path)  # the last attempt lets the error out
+        tmp.replace(path)  # the last attempt lets the error out
     except BaseException:
-        Path(tmp).unlink(missing_ok=True)
+        tmp.unlink(missing_ok=True)
         raise
 
 

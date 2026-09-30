@@ -135,8 +135,9 @@ def test_apply_names_the_missing_build(tmp_path: Path) -> None:
     only_mac = json.dumps(
         {"tag_name": f"v{V}", "assets": [{"name": mac, "browser_download_url": "u"}]}
     ).encode()
+    fetch = Fetch({API: only_mac})
     with pytest.raises(ValueError, match=f"release {V} has no notelore-{V}-windows-x64.zip"):
-        update.apply(exe, "Windows", "AMD64", fetch=Fetch({API: only_mac}))
+        update.apply(exe, "Windows", "AMD64", fetch=fetch)
     assert exe.read_bytes() == b"old"
 
 

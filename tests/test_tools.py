@@ -204,6 +204,21 @@ def test_errors_come_back_as_messages_not_exceptions(box: Toolbox, tmp_path: Pat
     assert call(box, "create_note", kind="topic", title="T", tags="not-a-list") == (
         "Error: create_note expects 'tags' to be array, got str."
     )
+    assert call(box, "complete_todo", slug="dup", number=True, kind="topic") == (
+        "Error: complete_todo expects 'number' to be integer, got bool."
+    )
+    assert (
+        call(box, "add_todo", slug="dup", text="null due is fine", due=None, kind="topic") == "ok"
+    )
+    assert call(box, "create_note", kind="topic", title="T", tags=["ok", 2]) == (
+        "Error: create_note expects every item of 'tags' to be string, got int."
+    )
+    assert call(box, "archive", slug="dup", kind="topic", entries={"notes": ["one"]}) == (
+        "Error: archive expects every item of 'entries.notes' to be integer, got str."
+    )
+    assert call(box, "archive", slug="dup", kind="topic", entries={"notes": 1}) == (
+        "Error: archive expects 'entries.notes' to be array, got int."
+    )
 
 
 def test_a_bug_inside_the_store_is_not_disguised_as_a_tool_error(
