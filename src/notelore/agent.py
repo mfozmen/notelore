@@ -50,19 +50,25 @@ class Agent:
             response = self.provider.turn(
                 system_prompt(self.today), self.messages, self.toolbox.tools
             )
-            blocks = [b for b in response.content if b.get("type") in _KEPT]
+            calling = response.stop_reason == "tool_use"
+            # A tool_use outside a tool_use stop is half-built (e.g. cut by max_tokens):
+            # never run it, and never keep it, since history needs a result for every call.
+            kept = _KEPT if calling else {"text"}
+            blocks = [b for b in response.content if b.get("type") in kept]
             if not blocks:
                 return ""  # nothing to keep: an empty assistant turn would be rejected next time
             self.messages.append({"role": "assistant", "content": blocks})
             uses = [b for b in blocks if b["type"] == "tool_use"]
-            if response.stop_reason != "tool_use" or not uses:
+            if not uses:
                 return "\n".join(b["text"] for b in blocks if b["type"] == "text")
             self.messages.append({"role": "user", "content": [self._run(u) for u in uses]})
         return "I stopped after too many tool calls in a row. Please rephrase the request."
 
     def _run(self, use: Block) -> Block:
         args = use.get("input") or {}
-        if "__raw" in args:
+        if not isinstance(args, dict):
+            result = "Error: the tool arguments must be a JSON object."
+        elif "__raw" in args:
             result = f"Error: the tool arguments were not valid JSON: {args['__raw']}"
         else:
             result = self.toolbox.call(use["name"], args)

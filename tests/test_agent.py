@@ -124,3 +124,36 @@ def test_system_prompt_rules() -> None:
     prompt = system_prompt(TODAY)
     for rule in ("get_decision", "language", "ask", "archive", "2026-09-30"):
         assert rule in prompt
+
+
+def test_tool_use_outside_a_tool_use_stop_is_dropped_so_history_stays_valid(box: Toolbox) -> None:
+    truncated = AgentResponse(
+        [
+            {"type": "text", "text": "partial"},
+            {"type": "tool_use", "id": "t1", "name": "create_note", "input": {"kind": "pro"}},
+            {"type": "text", "text": "[The model stopped early: max_tokens.]"},
+        ],
+        "end_turn",
+    )
+    provider = ScriptedProvider(truncated, text("fine"))
+    agent = Agent(provider, box, today=TODAY)
+    assert agent.ask("x") == "partial\n[The model stopped early: max_tokens.]"
+    assert not any(
+        b.get("type") == "tool_use"
+        for m in agent.messages
+        for b in m["content"]
+        if isinstance(b, dict)
+    )
+    assert not (box.root / "projects").exists()  # the half-built call never ran
+    assert agent.ask("again") == "fine"
+
+
+def test_non_object_tool_input_is_an_error(box: Toolbox) -> None:
+    odd = AgentResponse(
+        [{"type": "tool_use", "id": "t1", "name": "list_notes", "input": ["not", "a", "dict"]}],
+        "tool_use",
+    )
+    provider = ScriptedProvider(odd, text("ok"))
+    Agent(provider, box, today=TODAY).ask("x")
+    result = provider.turns[1][1][-1]["content"][0]["content"]
+    assert result == "Error: the tool arguments must be a JSON object."
