@@ -93,7 +93,7 @@ At runtime, the agent answers in the language the user writes in, and writes not
 ## Workflow
 
 - **Commits:** Conventional Commits (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`). CI config changes are `ci:`.
-- **Branches:** one branch per feature/fix, `<type>/<slug>` (e.g. `feat/note-format-parser`), merged via PR with summary, context and test plan. Docs-only changes may go to `main` if the maintainer agrees. Never force-push `main`.
+- **Branches:** one branch per feature/fix, `<type>/<slug>` (e.g. `feat/note-format-parser`), merged via PR with summary, context and test plan. `main` is protected by a repository ruleset: every change goes through a PR (docs too), the lint, test matrix, SonarCloud and claude-review checks must pass, and force-push and deletion are blocked. The only bypass is the release deploy key (`RELEASE_DEPLOY_KEY`), which the manual release workflow uses to push its version commit and tag.
 - **README stays current:** any user-visible change updates `README.md` in the same PR.
 - **Plan:** `docs/PLAN.md` is the single roadmap. Tick items off as PRs land; keep it short.
 
