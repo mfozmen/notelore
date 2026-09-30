@@ -5,7 +5,7 @@ Single roadmap. Tick items as PRs land; delete finished milestones once they are
 ## M0 — Scaffold (done when CI is green on all three OS)
 
 - [x] `uv sync`, `uv run pytest`, `uv run ruff check .`, `uv run mypy` all pass locally
-- [ ] CI green on ubuntu, windows, macos
+- [x] CI green on ubuntu, windows, macos
 - [x] `tests/conftest.py`: fixture that points `NOTELORE_HOME` at `tmp_path`
 
 ## M1 — Store (no LLM yet)
