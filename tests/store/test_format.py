@@ -177,3 +177,11 @@ def test_unparsable_bullets_in_known_sections_stay_raw() -> None:
         assert section is not None
         assert all(isinstance(e, Raw) for e in section.entries), key
     assert serialize(note) == text
+
+
+def test_structural_errors_are_not_a_note() -> None:
+    from notelore.store.format import NotANote
+
+    with pytest.raises(NotANote):
+        parse("no front matter\n")
+    assert issubclass(NotANote, ValueError)

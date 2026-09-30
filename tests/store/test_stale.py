@@ -75,3 +75,12 @@ def test_numbers_match_archive_entries(root: Path) -> None:
 
 def test_empty_folder(tmp_path: Path) -> None:
     assert find_stale_notes(tmp_path / "nothing", today=TODAY) == []
+
+
+def test_a_real_parser_bug_is_not_hidden(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def broken(path: Path) -> None:
+        raise ValueError("a real bug")
+
+    monkeypatch.setattr("notelore.store.stale.read_note", broken)
+    with pytest.raises(ValueError, match="a real bug"):
+        find_stale_notes(root, today=TODAY)

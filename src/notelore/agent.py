@@ -69,7 +69,7 @@ class Agent:
     def _close(self, answer: str) -> str:
         """End the turn with an assistant message so user and assistant keep alternating."""
         self.messages.append(
-            {"role": "assistant", "content": [{"type": "text", "text": answer or "(no answer)"}]}
+            {"role": "assistant", "content": [{"type": "text", "text": answer or "[no answer]"}]}
         )
         return answer
 

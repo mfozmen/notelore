@@ -36,7 +36,7 @@ _TURKISH = str.maketrans("çğıöşüÇĞİÖŞÜ", "cgiosucgiosu")
 _RESERVED = {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(1, 10))}
 _RESERVED |= {f"lpt{i}" for i in range(1, 10)}
 _REPLACE_ATTEMPTS = 5
-_FORBIDDEN = '<>:"/\\|?*\n'
+_FORBIDDEN = '<>:"/\\|?*\n\0'
 
 
 # ---------------------------------------------------------------- paths
@@ -44,7 +44,7 @@ _FORBIDDEN = '<>:"/\\|?*\n'
 
 def slugify(title: str) -> str:
     """Lowercase ASCII file stem: Turkish letters transliterated, accents stripped."""
-    text = re.sub("['’]", "", unicodedata.normalize("NFC", title).translate(_TURKISH))
+    text = re.sub("['\u2019]", "", unicodedata.normalize("NFC", title).translate(_TURKISH))
     text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode().lower()
     slug = re.sub(r"[^a-z0-9]+", "-", text).strip("-")[:100].rstrip("-")
     if not slug:
@@ -64,6 +64,12 @@ def note_path(root: Path, kind: str, slug: str) -> Path:
 # ---------------------------------------------------------------- I/O
 
 
+def _umask() -> int:
+    current = os.umask(0)  # the only portable way to read it is to set it and set it back
+    os.umask(current)
+    return current
+
+
 def atomic_write(path: Path, text: str) -> None:
     """UTF-8, LF, written to a temp file next to ``path`` and moved into place."""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -73,7 +79,7 @@ def atomic_write(path: Path, text: str) -> None:
             handle.write(text)
             handle.flush()
             os.fsync(handle.fileno())
-        Path(tmp).chmod(0o644)  # mkstemp gives 0600; notes are meant for other tools too
+        Path(tmp).chmod(0o666 & ~_umask())  # mkstemp gives 0600; honour the user's umask
         for attempt in range(_REPLACE_ATTEMPTS - 1):
             try:
                 Path(tmp).replace(path)

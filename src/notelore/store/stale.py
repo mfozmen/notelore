@@ -11,7 +11,7 @@ import datetime
 from dataclasses import dataclass
 from pathlib import Path
 
-from notelore.store.format import Decision, Note, Raw, Todo
+from notelore.store.format import Decision, NotANote, Note, Raw, Todo
 from notelore.store.notes import KINDS, read_note
 
 
@@ -37,7 +37,7 @@ def find_stale_notes(
         for file in sorted((root / folder).glob("*.md")):
             try:
                 note = read_note(file)
-            except ValueError:
+            except NotANote:
                 continue  # not a note
             found.extend(_stale_entries(note, file.stem, kind, today, decision_days))
             updated = note.meta.get("updated")

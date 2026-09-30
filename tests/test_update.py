@@ -128,6 +128,18 @@ def test_apply_replaces_the_executable_and_keeps_the_old_one(tmp_path: Path) -> 
     assert not exe.with_suffix(".new").exists()
 
 
+def test_apply_names_the_missing_build(tmp_path: Path) -> None:
+    exe = tmp_path / "notelore.exe"
+    exe.write_bytes(b"old")
+    mac = f"notelore-{V}-macos-arm64.zip"
+    only_mac = json.dumps(
+        {"tag_name": f"v{V}", "assets": [{"name": mac, "browser_download_url": "u"}]}
+    ).encode()
+    with pytest.raises(ValueError, match=f"release {V} has no notelore-{V}-windows-x64.zip"):
+        update.apply(exe, "Windows", "AMD64", fetch=Fetch({API: only_mac}))
+    assert exe.read_bytes() == b"old"
+
+
 def test_apply_when_already_current(tmp_path: Path) -> None:
     exe = tmp_path / "notelore"
     exe.write_bytes(b"same")

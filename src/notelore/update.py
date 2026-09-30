@@ -90,7 +90,10 @@ def apply(exe: Path, system: str, machine: str, fetch: Fetch = _fetch) -> str | 
     version, assets = latest(fetch)
     if not is_newer(version, __version__):
         return None
-    archive = zipfile.ZipFile(io.BytesIO(fetch(assets[asset_name(version, system, machine)])))
+    name = asset_name(version, system, machine)
+    if name not in assets:
+        raise ValueError(f"release {version} has no {name}; download it by hand from GitHub")
+    archive = zipfile.ZipFile(io.BytesIO(fetch(assets[name])))
     new = exe.with_suffix(".new")
     new.write_bytes(archive.read(archive.namelist()[0]))
     new.chmod(0o755)

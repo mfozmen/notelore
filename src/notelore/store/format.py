@@ -109,23 +109,27 @@ class Note:
         return None
 
 
+class NotANote(ValueError):
+    """The text is not a note: no front matter, no title, or no ``# <title>`` line."""
+
+
 def parse(text: str) -> Note:
     text = unicodedata.normalize("NFC", text.replace("\r\n", "\n"))
     if not text.startswith("---\n"):
-        raise ValueError("missing YAML front matter")
+        raise NotANote("missing YAML front matter")
     end = text.find("\n---\n", 4)
     if end < 0:
-        raise ValueError("unterminated YAML front matter")
+        raise NotANote("unterminated YAML front matter")
     try:
         meta = yaml.safe_load(text[4 : end + 1])
     except yaml.YAMLError as exc:
-        raise ValueError(f"invalid YAML front matter: {exc}") from exc
+        raise NotANote(f"invalid YAML front matter: {exc}") from exc
     if not isinstance(meta, dict) or "title" not in meta:
-        raise ValueError("front matter must be a mapping with a title")
+        raise NotANote("front matter must be a mapping with a title")
     body = text[end + 5 :].removesuffix("\n")
     lines = body.split("\n") if body else []
     if not lines or not lines[0].startswith("# "):
-        raise ValueError("missing '# <title>' line after the front matter")
+        raise NotANote("missing '# <title>' line after the front matter")
 
     note = Note(meta=meta, heading=lines[0][2:])
     current: list[str] = note.preamble
