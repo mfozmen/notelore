@@ -25,5 +25,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     hint = update.hint()
     if hint:
         print(hint)
-    print("Notelore is not ready yet. See docs/PLAN.md.")
-    return 0
+    from notelore import repl  # lazy: --version and update stay instant
+
+    return repl.run()
