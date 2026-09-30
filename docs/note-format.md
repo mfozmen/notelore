@@ -91,6 +91,13 @@ Text can wrap to indented continuation lines. The LLM writes a clean, self-conta
 - [x] <date>: <text>
 ```
 
+### Parser guarantees
+
+- The parser normalizes CRLF to LF and NFD to NFC; everything else is kept as written.
+- A line inside a known section that does not match an entry pattern (a sentence without a bullet, an unparsable date) is preserved verbatim and never modified by code. Continuation lines are the indented lines that follow a bullet.
+- Front matter is written back in canonical YAML (`key: value`, `tags: [a, b]`, keys in original order). Any extra key a human adds is kept.
+- Files written by Notelore round-trip byte for byte. Hand-edited files round-trip too, except that non-canonical front matter formatting is normalized on the next write.
+
 ## Staleness signals
 
 `find_stale_notes` collects candidates deterministically; the LLM only explains and ranks them:
