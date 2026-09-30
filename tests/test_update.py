@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import sys
 import zipfile
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -15,7 +17,8 @@ V = "9.9.9"
 
 
 def release(version: str = V) -> bytes:
-    names = [f"notelore-{version}-windows-x64.zip", f"notelore-{version}-macos-arm64.zip"]
+    zips = [f"notelore-{version}-windows-x64.zip", f"notelore-{version}-macos-arm64.zip"]
+    names = zips + [f"{z}.sha256" for z in zips]
     return json.dumps(
         {
             "tag_name": f"v{version}",
@@ -29,6 +32,16 @@ def zipped(member: str, content: bytes) -> bytes:
     with zipfile.ZipFile(buf, "w") as zf:
         zf.writestr(member, content)
     return buf.getvalue()
+
+
+def download(name: str, member: str, content: bytes, digest: str | None = None) -> dict[str, bytes]:
+    """The zip download for ``name`` plus its published ``.sha256`` (sha256sum format)."""
+    data = zipped(member, content)
+    digest = digest or hashlib.sha256(data).hexdigest()
+    return {
+        f"https://dl/{name}": data,
+        f"https://dl/{name}.sha256": f"{digest}  {name}\n".encode(),
+    }
 
 
 class Fetch:
@@ -121,11 +134,46 @@ def test_apply_replaces_the_executable_and_keeps_the_old_one(tmp_path: Path) -> 
     exe = tmp_path / "notelore.exe"
     exe.write_bytes(b"old")
     name = f"notelore-{V}-windows-x64.zip"
-    fetch = Fetch({API: release(), f"https://dl/{name}": zipped("notelore.exe", b"new")})
+    fetch = Fetch({API: release(), **download(name, "notelore.exe", b"new")})
     assert update.apply(exe, "Windows", "AMD64", fetch=fetch) == V
     assert exe.read_bytes() == b"new"
     assert exe.with_suffix(".old").read_bytes() == b"old"
     assert not exe.with_suffix(".new").exists()
+
+
+@pytest.mark.parametrize(
+    ("pages", "message"),
+    [
+        (lambda n: download(n, "notelore.exe", b"new", digest="0" * 64), "checksum mismatch"),
+        (lambda n: download(n, "evil.exe", b"new"), "has no notelore.exe"),
+    ],
+    ids=["tampered", "wrong-member"],
+)
+def test_apply_refuses_an_unverified_download(tmp_path: Path, pages: Any, message: str) -> None:
+    exe = tmp_path / "notelore.exe"
+    exe.write_bytes(b"old")
+    name = f"notelore-{V}-windows-x64.zip"
+    fetch = Fetch({API: release(), **pages(name)})
+    with pytest.raises(ValueError, match=message):
+        update.apply(exe, "Windows", "AMD64", fetch=fetch)
+    assert exe.read_bytes() == b"old"
+    assert not exe.with_suffix(".new").exists()
+
+
+def test_apply_refuses_a_release_without_checksums(tmp_path: Path) -> None:
+    exe = tmp_path / "notelore.exe"
+    exe.write_bytes(b"old")
+    name = f"notelore-{V}-windows-x64.zip"
+    unsigned = json.dumps(
+        {
+            "tag_name": f"v{V}",
+            "assets": [{"name": name, "browser_download_url": f"https://dl/{name}"}],
+        }
+    ).encode()
+    fetch = Fetch({API: unsigned, **download(name, "notelore.exe", b"new")})
+    with pytest.raises(ValueError, match="publishes no checksum"):
+        update.apply(exe, "Windows", "AMD64", fetch=fetch)
+    assert exe.read_bytes() == b"old"
 
 
 def test_apply_names_the_missing_build(tmp_path: Path) -> None:
@@ -166,7 +214,7 @@ def test_run_update_in_a_frozen_build(
     monkeypatch.setattr("platform.system", lambda: "Darwin")
     monkeypatch.setattr("platform.machine", lambda: "arm64")
     name = f"notelore-{V}-macos-arm64.zip"
-    fetch = Fetch({API: release(), f"https://dl/{name}": zipped("notelore", b"new")})
+    fetch = Fetch({API: release(), **download(name, "notelore", b"new")})
     assert update.run_update(fetch=fetch) == 0
     assert f"Updated to {V}" in capsys.readouterr().out
     assert exe.read_bytes() == b"new"
@@ -211,7 +259,7 @@ def test_apply_rolls_back_when_the_new_binary_cannot_move_in(
 
     monkeypatch.setattr(Path, "replace", replace)
     name = f"notelore-{V}-windows-x64.zip"
-    fetch = Fetch({API: release(), f"https://dl/{name}": zipped("notelore.exe", b"new")})
+    fetch = Fetch({API: release(), **download(name, "notelore.exe", b"new")})
     with pytest.raises(PermissionError):
         update.apply(exe, "Windows", "AMD64", fetch=fetch)
     assert exe.read_bytes() == b"old"
@@ -245,7 +293,7 @@ def test_apply_removes_the_download_when_the_running_binary_cannot_be_renamed(
 
     monkeypatch.setattr(Path, "replace", replace)
     name = f"notelore-{V}-windows-x64.zip"
-    fetch = Fetch({API: release(), f"https://dl/{name}": zipped("notelore.exe", b"new")})
+    fetch = Fetch({API: release(), **download(name, "notelore.exe", b"new")})
     with pytest.raises(PermissionError):
         update.apply(exe, "Windows", "AMD64", fetch=fetch)
     assert exe.read_bytes() == b"old"

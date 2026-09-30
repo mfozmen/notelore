@@ -8,6 +8,7 @@ PyInstaller build in place; a PyPI/uv install gets the ``uv tool upgrade`` hint.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import io
 import json
 import platform
@@ -93,9 +94,18 @@ def apply(exe: Path, system: str, machine: str, fetch: Fetch = _fetch) -> str | 
     name = asset_name(version, system, machine)
     if name not in assets:
         raise ValueError(f"release {version} has no {name}; download it by hand from GitHub")
-    archive = zipfile.ZipFile(io.BytesIO(fetch(assets[name])))
+    if f"{name}.sha256" not in assets:
+        raise ValueError(f"release {version} publishes no checksum for {name}; not installing it")
+    expected = fetch(assets[f"{name}.sha256"]).decode("ascii", "replace").split()[0].lower()
+    data = fetch(assets[name])
+    if hashlib.sha256(data).hexdigest() != expected:
+        raise ValueError(f"checksum mismatch for {name}; the download was not installed")
+    member = "notelore.exe" if system == "Windows" else "notelore"
+    archive = zipfile.ZipFile(io.BytesIO(data))
+    if member not in archive.namelist():
+        raise ValueError(f"{name} has no {member}; the download was not installed")
     new = exe.with_suffix(".new")
-    new.write_bytes(archive.read(archive.namelist()[0]))
+    new.write_bytes(archive.read(member))
     new.chmod(0o755)
     # A running executable can be renamed on every OS, but not overwritten on Windows.
     old = exe.with_suffix(".old")
