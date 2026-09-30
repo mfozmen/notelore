@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v0.2.0 (2026-09-30)
+
+### Bug Fixes
+
+- Keep the update check silent and the executable swap safe
+  ([`967bc7c`](https://github.com/mfozmen/notelore/commit/967bc7c8c89cd77e0512573ba9d28b6803f81b9d))
+
+- Tolerate a locked .old executable and drop the download on a failed swap
+  ([`53a0bf4`](https://github.com/mfozmen/notelore/commit/53a0bf475b349ac7edaa3c446564896d7b100ae0))
+
+### Features
+
+- Daily update check and notelore update self-update
+  ([`93ee126`](https://github.com/mfozmen/notelore/commit/93ee1261d3f92dc212176bdc438a0bc942457f34))
+
+### Testing
+
+- Enforce 100% line and branch coverage
+  ([`7891139`](https://github.com/mfozmen/notelore/commit/78911397d8e25f982cc6c18448681b90b023b914))
+
+
 ## v0.1.0 (2026-09-30)
 
 ### Bug Fixes
