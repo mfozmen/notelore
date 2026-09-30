@@ -11,10 +11,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-Block = dict[
-    str, Any
-]  # {"type": "text", ...} | {"type": "tool_use", ...} | {"type": "tool_result"}
-Message = dict[str, Any]  # {"role": "user" | "assistant", "content": str | list[Block]}
+# A content block: {"type": "text", ...}, {"type": "tool_use", ...} or {"type": "tool_result", ...}.
+Block = dict[str, Any]
+# A message: {"role": "user" | "assistant", "content": str | list[Block]}.
+Message = dict[str, Any]
 
 
 @dataclass(frozen=True)
