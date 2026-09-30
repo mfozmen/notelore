@@ -4,7 +4,9 @@ build-backend = "hatchling.build"
 
 [project]
 name = "notelore"
-version = "0.0.0"
+# Version lives in src/notelore/__init__.py only, so a release bump never touches
+# pyproject.toml and uv.lock stays valid for `uv sync --locked`.
+dynamic = ["version"]
 description = "Talk to an LLM, get tidy human-readable Markdown notes on your disk, ask them questions later. Backed up to Google Drive."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -59,6 +61,9 @@ dev = [
   "pyinstaller>=6.22.3",
 ]
 
+[tool.hatch.version]
+path = "src/notelore/__init__.py"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/notelore"]
 
@@ -110,7 +115,6 @@ branch = true
 [tool.semantic_release]
 # Conventional Commits drive every version bump: feat -> minor, fix/perf ->
 # patch, BREAKING CHANGE -> major. Never edit the version by hand.
-version_toml = ["pyproject.toml:project.version"]
 version_variables = ["src/notelore/__init__.py:__version__"]
 commit_message = "chore(release): {version} [skip ci]"
 changelog_file = "CHANGELOG.md"
