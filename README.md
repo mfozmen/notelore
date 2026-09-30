@@ -19,6 +19,24 @@ Notelore checks for a newer release once a day (silently skipped when offline) a
 
 Releases are cut on demand from the Conventional Commit history on `main`: a `feat` commit bumps the minor version, `fix` or `perf` the patch version; other types (`docs`, `chore`, `ci`...) do not.
 
+## First run
+
+Run `notelore`. It asks which model to use:
+
+1. **Claude**, **GPT** or **Gemini**: it opens the page where you create an API key, you paste the key, and Notelore checks it with one tiny request. The key is stored in your OS credential store (Windows Credential Manager, macOS Keychain), never in a file.
+2. **Ollama**: no key. Start the Ollama app first; Notelore checks that it answers on `http://localhost:11434` (or `OLLAMA_HOST`).
+
+Then just talk: *"Mopsos için not al: veritabanı olarak SQLite seçtik, tek kullanıcı."* Notes land in `~/Notelore/`. Commands:
+
+| Command | What it does |
+|---|---|
+| `/model` | pick another provider or model |
+| `/logout` | forget the saved key and pick again |
+| `/help` | list the commands |
+| `/exit` | quit (Ctrl-D works too) |
+
+In Git Bash on Windows the prompt falls back to plain input: no command completion, and a pasted key stays visible. Windows Terminal or PowerShell give the full prompt.
+
 ## Development
 
 Requires [uv](https://docs.astral.sh/uv/).

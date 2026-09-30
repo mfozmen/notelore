@@ -5,15 +5,13 @@ import sys
 
 import pytest
 
-from notelore import update
+from notelore import repl, update
 
 
-def test_python_dash_m_notelore_exits_zero(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_python_dash_m_notelore_runs_the_cli(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sys, "argv", ["notelore"])
     monkeypatch.setattr(update, "hint", lambda: None)
+    monkeypatch.setattr(repl, "run", lambda: 0)
     with pytest.raises(SystemExit) as exc:
         runpy.run_module("notelore", run_name="__main__")
     assert exc.value.code == 0
-    assert "Notelore" in capsys.readouterr().out
