@@ -104,7 +104,9 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 # Network is off for the whole suite; live tests are opt-in via `-m live`.
-addopts = "--strict-markers --disable-socket -m 'not live'"
+# Coverage is measured on every run and must stay at 100% (line and branch);
+# SonarCloud reads the same numbers from coverage.xml in CI.
+addopts = "--strict-markers --disable-socket -m 'not live' --cov --cov-report=term-missing:skip-covered"
 markers = [
   "live: hits a real LLM provider or Google Drive; needs keys in env vars",
 ]
@@ -112,6 +114,9 @@ markers = [
 [tool.coverage.run]
 source = ["notelore"]
 branch = true
+
+[tool.coverage.report]
+fail_under = 100
 
 # ---------------------------------------------------------------- semantic release
 [tool.semantic_release]
