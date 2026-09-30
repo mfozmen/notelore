@@ -7,6 +7,7 @@ PyInstaller build in place; a PyPI/uv install gets the ``uv tool upgrade`` hint.
 
 from __future__ import annotations
 
+import contextlib
 import io
 import json
 import platform
@@ -95,7 +96,11 @@ def apply(exe: Path, system: str, machine: str, fetch: Fetch = _fetch) -> str | 
     new.chmod(0o755)
     # A running executable can be renamed on every OS, but not overwritten on Windows.
     old = exe.with_suffix(".old")
-    exe.replace(old)
+    try:
+        exe.replace(old)
+    except OSError:
+        new.unlink(missing_ok=True)  # a stale .old still locked: leave no download behind
+        raise
     try:
         new.replace(exe)
     except OSError:
@@ -106,7 +111,9 @@ def apply(exe: Path, system: str, machine: str, fetch: Fetch = _fetch) -> str | 
 
 def cleanup(exe: Path) -> None:
     """Remove the previous executable left behind by :func:`apply`."""
-    exe.with_suffix(".old").unlink(missing_ok=True)
+    # Still held by another process or antivirus: retried on the next start.
+    with contextlib.suppress(OSError):
+        exe.with_suffix(".old").unlink(missing_ok=True)
 
 
 def run_update(fetch: Fetch = _fetch) -> int:
