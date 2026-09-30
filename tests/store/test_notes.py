@@ -200,6 +200,15 @@ def test_written_text_is_nfc(root: Path) -> None:
     assert text.count("Şükrü") == 5  # title, heading, entry, topic, value(+reason)
 
 
+def test_nfd_topic_supersedes_the_nfc_one(root: Path) -> None:
+    path = notes.create_note(root, "project", "Mopsos", today=TODAY)
+    notes.record_decision(path, "şirket", "A", today=date(2026, 9, 1))
+    notes.record_decision(path, unicodedata.normalize("NFD", "şirket"), "B", today=TODAY)
+    decisions = [e for e in entries(path, "decisions") if isinstance(e, Decision)]
+    assert [d.superseded for d in decisions] == [TODAY, None]
+    assert notes.active_decision(notes.read_note(path), unicodedata.normalize("NFD", "şirket"))
+
+
 def test_decision_value_and_topic_are_normalized(root: Path) -> None:
     path = notes.create_note(root, "project", "Mopsos", today=TODAY)
     notes.record_decision(path, " Database ", "SQLite\r\nsingle file.", today=TODAY)

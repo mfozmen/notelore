@@ -126,8 +126,9 @@ def _append(section: Section, entry: AnyEntry) -> None:
 
 
 def _text(text: str) -> str:
-    """One clean entry text: CRLF removed, continuation lines indented by two spaces."""
-    return "\n  ".join(line.strip() for line in text.replace("\r\n", "\n").strip().splitlines())
+    """One clean entry text: NFC, CRLF removed, continuation lines indented by two spaces."""
+    text = unicodedata.normalize("NFC", text).replace("\r\n", "\n").strip()
+    return "\n  ".join(line.strip() for line in text.splitlines())
 
 
 def _position(section: Section, number: int) -> int:
@@ -212,6 +213,7 @@ def record_decision(
 def active_decision(note: Note, topic: str) -> Decision | None:
     """The newest non-superseded decision for ``topic``; deterministic, no model involved."""
     section = note.section("decisions")
+    topic = _text(topic).lower()
     found = None
     for entry in section.entries if section else []:
         if isinstance(entry, Decision) and entry.topic == topic and entry.superseded is None:
