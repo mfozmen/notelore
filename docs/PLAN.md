@@ -22,7 +22,7 @@ Everything here is pure, deterministic and fully unit-tested.
 
 - [x] Port `providers/` from littlepress-ai (Anthropic, OpenAI, Gemini, Ollama; key validation; keyring storage; env override)
 - [ ] `repl.py` with `prompt_toolkit`, slash commands: `/model`, `/logout`, `/help`, `/exit`
-- [ ] `agent.py` tool-use loop, system prompt: ask when the project/topic is ambiguous, never invent facts, answer decisions from `get_decision`
+- [x] `agent.py` tool-use loop, system prompt: ask when the project/topic is ambiguous, never invent facts, answer decisions from `get_decision`
 - [x] `tools.py` (below), each a thin wrapper over `store/`
 
 ### Agent tools
