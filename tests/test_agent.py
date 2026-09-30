@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
@@ -122,7 +123,7 @@ def test_runaway_tool_loop_is_cut_off(box: Toolbox) -> None:
         "content": [{"type": "text", "text": answer}],
     }
     roles = [m["role"] for m in agent.messages]
-    assert all(a != b for a, b in zip(roles, roles[1:], strict=False))  # roles alternate
+    assert all(a != b for a, b in itertools.pairwise(roles))  # roles alternate
 
 
 def test_system_prompt_rules() -> None:
