@@ -11,6 +11,12 @@ Tell it things. It writes tidy, human-readable Markdown notes on your disk. Ask 
 
 > **Status:** pre-alpha, under active development. See [`docs/PLAN.md`](docs/PLAN.md).
 
+## Install
+
+Download the latest `notelore-<version>-windows-x64.zip` or `notelore-<version>-macos-arm64.zip` from the [releases page](https://github.com/mfozmen/notelore/releases), unzip, and run `notelore`. The macOS binary is not notarized yet: right-click it and choose *Open* the first time.
+
+Every merge to `main` is released automatically from the Conventional Commit history (`feat` → minor, `fix` → patch).
+
 ## Development
 
 Requires [uv](https://docs.astral.sh/uv/).
