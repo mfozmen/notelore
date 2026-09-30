@@ -194,4 +194,26 @@ def test_errors_come_back_as_messages_not_exceptions(box: Toolbox, tmp_path: Pat
     ).startswith("Error: ")
     assert call(box, "get_decision", slug="dup", topic="db").startswith("Error: 'dup' exists as")
     assert call(box, "nonsense") == "Error: unknown tool 'nonsense'."
-    assert "missing 1 required positional argument: 'slug'" in call(box, "read_note")
+    assert call(box, "read_note") == "Error: read_note is missing the argument 'slug'."
+    assert call(box, "read_note", slug="x", colour="red") == (
+        "Error: read_note got an unknown argument 'colour'."
+    )
+    assert call(box, "complete_todo", slug="dup", number="two", kind="topic") == (
+        "Error: complete_todo expects 'number' to be integer, got str."
+    )
+    assert call(box, "create_note", kind="topic", title="T", tags="not-a-list") == (
+        "Error: create_note expects 'tags' to be array, got str."
+    )
+
+
+def test_a_bug_inside_the_store_is_not_disguised_as_a_tool_error(
+    box: Toolbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    call(box, "create_note", kind="project", title="Mopsos")
+
+    def broken(*args: object) -> None:
+        raise TypeError("a real bug")
+
+    monkeypatch.setattr("notelore.store.notes.add_entry", broken)
+    with pytest.raises(TypeError, match="a real bug"):
+        box.call("add_note_entry", {"slug": "mopsos", "text": "x"})

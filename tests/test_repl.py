@@ -212,6 +212,8 @@ def test_run_wires_the_prompt_and_the_console(
     monkeypatch: pytest.MonkeyPatch, notelore_home: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.setattr(repl, "_has_console", lambda: True)
+    monkeypatch.setattr(FakeSession, "lines", ["", "/exit"])
+    monkeypatch.setattr(FakeSession, "seen", [])
     monkeypatch.setattr("prompt_toolkit.PromptSession", FakeSession)
     monkeypatch.setattr(repl, "create_provider", lambda spec, key, model: EchoProvider())
     repl.save_config(notelore_home / "state" / "config.json", {"provider": "ollama", "model": "m"})
@@ -268,3 +270,15 @@ def test_has_console_reads_both_streams(monkeypatch: pytest.MonkeyPatch) -> None
     assert repl._has_console() is True
     monkeypatch.setattr("sys.stdout.isatty", lambda: False, raising=False)
     assert repl._has_console() is False
+
+
+def test_a_spec_without_a_key_page_opens_no_browser(
+    box: Toolbox, fakes: dict[str, Any], tmp_path: Path
+) -> None:
+    from notelore.providers import ProviderSpec
+
+    spec = ProviderSpec("anthropic", "Self-hosted", True, "m", "m")
+    session = make(box, Console("sk"), tmp_path)
+    assert session.spec is None
+    assert session._get_key(spec) == "sk"
+    assert fakes["opened"] == []

@@ -39,7 +39,7 @@ class _Part(types.SimpleNamespace):
 
 def test_to_gemini_roles_and_function_parts() -> None:
     contents = to_gemini(CONVERSATION, FakeTypes())
-    assert [c.role for c in contents] == ["user", "model", "tool"]
+    assert [c.role for c in contents] == ["user", "model", "user"]
     assert contents[0].parts[0].text == "hi"
     model_parts = contents[1].parts
     assert model_parts[0].text == "checking"

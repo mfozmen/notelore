@@ -14,13 +14,13 @@ import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
-from notelore.store.format import Decision, Raw, parse
+from notelore.store.format import Decision, NotANote, Raw, parse
 from notelore.store.notes import KINDS
 
 SCHEMA = """
 CREATE TABLE files(
     path TEXT PRIMARY KEY, slug TEXT, kind TEXT, title TEXT, updated TEXT,
-    mtime_ns INTEGER, hash TEXT);
+    stamp TEXT, hash TEXT);
 CREATE TABLE decisions(path TEXT, date TEXT, topic TEXT, text TEXT, superseded TEXT);
 CREATE INDEX decisions_by_topic ON decisions(path, topic);
 """
@@ -31,7 +31,7 @@ FTS_TABLE = (
 PLAIN_TABLE = "CREATE TABLE content(slug, title, section, text, kind, path, superseded, folded)"
 # Bump when the tables change; the FTS flag is part of it because the content
 # table has a different shape per backend. A mismatch drops and recreates everything.
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def fts5_available(conn: sqlite3.Connection) -> bool:
@@ -66,6 +66,13 @@ class Index:
         db_path.parent.mkdir(parents=True, exist_ok=True)
         self.root = root
         self.conn = sqlite3.connect(db_path)
+        try:
+            self._setup()
+        except BaseException:
+            self.conn.close()  # a corrupt or locked database must not leak the handle
+            raise
+
+    def _setup(self) -> None:
         self.fts = fts5_available(self.conn)
         version = SCHEMA_VERSION * 2 + int(self.fts)
         if self.conn.execute("PRAGMA user_version").fetchone()[0] != version:
@@ -82,18 +89,23 @@ class Index:
     # ------------------------------------------------------------ building
 
     def rebuild(self) -> None:
-        """Bring the index up to date: reparse only files whose mtime and hash changed."""
+        """Bring the index up to date: reparse only files whose stamp and hash changed.
+
+        The stamp is mtime plus size: a rewrite inside the filesystem's mtime
+        granularity usually changes the size, so it is not missed.
+        """
         known = {
-            path: (mtime, digest)
-            for path, mtime, digest in self.conn.execute("SELECT path, mtime_ns, hash FROM files")
+            path: (stamp, digest)
+            for path, stamp, digest in self.conn.execute("SELECT path, stamp, hash FROM files")
         }
         seen: set[str] = set()
         for kind, folder in KINDS.items():
             for file in sorted((self.root / folder).glob("*.md")):
                 rel = file.relative_to(self.root).as_posix()
                 try:
-                    mtime = file.stat().st_mtime_ns
-                    if rel in known and known[rel][0] == mtime:
+                    stat = file.stat()
+                    stamp = f"{stat.st_mtime_ns}:{stat.st_size}"
+                    if rel in known and known[rel][0] == stamp:
                         seen.add(rel)
                         continue
                     text = unicodedata.normalize("NFC", file.read_text(encoding="utf-8"))
@@ -102,9 +114,9 @@ class Index:
                 seen.add(rel)
                 digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
                 if rel in known and known[rel][1] == digest:
-                    self.conn.execute("UPDATE files SET mtime_ns = ? WHERE path = ?", (mtime, rel))
+                    self.conn.execute("UPDATE files SET stamp = ? WHERE path = ?", (stamp, rel))
                     continue
-                self._index_file(rel, kind, file.stem, text, mtime, digest)
+                self._index_file(rel, kind, file.stem, text, stamp, digest)
         for rel in known.keys() - seen:
             self._forget(rel)
         self.conn.commit()
@@ -114,23 +126,23 @@ class Index:
             self.conn.execute(f"DELETE FROM {table} WHERE path = ?", (rel,))
 
     def _index_file(
-        self, rel: str, kind: str, slug: str, text: str, mtime: int, digest: str
+        self, rel: str, kind: str, slug: str, text: str, stamp: str, digest: str
     ) -> None:
         self._forget(rel)
         try:
             note = parse(text)
-        except ValueError:
+        except NotANote:
             # A Markdown file that is not a note: remembered (so it is not reparsed on
             # every rebuild) but with no title, which keeps it out of every listing.
             self.conn.execute(
                 "INSERT INTO files VALUES (?, ?, ?, NULL, '', ?, ?)",
-                (rel, slug, kind, mtime, digest),
+                (rel, slug, kind, stamp, digest),
             )
             return
         updated = _date(str(note.meta.get("updated") or ""))  # NULL when not a date: sorts last
         self.conn.execute(
             "INSERT INTO files VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (rel, slug, kind, note.title, updated.isoformat() if updated else None, mtime, digest),
+            (rel, slug, kind, note.title, updated.isoformat() if updated else None, stamp, digest),
         )
         for section in note.sections:
             for entry in section.entries:

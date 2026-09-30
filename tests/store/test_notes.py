@@ -54,7 +54,9 @@ def test_note_path_per_kind(root: Path) -> None:
         notes.note_path(root, "diary", "x")
 
 
-@pytest.mark.parametrize("slug", ["../../etc/passwd", "..", ".", "x/y", "x\\y", "a:b", "", "a\nb"])
+@pytest.mark.parametrize(
+    "slug", ["../../etc/passwd", "..", ".", "x/y", "x\\y", "a:b", "", "a\nb", "a\0b"]
+)
 def test_note_path_rejects_path_escapes(root: Path, slug: str) -> None:
     with pytest.raises(ValueError, match="slug"):
         notes.note_path(root, "project", slug)
@@ -230,7 +232,23 @@ def test_decision_value_and_topic_are_normalized(root: Path) -> None:
 def test_note_files_are_readable_by_other_tools(root: Path) -> None:
     path = notes.create_note(root, "project", "Mopsos", today=TODAY)
     if os.name != "nt":
-        assert path.stat().st_mode & 0o777 == 0o644
+        assert path.stat().st_mode & 0o777 == 0o666 & ~_umask()
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX permission bits")
+def test_a_strict_umask_is_respected(root: Path) -> None:
+    previous = os.umask(0o077)
+    try:
+        path = notes.create_note(root, "project", "Private", today=TODAY)
+    finally:
+        os.umask(previous)
+    assert path.stat().st_mode & 0o777 == 0o600
+
+
+def _umask() -> int:
+    current = os.umask(0)
+    os.umask(current)
+    return current
 
 
 def test_record_decision_supersedes_the_active_one_for_the_topic(root: Path) -> None:

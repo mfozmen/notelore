@@ -230,3 +230,32 @@ def test_file_that_stops_being_a_note_is_forgotten(idx: index.Index, root: Path)
     idx.rebuild()
     assert [n.slug for n in idx.list_notes()] == ["sirket-kurulusu", "odd-date"]
     assert idx.search("crypto") == []
+
+
+def test_same_mtime_but_new_size_is_reindexed(idx: index.Index, root: Path) -> None:
+    mopsos = root / "projects" / "mopsos.md"
+    stamp = mopsos.stat().st_mtime_ns
+    mopsos.write_text(
+        mopsos.read_text(encoding="utf-8") + "\n## Links\nkubernetes\n", encoding="utf-8"
+    )
+    os.utime(mopsos, ns=(stamp, stamp))  # rewritten within the filesystem's mtime granularity
+    idx.rebuild()
+    assert [h.slug for h in idx.search("kubernetes")] == ["mopsos"]
+
+
+def test_failed_setup_closes_the_connection(
+    root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class Conn:
+        closed = False
+
+        def execute(self, sql: str) -> None:
+            raise sqlite3.DatabaseError("file is not a database")
+
+        def close(self) -> None:
+            Conn.closed = True
+
+    monkeypatch.setattr(sqlite3, "connect", lambda _path: Conn())
+    with pytest.raises(sqlite3.DatabaseError):
+        index.Index(tmp_path / "state" / "index.sqlite", root)
+    assert Conn.closed

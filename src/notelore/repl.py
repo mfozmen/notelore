@@ -48,6 +48,7 @@ class Repl:
     def __init__(self, ask: Ask, say: Say, toolbox: Toolbox, config_path: Path) -> None:
         self.ask, self.say, self.toolbox, self.config_path = ask, say, toolbox, config_path
         self.provider: LLMProvider | None = None
+        self.spec: ProviderSpec | None = None
         self.agent: Agent | None = None
 
     # ------------------------------------------------------------ provider setup
@@ -105,8 +106,9 @@ class Repl:
         for step in spec.key_steps:
             self.say(f"  - {step}")
         self.say(f"  {spec.key_url}")
-        with contextlib.suppress(Exception):
-            webbrowser.open(spec.key_url or "")
+        if spec.key_url:
+            with contextlib.suppress(Exception):
+                webbrowser.open(spec.key_url)
         while True:
             key = self.ask("API key: ", True).strip()
             if not key:
@@ -158,6 +160,7 @@ class Repl:
                 self.say(f"  {name:8} {purpose}")
             return True
         if line == "/logout":
+            assert self.spec is not None  # loop() only runs after a provider was picked
             secrets.delete_key(self.spec.name)
             save_config(self.config_path, None)
             return self.pick() or None

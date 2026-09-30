@@ -104,6 +104,12 @@ def test_only_text_and_tool_use_blocks_enter_history(box: Toolbox) -> None:
     assert agent.messages[-1]["content"] == [{"type": "text", "text": "hi"}]
 
 
+def test_empty_answer_placeholder_is_a_marker(box: Toolbox) -> None:
+    agent = Agent(ScriptedProvider(AgentResponse([], "end_turn")), box, today=TODAY)
+    agent.ask("x")
+    assert agent.messages[-1]["content"] == [{"type": "text", "text": "[no answer]"}]
+
+
 def test_empty_answer_leaves_history_consistent(box: Toolbox) -> None:
     provider = ScriptedProvider(AgentResponse([], "end_turn"), text("now"))
     agent = Agent(provider, box, today=TODAY)

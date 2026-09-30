@@ -137,15 +137,17 @@ class Toolbox:
         return TOOLS
 
     def call(self, name: str, args: dict[str, Any]) -> str:
-        method = getattr(self, f"_{name}", None) if name in {t.name for t in TOOLS} else None
-        if method is None:
+        tool = next((t for t in TOOLS if t.name == name), None)
+        if tool is None:
             return f"Error: unknown tool {name!r}."
+        problem = _check_arguments(tool, args)
+        if problem:
+            return f"Error: {problem}"
         try:
-            return _dumps(method(**args))
+            return _dumps(getattr(self, f"_{name}")(**args))
         except (
             ValueError,
             LookupError,
-            TypeError,
             OSError,  # incl. a Windows PermissionError while another app holds the file
         ) as exc:
             return f"Error: {_message(exc)}"
@@ -231,6 +233,36 @@ class Toolbox:
         else:
             target = notes.archive_note(self.root, path, self.today)
         return {"archived_to": target.relative_to(self.root).as_posix()}
+
+
+_JSON_TYPES: dict[str, type | tuple[type, ...]] = {
+    "string": str,
+    "integer": int,
+    "array": list,
+    "object": dict,
+}
+
+
+def _check_arguments(tool: Tool, args: dict[str, Any]) -> str | None:
+    """What is wrong with the model's arguments for ``tool``, or None.
+
+    Checked against the tool's own schema before dispatch, so a TypeError from
+    inside the store stays a real bug instead of turning into an Error message.
+    """
+    properties = tool.input_schema["properties"]
+    for required in tool.input_schema.get("required", []):
+        if required not in args:
+            return f"{tool.name} is missing the argument {required!r}."
+    for key, value in args.items():
+        if key not in properties:
+            return f"{tool.name} got an unknown argument {key!r}."
+        expected = properties[key]["type"]
+        if value is not None and (
+            not isinstance(value, _JSON_TYPES[expected])
+            or (expected == "integer" and isinstance(value, bool))
+        ):
+            return f"{tool.name} expects {key!r} to be {expected}, got {type(value).__name__}."
+    return None
 
 
 def _decision(decision: Any) -> dict[str, Any]:
