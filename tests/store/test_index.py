@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 import sqlite3
+import unicodedata
 from datetime import date
 from pathlib import Path
 
@@ -30,7 +31,9 @@ def notes_tree(tmp_path_factory: pytest.TempPathFactory) -> Path:
         handle.write("\n## Links\nhand-written zettelkasten link\n")
     sirket = notes.create_note(root, "topic", "Şirket Kuruluşu", lang="tr", today=date(2026, 8, 1))
     notes.add_entry(sirket, "Muhasebeci ile görüşüldü, ücret 2.500 TL.", today=date(2026, 8, 5))
+    notes.record_decision(sirket, "Şirket-Türü", "Limited", today=date(2026, 8, 5))
     (root / "topics" / "not-a-note.md").write_text("just some markdown\n", encoding="utf-8")
+    (root / "topics" / "latin1.md").write_bytes(b"---\ntitle: caf\xe9\n---\n# x\n")
     (root / "topics" / "odd-date.md").write_text(
         "---\ntitle: Odd\nkind: topic\ncreated: 2026-01-01\nupdated: soon\n---\n# Odd\n",
         encoding="utf-8",
@@ -44,7 +47,10 @@ def root(notes_tree: Path, tmp_path: Path) -> Path:
     return Path(shutil.copytree(notes_tree, tmp_path / "notes"))
 
 
-@pytest.fixture(params=["fts5", "like"])
+HAS_FTS5 = index.fts5_available(sqlite3.connect(":memory:"))
+
+
+@pytest.fixture(params=["fts5", "like"] if HAS_FTS5 else ["like"])
 def idx(
     request: pytest.FixtureRequest, root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> index.Index:
@@ -58,8 +64,6 @@ def idx(
 
 
 def test_fts5_probe_reports_the_real_capability() -> None:
-    assert index.fts5_available(sqlite3.connect(":memory:")) is True
-
     class NoFts5:
         def execute(self, sql: str) -> None:
             raise sqlite3.OperationalError("no such module: fts5")
@@ -84,6 +88,32 @@ def test_get_decision_is_the_newest_active_one(idx: index.Index) -> None:
     assert idx.get_decision("nope", "database") is None
 
 
+def test_lookups_normalize_topic_like_the_writer_does(idx: index.Index) -> None:
+    nfd = unicodedata.normalize("NFD", " Şirket-Türü ")
+    assert idx.get_decision("sirket-kurulusu", nfd) == Decision(
+        date(2026, 8, 5), "şirket-türü", "Limited."
+    )
+    assert idx.decision_history("sirket-kurulusu", nfd) == [
+        idx.get_decision("sirket-kurulusu", nfd)
+    ]
+
+
+def test_same_slug_in_both_kinds_needs_the_kind(idx: index.Index, root: Path) -> None:
+    for kind, value in (("project", "Postgres"), ("topic", "Redis")):
+        path = notes.create_note(root, kind, "Dup", today=TODAY)
+        notes.record_decision(path, "database", value, today=TODAY)
+    idx.rebuild()
+    with pytest.raises(LookupError, match="project and topic"):
+        idx.get_decision("dup", "database")
+    with pytest.raises(LookupError, match="project and topic"):
+        idx.decision_history("dup")
+    assert idx.get_decision("dup", "database", kind="topic") == Decision(
+        TODAY, "database", "Redis."
+    )
+    assert [d.text for d in idx.decision_history("dup", kind="project")] == ["Postgres."]
+    assert idx.get_decision("mopsos", "database", kind="topic") is None
+
+
 def test_decision_history_includes_superseded_in_date_order(idx: index.Index) -> None:
     assert idx.decision_history("mopsos", "database") == [
         Decision(date(2026, 9, 12), "database", "PostgreSQL.", superseded=date(2026, 9, 28)),
@@ -101,6 +131,19 @@ def test_search_finds_entries_decisions_todos_and_hand_written_lines(idx: index.
     assert [h.section for h in idx.search("zettelkasten")] == ["Links"]
     assert idx.search("crypto", kind="topic") == []
     assert idx.search("nothing-like-this") == []
+
+
+def test_search_needs_every_word_in_any_order(idx: index.Index) -> None:
+    assert [h.section for h in idx.search("backup drive")] == ["todo"]
+    assert idx.search("drive nothing") == []
+
+
+def test_search_marks_superseded_decisions(idx: index.Index) -> None:
+    (old,) = idx.search("postgresql")
+    assert old.superseded is True
+    (current,) = idx.search("zero setup")
+    assert current.superseded is False
+    assert idx.search("crypto")[0].superseded is False
 
 
 def test_search_is_case_and_accent_insensitive_for_turkish(idx: index.Index) -> None:
@@ -147,11 +190,39 @@ def test_rebuild_is_incremental(
 def test_index_is_derived_state(idx: index.Index, root: Path, tmp_path: Path) -> None:
     before = (idx.list_notes(), idx.decision_history("mopsos"), idx.search("crypto"))
     idx.close()
+    reopened = index.Index(tmp_path / "state" / "index.sqlite", idx.root)
+    assert reopened.list_notes() == before[0]  # same backend: the tables survive a reopen
+    reopened.close()
     (tmp_path / "state" / "index.sqlite").unlink()
     fresh = index.Index(tmp_path / "state" / "index.sqlite", root)
     fresh.rebuild()
     assert (fresh.list_notes(), fresh.decision_history("mopsos"), fresh.search("crypto")) == before
     fresh.close()
+
+
+def test_unreadable_files_are_skipped_not_fatal(idx: index.Index, root: Path) -> None:
+    assert "latin1" not in [n.slug for n in idx.list_notes()]
+    (root / "projects" / "mopsos.md").write_bytes(b"\xff\xfe not utf-8 any more")
+    idx.rebuild()
+    assert "mopsos" not in [n.slug for n in idx.list_notes()]
+    assert idx.search("crypto") == []
+
+
+@pytest.mark.skipif(not HAS_FTS5, reason="needs an SQLite with FTS5 to switch away from")
+def test_reopening_without_fts5_rebuilds_the_derived_tables(
+    root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    db = tmp_path / "state" / "index.sqlite"
+    first = index.Index(db, root)
+    first.rebuild()
+    expected = (first.list_notes(), first.search("crypto"))
+    first.close()
+    monkeypatch.setattr(index, "fts5_available", lambda _conn: False)
+    second = index.Index(db, root)
+    assert second.fts is False
+    second.rebuild()
+    assert (second.list_notes(), second.search("crypto")) == expected
+    second.close()
 
 
 def test_file_that_stops_being_a_note_is_forgotten(idx: index.Index, root: Path) -> None:
