@@ -75,7 +75,7 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 # Turkish letters are legitimate in i18n.py and fixtures, not typos of ASCII look-alikes.
-allowed-confusables = ["ı", "İ"]
+allowed-confusables = ["ı", "İ", "’"]
 select = [
   "E", "W", "F",   # pycodestyle, pyflakes
   "I",             # isort
