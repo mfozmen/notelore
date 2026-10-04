@@ -1,0 +1,358 @@
+{
+ "mopsos.md": {
+  "meta": {
+   "title": "Mopsos",
+   "kind": "project",
+   "created": {
+    "date": "2026-09-12"
+   },
+   "updated": {
+    "date": "2026-09-30"
+   },
+   "tags": [
+    "investing",
+    "side-project"
+   ]
+  },
+  "heading": "Mopsos",
+  "preamble": [
+   ""
+  ],
+  "sections": [
+   {
+    "heading": "Decisions",
+    "key": "decisions",
+    "entries": [
+     {
+      "type": "decision",
+      "date": "2026-09-12",
+      "topic": "database",
+      "text": "PostgreSQL.",
+      "value": "PostgreSQL",
+      "reason": null,
+      "superseded": "2026-09-28"
+     },
+     {
+      "type": "decision",
+      "date": "2026-09-28",
+      "topic": "database",
+      "text": "SQLite. Single user, zero setup.",
+      "value": "SQLite",
+      "reason": "Single user, zero setup.",
+      "superseded": null
+     },
+     {
+      "type": "decision",
+      "date": "2026-09-20",
+      "topic": "frontend",
+      "text": "React + Vite.",
+      "value": "React + Vite",
+      "reason": null,
+      "superseded": null
+     },
+     {
+      "type": "raw",
+      "text": ""
+     }
+    ]
+   },
+   {
+    "heading": "Notes",
+    "key": "notes",
+    "entries": [
+     {
+      "type": "entry",
+      "date": "2026-09-15",
+      "text": "Prediction hit rate is calculated weekly, on Sundays."
+     },
+     {
+      "type": "entry",
+      "date": "2026-09-22",
+      "text": "Considered adding crypto, postponed until the stock flow is stable."
+     },
+     {
+      "type": "raw",
+      "text": ""
+     }
+    ]
+   },
+   {
+    "heading": "Todo",
+    "key": "todo",
+    "entries": [
+     {
+      "type": "todo",
+      "date": "2026-10-15",
+      "text": "Add Drive backup",
+      "done": false
+     },
+     {
+      "type": "todo",
+      "date": "2026-09-25",
+      "text": "Set up CI",
+      "done": true
+     }
+    ]
+   }
+  ]
+ },
+ "multiline-and-loose-lines.md": {
+  "meta": {
+   "title": "Home server",
+   "kind": "project",
+   "created": {
+    "date": "2026-07-14"
+   },
+   "updated": {
+    "date": "2026-09-20"
+   }
+  },
+  "heading": "Home server",
+  "preamble": [
+   ""
+  ],
+  "sections": [
+   {
+    "heading": "Decisions",
+    "key": "decisions",
+    "entries": [
+     {
+      "type": "decision",
+      "date": "2026-07-14",
+      "topic": "os",
+      "text": "Debian 12",
+      "value": "Debian 12",
+      "reason": null,
+      "superseded": null
+     },
+     {
+      "type": "decision",
+      "date": "2026-08-02",
+      "topic": "storage",
+      "text": "ZFS mirror. Two 4 TB disks,\n  bought second hand.",
+      "value": "ZFS mirror",
+      "reason": "Two 4 TB disks,\n  bought second hand.",
+      "superseded": null
+     },
+     {
+      "type": "raw",
+      "text": ""
+     }
+    ]
+   },
+   {
+    "heading": "Notes",
+    "key": "notes",
+    "entries": [
+     {
+      "type": "entry",
+      "date": "2026-07-20",
+      "text": "Reverse proxy is Caddy; config lives in /etc/caddy/Caddyfile\n  and is version controlled in the infra repo."
+     },
+     {
+      "type": "raw",
+      "text": "Someone typed this without a bullet."
+     },
+     {
+      "type": "entry",
+      "date": "2026-09-20",
+      "text": "Uptime 68 days."
+     },
+     {
+      "type": "raw",
+      "text": ""
+     }
+    ]
+   },
+   {
+    "heading": "Todo",
+    "key": "todo",
+    "entries": [
+     {
+      "type": "todo",
+      "date": "2026-10-01",
+      "text": "Replace the failing fan\n  (the rear one, 120 mm)",
+      "done": false
+     }
+    ]
+   }
+  ]
+ },
+ "simple.crlf.md": {
+  "meta": {
+   "title": "CRLF input",
+   "kind": "topic",
+   "created": {
+    "date": "2026-09-30"
+   },
+   "updated": {
+    "date": "2026-09-30"
+   }
+  },
+  "heading": "CRLF input",
+  "preamble": [
+   ""
+  ],
+  "sections": [
+   {
+    "heading": "Notes",
+    "key": "notes",
+    "entries": [
+     {
+      "type": "entry",
+      "date": "2026-09-30",
+      "text": "Saved by a Windows editor with CRLF line endings."
+     }
+    ]
+   }
+  ]
+ },
+ "turkish.md": {
+  "meta": {
+   "title": "Şirket Kuruluşu",
+   "kind": "topic",
+   "created": {
+    "date": "2026-08-01"
+   },
+   "updated": {
+    "date": "2026-09-29"
+   },
+   "tags": [
+    "şirket",
+    "hukuk"
+   ]
+  },
+  "heading": "Şirket Kuruluşu",
+  "preamble": [
+   ""
+  ],
+  "sections": [
+   {
+    "heading": "Kararlar",
+    "key": "decisions",
+    "entries": [
+     {
+      "type": "decision",
+      "date": "2026-08-01",
+      "topic": "şirket-türü",
+      "text": "Şahıs şirketi.",
+      "value": "Şahıs şirketi",
+      "reason": null,
+      "superseded": "2026-09-10"
+     },
+     {
+      "type": "decision",
+      "date": "2026-09-10",
+      "topic": "şirket-türü",
+      "text": "Limited şirket. Yatırımcı görüşmeleri için gerekli.",
+      "value": "Limited şirket",
+      "reason": "Yatırımcı görüşmeleri için gerekli.",
+      "superseded": null
+     },
+     {
+      "type": "raw",
+      "text": ""
+     }
+    ]
+   },
+   {
+    "heading": "Notlar",
+    "key": "notes",
+    "entries": [
+     {
+      "type": "entry",
+      "date": "2026-08-05",
+      "text": "Muhasebeci ile ilk görüşme yapıldı, aylık ücret 2.500 TL."
+     },
+     {
+      "type": "entry",
+      "date": "2026-09-12",
+      "text": "İmza sirküleri noterden alındı."
+     },
+     {
+      "type": "raw",
+      "text": ""
+     }
+    ]
+   },
+   {
+    "heading": "Yapılacaklar",
+    "key": "todo",
+    "entries": [
+     {
+      "type": "todo",
+      "date": "2026-10-01",
+      "text": "Vergi levhasını e-Devlet'ten indir",
+      "done": false
+     },
+     {
+      "type": "todo",
+      "date": "2026-09-11",
+      "text": "Ticaret sicil gazetesi ilanı",
+      "done": true
+     }
+    ]
+   }
+  ]
+ },
+ "unknown-and-empty-sections.md": {
+  "meta": {
+   "title": "Reading list",
+   "kind": "topic",
+   "created": {
+    "date": "2026-09-01"
+   },
+   "updated": {
+    "date": "2026-09-01"
+   }
+  },
+  "heading": "Reading list",
+  "preamble": [
+   ""
+  ],
+  "sections": [
+   {
+    "heading": "Notes",
+    "key": "notes",
+    "entries": [
+     {
+      "type": "entry",
+      "date": "2026-09-01",
+      "text": "Started collecting links here."
+     },
+     {
+      "type": "raw",
+      "text": ""
+     }
+    ]
+   },
+   {
+    "heading": "Links",
+    "key": null,
+    "entries": [
+     {
+      "type": "raw",
+      "text": "Hand-written section, not touched by code."
+     },
+     {
+      "type": "raw",
+      "text": "- https://example.com/a"
+     },
+     {
+      "type": "raw",
+      "text": "- https://example.com/b"
+     },
+     {
+      "type": "raw",
+      "text": ""
+     }
+    ]
+   },
+   {
+    "heading": "Todo",
+    "key": "todo",
+    "entries": []
+   }
+  ]
+ }
+}
