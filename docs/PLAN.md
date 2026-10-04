@@ -71,7 +71,7 @@ Open question: ship a shared OAuth client ID with the app (needs Google brand ve
 One Dart codebase for Android, iOS, Windows and macOS. Step by step; each step is one issue and lands before the next starts.
 
 - [x] F1 Toolchain and CI: Dart workspace, analysis, tests with the 100% coverage gate on three OSes, APK and desktop builds, Sonar (#61)
-- [ ] F2 Note format, paths, i18n against `spec/fixtures/notes` (#62)
+- [x] F2 Note format, paths, i18n against `spec/fixtures/notes` (#62)
 - [ ] F3 Store, search index, stale notes (#63)
 - [ ] F4 Sync merge, manifest, engine, model resolver (#64)
 - [ ] F5 LLM providers over HTTPS, agent, tools (#65)

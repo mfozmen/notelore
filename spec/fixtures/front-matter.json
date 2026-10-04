@@ -1,0 +1,507 @@
+[
+ {
+  "value": "Mopsos",
+  "yaml": "k: Mopsos\n",
+  "loads_as": "Mopsos"
+ },
+ {
+  "value": "Şirket Kuruluşu",
+  "yaml": "k: Şirket Kuruluşu\n",
+  "loads_as": "Şirket Kuruluşu"
+ },
+ {
+  "value": "İstanbul'a Taşınma",
+  "yaml": "k: İstanbul'a Taşınma\n",
+  "loads_as": "İstanbul'a Taşınma"
+ },
+ {
+  "value": "",
+  "yaml": "k: ''\n",
+  "loads_as": ""
+ },
+ {
+  "value": " lead",
+  "yaml": "k: ' lead'\n",
+  "loads_as": " lead"
+ },
+ {
+  "value": "trail ",
+  "yaml": "k: 'trail '\n",
+  "loads_as": "trail "
+ },
+ {
+  "value": "two  spaces",
+  "yaml": "k: two  spaces\n",
+  "loads_as": "two  spaces"
+ },
+ {
+  "value": "yes",
+  "yaml": "k: 'yes'\n",
+  "loads_as": "yes"
+ },
+ {
+  "value": "No",
+  "yaml": "k: 'No'\n",
+  "loads_as": "No"
+ },
+ {
+  "value": "on",
+  "yaml": "k: 'on'\n",
+  "loads_as": "on"
+ },
+ {
+  "value": "OFF",
+  "yaml": "k: 'OFF'\n",
+  "loads_as": "OFF"
+ },
+ {
+  "value": "y",
+  "yaml": "k: y\n",
+  "loads_as": "y"
+ },
+ {
+  "value": "true",
+  "yaml": "k: 'true'\n",
+  "loads_as": "true"
+ },
+ {
+  "value": "False",
+  "yaml": "k: 'False'\n",
+  "loads_as": "False"
+ },
+ {
+  "value": "null",
+  "yaml": "k: 'null'\n",
+  "loads_as": "null"
+ },
+ {
+  "value": "Null",
+  "yaml": "k: 'Null'\n",
+  "loads_as": "Null"
+ },
+ {
+  "value": "~",
+  "yaml": "k: '~'\n",
+  "loads_as": "~"
+ },
+ {
+  "value": "123",
+  "yaml": "k: '123'\n",
+  "loads_as": "123"
+ },
+ {
+  "value": "-5",
+  "yaml": "k: '-5'\n",
+  "loads_as": "-5"
+ },
+ {
+  "value": "+7",
+  "yaml": "k: '+7'\n",
+  "loads_as": "+7"
+ },
+ {
+  "value": "1.5",
+  "yaml": "k: '1.5'\n",
+  "loads_as": "1.5"
+ },
+ {
+  "value": "1e3",
+  "yaml": "k: 1e3\n",
+  "loads_as": "1e3"
+ },
+ {
+  "value": ".inf",
+  "yaml": "k: '.inf'\n",
+  "loads_as": ".inf"
+ },
+ {
+  "value": "0x1F",
+  "yaml": "k: '0x1F'\n",
+  "loads_as": "0x1F"
+ },
+ {
+  "value": "0o17",
+  "yaml": "k: 0o17\n",
+  "loads_as": "0o17"
+ },
+ {
+  "value": "1_000",
+  "yaml": "k: '1_000'\n",
+  "loads_as": "1_000"
+ },
+ {
+  "value": "12:30",
+  "yaml": "k: '12:30'\n",
+  "loads_as": "12:30"
+ },
+ {
+  "value": "2026-09-12",
+  "yaml": "k: '2026-09-12'\n",
+  "loads_as": "2026-09-12"
+ },
+ {
+  "value": "2026-9-1",
+  "yaml": "k: 2026-9-1\n",
+  "loads_as": "2026-9-1"
+ },
+ {
+  "value": "2026-09-12T10:00:00",
+  "yaml": "k: '2026-09-12T10:00:00'\n",
+  "loads_as": "2026-09-12T10:00:00"
+ },
+ {
+  "value": "a: b",
+  "yaml": "k: 'a: b'\n",
+  "loads_as": "a: b"
+ },
+ {
+  "value": "a:b",
+  "yaml": "k: a:b\n",
+  "loads_as": "a:b"
+ },
+ {
+  "value": "ends:",
+  "yaml": "k: 'ends:'\n",
+  "loads_as": "ends:"
+ },
+ {
+  "value": "has # hash",
+  "yaml": "k: 'has # hash'\n",
+  "loads_as": "has # hash"
+ },
+ {
+  "value": "a#b",
+  "yaml": "k: a#b\n",
+  "loads_as": "a#b"
+ },
+ {
+  "value": "#start",
+  "yaml": "k: '#start'\n",
+  "loads_as": "#start"
+ },
+ {
+  "value": "- dash",
+  "yaml": "k: '- dash'\n",
+  "loads_as": "- dash"
+ },
+ {
+  "value": "-dash",
+  "yaml": "k: -dash\n",
+  "loads_as": "-dash"
+ },
+ {
+  "value": "?q",
+  "yaml": "k: ?q\n",
+  "loads_as": "?q"
+ },
+ {
+  "value": "? q",
+  "yaml": "k: '? q'\n",
+  "loads_as": "? q"
+ },
+ {
+  "value": ":colon",
+  "yaml": "k: :colon\n",
+  "loads_as": ":colon"
+ },
+ {
+  "value": ": colon",
+  "yaml": "k: ': colon'\n",
+  "loads_as": ": colon"
+ },
+ {
+  "value": "[x]",
+  "yaml": "k: '[x]'\n",
+  "loads_as": "[x]"
+ },
+ {
+  "value": "{x}",
+  "yaml": "k: '{x}'\n",
+  "loads_as": "{x}"
+ },
+ {
+  "value": "x, y",
+  "yaml": "k: x, y\n",
+  "loads_as": "x, y"
+ },
+ {
+  "value": "a [b]",
+  "yaml": "k: a [b]\n",
+  "loads_as": "a [b]"
+ },
+ {
+  "value": "a {b}",
+  "yaml": "k: a {b}\n",
+  "loads_as": "a {b}"
+ },
+ {
+  "value": "it's",
+  "yaml": "k: it's\n",
+  "loads_as": "it's"
+ },
+ {
+  "value": "\"quoted\"",
+  "yaml": "k: '\"quoted\"'\n",
+  "loads_as": "\"quoted\""
+ },
+ {
+  "value": "say \"hi\"",
+  "yaml": "k: say \"hi\"\n",
+  "loads_as": "say \"hi\""
+ },
+ {
+  "value": "@at",
+  "yaml": "k: '@at'\n",
+  "loads_as": "@at"
+ },
+ {
+  "value": "`tick",
+  "yaml": "k: '`tick'\n",
+  "loads_as": "`tick"
+ },
+ {
+  "value": "%pct",
+  "yaml": "k: '%pct'\n",
+  "loads_as": "%pct"
+ },
+ {
+  "value": "&amp",
+  "yaml": "k: '&amp'\n",
+  "loads_as": "&amp"
+ },
+ {
+  "value": "*star",
+  "yaml": "k: '*star'\n",
+  "loads_as": "*star"
+ },
+ {
+  "value": "!bang",
+  "yaml": "k: '!bang'\n",
+  "loads_as": "!bang"
+ },
+ {
+  "value": "|pipe",
+  "yaml": "k: '|pipe'\n",
+  "loads_as": "|pipe"
+ },
+ {
+  "value": ">gt",
+  "yaml": "k: '>gt'\n",
+  "loads_as": ">gt"
+ },
+ {
+  "value": "=eq",
+  "yaml": "k: =eq\n",
+  "loads_as": "=eq"
+ },
+ {
+  "value": "100%",
+  "yaml": "k: 100%\n",
+  "loads_as": "100%"
+ },
+ {
+  "value": "C:\\path\\x",
+  "yaml": "k: C:\\path\\x\n",
+  "loads_as": "C:\\path\\x"
+ },
+ {
+  "value": "emoji 🙂",
+  "yaml": "k: emoji 🙂\n",
+  "loads_as": "emoji 🙂"
+ },
+ {
+  "value": "tab\there",
+  "yaml": "k: \"tab\\there\"\n",
+  "loads_as": "tab\there"
+ },
+ {
+  "value": "café résumé",
+  "yaml": "k: café résumé\n",
+  "loads_as": "café résumé"
+ },
+ {
+  "value": "bell\u0007",
+  "yaml": "k: \"bell\\a\"\n",
+  "loads_as": "bell\u0007"
+ },
+ {
+  "value": "esc\u001b",
+  "yaml": "k: \"esc\\e\"\n",
+  "loads_as": "esc\u001b"
+ },
+ {
+  "value": "vt\u000b",
+  "yaml": "k: \"vt\\v\"\n",
+  "loads_as": "vt\u000b"
+ },
+ {
+  "value": "nul\u0000x",
+  "yaml": "k: \"nul\\0x\"\n",
+  "loads_as": "nul\u0000x"
+ },
+ {
+  "value": "del",
+  "yaml": "k: \"del\\x7F\"\n",
+  "loads_as": "del"
+ },
+ {
+  "value": "c1",
+  "yaml": "k: \"c1\\x80\"\n",
+  "loads_as": "c1"
+ },
+ {
+  "value": "nbsp x",
+  "yaml": "k: nbsp x\n",
+  "loads_as": "nbsp x"
+ },
+ {
+  "value": "bom﻿x",
+  "yaml": "k: \"bom\\uFEFFx\"\n",
+  "loads_as": "bom﻿x"
+ },
+ {
+  "value": "back\\slash\ttab",
+  "yaml": "k: \"back\\\\slash\\ttab\"\n",
+  "loads_as": "back\\slash\ttab"
+ },
+ {
+  "value": "quote\"\ttab",
+  "yaml": "k: \"quote\\\"\\ttab\"\n",
+  "loads_as": "quote\"\ttab"
+ },
+ {
+  "value": [
+   "investing",
+   "side-project"
+  ],
+  "yaml": "k: [investing, side-project]\n",
+  "loads_as": [
+   "investing",
+   "side-project"
+  ]
+ },
+ {
+  "value": [],
+  "yaml": "k: []\n",
+  "loads_as": []
+ },
+ {
+  "value": [
+   "a, b",
+   "yes",
+   "x y"
+  ],
+  "yaml": "k: ['a, b', 'yes', x y]\n",
+  "loads_as": [
+   "a, b",
+   "yes",
+   "x y"
+  ]
+ },
+ {
+  "value": [
+   "[x]"
+  ],
+  "yaml": "k: ['[x]']\n",
+  "loads_as": [
+   "[x]"
+  ]
+ },
+ {
+  "value": [
+   "şirket",
+   "hukuk"
+  ],
+  "yaml": "k: [şirket, hukuk]\n",
+  "loads_as": [
+   "şirket",
+   "hukuk"
+  ]
+ },
+ {
+  "value": [
+   "2026-01-01"
+  ],
+  "yaml": "k: ['2026-01-01']\n",
+  "loads_as": [
+   "2026-01-01"
+  ]
+ },
+ {
+  "value": [
+   "1",
+   "2"
+  ],
+  "yaml": "k: ['1', '2']\n",
+  "loads_as": [
+   "1",
+   "2"
+  ]
+ },
+ {
+  "value": [
+   "it's"
+  ],
+  "yaml": "k: [it's]\n",
+  "loads_as": [
+   "it's"
+  ]
+ },
+ {
+  "value": [
+   "#tag"
+  ],
+  "yaml": "k: ['#tag']\n",
+  "loads_as": [
+   "#tag"
+  ]
+ },
+ {
+  "value": [
+   "a: b"
+  ],
+  "yaml": "k: ['a: b']\n",
+  "loads_as": [
+   "a: b"
+  ]
+ },
+ {
+  "value": 5,
+  "yaml": "k: 5\n",
+  "loads_as": 5
+ },
+ {
+  "value": -3,
+  "yaml": "k: -3\n",
+  "loads_as": -3
+ },
+ {
+  "value": 0,
+  "yaml": "k: 0\n",
+  "loads_as": 0
+ },
+ {
+  "value": true,
+  "yaml": "k: true\n",
+  "loads_as": true
+ },
+ {
+  "value": false,
+  "yaml": "k: false\n",
+  "loads_as": false
+ },
+ {
+  "value": null,
+  "yaml": "k: null\n",
+  "loads_as": null
+ },
+ {
+  "value": {
+   "date": "2026-09-12"
+  },
+  "yaml": "k: 2026-09-12\n",
+  "loads_as": {
+   "date": "2026-09-12"
+  }
+ }
+]
