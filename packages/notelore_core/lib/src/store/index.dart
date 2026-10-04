@@ -137,35 +137,45 @@ class NoteIndex {
     };
     final seen = <String>{};
     _db.execute('BEGIN');
-    for (final MapEntry(key: kind, value: folder) in kinds.entries) {
-      for (final file in markdownFiles(p.join(root, folder))) {
-        final rel = p.posix.joinAll(p.split(p.relative(file.path, from: root)));
-        final String stamp;
-        final String text;
-        try {
-          final stat = file.statSync();
-          stamp = '${stat.modified.microsecondsSinceEpoch}:${stat.size}';
-          if (known[rel]?.$1 == stamp) {
-            seen.add(rel);
-            continue;
-          }
-          text = unorm.nfc(utf8.decode(file.readAsBytesSync()));
-        } on FileSystemException {
-          continue; // gone: one bad file never takes down the index
-        } on FormatException {
-          continue; // not UTF-8 text
+    try {
+      for (final MapEntry(key: kind, value: folder) in kinds.entries) {
+        for (final file in markdownFiles(p.join(root, folder))) {
+          _refresh(file, kind, known, seen);
         }
-        seen.add(rel);
-        final digest = sha256.convert(utf8.encode(text)).toString();
-        if (known[rel]?.$2 == digest) {
-          _db.execute('UPDATE files SET stamp = ? WHERE path = ?', [stamp, rel]);
-          continue;
-        }
-        _indexFile(rel, kind, p.basenameWithoutExtension(file.path), text, stamp, digest);
       }
+      known.keys.where((rel) => !seen.contains(rel)).forEach(_forget);
+      _db.execute('COMMIT');
+    } catch (_) {
+      _db.execute('ROLLBACK'); // a failed rebuild must not leave the database locked
+      rethrow;
     }
-    known.keys.where((rel) => !seen.contains(rel)).forEach(_forget);
-    _db.execute('COMMIT');
+  }
+
+  /// Reindexes [file] when it changed; adds it to [seen] when it is readable.
+  void _refresh(File file, String kind, Map<String, (String, String)> known, Set<String> seen) {
+    final rel = p.posix.joinAll(p.split(p.relative(file.path, from: root)));
+    final String stamp;
+    final String text;
+    try {
+      final stat = file.statSync();
+      stamp = '${stat.modified.microsecondsSinceEpoch}:${stat.size}';
+      if (known[rel]?.$1 == stamp) {
+        seen.add(rel);
+        return;
+      }
+      text = unorm.nfc(utf8.decode(file.readAsBytesSync()));
+    } on FileSystemException {
+      return; // gone: one bad file never takes down the index
+    } on FormatException {
+      return; // not UTF-8 text
+    }
+    seen.add(rel);
+    final digest = sha256.convert(utf8.encode(text)).toString();
+    if (known[rel]?.$2 == digest) {
+      _db.execute('UPDATE files SET stamp = ? WHERE path = ?', [stamp, rel]);
+      return;
+    }
+    _indexFile(rel, kind, p.basenameWithoutExtension(file.path), text, stamp, digest);
   }
 
   void _forget(String rel) {
@@ -207,43 +217,45 @@ class NoteIndex {
     ]);
     for (final section in note.sections) {
       for (final entry in section.entries) {
-        var superseded = false;
-        final String body;
-        switch (entry) {
-          case Raw(:final text):
-            if (text.trim().isEmpty) continue;
-            body = text;
-          case Decision():
-            superseded = entry.superseded != null;
-            _db.execute('INSERT INTO decisions VALUES (?, ?, ?, ?, ?)', [
-              rel,
-              isoDate(entry.date),
-              entry.topic,
-              entry.text,
-              if (entry.superseded case final day?) isoDate(day) else null,
-            ]);
-            body = '${entry.topic}: ${entry.text}';
-          case Entry(:final text) || Todo(:final text):
-            body = text;
-        }
-        final row = [
-          slug,
-          note.title,
-          section.key ?? section.heading,
-          body,
-          kind,
-          rel,
-          if (superseded) 1 else 0,
-        ];
-        if (fts) {
-          _db.execute('INSERT INTO content VALUES (?, ?, ?, ?, ?, ?, ?)', row);
-        } else {
-          _db.execute('INSERT INTO content VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
-            ...row,
-            _fold('${note.title}\n$body'),
-          ]);
-        }
+        _indexEntry(rel, kind, slug, note.title, section.key ?? section.heading, entry);
       }
+    }
+  }
+
+  void _indexEntry(
+    String rel,
+    String kind,
+    String slug,
+    String title,
+    String section,
+    NoteEntry entry,
+  ) {
+    final String body;
+    switch (entry) {
+      case Raw(:final text):
+        if (text.trim().isEmpty) return;
+        body = text;
+      case Decision():
+        _db.execute('INSERT INTO decisions VALUES (?, ?, ?, ?, ?)', [
+          rel,
+          isoDate(entry.date),
+          entry.topic,
+          entry.text,
+          if (entry.superseded case final day?) isoDate(day) else null,
+        ]);
+        body = '${entry.topic}: ${entry.text}';
+      case Entry(:final text) || Todo(:final text):
+        body = text;
+    }
+    final superseded = entry is Decision && entry.superseded != null;
+    final row = [slug, title, section, body, kind, rel, if (superseded) 1 else 0];
+    if (fts) {
+      _db.execute('INSERT INTO content VALUES (?, ?, ?, ?, ?, ?, ?)', row);
+    } else {
+      _db.execute('INSERT INTO content VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
+        ...row,
+        _fold('$title\n$body'),
+      ]);
     }
   }
 

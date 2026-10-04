@@ -33,7 +33,7 @@ final _reserved = {
   for (var i = 1; i < 10; i++) ...['com$i', 'lpt$i'],
 };
 const _replaceAttempts = 5;
-const _forbidden = '<>:"/\\|?*\n\x00';
+const _forbidden = '<>:"/\\|?*\n\r\x00';
 // Python's str.splitlines boundaries, so both implementations split entry text alike.
 final _lineBreak = RegExp('\r\n|[\n\r\v\f\x1c\x1d\x1e\x85  ]');
 

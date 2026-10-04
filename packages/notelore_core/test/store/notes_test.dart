@@ -64,6 +64,7 @@ void main() {
       'a:b',
       '',
       'a\nb',
+      'a\rb',
       'a\x00b',
     ]) {
       test('rejects ${jsonEncode(slug)}', () {
