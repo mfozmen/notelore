@@ -24,6 +24,8 @@ Map<String, List<int>> missingLines(String lcov) {
 
 /// 0 when every report exists and is fully covered, 1 otherwise; findings go to [out].
 int gate(List<String> reports, StringSink out) {
+  // Keyed by report too: every package writes paths like lib/x.dart, so two
+  // reports can name the same relative file and must not hide each other's gaps.
   final missing = <String, List<int>>{};
   for (final report in reports) {
     final file = File(report);
@@ -31,7 +33,9 @@ int gate(List<String> reports, StringSink out) {
       out.writeln('no coverage report at $report');
       return 1;
     }
-    missing.addAll(missingLines(file.readAsStringSync()));
+    for (final entry in missingLines(file.readAsStringSync()).entries) {
+      missing['$report -> ${entry.key}'] = entry.value;
+    }
   }
   if (missing.isEmpty) {
     out.writeln('100% line coverage in ${reports.length} report(s)');

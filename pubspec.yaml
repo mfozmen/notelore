@@ -6,6 +6,7 @@ publish_to: none
 
 environment:
   sdk: ^3.13.0
+  flutter: 3.47.6  # the one place the Flutter version is pinned; CI reads it from here
 
 workspace:
   - packages/notelore_core

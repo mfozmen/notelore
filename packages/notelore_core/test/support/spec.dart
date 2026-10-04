@@ -5,7 +5,7 @@ import 'dart:io';
 Directory specFixtures() {
   var dir = Directory.current.absolute;
   while (true) {
-    final candidate = Directory('${dir.path}/spec/fixtures/notes');
+    final candidate = Directory.fromUri(dir.uri.resolve('spec/fixtures/notes/'));
     if (candidate.existsSync()) return candidate;
     final parent = dir.parent;
     if (parent.path == dir.path) {

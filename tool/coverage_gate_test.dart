@@ -47,6 +47,19 @@ void main() {
     expect(out.toString(), contains('lib/b.dart: 7, 9'));
   });
 
+  test('the same relative path in two reports keeps both sets of gaps', () async {
+    final dir = await Directory.systemTemp.createTemp('gate');
+    addTearDown(() => dir.delete(recursive: true));
+    const second = 'SF:lib/b.dart\nDA:11,0\nend_of_record\n';
+    final one = File('${dir.path}/one.info')..writeAsStringSync(_partial);
+    final two = File('${dir.path}/two.info')..writeAsStringSync(second);
+    final out = StringBuffer();
+    expect(gate([one.path, two.path], out), 1);
+    expect(out.toString(), allOf(contains('lib/b.dart: 7, 9'), contains('lib/b.dart: 11')));
+    expect(out.toString(), contains(one.path));
+    expect(out.toString(), contains(two.path));
+  });
+
   test('a missing report is an error, not a pass', () {
     final out = StringBuffer();
     expect(gate(['does/not/exist.info'], out), 1);
