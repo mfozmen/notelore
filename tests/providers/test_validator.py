@@ -81,3 +81,9 @@ def test_ollama_only_needs_a_reachable_daemon(api: Api, monkeypatch: pytest.Monk
     api.answers.append(urllib.error.URLError("connection refused"))
     with pytest.raises(TransientValidationError, match="http://box:1"):
         validate_key(find("ollama"), "")
+
+
+def test_a_captive_portal_is_a_transient_failure(api: Api) -> None:
+    api.answers.append(HTTPError(200, "the answer was not JSON: <html>Sign in</html>"))
+    with pytest.raises(TransientValidationError):
+        validate_key(find("openai"), "key")

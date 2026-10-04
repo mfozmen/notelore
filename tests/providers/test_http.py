@@ -12,6 +12,8 @@ from notelore.providers import http
 
 
 class Response(io.BytesIO):
+    status = 200
+
     def __enter__(self) -> Response:
         return self
 
@@ -29,6 +31,8 @@ def opened(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
             code = int(request.full_url.rsplit("/", 1)[1])
             body = request.full_url.split("fail-", 1)[1].split("/", 1)[0].encode()
             raise urllib.error.HTTPError(request.full_url, code, "error", {}, io.BytesIO(body))  # type: ignore[arg-type]
+        if "portal" in request.full_url:
+            return Response(b"<html>Sign in to the hotel Wi-Fi</html>")
         return Response(b'{"ok": true}' if "empty" not in request.full_url else b"")
 
     monkeypatch.setattr("urllib.request.urlopen", urlopen)
@@ -82,3 +86,11 @@ def test_the_tls_context_uses_the_bundled_ca_certificates() -> None:
     assert context.check_hostname
     assert len(context.get_ca_certs()) > 50  # certifi's bundle, not an empty platform store
     assert http.tls_context() is context
+
+
+def test_a_non_json_success_page_is_an_http_error(opened: list[dict[str, Any]]) -> None:
+    """A captive portal answers 200 with HTML; callers expect only HTTPError or OSError."""
+    with pytest.raises(http.HTTPError, match="not JSON") as caught:
+        http.request("GET", "https://api.x/portal")
+    assert caught.value.status == 200
+    assert "hotel Wi-Fi" in caught.value.message
