@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "notelore-core"
+# The release workflow bumps the version in src/notelore/__init__.py, in step with the apps.
+dynamic = ["version"]
+description = "Notelore's shared core: note format, store, index, sync, LLM providers and the agent."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+authors = [{ name = "Mehmet Fahri Özmen" }]
+dependencies = [
+  "platformdirs>=4.2",          # per-OS state/config dirs
+  "pyyaml>=6.0",                # note front matter
+  "keyring>=25.0",              # API keys + OAuth tokens in the OS credential store (desktop)
+  # LLM providers (bundled, same reasoning as littlepress-ai)
+  "anthropic>=0.40",
+  "openai>=1.50",
+  "google-genai>=1.0",
+  "ollama>=0.4",
+  # Google Drive sync
+  "google-api-python-client>=2.100",
+  "google-auth-oauthlib>=1.2",
+]
+
+[tool.hatch.version]
+path = "src/notelore/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/notelore"]

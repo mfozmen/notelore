@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from notelore import __version__, update
+from notelore_cli import __version__, update
 
 API = update.API
 V = "9.9.9"
@@ -222,7 +222,7 @@ def test_run_update_in_a_frozen_build(
     assert update.run_update(fetch=fetch) == 0
     assert f"Updated to {V}" in capsys.readouterr().out
     assert exe.read_bytes() == b"new"
-    monkeypatch.setattr("notelore.update.__version__", V)  # what the swapped-in binary reports
+    monkeypatch.setattr("notelore_cli.update.__version__", V)  # what the swapped-in binary reports
     assert update.run_update(fetch=Fetch({API: release(V)})) == 0
     assert "Already up to date" in capsys.readouterr().out
     assert update.run_update(fetch=Fetch({})) == 1

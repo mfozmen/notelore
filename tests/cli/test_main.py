@@ -5,7 +5,7 @@ import sys
 
 import pytest
 
-from notelore import repl, update
+from notelore_cli import repl, update
 
 
 def test_python_dash_m_notelore_runs_the_cli(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -13,5 +13,5 @@ def test_python_dash_m_notelore_runs_the_cli(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(update, "hint", lambda: None)
     monkeypatch.setattr(repl, "run", lambda: 0)
     with pytest.raises(SystemExit) as exc:
-        runpy.run_module("notelore", run_name="__main__")
+        runpy.run_module("notelore_cli", run_name="__main__")
     assert exc.value.code == 0

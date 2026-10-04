@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from notelore import __version__, repl, update
-from notelore.cli import main
+from notelore_cli import __version__, repl, update
+from notelore_cli.cli import main
 
 
 @pytest.fixture(autouse=True)

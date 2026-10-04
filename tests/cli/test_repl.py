@@ -7,11 +7,12 @@ from typing import Any, ClassVar
 
 import pytest
 
-from notelore import repl, secrets
+from notelore import secrets
 from notelore.providers import AgentResponse, Message, Tool
 from notelore.providers.validator import KeyValidationError, TransientValidationError
 from notelore.store.index import Index
 from notelore.tools import Toolbox
+from notelore_cli import repl
 
 
 class Console:

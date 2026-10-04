@@ -9,6 +9,13 @@ resolution-markers = [
     "(python_full_version < '3.14' and sys_platform != 'emscripten') or (python_full_version < '3.12' and sys_platform == 'emscripten')",
 ]
 
+[manifest]
+members = [
+    "notelore",
+    "notelore-core",
+    "notelore-workspace",
+]
+
 [[package]]
 name = "altgraph"
 version = "0.17.5"
@@ -1265,7 +1272,23 @@ wheels = [
 
 [[package]]
 name = "notelore"
-source = { editable = "." }
+source = { editable = "apps/cli" }
+dependencies = [
+    { name = "notelore-core" },
+    { name = "prompt-toolkit" },
+    { name = "rich" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "notelore-core", editable = "packages/core" },
+    { name = "prompt-toolkit", specifier = ">=3.0" },
+    { name = "rich", specifier = ">=13.0" },
+]
+
+[[package]]
+name = "notelore-core"
+source = { editable = "packages/core" }
 dependencies = [
     { name = "anthropic" },
     { name = "google-api-python-client" },
@@ -1275,9 +1298,29 @@ dependencies = [
     { name = "ollama" },
     { name = "openai" },
     { name = "platformdirs" },
-    { name = "prompt-toolkit" },
     { name = "pyyaml" },
-    { name = "rich" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "anthropic", specifier = ">=0.40" },
+    { name = "google-api-python-client", specifier = ">=2.100" },
+    { name = "google-auth-oauthlib", specifier = ">=1.2" },
+    { name = "google-genai", specifier = ">=1.0" },
+    { name = "keyring", specifier = ">=25.0" },
+    { name = "ollama", specifier = ">=0.4" },
+    { name = "openai", specifier = ">=1.50" },
+    { name = "platformdirs", specifier = ">=4.2" },
+    { name = "pyyaml", specifier = ">=6.0" },
+]
+
+[[package]]
+name = "notelore-workspace"
+version = "0"
+source = { virtual = "." }
+dependencies = [
+    { name = "notelore" },
+    { name = "notelore-core" },
 ]
 
 [package.dev-dependencies]
@@ -1294,17 +1337,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "anthropic", specifier = ">=0.40" },
-    { name = "google-api-python-client", specifier = ">=2.100" },
-    { name = "google-auth-oauthlib", specifier = ">=1.2" },
-    { name = "google-genai", specifier = ">=1.0" },
-    { name = "keyring", specifier = ">=25.0" },
-    { name = "ollama", specifier = ">=0.4" },
-    { name = "openai", specifier = ">=1.50" },
-    { name = "platformdirs", specifier = ">=4.2" },
-    { name = "prompt-toolkit", specifier = ">=3.0" },
-    { name = "pyyaml", specifier = ">=6.0" },
-    { name = "rich", specifier = ">=13.0" },
+    { name = "notelore", editable = "apps/cli" },
+    { name = "notelore-core", editable = "packages/core" },
 ]
 
 [package.metadata.requires-dev]

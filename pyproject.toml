@@ -1,53 +1,21 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
+# Monorepo root: a uv workspace, not a package. Shared tool settings live here.
+#   packages/core  notelore-core  (import: notelore)       shared by every app
+#   apps/cli       notelore       (import: notelore_cli)   desktop command + REPL
 [project]
-name = "notelore"
-# Version lives in src/notelore/__init__.py only, so a release bump never touches
-# pyproject.toml and uv.lock stays valid for `uv sync --locked`.
-dynamic = ["version"]
-description = "Talk to an LLM, get tidy human-readable Markdown notes on your disk, ask them questions later. Backed up to Google Drive."
-readme = "README.md"
-license = { file = "LICENSE" }
+name = "notelore-workspace"
+version = "0"
 requires-python = ">=3.11"
-authors = [{ name = "Mehmet Fahri Özmen" }]
-keywords = ["notes", "llm", "cli", "markdown", "memory"]
-classifiers = [
-  "Development Status :: 2 - Pre-Alpha",
-  "Environment :: Console",
-  "Intended Audience :: End Users/Desktop",
-  "License :: OSI Approved :: MIT License",
-  "Operating System :: Microsoft :: Windows",
-  "Operating System :: MacOS",
-  "Operating System :: POSIX :: Linux",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
-]
-dependencies = [
-  "platformdirs>=4.2",          # per-OS state/config dirs
-  "pyyaml>=6.0",                # note front matter
-  "rich>=13.0",                 # terminal output
-  "prompt_toolkit>=3.0",        # REPL + slash-command completion
-  "keyring>=25.0",              # API keys + OAuth tokens in the OS credential store
-  # LLM providers (bundled, same reasoning as littlepress-ai)
-  "anthropic>=0.40",
-  "openai>=1.50",
-  "google-genai>=1.0",
-  "ollama>=0.4",
-  # Google Drive sync
-  "google-api-python-client>=2.100",
-  "google-auth-oauthlib>=1.2",
-]
+dependencies = ["notelore", "notelore-core"]
 
-[project.scripts]
-notelore = "notelore.cli:main"
+[tool.uv]
+package = false
 
-[project.urls]
-Homepage = "https://github.com/mfozmen/notelore"
-Repository = "https://github.com/mfozmen/notelore"
-Issues = "https://github.com/mfozmen/notelore/issues"
+[tool.uv.workspace]
+members = ["packages/core", "apps/cli"]
+
+[tool.uv.sources]
+notelore = { workspace = true }
+notelore-core = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -61,17 +29,11 @@ dev = [
   "pyinstaller>=6.22.3",
 ]
 
-[tool.hatch.version]
-path = "src/notelore/__init__.py"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/notelore"]
-
 # ---------------------------------------------------------------- ruff
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-src = ["src", "tests"]
+src = ["packages/core/src", "apps/cli/src", "tests"]
 
 [tool.ruff.lint]
 # Turkish letters are legitimate in i18n.py and fixtures, not typos of ASCII look-alikes.
@@ -93,8 +55,8 @@ select = [
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["src", "tests"]
-mypy_path = "src"
+files = ["packages/core/src", "apps/cli/src", "tests"]
+mypy_path = ["packages/core/src", "apps/cli/src"]
 
 [[tool.mypy.overrides]]
 module = ["googleapiclient.*", "google_auth_oauthlib.*", "google.oauth2.*"]
@@ -112,7 +74,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["notelore"]
+source = ["notelore", "notelore_cli"]
 branch = true
 
 [tool.coverage.report]
@@ -122,7 +84,10 @@ fail_under = 100
 [tool.semantic_release]
 # Conventional Commits drive every version bump: feat -> minor, fix/perf ->
 # patch, BREAKING CHANGE -> major. Never edit the version by hand.
-version_variables = ["src/notelore/__init__.py:__version__"]
+version_variables = [
+  "packages/core/src/notelore/__init__.py:__version__",
+  "apps/cli/src/notelore_cli/__init__.py:__version__",
+]
 commit_message = "chore(release): {version} [skip ci]"
 changelog_file = "CHANGELOG.md"
 allow_zero_version = true

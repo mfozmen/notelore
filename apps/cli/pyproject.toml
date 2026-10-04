@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "notelore"
+# Version lives in src/notelore_cli/__init__.py only, so a release bump never touches
+# pyproject.toml and uv.lock stays valid for `uv sync --locked`.
+dynamic = ["version"]
+description = "Talk to an LLM, get tidy human-readable Markdown notes on your disk, ask them questions later. Backed up to Google Drive."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+authors = [{ name = "Mehmet Fahri Özmen" }]
+keywords = ["notes", "llm", "cli", "markdown", "memory"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+  "notelore-core",
+  "rich>=13.0",                 # terminal output
+  "prompt_toolkit>=3.0",        # REPL + slash-command completion
+]
+
+[project.scripts]
+notelore = "notelore_cli.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/mfozmen/notelore"
+Repository = "https://github.com/mfozmen/notelore"
+Issues = "https://github.com/mfozmen/notelore/issues"
+
+[tool.uv.sources]
+notelore-core = { workspace = true }
+
+[tool.hatch.version]
+path = "src/notelore_cli/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/notelore_cli"]

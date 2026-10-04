@@ -7,7 +7,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from notelore import __version__, update
+from notelore_cli import __version__, update
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -25,6 +25,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     hint = update.hint()
     if hint:
         print(hint)
-    from notelore import repl  # lazy: --version and update stay instant
+    from notelore_cli import repl  # lazy: --version and update stay instant
 
     return repl.run()

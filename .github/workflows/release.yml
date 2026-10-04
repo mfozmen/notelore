@@ -105,7 +105,7 @@ jobs:
       - run: uv sync --locked
 
       - name: Build with PyInstaller
-        run: uv run pyinstaller --noconfirm --clean --onefile --name notelore --paths src src/notelore/__main__.py
+        run: uv run pyinstaller --noconfirm --clean --onefile --name notelore --paths packages/core/src --paths apps/cli/src apps/cli/src/notelore_cli/__main__.py
 
       - name: Smoke test
         run: dist/${{ matrix.exe }} --version
