@@ -67,3 +67,11 @@ def test_python_dash_m_starts_the_main_loop(
     monkeypatch.setattr(mobile_app.Notelore, "main_loop", lambda self: started.append(True))
     sandboxed(lambda: runpy.run_module("notelore_mobile", run_name="__main__"))
     assert started == [True]
+
+
+def test_results_also_go_to_stdout_for_logcat(
+    sandboxed: Callable[..., object], capsys: pytest.CaptureFixture[str]
+) -> None:
+    sandboxed(mobile_app.main)
+    out = capsys.readouterr().out
+    assert "notelore-diagnostics: OK  note round trip: Welcome: 1 entries" in out
