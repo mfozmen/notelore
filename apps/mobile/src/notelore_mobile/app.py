@@ -27,4 +27,4 @@ class Notelore(toga.App):
 
 
 def main() -> Notelore:
-    return Notelore("Notelore", "io.github.mfozmen.notelore")
+    return Notelore("Notelore", "io.github.mfozmen.notelore_mobile")

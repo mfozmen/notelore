@@ -4,5 +4,5 @@ The Android app of [Notelore](https://github.com/mfozmen/notelore) (iOS later), 
 
 ```bash
 uvx briefcase create android   # from apps/mobile
-uvx briefcase build android    # debug APK under build/notelore/android/gradle/app/build/outputs/apk/debug/
+uvx briefcase build android    # debug APK under build/notelore-mobile/android/gradle/app/build/outputs/apk/debug/
 ```

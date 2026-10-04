@@ -33,7 +33,9 @@ license.file = "LICENSE"
 author = "Mehmet Fahri Özmen"
 author_email = "mehmetfahriozmen@gmail.com"
 
-[tool.briefcase.app.notelore]
+# The app name decides the Python module Briefcase runs: it must not be the
+# core's "notelore" package, so the app is notelore-mobile (module notelore_mobile).
+[tool.briefcase.app.notelore-mobile]
 formal_name = "Notelore"
 description = "Talk to your notes, synced with every other device."
 # The shared core ships as source next to the app: no wheel build, and only its
@@ -41,8 +43,8 @@ description = "Talk to your notes, synced with every other device."
 sources = ["src/notelore_mobile", "../../packages/core/src/notelore"]
 requires = ["platformdirs>=4.2", "pyyaml>=6.0"]
 
-[tool.briefcase.app.notelore.android]
+[tool.briefcase.app.notelore-mobile.android]
 requires = ["toga-android~=0.5.7"]
 
-[tool.briefcase.app.notelore.iOS]
+[tool.briefcase.app.notelore-mobile.iOS]
 requires = ["toga-iOS~=0.5.7"]
