@@ -1,0 +1,12 @@
+# Every action is pinned to a commit SHA (#72); Dependabot proposes the updates.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
