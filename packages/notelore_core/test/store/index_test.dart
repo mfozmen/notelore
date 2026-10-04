@@ -264,6 +264,20 @@ void main() {
     expect([second.listNotes(), second.search('crypto')], expected);
   });
 
+  test('a failed rebuild rolls back and leaves the database usable', () {
+    final index = NoteIndex(db, root, fts5: false);
+    addTearDown(index.close);
+    final other = sqlite3.open(db);
+    addTearDown(other.close);
+    other.execute('DROP TABLE content');
+    expect(index.rebuild, throwsA(isA<SqliteException>()));
+    other.execute(
+      'CREATE TABLE content(slug, title, section, text, kind, path, superseded, folded)',
+    );
+    index.rebuild(); // no transaction left open
+    expect(index.listNotes(), hasLength(3));
+  });
+
   test('a failed setup closes the connection', () {
     File(db)
       ..parent.createSync(recursive: true)
