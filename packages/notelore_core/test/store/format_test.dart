@@ -154,6 +154,12 @@ void main() {
     expect(serialize(note), text);
   });
 
+  test('dates are ASCII digits only, like the Python reference', () {
+    const arabicIndic = '٢٠٢٦-٠٩-٣٠'; // 2026-09-30
+    final note = parse('---\ntitle: T\n---\n# T\n## Notes\n- $arabicIndic: x\n');
+    expect(note.section('notes')!.entries, [const Raw('- $arabicIndic: x')]);
+  });
+
   test('entries compare by value and render their line', () {
     expect(Entry(d(2026, 1, 2), 'a'), Entry(d(2026, 1, 2), 'a'));
     expect(Entry(d(2026, 1, 2), 'a').hashCode, Entry(d(2026, 1, 2), 'a').hashCode);
