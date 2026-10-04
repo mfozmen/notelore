@@ -7,9 +7,6 @@ from pathlib import Path
 
 import pytest
 import pytest_socket
-
-os.environ.setdefault("TOGA_BACKEND", "toga_dummy")
-
 import toga
 
 from notelore_mobile import app as mobile_app
@@ -43,7 +40,6 @@ def test_startup_points_notelore_home_at_app_storage(
 ) -> None:
     sandboxed(mobile_app.main)
     assert os.environ["NOTELORE_HOME"] == str(tmp_path / "data")
-    assert (tmp_path / "data" / "notes" / "topics" / "welcome.md").exists()
 
 
 def test_the_screen_lists_every_check(sandboxed: Callable[..., object]) -> None:

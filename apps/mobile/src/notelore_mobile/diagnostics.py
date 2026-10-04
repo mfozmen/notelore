@@ -9,8 +9,10 @@ from __future__ import annotations
 import datetime
 import importlib
 import sqlite3
+import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 import yaml
 
@@ -26,12 +28,13 @@ class Check:
 
 
 def _round_trip() -> str:
-    root = paths.notes_dir()
-    path = notes.note_path(root, "topic", "welcome")
-    if not path.exists():
-        notes.create_note(root, "topic", "Welcome", today=datetime.date.today())
-    notes.add_entry(path, "Opened Notelore on this device.")
-    note = format.parse(path.read_text(encoding="utf-8"))
+    """Create, append to and re-read a note in a scratch folder, never the user's notes."""
+    state = paths.state_dir()
+    state.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=state) as scratch:
+        path = notes.create_note(Path(scratch), "topic", "Welcome", today=datetime.date.today())
+        notes.add_entry(path, "Opened Notelore on this device.")
+        note = format.parse(path.read_text(encoding="utf-8"))
     section = note.section("notes")
     entries = [e for e in section.entries if isinstance(e, format.Entry)] if section else []
     return f"{note.title}: {len(entries)} entries"
