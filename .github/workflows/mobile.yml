@@ -75,7 +75,9 @@ jobs:
             adb logcat -c
             adb shell am start -n io.github.mfozmen.notelore/org.beeware.android.MainActivity
             for i in $(seq 1 60); do adb logcat -d | grep -q "notelore-diagnostics: .. *desktop-only: LLM SDKs" && break; sleep 3; done
-            adb logcat -d | grep "notelore-diagnostics" | tee diagnostics.txt
+            adb logcat -d > logcat.txt
+            grep -iE "python|beeware|chaquopy|AndroidRuntime|notelore" logcat.txt | tail -120
+            grep "notelore-diagnostics" logcat.txt > diagnostics.txt || true
             grep -q "notelore-diagnostics: OK  note round trip" diagnostics.txt
             grep -q "notelore-diagnostics: OK  search index" diagnostics.txt
             grep -q "notelore-diagnostics: OK  YAML" diagnostics.txt
