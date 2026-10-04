@@ -66,7 +66,22 @@ Open question: ship a shared OAuth client ID with the app (needs Google brand ve
 - [ ] README: install, first run, provider setup, Drive setup
 - [x] Update check once a day + `notelore update` self-update for the packaged executables
 
-## M5 — Monorepo and mobile (epic #48)
+## M6 — Flutter (epic #60)
+
+One Dart codebase for Android, iOS, Windows and macOS. Step by step; each step is one issue and lands before the next starts.
+
+- [x] F1 Toolchain and CI: Dart workspace, analysis, tests with the 100% coverage gate on three OSes, APK and desktop builds, Sonar (#61)
+- [ ] F2 Note format, paths, i18n against `spec/fixtures/notes` (#62)
+- [ ] F3 Store, search index, stale notes (#63)
+- [ ] F4 Sync merge, manifest, engine, model resolver (#64)
+- [ ] F5 LLM providers over HTTPS, agent, tools (#65)
+- [ ] F6 App UI: setup, chat, notes, settings (#66)
+- [ ] F7 Google Drive sign-in, remote, sync triggers (#67)
+- [ ] F8 Release pipeline and desktop self-update (#68)
+- [ ] F9 Retire the Python packages (#69)
+- [ ] F10 iOS (#70)
+
+## M5 — Monorepo and mobile (epic #48, superseded by #60)
 
 Every device syncs the same notes through the same Drive folder, so desktop and mobile share one core.
 

@@ -8,8 +8,8 @@ import pytest
 
 from notelore.store.format import Decision, Entry, Raw, Todo, parse, serialize
 
-FIXTURES = sorted((Path(__file__).parent.parent / "fixtures" / "notes").glob("*.md"))
-MOPSOS = (Path(__file__).parent.parent / "fixtures" / "notes" / "mopsos.md").read_bytes()
+FIXTURES = sorted((Path(__file__).parents[2] / "spec" / "fixtures" / "notes").glob("*.md"))
+MOPSOS = (Path(__file__).parents[2] / "spec" / "fixtures" / "notes" / "mopsos.md").read_bytes()
 
 
 @pytest.mark.parametrize("path", FIXTURES, ids=lambda p: p.name)

@@ -31,3 +31,8 @@ Thumbs.db
 apps/mobile/build/
 apps/mobile/dist/
 apps/mobile/logs/
+
+# Dart / Flutter
+.dart_tool/
+coverage/
+*.iml
