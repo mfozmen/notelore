@@ -70,14 +70,17 @@ jobs:
       # The Dart workspace's coverage goes to Sonar in the same scan (#60).
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.47.6"
-          channel: stable
+          flutter-version-file: pubspec.yaml
           cache: true
       - run: flutter pub get
       - name: Dart coverage for Sonar
         run: |
           (cd packages/notelore_core && dart run coverage:test_with_coverage)
           (cd apps/notelore && flutter test --coverage)
+          # lcov paths are relative to each package; Sonar resolves them from the repo root.
+          for pkg in packages/notelore_core apps/notelore; do
+            sed -i -e "s|^SF:$GITHUB_WORKSPACE/|SF:|" -e "\|^SF:$pkg/|!s|^SF:|SF:$pkg/|" "$pkg/coverage/lcov.info"
+          done
       - uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
