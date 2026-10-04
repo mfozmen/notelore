@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "notelore-mobile"
+dynamic = ["version"]
+description = "Notelore on Android (iOS later): talk to your notes, synced with every other device."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+authors = [{ name = "Mehmet Fahri Özmen" }]
+# For running and testing on the desktop; Briefcase installs the mobile backend itself.
+dependencies = [
+  "notelore-core",
+  "toga-core>=0.5.7",
+]
+
+[tool.uv.sources]
+notelore-core = { workspace = true }
+
+[tool.hatch.version]
+path = "src/notelore_mobile/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/notelore_mobile"]
+
+# ---------------------------------------------------------------- briefcase
+[tool.briefcase]
+project_name = "Notelore"
+bundle = "io.github.mfozmen"
+version = "0.2.0"
+url = "https://github.com/mfozmen/notelore"
+license.file = "LICENSE"
+author = "Mehmet Fahri Özmen"
+author_email = "mehmetfahriozmen@gmail.com"
+
+[tool.briefcase.app.notelore]
+formal_name = "Notelore"
+description = "Talk to your notes, synced with every other device."
+# The shared core ships as source next to the app: no wheel build, and only its
+# mobile-safe base dependencies are installed (see packages/core/pyproject.toml).
+sources = ["src/notelore_mobile", "../../packages/core/src/notelore"]
+requires = ["platformdirs>=4.2", "pyyaml>=6.0"]
+
+[tool.briefcase.app.notelore.android]
+requires = ["toga-android~=0.5.7"]
+base_theme = "Theme.MaterialComponents.Light.DarkActionBar"
+
+[tool.briefcase.app.notelore.iOS]
+requires = ["toga-iOS~=0.5.7"]

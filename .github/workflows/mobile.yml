@@ -1,0 +1,45 @@
+name: Mobile
+
+# Android build of apps/mobile with Briefcase (#50). Briefcase downloads its own
+# JDK and Android SDK. The debug APK is uploaded as a workflow artifact; release
+# APKs come with the Android MVP (#53). iOS joins later from the same project (#54).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: mobile-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Cache the Briefcase JDK and Android SDK
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/briefcase
+          key: briefcase-android-${{ runner.os }}-v1
+
+      - name: Create and build the Android app
+        working-directory: apps/mobile
+        run: |
+          uvx --python 3.12 briefcase create android --no-input
+          uvx --python 3.12 briefcase build android --no-input
+
+      - name: Upload the debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: notelore-android-debug
+          path: apps/mobile/build/notelore/android/gradle/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

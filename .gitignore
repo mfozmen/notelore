@@ -26,3 +26,8 @@ Thumbs.db
 
 # Claude Code personal overrides
 .claude/settings.local.json
+
+# Briefcase output (apps/mobile)
+apps/mobile/build/
+apps/mobile/dist/
+apps/mobile/logs/

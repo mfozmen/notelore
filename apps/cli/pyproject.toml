@@ -26,7 +26,7 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-  "notelore-core",
+  "notelore-core[desktop]",
   "rich>=13.0",                 # terminal output
   "prompt_toolkit>=3.0",        # REPL + slash-command completion
 ]
