@@ -1,4 +1,4 @@
-"""Local models via the ``ollama`` client. Key-less.
+"""Local models over Ollama's REST API (``/api/chat``). Key-less.
 
 OpenAI-like wire shape with two twists: tool calls carry no id (one is
 synthesized here) and tool results are correlated by ``tool_name``.
@@ -10,6 +10,7 @@ import os
 import uuid
 from typing import Any
 
+from notelore.providers import http
 from notelore.providers.base import (
     AgentResponse,
     Block,
@@ -25,7 +26,7 @@ TIMEOUT_SECONDS = 180.0  # a cold local model legitimately takes a while for its
 
 
 def host() -> str:
-    return os.environ.get("OLLAMA_HOST", DEFAULT_HOST)
+    return os.environ.get("OLLAMA_HOST", DEFAULT_HOST).rstrip("/")
 
 
 class OllamaProvider:
@@ -33,15 +34,14 @@ class OllamaProvider:
         self._model = model
 
     def turn(self, system: str, messages: list[Message], tools: list[Tool]) -> AgentResponse:
-        import ollama
-
-        client = ollama.Client(host=host(), timeout=TIMEOUT_SECONDS)
-        kwargs: dict[str, Any] = {
+        preamble = [{"role": "system", "content": system}] if system else []
+        body: dict[str, Any] = {
             "model": self._model,
-            "messages": [{"role": "system", "content": system}, *to_ollama(messages)],
+            "messages": preamble + to_ollama(messages),
+            "stream": False,
         }
         if tools:
-            kwargs["tools"] = [
+            body["tools"] = [
                 {
                     "type": "function",
                     "function": {
@@ -52,7 +52,7 @@ class OllamaProvider:
                 }
                 for t in tools
             ]
-        return from_ollama(client.chat(**kwargs))
+        return from_ollama(http.request("POST", f"{host()}/api/chat", None, body, TIMEOUT_SECONDS))
 
 
 def to_ollama(messages: list[Message]) -> list[dict[str, Any]]:
@@ -81,20 +81,20 @@ def to_ollama(messages: list[Message]) -> list[dict[str, Any]]:
     return out
 
 
-def from_ollama(response: Any) -> AgentResponse:
+def from_ollama(answer: dict[str, Any]) -> AgentResponse:
     blocks: list[Block] = []
-    message = getattr(response, "message", None)
-    if message is None:
+    message = answer.get("message")
+    if not message:
         return AgentResponse(blocks, "end_turn")
-    if getattr(message, "content", None):
-        blocks.append({"type": "text", "text": message.content})
-    for call in getattr(message, "tool_calls", None) or []:
+    if message.get("content"):
+        blocks.append({"type": "text", "text": message["content"]})
+    for call in message.get("tool_calls") or []:
         blocks.append(
             {
                 "type": "tool_use",
                 "id": f"toolu_{uuid.uuid4().hex[:12]}",
-                "name": call.function.name,
-                "input": parse_arguments(call.function.arguments),
+                "name": call["function"]["name"],
+                "input": parse_arguments(call["function"].get("arguments")),
             }
         )
     tool_use = any(b["type"] == "tool_use" for b in blocks)

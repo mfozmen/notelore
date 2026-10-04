@@ -1,4 +1,4 @@
-"""GPT via the OpenAI Chat Completions API.
+"""GPT over the Chat Completions API.
 
 Translation at the boundary: assistant ``tool_use`` blocks become ``tool_calls``
 with JSON-string arguments, user ``tool_result`` blocks become ``role: tool``
@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from notelore.providers import http
 from notelore.providers.base import (
     AgentResponse,
     Block,
@@ -19,7 +20,13 @@ from notelore.providers.base import (
     split_blocks,
 )
 
+API = "https://api.openai.com/v1/chat/completions"
+MODELS = "https://api.openai.com/v1/models"
 TIMEOUT_SECONDS = 60.0
+
+
+def headers(api_key: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {api_key}"}
 
 
 class OpenAIProvider:
@@ -27,15 +34,10 @@ class OpenAIProvider:
         self._api_key, self._model = api_key, model
 
     def turn(self, system: str, messages: list[Message], tools: list[Tool]) -> AgentResponse:
-        import openai
-
-        client = openai.OpenAI(api_key=self._api_key, timeout=TIMEOUT_SECONDS)
-        kwargs: dict[str, Any] = {
-            "model": self._model,
-            "messages": [{"role": "system", "content": system}, *to_openai(messages)],
-        }
+        preamble = [{"role": "system", "content": system}] if system else []
+        body: dict[str, Any] = {"model": self._model, "messages": preamble + to_openai(messages)}
         if tools:
-            kwargs["tools"] = [
+            body["tools"] = [
                 {
                     "type": "function",
                     "function": {
@@ -46,7 +48,7 @@ class OpenAIProvider:
                 }
                 for t in tools
             ]
-        return from_openai(client.chat.completions.create(**kwargs))
+        return from_openai(http.request("POST", API, headers(self._api_key), body, TIMEOUT_SECONDS))
 
 
 def to_openai(messages: list[Message]) -> list[dict[str, Any]]:
@@ -81,25 +83,25 @@ def to_openai(messages: list[Message]) -> list[dict[str, Any]]:
     return out
 
 
-def from_openai(completion: Any) -> AgentResponse:
+def from_openai(completion: dict[str, Any]) -> AgentResponse:
     blocks: list[Block] = []
-    choices = getattr(completion, "choices", None) or []
+    choices = completion.get("choices") or []
     if not choices:
         return AgentResponse(blocks, "end_turn")
-    message = choices[0].message
-    if getattr(message, "content", None):
-        blocks.append({"type": "text", "text": message.content})
-    for call in getattr(message, "tool_calls", None) or []:
+    message = choices[0].get("message") or {}
+    if message.get("content"):
+        blocks.append({"type": "text", "text": message["content"]})
+    for call in message.get("tool_calls") or []:
         blocks.append(
             {
                 "type": "tool_use",
-                "id": call.id,
-                "name": call.function.name,
-                "input": parse_arguments(call.function.arguments),
+                "id": call.get("id", ""),
+                "name": call["function"]["name"],
+                "input": parse_arguments(call["function"].get("arguments")),
             }
         )
     tool_use = any(b["type"] == "tool_use" for b in blocks)
-    finish = getattr(choices[0], "finish_reason", None)
+    finish = choices[0].get("finish_reason")
     if not tool_use and finish not in (None, "stop"):
         blocks.append({"type": "text", "text": f"[The model stopped early: {finish}.]"})
     return AgentResponse(blocks, "tool_use" if tool_use else "end_turn")

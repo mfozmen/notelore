@@ -33,9 +33,9 @@ def test_core_and_app_versions_move_together() -> None:
 
 
 # What the core may import at module level: these must install on Android and iOS
-# (#48). Everything else (LLM SDKs, Drive libraries) is imported lazily inside the
-# function that needs it and comes from the core's "desktop" extra.
-MOBILE_SAFE = {"yaml", "platformdirs"}
+# (#48). The LLM providers speak plain HTTPS (#51); the Drive libraries are imported
+# lazily inside the function that needs them and come from the core's "desktop" extra.
+MOBILE_SAFE = {"yaml", "platformdirs", "certifi"}
 DESKTOP_ONLY_MODULES = {"secrets.py": {"keyring"}}  # until the secrets backend lands (#52)
 
 
@@ -67,5 +67,17 @@ def test_the_core_base_install_has_only_mobile_safe_dependencies() -> None:
         "project"
     ]
     base = {re.split(r"[<>=~!\[ ]", dep, maxsplit=1)[0].lower() for dep in project["dependencies"]}
-    assert base == {"platformdirs", "pyyaml"}
+    assert base == {"certifi", "platformdirs", "pyyaml"}
     assert "desktop" in project["optional-dependencies"]
+
+
+def test_the_mobile_app_installs_exactly_the_core_base_dependencies() -> None:
+    """Briefcase ships the core as source; its requirements are listed by hand, keep them equal."""
+    import tomllib
+
+    core = tomllib.loads((CORE.parents[1] / "pyproject.toml").read_text(encoding="utf-8"))
+    mobile = tomllib.loads(
+        (CORE.parents[3] / "apps" / "mobile" / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    requires = mobile["tool"]["briefcase"]["app"]["notelore-mobile"]["requires"]
+    assert sorted(requires) == sorted(core["project"]["dependencies"])

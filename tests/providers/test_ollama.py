@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
-
 import pytest
 
 from notelore.providers import Tool
 from notelore.providers.ollama import OllamaProvider, from_ollama, host, to_ollama
 
-from .conftest import Recorder, client_factory, ns
+from .conftest import Api
 from .test_base import CONVERSATION
 
 TOOL = Tool("read_note", "Read a note", {"type": "object", "properties": {}})
@@ -16,7 +14,7 @@ TOOL = Tool("read_note", "Read a note", {"type": "object", "properties": {}})
 def test_host_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("OLLAMA_HOST", raising=False)
     assert host() == "http://localhost:11434"
-    monkeypatch.setenv("OLLAMA_HOST", "http://box:1")
+    monkeypatch.setenv("OLLAMA_HOST", "http://box:1/")
     assert host() == "http://box:1"
 
 
@@ -39,30 +37,33 @@ def test_to_ollama_translates_by_tool_name() -> None:
 
 
 def test_from_ollama_variants() -> None:
-    assert from_ollama(ns(message=None)).content == []
-    text = from_ollama(ns(message=ns(content="hello", tool_calls=None)))
+    assert from_ollama({}).content == []
+    text = from_ollama({"message": {"content": "hello"}})
     assert (text.content, text.stop_reason) == ([{"type": "text", "text": "hello"}], "end_turn")
-    call = ns(function=ns(name="read_note", arguments='{"slug": "x"}'))
-    tool = from_ollama(ns(message=ns(content="", tool_calls=[call])))
+    calls = [
+        {"function": {"name": "read_note", "arguments": {"slug": "x"}}},
+        {"function": {"name": "search_notes", "arguments": '{"query": "q"}'}},  # some models
+    ]
+    tool = from_ollama({"message": {"content": "", "tool_calls": calls}})
     assert tool.stop_reason == "tool_use"
-    assert tool.content[0]["name"] == "read_note"
-    assert tool.content[0]["input"] == {"slug": "x"}
-    assert tool.content[0]["id"].startswith("toolu_")
+    assert [b["input"] for b in tool.content] == [{"slug": "x"}, {"query": "q"}]
+    assert all(b["id"].startswith("toolu_") for b in tool.content)
 
 
-def test_turn_forwards_system_tools_and_host(
-    fake_module: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_turn_posts_api_chat_without_streaming(api: Api, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OLLAMA_HOST", "http://box:1")
-    recorder = Recorder(ns(message=ns(content="ok", tool_calls=None)))
-    fake_module("ollama", Client=client_factory(recorder, "chat"))
+    api.answers += [{"message": {"content": "ok"}}, {"message": {"content": "ok"}}]
     provider = OllamaProvider("llama-x")
     assert provider.turn("be brief", [{"role": "user", "content": "hi"}], [TOOL]).content == [
         {"type": "text", "text": "ok"}
     ]
-    call = recorder.calls[0]
-    assert call["messages"][0] == {"role": "system", "content": "be brief"}
-    assert call["tools"][0]["function"]["name"] == "read_note"
-    assert recorder.client_kwargs == {"host": "http://box:1", "timeout": 180.0}
-    provider.turn("", [], [])
-    assert "tools" not in recorder.calls[1]
+    call = api.last
+    assert (call["method"], call["url"]) == ("POST", "http://box:1/api/chat")
+    assert call["body"]["stream"] is False
+    assert call["body"]["model"] == "llama-x"
+    assert call["body"]["messages"][0] == {"role": "system", "content": "be brief"}
+    assert call["body"]["tools"][0]["function"]["name"] == "read_note"
+    assert call["timeout"] == 180.0
+    provider.turn("", [{"role": "user", "content": "hi"}], [])
+    assert "tools" not in api.last["body"]
+    assert api.last["body"]["messages"] == [{"role": "user", "content": "hi"}]

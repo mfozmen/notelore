@@ -41,7 +41,11 @@ description = "Talk to your notes, synced with every other device."
 # The shared core ships as source next to the app: no wheel build, and only its
 # mobile-safe base dependencies are installed (see packages/core/pyproject.toml).
 sources = ["src/notelore_mobile", "../../packages/core/src/notelore"]
-requires = ["platformdirs>=4.2", "pyyaml>=6.0"]
+requires = [
+  "certifi>=2024.2.2",
+  "platformdirs>=4.2",
+  "pyyaml>=6.0",
+]
 
 [tool.briefcase.app.notelore-mobile.android]
 requires = ["toga-android~=0.5.7"]

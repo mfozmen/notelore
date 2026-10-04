@@ -1,65 +1,54 @@
 from __future__ import annotations
 
-import types
 from typing import Any
 
 from notelore.providers import Tool
-from notelore.providers.gemini import GeminiProvider, from_gemini, to_gemini
+from notelore.providers.gemini import GeminiProvider, endpoint, from_gemini, to_gemini
 
-from .conftest import Recorder, client_factory, ns
+from .conftest import Api
 from .test_base import CONVERSATION
 
 TOOL = Tool("read_note", "Read a note", {"type": "object", "properties": {}})
 
 
-class FakeTypes(types.SimpleNamespace):
-    """Stand-in for ``google.genai.types``: every class is a SimpleNamespace factory."""
-
-    def __init__(self) -> None:
-        def factory(**kwargs: Any) -> types.SimpleNamespace:
-            return ns(**kwargs)
-
-        super().__init__(
-            Content=factory,
-            Part=_Part,
-            FunctionCall=factory,
-            FunctionResponse=factory,
-            FunctionDeclaration=factory,
-            Tool=factory,
-            HttpOptions=factory,
-            GenerateContentConfig=factory,
-        )
-
-
-class _Part(types.SimpleNamespace):
-    @staticmethod
-    def from_text(text: str) -> types.SimpleNamespace:
-        return ns(text=text)
-
-
 def test_to_gemini_roles_and_function_parts() -> None:
-    contents = to_gemini(CONVERSATION, FakeTypes())
-    assert [c.role for c in contents] == ["user", "model", "user"]
-    assert contents[0].parts[0].text == "hi"
-    model_parts = contents[1].parts
-    assert model_parts[0].text == "checking"
-    assert model_parts[1].function_call.name == "read_note"
-    assert model_parts[1].function_call.args == {"slug": "x"}
-    response = contents[2].parts[0].function_response
-    assert (response.id, response.name, response.response) == ("t1", "read_note", {"result": "ok"})
+    assert to_gemini(CONVERSATION) == [
+        {"role": "user", "parts": [{"text": "hi"}]},
+        {
+            "role": "model",
+            "parts": [
+                {"text": "checking"},
+                {"functionCall": {"name": "read_note", "args": {"slug": "x"}}},
+                {"functionCall": {"name": "no-id-is-skipped", "args": {}}},
+            ],
+        },
+        # Gemini expects function responses under role "user"
+        {
+            "role": "user",
+            "parts": [{"functionResponse": {"name": "read_note", "response": {"result": "ok"}}}],
+        },
+    ]
 
 
-def candidate(parts: list[Any], finish: str = "STOP") -> Any:
-    return ns(candidates=[ns(content=ns(parts=parts), finish_reason=finish)])
+def candidate(parts: list[dict[str, Any]], finish: str = "STOP") -> dict[str, Any]:
+    return {"candidates": [{"content": {"role": "model", "parts": parts}, "finishReason": finish}]}
 
 
 def test_from_gemini_variants() -> None:
-    assert from_gemini(ns(candidates=[])).content == []
-    text = from_gemini(candidate([ns(text="hello", function_call=None)]))
+    assert from_gemini({}).content == []
+    assert from_gemini({"candidates": [{"finishReason": "SAFETY"}]}).content == [
+        {"type": "text", "text": "[The model stopped early: SAFETY.]"}
+    ]
+    text = from_gemini(candidate([{"text": "hello"}]))
     assert (text.content, text.stop_reason) == ([{"type": "text", "text": "hello"}], "end_turn")
-    with_id = ns(text=None, function_call=ns(id="g1", name="read_note", args={"slug": "x"}))
-    without_id = ns(text=None, function_call=ns(id=None, name="search_notes", args=None))
-    tool = from_gemini(candidate([with_id, without_id]))
+    tool = from_gemini(
+        candidate(
+            [
+                {"functionCall": {"id": "g1", "name": "read_note", "args": {"slug": "x"}}},
+                {"functionCall": {"name": "search_notes"}},
+            ]
+        )
+    )
     assert tool.stop_reason == "tool_use"
     assert tool.content[0] == {
         "type": "tool_use",
@@ -69,27 +58,33 @@ def test_from_gemini_variants() -> None:
     }
     assert tool.content[1]["id"].startswith("toolu_")
     assert tool.content[1]["input"] == {}
-    blocked = from_gemini(candidate([ns(text=None, function_call=None)], finish="SAFETY"))
-    assert blocked.content == [{"type": "text", "text": "[The model stopped early: SAFETY.]"}]
+    assert from_gemini(candidate([{"thought": True}])).content == []
 
 
-def test_turn_builds_client_config_and_tools(fake_module: Any) -> None:
-    recorder = Recorder(candidate([ns(text="ok", function_call=None)]))
-    fake_types = FakeTypes()
-    fake_module("google")
-    fake_module(
-        "google.genai", Client=client_factory(recorder, "models.generate_content"), types=fake_types
-    )
-    fake_module("google.genai.types", **vars(fake_types))
+def test_turn_posts_generate_content(api: Api) -> None:
+    api.answers += [candidate([{"text": "ok"}]), candidate([{"text": "ok"}])]
     provider = GeminiProvider("gk", "gemini-x")
-    response = provider.turn("be brief", [{"role": "user", "content": "hi"}], [TOOL])
-    assert response.content == [{"type": "text", "text": "ok"}]
-    call = recorder.calls[0]
-    assert call["model"] == "gemini-x"
-    assert call["contents"][0].parts[0].text == "hi"
-    assert call["config"].system_instruction == "be brief"
-    assert call["config"].tools[0].function_declarations[0].name == "read_note"
-    assert recorder.client_kwargs["api_key"] == "gk"
-    assert recorder.client_kwargs["http_options"].timeout == 60_000
-    provider.turn("", [], [])
-    assert not hasattr(recorder.calls[1]["config"], "tools")
+    assert provider.turn("be brief", [{"role": "user", "content": "hi"}], [TOOL]).content == [
+        {"type": "text", "text": "ok"}
+    ]
+    call = api.last
+    assert (call["method"], call["url"]) == ("POST", endpoint("gemini-x"))
+    assert call["url"].endswith("/v1beta/models/gemini-x:generateContent")
+    assert call["headers"] == {"x-goog-api-key": "gk"}
+    assert call["body"] == {
+        "contents": [{"role": "user", "parts": [{"text": "hi"}]}],
+        "systemInstruction": {"parts": [{"text": "be brief"}]},
+        "tools": [
+            {
+                "functionDeclarations": [
+                    {
+                        "name": "read_note",
+                        "description": "Read a note",
+                        "parametersJsonSchema": TOOL.input_schema,
+                    }
+                ]
+            }
+        ],
+    }
+    provider.turn("", [{"role": "user", "content": "hi"}], [])
+    assert set(api.last["body"]) == {"contents"}

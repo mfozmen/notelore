@@ -278,7 +278,7 @@ def test_a_spec_without_a_key_page_opens_no_browser(
 ) -> None:
     from notelore.providers import ProviderSpec
 
-    spec = ProviderSpec("anthropic", "Self-hosted", True, "m", "m")
+    spec = ProviderSpec("anthropic", "Self-hosted", True, "m")
     session = make(box, Console("sk"), tmp_path)
     assert session.spec is None
     assert session._get_key(spec) == "sk"

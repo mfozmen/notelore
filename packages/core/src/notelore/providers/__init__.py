@@ -17,7 +17,7 @@ from notelore.providers.base import (
 def create_provider(
     spec: ProviderSpec, api_key: str | None, model: str | None = None
 ) -> LLMProvider:
-    """The runtime implementation for ``spec``; SDK imports happen on the first turn."""
+    """The runtime implementation for ``spec``."""
     chosen = model or spec.default_model
     if spec.name == "anthropic":
         from notelore.providers.anthropic import AnthropicProvider

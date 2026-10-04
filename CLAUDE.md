@@ -45,7 +45,7 @@ Core (`packages/core/src/notelore/`):
 
 - `agent.py` — tool-use loop driving the active LLM.
 - `tools.py` — the narrow tools exposed to the agent (see `docs/PLAN.md`). Tool contracts live in the module docstring.
-- `providers/` — `LLMProvider` protocol + Anthropic, OpenAI, Gemini, Ollama implementations and key validation. **Ported from littlepress-ai** (`src/providers/llm.py`, `src/providers/validator.py`, same author, MIT); adapt, don't rewrite. Image provider is not needed.
+- `providers/` — `LLMProvider` protocol + Anthropic, OpenAI, Gemini, Ollama implementations and key validation. The message translations were **ported from littlepress-ai** (`src/providers/llm.py`, `src/providers/validator.py`, same author, MIT). They talk plain HTTPS through `providers/http.py` (stdlib + certifi), never the vendor SDKs: those need pydantic-core/jiter, which have no Android/iOS wheels (#51).
 - `store/format.py` — parse/serialize the note format. Pure functions, no I/O.
 - `store/notes.py` — file operations on the notes folder: atomic writes, archive, slugging.
 - `store/index.py` — SQLite (FTS5) index rebuilt from the files; decision lookups.

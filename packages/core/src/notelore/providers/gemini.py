@@ -1,9 +1,9 @@
-"""Gemini via the ``google-genai`` SDK.
+"""Gemini over the Generative Language REST API (v1beta).
 
-Translation at the boundary: Anthropic-style messages become Gemini ``Content``
-objects (``user`` / ``model`` / ``tool`` roles), tool calls become
-``FunctionDeclaration`` tools, and response parts come back as blocks. Gemini
-does not always return a call id, so one is synthesized for correlation.
+Translation at the boundary: Anthropic-style messages become ``contents`` with
+``user`` / ``model`` roles (function responses go under ``user``), tools become
+``functionDeclarations`` with a plain JSON Schema, and response parts come back
+as blocks. Gemini does not always return a call id, so one is synthesized.
 """
 
 from __future__ import annotations
@@ -11,6 +11,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+from notelore.providers import http
 from notelore.providers.base import (
     AgentResponse,
     Block,
@@ -20,7 +21,16 @@ from notelore.providers.base import (
     tool_use_names,
 )
 
-TIMEOUT_MS = 60_000
+BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+TIMEOUT_SECONDS = 60.0
+
+
+def endpoint(model: str) -> str:
+    return f"{BASE}/{model}:generateContent"
+
+
+def headers(api_key: str) -> dict[str, str]:
+    return {"x-goog-api-key": api_key}
 
 
 class GeminiProvider:
@@ -28,83 +38,73 @@ class GeminiProvider:
         self._api_key, self._model = api_key, model
 
     def turn(self, system: str, messages: list[Message], tools: list[Tool]) -> AgentResponse:
-        from google import genai
-        from google.genai import types
-
-        client = genai.Client(
-            api_key=self._api_key, http_options=types.HttpOptions(timeout=TIMEOUT_MS)
-        )
-        config: dict[str, Any] = {"system_instruction": system}
+        body: dict[str, Any] = {"contents": to_gemini(messages)}
+        if system:
+            body["systemInstruction"] = {"parts": [{"text": system}]}
         if tools:
-            config["tools"] = [
-                types.Tool(
-                    function_declarations=[
-                        types.FunctionDeclaration(
-                            name=t.name,
-                            description=t.description,
-                            parameters_json_schema=t.input_schema,
-                        )
+            body["tools"] = [
+                {
+                    "functionDeclarations": [
+                        {
+                            "name": t.name,
+                            "description": t.description,
+                            "parametersJsonSchema": t.input_schema,
+                        }
                         for t in tools
                     ]
-                )
+                }
             ]
-        response = client.models.generate_content(
-            model=self._model,
-            contents=to_gemini(messages, types),
-            config=types.GenerateContentConfig(**config),
+        answer = http.request(
+            "POST", endpoint(self._model), headers(self._api_key), body, TIMEOUT_SECONDS
         )
-        return from_gemini(response)
+        return from_gemini(answer)
 
 
-def to_gemini(messages: list[Message], types: Any) -> list[Any]:
+def to_gemini(messages: list[Message]) -> list[dict[str, Any]]:
     names = tool_use_names(messages)
     contents = []
     for message in messages:
         texts, uses, results = split_blocks(message["content"])
-        parts = [types.Part.from_text(text=t) for t in texts]
+        parts: list[dict[str, Any]] = [{"text": t} for t in texts]
         parts += [
-            types.Part(
-                function_call=types.FunctionCall(name=u.get("name", ""), args=u.get("input") or {})
-            )
+            {"functionCall": {"name": u.get("name", ""), "args": u.get("input") or {}}}
             for u in uses
         ]
         parts += [
-            types.Part(
-                function_response=types.FunctionResponse(
-                    id=r.get("tool_use_id", ""),
-                    name=names.get(str(r.get("tool_use_id", "")), ""),
-                    response={"result": r.get("content", "")},
-                )
-            )
+            {
+                "functionResponse": {
+                    "name": names.get(str(r.get("tool_use_id", "")), ""),
+                    "response": {"result": r.get("content", "")},
+                }
+            }
             for r in results
         ]
-        # Gemini expects function responses under role "user", like plain user text.
-        role = "user" if message["role"] == "user" else "model"
-        contents.append(types.Content(role=role, parts=parts))
+        # Function responses go under role "user", like plain user text.
+        contents.append({"role": "user" if message["role"] == "user" else "model", "parts": parts})
     return contents
 
 
-def from_gemini(response: Any) -> AgentResponse:
+def from_gemini(answer: dict[str, Any]) -> AgentResponse:
     blocks: list[Block] = []
-    candidates = getattr(response, "candidates", None) or []
+    candidates = answer.get("candidates") or []
     if not candidates:
         return AgentResponse(blocks, "end_turn")
     candidate = candidates[0]
-    for part in getattr(candidate.content, "parts", None) or []:
-        if getattr(part, "text", None):
-            blocks.append({"type": "text", "text": part.text})
-        elif getattr(part, "function_call", None) is not None:
-            call = part.function_call
+    for part in (candidate.get("content") or {}).get("parts") or []:
+        if part.get("text"):
+            blocks.append({"type": "text", "text": part["text"]})
+        elif "functionCall" in part:
+            call = part["functionCall"]
             blocks.append(
                 {
                     "type": "tool_use",
-                    "id": getattr(call, "id", None) or f"toolu_{uuid.uuid4().hex[:12]}",
-                    "name": call.name,
-                    "input": dict(call.args or {}),
+                    "id": call.get("id") or f"toolu_{uuid.uuid4().hex[:12]}",
+                    "name": call["name"],
+                    "input": dict(call.get("args") or {}),
                 }
             )
     tool_use = any(b["type"] == "tool_use" for b in blocks)
-    finish = str(getattr(candidate, "finish_reason", "STOP") or "STOP").upper()
+    finish = str(candidate.get("finishReason") or "STOP").upper()
     if not tool_use and finish not in {"STOP", "FINISH_REASON_UNSPECIFIED"}:
         blocks.append({"type": "text", "text": f"[The model stopped early: {finish}.]"})
     return AgentResponse(blocks, "tool_use" if tool_use else "end_turn")

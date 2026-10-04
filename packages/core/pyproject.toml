@@ -13,8 +13,11 @@ requires-python = ">=3.11"
 authors = [{ name = "Mehmet Fahri Özmen" }]
 # The base install must work on Android and iOS too (#48): pure Python or with
 # mobile wheels only. Desktop-only packages live in the "desktop" extra and are
-# imported lazily (tests/test_layout.py enforces both rules).
+# imported lazily (tests/test_layout.py enforces both rules). The LLM providers
+# speak plain HTTPS instead of the vendor SDKs, whose pydantic-core and jiter
+# have no mobile wheels (#51).
 dependencies = [
+  "certifi>=2024.2.2",          # CA bundle for the providers' HTTPS (mobile has no usable store)
   "platformdirs>=4.2",          # per-OS state/config dirs (Android-aware)
   "pyyaml>=6.0",                # note front matter
 ]
@@ -22,11 +25,6 @@ dependencies = [
 [project.optional-dependencies]
 desktop = [
   "keyring>=25.0",              # API keys + OAuth tokens in the OS credential store
-  # LLM provider SDKs: pydantic-core and jiter have no Android/iOS wheels (#51)
-  "anthropic>=0.40",
-  "openai>=1.50",
-  "google-genai>=1.0",
-  "ollama>=0.4",
   # Google Drive sync
   "google-api-python-client>=2.100",
   "google-auth-oauthlib>=1.2",
