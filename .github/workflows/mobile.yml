@@ -43,3 +43,39 @@ jobs:
           name: notelore-android-debug
           path: apps/mobile/build/notelore/android/gradle/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+  android-smoke:
+    name: Android smoke test (emulator)
+    needs: android
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: notelore-android-debug
+          path: apk
+
+      # Hardware acceleration for the emulator on GitHub's Linux runners.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Install, start, and wait until the app has run the shared core on the
+      # device: every diagnostics line must be OK except the desktop-only ones.
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: |
+            adb install -r apk/*.apk
+            adb logcat -c
+            adb shell am start -n io.github.mfozmen.notelore/org.beeware.android.MainActivity
+            for i in $(seq 1 60); do adb logcat -d | grep -q "notelore-diagnostics: .. *desktop-only: LLM SDKs" && break; sleep 3; done
+            adb logcat -d | grep "notelore-diagnostics" | tee diagnostics.txt
+            grep -q "notelore-diagnostics: OK  note round trip" diagnostics.txt
+            grep -q "notelore-diagnostics: OK  search index" diagnostics.txt
+            grep -q "notelore-diagnostics: OK  YAML" diagnostics.txt

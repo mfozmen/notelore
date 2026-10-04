@@ -17,7 +17,9 @@ class Notelore(toga.App):
         box = toga.Box(style=Pack(direction="column", margin=12))
         box.add(toga.Label("Notelore core on this device", style=Pack(font_weight="bold")))
         for check in diagnostics.run():
-            box.add(toga.Label(f"{'OK' if check.ok else '--'}  {check.name}: {check.detail}"))
+            line = f"{'OK' if check.ok else '--'}  {check.name}: {check.detail}"
+            box.add(toga.Label(line))
+            print(f"notelore-diagnostics: {line}")  # Android logs stdout to logcat; CI reads it
         window = toga.MainWindow(title=self.formal_name)
         window.content = box
         self.main_window = window
