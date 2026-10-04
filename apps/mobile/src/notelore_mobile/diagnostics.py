@@ -17,6 +17,7 @@ from pathlib import Path
 import yaml
 
 from notelore import paths
+from notelore.providers import http
 from notelore.store import format, index, notes
 
 
@@ -58,12 +59,17 @@ def _importable(*modules: str) -> Callable[[], str]:
     return check
 
 
+def _https() -> str:
+    """The providers' TLS context loads certifi's bundle (the phone has no usable store)."""
+    return f"{len(http.tls_context().get_ca_certs())} CA certificates"
+
+
 CHECKS: list[tuple[str, Callable[[], str]]] = [
     ("note round trip", _round_trip),
     ("search index", _search_index),
     ("YAML", _yaml),
+    ("HTTPS certificates", _https),
     ("desktop-only: keyring", _importable("keyring")),
-    ("desktop-only: LLM SDKs", _importable("anthropic", "openai")),
 ]
 
 

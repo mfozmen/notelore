@@ -15,8 +15,8 @@ def test_every_check_runs_and_reports(notelore_home: Path) -> None:
         "note round trip",
         "search index",
         "YAML",
+        "HTTPS certificates",
         "desktop-only: keyring",
-        "desktop-only: LLM SDKs",
     ]
     by_name = {c.name: c for c in checks}
     assert by_name["note round trip"].ok
@@ -26,6 +26,8 @@ def test_every_check_runs_and_reports(notelore_home: Path) -> None:
     assert by_name["search index"].ok
     assert by_name["search index"].detail in {"FTS5", "LIKE fallback"}
     assert by_name["YAML"].ok
+    assert by_name["HTTPS certificates"].ok
+    assert by_name["HTTPS certificates"].detail.endswith("CA certificates")
 
 
 def test_every_run_starts_from_scratch(notelore_home: Path) -> None:
@@ -35,13 +37,11 @@ def test_every_run_starts_from_scratch(notelore_home: Path) -> None:
 
 
 def test_missing_desktop_packages_are_reported_not_fatal(monkeypatch: pytest.MonkeyPatch) -> None:
-    for module in ("keyring", "anthropic"):  # None in sys.modules makes the import fail
-        monkeypatch.setitem(sys.modules, module, None)
+    monkeypatch.setitem(sys.modules, "keyring", None)  # None in sys.modules makes the import fail
     by_name = {c.name: c for c in run()}
     assert by_name["desktop-only: keyring"] == Check(
         "desktop-only: keyring", False, "not installed"
     )
-    assert by_name["desktop-only: LLM SDKs"].ok is False
 
 
 def test_a_failing_check_is_captured(monkeypatch: pytest.MonkeyPatch) -> None:

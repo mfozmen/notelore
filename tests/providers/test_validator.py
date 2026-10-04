@@ -1,113 +1,83 @@
 from __future__ import annotations
 
-from typing import Any
+import urllib.error
 
 import pytest
 
 from notelore.providers import find
+from notelore.providers.http import HTTPError
 from notelore.providers.validator import (
     KeyValidationError,
     TransientValidationError,
     validate_key,
 )
 
-from .conftest import Recorder, client_factory, ns
-
-
-class Auth(Exception):
-    pass
-
-
-class Denied(Exception):
-    pass
-
-
-class Api(Exception):
-    def __init__(self, message: str, code: int | None = None) -> None:
-        super().__init__(message)
-        self.code = code
-
-
-def install(fake_module: Any, name: str, client_attr: str, method: str, recorder: Recorder) -> None:
-    fake_module(
-        name,
-        AuthenticationError=Auth,
-        PermissionDeniedError=Denied,
-        APIError=Api,
-        **{client_attr: client_factory(recorder, method)},
-    )
+from .conftest import Api
 
 
 @pytest.mark.parametrize(
-    ("provider", "module", "client_attr", "method"),
+    ("provider", "url", "headers"),
     [
-        ("anthropic", "anthropic", "Anthropic", "messages.create"),
-        ("openai", "openai", "OpenAI", "chat.completions.create"),
+        (
+            "anthropic",
+            "https://api.anthropic.com/v1/models",
+            {"x-api-key": "key", "anthropic-version": "2023-06-01"},
+        ),
+        ("openai", "https://api.openai.com/v1/models", {"Authorization": "Bearer key"}),
+        (
+            "gemini",
+            "https://generativelanguage.googleapis.com/v1beta/models",
+            {"x-goog-api-key": "key"},
+        ),
     ],
 )
-@pytest.mark.parametrize(
-    ("error", "expected"),
-    [
-        (None, None),
-        (Auth("bad key"), KeyValidationError),
-        (Denied("no"), KeyValidationError),
-        (Api("500"), TransientValidationError),
-    ],
-)
-def test_anthropic_and_openai_checkers(
-    fake_module: Any,
-    provider: str,
-    module: str,
-    client_attr: str,
-    method: str,
-    error: Exception | None,
-    expected: type | None,
+def test_a_good_key_lists_the_models_and_spends_no_tokens(
+    api: Api, provider: str, url: str, headers: dict[str, str]
 ) -> None:
-    recorder = Recorder(error if error else ns())
-    install(fake_module, module, client_attr, method, recorder)
-    if expected is None:
-        validate_key(find(provider), "key")
-    else:
-        with pytest.raises(expected):
-            validate_key(find(provider), "key")
-    assert recorder.calls[0]["max_tokens"] == 1
-    assert recorder.calls[0]["model"] == find(provider).validation_model
-    assert recorder.client_kwargs == {"api_key": "key", "timeout": 5.0}
+    api.answers.append({"data": []})
+    validate_key(find(provider), "key")
+    assert api.last == {
+        "method": "GET",
+        "url": url,
+        "headers": headers,
+        "body": None,
+        "timeout": 5.0,
+    }
 
 
+@pytest.mark.parametrize("provider", ["anthropic", "openai", "gemini"])
 @pytest.mark.parametrize(
     ("error", "expected"),
     [
-        (None, None),
-        (Api("API key not valid", 400), KeyValidationError),
-        (Api("forbidden", 403), KeyValidationError),
-        (Api("unauthenticated", None), KeyValidationError),
-        (Api("quota exceeded", 429), TransientValidationError),
+        (HTTPError(401, "invalid x-api-key"), KeyValidationError),
+        (HTTPError(403, "permission denied"), KeyValidationError),
+        (HTTPError(429, "rate limited"), TransientValidationError),
+        (HTTPError(500, "overloaded"), TransientValidationError),
+        (urllib.error.URLError("no route to host"), TransientValidationError),
     ],
 )
-def test_gemini_checker(fake_module: Any, error: Exception | None, expected: type | None) -> None:
-    recorder = Recorder(error if error else ns())
-    fake_module("google")
-    fake_module(
-        "google.genai",
-        Client=client_factory(recorder, "models.generate_content"),
-        errors=ns(APIError=Api),
-    )
-    fake_module("google.genai.errors", APIError=Api)
-    if expected is None:
+def test_rejected_keys_and_transient_failures(
+    api: Api, provider: str, error: Exception, expected: type[Exception]
+) -> None:
+    api.answers.append(error)
+    with pytest.raises(expected):
+        validate_key(find(provider), "key")
+
+
+def test_gemini_reports_a_bad_key_as_400(api: Api) -> None:
+    api.answers.append(HTTPError(400, "API key not valid. Please pass a valid API key."))
+    with pytest.raises(KeyValidationError, match="Google rejected the key"):
         validate_key(find("gemini"), "key")
-    else:
-        with pytest.raises(expected):
-            validate_key(find("gemini"), "key")
-    assert recorder.calls[0] == {"model": "gemini-2.5-flash", "contents": "ping"}
+    api.answers.append(HTTPError(400, "Invalid JSON payload"))
+    with pytest.raises(TransientValidationError):
+        validate_key(find("gemini"), "key")
 
 
-def test_ollama_checker(fake_module: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_ollama_only_needs_a_reachable_daemon(api: Api, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OLLAMA_HOST", "http://box:1")
-    recorder = Recorder(ns())
-    fake_module("ollama", Client=client_factory(recorder, "list"))
+    api.answers.append({"models": []})
     validate_key(find("ollama"), "")
-    assert recorder.client_kwargs == {"host": "http://box:1", "timeout": 5.0}
-    fake_module("ollama", Client=client_factory(Recorder(ConnectionError("down")), "list"))
+    assert api.last["url"] == "http://box:1/api/tags"
+    api.answers.append(urllib.error.URLError("connection refused"))
     with pytest.raises(TransientValidationError, match="http://box:1"):
         validate_key(find("ollama"), "")

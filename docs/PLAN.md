@@ -72,7 +72,7 @@ Every device syncs the same notes through the same Drive folder, so desktop and 
 
 - [x] uv workspace: `packages/core` + `apps/cli` (#49)
 - [x] Android spike with Briefcase on the shared core, debug APK in CI (#50): runs on an emulator; SQLite on Android has no FTS5, so search uses the LIKE fallback
-- [ ] Providers over plain HTTPS, no vendor SDKs (#51)
+- [x] Providers over plain HTTPS, no vendor SDKs (#51)
 - [ ] Secrets backend interface: keyring / Android Keystore / iOS Keychain (#52)
 - [ ] Android app MVP: setup, chat, notes, Drive sync, APK on releases (#53)
 - [ ] iOS app from the same project (#54)

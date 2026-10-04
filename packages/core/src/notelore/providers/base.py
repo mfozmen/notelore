@@ -23,7 +23,6 @@ class ProviderSpec:
     display_name: str
     requires_api_key: bool
     default_model: str
-    validation_model: str  # cheapest model the key-validation ping can call
     key_url: str | None = None
     key_steps: tuple[str, ...] = ()
 
@@ -34,7 +33,6 @@ SPECS: tuple[ProviderSpec, ...] = (
         "Claude (Anthropic)",
         requires_api_key=True,
         default_model="claude-sonnet-5-5",
-        validation_model="claude-haiku-4-5-20251001",
         key_url="https://console.anthropic.com/settings/keys",
         key_steps=(
             "Sign in to the Anthropic Console (a free account is enough).",
@@ -47,7 +45,6 @@ SPECS: tuple[ProviderSpec, ...] = (
         "GPT (OpenAI)",
         requires_api_key=True,
         default_model="gpt-4o-mini",
-        validation_model="gpt-4o-mini",
         key_url="https://platform.openai.com/api-keys",
         key_steps=(
             "Sign in to the OpenAI Platform.",
@@ -60,7 +57,6 @@ SPECS: tuple[ProviderSpec, ...] = (
         "Gemini (Google)",
         requires_api_key=True,
         default_model="gemini-2.5-flash",
-        validation_model="gemini-2.5-flash",
         key_url="https://aistudio.google.com/apikey",
         key_steps=(
             "Sign in to Google AI Studio.",
@@ -73,7 +69,6 @@ SPECS: tuple[ProviderSpec, ...] = (
         "Ollama (local)",
         requires_api_key=False,
         default_model="llama3.2",
-        validation_model="llama3.2",
     ),
 )
 

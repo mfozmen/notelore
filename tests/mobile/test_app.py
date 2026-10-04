@@ -52,7 +52,7 @@ def test_the_screen_lists_every_check(sandboxed: Callable[..., object]) -> None:
     labels = [w.text for w in box.children if isinstance(w, toga.Label)]
     assert labels[0] == "Notelore core on this device"
     assert "OK  note round trip: Welcome: 1 entries" in labels
-    assert any(line.startswith(("OK  desktop-only", "--  desktop-only")) for line in labels)
+    assert any(line.startswith("OK  HTTPS certificates") for line in labels)
     assert notelore.formal_name == "Notelore"
 
 

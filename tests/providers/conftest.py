@@ -1,58 +1,49 @@
-"""Fake SDK modules: every provider test runs against these, never the network."""
+"""A fake transport: every provider test runs against it, never the network."""
 
 from __future__ import annotations
 
-import sys
-import types
+from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
 
 
-class Recorder:
-    """Records the kwargs of the last SDK call and returns a canned response."""
+@dataclass
+class Api:
+    """Answers ``http.request`` calls from a queue and records them."""
 
-    def __init__(self, response: Any) -> None:
-        self.response = response
-        self.calls: list[dict[str, Any]] = []
-        self.client_kwargs: dict[str, Any] = {}
+    answers: list[Any] = field(default_factory=list)
+    calls: list[dict[str, Any]] = field(default_factory=list)
 
-    def __call__(self, **kwargs: Any) -> Any:
-        self.calls.append(kwargs)
-        if isinstance(self.response, Exception):
-            raise self.response
-        return self.response
+    def __call__(
+        self,
+        method: str,
+        url: str,
+        headers: dict[str, str] | None = None,
+        body: Any = None,
+        timeout: float = 60.0,
+    ) -> Any:
+        self.calls.append(
+            {
+                "method": method,
+                "url": url,
+                "headers": headers or {},
+                "body": body,
+                "timeout": timeout,
+            }
+        )
+        answer = self.answers.pop(0)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
 
-
-def ns(**kwargs: Any) -> types.SimpleNamespace:
-    return types.SimpleNamespace(**kwargs)
+    @property
+    def last(self) -> dict[str, Any]:
+        return self.calls[-1]
 
 
 @pytest.fixture
-def fake_module(monkeypatch: pytest.MonkeyPatch) -> Any:
-    """``fake_module("name", attr=...)`` installs a stand-in for an SDK import."""
-
-    def install(name: str, **attrs: Any) -> types.ModuleType:
-        module = types.ModuleType(name)
-        for key, value in attrs.items():
-            setattr(module, key, value)
-        monkeypatch.setitem(sys.modules, name, module)
-        return module
-
-    return install
-
-
-def client_factory(recorder: Recorder, method_path: str) -> type:
-    """A fake SDK client class whose ``method_path`` (e.g. "messages.create") is ``recorder``."""
-
-    class Client:
-        def __init__(self, **kwargs: Any) -> None:
-            recorder.client_kwargs = kwargs
-            target: Any = self
-            *parents, leaf = method_path.split(".")
-            for part in parents:
-                setattr(target, part, ns())
-                target = getattr(target, part)
-            setattr(target, leaf, recorder)
-
-    return Client
+def api(monkeypatch: pytest.MonkeyPatch) -> Api:
+    fake = Api()
+    monkeypatch.setattr("notelore.providers.http.request", fake)
+    return fake
