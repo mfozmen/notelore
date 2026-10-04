@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6.8.0
         with:
           enable-cache: true
       - run: uv sync --locked
@@ -41,8 +41,8 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python: ["3.11", "3.13"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6.8.0
         with:
           enable-cache: true
           python-version: ${{ matrix.python }}
@@ -53,27 +53,22 @@ jobs:
   # above never waits on sonarcloud.io. Needs the SONAR_TOKEN repo secret and
   # Automatic Analysis switched OFF in SonarCloud (it conflicts with CI-based
   # analysis). Skipped on forks: secrets are not available there.
-  sonar:
-    name: SonarCloud
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+  # Dart coverage for Sonar, built in a job that holds no secrets (#72); the
+  # Sonar job only downloads the reports, so no Flutter tooling runs next to SONAR_TOKEN.
+  dart-coverage:
+    name: Dart coverage
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # blame data for new-code detection
-      - uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-      - run: uv sync --locked
-      - run: uv run pytest --cov --cov-report=xml
-      # The Dart workspace's coverage goes to Sonar in the same scan (#60).
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
         with:
           flutter-version-file: pubspec.yaml
           cache: true
       - run: flutter pub get
-      - name: Dart coverage for Sonar
+      - name: Coverage with paths Sonar can resolve
         run: |
           (cd packages/notelore_core && dart run coverage:test_with_coverage)
           (cd apps/notelore && flutter test --coverage)
@@ -81,7 +76,34 @@ jobs:
           for pkg in packages/notelore_core apps/notelore; do
             sed -i -e "s|^SF:$GITHUB_WORKSPACE/|SF:|" -e "\|^SF:$pkg/|!s|^SF:|SF:$pkg/|" "$pkg/coverage/lcov.info"
           done
-      - uses: SonarSource/sonarqube-scan-action@v5
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: dart-lcov
+          path: |
+            packages/notelore_core/coverage/lcov.info
+            apps/notelore/coverage/lcov.info
+          if-no-files-found: error
+
+  sonar:
+    name: SonarCloud
+    needs: dart-coverage
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          fetch-depth: 0  # blame data for new-code detection
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6.8.0
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run pytest --cov --cov-report=xml
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with:
+          name: dart-lcov
+          path: .
+      - uses: SonarSource/sonarqube-scan-action@2f77a1ec69fb1d595b06f35ab27e97605bdef703  # v5.3.2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
