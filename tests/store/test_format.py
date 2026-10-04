@@ -185,3 +185,11 @@ def test_structural_errors_are_not_a_note() -> None:
     with pytest.raises(NotANote):
         parse("no front matter\n")
     assert issubclass(NotANote, ValueError)
+
+
+def test_dates_are_ascii_digits_only_like_the_dart_port() -> None:
+    arabic_indic = "٢٠٢٦-٠٩-٣٠"  # 2026-09-30 in other digits
+    note = parse(f"---\ntitle: T\n---\n# T\n## Notes\n- {arabic_indic}: x\n")
+    section = note.section("notes")
+    assert section is not None
+    assert section.entries == [Raw(f"- {arabic_indic}: x")]

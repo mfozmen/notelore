@@ -32,9 +32,9 @@ String isoDate(DateTime date) =>
 /// parser keeps verbatim instead of guessing (DateTime.parse would roll it over).
 DateTime? _parseDate(String text) {
   final [year, month, day] = text.split('-').map(int.parse).toList();
+  if (year < 1) return null; // Python's date has no year 0
   final date = DateTime.utc(year, month, day);
-  if (year < 1 || date.month != month || date.day != day) return null;
-  return date;
+  return date.month == month && date.day == day ? date : null;
 }
 
 /// The text is not a note: no front matter, no title, or no `# <title>` line.
