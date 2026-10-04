@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import ast
+import re
+import sys
 from pathlib import Path
 
 import notelore
@@ -28,3 +30,42 @@ def test_core_and_app_versions_move_together() -> None:
     import notelore_cli
 
     assert notelore.__version__ == notelore_cli.__version__
+
+
+# What the core may import at module level: these must install on Android and iOS
+# (#48). Everything else (LLM SDKs, Drive libraries) is imported lazily inside the
+# function that needs it and comes from the core's "desktop" extra.
+MOBILE_SAFE = {"yaml", "platformdirs"}
+DESKTOP_ONLY_MODULES = {"secrets.py": {"keyring"}}  # until the secrets backend lands (#52)
+
+
+def test_the_core_imports_only_mobile_safe_packages_at_module_level() -> None:
+    offenders = []
+    for source in CORE.rglob("*.py"):
+        allowed = MOBILE_SAFE | DESKTOP_ONLY_MODULES.get(source.name, set())
+        for node in ast.parse(source.read_text(encoding="utf-8")).body:
+            names = (
+                [a.name for a in node.names]
+                if isinstance(node, ast.Import)
+                else [node.module or ""]
+                if isinstance(node, ast.ImportFrom) and node.level == 0
+                else []
+            )
+            for name in names:
+                top = name.split(".")[0]
+                if top in sys.stdlib_module_names or top in {"__future__", "notelore"}:
+                    continue
+                if top not in allowed:
+                    offenders.append(f"{source.relative_to(CORE)}: {name}")
+    assert offenders == []
+
+
+def test_the_core_base_install_has_only_mobile_safe_dependencies() -> None:
+    import tomllib
+
+    project = tomllib.loads((CORE.parents[1] / "pyproject.toml").read_text(encoding="utf-8"))[
+        "project"
+    ]
+    base = {re.split(r"[<>=~!\[ ]", dep, maxsplit=1)[0].lower() for dep in project["dependencies"]}
+    assert base == {"platformdirs", "pyyaml"}
+    assert "desktop" in project["optional-dependencies"]

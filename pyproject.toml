@@ -1,21 +1,23 @@
 # Monorepo root: a uv workspace, not a package. Shared tool settings live here.
 #   packages/core  notelore-core  (import: notelore)       shared by every app
 #   apps/cli       notelore       (import: notelore_cli)   desktop command + REPL
+#   apps/mobile    notelore-mobile (import: notelore_mobile) Briefcase app: Android, later iOS
 [project]
 name = "notelore-workspace"
 version = "0"
 requires-python = ">=3.11"
-dependencies = ["notelore", "notelore-core"]
+dependencies = ["notelore", "notelore-core", "notelore-mobile"]
 
 [tool.uv]
 package = false
 
 [tool.uv.workspace]
-members = ["packages/core", "apps/cli"]
+members = ["packages/core", "apps/cli", "apps/mobile"]
 
 [tool.uv.sources]
 notelore = { workspace = true }
 notelore-core = { workspace = true }
+notelore-mobile = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -27,13 +29,14 @@ dev = [
   "types-PyYAML",
   "pre-commit>=3.8",
   "pyinstaller>=6.22.3",
+  "toga-dummy>=0.5.7",          # headless Toga backend for the mobile app tests
 ]
 
 # ---------------------------------------------------------------- ruff
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-src = ["packages/core/src", "apps/cli/src", "tests"]
+src = ["packages/core/src", "apps/cli/src", "apps/mobile/src", "tests"]
 
 [tool.ruff.lint]
 # Turkish letters are legitimate in i18n.py and fixtures, not typos of ASCII look-alikes.
@@ -55,12 +58,17 @@ select = [
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["packages/core/src", "apps/cli/src", "tests"]
-mypy_path = ["packages/core/src", "apps/cli/src"]
+files = ["packages/core/src", "apps/cli/src", "apps/mobile/src", "tests"]
+mypy_path = ["packages/core/src", "apps/cli/src", "apps/mobile/src"]
 
 [[tool.mypy.overrides]]
 module = ["googleapiclient.*", "google_auth_oauthlib.*", "google.oauth2.*"]
 ignore_missing_imports = true
+
+# Toga's widget constructors are not fully annotated; only the mobile app calls them.
+[[tool.mypy.overrides]]
+module = ["notelore_mobile.*", "mobile.*"]
+disallow_untyped_calls = false
 
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
@@ -74,7 +82,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["notelore", "notelore_cli"]
+source = ["notelore", "notelore_cli", "notelore_mobile"]
 branch = true
 
 [tool.coverage.report]
@@ -87,7 +95,9 @@ fail_under = 100
 version_variables = [
   "packages/core/src/notelore/__init__.py:__version__",
   "apps/cli/src/notelore_cli/__init__.py:__version__",
+  "apps/mobile/src/notelore_mobile/__init__.py:__version__",
 ]
+version_toml = ["apps/mobile/pyproject.toml:tool.briefcase.version"]
 commit_message = "chore(release): {version} [skip ci]"
 changelog_file = "CHANGELOG.md"
 allow_zero_version = true
