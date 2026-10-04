@@ -49,10 +49,6 @@ jobs:
       - run: uv sync --locked
       - run: uv run pytest
 
-  # SonarCloud analysis + quality gate. Separate job so the deterministic gate
-  # above never waits on sonarcloud.io. Needs the SONAR_TOKEN repo secret and
-  # Automatic Analysis switched OFF in SonarCloud (it conflicts with CI-based
-  # analysis). Skipped on forks: secrets are not available there.
   # Dart coverage for Sonar, built in a job that holds no secrets (#72); the
   # Sonar job only downloads the reports, so no Flutter tooling runs next to SONAR_TOKEN.
   dart-coverage:
@@ -84,6 +80,10 @@ jobs:
             apps/notelore/coverage/lcov.info
           if-no-files-found: error
 
+  # SonarCloud analysis + quality gate. Separate job so the deterministic gate
+  # above never waits on sonarcloud.io. Needs the SONAR_TOKEN repo secret and
+  # Automatic Analysis switched OFF in SonarCloud (it conflicts with CI-based
+  # analysis). Skipped on forks: secrets are not available there.
   sonar:
     name: SonarCloud
     needs: dart-coverage
