@@ -33,9 +33,10 @@ jobs:
 
       - name: Create and build the Android app
         working-directory: apps/mobile
+        # Pinned: a new Briefcase release must not break unrelated PRs; bump on purpose.
         run: |
-          uvx --python 3.12 briefcase create android --no-input
-          uvx --python 3.12 briefcase build android --no-input
+          uvx --python 3.12 --from briefcase==0.4.5 briefcase create android --no-input
+          uvx --python 3.12 --from briefcase==0.4.5 briefcase build android --no-input
 
       - name: Upload the debug APK
         uses: actions/upload-artifact@v4
@@ -76,6 +77,7 @@ jobs:
             adb shell am start -n io.github.mfozmen.notelore_mobile/org.beeware.android.MainActivity
             for i in $(seq 1 60); do adb logcat -d | grep -q "notelore-diagnostics: .. *desktop-only: LLM SDKs" && break; sleep 3; done
             adb logcat -d > logcat.txt
+            grep -q "notelore-diagnostics: .. *desktop-only: LLM SDKs" logcat.txt || echo "::error::the app did not finish its diagnostics within 3 minutes"
             grep -iE "python|beeware|chaquopy|AndroidRuntime|notelore" logcat.txt | tail -120
             grep "notelore-diagnostics" logcat.txt > diagnostics.txt || true
             grep -q "notelore-diagnostics: OK  note round trip" diagnostics.txt
