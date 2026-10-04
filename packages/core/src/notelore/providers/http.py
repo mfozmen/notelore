@@ -41,8 +41,8 @@ def request(
 ) -> Any:
     """Send ``body`` as JSON, return the decoded JSON answer (None for an empty one).
 
-    Raises HTTPError for an error status and OSError (URLError) when the server
-    cannot be reached.
+    Raises HTTPError for an error status or a non-JSON answer, and OSError
+    (URLError) when the server cannot be reached.
     """
     data = json.dumps(body).encode("utf-8") if body is not None else None
     prepared = urllib.request.Request(
@@ -53,10 +53,16 @@ def request(
     )
     try:
         with urllib.request.urlopen(prepared, timeout=timeout, context=tls_context()) as answer:
-            raw = answer.read()
+            status, raw = answer.status, answer.read()
     except urllib.error.HTTPError as exc:
         raise HTTPError(exc.code, _message(exc.read())) from exc
-    return json.loads(raw) if raw else None
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except ValueError as exc:  # e.g. a captive portal's sign-in page answering 200
+        text = raw[:200].decode("utf-8", "replace")
+        raise HTTPError(status, f"the answer was not JSON: {text}") from exc
 
 
 def _message(raw: bytes) -> str:
