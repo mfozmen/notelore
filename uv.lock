@@ -1324,15 +1324,11 @@ provides-extras = ["desktop"]
 name = "notelore-mobile"
 source = { editable = "apps/mobile" }
 dependencies = [
-    { name = "notelore-core" },
     { name = "toga-core" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "notelore-core", editable = "packages/core" },
-    { name = "toga-core", specifier = ">=0.5.7" },
-]
+requires-dist = [{ name = "toga-core", specifier = ">=0.5.7" }]
 
 [[package]]
 name = "notelore-workspace"

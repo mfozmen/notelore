@@ -10,14 +10,12 @@ readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11"
 authors = [{ name = "Mehmet Fahri Özmen" }]
-# For running and testing on the desktop; Briefcase installs the mobile backend itself.
+# Briefcase passes these to pip on the device too, so the core is not listed: it
+# ships as source (see `sources` below) and the workspace root installs it for
+# desktop runs and tests.
 dependencies = [
-  "notelore-core",
   "toga-core>=0.5.7",
 ]
-
-[tool.uv.sources]
-notelore-core = { workspace = true }
 
 [tool.hatch.version]
 path = "src/notelore_mobile/__init__.py"
