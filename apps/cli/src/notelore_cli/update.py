@@ -19,7 +19,8 @@ import zipfile
 from collections.abc import Callable
 from pathlib import Path
 
-from notelore import __version__, paths
+from notelore import paths
+from notelore_cli import __version__
 
 API = "https://api.github.com/repos/mfozmen/notelore/releases/latest"
 CHECK_INTERVAL = 24 * 3600

@@ -32,22 +32,37 @@ Use `uv` for everything. Never call `pip` directly. Add dependencies with `uv ad
 
 ## Architecture (target)
 
-Package lives under `src/notelore/` (src layout). Planned modules:
+A monorepo: one uv workspace, one lockfile, one test suite. Every device (desktop, Android, later iOS) syncs the same notes through the same Drive folder, so the note format, merge rules and manifest live once, in the shared core. Plan: issue #48.
 
-- `cli.py` — `notelore` console entry point.
-- `repl.py` — read loop, slash commands (`/model`, `/sync`, `/logout`, `/help`, `/exit`), provider picker.
+```
+packages/core/src/notelore/       notelore-core: shared by every app (import: notelore)
+apps/cli/src/notelore_cli/        notelore: the desktop command (import: notelore_cli)
+apps/mobile/                      Briefcase (BeeWare) app: Android now, iOS later (#50)
+tests/                            mirrors both trees (tests/cli/ for the desktop app)
+```
+
+Core (`packages/core/src/notelore/`):
+
 - `agent.py` — tool-use loop driving the active LLM.
 - `tools.py` — the narrow tools exposed to the agent (see `docs/PLAN.md`). Tool contracts live in the module docstring.
 - `providers/` — `LLMProvider` protocol + Anthropic, OpenAI, Gemini, Ollama implementations and key validation. **Ported from littlepress-ai** (`src/providers/llm.py`, `src/providers/validator.py`, same author, MIT); adapt, don't rewrite. Image provider is not needed.
 - `store/format.py` — parse/serialize the note format. Pure functions, no I/O.
 - `store/notes.py` — file operations on the notes folder: atomic writes, archive, slugging.
 - `store/index.py` — SQLite (FTS5) index rebuilt from the files; decision lookups.
-- `sync/drive.py` — Google Drive client (scope `drive.file` only).
+- `sync/engine.py` — one sync pass against a `Remote`; `sync/drive.py` — Google Drive client (scope `drive.file` only).
 - `sync/manifest.py` — per-device record of last-synced state.
-- `sync/merge.py` — three-way merge; LLM fallback only for true same-line conflicts.
+- `sync/merge.py` — three-way merge; `sync/resolve.py` — LLM fallback only for true same-line conflicts.
 - `paths.py` — every filesystem location comes from here (see Development environment).
 - `secrets.py` — API keys and OAuth tokens via `keyring`; environment variables override for dev/CI.
 - `i18n.py` — structural strings (section headings, prompts) in English + Turkish; English fallback.
+
+Desktop app (`apps/cli/src/notelore_cli/`):
+
+- `cli.py` — `notelore` console entry point.
+- `repl.py` — read loop, slash commands (`/model`, `/sync`, `/logout`, `/help`, `/exit`), provider picker.
+- `update.py` — daily update check and checksum-verified self-update of the packaged executables.
+
+Dependencies point one way: apps import the core, the core never imports an app.
 
 ## Development environment
 
@@ -79,7 +94,7 @@ All paths are resolved in `notelore.paths`. Nothing else may build a path to use
 
 All new production code is written test-first: RED (one minimal failing test, watch it fail for the right reason) → GREEN (minimal code) → REFACTOR (tests stay green).
 
-- Tests mirror the source tree (`src/notelore/store/format.py` → `tests/store/test_format.py`).
+- Tests mirror the source tree (`packages/core/src/notelore/store/format.py` → `tests/store/test_format.py`, `apps/cli/src/notelore_cli/repl.py` → `tests/cli/test_repl.py`).
 - Prefer real code and real files in `tmp_path`; mock only external services (LLM APIs, Drive).
 - Bug fixes start with a regression test.
 - The note format has round-trip tests: parse → serialize must return identical bytes for every fixture in `tests/fixtures/notes/`.

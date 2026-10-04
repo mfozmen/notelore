@@ -66,6 +66,17 @@ Open question: ship a shared OAuth client ID with the app (needs Google brand ve
 - [ ] README: install, first run, provider setup, Drive setup
 - [x] Update check once a day + `notelore update` self-update for the packaged executables
 
+## M5 — Monorepo and mobile (epic #48)
+
+Every device syncs the same notes through the same Drive folder, so desktop and mobile share one core.
+
+- [x] uv workspace: `packages/core` + `apps/cli` (#49)
+- [ ] Android spike with Briefcase on the shared core, debug APK in CI (#50)
+- [ ] Providers over plain HTTPS, no vendor SDKs (#51)
+- [ ] Secrets backend interface: keyring / Android Keystore / iOS Keychain (#52)
+- [ ] Android app MVP: setup, chat, notes, Drive sync, APK on releases (#53)
+- [ ] iOS app from the same project (#54)
+
 ## Later (not planned yet)
 
 - Reminders (OS notifications from due todos)

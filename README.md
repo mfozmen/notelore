@@ -39,7 +39,13 @@ In Git Bash on Windows the prompt falls back to plain input: no command completi
 
 ## Development
 
-Requires [uv](https://docs.astral.sh/uv/).
+Requires [uv](https://docs.astral.sh/uv/). The repository is a uv workspace:
+
+| Path | Package | What it is |
+|---|---|---|
+| `packages/core` | `notelore-core` | shared core: note format, store, sync, providers, agent |
+| `apps/cli` | `notelore` | the desktop command and chat |
+| `apps/mobile` | | the Android app (iOS later), planned in [#48](https://github.com/mfozmen/notelore/issues/48) |
 
 ```bash
 uv sync
