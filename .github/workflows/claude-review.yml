@@ -129,7 +129,13 @@ jobs:
               even if you find nothing notable. Use `gh pr comment` only as a
               fallback if the tracking-comment tool is unavailable.
 
-            Review the range against CLAUDE.md:
+            Review the range against CLAUDE.md. The project is moving to
+            Flutter (#60): Dart code lives in packages/notelore_core (pure
+            Dart, no Flutter imports) and apps/notelore. For Dart, apply the
+            same rules: test-first, 100% line coverage, strict analysis, every
+            path through one paths module, and the shared note fixtures in
+            spec/fixtures/notes as the contract. The Python packages are the
+            reference implementation until #69 and should not grow features.
 
             - Core invariants: Markdown files are the single source of truth;
               notes stay human-readable and the format round-trips byte for

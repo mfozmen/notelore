@@ -30,9 +30,25 @@ uv run pre-commit run --all-files
 
 Use `uv` for everything. Never call `pip` directly. Add dependencies with `uv add <pkg>` (or `uv add --dev <pkg>`) so `uv.lock` stays in sync, and commit `uv.lock`.
 
+### Flutter (the target stack, #60)
+
+```bash
+flutter pub get                                   # resolve the Dart workspace (one root pubspec.lock)
+dart format .                                     # format (page width 100, analysis_options.yaml)
+dart analyze --fatal-infos                        # strict analysis
+(cd packages/notelore_core && dart run coverage:test_with_coverage)   # core tests + lcov
+(cd apps/notelore && flutter test --coverage)                         # app tests + lcov
+dart run tool/coverage_gate.dart packages/notelore_core/coverage/lcov.info apps/notelore/coverage/lcov.info
+(cd apps/notelore && flutter build apk --debug)   # Android; also `windows`, `macos`
+```
+
+Add Dart dependencies with `dart pub add` (or `flutter pub add`) in the package that needs them; commit the root `pubspec.lock`.
+
 ## Architecture (target)
 
-A monorepo: one uv workspace, one lockfile, one test suite. Every device (desktop, Android, later iOS) syncs the same notes through the same Drive folder, so the note format, merge rules and manifest live once, in the shared core. Plan: issue #48.
+A monorepo. Every device (desktop, Android, later iOS) syncs the same notes through the same Drive folder, so the note format, merge rules and manifest must behave identically everywhere.
+
+**Moving to Flutter (#60).** The target is one Dart codebase for Android, iOS, Windows and macOS: `packages/notelore_core` (pure Dart, no Flutter) and `apps/notelore` (the Flutter app), in a Dart pub workspace. The port goes one milestone at a time (#61–#70), test-first against the same fixtures in `spec/fixtures/notes`. Until it reaches parity, the Python packages below are the reference implementation; they are retired in #69. Do not add features to the Python side; port them.
 
 ```
 packages/core/src/notelore/       notelore-core: shared by every app (import: notelore)

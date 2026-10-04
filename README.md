@@ -39,13 +39,15 @@ In Git Bash on Windows the prompt falls back to plain input: no command completi
 
 ## Development
 
-Requires [uv](https://docs.astral.sh/uv/). The repository is a uv workspace:
+Requires [uv](https://docs.astral.sh/uv/) for the Python packages and [Flutter](https://docs.flutter.dev/get-started/install) for the Dart ones. Notelore is moving to Flutter ([#60](https://github.com/mfozmen/notelore/issues/60)); until then both live side by side:
 
 | Path | Package | What it is |
 |---|---|---|
 | `packages/core` | `notelore-core` | shared core: note format, store, sync, providers, agent |
 | `apps/cli` | `notelore` | the desktop command and chat |
-| `apps/mobile` | | the Android app (iOS later), planned in [#48](https://github.com/mfozmen/notelore/issues/48) |
+| `apps/mobile` | | Briefcase spike, superseded by the Flutter app |
+| `packages/notelore_core` | | Dart port of the core ([#60](https://github.com/mfozmen/notelore/issues/60)) |
+| `apps/notelore` | | the Flutter app: Android, iOS, Windows, macOS ([#60](https://github.com/mfozmen/notelore/issues/60)) |
 
 ```bash
 uv sync

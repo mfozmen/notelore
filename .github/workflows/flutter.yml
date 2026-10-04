@@ -1,0 +1,111 @@
+name: Flutter
+
+# The Dart workspace (#60): packages/notelore_core (pure Dart) and apps/notelore
+# (Flutter: Android, iOS, Windows, macOS). Same rules as the Python side: format
+# and analysis clean, tests on all three OSes, 100% line coverage (tool/coverage_gate.dart),
+# and every platform build must compile.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: flutter-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.47.6"
+
+jobs:
+  analyze:
+    name: Flutter analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: dart analyze --fatal-infos
+
+  test:
+    name: Flutter test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Core tests with coverage
+        working-directory: packages/notelore_core
+        run: dart run coverage:test_with_coverage
+      - name: App tests with coverage
+        working-directory: apps/notelore
+        run: flutter test --coverage
+      - name: Coverage gate (100% lines)
+        run: |
+          dart test tool/coverage_gate_test.dart
+          dart run tool/coverage_gate.dart packages/notelore_core/coverage/lcov.info apps/notelore/coverage/lcov.info
+
+  android:
+    name: Flutter Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Build the debug APK
+        working-directory: apps/notelore
+        run: flutter build apk --debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: notelore-flutter-android-debug
+          path: apps/notelore/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+
+  desktop:
+    name: Flutter desktop build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: windows
+          - os: macos-latest
+            target: macos
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Build ${{ matrix.target }}
+        working-directory: apps/notelore
+        run: flutter build ${{ matrix.target }} --debug
