@@ -19,8 +19,11 @@ class NoteloreApp extends StatefulWidget {
 
 class _NoteloreAppState extends State<NoteloreApp> {
   late final Future<Session> _session = widget.open()
-    ..then<void>((s) => _opened = s, onError: (Object _) {}); // the error shows below
+    ..then<void>(_adopt, onError: (Object _) {}); // the error shows below
   Session? _opened;
+
+  /// A session that finishes opening after the app is gone is closed at once.
+  void _adopt(Session session) => mounted ? _opened = session : session.dispose();
 
   @override
   void dispose() {

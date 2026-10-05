@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -57,6 +58,18 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     await tester.pumpAndSettle();
     expect(find.text('Choose a model provider'), findsOneWidget);
+  });
+
+  testWidgets('a session that opens after the app is gone is closed', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = harness.session(owned: false);
+    final opening = Completer<Session>();
+    await tester.pumpWidget(NoteloreApp(open: () => opening.future));
+    await tester.pumpWidget(const SizedBox()); // the app goes away first
+    opening.complete(session);
+    await tester.pump();
+    expect(session.listNotes, throwsA(anything)); // the index is closed
   });
 
   testWidgets('a failure while opening is shown, not swallowed', (tester) async {
