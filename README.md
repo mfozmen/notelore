@@ -37,6 +37,10 @@ Then just talk: *"Mopsos için not al: veritabanı olarak SQLite seçtik, tek ku
 
 In Git Bash on Windows the prompt falls back to plain input: no command completion, and a pasted key stays visible. Windows Terminal or PowerShell give the full prompt.
 
+## The app (preview)
+
+The Flutter app in `apps/notelore` is replacing the command line ([#60](https://github.com/mfozmen/notelore/issues/60)). It does the same on Android, Windows and macOS: pick a provider and paste its key (kept in Android Keystore, macOS Keychain or Windows Credential Manager), then chat; the Notes tab lists every project and topic and opens them read-only, and Settings changes the model or logs out. Notes go to `~/Notelore/` on the desktop and to the app's own storage on a phone. Drive sync follows in [#67](https://github.com/mfozmen/notelore/issues/67); until the first release, run it with `flutter run` from `apps/notelore` or install the debug APK that CI attaches to every build.
+
 ## Development
 
 Requires [uv](https://docs.astral.sh/uv/) for the Python packages and [Flutter](https://docs.flutter.dev/get-started/install) for the Dart ones. Notelore is moving to Flutter ([#60](https://github.com/mfozmen/notelore/issues/60)); until then both live side by side:
