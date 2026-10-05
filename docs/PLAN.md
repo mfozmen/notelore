@@ -77,7 +77,7 @@ One Dart codebase for Android, iOS, Windows and macOS. Step by step; each step i
 - [x] F5 LLM providers over HTTPS, agent, tools (#65)
 - [x] F6 App UI: setup, chat, notes, settings (#66)
 - [x] F7 Google Drive sign-in, remote, sync triggers (#67)
-- [ ] F8 Release pipeline and desktop self-update (#68)
+- [x] F8 Release pipeline and desktop self-update (#68)
 - [ ] F9 Retire the Python packages (#69)
 - [ ] F10 iOS (#70)
 

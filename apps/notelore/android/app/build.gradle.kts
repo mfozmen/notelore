@@ -15,10 +15,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "io.github.mfozmen.notelore"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
@@ -29,11 +26,24 @@ android {
         versionName = flutter.versionName
     }
 
+    // The release key comes from the environment (the release workflow decodes it
+    // from GitHub secrets) and never from the repo. Without it a release build is
+    // signed with the debug key, so `flutter run --release` still works locally.
+    val releaseKeystore = System.getenv("NOTELORE_ANDROID_KEYSTORE")
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("NOTELORE_ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("NOTELORE_ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("NOTELORE_ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (releaseKeystore != null) "release" else "debug")
         }
     }
 }

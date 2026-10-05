@@ -8,8 +8,18 @@ import 'package:path_provider/path_provider.dart';
 import 'src/app.dart';
 import 'src/drive_auth.dart';
 import 'src/session.dart';
+import 'src/update.dart';
 
-void main() => runApp(const NoteloreApp(open: openSession));
+void main() => runApp(
+  NoteloreApp(
+    open: openSession,
+    updater: updaterFor(
+      system: Platform.operatingSystem,
+      version: appVersion,
+      executable: Platform.resolvedExecutable,
+    ),
+  ),
+);
 
 /// The session on this device's folders. On the desktop the notes are a visible
 /// `~/Notelore` (people open it in other tools); on a phone they live in the
