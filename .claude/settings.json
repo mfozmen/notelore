@@ -4,14 +4,13 @@
   },
   "permissions": {
     "allow": [
-      "Bash(uv sync:*)",
-      "Bash(uv add:*)",
-      "Bash(uv lock:*)",
-      "Bash(uv run pytest:*)",
-      "Bash(uv run ruff:*)",
-      "Bash(uv run mypy:*)",
-      "Bash(uv run pre-commit:*)",
-      "Bash(uv run notelore:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(flutter test:*)",
+      "Bash(dart format:*)",
+      "Bash(dart analyze:*)",
+      "Bash(dart test:*)",
+      "Bash(dart run coverage:*)",
+      "Bash(dart run tool/coverage_gate.dart:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
@@ -25,8 +24,7 @@
     "deny": [
       "Read(./.env)",
       "Bash(git push --force:*)",
-      "Bash(git push -f:*)",
-      "Bash(pip install:*)"
+      "Bash(git push -f:*)"
     ]
   }
 }

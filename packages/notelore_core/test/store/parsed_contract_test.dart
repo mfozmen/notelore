@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 
 import '../support/spec.dart';
 
-/// A parsed note in the shape spec/tools/generate_parsed.py writes for the reference.
+/// A parsed note in the shape of spec/fixtures/parsed.json (the Python reference's parse).
 Map<String, Object?> describe(Note note) => {
   'meta': note.meta.map((k, v) => MapEntry(k, _value(v))),
   'heading': note.heading,

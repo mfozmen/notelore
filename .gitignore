@@ -1,18 +1,5 @@
-# Python
+# The CI helper scripts in .github/scripts are Python
 __pycache__/
-*.py[cod]
-.venv/
-dist/
-build/
-*.egg-info/
-
-# Tooling caches
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-coverage.xml
-htmlcov/
 
 # Local dev sandbox (NOTELORE_HOME during development) — never commit
 .dev-home/
@@ -26,11 +13,6 @@ Thumbs.db
 
 # Claude Code personal overrides
 .claude/settings.local.json
-
-# Briefcase output (apps/mobile)
-apps/mobile/build/
-apps/mobile/dist/
-apps/mobile/logs/
 
 # Dart / Flutter
 .dart_tool/

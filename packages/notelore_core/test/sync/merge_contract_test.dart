@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 
 import '../support/spec.dart';
 
-/// A merge part in the shape spec/tools/generate_merge.py writes for the reference.
+/// A merge part in the shape of spec/fixtures/merge.json (the Python reference's merge).
 Object describe(MergePart part) => switch (part) {
   Clean(:final lines) => lines,
   Conflict(:final base, :final local, :final remote) => {
