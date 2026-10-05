@@ -27,6 +27,8 @@ typedef Fetch = Future<List<int>> Function(String url);
 typedef Run = Future<ProcessResult> Function(String command, List<String> args);
 typedef Spawn = Future<void> Function(String executable);
 
+void _renameDirectory(String from, String to) => Directory(from).renameSync(to);
+
 class UpdateFailed implements Exception {
   const UpdateFailed(this.message);
 
@@ -143,6 +145,7 @@ class Updater {
     required this.fetch,
     required this.run,
     required this.spawn,
+    this.renameDirectory = _renameDirectory,
   });
 
   /// 'windows' or 'macos'.
@@ -152,6 +155,9 @@ class Updater {
   final Fetch fetch;
   final Run run;
   final Spawn spawn;
+
+  /// Moves a folder; tests make it fail.
+  final void Function(String from, String to) renameDirectory;
 
   /// What gets replaced: the app folder on Windows, the `.app` bundle on macOS.
   String get _installed =>
@@ -180,9 +186,17 @@ class Updater {
       throw UpdateFailed('checksum mismatch for $name; the download was not installed');
     }
 
+    // Staged next to the app, so the swap is a rename on the same drive.
     final staging = Directory(p.join(p.dirname(_installed), '.notelore-update'));
-    if (staging.existsSync()) staging.deleteSync(recursive: true);
-    staging.createSync(recursive: true);
+    try {
+      if (staging.existsSync()) staging.deleteSync(recursive: true);
+      staging.createSync(recursive: true);
+    } on FileSystemException catch (error) {
+      throw UpdateFailed(
+        'cannot write next to the app (${error.path ?? staging.path}): '
+        'move Notelore to a folder you own, then update again',
+      );
+    }
     try {
       final zip = File(p.join(staging.path, name))..writeAsBytesSync(data);
       final unpacked = Directory(p.join(staging.path, 'app'))..createSync();
@@ -193,7 +207,7 @@ class Updater {
       if (system == 'windows') {
         _swapFiles(unpacked.path, _installed);
       } else {
-        _swapBundle(p.join(unpacked.path, 'notelore.app'), _installed);
+        _swapBundle(p.join(unpacked.path, 'notelore.app'), _installed, renameDirectory);
       }
     } finally {
       staging.deleteSync(recursive: true);
@@ -227,15 +241,21 @@ class Updater {
     }
   }
 
-  /// Puts the bundle at [from] in place of [to]; the old one is kept as `.old`.
-  static void _swapBundle(String from, String to) {
+  /// Puts the bundle at [from] in place of [to]; the old one is kept as `.old`
+  /// and put back if the new one cannot be moved in.
+  static void _swapBundle(String from, String to, void Function(String, String) rename) {
     if (!Directory(from).existsSync()) {
       throw const UpdateFailed('the download has no notelore.app; not installing it');
     }
     final old = Directory('$to.old');
     if (old.existsSync()) old.deleteSync(recursive: true);
-    Directory(to).renameSync(old.path);
-    Directory(from).renameSync(to);
+    rename(to, old.path);
+    try {
+      rename(from, to);
+    } catch (_) {
+      rename(old.path, to); // never leave the user without an app
+      rethrow;
+    }
   }
 
   /// Starts the (new) app; the caller then exits.
