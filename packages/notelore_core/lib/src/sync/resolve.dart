@@ -9,6 +9,7 @@ library;
 
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 
+import '../providers/base.dart';
 import '../text.dart';
 import 'merge.dart';
 
@@ -25,8 +26,19 @@ const system =
     "<why>One sentence in the note's language on what you kept and why.</why>";
 
 /// One model turn without tools: the system prompt and a user message in, the
-/// answer's text out. The providers (#65) plug in here.
+/// answer's text out. [askProvider] plugs a provider in.
 typedef Ask = Future<String> Function(String system, String prompt);
+
+/// [provider] as an [Ask]: one user message, no tools, the answer's texts joined.
+Ask askProvider(LlmProvider provider) => (system, prompt) async {
+  final response = await provider.turn(system, [
+    {'role': 'user', 'content': prompt},
+  ], []);
+  return [
+    for (final block in response.content)
+      if (block['type'] == 'text') '${block['text']}',
+  ].join();
+};
 
 final _merged = RegExp(r'<merged>\n?(.*?)</merged>', dotAll: true);
 final _why = RegExp(r'<why>(.*?)</why>', dotAll: true);

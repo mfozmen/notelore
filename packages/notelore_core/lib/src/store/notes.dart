@@ -68,7 +68,7 @@ String notePath(String root, String kind, String slug) {
   }
   // A slug is a bare file stem: hand-made names like "My Note" are fine, path escapes are not.
   if (slug.isEmpty || slug == '.' || slug == '..' || slug.split('').any(_forbidden.contains)) {
-    throw ArgumentError.value(slug, 'slug', 'invalid slug; use it exactly as listNotes shows it');
+    throw ArgumentError.value(slug, 'slug', 'invalid slug; use it exactly as list_notes shows it');
   }
   return p.join(root, folder, '$slug.md');
 }

@@ -38,6 +38,7 @@ dart format .                                     # format (page width 100, anal
 dart analyze --fatal-infos                        # strict analysis
 (cd packages/notelore_core && dart run coverage:test_with_coverage)   # core tests + lcov
 (cd apps/notelore && flutter test --coverage)                         # app tests + lcov
+(cd packages/notelore_core && dart test -t live)                       # live provider tests (keys in env, opt-in)
 dart run tool/coverage_gate.dart packages/notelore_core/coverage/lcov.info apps/notelore/coverage/lcov.info
 (cd apps/notelore && flutter build apk --debug)   # Android; also `windows`, `macos`
 ```
