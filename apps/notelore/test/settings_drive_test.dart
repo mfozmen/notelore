@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore_core/notelore_core.dart';
@@ -73,16 +75,16 @@ void main() {
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     await openSettings(tester);
-    session.syncing = true;
-    session.notifyListeners();
+    harness.remote.hold = Completer<void>(); // the next sync stays in flight
+    unawaited(session.syncNow());
     await tester.pump();
     expect(find.text('Syncing...'), findsOneWidget);
     expect(
       tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.sync)).onPressed,
       isNull,
     );
-    session.syncing = false;
-    session.notifyListeners();
-    await tester.pump();
+    harness.remote.hold!.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Syncing...'), findsNothing);
   });
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -199,10 +200,21 @@ void main() {
 }
 
 void autoSyncTests() {
-  // Real time, with short intervals: the session's futures run on the real clock.
+  // Real time with short ticks: the session's futures run on the real clock.
+  // Waiting polls until a deadline, so a slow runner only makes it slower.
   const every = Duration(milliseconds: 20);
-  const remoteNote = '---\ntitle: R\nkind: topic\n---\n# R\n';
-  Future<void> wait() => Future<void>.delayed(const Duration(milliseconds: 200));
+  const remoteNote = 'REMOTE';
+
+  Future<bool> appears(File file) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 10));
+    while (DateTime.now().isBefore(deadline)) {
+      if (file.existsSync()) return true;
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+    return false;
+  }
+
+  Future<void> ticks([int count = 10]) => Future<void>.delayed(every * count);
 
   test("while the app is open it pulls other devices' notes on its own", () async {
     final harness = Harness(auth: FakeAuth()..granted = true);
@@ -211,25 +223,41 @@ void autoSyncTests() {
     await session.syncDone;
     session.startAutoSync(every: every);
     harness.remote.texts['topics/r.md'] = remoteNote; // written on another device
-    await wait();
-    await session.syncDone;
-    expect(File(p.join(harness.paths.notes.path, 'topics', 'r.md')).existsSync(), isTrue);
+    expect(await appears(File(p.join(harness.paths.notes.path, 'topics', 'r.md'))), isTrue);
     session.stopAutoSync();
   });
 
-  test('no automatic sync while disconnected or busy', () async {
+  test('no automatic sync while disconnected, busy or closed', () async {
     final harness = Harness(auth: FakeAuth());
     final session = harness.session(owned: false);
     session.startAutoSync(every: every);
-    await wait();
+    await ticks();
     expect(session.syncStatus, isNull); // not connected: nothing ran
     await session.connectDrive();
     session.busy = true; // a chat turn is running
     harness.remote.texts['topics/s.md'] = remoteNote;
-    await wait();
+    await ticks();
     await session.syncDone;
-    expect(File(p.join(harness.paths.notes.path, 'topics', 's.md')).existsSync(), isFalse);
-    session.dispose(); // stops the timer too
-    await wait(); // no tick after dispose
+    final pulled = File(p.join(harness.paths.notes.path, 'topics', 's.md'));
+    expect(pulled.existsSync(), isFalse);
+    session
+      ..busy = false
+      ..dispose(); // stops the timer too
+    await ticks();
+    expect(pulled.existsSync(), isFalse); // no tick after dispose
+  });
+
+  test('a second sync queued behind a running one still counts as syncing', () async {
+    final harness = Harness(auth: FakeAuth());
+    final session = harness.session();
+    await session.connectDrive();
+    harness.remote.hold = Completer<void>();
+    final first = session.syncNow();
+    final second = session.syncNow();
+    harness.remote.hold!.complete();
+    await first;
+    expect(session.syncing, isTrue); // the second one is still pending
+    await second;
+    expect(session.syncing, isFalse);
   });
 }

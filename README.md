@@ -39,7 +39,7 @@ Notes go to `~/Notelore/` on the desktop and to the app's own storage on a phone
 
 ### Google Drive
 
-In Settings, **Google Drive → Connect** backs the notes up to a `Notelore` folder in your Drive and keeps every device in sync: on start, after every chat turn and on *Sync now*.
+In Settings, **Google Drive → Connect** backs the notes up to a `Notelore` folder in your Drive and keeps every device in sync: on start, after every chat turn, every few minutes while the app is open, whenever you come back to it, and on *Sync now*.
 - The app only asks for access to files it creates itself (`drive.file`), never the rest of your Drive.
 - Offline is fine; the next sync catches up.
 - When two devices changed the same line, the model merges them, and both originals are kept under `.notelore/history/`.
