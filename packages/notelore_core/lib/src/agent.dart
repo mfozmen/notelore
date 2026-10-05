@@ -38,7 +38,21 @@ class Agent {
   final messages = <Message>[];
 
   /// One user message in, the final text answer out; tool calls run in between.
+  ///
+  /// When the provider fails (offline, quota, auth) the whole turn is taken back
+  /// out of [messages], so the history still alternates and the user can retry.
+  /// Notes the tools already wrote stay written: the files are the truth.
   Future<String> ask(String text) async {
+    final start = messages.length;
+    try {
+      return await _ask(text);
+    } catch (_) {
+      messages.removeRange(start, messages.length);
+      rethrow;
+    }
+  }
+
+  Future<String> _ask(String text) async {
     messages.add({'role': 'user', 'content': text});
     for (var turn = 0; turn < maxTurns; turn++) {
       final response = await provider.turn(systemPrompt(today), messages, toolbox.tools);

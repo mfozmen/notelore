@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:notelore_core/src/agent.dart';
 import 'package:notelore_core/src/providers/base.dart';
+import 'package:notelore_core/src/providers/http.dart';
 import 'package:notelore_core/src/tools.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
@@ -42,6 +43,7 @@ Object? lastResult(ScriptedProvider provider, int turn) =>
     ((provider.turns[turn].$2.last['content']! as List).first as Map)['content'];
 
 void main() {
+  failureTests();
   late Toolbox box;
   setUp(() => box = newBox());
 
@@ -208,5 +210,35 @@ void main() {
     ]);
     await Agent(provider, box, today: today).ask('x');
     expect(lastResult(provider, 1), '[]');
+  });
+}
+
+/// Fails on its first turn, then answers.
+class FlakyProvider extends ScriptedProvider {
+  FlakyProvider(super.responses);
+
+  var failed = false;
+
+  @override
+  Future<AgentResponse> turn(String system, List<Message> messages, List<Tool> tools) {
+    if (!failed) {
+      failed = true;
+      throw const NetworkError('offline');
+    }
+    return super.turn(system, messages, tools);
+  }
+}
+
+void failureTests() {
+  test('a provider failure rolls the turn back so roles keep alternating', () async {
+    final box = newBox();
+    final provider = FlakyProvider([text('back online')]);
+    final agent = Agent(provider, box, today: today);
+    await expectLater(agent.ask('first'), throwsA(isA<NetworkError>()));
+    expect(agent.messages, isEmpty);
+    expect(await agent.ask('second'), 'back online');
+    expect(provider.turns.single.$2, [
+      {'role': 'user', 'content': 'second'},
+    ]);
   });
 }
