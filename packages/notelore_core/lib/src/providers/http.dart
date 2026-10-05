@@ -72,7 +72,7 @@ Future<Object?> request(
     throw NetworkError('no answer from $url within ${timeout.inSeconds} s');
   }
   final text = utf8.decode(answer.bodyBytes, allowMalformed: true);
-  if (answer.statusCode >= 400) throw HttpError(answer.statusCode, _message(text));
+  if (answer.statusCode >= 400) throw HttpError(answer.statusCode, errorMessage(text));
   if (text.isEmpty) return null;
   try {
     return jsonDecode(text);
@@ -84,7 +84,7 @@ Future<Object?> request(
 }
 
 /// The error text from {"error": {"message": ...}} or {"error": "..."}, else the raw body.
-String _message(String text) {
+String errorMessage(String text) {
   try {
     return switch (jsonDecode(text)) {
       {'error': {'message': final Object message}} => '$message',

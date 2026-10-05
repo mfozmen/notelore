@@ -1,21 +1,35 @@
 /// Everything the screens share: the chosen provider and its key, the agent,
-/// the conversation, and the notes folder.
+/// the conversation, the notes folder and its Google Drive sync.
+///
+/// Sync runs on start, after every chat turn and on demand. Chat turns and syncs
+/// take turns (one queue), so the agent and the sync never write the same file
+/// at once. Being offline is normal: the next sync catches up.
 ///
 /// The API key lives in the platform keystore (Android Keystore, Keychain,
 /// Windows Credential Manager); the provider and model in `settings.json` in the
 /// state folder, which is derived, device-local state like the index.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
 typedef Validate = Future<void> Function(ProviderSpec spec, String key);
 typedef MakeProvider = LlmProvider Function(ProviderSpec spec, String? key, {String? model});
+typedef RemoteFor = Remote Function(DriveAuth auth);
+
+/// The platform keystore. On macOS the login keychain: the data-protection one
+/// needs a signed app with a keychain-access-groups entitlement, which debug
+/// builds do not have.
+const appKeys = FlutterSecureStorage(mOptions: MacOsOptions(usesDataProtectionKeychain: false));
+
+Remote _driveRemote(DriveAuth auth) => DriveRemote(http.Client(), auth.token);
 
 enum ChatRole { user, assistant, error }
 
@@ -28,12 +42,11 @@ class Session extends ChangeNotifier {
     this.makeProvider = createProvider,
     this.today,
     this.keySpace = 'notelore',
-    this.keys = const FlutterSecureStorage(
-      // The login keychain: the data-protection one needs a signed app with a
-      // keychain-access-groups entitlement, which debug builds do not have.
-      mOptions: MacOsOptions(usesDataProtectionKeychain: false),
-    ),
-  }) : index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path);
+    this.keys = appKeys,
+    this.driveAuth,
+    this.remoteFor = _driveRemote,
+  }) : index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path),
+       manifest = Manifest(paths.state.path);
 
   final NotelorePaths paths;
   final Validate validate;
@@ -48,9 +61,29 @@ class Session extends ChangeNotifier {
   final FlutterSecureStorage keys;
   final NoteIndex index;
 
+  /// Null in a build without Google sign-in (no OAuth client ids).
+  final DriveAuth? driveAuth;
+  final RemoteFor remoteFor;
+  final Manifest manifest;
+
   ProviderSpec? spec;
   String? model;
   Agent? _agent;
+  LlmProvider? _provider;
+  Remote? _remote;
+  var driveConnected = false;
+  var syncing = false;
+
+  /// What the last sync did, for the settings screen; null before any.
+  String? syncStatus;
+
+  /// Chat turns and syncs, one after the other.
+  Future<void> _queue = Future.value();
+
+  /// Completes when everything queued so far is done.
+  Future<void> get syncDone => _queue;
+
+  bool get driveAvailable => driveAuth != null;
   final transcript = <ChatLine>[];
   bool busy = false;
 
@@ -60,8 +93,16 @@ class Session extends ChangeNotifier {
 
   String _keyName(ProviderSpec spec) => '$keySpace.${spec.name}.api_key';
 
-  /// Picks up the provider chosen on an earlier run; no network involved.
+  /// Picks up the provider chosen on an earlier run, and syncs when Drive is
+  /// connected (in the background: an offline start is fine).
   Future<void> load() async {
+    await _loadProvider();
+    driveConnected = await driveAuth?.signedIn() ?? false;
+    notifyListeners();
+    if (driveConnected) unawaited(syncNow());
+  }
+
+  Future<void> _loadProvider() async {
     final Object? saved;
     try {
       saved = jsonDecode(File(_settings).readAsStringSync());
@@ -111,6 +152,7 @@ class Session extends ChangeNotifier {
     spec = null;
     model = null;
     _agent = null;
+    _provider = null;
     transcript.clear();
     notifyListeners();
   }
@@ -119,30 +161,99 @@ class Session extends ChangeNotifier {
     spec = chosen;
     model = chosenModel;
     final toolbox = Toolbox(paths.notes.path, index, today: today);
-    _agent = Agent(makeProvider(chosen, key, model: chosenModel), toolbox, today: today);
+    _provider = makeProvider(chosen, key, model: chosenModel);
+    _agent = Agent(_provider!, toolbox, today: today);
     notifyListeners();
   }
 
   void _save() =>
       atomicWrite(_settings, '${jsonEncode({'provider': spec!.name, 'model': model})}\n');
 
-  /// One chat turn. A provider failure becomes an error line; the agent has
-  /// already taken the turn back, so the user can simply send again.
+  Future<T> _exclusive<T>(Future<T> Function() task) {
+    final run = _queue.then((_) => task());
+    _queue = run.then<void>((_) {}, onError: (Object _) {});
+    return run;
+  }
+
+  /// One chat turn, then a sync. A provider failure becomes an error line; the
+  /// agent has already taken the turn back, so the user can simply send again.
   Future<void> send(String text) async {
     final message = text.trim();
     if (message.isEmpty || busy) return;
     transcript.add((role: ChatRole.user, text: message));
     busy = true;
     notifyListeners();
-    try {
-      final answer = await _agent!.ask(message);
-      transcript.add((role: ChatRole.assistant, text: answer));
-    } on Exception catch (error) {
-      transcript.add((role: ChatRole.error, text: '$error'));
-    } finally {
-      busy = false;
-      notifyListeners();
-    }
+    await _exclusive(() async {
+      try {
+        final answer = await _agent!.ask(message);
+        transcript.add((role: ChatRole.assistant, text: answer));
+      } on Exception catch (error) {
+        transcript.add((role: ChatRole.error, text: '$error'));
+      } finally {
+        busy = false;
+        notifyListeners();
+      }
+    });
+    if (driveConnected) unawaited(syncNow());
+  }
+
+  /// Interactive Google sign-in, then the first sync. Throws [SignInFailed].
+  Future<void> connectDrive() async {
+    await driveAuth!.signIn();
+    driveConnected = true;
+    notifyListeners();
+    await syncNow();
+  }
+
+  Future<void> disconnectDrive() async {
+    await driveAuth!.signOut();
+    driveConnected = false;
+    syncStatus = null;
+    notifyListeners();
+  }
+
+  Future<void> syncNow() async {
+    if (!driveConnected) return;
+    syncing = true;
+    notifyListeners();
+    await _exclusive(() async {
+      try {
+        final resolver = _provider == null ? null : ModelResolver(askProvider(_provider!));
+        final report = await sync(
+          paths.notes.path,
+          manifest,
+          _remote ??= remoteFor(driveAuth!),
+          resolver?.call ?? _unresolved, // no model connected: conflicts wait
+        );
+        syncStatus = _describe(report, resolver?.explanations ?? const []);
+      } on NotSignedIn catch (error) {
+        driveConnected = false;
+        syncStatus = '${error.message}; connect again.';
+      } on NetworkError {
+        syncStatus = 'Offline; your notes will sync when the connection is back.';
+      } on HttpError catch (error) {
+        syncStatus = 'Google Drive: ${error.message}';
+      } finally {
+        syncing = false;
+        notifyListeners();
+      }
+    });
+  }
+
+  static List<String>? _unresolved(Conflict conflict) => null;
+
+  static String _describe(SyncReport report, List<String> explanations) {
+    final parts = [
+      for (final (count, what) in [
+        (report.pushed.length + report.removedRemote.length, 'sent'),
+        (report.pulled.length + report.removedLocal.length, 'received'),
+        (report.merged.length, 'merged'),
+        (report.skipped.length, 'waiting for a conflict to be settled'),
+      ])
+        if (count > 0) '$count $what',
+    ];
+    if (parts.isEmpty) return 'Synced; nothing changed.';
+    return ['Synced: ${parts.join(', ')}.', ...explanations].join(' ');
   }
 
   List<NoteInfo> listNotes() => (index..rebuild()).listNotes();
@@ -155,8 +266,17 @@ class Session extends ChangeNotifier {
         .replaceAll('\r\n', '\n'),
   );
 
+  var _disposed = false;
+
+  /// A background sync may finish after the app closed the session.
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
+
   @override
   void dispose() {
+    _disposed = true;
     index.close();
     super.dispose();
   }
