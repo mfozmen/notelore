@@ -226,48 +226,59 @@ List<String>? autoResolve(Conflict conflict) {
 /// The non-equal opcodes of difflib's `SequenceMatcher(a=a, b=b, autojunk=False)`
 /// as (i1, i2, j1, j2): a[i1:i2] becomes b[j1:j2].
 List<(int, int, int, int)> _changes(List<String> a, List<String> b) {
+  final changes = <(int, int, int, int)>[];
+  var (i, j) = (0, 0);
+  for (final (ai, bj, size) in _matchingBlocks(a, b)) {
+    if (i < ai || j < bj) changes.add((i, ai, j, bj));
+    (i, j) = (ai + size, bj + size);
+  }
+  return changes;
+}
+
+/// difflib's get_matching_blocks, sorted and closed by the (len a, len b, 0)
+/// sentinel. Adjacent blocks are not collapsed: only the gaps between them matter.
+List<(int, int, int)> _matchingBlocks(List<String> a, List<String> b) {
   final b2j = <String, List<int>>{};
   for (final (j, line) in b.indexed) {
     b2j.putIfAbsent(line, () => []).add(j);
   }
-
-  /// difflib's find_longest_match without junk: the earliest longest common run.
-  /// (Its junk-extension loops cannot extend a run when nothing is junk.)
-  (int, int, int) longest(int alo, int ahi, int blo, int bhi) {
-    var (besti, bestj, bestsize) = (alo, blo, 0);
-    var j2len = <int, int>{};
-    for (var i = alo; i < ahi; i++) {
-      final next = <int, int>{};
-      for (final j in b2j[a[i]] ?? const <int>[]) {
-        if (j < blo) continue;
-        if (j >= bhi) break;
-        final k = next[j] = (j2len[j - 1] ?? 0) + 1;
-        if (k > bestsize) (besti, bestj, bestsize) = (i - k + 1, j - k + 1, k);
-      }
-      j2len = next;
-    }
-    return (besti, bestj, bestsize);
-  }
-
   final blocks = <(int, int, int)>[];
   final queue = [(0, a.length, 0, b.length)];
   while (queue.isNotEmpty) {
     final (alo, ahi, blo, bhi) = queue.removeLast();
-    final (i, j, k) = longest(alo, ahi, blo, bhi);
+    final (i, j, k) = _longest(a, b2j, alo, ahi, blo, bhi);
     if (k == 0) continue;
     blocks.add((i, j, k));
     if (alo < i && blo < j) queue.add((alo, i, blo, j));
     if (i + k < ahi && j + k < bhi) queue.add((i + k, ahi, j + k, bhi));
   }
-  blocks
+  return blocks
     ..sort((x, y) => x.$1 != y.$1 ? x.$1 - y.$1 : x.$2 - y.$2)
-    ..add((a.length, b.length, 0)); // the sentinel closes the last change
-  // Adjacent blocks need no collapsing here: only the gaps between them matter.
-  final changes = <(int, int, int, int)>[];
-  var (i, j) = (0, 0);
-  for (final (ai, bj, size) in blocks) {
-    if (i < ai || j < bj) changes.add((i, ai, j, bj));
-    (i, j) = (ai + size, bj + size);
+    ..add((a.length, b.length, 0));
+}
+
+/// difflib's find_longest_match without junk: the earliest longest common run of
+/// a[alo:ahi] and b[blo:bhi]. (Its junk-extension loops cannot extend a run when
+/// nothing is junk.)
+(int, int, int) _longest(
+  List<String> a,
+  Map<String, List<int>> b2j,
+  int alo,
+  int ahi,
+  int blo,
+  int bhi,
+) {
+  var best = (alo, blo, 0);
+  var j2len = <int, int>{};
+  for (var i = alo; i < ahi; i++) {
+    final next = <int, int>{};
+    for (final j in b2j[a[i]] ?? const <int>[]) {
+      if (j >= bhi) break;
+      if (j < blo) continue;
+      final k = next[j] = (j2len[j - 1] ?? 0) + 1;
+      if (k > best.$3) best = (i - k + 1, j - k + 1, k);
+    }
+    j2len = next;
   }
-  return changes;
+  return best;
 }
