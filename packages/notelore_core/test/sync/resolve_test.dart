@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:notelore_core/src/providers/base.dart';
 import 'package:notelore_core/src/sync/merge.dart';
 import 'package:notelore_core/src/sync/resolve.dart';
 import 'package:test/test.dart';
@@ -27,6 +28,7 @@ class Scripted {
 }
 
 void main() {
+  providerTests();
   test('the model sees all three versions', () async {
     final model = Scripted([
       '<merged>\n- 2026-09-01: meeting on Tuesday at 10:00\n</merged>\n'
@@ -74,5 +76,33 @@ void main() {
     final nfd = unorm.nfd('- 2026-09-01: toplantı Salı\n');
     final resolver = ModelResolver(Scripted(['<merged>\n$nfd</merged><why>ok</why>']).call);
     expect(await resolver(conflict), [unorm.nfc(nfd)]);
+  });
+}
+
+class _OneAnswer implements LlmProvider {
+  final calls = <(String, List<Message>, List<Tool>)>[];
+
+  @override
+  String get model => 'one';
+
+  @override
+  Future<AgentResponse> turn(String system, List<Message> messages, List<Tool> tools) async {
+    calls.add((system, messages, tools));
+    return const AgentResponse([
+      {'type': 'text', 'text': '<merged>\nx\n'},
+      {'type': 'tool_use', 'id': 't', 'name': 'n', 'input': <String, Object?>{}},
+      {'type': 'text', 'text': '</merged><why>ok</why>'},
+    ], 'end_turn');
+  }
+}
+
+void providerTests() {
+  test('a provider plugs in as Ask: one user message, no tools, the texts joined', () async {
+    final provider = _OneAnswer();
+    expect(await ModelResolver(askProvider(provider)).call(conflict), ['x\n']);
+    final (system, messages, tools) = provider.calls.single;
+    expect(system, contains('Never invent'));
+    expect(messages.single['role'], 'user');
+    expect(tools, isEmpty);
   });
 }

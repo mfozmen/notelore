@@ -2,8 +2,24 @@
 /// LLM providers and the agent. The port from Python lands milestone by milestone (#60).
 library;
 
+export 'src/agent.dart' show Agent, defaultMaxTurns, systemPrompt;
 export 'src/i18n.dart' show sectionHeading, sectionHeadings, sectionKey;
 export 'src/paths.dart' show NotelorePaths;
+export 'src/providers/base.dart'
+    show
+        AgentResponse,
+        Block,
+        LlmProvider,
+        Message,
+        ProviderSpec,
+        Tool,
+        findProvider,
+        providerSpecs;
+export 'src/providers/http.dart' show HttpError, NetworkError, Transport, defaultTransport;
+export 'src/providers/ollama.dart' show ollamaHost;
+export 'src/providers/providers.dart' show createProvider;
+export 'src/providers/validator.dart'
+    show KeyValidationError, TransientValidationError, validateKey;
 export 'src/store/format.dart'
     show
         Decision,
@@ -57,4 +73,5 @@ export 'src/sync/merge.dart'
         autoResolve,
         decide,
         threeWay;
-export 'src/sync/resolve.dart' show Ask, ModelResolver;
+export 'src/sync/resolve.dart' show Ask, ModelResolver, askProvider;
+export 'src/tools.dart' show Toolbox, noteTools;
