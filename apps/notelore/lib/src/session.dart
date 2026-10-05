@@ -233,6 +233,10 @@ class Session extends ChangeNotifier {
         syncStatus = 'Offline; your notes will sync when the connection is back.';
       } on HttpError catch (error) {
         syncStatus = 'Google Drive: ${error.message}';
+      } on FileSystemException catch (error) {
+        // Windows: antivirus or an editor holds a note past the store's retries.
+        syncStatus =
+            'A note is in use by another program (${error.message}); the next sync retries.';
       } finally {
         syncing = false;
         notifyListeners();
