@@ -15,40 +15,43 @@ class NotesScreen extends StatefulWidget {
 }
 
 class _NotesScreenState extends State<NotesScreen> {
-  late List<NoteInfo> _notes = widget.session.listNotes();
-
+  // Listed on every build: the session rebuilds the screen after a sync, and the
+  // index only rereads files that changed.
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: const Text('Notes'),
-      actions: [
-        IconButton(
-          tooltip: 'Refresh',
-          icon: const Icon(Icons.refresh),
-          onPressed: () => setState(() => _notes = widget.session.listNotes()),
-        ),
-      ],
-    ),
-    body: _notes.isEmpty
-        ? const Center(child: Text('No notes yet. Tell the assistant something to remember.'))
-        : ListView(
-            children: [
-              for (final note in _notes)
-                ListTile(
-                  title: Text(note.title),
-                  subtitle: Text(
-                    '${note.kind} · updated ${note.updated == null ? '?' : isoDate(note.updated!)}',
-                  ),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => Scaffold(
-                        appBar: AppBar(title: Text(note.title)),
-                        body: Markdown(data: widget.session.readNote(note), selectable: true),
+  Widget build(BuildContext context) {
+    final notes = widget.session.listNotes();
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Notes'),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh),
+            onPressed: () => setState(() {}),
+          ),
+        ],
+      ),
+      body: notes.isEmpty
+          ? const Center(child: Text('No notes yet. Tell the assistant something to remember.'))
+          : ListView(
+              children: [
+                for (final note in notes)
+                  ListTile(
+                    title: Text(note.title),
+                    subtitle: Text(
+                      '${note.kind} · updated ${note.updated == null ? '?' : isoDate(note.updated!)}',
+                    ),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => Scaffold(
+                          appBar: AppBar(title: Text(note.title)),
+                          body: Markdown(data: widget.session.readNote(note), selectable: true),
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
-          ),
-  );
+              ],
+            ),
+    );
+  }
 }

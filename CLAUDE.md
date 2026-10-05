@@ -41,6 +41,7 @@ dart analyze --fatal-infos                        # strict analysis
 (cd packages/notelore_core && dart test -t live)                       # live provider tests (keys in env, opt-in)
 dart run tool/coverage_gate.dart packages/notelore_core/coverage/lcov.info apps/notelore/coverage/lcov.info
 (cd apps/notelore && flutter build apk --debug)   # Android; also `windows`, `macos`
+(cd apps/notelore && flutter run --dart-define-from-file=../../.env)  # with Drive sign-in (OAuth ids from .env)
 ```
 
 Add Dart dependencies with `dart pub add` (or `flutter pub add`) in the package that needs them; commit the root `pubspec.lock`.

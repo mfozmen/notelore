@@ -59,7 +59,9 @@ export 'src/store/notes.dart'
         slugify,
         writeNote;
 export 'src/store/stale.dart' show Stale, findStaleNotes;
+export 'src/sync/drive.dart' show AccessToken, DriveRemote, driveScope;
 export 'src/sync/engine.dart' show Remote, RemoteFile, SyncReport, sync;
+export 'src/sync/google_auth.dart' show DriveAuth, LoopbackAuth, NotSignedIn, SignInFailed;
 export 'src/sync/manifest.dart' show Manifest, ManifestEntry, checkedRel, contentHash;
 export 'src/sync/merge.dart'
     show
