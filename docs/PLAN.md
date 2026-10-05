@@ -17,7 +17,7 @@ One Dart codebase for Android, iOS, Windows and macOS. Step by step; each step i
 - [x] F7 Google Drive sign-in, remote, sync triggers (#67)
 - [x] F8 Release pipeline and desktop self-update (#68)
 - [x] F9 Retire the Python packages (#69)
-- [ ] F10 iOS (#70)
+- [ ] F10 iOS (#70): deferred until a Mac and an iOS device are available
 
 Waiting on the maintainer (consoles, keys, live checks): [#84](https://github.com/mfozmen/notelore/issues/84).
 
