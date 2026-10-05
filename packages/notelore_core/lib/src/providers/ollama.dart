@@ -51,35 +51,37 @@ class OllamaProvider implements LlmProvider {
 
 List<Map<String, Object?>> toOllama(List<Message> messages) {
   final names = toolUseNames(messages);
-  return [
-    for (final message in messages)
-      ...switch ((message['role'], splitBlocks(message['content']))) {
-        ('assistant', (:final texts, :final uses, results: _)) => [
-          {
-            'role': 'assistant',
-            'content': texts.join(),
-            if (uses.isNotEmpty)
-              'tool_calls': [
-                for (final u in uses)
-                  {
-                    'function': {
-                      'name': u['name'] ?? '',
-                      'arguments': u['input'] ?? const <String, Object?>{},
-                    },
-                  },
-              ],
-          },
-        ],
-        (_, (:final texts, uses: _, :final results)) => [
-          for (final r in results)
-            {
-              'role': 'tool',
-              'content': r['content'] ?? '',
-              'tool_name': names['${r['tool_use_id'] ?? ''}'] ?? '',
-            },
-          for (final text in texts) {'role': 'user', 'content': text},
-        ],
+  return [for (final message in messages) ..._toOllama(message, names)];
+}
+
+List<Map<String, Object?>> _toOllama(Message message, Map<String, String> names) {
+  final (:texts, :uses, :results) = splitBlocks(message['content']);
+  if (message['role'] == 'assistant') {
+    return [
+      {
+        'role': 'assistant',
+        'content': texts.join(),
+        if (uses.isNotEmpty)
+          'tool_calls': [
+            for (final u in uses)
+              {
+                'function': {
+                  'name': u['name'] ?? '',
+                  'arguments': u['input'] ?? const <String, Object?>{},
+                },
+              },
+          ],
       },
+    ];
+  }
+  return [
+    for (final r in results)
+      {
+        'role': 'tool',
+        'content': r['content'] ?? '',
+        'tool_name': names['${r['tool_use_id'] ?? ''}'] ?? '',
+      },
+    for (final text in texts) {'role': 'user', 'content': text},
   ];
 }
 

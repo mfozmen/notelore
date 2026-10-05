@@ -20,6 +20,7 @@ Toolbox newBox() {
 }
 
 void main() {
+  schemaTests();
   late Toolbox box;
   setUp(() => box = newBox());
 
@@ -304,5 +305,11 @@ void main() {
     addTearDown(plain.index.close);
     expect(plain.call('create_note', {'kind': 'topic', 'title': 'T'}), contains('topics/t.md'));
     expect(plain.call('find_stale_notes', {}), '[]');
+  });
+}
+
+void schemaTests() {
+  test('the tool list cannot be changed by a caller', () {
+    expect(() => noteTools.add(noteTools.first), throwsUnsupportedError);
   });
 }

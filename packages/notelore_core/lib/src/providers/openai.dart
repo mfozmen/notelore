@@ -54,33 +54,35 @@ class OpenAIProvider implements LlmProvider {
 }
 
 List<Map<String, Object?>> toOpenAI(List<Message> messages) => [
-  for (final message in messages)
-    ...switch ((message['role'], splitBlocks(message['content']))) {
-      ('assistant', (:final texts, :final uses, results: _)) => [
-        {
-          'role': 'assistant',
-          'content': texts.join().isEmpty ? null : texts.join(),
-          if (uses.isNotEmpty)
-            'tool_calls': [
-              for (final u in uses)
-                {
-                  'id': u['id'] ?? '',
-                  'type': 'function',
-                  'function': {
-                    'name': u['name'] ?? '',
-                    'arguments': jsonEncode(u['input'] ?? const <String, Object?>{}),
-                  },
-                },
-            ],
-        },
-      ],
-      (_, (:final texts, uses: _, :final results)) => [
-        for (final r in results)
-          {'role': 'tool', 'tool_call_id': r['tool_use_id'] ?? '', 'content': r['content'] ?? ''},
-        for (final text in texts) {'role': 'user', 'content': text},
-      ],
-    },
+  for (final message in messages) ..._toOpenAI(message),
 ];
+
+List<Map<String, Object?>> _toOpenAI(Message message) {
+  final (:texts, :uses, :results) = splitBlocks(message['content']);
+  if (message['role'] == 'assistant') {
+    return [
+      {
+        'role': 'assistant',
+        'content': texts.join().isEmpty ? null : texts.join(),
+        if (uses.isNotEmpty) 'tool_calls': uses.map(_toolCall).toList(),
+      },
+    ];
+  }
+  return [
+    for (final r in results)
+      {'role': 'tool', 'tool_call_id': r['tool_use_id'] ?? '', 'content': r['content'] ?? ''},
+    for (final text in texts) {'role': 'user', 'content': text},
+  ];
+}
+
+Map<String, Object?> _toolCall(Block use) => {
+  'id': use['id'] ?? '',
+  'type': 'function',
+  'function': {
+    'name': use['name'] ?? '',
+    'arguments': jsonEncode(use['input'] ?? const <String, Object?>{}),
+  },
+};
 
 AgentResponse fromOpenAI(Map<String, Object?> completion) {
   final choices = (completion['choices'] as List? ?? const []).cast<Map<String, Object?>>();

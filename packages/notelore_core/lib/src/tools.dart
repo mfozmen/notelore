@@ -41,7 +41,7 @@ const _string = {'type': 'string'};
 Map<String, Object?> _schema(List<String> required, [Map<String, Object?> properties = const {}]) =>
     {'type': 'object', 'properties': properties, 'required': required};
 
-final noteTools = [
+final noteTools = List<Tool>.unmodifiable([
   Tool(
     'list_notes',
     'Projects and topics with title, slug and last update.',
@@ -136,7 +136,7 @@ final noteTools = [
       },
     ),
   ),
-];
+]);
 
 final _isoDate = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
@@ -335,8 +335,8 @@ String? _checkValue(String tool, String key, Object? value, Map<String, Object?>
   if (!_is(value, expected)) {
     return "$tool expects '$key' to be $expected, got ${_jsonType(value)}.";
   }
-  if (value is List) {
-    final itemType = (schema['items']! as Map)['type']! as String;
+  if ((value, schema['items']) case (final List<Object?> value, final Map<String, Object?> items)) {
+    final itemType = items['type']! as String;
     for (final item in value) {
       if (!_is(item, itemType)) {
         return "$tool expects every item of '$key' to be $itemType, got ${_jsonType(item)}.";
