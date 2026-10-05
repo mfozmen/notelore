@@ -86,6 +86,7 @@ class _HomeState extends State<Home> {
   String? _available; // a newer version
   String? _updateProblem;
   var _updating = false;
+  var _installed = false; // installed, waiting for a manual restart
 
   @override
   void initState() {
@@ -111,13 +112,20 @@ class _HomeState extends State<Home> {
     });
     try {
       await widget.updater!.apply();
-      await widget.updater!.relaunch();
-      widget.exitApp(0);
     } on Exception catch (error) {
-      setState(() => _updateProblem = '$error');
+      if (mounted) setState(() => _updateProblem = '$error');
+      return;
     } finally {
       if (mounted) setState(() => _updating = false);
     }
+    try {
+      await widget.updater!.relaunch();
+    } on Exception {
+      // Installed, but the new version could not be started from here.
+      if (mounted) setState(() => _installed = true);
+      return;
+    }
+    widget.exitApp(0);
   }
 
   @override
@@ -128,20 +136,23 @@ class _HomeState extends State<Home> {
           if (_available case final version?)
             MaterialBanner(
               content: Text(
-                _updateProblem ??
-                    (_updating
-                        ? 'Installing Notelore $version...'
-                        : 'Notelore $version is available.'),
+                _installed
+                    ? 'Notelore $version is installed. Close and reopen Notelore to use it.'
+                    : _updateProblem ??
+                          (_updating
+                              ? 'Installing Notelore $version...'
+                              : 'Notelore $version is available.'),
               ),
               actions: [
                 TextButton(
                   onPressed: _updating ? null : () => setState(() => _available = null),
                   child: const Text('Later'),
                 ),
-                TextButton(
-                  onPressed: _updating ? null : _update,
-                  child: const Text('Update and restart'),
-                ),
+                if (!_installed)
+                  TextButton(
+                    onPressed: _updating ? null : _update,
+                    child: const Text('Update and restart'),
+                  ),
               ],
             ),
           Expanded(

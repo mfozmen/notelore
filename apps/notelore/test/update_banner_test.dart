@@ -70,6 +70,33 @@ void main() {
     expect(exits, [0]);
   });
 
+  testWidgets('installed but not restarted: says so and offers no second install', (tester) async {
+    final u = Updater(
+      system: 'windows',
+      executable: p.join(install, 'notelore.exe'),
+      current: '0.2.0',
+      fetch: Pages({
+        latestReleaseUrl: release(v),
+        ...download('notelore-app-$v-windows-x64.zip', zip),
+      }).call,
+      run: (command, args) async {
+        File(p.join(args.last, 'notelore.exe')).writeAsStringSync('new');
+        return ProcessResult(0, 0, '', '');
+      },
+      spawn: (exe) async => throw const ProcessException('notelore.exe', [], 'access denied'),
+    );
+    await pump(tester, u);
+    await tester.tap(find.text('Update and restart'));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Notelore $v is installed. Close and reopen Notelore to use it.'),
+      findsOneWidget,
+    );
+    expect(find.text('Update and restart'), findsNothing);
+    expect(exits, isEmpty);
+  });
+
   testWidgets('a failed update says why and the app keeps running', (tester) async {
     await pump(tester, updater({latestReleaseUrl: release(v, checksums: false)}));
     await tester.tap(find.text('Update and restart'));

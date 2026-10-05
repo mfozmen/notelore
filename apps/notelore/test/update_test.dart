@@ -222,6 +222,15 @@ void main() {
       expect(File(p.join(install, 'flutter_windows.dll.old')).existsSync(), isFalse);
     });
 
+    test('a folder next to the app that cannot be written says where to move it', () async {
+      write(p.join(dir, '.notelore-update'), 'a file in the way');
+      await expectLater(
+        updater(good()).apply(),
+        throwsA(isA<UpdateFailed>().having((e) => '$e', 'message', contains('a folder you own'))),
+      );
+      expect(read(p.join(install, 'notelore.exe')), 'old exe');
+    });
+
     test('cleanup of a folder that is gone does nothing', () {
       Updater(
         system: 'windows',
@@ -281,6 +290,27 @@ void main() {
       u.cleanup();
       expect(Directory('$bundle.old').existsSync(), isFalse);
       u.cleanup(); // nothing left: fine
+    });
+
+    test('a bundle swap that fails halfway puts the old app back', () async {
+      final u = Updater(
+        system: 'macos',
+        executable: p.join(bundle, 'Contents', 'MacOS', 'notelore'),
+        current: '0.2.0',
+        fetch: Pages(good()).call,
+        run: ditto,
+        spawn: (_) async {},
+        renameDirectory: (from, to) {
+          // Only moving the new bundle in fails; putting the old one back works.
+          if (to == bundle && from.contains('.notelore-update')) {
+            throw const FileSystemException('Operation not permitted');
+          }
+          Directory(from).renameSync(to);
+        },
+      );
+      await expectLater(u.apply(), throwsA(isA<FileSystemException>()));
+      expect(read(p.join(bundle, 'Contents', 'MacOS', 'notelore')), 'old binary');
+      expect(Directory('$bundle.old').existsSync(), isFalse);
     });
 
     test('a download without the bundle installs nothing', () async {
