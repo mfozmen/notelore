@@ -122,12 +122,20 @@ class Session extends ChangeNotifier {
 
   /// Checks [key] with the provider, then remembers it. Throws
   /// [KeyValidationError] or [TransientValidationError] and changes nothing.
+  /// The key and the settings are saved together: if the settings cannot be
+  /// written, the key is taken back out of the keystore.
   Future<void> connect(ProviderSpec spec, String key, {String? model}) async {
     final trimmed = key.trim();
+    final chosen = model ?? spec.defaultModel;
     await validate(spec, trimmed);
     if (spec.requiresApiKey) await keys.write(key: _keyName(spec), value: trimmed);
-    _use(spec, trimmed, model ?? spec.defaultModel);
-    _save();
+    try {
+      _save(spec, chosen);
+    } catch (_) {
+      if (spec.requiresApiKey) await keys.delete(key: _keyName(spec));
+      rethrow;
+    }
+    _use(spec, trimmed, chosen);
   }
 
   /// A blank [chosen] goes back to the provider's default model.
@@ -137,8 +145,9 @@ class Session extends ChangeNotifier {
     final key = current.requiresApiKey ? await keys.read(key: _keyName(current)) : '';
     if (key == null) return logout(); // the keystore lost it: set up again
     final trimmed = chosen.trim();
-    _use(current, key, trimmed.isEmpty ? current.defaultModel : trimmed);
-    _save();
+    final next = trimmed.isEmpty ? current.defaultModel : trimmed;
+    _save(current, next);
+    _use(current, key, next);
   }
 
   /// Forgets every provider's key on this device and the chosen provider; the
@@ -166,8 +175,8 @@ class Session extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _save() =>
-      atomicWrite(_settings, '${jsonEncode({'provider': spec!.name, 'model': model})}\n');
+  void _save(ProviderSpec chosen, String chosenModel) =>
+      atomicWrite(_settings, '${jsonEncode({'provider': chosen.name, 'model': chosenModel})}\n');
 
   Future<T> _exclusive<T>(Future<T> Function() task) {
     final run = _queue.then((_) => task());

@@ -40,6 +40,21 @@ void main() {
     expect(await const FlutterSecureStorage().read(key: 'notelore.anthropic.api_key'), isNull);
   });
 
+  test('settings that cannot be saved leave no key behind', () async {
+    final harness = Harness();
+    // A folder where settings.json goes: writing the settings fails.
+    Directory(p.join(harness.paths.state.path, 'settings.json', 'blocker'))
+        .createSync(recursive: true);
+    final session = harness.session();
+    await expectLater(
+      session.connect(findProvider('anthropic'), 'sk-ant-1'),
+      throwsA(isA<FileSystemException>()),
+    );
+    expect(session.ready, isFalse);
+    expect(session.spec, isNull);
+    expect(await const FlutterSecureStorage().read(key: 'notelore.anthropic.api_key'), isNull);
+  });
+
   test('settings and key survive a restart', () async {
     final harness = Harness();
     await harness.session().connect(findProvider('openai'), 'sk-1', model: 'gpt-x');
