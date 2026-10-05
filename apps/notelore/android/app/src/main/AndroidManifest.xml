@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The model providers and Google Drive are reached over HTTPS. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="notelore"
+        android:label="Notelore"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
