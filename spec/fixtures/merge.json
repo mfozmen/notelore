@@ -1,0 +1,5706 @@
+[
+ {
+  "base": "",
+  "local": "same start\nlocal\n",
+  "remote": "same start\nremote\n",
+  "parts": [
+   {
+    "base": [],
+    "local": [
+     "same start\n",
+     "local\n"
+    ],
+    "remote": [
+     "same start\n",
+     "remote\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "a\nb",
+  "local": "a\nb",
+  "remote": "a\nB",
+  "parts": [
+   [
+    "a\n"
+   ],
+   [
+    "B"
+   ]
+  ]
+ },
+ {
+  "base": "x\nb\nc\nd\ny\n",
+  "local": "b\nc\nd\nx\ny\n",
+  "remote": "x\nb\nc\nd\ny\n",
+  "parts": [
+   [
+    "b\n",
+    "c\n",
+    "d\n"
+   ],
+   [
+    "x\n"
+   ],
+   [
+    "y\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nb\nc\nd\ne\n",
+  "local": "a\nc\nd\ne\n",
+  "remote": "a\nB\nc\nd\ne\n",
+  "parts": [
+   [
+    "a\n"
+   ],
+   {
+    "base": [
+     "b\n"
+    ],
+    "local": [],
+    "remote": [
+     "B\n"
+    ]
+   },
+   [
+    "c\n",
+    "d\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\r\nb\rc\u000bd\u001ce f\n",
+  "local": "a\r\nB\rc\u000bd\u001ce f\n",
+  "remote": "a\r\nb\rc\u000bd\u001ce F\n",
+  "parts": [
+   [
+    "a\r\n"
+   ],
+   [
+    "B\r"
+   ],
+   [
+    "c\u000b",
+    "d\u001c",
+    "e "
+   ],
+   [
+    "F\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\ne\nd\ne\na\nb\nc\n",
+  "local": "a\ne\nb\ne\na\nb\nc\n",
+  "remote": "b\ne\nd\na\nb\n",
+  "parts": [
+   [
+    "b\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "a\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "",
+  "remote": "e\n",
+  "parts": [
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nb\na\n",
+  "local": "e\nb\na\n",
+  "remote": "e\na\nc\nX\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "c\n",
+    "X\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nc\nd\ne\nb\na\na\nb\n",
+  "local": "c\nc\nd\na\nd\ne\nb\na\na\nb\n",
+  "remote": "c\nc\ne\nd\ne\nb\na\na\nb\nd\n",
+  "parts": [
+   [
+    "c\n",
+    "c\n"
+   ],
+   [
+    "d\n",
+    "a\n",
+    "e\n"
+   ],
+   [
+    "d\n",
+    "e\n",
+    "b\n",
+    "a\n",
+    "a\n",
+    "b\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\ne\nc\n",
+  "local": "c\n",
+  "remote": "e\nc\n",
+  "parts": [
+   {
+    "base": [
+     "b\n",
+     "e\n"
+    ],
+    "local": [],
+    "remote": [
+     "e\n"
+    ]
+   },
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\na\n",
+  "local": "a\na\n",
+  "remote": "a\na\n",
+  "parts": [
+   [
+    "a\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\ne\n",
+  "local": "c\nX\n",
+  "remote": "c\ne\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "X\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "b\ne\n",
+  "remote": "X\n",
+  "parts": [
+   {
+    "base": [],
+    "local": [
+     "b\n",
+     "e\n"
+    ],
+    "remote": [
+     "X\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "c\nd\n",
+  "local": "c\nd\n",
+  "remote": "c\nd\n",
+  "parts": [
+   [
+    "c\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nb\nd\nb\n",
+  "local": "e\nb\nb\n",
+  "remote": "b\ne\nb\n",
+  "parts": [
+   [
+    "b\n"
+   ],
+   [
+    "e\n",
+    "b\n"
+   ],
+   {
+    "base": [
+     "d\n",
+     "b\n"
+    ],
+    "local": [
+     "b\n"
+    ],
+    "remote": []
+   }
+  ]
+ },
+ {
+  "base": "a\n",
+  "local": "Y\nb\na\nZ\n",
+  "remote": "a\nc\n",
+  "parts": [
+   [
+    "Y\n",
+    "b\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "Z\n",
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\n",
+  "local": "b\n",
+  "remote": "Y\nY\nb\n",
+  "parts": [
+   [
+    "Y\n",
+    "Y\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nc\n",
+  "local": "",
+  "remote": "a\nY\nZ\n",
+  "parts": [
+   {
+    "base": [
+     "a\n",
+     "c\n"
+    ],
+    "local": [],
+    "remote": [
+     "a\n",
+     "Y\n",
+     "Z\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "b\nb\ne\nb\nc\n",
+  "local": "b\na\nZ\ne\nb\nc\n",
+  "remote": "b\nb\ne\nb\nc\nc\n",
+  "parts": [
+   [
+    "b\n"
+   ],
+   [
+    "a\n",
+    "Z\n"
+   ],
+   [
+    "e\n",
+    "b\n",
+    "c\n"
+   ],
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\ne\nd\n",
+  "local": "e\ne\n",
+  "remote": "c\ne\nY\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   {
+    "base": [
+     "d\n"
+    ],
+    "local": [
+     "e\n"
+    ],
+    "remote": [
+     "Y\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "",
+  "local": "Z\n",
+  "remote": "Z\n",
+  "parts": [
+   [
+    "Z\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nc\ne\ne\na\n",
+  "local": "d\nc\ne\ne\na\nd\n",
+  "remote": "d\nZ\ne\ne\na\na\nY\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "e\n",
+    "e\n",
+    "a\n"
+   ],
+   [
+    "d\n",
+    "a\n",
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nb\ne\nb\nd\n",
+  "local": "e\nb\ne\nb\nd\nc\n",
+  "remote": "Y\nb\nb\nb\nd\n",
+  "parts": [
+   [
+    "Y\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "b\n",
+    "d\n"
+   ],
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nd\nd\nd\n",
+  "local": "b\nd\nZ\nd\n",
+  "remote": "a\na\nb\nd\ne\nd\nd\n",
+  "parts": [
+   [
+    "a\n",
+    "a\n"
+   ],
+   [
+    "b\n",
+    "d\n"
+   ],
+   [
+    "Z\n",
+    "e\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nd\na\na\na\nc\nd\n",
+  "local": "c\nd\na\na\na\nc\nd\n",
+  "remote": "e\nd\na\na\na\nc\nd\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "d\n",
+    "a\n",
+    "a\n",
+    "a\n",
+    "c\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nb\na\n",
+  "local": "b\na\n",
+  "remote": "d\nc\na\nZ\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "Z\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "",
+  "remote": "Y\n",
+  "parts": [
+   [
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nb\na\ne\nb\nd\n",
+  "local": "b\nb\na\ne\nb\nd\n",
+  "remote": "b\nb\na\ne\nb\nd\n",
+  "parts": [
+   [
+    "b\n",
+    "b\n",
+    "a\n",
+    "e\n",
+    "b\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nb\nb\nb\nd\n",
+  "local": "c\na\nb\nb\nd\n",
+  "remote": "c\ne\nb\nb\nd\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   {
+    "base": [
+     "b\n"
+    ],
+    "local": [
+     "a\n"
+    ],
+    "remote": [
+     "e\n"
+    ]
+   },
+   [
+    "b\n",
+    "b\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nd\nb\nd\n",
+  "local": "d\nd\nb\nd\ne\n",
+  "remote": "d\nd\nb\nd\n",
+  "parts": [
+   [
+    "d\n",
+    "d\n",
+    "b\n",
+    "d\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\n",
+  "local": "",
+  "remote": "Y\ne\nY\n",
+  "parts": [
+   {
+    "base": [
+     "e\n"
+    ],
+    "local": [],
+    "remote": [
+     "Y\n",
+     "e\n"
+    ]
+   },
+   [
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\ne\nb\nc\nc\n",
+  "local": "e\ne\nb\nc\nc\n",
+  "remote": "d\ne\ne\nb\nc\nc\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "e\n",
+    "e\n",
+    "b\n",
+    "c\n",
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\n",
+  "local": "e\nZ\n",
+  "remote": "e\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   [
+    "Z\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\ne\nc\nb\nc\n",
+  "local": "e\ne\nc\nb\nc\nZ\n",
+  "remote": "e\nc\nb\nc\n",
+  "parts": [
+   [
+    "e\n",
+    "c\n",
+    "b\n",
+    "c\n"
+   ],
+   [
+    "Z\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\na\na\na\na\nd\nb\n",
+  "local": "c\na\na\na\na\nd\nb\n",
+  "remote": "a\na\na\na\nd\nb\n",
+  "parts": [
+   [
+    "a\n",
+    "a\n",
+    "a\n",
+    "a\n",
+    "d\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\na\nd\nb\n",
+  "local": "b\na\nX\n",
+  "remote": "b\na\nX\nZ\nb\n",
+  "parts": [
+   [
+    "b\n",
+    "a\n"
+   ],
+   {
+    "base": [
+     "d\n",
+     "b\n"
+    ],
+    "local": [
+     "X\n"
+    ],
+    "remote": [
+     "X\n",
+     "Z\n",
+     "b\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "e\na\ne\ne\n",
+  "local": "e\nd\ne\ne\n",
+  "remote": "e\na\nX\ne\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "X\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\na\ne\nb\n",
+  "local": "c\ne\na\na\ne\nb\n",
+  "remote": "a\na\ne\nb\n",
+  "parts": [
+   [
+    "c\n",
+    "e\n"
+   ],
+   [
+    "a\n",
+    "a\n",
+    "e\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nc\ne\ne\na\nd\nc\n",
+  "local": "b\nc\ne\ne\na\nd\nc\n",
+  "remote": "c\ne\na\nd\nc\nX\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "e\n",
+    "a\n",
+    "d\n",
+    "c\n"
+   ],
+   [
+    "X\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nb\n",
+  "local": "c\nb\n",
+  "remote": "a\nZ\na\ne\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "Z\n",
+    "a\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\n",
+  "local": "a\nZ\nY\nd\n",
+  "remote": "a\ne\n",
+  "parts": [
+   [
+    "a\n"
+   ],
+   [
+    "Z\n",
+    "Y\n",
+    "d\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\na\nb\nd\na\n",
+  "local": "b\na\nb\nd\na\n",
+  "remote": "b\na\nb\nc\nd\nd\na\n",
+  "parts": [
+   [
+    "b\n",
+    "a\n",
+    "b\n"
+   ],
+   [
+    "c\n",
+    "d\n"
+   ],
+   [
+    "d\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nb\nc\nd\nd\nb\n",
+  "local": "c\nd\nd\nb\n",
+  "remote": "e\nb\nc\nd\nb\nb\n",
+  "parts": [
+   [
+    "c\n",
+    "d\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nb\nd\na\ne\ne\nc\n",
+  "local": "c\nb\nd\na\ne\ne\nc\n",
+  "remote": "c\nb\nd\na\ne\ne\nc\n",
+  "parts": [
+   [
+    "c\n",
+    "b\n",
+    "d\n",
+    "a\n",
+    "e\n",
+    "e\n",
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\na\nc\ne\nd\nd\n",
+  "local": "e\na\nc\ne\nd\nd\nd\n",
+  "remote": "e\na\nc\ne\nd\nd\n",
+  "parts": [
+   [
+    "e\n",
+    "a\n",
+    "c\n",
+    "e\n",
+    "d\n",
+    "d\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\ne\na\nd\n",
+  "local": "d\ne\na\nd\nY\n",
+  "remote": "d\ne\na\nd\n",
+  "parts": [
+   [
+    "d\n",
+    "e\n",
+    "a\n",
+    "d\n"
+   ],
+   [
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\n",
+  "local": "c\n",
+  "remote": "c\n",
+  "parts": [
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\ne\na\n",
+  "local": "d\ne\na\n",
+  "remote": "d\ne\na\n",
+  "parts": [
+   [
+    "d\n",
+    "e\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\na\na\nd\na\n",
+  "local": "d\na\nd\nX\na\n",
+  "remote": "d\nZ\na\na\nd\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "d\n",
+    "X\n"
+   ],
+   [
+    "a\n"
+   ],
+   {
+    "base": [
+     "d\n",
+     "a\n"
+    ],
+    "local": [],
+    "remote": [
+     "d\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "a\nc\na\ne\ne\nd\n",
+  "local": "a\nc\na\ne\ne\nd\n",
+  "remote": "Z\na\na\ne\ne\ne\n",
+  "parts": [
+   [
+    "Z\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "a\n",
+    "e\n",
+    "e\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nd\n",
+  "local": "d\nd\nY\nY\n",
+  "remote": "d\nd\n",
+  "parts": [
+   [
+    "d\n",
+    "d\n"
+   ],
+   [
+    "Y\n",
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\n",
+  "local": "e\n",
+  "remote": "e\n",
+  "parts": [
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nb\na\nb\nb\nd\ne\n",
+  "local": "d\nd\na\nb\nd\ne\n",
+  "remote": "e\nb\na\nb\nb\nd\ne\ne\n",
+  "parts": [
+   [
+    "d\n",
+    "d\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "b\n",
+    "d\n",
+    "e\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\na\nb\nc\n",
+  "local": "e\na\nb\nZ\n",
+  "remote": "e\na\nb\nc\n",
+  "parts": [
+   [
+    "e\n",
+    "a\n",
+    "b\n"
+   ],
+   [
+    "Z\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nd\n",
+  "local": "X\nY\n",
+  "remote": "e\nd\n",
+  "parts": [
+   [
+    "X\n",
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nb\nc\na\n",
+  "local": "a\nb\nc\na\n",
+  "remote": "a\nb\nZ\na\na\n",
+  "parts": [
+   [
+    "a\n",
+    "b\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "Y\n",
+  "remote": "",
+  "parts": [
+   [
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\n",
+  "local": "",
+  "remote": "c\nX\n",
+  "parts": [
+   [
+    "X\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\ne\nb\n",
+  "local": "Y\ne\nb\nc\n",
+  "remote": "e\ne\nb\nY\nZ\n",
+  "parts": [
+   [
+    "Y\n"
+   ],
+   [
+    "e\n",
+    "b\n"
+   ],
+   [
+    "c\n",
+    "Y\n",
+    "Z\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\n",
+  "local": "c\n",
+  "remote": "c\nb\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nd\n",
+  "local": "a\ne\nd\n",
+  "remote": "d\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "Y\ne\nX\n",
+  "remote": "c\n",
+  "parts": [
+   {
+    "base": [],
+    "local": [
+     "Y\n",
+     "e\n",
+     "X\n"
+    ],
+    "remote": [
+     "c\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "",
+  "local": "",
+  "remote": "d\n",
+  "parts": [
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\ne\n",
+  "local": "e\na\ne\ne\n",
+  "remote": "e\ne\n",
+  "parts": [
+   [
+    "e\n",
+    "a\n"
+   ],
+   [
+    "e\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nc\na\ne\nd\na\n",
+  "local": "d\nc\na\ne\nd\na\n",
+  "remote": "d\nc\na\ne\nd\nY\n",
+  "parts": [
+   [
+    "d\n",
+    "c\n",
+    "a\n",
+    "e\n",
+    "d\n"
+   ],
+   [
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nc\nb\ne\ne\ne\n",
+  "local": "e\nc\nb\ne\ne\ne\n",
+  "remote": "e\nc\nb\ne\ne\ne\n",
+  "parts": [
+   [
+    "e\n",
+    "c\n",
+    "b\n",
+    "e\n",
+    "e\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nc\nc\nd\nc\nd\nd\nb\n",
+  "local": "c\nc\nc\nd\nc\nd\nd\nb\n",
+  "remote": "c\nd\nc\nd\nd\nb\n",
+  "parts": [
+   [
+    "c\n",
+    "d\n",
+    "c\n",
+    "d\n",
+    "d\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nd\nd\n",
+  "local": "c\nd\nd\nc\n",
+  "remote": "c\nd\nd\n",
+  "parts": [
+   [
+    "c\n",
+    "d\n",
+    "d\n"
+   ],
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\na\nc\n",
+  "local": "e\ne\na\na\nc\n",
+  "remote": "e\na\ne\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   [
+    "e\n",
+    "a\n"
+   ],
+   {
+    "base": [
+     "c\n"
+    ],
+    "local": [
+     "a\n",
+     "c\n"
+    ],
+    "remote": [
+     "e\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "c\ne\nc\n",
+  "local": "c\nd\ne\nc\nd\n",
+  "remote": "Y\ne\nc\n",
+  "parts": [
+   [
+    "Y\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "e\n",
+    "c\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\na\nc\n",
+  "local": "e\nZ\n",
+  "remote": "X\na\nc\nY\n",
+  "parts": [
+   [
+    "X\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nd\nb\na\nd\n",
+  "local": "c\na\nb\na\nd\nb\n",
+  "remote": "c\nd\na\nd\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "a\n",
+    "d\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\ne\nc\na\nd\nd\n",
+  "local": "e\ne\nc\na\nd\nd\n",
+  "remote": "Z\ne\ne\na\nd\nd\n",
+  "parts": [
+   [
+    "Z\n"
+   ],
+   [
+    "e\n",
+    "e\n"
+   ],
+   [
+    "a\n",
+    "d\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\n",
+  "local": "c\nb\n",
+  "remote": "c\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nc\na\n",
+  "local": "d\na\nc\na\n",
+  "remote": "c\nc\n",
+  "parts": [
+   {
+    "base": [
+     "a\n"
+    ],
+    "local": [
+     "d\n",
+     "a\n"
+    ],
+    "remote": []
+   },
+   [
+    "c\n"
+   ],
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\na\nc\nb\n",
+  "local": "d\nd\nd\nc\nb\n",
+  "remote": "d\na\nc\nb\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "d\n",
+    "d\n"
+   ],
+   [
+    "c\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nd\nc\nb\ne\nd\n",
+  "local": "b\nd\nc\nb\nX\nd\nd\n",
+  "remote": "c\nd\nb\ne\nd\nX\nX\n",
+  "parts": [
+   [
+    "b\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "X\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "d\n",
+    "X\n",
+    "X\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\na\nb\na\ne\n",
+  "local": "e\na\nb\na\ne\n",
+  "remote": "Z\ne\na\nb\na\nX\n",
+  "parts": [
+   [
+    "Z\n"
+   ],
+   [
+    "e\n",
+    "a\n",
+    "b\n",
+    "a\n"
+   ],
+   [
+    "X\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nc\na\na\nb\nd\n",
+  "local": "c\nc\na\na\nb\nd\n",
+  "remote": "c\nc\na\na\nb\nd\n",
+  "parts": [
+   [
+    "c\n",
+    "c\n",
+    "a\n",
+    "a\n",
+    "b\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\na\na\na\nc\nd\n",
+  "local": "a\na\na\na\nc\nd\n",
+  "remote": "a\na\nZ\nc\nd\n",
+  "parts": [
+   [
+    "a\n",
+    "a\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "c\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nc\n",
+  "local": "c\nY\nX\n",
+  "remote": "c\nc\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "Y\n",
+    "X\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nd\n",
+  "local": "b\n",
+  "remote": "Y\nd\n",
+  "parts": [
+   [
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nd\ne\nd\na\na\nb\n",
+  "local": "b\nd\ne\nd\na\na\nb\n",
+  "remote": "b\nd\ne\nd\ne\na\nd\nb\n",
+  "parts": [
+   [
+    "b\n",
+    "d\n",
+    "e\n",
+    "d\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nb\ne\nd\ne\n",
+  "local": "b\nb\ne\nZ\n",
+  "remote": "b\nb\nY\ne\nd\ne\nX\nd\n",
+  "parts": [
+   [
+    "b\n",
+    "b\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "X\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nc\na\nc\na\ne\nd\nc\n",
+  "local": "b\nc\na\nc\ne\nd\n",
+  "remote": "b\nc\na\nc\na\ne\nd\n",
+  "parts": [
+   [
+    "b\n",
+    "c\n",
+    "a\n",
+    "c\n"
+   ],
+   [
+    "e\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\na\na\n",
+  "local": "d\na\na\n",
+  "remote": "d\na\n",
+  "parts": [
+   [
+    "d\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nc\nb\nb\nc\ne\ne\nb\n",
+  "local": "a\nc\nb\nb\nc\ne\ne\nb\n",
+  "remote": "a\nc\nb\ne\nc\ne\ne\nb\n",
+  "parts": [
+   [
+    "a\n",
+    "c\n",
+    "b\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "c\n",
+    "e\n",
+    "e\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nb\nb\nc\na\nc\na\nd\n",
+  "local": "e\nb\nb\nc\na\nc\na\nd\nX\n",
+  "remote": "X\nb\nb\nc\na\nc\na\n",
+  "parts": [
+   [
+    "X\n"
+   ],
+   [
+    "b\n",
+    "b\n",
+    "c\n",
+    "a\n",
+    "c\n",
+    "a\n"
+   ],
+   [
+    "X\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nc\nc\nc\nd\nb\nd\n",
+  "local": "d\nc\nc\nc\nd\nb\nb\nd\nd\n",
+  "remote": "d\nc\nc\nc\nd\nb\nd\n",
+  "parts": [
+   [
+    "d\n",
+    "c\n",
+    "c\n",
+    "c\n",
+    "d\n",
+    "b\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nd\nd\n",
+  "local": "d\nd\nd\n",
+  "remote": "X\nc\nd\nd\n",
+  "parts": [
+   [
+    "X\n",
+    "c\n"
+   ],
+   [
+    "d\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\na\nb\n",
+  "local": "c\na\nb\nY\ne\n",
+  "remote": "c\nc\na\nb\nb\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "c\n",
+    "a\n",
+    "b\n"
+   ],
+   [
+    "Y\n",
+    "e\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nc\n",
+  "local": "b\ne\nX\n",
+  "remote": "a\nY\n",
+  "parts": [
+   {
+    "base": [
+     "b\n",
+     "c\n"
+    ],
+    "local": [
+     "b\n",
+     "e\n",
+     "X\n"
+    ],
+    "remote": [
+     "a\n",
+     "Y\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "a\na\nd\na\ne\ne\ne\n",
+  "local": "a\nd\na\nd\na\ne\ne\nX\n",
+  "remote": "a\na\nd\na\ne\ne\ne\n",
+  "parts": [
+   [
+    "a\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "a\n",
+    "d\n",
+    "a\n",
+    "e\n",
+    "e\n"
+   ],
+   [
+    "X\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\ne\nd\ne\ne\nb\ne\nd\n",
+  "local": "b\ne\ne\ne\nc\ne\ne\nb\ne\nd\n",
+  "remote": "b\ne\nd\ne\ne\nb\ne\nd\n",
+  "parts": [
+   [
+    "b\n",
+    "e\n"
+   ],
+   [
+    "e\n",
+    "e\n",
+    "c\n"
+   ],
+   [
+    "e\n",
+    "e\n",
+    "b\n",
+    "e\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\na\nd\nd\ne\nb\nb\na\n",
+  "local": "e\na\nd\nd\ne\nb\nb\na\n",
+  "remote": "b\na\nd\nd\ne\nb\nd\na\n",
+  "parts": [
+   [
+    "b\n"
+   ],
+   [
+    "a\n",
+    "d\n",
+    "d\n",
+    "e\n",
+    "b\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nd\na\nb\na\n",
+  "local": "c\ne\nb\na\na\n",
+  "remote": "c\nd\nb\na\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   {
+    "base": [
+     "d\n",
+     "a\n"
+    ],
+    "local": [
+     "e\n"
+    ],
+    "remote": [
+     "d\n"
+    ]
+   },
+   [
+    "b\n",
+    "a\n"
+   ],
+   [
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\na\n",
+  "local": "d\nZ\na\n",
+  "remote": "a\n",
+  "parts": [
+   [
+    "Z\n"
+   ],
+   [
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\na\nd\n",
+  "local": "d\ne\nd\n",
+  "remote": "d\na\nd\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\ne\n",
+  "local": "X\ne\nc\nY\n",
+  "remote": "b\ne\n",
+  "parts": [
+   [
+    "X\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "c\n",
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\n",
+  "local": "d\n",
+  "remote": "d\n",
+  "parts": [
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nd\nd\na\nb\nc\nc\n",
+  "local": "d\nd\nd\na\nb\nc\nc\n",
+  "remote": "d\nd\nd\na\nb\nc\nc\n",
+  "parts": [
+   [
+    "d\n",
+    "d\n",
+    "d\n",
+    "a\n",
+    "b\n",
+    "c\n",
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\ne\nc\nb\n",
+  "local": "e\ne\nc\nb\n",
+  "remote": "e\ne\nc\nb\n",
+  "parts": [
+   [
+    "e\n",
+    "e\n",
+    "c\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\n",
+  "local": "",
+  "remote": "e\n",
+  "parts": []
+ },
+ {
+  "base": "d\nd\ne\nd\nd\nb\n",
+  "local": "d\na\ne\nd\ne\n",
+  "remote": "d\nd\ne\nb\nd\nb\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "a\n",
+    "e\n"
+   ],
+   [
+    "d\n",
+    "e\n"
+   ],
+   {
+    "base": [
+     "d\n",
+     "d\n",
+     "b\n"
+    ],
+    "local": [],
+    "remote": [
+     "b\n",
+     "d\n",
+     "b\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "c\nd\nd\nb\ne\nd\ne\nb\n",
+  "local": "c\nd\nd\nb\ne\nd\ne\nb\n",
+  "remote": "c\nd\nd\nb\ne\ne\ne\nb\nc\n",
+  "parts": [
+   [
+    "c\n",
+    "d\n",
+    "d\n",
+    "b\n",
+    "e\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "e\n",
+    "b\n"
+   ],
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nd\nd\nb\n",
+  "local": "d\nd\nY\nX\n",
+  "remote": "d\nd\nd\nb\nb\nZ\n",
+  "parts": [
+   [
+    "d\n",
+    "d\n"
+   ],
+   [
+    "Y\n",
+    "X\n"
+   ],
+   [
+    "b\n",
+    "Z\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\ne\nc\nb\nc\n",
+  "local": "e\nc\nb\nc\nb\n",
+  "remote": "d\ne\nc\nc\nd\nc\n",
+  "parts": [
+   [
+    "e\n",
+    "c\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "b\n",
+    "d\n",
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nd\nd\n",
+  "local": "b\ne\nd\n",
+  "remote": "b\nd\nd\nX\n",
+  "parts": [
+   [
+    "b\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "X\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\na\na\nd\ne\na\nc\nd\n",
+  "local": "a\na\na\nd\ne\nZ\nc\nd\n",
+  "remote": "a\na\na\nd\ne\na\nc\nd\n",
+  "parts": [
+   [
+    "a\n",
+    "a\n",
+    "a\n",
+    "d\n",
+    "e\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "c\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nb\nb\nc\nb\n",
+  "local": "c\nb\nb\nc\nb\nc\n",
+  "remote": "a\nb\nd\nb\nb\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nc\nd\nb\nb\nd\na\nd\n",
+  "local": "a\nc\nd\nb\nb\nd\na\nb\nd\n",
+  "remote": "a\nc\nd\nb\nb\nd\na\nd\n",
+  "parts": [
+   [
+    "a\n",
+    "c\n",
+    "d\n",
+    "b\n",
+    "b\n",
+    "d\n",
+    "a\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nc\na\n",
+  "local": "b\n",
+  "remote": "d\nc\nc\na\n",
+  "parts": [
+   {
+    "base": [
+     "d\n",
+     "c\n",
+     "a\n"
+    ],
+    "local": [
+     "b\n"
+    ],
+    "remote": [
+     "d\n",
+     "c\n",
+     "c\n",
+     "a\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "e\ne\n",
+  "local": "e\ne\n",
+  "remote": "d\ne\ne\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "e\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nb\nd\nb\nb\n",
+  "local": "d\nb\nd\nb\nb\n",
+  "remote": "d\nb\nd\nb\nb\n",
+  "parts": [
+   [
+    "d\n",
+    "b\n",
+    "d\n",
+    "b\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nd\nc\nd\nb\n",
+  "local": "b\nd\nc\nd\nb\n",
+  "remote": "b\nZ\nd\nb\n",
+  "parts": [
+   [
+    "b\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "d\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nb\na\nd\na\nd\na\n",
+  "local": "e\nd\na\nd\na\nd\na\n",
+  "remote": "e\nb\nX\na\nd\na\nd\na\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "X\n"
+   ],
+   [
+    "a\n",
+    "d\n",
+    "a\n",
+    "d\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\na\nd\nc\nc\ne\ne\n",
+  "local": "b\na\nd\nc\nc\ne\ne\n",
+  "remote": "b\nd\ne\na\nd\nc\nc\ne\n",
+  "parts": [
+   [
+    "b\n"
+   ],
+   [
+    "d\n",
+    "e\n"
+   ],
+   [
+    "a\n",
+    "d\n",
+    "c\n",
+    "c\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\na\n",
+  "local": "c\na\n",
+  "remote": "c\na\n",
+  "parts": [
+   [
+    "c\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nc\ne\na\ne\nc\n",
+  "local": "e\nc\na\ne\nc\n",
+  "remote": "e\nc\ne\na\nd\nc\n",
+  "parts": [
+   [
+    "e\n",
+    "c\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nc\n",
+  "local": "e\nY\n",
+  "remote": "b\nd\nc\nb\n",
+  "parts": [
+   {
+    "base": [
+     "b\n",
+     "c\n"
+    ],
+    "local": [
+     "e\n",
+     "Y\n"
+    ],
+    "remote": [
+     "b\n",
+     "d\n",
+     "c\n"
+    ]
+   },
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nd\na\nc\n",
+  "local": "X\nb\ne\nd\na\na\nc\n",
+  "remote": "b\nd\na\nc\nb\n",
+  "parts": [
+   [
+    "X\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "d\n",
+    "a\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "",
+  "remote": "Z\nd\n",
+  "parts": [
+   [
+    "Z\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nd\na\na\nd\na\ne\nd\n",
+  "local": "a\nd\na\na\na\ne\nd\n",
+  "remote": "a\na\nb\na\nd\na\ne\n",
+  "parts": [
+   [
+    "a\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "a\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\ne\na\ne\n",
+  "local": "d\ne\na\ne\n",
+  "remote": "Y\nX\ne\ne\n",
+  "parts": [
+   [
+    "Y\n",
+    "X\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nc\nd\nb\ne\nb\nb\nb\n",
+  "local": "d\nc\nd\nb\ne\nb\nb\nb\n",
+  "remote": "d\nc\nd\nY\nb\ne\nb\nb\nb\nb\n",
+  "parts": [
+   [
+    "d\n",
+    "c\n",
+    "d\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "b\n",
+    "e\n",
+    "b\n",
+    "b\n",
+    "b\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\ne\nc\n",
+  "local": "d\nZ\nX\nc\n",
+  "remote": "d\nb\ne\nc\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   {
+    "base": [
+     "e\n"
+    ],
+    "local": [
+     "Z\n",
+     "X\n"
+    ],
+    "remote": [
+     "b\n",
+     "e\n"
+    ]
+   },
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "",
+  "remote": "e\nZ\n",
+  "parts": [
+   [
+    "e\n",
+    "Z\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\n",
+  "local": "X\nb\n",
+  "remote": "Y\nb\n",
+  "parts": [
+   [
+    "X\n",
+    "Y\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\ne\na\n",
+  "local": "c\ne\na\ne\n",
+  "remote": "c\ne\na\n",
+  "parts": [
+   [
+    "c\n",
+    "e\n",
+    "a\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "X\na\na\n",
+  "remote": "b\nc\nY\n",
+  "parts": [
+   {
+    "base": [],
+    "local": [
+     "X\n",
+     "a\n",
+     "a\n"
+    ],
+    "remote": [
+     "b\n",
+     "c\n",
+     "Y\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "",
+  "local": "c\n",
+  "remote": "b\nc\n",
+  "parts": [
+   {
+    "base": [],
+    "local": [
+     "c\n"
+    ],
+    "remote": [
+     "b\n",
+     "c\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "c\na\nd\nb\nb\nc\n",
+  "local": "c\na\nd\nc\nb\nc\n",
+  "remote": "a\nc\na\nd\nb\na\nb\nc\n",
+  "parts": [
+   [
+    "a\n"
+   ],
+   [
+    "c\n",
+    "a\n",
+    "d\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "b\n",
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nd\ne\nb\n",
+  "local": "a\nd\ne\nb\n",
+  "remote": "a\nd\ne\nZ\nY\n",
+  "parts": [
+   [
+    "a\n",
+    "d\n",
+    "e\n"
+   ],
+   [
+    "Z\n",
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nb\ne\nb\ne\nd\nd\nb\n",
+  "local": "e\nb\nc\ne\nd\nd\nb\n",
+  "remote": "Y\nb\ne\nb\nY\nd\nd\nb\n",
+  "parts": [
+   [
+    "Y\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "d\n",
+    "d\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\ne\ne\nd\na\ne\nc\n",
+  "local": "c\ne\ne\nd\na\ne\nX\na\nc\n",
+  "remote": "a\ne\nd\na\nX\ne\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "e\n",
+    "d\n",
+    "a\n"
+   ],
+   [
+    "X\n"
+   ],
+   [
+    "e\n"
+   ],
+   {
+    "base": [
+     "c\n"
+    ],
+    "local": [
+     "X\n",
+     "a\n",
+     "c\n"
+    ],
+    "remote": []
+   }
+  ]
+ },
+ {
+  "base": "b\nc\nb\nc\nc\ne\nb\ne\n",
+  "local": "b\nc\nc\nc\nc\ne\nb\ne\n",
+  "remote": "b\nc\nb\nc\nZ\nc\nc\ne\ne\n",
+  "parts": [
+   [
+    "b\n",
+    "c\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "Z\n",
+    "c\n"
+   ],
+   [
+    "c\n",
+    "e\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nb\nc\nb\n",
+  "local": "a\nb\n",
+  "remote": "d\nY\nb\n",
+  "parts": [
+   [
+    "a\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nc\ne\nd\nb\ne\nb\n",
+  "local": "d\nc\ne\nd\nb\ne\nc\nY\n",
+  "remote": "c\nc\ne\nd\nb\ne\nb\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "c\n",
+    "e\n",
+    "d\n",
+    "b\n",
+    "e\n"
+   ],
+   [
+    "c\n",
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nb\nc\n",
+  "local": "e\nb\nc\ne\n",
+  "remote": "a\nc\nZ\nd\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "e\n",
+    "Z\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "b\n",
+  "remote": "X\nd\n",
+  "parts": [
+   {
+    "base": [],
+    "local": [
+     "b\n"
+    ],
+    "remote": [
+     "X\n",
+     "d\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "b\nc\nc\nd\ne\ne\n",
+  "local": "b\nc\nc\nd\ne\ne\n",
+  "remote": "b\nc\nc\nY\nd\ne\n",
+  "parts": [
+   [
+    "b\n",
+    "c\n",
+    "c\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "d\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nc\ne\nc\nb\nd\n",
+  "local": "b\ne\nY\nb\nd\nc\n",
+  "remote": "b\nc\ne\nb\nd\nY\n",
+  "parts": [
+   [
+    "b\n"
+   ],
+   [
+    "e\n"
+   ],
+   {
+    "base": [
+     "c\n"
+    ],
+    "local": [
+     "Y\n"
+    ],
+    "remote": []
+   },
+   [
+    "b\n",
+    "d\n"
+   ],
+   [
+    "c\n",
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\na\na\n",
+  "local": "a\na\nd\na\n",
+  "remote": "a\n",
+  "parts": [
+   [
+    "a\n"
+   ],
+   {
+    "base": [
+     "a\n",
+     "a\n"
+    ],
+    "local": [
+     "a\n",
+     "d\n",
+     "a\n"
+    ],
+    "remote": []
+   }
+  ]
+ },
+ {
+  "base": "d\nb\nd\ne\ne\ne\n",
+  "local": "d\nb\nd\ne\ne\ne\ne\n",
+  "remote": "d\nZ\nd\ne\ne\ne\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "d\n",
+    "e\n",
+    "e\n",
+    "e\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nd\na\na\n",
+  "local": "d\nd\na\na\n",
+  "remote": "a\nd\na\na\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "d\n",
+    "a\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "",
+  "remote": "",
+  "parts": []
+ },
+ {
+  "base": "c\nb\nc\n",
+  "local": "c\nb\nc\n",
+  "remote": "c\nb\nc\ne\ne\n",
+  "parts": [
+   [
+    "c\n",
+    "b\n",
+    "c\n"
+   ],
+   [
+    "e\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "Y\n",
+  "remote": "",
+  "parts": [
+   [
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\n",
+  "local": "d\n",
+  "remote": "d\n",
+  "parts": [
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nb\na\n",
+  "local": "b\nb\na\n",
+  "remote": "b\na\nb\n",
+  "parts": [
+   {
+    "base": [
+     "a\n"
+    ],
+    "local": [
+     "b\n"
+    ],
+    "remote": [
+     "b\n",
+     "a\n"
+    ]
+   },
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "Z\n",
+  "remote": "",
+  "parts": [
+   [
+    "Z\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nb\na\na\nb\ne\nc\n",
+  "local": "b\nb\na\na\nb\ne\nc\n",
+  "remote": "b\nb\na\na\nb\ne\nc\n",
+  "parts": [
+   [
+    "b\n",
+    "b\n",
+    "a\n",
+    "a\n",
+    "b\n",
+    "e\n",
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nb\na\nc\ne\nd\na\n",
+  "local": "a\nb\nc\ne\nd\na\n",
+  "remote": "a\nb\na\nc\ne\nd\na\na\ne\n",
+  "parts": [
+   [
+    "a\n",
+    "b\n"
+   ],
+   [
+    "c\n",
+    "e\n",
+    "d\n",
+    "a\n"
+   ],
+   [
+    "a\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nc\nc\nc\ne\nd\nd\nd\n",
+  "local": "d\nc\nc\nd\nd\nd\nd\n",
+  "remote": "d\nc\nc\nc\ne\nd\nd\nX\nd\n",
+  "parts": [
+   [
+    "d\n",
+    "c\n",
+    "c\n"
+   ],
+   [
+    "d\n",
+    "d\n"
+   ],
+   [
+    "X\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nd\nb\nb\nd\nd\nb\na\n",
+  "local": "a\nd\nc\nb\nb\nd\nd\nb\na\n",
+  "remote": "a\nd\nb\nb\nd\nd\nb\na\n",
+  "parts": [
+   [
+    "a\n",
+    "d\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "b\n",
+    "b\n",
+    "d\n",
+    "d\n",
+    "b\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\ne\nc\n",
+  "local": "c\n",
+  "remote": "c\nb\nd\nc\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   {
+    "base": [
+     "e\n",
+     "c\n"
+    ],
+    "local": [],
+    "remote": [
+     "b\n",
+     "d\n",
+     "c\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "a\nd\nc\na\nb\nc\nb\nc\n",
+  "local": "Y\nd\na\nb\nc\nb\nc\n",
+  "remote": "a\nd\nc\na\nb\nc\nb\nc\n",
+  "parts": [
+   [
+    "Y\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "a\n",
+    "b\n",
+    "c\n",
+    "b\n",
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\n",
+  "local": "X\n",
+  "remote": "e\nX\ne\n",
+  "parts": [
+   [
+    "X\n"
+   ],
+   [
+    "X\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\na\nd\na\nc\nc\n",
+  "local": "a\nX\na\nd\na\ne\nd\nc\n",
+  "remote": "X\nd\na\nc\n",
+  "parts": [
+   {
+    "base": [
+     "a\n",
+     "a\n"
+    ],
+    "local": [
+     "a\n",
+     "X\n",
+     "a\n"
+    ],
+    "remote": [
+     "X\n"
+    ]
+   },
+   [
+    "d\n",
+    "a\n"
+   ],
+   [
+    "e\n",
+    "d\n"
+   ],
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nd\ne\n",
+  "local": "c\nd\nZ\n",
+  "remote": "d\ne\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "Z\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\ne\nc\nd\nd\nc\n",
+  "local": "c\nd\nc\nd\nd\nc\nb\n",
+  "remote": "c\ne\ne\nd\nc\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "d\n",
+    "c\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nc\nd\n",
+  "local": "e\nc\nd\n",
+  "remote": "e\nc\nd\nZ\nY\n",
+  "parts": [
+   [
+    "e\n",
+    "c\n",
+    "d\n"
+   ],
+   [
+    "Z\n",
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\n",
+  "local": "Z\n",
+  "remote": "Y\na\n",
+  "parts": [
+   {
+    "base": [
+     "a\n"
+    ],
+    "local": [
+     "Z\n"
+    ],
+    "remote": [
+     "Y\n",
+     "a\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "",
+  "local": "a\n",
+  "remote": "",
+  "parts": [
+   [
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\ne\na\ne\nb\ne\nc\nd\n",
+  "local": "e\ne\na\ne\nb\ne\nc\nd\n",
+  "remote": "e\na\ne\nb\ne\nc\nd\na\n",
+  "parts": [
+   [
+    "e\n",
+    "a\n",
+    "e\n",
+    "b\n",
+    "e\n",
+    "c\n",
+    "d\n"
+   ],
+   [
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "Z\n",
+  "remote": "a\nY\na\n",
+  "parts": [
+   {
+    "base": [],
+    "local": [
+     "Z\n"
+    ],
+    "remote": [
+     "a\n",
+     "Y\n",
+     "a\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "a\nc\nb\ne\n",
+  "local": "d\nc\nb\ne\n",
+  "remote": "c\nb\ne\nb\n",
+  "parts": [
+   {
+    "base": [
+     "a\n"
+    ],
+    "local": [
+     "d\n"
+    ],
+    "remote": []
+   },
+   [
+    "c\n",
+    "b\n",
+    "e\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nc\nd\n",
+  "local": "a\nc\nd\ne\n",
+  "remote": "Y\nc\nY\n",
+  "parts": [
+   [
+    "Y\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\na\nd\na\nb\nc\nb\n",
+  "local": "b\na\nd\nb\nc\nb\n",
+  "remote": "b\na\nd\na\nb\nc\nd\nb\na\n",
+  "parts": [
+   [
+    "b\n",
+    "a\n",
+    "d\n"
+   ],
+   [
+    "b\n",
+    "c\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\n",
+  "local": "b\n",
+  "remote": "Y\nb\n",
+  "parts": [
+   [
+    "Y\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nb\nd\nb\na\n",
+  "local": "e\nb\nd\nb\na\n",
+  "remote": "e\nb\nY\nb\na\n",
+  "parts": [
+   [
+    "e\n",
+    "b\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "b\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nc\ne\nb\na\na\nd\nc\n",
+  "local": "b\nc\ne\nb\nc\na\na\nd\nX\nc\n",
+  "remote": "b\nc\ne\ne\na\na\nd\nc\n",
+  "parts": [
+   [
+    "b\n",
+    "c\n",
+    "e\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "a\n",
+    "a\n",
+    "d\n"
+   ],
+   [
+    "X\n"
+   ],
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\ne\nd\na\nd\nc\n",
+  "local": "d\ne\nd\na\nd\nX\n",
+  "remote": "b\ne\nd\na\nd\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "e\n",
+    "d\n",
+    "a\n",
+    "d\n"
+   ],
+   {
+    "base": [
+     "c\n"
+    ],
+    "local": [
+     "X\n"
+    ],
+    "remote": []
+   }
+  ]
+ },
+ {
+  "base": "d\ne\na\ne\nd\ne\ne\nb\n",
+  "local": "d\ne\na\ne\nd\ne\nd\n",
+  "remote": "d\ne\na\ne\nd\ne\ne\nb\n",
+  "parts": [
+   [
+    "d\n",
+    "e\n",
+    "a\n",
+    "e\n",
+    "d\n",
+    "e\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\na\nc\nb\nc\nd\n",
+  "local": "a\na\nc\nb\nc\nZ\nX\nc\n",
+  "remote": "a\na\nc\nc\nd\n",
+  "parts": [
+   [
+    "a\n",
+    "a\n",
+    "c\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "Z\n",
+    "X\n",
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\na\nd\ne\n",
+  "local": "c\nb\nd\ne\ne\n",
+  "remote": "X\ne\nc\na\nd\n",
+  "parts": [
+   [
+    "X\n",
+    "e\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nd\ne\nb\nd\ne\nc\n",
+  "local": "e\nd\ne\nb\nd\nc\n",
+  "remote": "d\nY\ne\nb\nd\nc\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "e\n",
+    "b\n",
+    "d\n"
+   ],
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "b\nc\n",
+  "remote": "X\nd\nY\n",
+  "parts": [
+   {
+    "base": [],
+    "local": [
+     "b\n",
+     "c\n"
+    ],
+    "remote": [
+     "X\n",
+     "d\n",
+     "Y\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "",
+  "local": "",
+  "remote": "",
+  "parts": []
+ },
+ {
+  "base": "c\nb\nb\nc\na\n",
+  "local": "c\nb\nb\nc\na\nZ\n",
+  "remote": "c\nb\nZ\nc\nd\n",
+  "parts": [
+   [
+    "c\n",
+    "b\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "Z\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nb\nb\ne\nb\nb\n",
+  "local": "b\nb\nb\ne\nb\n",
+  "remote": "Y\nb\ne\nb\nb\nd\n",
+  "parts": [
+   [
+    "Y\n"
+   ],
+   [
+    "b\n",
+    "e\n",
+    "b\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\na\ne\nc\nb\na\n",
+  "local": "e\ne\nc\nb\n",
+  "remote": "e\na\ne\ne\nc\nd\nb\na\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nb\ne\nc\n",
+  "local": "a\nb\ne\nd\n",
+  "remote": "a\ne\nc\n",
+  "parts": [
+   [
+    "a\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nd\nc\nc\nb\n",
+  "local": "d\nd\nc\nc\nc\n",
+  "remote": "a\nc\nc\nZ\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "c\n",
+    "c\n"
+   ],
+   {
+    "base": [
+     "b\n"
+    ],
+    "local": [
+     "c\n"
+    ],
+    "remote": [
+     "Z\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "c\na\na\nb\na\nd\nb\n",
+  "local": "X\nX\nb\na\nd\nb\n",
+  "remote": "c\na\na\nb\na\nd\nX\n",
+  "parts": [
+   [
+    "X\n",
+    "X\n"
+   ],
+   [
+    "b\n",
+    "a\n",
+    "d\n"
+   ],
+   [
+    "X\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nc\nd\na\n",
+  "local": "c\nc\nY\nd\na\n",
+  "remote": "c\nc\nd\na\n",
+  "parts": [
+   [
+    "c\n",
+    "c\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "d\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\ne\nb\ne\ne\ne\nd\nb\n",
+  "local": "a\ne\nb\ne\ne\nX\nd\nb\n",
+  "remote": "a\nb\ne\ne\ne\nd\nb\n",
+  "parts": [
+   [
+    "a\n"
+   ],
+   [
+    "b\n",
+    "e\n",
+    "e\n"
+   ],
+   [
+    "X\n"
+   ],
+   [
+    "d\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\n",
+  "local": "",
+  "remote": "c\n",
+  "parts": []
+ },
+ {
+  "base": "b\n",
+  "local": "e\nb\n",
+  "remote": "b\nb\ne\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "b\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nd\ne\nd\n",
+  "local": "b\nd\ne\nd\n",
+  "remote": "b\nd\ne\nd\n",
+  "parts": [
+   [
+    "b\n",
+    "d\n",
+    "e\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nb\nb\na\nc\nd\nd\n",
+  "local": "c\nb\nc\nd\nd\n",
+  "remote": "e\nb\nb\na\nc\nd\nd\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "c\n",
+    "d\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\ne\n",
+  "local": "e\n",
+  "remote": "e\na\nc\nc\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   {
+    "base": [
+     "e\n"
+    ],
+    "local": [],
+    "remote": [
+     "a\n",
+     "c\n",
+     "c\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "b\nd\ne\na\n",
+  "local": "b\nd\ne\na\nb\n",
+  "remote": "b\nd\n",
+  "parts": [
+   [
+    "b\n",
+    "d\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "",
+  "remote": "a\n",
+  "parts": [
+   [
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\ne\nd\nd\ne\n",
+  "local": "a\ne\nd\nd\ne\n",
+  "remote": "a\ne\nd\ne\n",
+  "parts": [
+   [
+    "a\n",
+    "e\n",
+    "d\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\na\na\n",
+  "local": "b\na\ne\ne\na\na\n",
+  "remote": "a\nY\nZ\n",
+  "parts": [
+   [
+    "b\n",
+    "a\n",
+    "e\n",
+    "e\n"
+   ],
+   [
+    "a\n"
+   ],
+   {
+    "base": [
+     "a\n",
+     "a\n"
+    ],
+    "local": [
+     "a\n"
+    ],
+    "remote": [
+     "Y\n",
+     "Z\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "",
+  "local": "",
+  "remote": "d\n",
+  "parts": [
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nc\nc\nc\nd\nc\nc\n",
+  "local": "b\nc\nc\nX\nc\nd\nc\nc\n",
+  "remote": "b\nc\nc\nc\nd\nc\nc\n",
+  "parts": [
+   [
+    "b\n",
+    "c\n",
+    "c\n"
+   ],
+   [
+    "X\n"
+   ],
+   [
+    "c\n",
+    "d\n",
+    "c\n",
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nc\nc\ne\nc\nc\nc\ne\n",
+  "local": "c\nc\nc\ne\nc\nc\nc\ne\nX\n",
+  "remote": "a\nc\nc\ne\nc\nc\nc\ne\n",
+  "parts": [
+   [
+    "a\n"
+   ],
+   [
+    "c\n",
+    "c\n",
+    "e\n",
+    "c\n",
+    "c\n",
+    "c\n",
+    "e\n"
+   ],
+   [
+    "X\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nc\na\nb\nc\ne\n",
+  "local": "e\nc\na\nb\nc\ne\n",
+  "remote": "d\nc\nX\nb\nc\ne\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "X\n"
+   ],
+   [
+    "b\n",
+    "c\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nd\na\n",
+  "local": "e\nY\ne\na\n",
+  "remote": "e\na\nd\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   {
+    "base": [
+     "d\n"
+    ],
+    "local": [
+     "Y\n",
+     "e\n"
+    ],
+    "remote": [
+     "a\n",
+     "d\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "c\ne\n",
+  "local": "c\ne\nc\n",
+  "remote": "c\ne\n",
+  "parts": [
+   [
+    "c\n",
+    "e\n"
+   ],
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nc\na\ne\na\n",
+  "local": "d\nc\na\ne\na\n",
+  "remote": "d\nc\na\ne\n",
+  "parts": [
+   [
+    "d\n",
+    "c\n",
+    "a\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\ne\ne\nc\ne\ne\na\n",
+  "local": "d\ne\ne\nc\ne\ne\nd\na\n",
+  "remote": "d\ne\ne\nc\ne\na\n",
+  "parts": [
+   [
+    "d\n",
+    "e\n",
+    "e\n",
+    "c\n",
+    "e\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\na\ne\na\ne\nc\n",
+  "local": "c\na\ne\na\ne\n",
+  "remote": "c\ne\na\ne\nb\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "e\n",
+    "a\n",
+    "e\n"
+   ],
+   {
+    "base": [
+     "c\n"
+    ],
+    "local": [],
+    "remote": [
+     "b\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "d\nd\nd\nc\nd\nc\nb\n",
+  "local": "d\nc\nd\nc\nd\nb\n",
+  "remote": "d\nd\nd\nc\nd\nc\nY\nb\n",
+  "parts": [
+   [
+    "d\n",
+    "c\n",
+    "d\n",
+    "c\n"
+   ],
+   [
+    "d\n",
+    "Y\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "c\n",
+  "remote": "d\nY\n",
+  "parts": [
+   {
+    "base": [],
+    "local": [
+     "c\n"
+    ],
+    "remote": [
+     "d\n",
+     "Y\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "d\ne\nd\n",
+  "local": "d\ne\nd\n",
+  "remote": "d\nd\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\ne\n",
+  "local": "e\ne\n",
+  "remote": "d\na\n",
+  "parts": [
+   [
+    "d\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\ne\na\ne\n",
+  "local": "e\ne\n",
+  "remote": "e\ne\na\ne\na\n",
+  "parts": [
+   [
+    "e\n",
+    "e\n"
+   ],
+   [
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nc\nd\nb\nd\na\nc\n",
+  "local": "Y\nd\nb\nd\na\nc\n",
+  "remote": "a\nc\nd\nb\nd\na\nc\n",
+  "parts": [
+   {
+    "base": [
+     "d\n",
+     "c\n"
+    ],
+    "local": [
+     "Y\n"
+    ],
+    "remote": [
+     "a\n",
+     "c\n"
+    ]
+   },
+   [
+    "d\n",
+    "b\n",
+    "d\n",
+    "a\n",
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nc\n",
+  "local": "X\nc\nc\n",
+  "remote": "c\nc\n",
+  "parts": [
+   [
+    "X\n"
+   ],
+   [
+    "c\n",
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nb\n",
+  "local": "c\nb\n",
+  "remote": "e\nZ\na\nb\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "Z\n",
+    "a\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nc\n",
+  "local": "a\nc\nb\n",
+  "remote": "c\nc\n",
+  "parts": [
+   [
+    "a\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nb\nd\ne\n",
+  "local": "c\nb\nZ\n",
+  "remote": "c\nb\nd\ne\nd\n",
+  "parts": [
+   [
+    "c\n",
+    "b\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\n",
+  "local": "e\n",
+  "remote": "X\ne\nc\ne\n",
+  "parts": [
+   [
+    "X\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "c\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nb\nd\n",
+  "local": "c\nb\nd\n",
+  "remote": "c\nb\ne\nd\n",
+  "parts": [
+   [
+    "c\n",
+    "b\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\ne\na\nc\nb\n",
+  "local": "d\nc\ne\na\nc\nb\nb\n",
+  "remote": "d\nX\nZ\nc\ne\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "c\n",
+    "X\n",
+    "Z\n",
+    "c\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\na\nd\n",
+  "local": "b\na\nd\ne\n",
+  "remote": "d\na\nd\n",
+  "parts": [
+   [
+    "b\n"
+   ],
+   [
+    "a\n",
+    "d\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\na\na\n",
+  "local": "d\na\na\n",
+  "remote": "b\na\nZ\nY\n",
+  "parts": [
+   {
+    "base": [
+     "e\n"
+    ],
+    "local": [
+     "d\n"
+    ],
+    "remote": [
+     "b\n"
+    ]
+   },
+   [
+    "a\n"
+   ],
+   [
+    "Z\n",
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\na\n",
+  "local": "d\na\nb\n",
+  "remote": "d\na\n",
+  "parts": [
+   [
+    "d\n",
+    "a\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\ne\n",
+  "local": "b\ne\n",
+  "remote": "e\ne\na\n",
+  "parts": [
+   [
+    "b\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\n",
+  "local": "a\ne\n",
+  "remote": "e\nb\n",
+  "parts": [
+   [
+    "a\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nb\nc\nb\ne\na\nd\ne\n",
+  "local": "d\nb\nc\nb\ne\nY\ne\n",
+  "remote": "d\nb\nc\nb\ne\nc\na\nd\ne\ne\n",
+  "parts": [
+   [
+    "d\n",
+    "b\n",
+    "c\n",
+    "b\n",
+    "e\n"
+   ],
+   {
+    "base": [
+     "a\n",
+     "d\n"
+    ],
+    "local": [
+     "Y\n"
+    ],
+    "remote": [
+     "c\n",
+     "a\n",
+     "d\n"
+    ]
+   },
+   [
+    "e\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\n",
+  "local": "",
+  "remote": "a\nc\n",
+  "parts": [
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nc\na\nd\ne\nd\na\n",
+  "local": "b\nc\na\nd\ne\nd\na\n",
+  "remote": "b\nc\na\nd\nY\ne\nd\na\n",
+  "parts": [
+   [
+    "b\n",
+    "c\n",
+    "a\n",
+    "d\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "e\n",
+    "d\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "Y\n",
+  "remote": "Y\nc\n",
+  "parts": [
+   {
+    "base": [],
+    "local": [
+     "Y\n"
+    ],
+    "remote": [
+     "Y\n",
+     "c\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "a\nb\n",
+  "local": "a\nb\n",
+  "remote": "a\nb\n",
+  "parts": [
+   [
+    "a\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nb\nd\ne\nd\nb\n",
+  "local": "Z\nb\nb\nd\ne\nd\nb\n",
+  "remote": "b\nb\nc\ne\nd\nb\nd\n",
+  "parts": [
+   [
+    "Z\n"
+   ],
+   [
+    "b\n",
+    "b\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "e\n",
+    "d\n",
+    "b\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\ne\ne\na\n",
+  "local": "d\ne\ne\ne\na\n",
+  "remote": "e\ne\nd\ne\ne\na\nX\n",
+  "parts": [
+   [
+    "e\n",
+    "e\n"
+   ],
+   [
+    "d\n",
+    "e\n",
+    "e\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "X\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "X\n",
+  "remote": "d\nX\n",
+  "parts": [
+   {
+    "base": [],
+    "local": [
+     "X\n"
+    ],
+    "remote": [
+     "d\n",
+     "X\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "d\ne\na\ne\n",
+  "local": "Z\nd\na\ne\n",
+  "remote": "d\nd\nb\ne\na\ne\nY\n",
+  "parts": [
+   [
+    "Z\n"
+   ],
+   [
+    "d\n"
+   ],
+   {
+    "base": [
+     "e\n"
+    ],
+    "local": [],
+    "remote": [
+     "d\n",
+     "b\n",
+     "e\n"
+    ]
+   },
+   [
+    "a\n",
+    "e\n"
+   ],
+   [
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\ne\nb\n",
+  "local": "c\ne\nc\n",
+  "remote": "c\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   {
+    "base": [
+     "e\n",
+     "b\n"
+    ],
+    "local": [
+     "e\n",
+     "c\n"
+    ],
+    "remote": []
+   }
+  ]
+ },
+ {
+  "base": "d\ne\na\ne\na\nd\n",
+  "local": "d\ne\na\ne\na\nd\n",
+  "remote": "d\ne\nX\ne\na\nd\n",
+  "parts": [
+   [
+    "d\n",
+    "e\n"
+   ],
+   [
+    "X\n"
+   ],
+   [
+    "e\n",
+    "a\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nb\na\ne\ne\na\nc\n",
+  "local": "b\na\ne\nX\na\nc\n",
+  "remote": "b\nb\na\ne\ne\na\nc\nY\na\n",
+  "parts": [
+   [
+    "b\n",
+    "a\n",
+    "e\n"
+   ],
+   [
+    "X\n"
+   ],
+   [
+    "a\n",
+    "c\n"
+   ],
+   [
+    "Y\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\ne\nb\ne\n",
+  "local": "Z\ne\nb\nb\ne\n",
+  "remote": "a\ne\nY\nb\ne\n",
+  "parts": [
+   [
+    "Z\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nb\ne\nb\n",
+  "local": "e\nb\ne\nb\n",
+  "remote": "b\ne\nb\n",
+  "parts": [
+   [
+    "b\n",
+    "e\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nc\nb\nc\nc\nc\nb\n",
+  "local": "b\nc\nb\nc\nZ\nc\nb\n",
+  "remote": "b\nc\nc\nc\nc\nb\n",
+  "parts": [
+   [
+    "b\n",
+    "c\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nd\nc\na\nb\n",
+  "local": "Y\nb\nY\nc\na\nb\nb\n",
+  "remote": "b\nd\nc\na\nb\n",
+  "parts": [
+   [
+    "Y\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "c\n",
+    "a\n",
+    "b\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\n",
+  "local": "b\nZ\n",
+  "remote": "b\nY\ne\n",
+  "parts": [
+   [
+    "b\n"
+   ],
+   [
+    "Z\n",
+    "Y\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\n",
+  "local": "b\nY\n",
+  "remote": "Z\nb\n",
+  "parts": [
+   [
+    "Z\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\n",
+  "local": "Y\ne\n",
+  "remote": "b\n",
+  "parts": [
+   [
+    "Y\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\ne\nb\nc\na\na\nb\n",
+  "local": "b\ne\nb\nc\na\na\nb\n",
+  "remote": "e\nb\ne\nb\nc\na\nX\nb\n",
+  "parts": [
+   [
+    "b\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "e\n",
+    "b\n",
+    "c\n",
+    "a\n"
+   ],
+   [
+    "X\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\na\nb\na\ne\n",
+  "local": "d\na\nb\ne\na\ne\n",
+  "remote": "d\na\nb\na\ne\n",
+  "parts": [
+   [
+    "d\n",
+    "a\n",
+    "b\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "a\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\ne\nd\nc\nd\nc\na\n",
+  "local": "c\nd\nd\nc\nZ\nc\nX\n",
+  "remote": "c\nX\nY\ne\nd\nc\nd\nc\nb\na\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   {
+    "base": [
+     "e\n"
+    ],
+    "local": [
+     "d\n"
+    ],
+    "remote": [
+     "X\n",
+     "Y\n",
+     "e\n"
+    ]
+   },
+   [
+    "d\n",
+    "c\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "c\n"
+   ],
+   {
+    "base": [
+     "a\n"
+    ],
+    "local": [
+     "X\n"
+    ],
+    "remote": [
+     "b\n",
+     "a\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "a\nc\nb\n",
+  "local": "a\nZ\nc\nc\n",
+  "remote": "a\nc\nc\nb\na\n",
+  "parts": [
+   [
+    "a\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "c\n"
+   ],
+   {
+    "base": [
+     "b\n"
+    ],
+    "local": [
+     "c\n"
+    ],
+    "remote": [
+     "c\n",
+     "b\n"
+    ]
+   },
+   [
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\ne\nd\na\n",
+  "local": "d\ne\nX\na\n",
+  "remote": "Z\ne\nd\na\nc\n",
+  "parts": [
+   [
+    "Z\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "X\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nd\nc\nc\nd\ne\na\nb\n",
+  "local": "e\nd\nc\nd\ne\na\nb\n",
+  "remote": "e\ne\nd\nc\nc\nd\ne\na\nb\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   [
+    "e\n",
+    "d\n"
+   ],
+   [
+    "c\n",
+    "d\n",
+    "e\n",
+    "a\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\ne\na\na\ne\n",
+  "local": "e\na\ne\ne\n",
+  "remote": "b\na\nX\na\ne\n",
+  "parts": [
+   [
+    "a\n"
+   ],
+   {
+    "base": [
+     "a\n"
+    ],
+    "local": [],
+    "remote": [
+     "X\n",
+     "a\n"
+    ]
+   },
+   [
+    "e\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nd\n",
+  "local": "X\nd\n",
+  "remote": "X\ne\nY\nd\n",
+  "parts": [
+   {
+    "base": [
+     "e\n"
+    ],
+    "local": [
+     "X\n"
+    ],
+    "remote": [
+     "X\n",
+     "e\n"
+    ]
+   },
+   [
+    "Y\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "X\n",
+  "remote": "e\ne\n",
+  "parts": [
+   {
+    "base": [],
+    "local": [
+     "X\n"
+    ],
+    "remote": [
+     "e\n",
+     "e\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "b\nd\na\nb\n",
+  "local": "d\na\na\ne\n",
+  "remote": "b\nd\nY\na\nb\nX\n",
+  "parts": [
+   [
+    "d\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "a\n",
+    "e\n"
+   ],
+   [
+    "X\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "a\n",
+  "remote": "b\n",
+  "parts": [
+   {
+    "base": [],
+    "local": [
+     "a\n"
+    ],
+    "remote": [
+     "b\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "",
+  "local": "b\n",
+  "remote": "",
+  "parts": [
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\ne\nb\na\nc\nb\na\n",
+  "local": "c\ne\nb\nZ\na\nc\nb\na\n",
+  "remote": "c\ne\nb\na\nc\nb\na\n",
+  "parts": [
+   [
+    "c\n",
+    "e\n",
+    "b\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "a\n",
+    "c\n",
+    "b\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nc\ne\ne\nb\nc\na\n",
+  "local": "c\nc\ne\nb\nc\na\n",
+  "remote": "c\ne\ne\nb\nc\na\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "e\n",
+    "b\n",
+    "c\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nc\nb\nb\nb\ne\nc\nc\n",
+  "local": "c\nc\nb\nb\nb\ne\nc\nc\n",
+  "remote": "c\nb\nb\nb\nb\ne\nY\nc\n",
+  "parts": [
+   [
+    "c\n",
+    "b\n",
+    "b\n",
+    "b\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nd\nd\na\ne\n",
+  "local": "e\nd\nd\na\ne\n",
+  "remote": "d\nd\na\ne\n",
+  "parts": [
+   {
+    "base": [
+     "d\n"
+    ],
+    "local": [
+     "e\n"
+    ],
+    "remote": []
+   },
+   [
+    "d\n",
+    "d\n",
+    "a\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nb\nd\nb\ne\nd\nd\n",
+  "local": "c\nb\nd\nb\ne\nd\nd\n",
+  "remote": "c\nb\nd\nb\ne\nd\nd\n",
+  "parts": [
+   [
+    "c\n",
+    "b\n",
+    "d\n",
+    "b\n",
+    "e\n",
+    "d\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nb\na\nb\nb\n",
+  "local": "c\nb\na\nb\n",
+  "remote": "c\nb\na\nb\nd\nZ\n",
+  "parts": [
+   [
+    "c\n",
+    "b\n",
+    "a\n",
+    "b\n"
+   ],
+   {
+    "base": [
+     "b\n"
+    ],
+    "local": [],
+    "remote": [
+     "d\n",
+     "Z\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "b\n",
+  "local": "",
+  "remote": "b\nc\nb\n",
+  "parts": [
+   [
+    "c\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nd\nc\na\nc\n",
+  "local": "d\nd\na\nb\n",
+  "remote": "a\nd\nc\na\nc\n",
+  "parts": [
+   [
+    "d\n",
+    "d\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "",
+  "remote": "d\n",
+  "parts": [
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\ne\n",
+  "local": "d\ne\na\n",
+  "remote": "c\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nb\nd\ne\n",
+  "local": "e\nb\nY\nd\ne\ne\n",
+  "remote": "e\nZ\nZ\nd\ne\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   [
+    "Z\n",
+    "Z\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "d\n",
+    "e\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\ne\na\nb\nb\na\n",
+  "local": "d\ne\nd\nb\na\n",
+  "remote": "c\na\ne\na\nb\nb\na\nd\n",
+  "parts": [
+   [
+    "c\n",
+    "a\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "b\n",
+    "a\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\ne\nc\ne\n",
+  "local": "e\nc\ne\n",
+  "remote": "d\ne\nd\nc\ne\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   [
+    "d\n"
+   ],
+   [
+    "c\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nc\nc\nb\na\n",
+  "local": "c\nc\nc\nb\na\n",
+  "remote": "c\nY\nc\nX\nb\n",
+  "parts": [
+   [
+    "c\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "X\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "a\nb\n",
+  "remote": "Y\nc\nX\n",
+  "parts": [
+   {
+    "base": [],
+    "local": [
+     "a\n",
+     "b\n"
+    ],
+    "remote": [
+     "Y\n",
+     "c\n",
+     "X\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "e\ne\na\n",
+  "local": "e\ne\na\n",
+  "remote": "e\ne\na\n",
+  "parts": [
+   [
+    "e\n",
+    "e\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\n",
+  "local": "e\nY\n",
+  "remote": "e\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   [
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\na\ne\nd\nc\n",
+  "local": "a\ne\nd\nZ\nc\nc\n",
+  "remote": "b\na\ne\nd\nc\nZ\n",
+  "parts": [
+   [
+    "a\n",
+    "e\n",
+    "d\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "c\n",
+    "Z\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nb\n",
+  "local": "c\nb\n",
+  "remote": "c\nb\n",
+  "parts": [
+   [
+    "c\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nb\nb\nb\na\nd\n",
+  "local": "a\nb\na\nb\nX\nd\n",
+  "remote": "Y\nb\ne\nb\na\nd\n",
+  "parts": [
+   [
+    "Y\n"
+   ],
+   [
+    "b\n"
+   ],
+   {
+    "base": [
+     "b\n"
+    ],
+    "local": [
+     "a\n",
+     "b\n"
+    ],
+    "remote": [
+     "e\n"
+    ]
+   },
+   [
+    "X\n"
+   ],
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nc\ne\nd\nc\na\nd\n",
+  "local": "d\nc\nc\na\ne\nd\nc\na\nd\nZ\n",
+  "remote": "d\nc\ne\nd\nc\na\nd\n",
+  "parts": [
+   [
+    "d\n",
+    "c\n"
+   ],
+   [
+    "c\n",
+    "a\n"
+   ],
+   [
+    "e\n",
+    "d\n",
+    "c\n",
+    "a\n",
+    "d\n"
+   ],
+   [
+    "Z\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nd\ne\n",
+  "local": "d\nd\nX\n",
+  "remote": "d\nd\ne\n",
+  "parts": [
+   [
+    "d\n",
+    "d\n"
+   ],
+   [
+    "X\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nd\na\nd\ne\ne\na\n",
+  "local": "d\na\ne\nd\ne\ne\nZ\n",
+  "remote": "d\nd\na\nd\ne\ne\na\n",
+  "parts": [
+   [
+    "d\n",
+    "a\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "d\n",
+    "e\n",
+    "e\n"
+   ],
+   [
+    "Z\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\ne\nc\ne\nc\n",
+  "local": "d\ne\nX\nc\ne\nc\nc\n",
+  "remote": "d\ne\ne\nc\n",
+  "parts": [
+   [
+    "d\n",
+    "e\n"
+   ],
+   {
+    "base": [
+     "c\n"
+    ],
+    "local": [
+     "X\n",
+     "c\n"
+    ],
+    "remote": []
+   },
+   [
+    "e\n",
+    "c\n"
+   ],
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nd\n",
+  "local": "d\nd\n",
+  "remote": "d\nd\nb\na\n",
+  "parts": [
+   [
+    "d\n",
+    "d\n"
+   ],
+   [
+    "b\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nb\ne\ne\nc\nd\n",
+  "local": "b\nb\ne\nc\nd\n",
+  "remote": "b\nb\ne\ne\nc\nd\nY\ne\n",
+  "parts": [
+   [
+    "b\n",
+    "b\n",
+    "e\n"
+   ],
+   [
+    "c\n",
+    "d\n"
+   ],
+   [
+    "Y\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nd\n",
+  "local": "Y\ne\nd\nX\n",
+  "remote": "a\nX\n",
+  "parts": [
+   [
+    "Y\n",
+    "e\n"
+   ],
+   [
+    "X\n"
+   ],
+   [
+    "X\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nc\nc\ne\na\nd\ne\na\n",
+  "local": "Z\nZ\nc\ne\na\nd\ne\na\nZ\n",
+  "remote": "e\nc\nc\ne\na\nd\ne\na\n",
+  "parts": [
+   [
+    "Z\n",
+    "Z\n"
+   ],
+   [
+    "c\n",
+    "e\n",
+    "a\n",
+    "d\n",
+    "e\n",
+    "a\n"
+   ],
+   [
+    "Z\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\nd\n",
+  "local": "d\n",
+  "remote": "d\n",
+  "parts": [
+   [
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "",
+  "local": "X\n",
+  "remote": "X\ne\n",
+  "parts": [
+   {
+    "base": [],
+    "local": [
+     "X\n"
+    ],
+    "remote": [
+     "X\n",
+     "e\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "b\nb\na\nc\n",
+  "local": "b\na\nc\nc\n",
+  "remote": "b\nX\ne\nc\n",
+  "parts": [
+   [
+    "X\n",
+    "e\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nd\na\nc\ne\nd\n",
+  "local": "d\nd\ne\nc\ne\nd\n",
+  "remote": "d\nd\na\nc\ne\nd\n",
+  "parts": [
+   [
+    "d\n",
+    "d\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "c\n",
+    "e\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nc\nc\ne\nc\na\n",
+  "local": "e\nc\nc\ne\nc\na\na\na\nd\n",
+  "remote": "c\nc\ne\nc\nd\nd\n",
+  "parts": [
+   [
+    "c\n",
+    "c\n",
+    "e\n",
+    "c\n"
+   ],
+   [
+    "d\n",
+    "d\n"
+   ],
+   [
+    "a\n",
+    "a\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "b\nc\na\nb\nd\n",
+  "local": "b\nc\na\nb\nd\n",
+  "remote": "c\na\nb\nd\n",
+  "parts": [
+   [
+    "c\n",
+    "a\n",
+    "b\n",
+    "d\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nb\n",
+  "local": "a\nX\nb\n",
+  "remote": "a\na\ne\n",
+  "parts": [
+   [
+    "a\n"
+   ],
+   {
+    "base": [
+     "b\n"
+    ],
+    "local": [
+     "X\n",
+     "b\n"
+    ],
+    "remote": [
+     "a\n",
+     "e\n"
+    ]
+   }
+  ]
+ },
+ {
+  "base": "e\na\ne\na\ne\na\nc\n",
+  "local": "e\na\ne\na\na\nc\n",
+  "remote": "e\na\ne\na\ne\na\nc\na\n",
+  "parts": [
+   [
+    "e\n",
+    "a\n",
+    "e\n",
+    "a\n"
+   ],
+   [
+    "a\n",
+    "c\n"
+   ],
+   [
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\na\nd\nb\nc\n",
+  "local": "d\na\nd\nZ\ne\n",
+  "remote": "d\na\nd\nb\nc\n",
+  "parts": [
+   [
+    "d\n",
+    "a\n",
+    "d\n"
+   ],
+   [
+    "Z\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\na\nd\ne\ne\ne\n",
+  "local": "e\na\nd\ne\ne\ne\n",
+  "remote": "Z\ne\nZ\nd\ne\ne\ne\n",
+  "parts": [
+   [
+    "Z\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "d\n",
+    "e\n",
+    "e\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nd\nb\nc\nb\n",
+  "local": "d\nd\nb\nc\nb\n",
+  "remote": "d\nd\nb\nc\nb\n",
+  "parts": [
+   [
+    "d\n",
+    "d\n",
+    "b\n",
+    "c\n",
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "d\nd\nc\n",
+  "local": "Y\nX\nd\nc\nc\n",
+  "remote": "Y\nd\nc\n",
+  "parts": [
+   {
+    "base": [
+     "d\n"
+    ],
+    "local": [
+     "Y\n",
+     "X\n"
+    ],
+    "remote": [
+     "Y\n"
+    ]
+   },
+   [
+    "d\n",
+    "c\n"
+   ],
+   [
+    "c\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\na\ne\n",
+  "local": "c\na\na\ne\n",
+  "remote": "Z\na\ne\nY\n",
+  "parts": [
+   [
+    "Z\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "e\n"
+   ],
+   [
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\ne\ne\nb\nb\nc\ne\n",
+  "local": "a\ne\ne\nb\nX\nc\nc\ne\n",
+  "remote": "a\ne\ne\nb\nY\nb\nc\nc\ne\n",
+  "parts": [
+   [
+    "a\n",
+    "e\n",
+    "e\n",
+    "b\n"
+   ],
+   {
+    "base": [
+     "b\n"
+    ],
+    "local": [
+     "X\n",
+     "c\n"
+    ],
+    "remote": [
+     "Y\n",
+     "b\n"
+    ]
+   },
+   [
+    "c\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nc\ne\na\n",
+  "local": "e\nc\nZ\na\n",
+  "remote": "e\nY\nc\ne\na\na\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   [
+    "Y\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "Z\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nd\nd\nd\nd\nc\nb\n",
+  "local": "e\nd\nd\nd\nd\nb\nc\nb\ne\na\n",
+  "remote": "e\nd\nd\nd\nd\nc\nb\n",
+  "parts": [
+   [
+    "e\n",
+    "d\n",
+    "d\n",
+    "d\n",
+    "d\n"
+   ],
+   [
+    "b\n"
+   ],
+   [
+    "c\n",
+    "b\n"
+   ],
+   [
+    "e\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\na\n",
+  "local": "e\na\n",
+  "remote": "Y\n",
+  "parts": [
+   [
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nc\nd\nc\na\ne\n",
+  "local": "c\nd\nc\na\ne\n",
+  "remote": "a\nc\nd\nc\na\ne\nb\n",
+  "parts": [
+   [
+    "c\n",
+    "d\n",
+    "c\n",
+    "a\n",
+    "e\n"
+   ],
+   [
+    "b\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\ne\na\ne\ne\n",
+  "local": "a\ne\na\ne\ne\nZ\nY\ne\n",
+  "remote": "a\na\na\ne\ne\n",
+  "parts": [
+   [
+    "a\n"
+   ],
+   [
+    "a\n"
+   ],
+   [
+    "a\n",
+    "e\n",
+    "e\n"
+   ],
+   [
+    "Z\n",
+    "Y\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\na\na\n",
+  "local": "e\na\na\n",
+  "remote": "e\na\na\n",
+  "parts": [
+   [
+    "e\n",
+    "a\n",
+    "a\n"
+   ]
+  ]
+ },
+ {
+  "base": "c\n",
+  "local": "c\n",
+  "remote": "Y\nc\nY\n",
+  "parts": [
+   [
+    "Y\n"
+   ],
+   [
+    "c\n"
+   ],
+   [
+    "Y\n"
+   ]
+  ]
+ },
+ {
+  "base": "a\nb\nb\ne\nb\nc\na\ne\n",
+  "local": "a\nb\nb\ne\nb\nc\na\ne\n",
+  "remote": "e\nb\ne\nb\nc\na\ne\n",
+  "parts": [
+   [
+    "e\n"
+   ],
+   [
+    "b\n",
+    "e\n",
+    "b\n",
+    "c\n",
+    "a\n",
+    "e\n"
+   ]
+  ]
+ },
+ {
+  "base": "e\nb\na\ne\na\nb\n",
+  "local": "e\nb\na\ne\na\nb\n",
+  "remote": "e\nb\na\ne\nY\n",
+  "parts": [
+   [
+    "e\n",
+    "b\n",
+    "a\n",
+    "e\n"
+   ],
+   [
+    "Y\n"
+   ]
+  ]
+ }
+]

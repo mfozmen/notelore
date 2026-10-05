@@ -16,6 +16,7 @@ import 'package:path/path.dart' as p;
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 
 import '../i18n.dart';
+import '../text.dart';
 import 'format.dart';
 
 const kinds = {'project': 'projects', 'topic': 'topics'};
@@ -34,8 +35,6 @@ final _reserved = {
 };
 const _replaceAttempts = 5;
 const _forbidden = '<>:"/\\|?*\n\r\x00';
-// Python's str.splitlines boundaries, so both implementations split entry text alike.
-final _lineBreak = RegExp('\r\n|[\n\r\v\f\x1c\x1d\x1e\x85  ]');
 
 /// Today's local calendar date, as the UTC midnight [DateTime] notes use for dates.
 DateTime localToday() {
@@ -174,7 +173,7 @@ void _append(Section section, NoteEntry entry) {
 
 /// One clean entry text: NFC, continuation lines indented by two spaces.
 String _text(String text) =>
-    unorm.nfc(text).trim().split(_lineBreak).map((line) => line.trim()).join('\n  ');
+    splitLines(unorm.nfc(text).trim()).map((line) => line.trim()).join('\n  ');
 
 /// Index into the section's entries of the [number]-th real (non-Raw) entry.
 int _position(Section section, int number) {

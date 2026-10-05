@@ -73,7 +73,7 @@ One Dart codebase for Android, iOS, Windows and macOS. Step by step; each step i
 - [x] F1 Toolchain and CI: Dart workspace, analysis, tests with the 100% coverage gate on three OSes, APK and desktop builds, Sonar (#61)
 - [x] F2 Note format, paths, i18n against `spec/fixtures/notes` (#62)
 - [x] F3 Store, search index, stale notes (#63)
-- [ ] F4 Sync merge, manifest, engine, model resolver (#64)
+- [x] F4 Sync merge, manifest, engine, model resolver (#64)
 - [ ] F5 LLM providers over HTTPS, agent, tools (#65)
 - [ ] F6 App UI: setup, chat, notes, settings (#66)
 - [ ] F7 Google Drive sign-in, remote, sync triggers (#67)
