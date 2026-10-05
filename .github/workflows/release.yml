@@ -22,6 +22,11 @@ on:
         default: ""
         type: choice
         options: ["", patch, minor, major]
+      rebuild:
+        description: Rebuild and re-attach the app for an existing tag (e.g. v0.3.0) instead of releasing
+        required: false
+        default: ""
+        type: string
 
 concurrency:
   group: release-${{ github.ref }}
@@ -36,20 +41,33 @@ jobs:
     permissions:
       contents: write
     outputs:
-      released: ${{ steps.release.outputs.released }}
-      tag: ${{ steps.release.outputs.tag }}
-      version: ${{ steps.release.outputs.version }}
+      released: ${{ steps.rebuild.outputs.released || steps.release.outputs.released }}
+      tag: ${{ steps.rebuild.outputs.tag || steps.release.outputs.tag }}
+      version: ${{ steps.rebuild.outputs.version || steps.release.outputs.version }}
     steps:
+      # A rebuild skips Semantic Release and hands the existing tag to the app jobs.
+      - name: Existing tag to rebuild
+        id: rebuild
+        if: inputs.rebuild != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.rebuild }}
+        run: |
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null
+          { echo "released=true"; echo "tag=$TAG"; echo "version=${TAG#v}"; } >> "$GITHUB_OUTPUT"
+
       # main is protected by a ruleset whose only bypass is a deploy key: the
       # version commit and tag go out over SSH with RELEASE_DEPLOY_KEY. The
       # GitHub Release itself is an API call and uses GITHUB_TOKEN.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        if: inputs.rebuild == ''
         with:
           fetch-depth: 0
           ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
 
       - name: Python Semantic Release
         id: release
+        if: inputs.rebuild == ''
         uses: python-semantic-release/python-semantic-release@b700dbeb1f431a0fcc30a79f3f0869407fe07278  # v10.7.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -136,6 +154,7 @@ jobs:
           cat "$asset.sha256"
           echo "asset=$asset" >> "$GITHUB_OUTPUT"
       - name: Attach to the release
+        shell: bash  # PowerShell on Windows would not expand $TAG and $ASSET
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.release.outputs.tag }}
