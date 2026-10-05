@@ -11,6 +11,7 @@ const note =
     '---\ntitle: T\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-09-01\n---\n# T\n\n## Notes\n- 2026-09-01: one\n';
 
 void main() {
+  autoSyncTests();
   test('a build without Drive sign-in has no sync', () async {
     final session = Harness().session();
     await session.load();
@@ -194,5 +195,41 @@ void main() {
     await session.load(); // starts a sync in the background
     session.dispose();
     await session.syncDone;
+  });
+}
+
+void autoSyncTests() {
+  // Real time, with short intervals: the session's futures run on the real clock.
+  const every = Duration(milliseconds: 20);
+  const remoteNote = '---\ntitle: R\nkind: topic\n---\n# R\n';
+  Future<void> wait() => Future<void>.delayed(const Duration(milliseconds: 200));
+
+  test("while the app is open it pulls other devices' notes on its own", () async {
+    final harness = Harness(auth: FakeAuth()..granted = true);
+    final session = harness.session();
+    await session.load();
+    await session.syncDone;
+    session.startAutoSync(every: every);
+    harness.remote.texts['topics/r.md'] = remoteNote; // written on another device
+    await wait();
+    await session.syncDone;
+    expect(File(p.join(harness.paths.notes.path, 'topics', 'r.md')).existsSync(), isTrue);
+    session.stopAutoSync();
+  });
+
+  test('no automatic sync while disconnected or busy', () async {
+    final harness = Harness(auth: FakeAuth());
+    final session = harness.session(owned: false);
+    session.startAutoSync(every: every);
+    await wait();
+    expect(session.syncStatus, isNull); // not connected: nothing ran
+    await session.connectDrive();
+    session.busy = true; // a chat turn is running
+    harness.remote.texts['topics/s.md'] = remoteNote;
+    await wait();
+    await session.syncDone;
+    expect(File(p.join(harness.paths.notes.path, 'topics', 's.md')).existsSync(), isFalse);
+    session.dispose(); // stops the timer too
+    await wait(); // no tick after dispose
   });
 }

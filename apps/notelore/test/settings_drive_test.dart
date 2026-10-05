@@ -42,6 +42,20 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Connect'), findsOneWidget);
   });
 
+  testWidgets('coming back to the app syncs', (tester) async {
+    phone(tester);
+    final harness = Harness(auth: FakeAuth()..granted = true);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    harness.remote.texts['topics/t.md'] = '---\ntitle: T\n---\n# T\n';
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('T'), findsOneWidget);
+  });
+
   testWidgets('a refused sign-in shows why', (tester) async {
     phone(tester);
     final harness = Harness(auth: FakeAuth()..failSignIn = const SignInFailed('access_denied'));

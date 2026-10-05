@@ -81,7 +81,7 @@ class Home extends StatefulWidget {
   State<Home> createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends State<Home> with WidgetsBindingObserver {
   var _tab = 0;
   String? _available; // a newer version
   String? _updateProblem;
@@ -91,7 +91,23 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    widget.session.startAutoSync();
     if (widget.updater case final updater?) unawaited(_check(updater));
+  }
+
+  /// Back in the foreground (a phone app reopened, a desktop window focused):
+  /// pick up what other devices changed meanwhile.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(widget.session.syncNow());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    widget.session.stopAutoSync();
+    super.dispose();
   }
 
   Future<void> _check(Updater updater) async {
