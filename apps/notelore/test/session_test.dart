@@ -55,6 +55,54 @@ void main() {
     expect(await const FlutterSecureStorage().read(key: 'notelore.anthropic.api_key'), isNull);
   });
 
+  test('a failed reconnect puts the previous key back', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'old-key');
+    final settings = File(p.join(harness.paths.state.path, 'settings.json'));
+    final saved = settings.readAsStringSync();
+    settings.deleteSync();
+    Directory(p.join(settings.path, 'blocker')).createSync(recursive: true);
+    await expectLater(
+      session.connect(findProvider('anthropic'), 'new-key'),
+      throwsA(isA<FileSystemException>()),
+    );
+    expect(await const FlutterSecureStorage().read(key: 'notelore.anthropic.api_key'), 'old-key');
+    expect(session.ready, isTrue); // still on the old key
+    Directory(settings.path).deleteSync(recursive: true);
+    settings.writeAsStringSync(saved);
+    final again = harness.session();
+    await again.load();
+    expect(harness.created.last, ('anthropic', 'old-key', 'claude-sonnet-5-5'));
+  });
+
+  test('a keystore that fails too does not hide the settings error', () async {
+    final harness = Harness();
+    final session = Session(
+      harness.paths,
+      keys: const _BrokenDelete(),
+      validate: (spec, key) async {},
+      makeProvider: (spec, key, {model}) => harness.provider,
+    );
+    addTearDown(session.dispose);
+    Directory(p.join(harness.paths.state.path, 'settings.json', 'blocker'))
+        .createSync(recursive: true);
+    await expectLater(
+      session.connect(findProvider('anthropic'), 'k'),
+      throwsA(isA<FileSystemException>()),
+    );
+  });
+
+  test('a model that cannot be saved is not switched to', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    final settings = File(p.join(harness.paths.state.path, 'settings.json'))..deleteSync();
+    Directory(p.join(settings.path, 'blocker')).createSync(recursive: true);
+    await expectLater(session.setModel('claude-x'), throwsA(isA<FileSystemException>()));
+    expect(session.model, 'claude-sonnet-5-5');
+  });
+
   test('settings and key survive a restart', () async {
     final harness = Harness();
     await harness.session().connect(findProvider('openai'), 'sk-1', model: 'gpt-x');
@@ -221,4 +269,20 @@ void main() {
     expect(withoutFrontMatter('# Plain\n'), '# Plain\n');
     expect(withoutFrontMatter('---\nunterminated'), '---\nunterminated');
   });
+}
+
+/// A keystore whose delete fails, like a locked one.
+class _BrokenDelete extends FlutterSecureStorage {
+  const _BrokenDelete();
+
+  @override
+  Future<void> delete({
+    required String key,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) => throw Exception('keystore locked');
 }
