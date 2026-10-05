@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/main.dart' as app;
@@ -45,16 +46,23 @@ void main() {
     expect(session.paths.notes.path, p.join(root, 'documents', 'Notelore'));
   });
 
-  test('NOTELORE_HOME overrides everything', () async {
+  test('NOTELORE_HOME overrides everything, the keystore included', () async {
     final session = await app.openSession(environment: {'NOTELORE_HOME': root});
     addTearDown(session.dispose);
     expect(session.paths.notes.path, p.join(root, 'notes'));
     expect(session.paths.state.path, p.join(root, 'state'));
+    expect(session.keySpace, 'notelore-dev');
+    final real = await app.openSession(environment: {'HOME': root}, mobile: false);
+    addTearDown(real.dispose);
+    expect(real.keySpace, 'notelore');
   });
 
-  testWidgets('main() runs the app', (tester) async {
+  testWidgets('main() runs the app, and closing it closes the session', (tester) async {
     await tester.runAsync(() async => app.main());
     await tester.pump();
     expect(find.byType(NoteloreApp), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    // The index is closed: on Windows the temp folder could not be deleted otherwise.
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
   });
 }

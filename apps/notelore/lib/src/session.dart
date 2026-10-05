@@ -27,6 +27,7 @@ class Session extends ChangeNotifier {
     this.validate = validateKey,
     this.makeProvider = createProvider,
     this.today,
+    this.keySpace = 'notelore',
     this.keys = const FlutterSecureStorage(
       // The login keychain: the data-protection one needs a signed app with a
       // keychain-access-groups entitlement, which debug builds do not have.
@@ -40,6 +41,10 @@ class Session extends ChangeNotifier {
 
   /// Tests pin it; the app uses the local date.
   final DateTime? today;
+
+  /// Prefix of the keystore entries; a development run uses its own, so it never
+  /// reads or overwrites the keys of the real app on the same machine.
+  final String keySpace;
   final FlutterSecureStorage keys;
   final NoteIndex index;
 
@@ -53,7 +58,7 @@ class Session extends ChangeNotifier {
 
   String get _settings => p.join(paths.state.path, 'settings.json');
 
-  static String _keyName(ProviderSpec spec) => 'notelore.${spec.name}.api_key';
+  String _keyName(ProviderSpec spec) => '$keySpace.${spec.name}.api_key';
 
   /// Picks up the provider chosen on an earlier run; no network involved.
   Future<void> load() async {
@@ -89,14 +94,18 @@ class Session extends ChangeNotifier {
     final current = spec;
     if (current == null) return;
     final key = current.requiresApiKey ? await keys.read(key: _keyName(current)) : '';
+    if (key == null) return logout(); // the keystore lost it: set up again
     final trimmed = chosen.trim();
-    _use(current, key!, trimmed.isEmpty ? current.defaultModel : trimmed);
+    _use(current, key, trimmed.isEmpty ? current.defaultModel : trimmed);
     _save();
   }
 
+  /// Forgets every provider's key on this device and the chosen provider; the
+  /// notes stay.
   Future<void> logout() async {
-    final current = spec;
-    if (current != null && current.requiresApiKey) await keys.delete(key: _keyName(current));
+    for (final spec in providerSpecs.where((s) => s.requiresApiKey)) {
+      await keys.delete(key: _keyName(spec));
+    }
     final settings = File(_settings);
     if (settings.existsSync()) settings.deleteSync();
     spec = null;
@@ -139,8 +148,12 @@ class Session extends ChangeNotifier {
   List<NoteInfo> listNotes() => (index..rebuild()).listNotes();
 
   /// The note as Markdown from its `# title` down (the front matter is for tools).
-  String readNote(NoteInfo note) =>
-      withoutFrontMatter(File(notePath(paths.notes.path, note.kind, note.slug)).readAsStringSync());
+  /// CRLF (an editor on Windows may save one) reads like LF.
+  String readNote(NoteInfo note) => withoutFrontMatter(
+    File(notePath(paths.notes.path, note.kind, note.slug))
+        .readAsStringSync()
+        .replaceAll('\r\n', '\n'),
+  );
 
   @override
   void dispose() {

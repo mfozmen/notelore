@@ -159,6 +159,48 @@ void main() {
     expect(again.ready, isFalse);
   });
 
+  test('a key lost after loading sends setModel back to setup', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    await const FlutterSecureStorage().delete(key: 'notelore.anthropic.api_key');
+    await session.setModel('claude-x');
+    expect(session.ready, isFalse);
+    expect(session.spec, isNull);
+  });
+
+  test('logout forgets the keys of every provider', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.connect(findProvider('openai'), 'old');
+    await session.connect(findProvider('anthropic'), 'new');
+    await session.logout();
+    final left = await const FlutterSecureStorage().readAll();
+    expect(left, isEmpty);
+  });
+
+  test('a separate key space keeps a dev run away from the real keys', () async {
+    final harness = Harness();
+    final dev = Session(
+      harness.paths,
+      keySpace: 'notelore-dev',
+      validate: (spec, key) async {},
+      makeProvider: (spec, key, {model}) => harness.provider,
+    );
+    addTearDown(dev.dispose);
+    await dev.connect(findProvider('anthropic'), 'dev-key');
+    final stored = await const FlutterSecureStorage().readAll();
+    expect(stored, {'notelore-dev.anthropic.api_key': 'dev-key'});
+  });
+
+  test('a note saved with CRLF line endings reads like any other', () async {
+    final harness = Harness();
+    final session = harness.session();
+    final path = createNote(harness.paths.notes.path, 'topic', 'Windows', today: today);
+    File(path).writeAsStringSync(File(path).readAsStringSync().replaceAll('\n', '\r\n'));
+    expect(session.readNote(session.listNotes().single), startsWith('# Windows\n'));
+  });
+
   test('withoutFrontMatter shows a note from its title down', () {
     expect(withoutFrontMatter('---\ntitle: T\n---\n# T\nbody\n'), '# T\nbody\n');
     expect(withoutFrontMatter('# Plain\n'), '# Plain\n');

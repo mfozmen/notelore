@@ -51,7 +51,8 @@ class Harness {
   final Exception? rejected;
   final created = <(String, String?, String?)>[];
 
-  Session session() {
+  /// A session the test closes itself; pass [owned] false when an app takes it over.
+  Session session({bool owned = true}) {
     final session = Session(
       paths,
       validate: (spec, key) async {
@@ -63,7 +64,7 @@ class Harness {
       },
       today: today,
     );
-    addTearDown(session.dispose);
+    if (owned) addTearDown(session.dispose);
     return session;
   }
 }

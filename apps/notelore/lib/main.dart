@@ -26,7 +26,8 @@ Future<Session> openSession({Map<String, String>? environment, bool? mobile}) as
     defaultNotes: Directory(p.join(home, 'Notelore')),
     defaultState: await getApplicationSupportDirectory(),
   );
-  final session = Session(paths);
+  final dev = (env['NOTELORE_HOME'] ?? '').isNotEmpty;
+  final session = Session(paths, keySpace: dev ? 'notelore-dev' : 'notelore');
   await session.load();
   return session;
 }
