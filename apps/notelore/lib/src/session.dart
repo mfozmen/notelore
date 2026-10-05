@@ -72,7 +72,10 @@ class Session extends ChangeNotifier {
   LlmProvider? _provider;
   Remote? _remote;
   var driveConnected = false;
-  var syncing = false;
+  var _pendingSyncs = 0;
+
+  /// A sync is running or queued.
+  bool get syncing => _pendingSyncs > 0;
 
   /// What the last sync did, for the settings screen; null before any.
   String? syncStatus;
@@ -241,9 +244,13 @@ class Session extends ChangeNotifier {
   /// come in without asking. A tick is skipped while a sync or a chat turn runs.
   void startAutoSync({Duration every = const Duration(minutes: 3)}) {
     _autoSync?.cancel();
-    _autoSync = Timer.periodic(every, (_) {
-      if (driveConnected && !syncing && !busy) unawaited(syncNow());
-    });
+    _autoSync = Timer.periodic(every, (_) => syncIfIdle());
+  }
+
+  /// A background sync, unless one is already running or queued or a chat
+  /// turn is (that turn syncs when it ends).
+  void syncIfIdle() {
+    if (driveConnected && !syncing && !busy) unawaited(syncNow());
   }
 
   void stopAutoSync() {
@@ -253,7 +260,7 @@ class Session extends ChangeNotifier {
 
   Future<void> syncNow() async {
     if (!driveConnected) return;
-    syncing = true;
+    _pendingSyncs++;
     notifyListeners();
     await _exclusive(() async {
       try {
@@ -277,7 +284,7 @@ class Session extends ChangeNotifier {
         syncStatus =
             'A note is in use by another program (${error.message}); the next sync retries.';
       } finally {
-        syncing = false;
+        _pendingSyncs--;
         notifyListeners();
       }
     });

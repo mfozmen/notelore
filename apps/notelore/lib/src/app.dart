@@ -100,7 +100,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   /// pick up what other devices changed meanwhile.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) unawaited(widget.session.syncNow());
+    if (state == AppLifecycleState.resumed) widget.session.syncIfIdle();
   }
 
   @override

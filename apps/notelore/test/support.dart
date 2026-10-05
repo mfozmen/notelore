@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -109,6 +110,9 @@ class FakeAuth implements DriveAuth {
 class MemoryRemote implements Remote {
   final texts = <String, String>{};
   Exception? failure;
+
+  /// While set, listing waits for it: a sync that is still running.
+  Completer<void>? hold;
   var _next = 0;
   final _ids = <String, String>{};
 
@@ -120,6 +124,7 @@ class MemoryRemote implements Remote {
 
   @override
   Future<Map<String, RemoteFile>> list() async {
+    await hold?.future;
     if (failure case final error?) throw error;
     return {for (final rel in texts.keys) rel: _meta(rel)};
   }
