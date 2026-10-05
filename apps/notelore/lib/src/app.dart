@@ -18,7 +18,17 @@ class NoteloreApp extends StatefulWidget {
 }
 
 class _NoteloreAppState extends State<NoteloreApp> {
-  late final Future<Session> _session = widget.open();
+  late final Future<Session> _session = widget.open()
+    ..then<void>((s) => _opened = s, onError: (Object _) {}); // the error shows below
+  Session? _opened;
+
+  @override
+  void dispose() {
+    // The app owns the session. Closing it closes the index: an open SQLite file
+    // cannot be moved or deleted on Windows.
+    _opened?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => MaterialApp(

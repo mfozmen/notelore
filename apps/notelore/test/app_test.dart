@@ -9,8 +9,11 @@ import 'package:notelore_core/notelore_core.dart';
 
 import 'support.dart';
 
+/// The app on [harness]'s session. The app owns the session, so it is closed by
+/// unmounting the app before the temp folders go.
 Future<Session> pumpApp(WidgetTester tester, Harness harness) async {
-  final session = harness.session();
+  final session = harness.session(owned: false);
+  addTearDown(() => tester.pumpWidget(const SizedBox()));
   await tester.pumpWidget(
     NoteloreApp(
       open: () async {
@@ -48,7 +51,8 @@ void main() {
   testWidgets('opening shows progress, then the setup screen', (tester) async {
     phone(tester);
     final harness = Harness();
-    final session = harness.session();
+    final session = harness.session(owned: false);
+    addTearDown(() => tester.pumpWidget(const SizedBox()));
     await tester.pumpWidget(NoteloreApp(open: () async => session));
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     await tester.pumpAndSettle();
