@@ -96,6 +96,8 @@ version_variables = [
   "packages/core/src/notelore/__init__.py:__version__",
   "apps/cli/src/notelore_cli/__init__.py:__version__",
   "apps/mobile/src/notelore_mobile/__init__.py:__version__",
+  "packages/notelore_core/pubspec.yaml:version",
+  "apps/notelore/pubspec.yaml:version",
 ]
 version_toml = ["apps/mobile/pyproject.toml:tool.briefcase.version"]
 commit_message = "chore(release): {version} [skip ci]"

@@ -1,13 +1,14 @@
 name: notelore
 description: "Notelore: talk to your notes on Android, iOS, Windows and macOS."
 publish_to: 'none'
-version: 0.2.0+1
+version: 0.2.0
 resolution: workspace
 
 environment:
   sdk: ^3.13.0
 
 dependencies:
+  crypto: ^3.0.7
   flutter:
     sdk: flutter
   flutter_markdown_plus: ^1.0.12
@@ -21,7 +22,6 @@ dependencies:
   url_launcher: ^6.3.3
 
 dev_dependencies:
-  crypto: ^3.0.7
   flutter_test:
     sdk: flutter
   google_sign_in_platform_interface: ^3.1.0

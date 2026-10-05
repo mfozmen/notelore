@@ -4,7 +4,10 @@ name: Release
 # release. Python Semantic Release then scans the Conventional Commits since
 # the last tag and bumps accordingly (feat -> minor, fix/perf -> patch,
 # BREAKING CHANGE -> major), writes CHANGELOG.md, tags vX.Y.Z and cuts a
-# GitHub Release; the build job attaches a Windows and a macOS executable.
+# GitHub Release. The build job attaches the CLI executables (until #69 retires
+# them); the app jobs attach the Flutter app for Windows and macOS and a signed
+# Android APK, each with a .sha256 the app's updater checks. App assets are
+# named notelore-app-* so the CLI's `notelore update` never picks one up.
 # Adapted from mfozmen/littlepress-ai.
 #
 # PSR's own "chore(release): x.y.z [skip ci]" commit is pushed with
@@ -125,6 +128,129 @@ jobs:
           cat "$asset.sha256"
           echo "asset=$asset" >> "$GITHUB_OUTPUT"
 
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.release.outputs.tag }}
+          ASSET: ${{ steps.pkg.outputs.asset }}
+        run: gh release upload "$TAG" "$ASSET" "$ASSET.sha256" --clobber
+
+  app-desktop:
+    name: App (${{ matrix.target }})
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: windows
+            asset: windows-x64.zip
+          - os: macos-latest
+            target: macos
+            asset: macos.zip
+    env:
+      VERSION: ${{ needs.release.outputs.version }}
+      # The OAuth client ids go into the binary at build time; they are never in the repo.
+      NOTELORE_GOOGLE_CLIENT_ID: ${{ secrets.NOTELORE_GOOGLE_CLIENT_ID }}
+      NOTELORE_GOOGLE_CLIENT_SECRET: ${{ secrets.NOTELORE_GOOGLE_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
+        with:
+          flutter-version-file: pubspec.yaml
+          cache: true
+      - run: flutter pub get
+      - name: Build
+        working-directory: apps/notelore
+        shell: bash
+        run: >-
+          flutter build ${{ matrix.target }} --release
+          --dart-define=NOTELORE_VERSION="$VERSION"
+          --dart-define=NOTELORE_GOOGLE_CLIENT_ID="$NOTELORE_GOOGLE_CLIENT_ID"
+          --dart-define=NOTELORE_GOOGLE_CLIENT_SECRET="$NOTELORE_GOOGLE_CLIENT_SECRET"
+      - name: Package
+        id: pkg
+        shell: bash
+        run: |
+          asset="notelore-app-$VERSION-${{ matrix.asset }}"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            # The files at the top of the zip: the updater swaps them into the app folder.
+            (cd apps/notelore/build/windows/x64/runner/Release && 7z a -tzip "$GITHUB_WORKSPACE/$asset" . > /dev/null)
+          else
+            # ditto keeps the bundle's symlinks; notelore.app at the top of the zip.
+            ditto -c -k --keepParent apps/notelore/build/macos/Build/Products/Release/notelore.app "$asset"
+          fi
+          python3 -c "import hashlib, sys; d = open(sys.argv[1], 'rb').read(); print(f'{hashlib.sha256(d).hexdigest()}  {sys.argv[1]}')" "$asset" > "$asset.sha256"
+          cat "$asset.sha256"
+          echo "asset=$asset" >> "$GITHUB_OUTPUT"
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.release.outputs.tag }}
+          ASSET: ${{ steps.pkg.outputs.asset }}
+        run: gh release upload "$TAG" "$ASSET" "$ASSET.sha256" --clobber
+
+  app-android:
+    name: App (android)
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.release.outputs.version }}
+      NOTELORE_GOOGLE_WEB_CLIENT_ID: ${{ secrets.NOTELORE_GOOGLE_WEB_CLIENT_ID }}
+      KEYSTORE_BASE64: ${{ secrets.NOTELORE_ANDROID_KEYSTORE_BASE64 }}
+      NOTELORE_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.NOTELORE_ANDROID_KEYSTORE_PASSWORD }}
+      NOTELORE_ANDROID_KEY_PASSWORD: ${{ secrets.NOTELORE_ANDROID_KEY_PASSWORD }}
+      NOTELORE_ANDROID_KEY_ALIAS: ${{ secrets.NOTELORE_ANDROID_KEY_ALIAS }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6  # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
+        with:
+          flutter-version-file: pubspec.yaml
+          cache: true
+      - run: flutter pub get
+      # A debug-signed APK could never be updated by a properly signed one: no key, no release.
+      - name: Release key
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then echo "::error::NOTELORE_ANDROID_KEYSTORE_BASE64 is not set"; exit 1; fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "NOTELORE_ANDROID_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+      - name: Build the signed APK
+        working-directory: apps/notelore
+        # versionCode from the version: 1.2.3 -> 1002003, always increasing.
+        run: |
+          IFS=. read -r major minor patch <<< "$VERSION"
+          args=(
+            --build-name="$VERSION"
+            --build-number=$((major * 1000000 + minor * 1000 + patch))
+            --dart-define=NOTELORE_VERSION="$VERSION"
+            --dart-define=NOTELORE_GOOGLE_WEB_CLIENT_ID="$NOTELORE_GOOGLE_WEB_CLIENT_ID"
+          )
+          flutter build apk --release "${args[@]}"
+      - name: Package
+        id: pkg
+        run: |
+          asset="notelore-app-$VERSION-android.apk"
+          cp apps/notelore/build/app/outputs/flutter-apk/app-release.apk "$asset"
+          sha256sum "$asset" > "$asset.sha256"
+          cat "$asset.sha256"
+          echo "asset=$asset" >> "$GITHUB_OUTPUT"
       - name: Attach to the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

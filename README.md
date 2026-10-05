@@ -13,9 +13,14 @@ Tell it things. It writes tidy, human-readable Markdown notes on your disk. Ask 
 
 ## Install
 
-Download the latest `notelore-<version>-windows-x64.zip` or `notelore-<version>-macos-arm64.zip` from the [releases page](https://github.com/mfozmen/notelore/releases), unzip, and run `notelore`. The macOS binary is not notarized yet: right-click it and choose *Open* the first time.
+**The app** (Windows, macOS, Android): download it from the [releases page](https://github.com/mfozmen/notelore/releases).
+- **Windows**: `notelore-app-<version>-windows-x64.zip`. Unzip it into a folder of your own, such as `%LOCALAPPDATA%\Notelore`, and run `notelore.exe`.
+- **macOS**: `notelore-app-<version>-macos.zip` contains `notelore.app`. It is not notarized yet, so the first time right-click it and choose *Open*.
+- **Android**: `notelore-app-<version>-android.apk`. Allow installing from your browser or file manager when Android asks.
 
-Notelore checks for a newer release once a day (silently skipped when offline) and tells you when one exists. `notelore update` downloads it, checks it against the SHA-256 published with the release (this catches corrupted or partial downloads; it is not a signature), and only then replaces the executable in place; a Python install gets the matching `uv tool upgrade notelore` hint instead.
+The desktop app checks for a newer release once a day (silently skipped when offline). *Update and restart* downloads it and checks it against the SHA-256 published with the release; this catches corrupted or partial downloads, it is not a signature. Only then does it swap the new version in and restart. If the swap fails halfway, the previous version is put back. On Android, install the newer APK over the old one.
+
+**The command line** (until it is retired in [#69](https://github.com/mfozmen/notelore/issues/69)): download `notelore-<version>-windows-x64.zip` or `notelore-<version>-macos-arm64.zip`, unzip it and run `notelore`. It checks for updates the same way. `notelore update` replaces the executable in place; a Python install gets the matching `uv tool upgrade notelore` hint instead.
 
 Releases are cut on demand from the Conventional Commit history on `main`: a `feat` commit bumps the minor version, `fix` or `perf` the patch version; other types (`docs`, `chore`, `ci`...) do not.
 

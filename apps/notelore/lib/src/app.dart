@@ -1,17 +1,26 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 
 import 'chat.dart';
 import 'notes.dart';
 import 'session.dart';
 import 'settings.dart';
 import 'setup.dart';
+import 'update.dart';
 
 /// Opens the session (folders, index, saved provider), then shows setup until a
 /// provider is connected and the three tabs after that.
 class NoteloreApp extends StatefulWidget {
-  const NoteloreApp({required this.open, super.key});
+  const NoteloreApp({required this.open, this.updater, this.exitApp = exit, super.key});
 
   final Future<Session> Function() open;
+
+  /// Null in development builds and on phones.
+  final Updater? updater;
+  final void Function(int code) exitApp;
 
   @override
   State<NoteloreApp> createState() => _NoteloreAppState();
@@ -43,7 +52,9 @@ class _NoteloreAppState extends State<NoteloreApp> {
       builder: (context, snapshot) => switch (snapshot) {
         AsyncSnapshot(:final Session data) => ListenableBuilder(
           listenable: data,
-          builder: (context, _) => data.ready ? Home(data) : SetupScreen(data),
+          builder: (context, _) => data.ready
+              ? Home(data, updater: widget.updater, exitApp: widget.exitApp)
+              : SetupScreen(data),
         ),
         AsyncSnapshot(:final Object error) => Scaffold(
           body: Center(
@@ -60,9 +71,11 @@ class _NoteloreAppState extends State<NoteloreApp> {
 }
 
 class Home extends StatefulWidget {
-  const Home(this.session, {super.key});
+  const Home(this.session, {this.updater, this.exitApp = exit, super.key});
 
   final Session session;
+  final Updater? updater;
+  final void Function(int code) exitApp;
 
   @override
   State<Home> createState() => _HomeState();
@@ -70,15 +83,76 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   var _tab = 0;
+  String? _available; // a newer version
+  String? _updateProblem;
+  var _updating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.updater case final updater?) unawaited(_check(updater));
+  }
+
+  Future<void> _check(Updater updater) async {
+    updater.cleanup();
+    final newer = await checkForUpdate(
+      cache: File(p.join(widget.session.paths.state.path, 'update-check.json')),
+      now: DateTime.now(),
+      current: updater.current,
+      fetch: updater.fetch,
+    );
+    if (mounted) setState(() => _available = newer);
+  }
+
+  Future<void> _update() async {
+    setState(() {
+      _updating = true;
+      _updateProblem = null;
+    });
+    try {
+      await widget.updater!.apply();
+      await widget.updater!.relaunch();
+      widget.exitApp(0);
+    } on Exception catch (error) {
+      setState(() => _updateProblem = '$error');
+    } finally {
+      if (mounted) setState(() => _updating = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
     body: SafeArea(
-      child: switch (_tab) {
-        0 => ChatScreen(widget.session),
-        1 => NotesScreen(widget.session),
-        _ => SettingsScreen(widget.session),
-      },
+      child: Column(
+        children: [
+          if (_available case final version?)
+            MaterialBanner(
+              content: Text(
+                _updateProblem ??
+                    (_updating
+                        ? 'Installing Notelore $version...'
+                        : 'Notelore $version is available.'),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: _updating ? null : () => setState(() => _available = null),
+                  child: const Text('Later'),
+                ),
+                TextButton(
+                  onPressed: _updating ? null : _update,
+                  child: const Text('Update and restart'),
+                ),
+              ],
+            ),
+          Expanded(
+            child: switch (_tab) {
+              0 => ChatScreen(widget.session),
+              1 => NotesScreen(widget.session),
+              _ => SettingsScreen(widget.session),
+            },
+          ),
+        ],
+      ),
     ),
     bottomNavigationBar: NavigationBar(
       selectedIndex: _tab,
