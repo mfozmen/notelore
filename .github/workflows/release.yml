@@ -150,7 +150,8 @@ jobs:
             # ditto keeps the bundle's symlinks; notelore.app at the top of the zip.
             ditto -c -k --keepParent apps/notelore/build/macos/Build/Products/Release/notelore.app "$asset"
           fi
-          python3 -c "import hashlib, sys; d = open(sys.argv[1], 'rb').read(); print(f'{hashlib.sha256(d).hexdigest()}  {sys.argv[1]}')" "$asset" > "$asset.sha256"
+          # sha256sum format with an LF ending on every OS (print would write CRLF on Windows).
+          python3 -c "import hashlib, sys; d = open(sys.argv[1], 'rb').read(); open(sys.argv[1] + '.sha256', 'w', newline='\n').write(f'{hashlib.sha256(d).hexdigest()}  {sys.argv[1]}\n')" "$asset"
           cat "$asset.sha256"
           echo "asset=$asset" >> "$GITHUB_OUTPUT"
       - name: Attach to the release
