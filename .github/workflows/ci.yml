@@ -1,7 +1,8 @@
 name: CI
 
-# Deterministic gate: lint, types and the test matrix must pass on all three
-# OSes. Claude Review (claude-review.yml) is advisory except on a Critical.
+# The CI helper scripts' tests, Dart coverage for SonarCloud, and the SonarCloud
+# quality gate. The app's analysis, tests and builds run in flutter.yml.
+# Claude Review (claude-review.yml) is advisory except on a Critical.
 
 on:
   push:
@@ -13,41 +14,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: Lint + types
+  # The CI helper scripts (claude-review uses them) are plain Python 3 with
+  # their own tests; the app itself is tested in flutter.yml.
+  scripts:
+    name: CI scripts
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
-        with:
-          enable-cache: true
-      - run: uv sync --locked
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run mypy
-      - name: CI helper scripts self-test
-        run: |
-          python3 .github/scripts/test_review_verdict_gate.py
-          python3 .github/scripts/test_review_range.py
-
-  test:
-    name: Test (${{ matrix.os }}, py${{ matrix.python }})
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python: ["3.11", "3.13"]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
-        with:
-          enable-cache: true
-          python-version: ${{ matrix.python }}
-      - run: uv sync --locked
-      - run: uv run pytest
+      - run: python3 .github/scripts/test_review_verdict_gate.py
+      - run: python3 .github/scripts/test_review_range.py
 
   # Dart coverage for Sonar, built in a job that holds no secrets (#72); the
   # Sonar job only downloads the reports, so no Flutter tooling runs next to SONAR_TOKEN.
@@ -94,11 +70,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0  # blame data for new-code detection
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
-        with:
-          enable-cache: true
-      - run: uv sync --locked
-      - run: uv run pytest --cov --cov-report=xml
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           name: dart-lcov

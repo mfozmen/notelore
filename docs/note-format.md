@@ -55,7 +55,7 @@ tags: [investing, side-project]
 
 ### Sections
 
-Known sections have a canonical key and localized headings from `i18n.py`. The parser recognizes every known heading variant; the writer uses the language the file was created in.
+Known sections have a canonical key and localized headings from `i18n.dart`. The parser recognizes every known heading variant; the writer uses the language the file was created in.
 
 | Key | English | Turkish |
 |---|---|---|

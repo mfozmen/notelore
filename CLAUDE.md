@@ -1,6 +1,6 @@
 # Notelore
 
-An open-source, cross-platform (Windows, macOS; Linux best effort) note-taking assistant you talk to. You tell it things, an LLM turns them into tidy, human-readable Markdown notes on your disk, and later you ask it questions ("which database did we pick for project X?"). Notes are backed up to Google Drive through an in-app integration.
+An open-source note-taking assistant you talk to, on Windows, macOS and Android (iOS next). You tell it things, an LLM turns them into tidy, human-readable Markdown notes on your disk, and later you ask it questions ("which database did we pick for project X?"). Notes are backed up to Google Drive, and every device syncs through it.
 
 The user only chats. The LLM decides *what* to do; deterministic code decides *how* it is stored and what the facts are.
 
@@ -10,27 +10,12 @@ These hold end-to-end. Any change that would break one needs explicit maintainer
 
 1. **Markdown files are the single source of truth.** Everything else (SQLite search index, sync manifest, caches) is derived state that can be deleted and rebuilt from the notes folder at any time.
 2. **Notes stay human-readable.** A person must be able to open any note in a plain text editor or Obsidian and understand it without Notelore. The format is specified in `docs/note-format.md`; the parser and writer must round-trip it losslessly.
-3. **The LLM never rewrites a file wholesale.** Every write goes through narrow tools in `notelore.store` that append entries, mark decisions superseded, or move notes to the archive. There is no "overwrite file" tool.
+3. **The LLM never rewrites a file wholesale.** Every write goes through narrow tools over the store (`packages/notelore_core/lib/src/store/`) that append entries, mark decisions superseded, or move notes to the archive. There is no "overwrite file" tool.
 4. **Deterministic questions get deterministic answers.** "What is the current decision for X?" is answered by the parser/index, not by the model reading free text. The model only picks the parameters and phrases the result.
-5. **Every automated change is reversible.** Nothing is hard-deleted by the agent. Cleanup moves notes to `_archive/`; sync conflicts keep the losing version under `.notelore/history/`.
-6. **Windows and macOS are first-class.** CI runs the full suite on Windows, macOS and Linux. A change that is green on one OS only is not done.
+5. **Every automated change is reversible.** Nothing is hard-deleted by the agent. Cleanup moves notes to `_archive/`; sync conflicts keep the losing version under `.notelore/history/`; Drive files go to the trash.
+6. **Every platform is first-class.** CI runs the full suite on Windows, macOS and Linux and builds the Android, Windows and macOS app. A change that is green on one OS only is not done.
 
 ## Commands
-
-```bash
-uv sync                          # create .venv and install everything (incl. dev group)
-uv run notelore                  # run the app
-uv run pytest                    # tests (network disabled, live tests skipped)
-uv run pytest -m live            # live provider/Drive tests (needs real keys, opt-in)
-uv run ruff check . --fix        # lint
-uv run ruff format .             # format
-uv run mypy                      # type check (strict)
-uv run pre-commit run --all-files
-```
-
-Use `uv` for everything. Never call `pip` directly. Add dependencies with `uv add <pkg>` (or `uv add --dev <pkg>`) so `uv.lock` stays in sync, and commit `uv.lock`.
-
-### Flutter (the target stack, #60)
 
 ```bash
 flutter pub get                                   # resolve the Dart workspace (one root pubspec.lock)
@@ -40,93 +25,97 @@ dart analyze --fatal-infos                        # strict analysis
 (cd apps/notelore && flutter test --coverage)                         # app tests + lcov
 (cd packages/notelore_core && dart test -t live)                       # live provider tests (keys in env, opt-in)
 dart run tool/coverage_gate.dart packages/notelore_core/coverage/lcov.info apps/notelore/coverage/lcov.info
+(cd apps/notelore && flutter run --dart-define-from-file=../../.env)  # run the app, with Drive sign-in
 (cd apps/notelore && flutter build apk --debug)   # Android; also `windows`, `macos`
-(cd apps/notelore && flutter run --dart-define-from-file=../../.env)  # with Drive sign-in (OAuth ids from .env)
 ```
 
-Add Dart dependencies with `dart pub add` (or `flutter pub add`) in the package that needs them; commit the root `pubspec.lock`.
+Add dependencies with `dart pub add` (or `flutter pub add`) in the package that needs them; commit the root `pubspec.lock`. On Windows, local plugin builds need Developer Mode (symlinks).
 
-## Architecture (target)
+## Architecture
 
-A monorepo. Every device (desktop, Android, later iOS) syncs the same notes through the same Drive folder, so the note format, merge rules and manifest must behave identically everywhere.
-
-**Moving to Flutter (#60).** The target is one Dart codebase for Android, iOS, Windows and macOS: `packages/notelore_core` (pure Dart, no Flutter) and `apps/notelore` (the Flutter app), in a Dart pub workspace. The port goes one milestone at a time (#61–#70), test-first against the same fixtures in `spec/fixtures/notes`. Until it reaches parity, the Python packages below are the reference implementation; they are retired in #69. Do not add features to the Python side; port them.
+A monorepo and a Dart pub workspace. Every device syncs the same notes through the same Drive folder, so the note format, merge rules and manifest behave identically everywhere.
 
 ```
-packages/core/src/notelore/       notelore-core: shared by every app (import: notelore)
-apps/cli/src/notelore_cli/        notelore: the desktop command (import: notelore_cli)
-apps/mobile/                      Briefcase (BeeWare) app: Android now, iOS later (#50)
-tests/                            mirrors both trees (tests/cli/ for the desktop app)
+packages/notelore_core/   pure Dart, no Flutter: everything that is not UI
+apps/notelore/            the Flutter app: Android, iOS, Windows, macOS
+spec/fixtures/            the frozen cross-implementation contract (see Testing)
+tool/                     the coverage gate
 ```
 
-Core (`packages/core/src/notelore/`):
+Core (`packages/notelore_core/lib/src/`):
 
-- `agent.py` — tool-use loop driving the active LLM.
-- `tools.py` — the narrow tools exposed to the agent (see `docs/PLAN.md`). Tool contracts live in the module docstring.
-- `providers/` — `LLMProvider` protocol + Anthropic, OpenAI, Gemini, Ollama implementations and key validation. The message translations were **ported from littlepress-ai** (`src/providers/llm.py`, `src/providers/validator.py`, same author, MIT). They talk plain HTTPS through `providers/http.py` (stdlib + certifi), never the vendor SDKs: those need pydantic-core/jiter, which have no Android/iOS wheels (#51).
-- `store/format.py` — parse/serialize the note format. Pure functions, no I/O.
-- `store/notes.py` — file operations on the notes folder: atomic writes, archive, slugging.
-- `store/index.py` — SQLite (FTS5) index rebuilt from the files; decision lookups.
-- `sync/engine.py` — one sync pass against a `Remote`; `sync/drive.py` — Google Drive client (scope `drive.file` only).
-- `sync/manifest.py` — per-device record of last-synced state.
-- `sync/merge.py` — three-way merge; `sync/resolve.py` — LLM fallback only for true same-line conflicts.
-- `paths.py` — every filesystem location comes from here (see Development environment).
-- `secrets.py` — API keys and OAuth tokens via `keyring`; environment variables override for dev/CI.
-- `i18n.py` — structural strings (section headings, prompts) in English + Turkish; English fallback.
+- `paths.dart`: every filesystem location comes from here (see Development environment).
+- `i18n.dart`: structural strings (section headings) in English and Turkish; English fallback.
+- `text.dart`: Python-compatible line splitting, so notes split the same everywhere.
+- `store/front_matter.dart`, `store/format.dart`: parse/serialize the note format. Pure functions, no I/O. The YAML front matter is written byte for byte like the original reference (PyYAML).
+- `store/notes.dart`: file operations on the notes folder: atomic writes, archive, slugging.
+- `store/index.dart`: SQLite index (FTS5, `LIKE` fallback) rebuilt from the files; decision lookups.
+- `store/stale.dart`: deterministic cleanup candidates.
+- `providers/`: one `LlmProvider` interface over Anthropic, OpenAI, Gemini and Ollama, plain HTTPS through an injectable `Transport`, and key validation by listing models.
+- `agent.dart`: the tool-use loop; `tools.dart`: the narrow tools the agent may call (contracts in the library doc).
+- `sync/merge.dart`: decision table and three-way merge (a port of difflib); `sync/resolve.dart`: the model as last resort for same-line conflicts; `sync/manifest.dart`: per-device record of the last synced state; `sync/engine.dart`: one sync pass against a `Remote`.
+- `sync/drive.dart`: Google Drive as the `Remote` (scope `drive.file` only); `sync/google_auth.dart`: `DriveAuth` and the desktop loopback sign-in.
 
-Desktop app (`apps/cli/src/notelore_cli/`):
+App (`apps/notelore/lib/`):
 
-- `cli.py` — `notelore` console entry point.
-- `repl.py` — read loop, slash commands (`/model`, `/sync`, `/logout`, `/help`, `/exit`), provider picker.
-- `update.py` — daily update check and checksum-verified self-update of the packaged executables.
+- `main.dart`: opens the session on the platform folders.
+- `src/session.dart`: what the screens share: provider and key, agent, conversation, notes, Drive sync (one queue for chat turns and syncs).
+- `src/drive_auth.dart`: google_sign_in on phones, the loopback flow on the desktop.
+- `src/update.dart`: daily update check and checksum-verified self-update of the desktop app.
+- `src/app.dart`, `setup.dart`, `chat.dart`, `notes.dart`, `settings.dart`: the screens.
 
-Dependencies point one way: apps import the core, the core never imports an app.
+Dependencies point one way: the app imports the core, the core never imports Flutter or the app.
 
 ## Development environment
 
 ### Never touch real user data
 
-All paths are resolved in `notelore.paths`. Nothing else may build a path to user data.
+All paths are resolved in `NotelorePaths` (`paths.dart`). Nothing else may build a path to user data.
 
-- `NOTELORE_HOME` overrides the root for **everything** (notes folder, state dir, index). If it is relative, resolve it against the current working directory.
+- `NOTELORE_HOME` overrides the root for **everything** (notes folder, state dir, index). If it is relative, resolve it against the current working directory. A run with it also uses its own keystore entries (`notelore-dev.*`), so it never reads or overwrites the real app's keys.
 - `.claude/settings.json` sets `NOTELORE_HOME=.dev-home` for Claude Code sessions, so manual runs during development write into the gitignored `.dev-home/`, never into the maintainer's real notes.
-- Without the override: notes go to `~/Notelore/` (visible on purpose, the user opens it in other tools); state (index, manifest, sync base copies) goes to `platformdirs.user_data_dir("notelore")`.
-- Tests always use `tmp_path` and set `NOTELORE_HOME` through a fixture in `tests/conftest.py`.
+- Without the override: on the desktop the notes go to a visible `~/Notelore/` (the user opens it in other tools); on a phone to the app's documents. State (index, manifest, sync base copies, settings) goes to the app support folder.
+- Tests always use temp folders.
 
 ### No network in tests
 
-`pytest-socket` disables sockets for the whole suite. Provider and Drive code is tested against fakes. Real API tests are marked `@pytest.mark.live` plus `@pytest.mark.enable_socket`, are skipped by default, and read keys from env vars (`NOTELORE_ANTHROPIC_API_KEY`, `NOTELORE_OPENAI_API_KEY`, `NOTELORE_GEMINI_API_KEY`). Use a dedicated Drive test folder for live Drive tests, never the real one.
+Provider and Drive code is tested against fakes: an injectable `Transport`, `MockClient`, an in-memory Drive, loopback servers on 127.0.0.1. Real API tests are tagged `live`, skip themselves unless their key is in the environment (`NOTELORE_ANTHROPIC_API_KEY`, `NOTELORE_OPENAI_API_KEY`, `NOTELORE_GEMINI_API_KEY`), and run with `dart test -t live`. Use a dedicated Drive test folder for live Drive tests, never the real one.
+
+### Secrets
+
+The Google OAuth client ids are never committed. Locally they live in the gitignored `.env` (`NOTELORE_GOOGLE_CLIENT_ID`, `NOTELORE_GOOGLE_CLIENT_SECRET`, `NOTELORE_GOOGLE_WEB_CLIENT_ID`) and reach the app through `--dart-define-from-file`. For releases they come from GitHub secrets of the same names, like the Android release key (`NOTELORE_ANDROID_*`). API keys and Google refresh tokens live in the platform keystore (`flutter_secure_storage`).
 
 ### Cross-platform rules
 
-- `pathlib` only; no string path concatenation (ruff `PTH` rules enforce this).
-- Always read/write text with `encoding="utf-8"`; write with `newline="\n"` so notes are byte-identical on every OS (this matters for sync hashes).
-- Atomic writes: write to a temp file in the same directory, `fsync`, then `os.replace`. On Windows `os.replace` can fail with `PermissionError` if another process (antivirus, Obsidian) holds the file; retry briefly with backoff.
+- `package:path` for every path; no string concatenation of paths.
+- Read and write note text as UTF-8 with `\n` line endings, so notes are byte-identical on every OS (this matters for sync hashes).
+- Atomic writes: write to a temp file in the same directory, flush, then rename. On Windows the rename can fail while another process (antivirus, Obsidian) holds the file; retry briefly with backoff (`moveWithRetry`).
 - Filenames: lowercase ASCII slugs (Turkish characters transliterated, e.g. `ş→s`, `ı→i`), no Windows-reserved names (`con`, `prn`, `aux`, `nul`, `com1`...) or characters `<>:"/\|?*`, max ~100 chars. macOS and Windows filesystems are case-insensitive: two titles that differ only in case map to the same file.
 - Normalize all text to Unicode NFC before hashing or comparing (macOS may hand back NFD).
 - Dates in notes: local calendar date `YYYY-MM-DD`. Machine timestamps: timezone-aware UTC.
-- No shell-specific subprocess calls. Open URLs with `webbrowser`, not `open`/`start`.
-- Verify SQLite FTS5 availability at startup; fall back to `LIKE` search if missing (there is a test for both paths).
+- Open URLs with `url_launcher`. Platform tools (`tar`, `ditto`) only where the platform is known, and injectable for tests.
+- SQLite comes bundled with FTS5 (`sqlite3` package); the `LIKE` fallback stays tested.
 
 ## Testing (TDD)
 
-All new production code is written test-first: RED (one minimal failing test, watch it fail for the right reason) → GREEN (minimal code) → REFACTOR (tests stay green).
+All new production code is written test-first: RED (one minimal failing test, watch it fail for the right reason) → GREEN (minimal code) → REFACTOR (tests stay green). Line coverage is 100% for both packages, enforced by `tool/coverage_gate.dart` in CI and tracked in SonarCloud.
 
-- Tests mirror the source tree (`packages/core/src/notelore/store/format.py` → `tests/store/test_format.py`, `apps/cli/src/notelore_cli/repl.py` → `tests/cli/test_repl.py`).
-- Prefer real code and real files in `tmp_path`; mock only external services (LLM APIs, Drive).
+- Tests mirror the source tree (`lib/src/store/format.dart` → `test/store/format_test.dart`).
+- Prefer real code and real files in temp folders; fake only external services (LLM APIs, Drive, Google sign-in, path_provider).
 - Bug fixes start with a regression test.
-- The note format has round-trip tests: parse → serialize must return identical bytes for every fixture in `spec/fixtures/notes/`. `spec/` is the cross-implementation contract: `spec/fixtures/front-matter.json` (how PyYAML writes and reads front-matter values) `spec/fixtures/parsed.json` (the reference parse of every fixture) and `spec/fixtures/merge.json` (how the reference three-way merge cuts clean parts and conflicts) are generated by `spec/tools/` from the Python reference; the Dart port is tested against them.
+- `spec/fixtures/` is the frozen contract from the original Python reference: `notes/` (byte-for-byte round trip, including CRLF and Turkish), `front-matter.json` (how PyYAML wrote and read front-matter values), `parsed.json` (the reference parse of every note) and `merge.json` (how the reference three-way merge cut clean parts and conflicts). Change a fixture only together with a deliberate format change.
 
 ## Language
 
-All code, comments, docs, commit messages and CLI output are in English. The maintainer chats in Turkish; that does not leak into the repo. Exceptions: Turkish test fixtures (when testing non-ASCII handling) and the structured translation table in `i18n.py`.
+All code, comments, docs, commit messages and app text are in English. The maintainer chats in Turkish; that does not leak into the repo. Exceptions: Turkish test fixtures (when testing non-ASCII handling) and the translation table in `i18n.dart`.
 
-At runtime, the agent answers in the language the user writes in, and writes note *content* in that language. Structural headings come from `i18n.py`; the parser accepts every known variant.
+At runtime, the agent answers in the language the user writes in, and writes note *content* in that language. Structural headings come from `i18n.dart`; the parser accepts every known variant.
 
 ## Workflow
 
 - **Commits:** Conventional Commits (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`). CI config changes are `ci:`.
-- **Branches:** one branch per feature/fix, `<type>/<slug>` (e.g. `feat/note-format-parser`), merged via PR with summary, context and test plan. `main` is protected by a repository ruleset: every change goes through a PR (docs too), the lint, test matrix, SonarCloud and claude-review checks must pass, and force-push and deletion are blocked. The only bypass is the release deploy key (`RELEASE_DEPLOY_KEY`), which the manual release workflow uses to push its version commit and tag.
+- **Branches:** one branch per feature/fix, `<type>/<slug>` (e.g. `feat/note-format-parser`), merged via PR with summary, context and test plan. `main` is protected by a repository ruleset: every change goes through a PR (docs too), the Flutter, CI script, SonarCloud and claude-review checks must pass, and force-push and deletion are blocked. The only bypass is the release deploy key (`RELEASE_DEPLOY_KEY`), which the manual release workflow uses to push its version commit and tag.
+- **Releases:** manual (`gh workflow run release.yml`). Python Semantic Release (configured in `releaserc.toml`) bumps both pubspec versions from the Conventional Commits; the workflow builds and attaches the app for Windows, macOS and Android with SHA-256 files.
 - **README stays current:** any user-visible change updates `README.md` in the same PR.
 - **Plan:** `docs/PLAN.md` is the single roadmap. Tick items off as PRs land; keep it short.
 

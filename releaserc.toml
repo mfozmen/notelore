@@ -1,0 +1,22 @@
+# Python Semantic Release (run by .github/workflows/release.yml, manual only).
+# Conventional Commits drive every version bump: feat -> minor, fix/perf ->
+# patch, BREAKING CHANGE -> major. Never edit the version by hand.
+[semantic_release]
+version_variables = [
+  "packages/notelore_core/pubspec.yaml:version",
+  "apps/notelore/pubspec.yaml:version",
+]
+commit_message = "chore(release): {version} [skip ci]"
+allow_zero_version = true
+major_on_zero = false
+
+[semantic_release.changelog.default_templates]
+changelog_file = "CHANGELOG.md"
+
+[semantic_release.branches.main]
+match = "main"
+
+[semantic_release.commit_parser_options]
+allowed_tags = ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
