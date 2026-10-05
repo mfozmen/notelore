@@ -28,9 +28,9 @@ String isoDate(DateTime date) =>
     '${date.month.toString().padLeft(2, '0')}-'
     '${date.day.toString().padLeft(2, '0')}';
 
-/// The date in [text], or null for an impossible one such as 2026-13-45, which the
+/// The date in `YYYY-MM-DD` [text], or null for an impossible one such as 2026-13-45, which the
 /// parser keeps verbatim instead of guessing (DateTime.parse would roll it over).
-DateTime? _parseDate(String text) {
+DateTime? parseIsoDate(String text) {
   final [year, month, day] = text.split('-').map(int.parse).toList();
   if (year < 1) return null; // Python's date has no year 0
   final date = DateTime.utc(year, month, day);
@@ -249,20 +249,20 @@ NoteEntry _parseBlock(String key, String block) {
   switch (key) {
     case 'decisions':
       if (_superseded.firstMatch(block) case final m?) {
-        final (date, superseded) = (_parseDate(m[1]!), _parseDate(m[4]!));
+        final (date, superseded) = (parseIsoDate(m[1]!), parseIsoDate(m[4]!));
         if (date != null && superseded != null) {
           return Decision(date, m[2]!, m[3]!, superseded: superseded);
         }
       } else if (_decision.firstMatch(block) case final m?) {
-        if (_parseDate(m[1]!) case final date?) return Decision(date, m[2]!, m[3]!);
+        if (parseIsoDate(m[1]!) case final date?) return Decision(date, m[2]!, m[3]!);
       }
     case 'notes':
       if (_entry.firstMatch(block) case final m?) {
-        if (_parseDate(m[1]!) case final date?) return Entry(date, m[2]!);
+        if (parseIsoDate(m[1]!) case final date?) return Entry(date, m[2]!);
       }
     case 'todo':
       if (_todo.firstMatch(block) case final m?) {
-        if (_parseDate(m[2]!) case final date?) return Todo(date, m[3]!, done: m[1] == 'x');
+        if (parseIsoDate(m[2]!) case final date?) return Todo(date, m[3]!, done: m[1] == 'x');
       }
   }
   return Raw(block);

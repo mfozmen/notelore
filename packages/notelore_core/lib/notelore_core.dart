@@ -5,7 +5,19 @@ library;
 export 'src/i18n.dart' show sectionHeading, sectionHeadings, sectionKey;
 export 'src/paths.dart' show NotelorePaths;
 export 'src/store/format.dart'
-    show Decision, Entry, Note, NoteEntry, NotANote, Raw, Section, Todo, isoDate, parse, serialize;
+    show
+        Decision,
+        Entry,
+        Note,
+        NoteEntry,
+        NotANote,
+        Raw,
+        Section,
+        Todo,
+        isoDate,
+        parse,
+        parseIsoDate,
+        serialize;
 export 'src/store/front_matter.dart' show dumpFrontMatter, loadFrontMatter;
 export 'src/store/index.dart' show Hit, NoteIndex, NoteInfo, fts5Available;
 export 'src/store/notes.dart'
@@ -31,3 +43,18 @@ export 'src/store/notes.dart'
         slugify,
         writeNote;
 export 'src/store/stale.dart' show Stale, findStaleNotes;
+export 'src/sync/engine.dart' show Remote, RemoteFile, SyncReport, sync;
+export 'src/sync/manifest.dart' show Manifest, ManifestEntry, checkedRel, contentHash;
+export 'src/sync/merge.dart'
+    show
+        Clean,
+        Conflict,
+        MergePart,
+        Merged,
+        Resolver,
+        SyncAction,
+        UnresolvedConflicts,
+        autoResolve,
+        decide,
+        threeWay;
+export 'src/sync/resolve.dart' show Ask, ModelResolver;
