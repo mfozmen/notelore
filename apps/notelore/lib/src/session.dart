@@ -235,6 +235,22 @@ class Session extends ChangeNotifier {
     notifyListeners();
   }
 
+  Timer? _autoSync;
+
+  /// While the app is open: a sync every [every], so other devices' changes
+  /// come in without asking. A tick is skipped while a sync or a chat turn runs.
+  void startAutoSync({Duration every = const Duration(minutes: 3)}) {
+    _autoSync?.cancel();
+    _autoSync = Timer.periodic(every, (_) {
+      if (driveConnected && !syncing && !busy) unawaited(syncNow());
+    });
+  }
+
+  void stopAutoSync() {
+    _autoSync?.cancel();
+    _autoSync = null;
+  }
+
   Future<void> syncNow() async {
     if (!driveConnected) return;
     syncing = true;
@@ -303,6 +319,7 @@ class Session extends ChangeNotifier {
 
   @override
   void dispose() {
+    stopAutoSync();
     _disposed = true;
     index.close();
     super.dispose();
