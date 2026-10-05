@@ -128,14 +128,28 @@ class Session extends ChangeNotifier {
     final trimmed = key.trim();
     final chosen = model ?? spec.defaultModel;
     await validate(spec, trimmed);
-    if (spec.requiresApiKey) await keys.write(key: _keyName(spec), value: trimmed);
+    final name = _keyName(spec);
+    final previous = spec.requiresApiKey ? await keys.read(key: name) : null;
+    if (spec.requiresApiKey) await keys.write(key: name, value: trimmed);
     try {
       _save(spec, chosen);
     } catch (_) {
-      if (spec.requiresApiKey) await keys.delete(key: _keyName(spec));
+      if (spec.requiresApiKey) await _restoreKey(name, previous);
       rethrow;
     }
     _use(spec, trimmed, chosen);
+  }
+
+  /// Puts back the key that was stored before (none: removes it). Best effort:
+  /// the settings error that caused this is the one the caller sees.
+  Future<void> _restoreKey(String name, String? previous) async {
+    try {
+      previous == null
+          ? await keys.delete(key: name)
+          : await keys.write(key: name, value: previous);
+    } on Exception {
+      // the keystore failing too must not hide the original error
+    }
   }
 
   /// A blank [chosen] goes back to the provider's default model.
