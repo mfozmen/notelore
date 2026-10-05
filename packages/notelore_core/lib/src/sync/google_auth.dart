@@ -70,6 +70,7 @@ class LoopbackAuth implements DriveAuth {
     http.Client? client,
     DateTime Function()? clock,
     this.wait = const Duration(minutes: 5),
+    this.timeout = const Duration(seconds: 30),
   }) : _client = client ?? http.Client(),
        clock = clock ?? DateTime.timestamp;
 
@@ -84,6 +85,9 @@ class LoopbackAuth implements DriveAuth {
 
   /// How long the sign-in waits for the browser to come back.
   final Duration wait;
+
+  /// How long a token request may take before it counts as offline.
+  final Duration timeout;
   final http.Client _client;
 
   String? _access;
@@ -103,7 +107,8 @@ class LoopbackAuth implements DriveAuth {
     try {
       final redirect = 'http://127.0.0.1:${server.port}';
       // Listening before the browser opens: its redirect can come back at once.
-      final arrival = server.first.timeout(wait);
+      // Anything else on the port (a favicon fetch, a prefetch) gets a 404.
+      final arrival = server.firstWhere(_isRedirect).timeout(wait);
       await openBrowser(
         Uri.parse(_authorize).replace(
           queryParameters: {
@@ -149,6 +154,14 @@ class LoopbackAuth implements DriveAuth {
     }
   }
 
+  static bool _isRedirect(HttpRequest request) {
+    final query = request.uri.queryParameters;
+    if (query.containsKey('code') || query.containsKey('error')) return true;
+    request.response.statusCode = HttpStatus.notFound;
+    unawaited(request.response.close());
+    return false;
+  }
+
   @override
   Future<String> token({bool refresh = false}) async {
     final valid =
@@ -161,7 +174,7 @@ class LoopbackAuth implements DriveAuth {
     } on HttpError catch (error) {
       if (error.status != 400 || !error.message.contains('invalid_grant')) rethrow;
       await saveRefreshToken(null); // revoked or expired for good: sign in again
-      throw const NotSignedIn('Google Drive access was revoked or expired; connect again');
+      throw const NotSignedIn('Google Drive access was revoked or expired');
     }
     return _access!;
   }
@@ -172,10 +185,19 @@ class LoopbackAuth implements DriveAuth {
   }
 
   Future<Map<String, Object?>> _post(Map<String, String> form) async {
-    final response = await _client.post(
-      Uri.parse(_token),
-      body: {...form, 'client_id': clientId, 'client_secret': clientSecret},
-    );
+    final http.Response response;
+    try {
+      response = await _client
+          .post(
+            Uri.parse(_token),
+            body: {...form, 'client_id': clientId, 'client_secret': clientSecret},
+          )
+          .timeout(timeout);
+    } on http.ClientException catch (error) {
+      throw NetworkError(error.message);
+    } on TimeoutException {
+      throw const NetworkError('Google sign-in did not answer in time');
+    }
     final text = utf8.decode(response.bodyBytes);
     if (response.statusCode >= 400) throw HttpError(response.statusCode, text);
     return (jsonDecode(text) as Map).cast<String, Object?>();

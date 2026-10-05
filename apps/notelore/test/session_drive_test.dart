@@ -106,6 +106,19 @@ void main() {
     expect(session.syncStatus, 'Google Drive: The user has exceeded their Drive storage quota');
   });
 
+  test('a note another program holds is retried on the next sync', () async {
+    final harness = Harness(auth: FakeAuth()..granted = true);
+    harness.remote.failure = const FileSystemException('Cannot rename file', 'topics/t.md');
+    final session = harness.session();
+    await session.load();
+    await session.syncDone;
+    expect(session.driveConnected, isTrue);
+    expect(
+      session.syncStatus,
+      'A note is in use by another program (Cannot rename file); the next sync retries.',
+    );
+  });
+
   test('revoked access disconnects and asks to connect again', () async {
     final harness = Harness(auth: FakeAuth()..granted = true);
     harness.remote.failure = const NotSignedIn('Google Drive access was revoked or expired');

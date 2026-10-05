@@ -165,6 +165,45 @@ void main() {
     expect(stored, isNull);
   });
 
+  test('offline while refreshing is a NetworkError, so the sync says offline', () async {
+    stored = 'refresh-1';
+    final down = LoopbackAuth(
+      clientId: 'c',
+      clientSecret: 's',
+      openBrowser: (_) async {},
+      readRefreshToken: () async => stored,
+      saveRefreshToken: (token) async => stored = token,
+      client: MockClient((_) async => throw http.ClientException('no route to host')),
+    );
+    await expectLater(down.token(), throwsA(isA<NetworkError>()));
+    final slow = LoopbackAuth(
+      clientId: 'c',
+      clientSecret: 's',
+      openBrowser: (_) async {},
+      readRefreshToken: () async => stored,
+      saveRefreshToken: (token) async => stored = token,
+      client: MockClient((_) => Completer<http.Response>().future),
+      timeout: const Duration(milliseconds: 10),
+    );
+    await expectLater(slow.token(), throwsA(isA<NetworkError>()));
+    expect(stored, 'refresh-1'); // offline is not a revocation
+  });
+
+  test('stray requests to the loopback port do not end the sign-in', () async {
+    Future<void> strayThenSignIn(Uri url) async {
+      final redirect = Uri.parse(url.queryParameters['redirect_uri']!);
+      final client = HttpClient();
+      final favicon = await (await client.getUrl(redirect.replace(path: '/favicon.ico'))).close();
+      expect(favicon.statusCode, 404);
+      await favicon.drain<void>();
+      client.close();
+      await browser()(url);
+    }
+
+    await auth(openBrowser: strayThenSignIn).signIn();
+    expect(stored, 'refresh-1');
+  });
+
   test('a browser that never comes back times out', () async {
     await expectLater(
       auth(openBrowser: (_) async {}, wait: const Duration(milliseconds: 50)).signIn(),
