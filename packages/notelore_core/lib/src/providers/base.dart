@@ -23,6 +23,7 @@ final class ProviderSpec {
     required this.defaultModel,
     this.keyUrl,
     this.keySteps = const [],
+    required this.cost,
   });
 
   final String name;
@@ -31,6 +32,9 @@ final class ProviderSpec {
   final String defaultModel;
   final String? keyUrl;
   final List<String> keySteps;
+
+  /// What using it costs, shown before a key is asked for.
+  final String cost;
 }
 
 const providerSpecs = [
@@ -39,6 +43,9 @@ const providerSpecs = [
     'Claude (Anthropic)',
     requiresApiKey: true,
     defaultModel: 'claude-sonnet-5-5',
+    cost:
+        'Billed per use through the Anthropic API. A Claude Pro or Max subscription cannot '
+        'be used in other apps.',
     keyUrl: 'https://console.anthropic.com/settings/keys',
     keySteps: [
       'Sign in to the Anthropic Console (a free account is enough).',
@@ -51,6 +58,9 @@ const providerSpecs = [
     'GPT (OpenAI)',
     requiresApiKey: true,
     defaultModel: 'gpt-4o-mini',
+    cost:
+        'Billed per use through the OpenAI API. Using a ChatGPT Plus or Pro plan here is '
+        'not supported yet.',
     keyUrl: 'https://platform.openai.com/api-keys',
     keySteps: [
       'Sign in to the OpenAI Platform.',
@@ -63,6 +73,9 @@ const providerSpecs = [
     'Gemini (Google)',
     requiresApiKey: true,
     defaultModel: 'gemini-2.5-flash',
+    cost:
+        'Free with a key from a Google AI Studio project without billing: rate limited, and '
+        'Google may use free-tier requests to improve its products. Billed per use otherwise.',
     keyUrl: 'https://aistudio.google.com/apikey',
     keySteps: [
       'Sign in to Google AI Studio.',
@@ -70,7 +83,13 @@ const providerSpecs = [
       'Paste the key below.',
     ],
   ),
-  ProviderSpec('ollama', 'Ollama (local)', requiresApiKey: false, defaultModel: 'llama3.2'),
+  ProviderSpec(
+    'ollama',
+    'Ollama (local)',
+    requiresApiKey: false,
+    defaultModel: 'llama3.2',
+    cost: 'Free: the model runs on this computer.',
+  ),
 ];
 
 ProviderSpec findProvider(String name) => providerSpecs.firstWhere(

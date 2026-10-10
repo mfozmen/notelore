@@ -39,6 +39,11 @@ void main() {
     expect(findProvider('anthropic').displayName, 'Claude (Anthropic)');
     expect(providerSpecs.map((s) => s.name), ['anthropic', 'openai', 'gemini', 'ollama']);
     expect(findProvider('anthropic').keySteps, isNotEmpty);
+    // What each one costs, so nobody is surprised by a bill (#95).
+    expect(findProvider('anthropic').cost, contains('Pro or Max subscription cannot'));
+    expect(findProvider('openai').cost, contains('per use'));
+    expect(findProvider('gemini').cost, contains('without billing'));
+    expect(findProvider('ollama').cost, startsWith('Free'));
     expect(findProvider('ollama').requiresApiKey, isFalse);
     expect(
       () => findProvider('bard'),

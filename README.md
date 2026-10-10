@@ -31,6 +31,10 @@ Open Notelore and pick a model:
 1. **Claude**, **GPT** or **Gemini**: the app shows where to create an API key. Paste the key and Notelore checks it with a free request (it lists the models). The key is kept in the platform keystore (Android Keystore, macOS Keychain, Windows Credential Manager), never in a file.
 2. **Ollama**: no key. Start Ollama first; Notelore checks that it answers on `http://localhost:11434` (or `OLLAMA_HOST`).
 
+What it costs (the setup screen says it too):
+- **Free**: Gemini with a key from a Google AI Studio project that has no billing. It is rate limited, and Google may use free-tier requests to improve its products. Ollama is also free.
+- **Billed per use**: Claude and GPT through their APIs. A Claude Pro or Max subscription cannot be used in other apps (Anthropic's terms). Using a ChatGPT Plus or Pro plan is planned ([#103](https://github.com/mfozmen/notelore/issues/103)).
+
 Then just talk: *"Mopsos için not al: veritabanı olarak SQLite seçtik, tek kullanıcı."*
 - **Notes**: lists every project and topic and opens each one read-only.
 - **Settings**: pick the model from the ones your key can use (the list comes from the provider; refresh it there, or type any model name), or log out. Logging out forgets every saved key on that device; the notes stay.

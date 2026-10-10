@@ -91,6 +91,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Anthropic Console'), findsOneWidget);
     expect(find.text('https://console.anthropic.com/settings/keys'), findsOneWidget);
+    expect(find.textContaining('per use'), findsOneWidget); // what it costs (#95)
     await tester.tap(find.text('Connect'));
     await tester.pumpAndSettle();
     expect(find.text('Paste the key first.'), findsOneWidget);
