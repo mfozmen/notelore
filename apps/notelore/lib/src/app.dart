@@ -136,9 +136,16 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     }
     try {
       await widget.updater!.relaunch();
-    } on Exception {
-      // Installed, but the new version could not be started from here.
-      if (mounted) setState(() => _installed = true);
+    } on Exception catch (error) {
+      if (!mounted) return;
+      setState(() {
+        if (widget.updater!.system == 'windows') {
+          // Windows installs by running the setup: nothing has changed yet.
+          _updateProblem = 'The setup could not start: $error';
+        } else {
+          _installed = true; // macOS: swapped in, only the restart failed
+        }
+      });
       return;
     }
     widget.exitApp(0);

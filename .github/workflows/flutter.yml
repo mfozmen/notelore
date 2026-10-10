@@ -102,3 +102,27 @@ jobs:
       - name: Build ${{ matrix.target }}
         working-directory: apps/notelore
         run: flutter build ${{ matrix.target }} --debug
+      # The installers are built on every PR too, so a release never meets a broken one.
+      - name: Install Inno Setup
+        if: runner.os == 'Windows'
+        run: choco install innosetup --no-progress -y
+      - name: Package
+        shell: bash
+        run: bash tool/package_desktop.sh 0.0.0 dist Debug
+      - name: The setup installs and uninstalls
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          target="$RUNNER_TEMP/notelore-install"
+          MSYS_NO_PATHCONV=1 dist/notelore-app-0.0.0-windows-x64-setup.exe             /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /NOLAUNCH "/DIR=$(cygpath -w "$target")"
+          test -f "$target/notelore.exe"
+          MSYS_NO_PATHCONV=1 "$target/unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
+          sleep 5 # the uninstaller finishes in a copy of itself
+          test ! -f "$target/notelore.exe"
+      - name: The dmg holds the app
+        if: runner.os == 'macOS'
+        run: |
+          hdiutil attach -nobrowse -readonly -mountpoint "$RUNNER_TEMP/dmg" dist/notelore-app-0.0.0-macos.dmg
+          test -x "$RUNNER_TEMP/dmg/notelore.app/Contents/MacOS/notelore"
+          test -L "$RUNNER_TEMP/dmg/Applications"
+          hdiutil detach "$RUNNER_TEMP/dmg"

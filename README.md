@@ -14,11 +14,11 @@ Tell it things. It writes tidy, human-readable Markdown notes on your disk. Ask 
 ## Install
 
 **The app** (Windows, macOS, Android): download it from the [releases page](https://github.com/mfozmen/notelore/releases).
-- **Windows**: `notelore-app-<version>-windows-x64.zip`. Unzip it into a folder of your own, such as `%LOCALAPPDATA%\Notelore`, and run `notelore.exe`.
-- **macOS**: `notelore-app-<version>-macos.zip` contains `notelore.app`. It is not notarized yet, so the first time right-click it and choose *Open*.
+- **Windows**: `notelore-app-<version>-windows-x64-setup.exe`. Run it; it installs for your user only (no admin rights) with a Start menu entry and an uninstaller. Windows may warn that the publisher is unknown, because the setup is not code-signed yet.
+- **macOS**: `notelore-app-<version>-macos.dmg`. Open it and drag `notelore.app` onto *Applications*. It is not notarized yet, so the first time right-click it and choose *Open*.
 - **Android**: `notelore-app-<version>-android.apk`. Allow installing from your browser or file manager when Android asks.
 
-The desktop app checks for a newer release once a day (silently skipped when offline). *Update and restart* downloads it and checks it against the SHA-256 published with the release; this catches corrupted or partial downloads, it is not a signature. Only then does it swap the new version in and restart. If the swap fails halfway, the previous version is put back. On Android, install the newer APK over the old one.
+The desktop app checks for a newer release once a day (silently skipped when offline). *Update and restart* downloads it and checks it against the SHA-256 published with the release; this catches corrupted or partial downloads, it is not a signature. Only then does it install it: on Windows the setup runs silently and restarts Notelore; on macOS the new app replaces the old one, which is put back if that fails halfway. On Android, install the newer APK over the old one.
 
 The old command line (`notelore-<version>-*.zip`, v0.2.0 and earlier) is retired. Newer releases carry no executable for it, so its `notelore update` reports one missing. Switch to the app instead: it reads the same `~/Notelore` folder.
 
