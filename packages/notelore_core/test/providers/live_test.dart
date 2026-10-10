@@ -14,7 +14,8 @@ import 'package:notelore_core/src/providers/validator.dart';
 import 'package:test/test.dart';
 
 void main() {
-  for (final spec in providerSpecs) {
+  // The ChatGPT plan needs an interactive browser sign-in: checked by hand (#103).
+  for (final spec in providerSpecs.where((s) => s.name != 'chatgpt')) {
     final variable = 'NOTELORE_${spec.name.toUpperCase()}_API_KEY';
     final key = Platform.environment[variable] ?? '';
     final skip = spec.requiresApiKey

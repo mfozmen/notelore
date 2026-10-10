@@ -41,7 +41,7 @@ class ScriptedProvider implements LlmProvider {
 /// Everything a session test needs: temp folders, an empty keystore and a
 /// provider that answers from [answers]. Validation passes unless [rejected].
 class Harness {
-  Harness({List<Object> answers = const [], this.rejected, this.auth}) {
+  Harness({List<Object> answers = const [], this.rejected, this.auth, this.chatGpt}) {
     final dir = Directory.systemTemp.createTempSync('notelore_app_');
     addTearDown(() => dir.deleteSync(recursive: true));
     paths = NotelorePaths(
@@ -64,6 +64,15 @@ class Harness {
   final remote = MemoryRemote();
   final created = <(String, String?, String?)>[];
 
+  /// The plan token each provider was built with (null for key providers).
+  final tokens = <BearerToken?>[];
+
+  /// The ChatGPT sign-in; none on phones.
+  final FakeAuth? chatGpt;
+
+  /// What the ChatGPT plan lists.
+  var planModels = <String>['gpt-plan-a', 'gpt-plan-b'];
+
   /// A session the test closes itself; pass [owned] false when an app takes it over.
   Session session({bool owned = true}) {
     final session = Session(
@@ -72,13 +81,19 @@ class Harness {
         if (rejected != null) throw rejected!;
         return models;
       },
-      makeProvider: (spec, key, {model}) {
+      makeProvider: (spec, key, {model, planToken}) {
         created.add((spec.name, key, model));
+        tokens.add(planToken);
         return provider;
       },
       today: today,
       driveAuth: auth,
       remoteFor: (_) => remote,
+      chatGpt: chatGpt,
+      listPlanModels: (token) async {
+        await token();
+        return planModels;
+      },
     );
     if (owned) addTearDown(session.dispose);
     return session;

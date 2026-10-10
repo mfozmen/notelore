@@ -42,6 +42,7 @@ Future<Session> openSession({Map<String, String>? environment, bool? mobile}) as
     paths,
     keySpace: keySpace,
     driveAuth: driveAuthFor(mobile: phone, keys: appKeys, keySpace: keySpace),
+    chatGpt: chatGptAuthFor(mobile: phone, keys: appKeys, keySpace: keySpace),
   );
   await session.load();
   return session;

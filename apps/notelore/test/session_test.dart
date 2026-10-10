@@ -83,7 +83,7 @@ void main() {
       harness.paths,
       keys: const _BrokenDelete(),
       validate: (spec, key) async => <String>[],
-      makeProvider: (spec, key, {model}) => harness.provider,
+      makeProvider: (spec, key, {model, planToken}) => harness.provider,
     );
     addTearDown(session.dispose);
     Directory(p.join(harness.paths.state.path, 'settings.json', 'blocker'))
@@ -147,7 +147,7 @@ void main() {
     final session = Session(
       harness.paths,
       validate: (spec, key) => calls++ == 0 ? Future.value(['a']) : answer.future,
-      makeProvider: (spec, key, {model}) => harness.provider,
+      makeProvider: (spec, key, {model, planToken}) => harness.provider,
     );
     addTearDown(session.dispose);
     await session.connect(findProvider('anthropic'), 'k');
@@ -327,7 +327,7 @@ void main() {
       harness.paths,
       keySpace: 'notelore-dev',
       validate: (spec, key) async => <String>[],
-      makeProvider: (spec, key, {model}) => harness.provider,
+      makeProvider: (spec, key, {model, planToken}) => harness.provider,
     );
     addTearDown(dev.dispose);
     await dev.connect(findProvider('anthropic'), 'dev-key');

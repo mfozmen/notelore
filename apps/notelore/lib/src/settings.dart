@@ -65,7 +65,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   expandedInsets: EdgeInsets.zero,
                   requestFocusOnTap: true,
                   label: const Text('Model'),
-                  helperText: 'Pick one or type a name; empty means ${session.spec!.defaultModel}',
+                  helperText: 'Pick one or type a name; empty means ${session.defaultModel}',
                   dropdownMenuEntries: [
                     for (final m in session.models) DropdownMenuEntry(value: m, label: m),
                   ],

@@ -9,56 +9,20 @@
 /// it is injected at build time all the same and never committed.
 library;
 
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-import 'dart:math';
-
-import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 
+import '../oauth.dart';
 import '../providers/http.dart';
 import 'drive.dart';
 
-abstract interface class DriveAuth {
-  Future<bool> signedIn();
+export '../oauth.dart' show NotSignedIn, SignInFailed;
 
-  /// Interactive: may open a browser or a system sheet.
-  Future<void> signIn();
-
-  /// A valid access token for [driveScope]; [refresh] after one was refused.
-  /// Throws [NotSignedIn] when the user has to sign in (again).
-  Future<String> token({bool refresh = false});
-
-  Future<void> signOut();
-}
-
-/// There is no usable Google sign-in: never signed in, or access was revoked.
-class NotSignedIn implements Exception {
-  const NotSignedIn([this.message = 'not signed in to Google Drive']);
-
-  final String message;
-
-  @override
-  String toString() => message;
-}
-
-/// The interactive sign-in did not complete.
-class SignInFailed implements Exception {
-  const SignInFailed(this.message);
-
-  final String message;
-
-  @override
-  String toString() => 'Google sign-in failed: $message';
-}
+/// What the sync needs from a Google sign-in; tokens are for [driveScope].
+typedef DriveAuth = OAuthSignIn;
 
 const _authorize = 'https://accounts.google.com/o/oauth2/v2/auth';
 const _token = 'https://oauth2.googleapis.com/token';
 const _revoke = 'https://oauth2.googleapis.com/revoke';
-const _page =
-    '<!doctype html><meta charset="utf-8"><title>Notelore</title>'
-    '<p style="font-family:sans-serif">You can close this tab and go back to Notelore.</p>';
 
 class LoopbackAuth implements DriveAuth {
   LoopbackAuth({
@@ -98,68 +62,34 @@ class LoopbackAuth implements DriveAuth {
 
   @override
   Future<void> signIn() async {
-    final random = Random.secure();
-    String secret(int bytes) =>
-        base64Url.encode(List.generate(bytes, (_) => random.nextInt(256))).replaceAll('=', '');
-    final verifier = secret(48);
-    final state = secret(16);
-    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    try {
-      final redirect = 'http://127.0.0.1:${server.port}';
-      // Listening before the browser opens: its redirect can come back at once.
-      // Anything else on the port (a favicon fetch, a prefetch) gets a 404.
-      final arrival = server.firstWhere(_isRedirect).timeout(wait);
-      await openBrowser(
-        Uri.parse(_authorize).replace(
-          queryParameters: {
-            'client_id': clientId,
-            'redirect_uri': redirect,
-            'response_type': 'code',
-            'scope': driveScope,
-            'access_type': 'offline',
-            'prompt': 'consent', // always hand out a refresh token
-            'state': state,
-            'code_challenge': base64Url
-                .encode(sha256.convert(ascii.encode(verifier)).bytes)
-                .replaceAll('=', ''),
-            'code_challenge_method': 'S256',
-          },
-        ),
-      );
-      final HttpRequest request;
-      try {
-        request = await arrival;
-      } on TimeoutException {
-        throw const SignInFailed('timed out waiting for the browser');
-      }
-      final answer = request.uri.queryParameters;
-      request.response
-        ..headers.contentType = ContentType.html
-        ..write(_page);
-      await request.response.close();
-      if (answer['error'] case final error?) throw SignInFailed(error);
-      if (answer['state'] != state || answer['code'] == null) {
-        throw const SignInFailed('the answer did not come from this sign-in');
-      }
-      final tokens = await _post({
-        'grant_type': 'authorization_code',
-        'code': answer['code']!,
-        'redirect_uri': redirect,
-        'code_verifier': verifier,
-      });
-      await saveRefreshToken(tokens['refresh_token']! as String);
-      _keep(tokens);
-    } finally {
-      await server.close(force: true);
-    }
-  }
-
-  static bool _isRedirect(HttpRequest request) {
-    final query = request.uri.queryParameters;
-    if (query.containsKey('code') || query.containsKey('error')) return true;
-    request.response.statusCode = HttpStatus.notFound;
-    unawaited(request.response.close());
-    return false;
+    final verifier = randomSecret(48);
+    final state = randomSecret(16);
+    final (:query, :redirect) = await loopbackRedirect(
+      authorizeUrl: (redirect) => Uri.parse(_authorize).replace(
+        queryParameters: {
+          'client_id': clientId,
+          'redirect_uri': redirect,
+          'response_type': 'code',
+          'scope': driveScope,
+          'access_type': 'offline',
+          'prompt': 'consent', // always hand out a refresh token
+          'state': state,
+          'code_challenge': pkceChallenge(verifier),
+          'code_challenge_method': 'S256',
+        },
+      ),
+      state: state,
+      openBrowser: openBrowser,
+      wait: wait,
+    );
+    final tokens = await _post({
+      'grant_type': 'authorization_code',
+      'code': query['code']!,
+      'redirect_uri': redirect,
+      'code_verifier': verifier,
+    });
+    await saveRefreshToken(tokens['refresh_token']! as String);
+    _keep(tokens);
   }
 
   @override
@@ -184,24 +114,13 @@ class LoopbackAuth implements DriveAuth {
     _expires = clock().add(Duration(seconds: tokens['expires_in']! as int));
   }
 
-  Future<Map<String, Object?>> _post(Map<String, String> form) async {
-    final http.Response response;
-    try {
-      response = await _client
-          .post(
-            Uri.parse(_token),
-            body: {...form, 'client_id': clientId, 'client_secret': clientSecret},
-          )
-          .timeout(timeout);
-    } on http.ClientException catch (error) {
-      throw NetworkError(error.message);
-    } on TimeoutException {
-      throw const NetworkError('Google sign-in did not answer in time');
-    }
-    final text = utf8.decode(response.bodyBytes);
-    if (response.statusCode >= 400) throw HttpError(response.statusCode, text);
-    return (jsonDecode(text) as Map).cast<String, Object?>();
-  }
+  Future<Map<String, Object?>> _post(Map<String, String> form) => postForm(
+    _client,
+    _token,
+    {...form, 'client_id': clientId, 'client_secret': clientSecret},
+    timeout: timeout,
+    service: 'Google',
+  );
 
   /// Forgets the token here and, best effort, revokes it at Google.
   @override

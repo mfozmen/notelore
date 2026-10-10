@@ -4,6 +4,7 @@ library;
 
 export 'src/agent.dart' show Agent, defaultMaxTurns, systemPrompt;
 export 'src/i18n.dart' show sectionHeading, sectionHeadings, sectionKey;
+export 'src/oauth.dart' show NotSignedIn, OAuthSignIn, SignInFailed;
 export 'src/paths.dart' show NotelorePaths;
 export 'src/providers/base.dart'
     show
@@ -15,6 +16,9 @@ export 'src/providers/base.dart'
         Tool,
         findProvider,
         providerSpecs;
+export 'src/providers/chatgpt.dart'
+    show BearerToken, ChatGptProvider, PlanLimitReached, chatGptUsageUrl, listChatGptModels;
+export 'src/providers/chatgpt_auth.dart' show ChatGptAuth;
 export 'src/providers/http.dart' show HttpError, NetworkError, Transport, defaultTransport;
 export 'src/providers/ollama.dart' show ollamaHost;
 export 'src/providers/providers.dart' show createProvider;
@@ -61,7 +65,7 @@ export 'src/store/notes.dart'
 export 'src/store/stale.dart' show Stale, findStaleNotes;
 export 'src/sync/drive.dart' show AccessToken, DriveRemote, driveScope;
 export 'src/sync/engine.dart' show Remote, RemoteFile, SyncReport, sync;
-export 'src/sync/google_auth.dart' show DriveAuth, LoopbackAuth, NotSignedIn, SignInFailed;
+export 'src/sync/google_auth.dart' show DriveAuth, LoopbackAuth;
 export 'src/sync/manifest.dart' show Manifest, ManifestEntry, checkedRel, contentHash;
 export 'src/sync/merge.dart'
     show

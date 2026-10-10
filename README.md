@@ -28,12 +28,14 @@ Releases are cut on demand from the Conventional Commit history on `main`: a `fe
 
 Open Notelore and pick a model:
 
+0. **ChatGPT plan** (Windows and macOS): *Continue with ChatGPT* signs in in your browser and lets Notelore use your ChatGPT Plus or Pro plan ("Sign in with ChatGPT"). There are no separate charges, within your plan's limits; *Manage usage* under the chat opens ChatGPT's usage settings. You can disconnect Notelore in ChatGPT's settings.
 1. **Claude**, **GPT** or **Gemini**: the app shows where to create an API key. Paste the key and Notelore checks it with a free request (it lists the models). The key is kept in the platform keystore (Android Keystore, macOS Keychain, Windows Credential Manager), never in a file.
 2. **Ollama**: no key. Start Ollama first; Notelore checks that it answers on `http://localhost:11434` (or `OLLAMA_HOST`).
 
 What it costs (the setup screen says it too):
 - **Free**: Gemini with a key from a Google AI Studio project that has no billing. It is rate limited, and Google may use free-tier requests to improve its products. Ollama is also free.
-- **Billed per use**: Claude and GPT through their APIs. A Claude Pro or Max subscription cannot be used in other apps (Anthropic's terms). Using a ChatGPT Plus or Pro plan is planned ([#103](https://github.com/mfozmen/notelore/issues/103)).
+- **Your ChatGPT plan**: no separate charges, within the plan's limits (desktop).
+- **Billed per use**: Claude and GPT through their APIs. A Claude Pro or Max subscription cannot be used in other apps (Anthropic's terms).
 
 Then just talk: *"Mopsos için not al: veritabanı olarak SQLite seçtik, tek kullanıcı."*
 - **Notes**: lists every project and topic and opens each one read-only.

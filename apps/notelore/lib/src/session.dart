@@ -22,7 +22,15 @@ import 'package:path/path.dart' as p;
 
 /// Checks a key and returns the chat models it can use.
 typedef Validate = Future<List<String>> Function(ProviderSpec spec, String key);
-typedef MakeProvider = LlmProvider Function(ProviderSpec spec, String? key, {String? model});
+typedef MakeProvider = LlmProvider Function(
+  ProviderSpec spec,
+  String? key, {
+  String? model,
+  BearerToken? planToken,
+});
+
+/// The models a ChatGPT plan can use.
+typedef ListPlanModels = Future<List<String>> Function(BearerToken token);
 typedef RemoteFor = Remote Function(DriveAuth auth);
 
 /// The platform keystore. On macOS the login keychain: the data-protection one
@@ -46,12 +54,28 @@ class Session extends ChangeNotifier {
     this.keys = appKeys,
     this.driveAuth,
     this.remoteFor = _driveRemote,
+    this.chatGpt,
+    this.listPlanModels = listChatGptModels,
   }) : index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path),
        manifest = Manifest(paths.state.path);
 
   final NotelorePaths paths;
   final Validate validate;
   final MakeProvider makeProvider;
+
+  /// "Sign in with ChatGPT" for the ChatGPT plan provider; null on phones.
+  final OAuthSignIn? chatGpt;
+  final ListPlanModels listPlanModels;
+
+  /// Set when the ChatGPT plan was connected for the first time on this device:
+  /// the screen shows OpenAI's "You're using your ChatGPT plan" once.
+  var showPlanWelcome = false;
+
+  /// The providers this device offers.
+  List<ProviderSpec> get providers => [
+    for (final spec in providerSpecs)
+      if (spec.name != 'chatgpt' || chatGpt != null) spec,
+  ];
 
   /// Tests pin it; the app uses the local date.
   final DateTime? today;
@@ -124,6 +148,7 @@ class Session extends ChangeNotifier {
       if (found == null) return;
       final key = found.requiresApiKey ? await keys.read(key: _keyName(found)) : '';
       if (key == null) return; // the keystore lost it: set up again
+      if (found.name == 'chatgpt' && !(await chatGpt?.signedIn() ?? false)) return;
       models = switch (saved['models']) {
         final List<Object?> listed => listed.whereType<String>().toList(),
         _ => const [], // settings from before the model list
@@ -138,8 +163,10 @@ class Session extends ChangeNotifier {
   /// written, the key is taken back out of the keystore.
   Future<void> connect(ProviderSpec spec, String key, {String? model}) async {
     final trimmed = key.trim();
-    final chosen = model ?? spec.defaultModel;
-    final listed = await validate(spec, trimmed);
+    final listed = await _models(spec, trimmed, signIn: true);
+    // A provider without a fixed default (the ChatGPT plan) starts on the first it lists.
+    final chosen = model ?? (spec.defaultModel.isNotEmpty ? spec.defaultModel : listed.firstOrNull);
+    if (chosen == null) throw TransientValidationError('${spec.displayName} lists no models');
     final name = _keyName(spec);
     final previous = spec.requiresApiKey ? await keys.read(key: name) : null;
     if (spec.requiresApiKey) await keys.write(key: name, value: trimmed);
@@ -150,7 +177,21 @@ class Session extends ChangeNotifier {
       rethrow;
     }
     models = listed;
+    // Set before _use: the home screen it brings up shows the welcome.
+    if (spec.name == 'chatgpt' && await keys.read(key: '$keySpace.chatgpt.welcomed') == null) {
+      showPlanWelcome = true;
+      await keys.write(key: '$keySpace.chatgpt.welcomed', value: 'yes');
+    }
     _use(spec, trimmed, chosen);
+  }
+
+  /// The models [spec] offers. A key is checked by listing them; the ChatGPT
+  /// plan signs in first when [signIn] (only on connect: a refresh never opens
+  /// a browser).
+  Future<List<String>> _models(ProviderSpec spec, String key, {required bool signIn}) async {
+    if (spec.name != 'chatgpt') return validate(spec, key);
+    if (signIn) await chatGpt!.signIn();
+    return listPlanModels(chatGpt!.token);
   }
 
   /// Puts back the key that was stored before (none: removes it). Best effort:
@@ -165,14 +206,19 @@ class Session extends ChangeNotifier {
     }
   }
 
-  /// A blank [chosen] goes back to the provider's default model.
+  /// The provider's default model; for one without a fixed default (the
+  /// ChatGPT plan), the first it lists.
+  String get defaultModel =>
+      spec!.defaultModel.isNotEmpty ? spec!.defaultModel : (models.firstOrNull ?? '');
+
+  /// A blank [chosen] goes back to [defaultModel].
   Future<void> setModel(String chosen) async {
     final current = spec;
     if (current == null) return;
     final key = current.requiresApiKey ? await keys.read(key: _keyName(current)) : '';
     if (key == null) return logout(); // the keystore lost it: set up again
     final trimmed = chosen.trim();
-    final next = trimmed.isEmpty ? current.defaultModel : trimmed;
+    final next = trimmed.isEmpty ? defaultModel : trimmed;
     _save(current, next, models);
     _use(current, key, next);
   }
@@ -185,7 +231,7 @@ class Session extends ChangeNotifier {
     if (current == null || chosen == null) return;
     final key = current.requiresApiKey ? await keys.read(key: _keyName(current)) : '';
     if (key == null) return logout(); // the keystore lost it: set up again
-    final listed = await validate(current, key);
+    final listed = await _models(current, key, signIn: false);
     // Logged out or switched provider while the list was on its way: it is stale.
     if (spec != current || model != chosen) return;
     _save(current, chosen, listed);
@@ -199,6 +245,7 @@ class Session extends ChangeNotifier {
     for (final spec in providerSpecs.where((s) => s.requiresApiKey)) {
       await keys.delete(key: _keyName(spec));
     }
+    await chatGpt?.signOut();
     final settings = File(_settings);
     if (settings.existsSync()) settings.deleteSync();
     spec = null;
@@ -214,7 +261,12 @@ class Session extends ChangeNotifier {
     spec = chosen;
     model = chosenModel;
     final toolbox = Toolbox(paths.notes.path, index, today: today);
-    _provider = makeProvider(chosen, key, model: chosenModel);
+    _provider = makeProvider(
+      chosen,
+      key,
+      model: chosenModel,
+      planToken: chosen.name == 'chatgpt' ? chatGpt!.token : null,
+    );
     _agent = Agent(_provider!, toolbox, today: today);
     notifyListeners();
   }

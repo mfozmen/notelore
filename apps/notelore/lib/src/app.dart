@@ -93,7 +93,28 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.session.startAutoSync();
+    if (widget.session.showPlanWelcome) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _welcomePlan());
+    }
     if (widget.updater case final updater?) unawaited(_check(updater));
+  }
+
+  /// OpenAI's first sign-in confirmation for plan usage, shown once per device.
+  Future<void> _welcomePlan() async {
+    widget.session.showPlanWelcome = false;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("You're using your ChatGPT plan"),
+        content: const Text(
+          "Notelore's answers count against your ChatGPT Plus or Pro plan, with no separate "
+          'charges. You can see and manage that usage in ChatGPT.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Got it')),
+        ],
+      ),
+    );
   }
 
   /// Back in the foreground (a phone app reopened, a desktop window focused):
