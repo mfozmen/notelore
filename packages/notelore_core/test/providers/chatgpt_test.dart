@@ -184,6 +184,13 @@ void main() {
     );
   });
 
+  test('lines that are not JSON events are skipped', () async {
+    final api = FakeResponses([
+      http.Response(': keep-alive comment\ndata: [DONE]\n\n${sse([completed([])])}', 200),
+    ]);
+    expect((await provider(api).turn('', [], [])).content, isEmpty);
+  });
+
   test('an answer cut short says so', () async {
     final api = FakeResponses([
       stream([
@@ -343,6 +350,11 @@ void main() {
     expect(api.requests.single.method, 'GET');
     final odd = FakeResponses([http.Response('{"data": []}', 200)]);
     expect(await listChatGptModels(token, client: odd.client), isEmpty);
+  });
+
+  test('the model list with its own client: closed again, even when signed out', () async {
+    Future<String> signedOut({bool refresh = false}) async => throw const NotSignedIn();
+    await expectLater(listChatGptModels(signedOut), throwsA(isA<NotSignedIn>()));
   });
 
   test('the spec and the default client', () {

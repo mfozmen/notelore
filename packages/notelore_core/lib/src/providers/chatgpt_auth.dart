@@ -116,13 +116,23 @@ class ChatGptAuth implements OAuthSignIn {
     final valid =
         _access != null && clock().isBefore(_expires.subtract(const Duration(minutes: 1)));
     if (valid && !refresh) return _access!;
+    // One refresh at a time: refresh tokens rotate, and reusing one is fatal.
+    return _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
+  }
+
+  Future<String>? _refreshing;
+
+  Future<String> _refresh() async {
     final stored = await read('refresh_token');
-    if (stored == null) throw const NotSignedIn('not signed in with ChatGPT');
+    final clientId = await read('client_id');
+    if (stored == null || clientId == null) {
+      throw const NotSignedIn('not signed in with ChatGPT');
+    }
     try {
       await _keep(
         await _post({
           'grant_type': 'refresh_token',
-          'client_id': '${await read('client_id')}',
+          'client_id': clientId,
           'refresh_token': stored,
         }),
       );
