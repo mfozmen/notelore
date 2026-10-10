@@ -70,6 +70,7 @@ class FakeSignIn extends GoogleSignInPlatform with MockPlatformInterfaceMixin {
 }
 
 void main() {
+  planTests();
   late FakeSignIn platform;
   setUp(() {
     platform = FakeSignIn();
@@ -137,5 +138,23 @@ void main() {
     expect(await auth.readRefreshToken(), 'r');
     await auth.saveRefreshToken(null);
     expect(await auth.readRefreshToken(), isNull);
+  });
+}
+
+void planTests() {
+  test('the ChatGPT plan sign-in: desktop only, kept in the keystore', () async {
+    const keys = FlutterSecureStorage();
+    expect(chatGptAuthFor(mobile: true, keys: keys, keySpace: 'n'), isNull);
+    final launcher = FakeLauncher();
+    UrlLauncherPlatform.instance = launcher;
+    final auth =
+        chatGptAuthFor(mobile: false, keys: keys, keySpace: 'notelore-dev')! as ChatGptAuth;
+    await auth.openBrowser(Uri.parse('https://auth.openai.com/x'));
+    expect(launcher.opened, ['https://auth.openai.com/x']);
+    await auth.write('client_id', 'oaiapp_1');
+    expect(await keys.read(key: 'notelore-dev.chatgpt.client_id'), 'oaiapp_1');
+    expect(await auth.read('client_id'), 'oaiapp_1');
+    await auth.write('client_id', null);
+    expect(await auth.read('client_id'), isNull);
   });
 }

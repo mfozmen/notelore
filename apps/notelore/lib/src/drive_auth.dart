@@ -37,6 +37,23 @@ DriveAuth? driveAuthFor({
   );
 }
 
+/// The ChatGPT plan's sign-in, desktop only: OpenAI documents the loopback
+/// redirect for local apps, which a phone app cannot rely on.
+OAuthSignIn? chatGptAuthFor({
+  required bool mobile,
+  required FlutterSecureStorage keys,
+  required String keySpace,
+}) {
+  if (mobile) return null;
+  String name(String item) => '$keySpace.chatgpt.$item';
+  return ChatGptAuth(
+    openBrowser: (url) => launchUrl(url, mode: LaunchMode.externalApplication),
+    read: (item) => keys.read(key: name(item)),
+    write: (item, value) =>
+        value == null ? keys.delete(key: name(item)) : keys.write(key: name(item), value: value),
+  );
+}
+
 /// Drive access through the google_sign_in plugin. The plugin keeps the grant;
 /// tokens are asked for silently and only [signIn] may show a sheet.
 class GoogleSignInAuth implements DriveAuth {

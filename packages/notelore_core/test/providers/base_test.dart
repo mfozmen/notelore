@@ -1,5 +1,6 @@
 import 'package:notelore_core/src/providers/anthropic.dart';
 import 'package:notelore_core/src/providers/base.dart';
+import 'package:notelore_core/src/providers/chatgpt.dart';
 import 'package:notelore_core/src/providers/gemini.dart';
 import 'package:notelore_core/src/providers/ollama.dart';
 import 'package:notelore_core/src/providers/openai.dart';
@@ -37,7 +38,13 @@ const tool = Tool('read_note', 'Read a note', {
 void main() {
   test('findProvider, known and unknown', () {
     expect(findProvider('anthropic').displayName, 'Claude (Anthropic)');
-    expect(providerSpecs.map((s) => s.name), ['anthropic', 'openai', 'gemini', 'ollama']);
+    expect(providerSpecs.map((s) => s.name), [
+      'chatgpt',
+      'anthropic',
+      'openai',
+      'gemini',
+      'ollama',
+    ]);
     expect(findProvider('anthropic').keySteps, isNotEmpty);
     // What each one costs, so nobody is surprised by a bill (#95).
     expect(findProvider('anthropic').cost, contains('Pro or Max subscription cannot'));
@@ -65,6 +72,13 @@ void main() {
       expect(createProvider(findProvider(name), null, model: 'other').model, 'other');
     });
   }
+
+  test('createProvider: chatgpt needs the plan token', () {
+    Future<String> token({bool refresh = false}) async => 't';
+    final provider = createProvider(findProvider('chatgpt'), null, model: 'm', planToken: token);
+    expect(provider, isA<ChatGptProvider>());
+    expect(provider.model, 'm');
+  });
 
   test('toolUseNames skips id-less blocks', () {
     expect(toolUseNames(conversation), {'t1': 'read_note'});

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:notelore_core/notelore_core.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'session.dart';
 
@@ -43,6 +45,22 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
         ),
         if (session.busy) const LinearProgressIndicator(),
+        if (session.spec?.name == 'chatgpt')
+          // OpenAI asks plan-usage apps to show this near the composer.
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                const Text('Using ChatGPT plan'),
+                TextButton(
+                  onPressed: () =>
+                      launchUrl(Uri.parse(chatGptUsageUrl), mode: LaunchMode.externalApplication),
+                  child: const Text('Manage usage'),
+                ),
+              ],
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.all(8),
           child: Row(

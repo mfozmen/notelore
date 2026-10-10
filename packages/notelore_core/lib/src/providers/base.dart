@@ -39,6 +39,15 @@ final class ProviderSpec {
 
 const providerSpecs = [
   ProviderSpec(
+    'chatgpt',
+    'ChatGPT plan (OpenAI)',
+    requiresApiKey: false,
+    defaultModel: '', // the first model the plan lists
+    cost:
+        "Uses your ChatGPT Plus or Pro plan: no separate charges, within your plan's "
+        'limits. Desktop only for now.',
+  ),
+  ProviderSpec(
     'anthropic',
     'Claude (Anthropic)',
     requiresApiKey: true,
@@ -59,8 +68,8 @@ const providerSpecs = [
     requiresApiKey: true,
     defaultModel: 'gpt-4o-mini',
     cost:
-        'Billed per use through the OpenAI API. Using a ChatGPT Plus or Pro plan here is '
-        'not supported yet.',
+        'Billed per use through the OpenAI API. To use a ChatGPT Plus or Pro plan instead, '
+        'pick "ChatGPT plan".',
     keyUrl: 'https://platform.openai.com/api-keys',
     keySteps: [
       'Sign in to the OpenAI Platform.',

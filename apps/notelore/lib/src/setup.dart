@@ -15,7 +15,7 @@ class SetupScreen extends StatefulWidget {
 }
 
 class _SetupScreenState extends State<SetupScreen> {
-  ProviderSpec _spec = providerSpecs.first;
+  late ProviderSpec _spec = widget.session.providers.first;
   final _key = TextEditingController();
   String? _problem;
   var _checking = false;
@@ -41,6 +41,8 @@ class _SetupScreenState extends State<SetupScreen> {
       setState(() => _problem = error.message);
     } on TransientValidationError catch (error) {
       setState(() => _problem = '${error.message}\nCheck the connection and try again.');
+    } on Exception catch (error) {
+      setState(() => _problem = '$error'); // the ChatGPT sign-in: refused, offline
     } finally {
       if (mounted) setState(() => _checking = false);
     }
@@ -65,7 +67,7 @@ class _SetupScreenState extends State<SetupScreen> {
               }),
               child: Column(
                 children: [
-                  for (final spec in providerSpecs)
+                  for (final spec in widget.session.providers)
                     RadioListTile<ProviderSpec>(value: spec, title: Text(spec.displayName)),
                 ],
               ),
@@ -98,7 +100,7 @@ class _SetupScreenState extends State<SetupScreen> {
                 ),
                 onSubmitted: (_) => _connect(),
               ),
-            ] else
+            ] else if (_spec.name == 'ollama')
               const Text('Ollama runs on this computer; no key is needed.'),
             if (_problem case final problem?) ...[
               const SizedBox(height: 12),
@@ -109,7 +111,8 @@ class _SetupScreenState extends State<SetupScreen> {
               onPressed: _checking ? null : _connect,
               child: _checking
                   ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator())
-                  : const Text('Connect'),
+                  // OpenAI's wording for its sign-in button.
+                  : Text(_spec.name == 'chatgpt' ? 'Continue with ChatGPT' : 'Connect'),
             ),
           ],
         ),
