@@ -152,9 +152,34 @@ void main() {
         expect(idx.search('nothing-like-this'), isEmpty);
       });
 
-      test('search needs every word in any order', () {
+      test('any word is enough, and the line matching the most words comes first', () {
         expect(idx.search('backup drive').map((h) => h.section), ['todo']);
-        expect(idx.search('drive nothing'), isEmpty);
+        // A question's other words ("which", "nothing") do not hide the hit.
+        expect(idx.search('drive nothing').map((h) => h.section), ['todo']);
+        final hits = idx.search('postponed crypto sqlite');
+        expect(hits.first.text, 'Considered adding crypto, postponed.'); // two of three words
+        expect(hits.map((h) => h.section), containsAll(['notes', 'decisions']));
+      });
+
+      test('a Turkish question finds a note in another inflection (#92)', () {
+        final path = createNote(
+          root,
+          'project',
+          'Deniz Kitabı Satın Alma',
+          lang: 'tr',
+          today: today,
+        );
+        addTodo(path, 'Deniz kitabını satın al', today: today);
+        idx.rebuild();
+        // "kitap", "kitabı", "kitabını": one stem; the question words match nothing.
+        for (final query in ['hangi kitabı alacaktım', 'kitap', 'Kitabını']) {
+          expect(
+            idx.search(query).map((h) => h.slug),
+            contains('deniz-kitabi-satin-alma'),
+            reason: query,
+          );
+        }
+        expect(idx.search('ve bu'), isEmpty); // words under three letters are not searched
       });
 
       test('search marks superseded decisions', () {
