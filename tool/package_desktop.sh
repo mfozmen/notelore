@@ -22,7 +22,7 @@ checksum() {
 
 case "$(uname -s)" in
   MINGW* | MSYS* | CYGWIN*)
-    built="$app/build/windows/x64/runner/$mode"
+    built="$(pwd)/$app/build/windows/x64/runner/$mode" # absolute: iscc resolves paths from the .iss
     setup="notelore-app-$version-windows-x64-setup"
     # MSYS_NO_PATHCONV: Git Bash would turn the /D, /O and /F flags into paths.
     MSYS_NO_PATHCONV=1 "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" /Q \
