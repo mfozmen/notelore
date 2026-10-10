@@ -112,10 +112,8 @@ jobs:
         include:
           - os: windows-latest
             target: windows
-            asset: windows-x64.zip
           - os: macos-latest
             target: macos
-            asset: macos.zip
     env:
       VERSION: ${{ needs.release.outputs.version }}
       # The OAuth client ids go into the binary at build time; they are never in the repo.
@@ -138,29 +136,19 @@ jobs:
           --dart-define=NOTELORE_VERSION="$VERSION"
           --dart-define=NOTELORE_GOOGLE_CLIENT_ID="$NOTELORE_GOOGLE_CLIENT_ID"
           --dart-define=NOTELORE_GOOGLE_CLIENT_SECRET="$NOTELORE_GOOGLE_CLIENT_SECRET"
+      - name: Install Inno Setup
+        if: runner.os == 'Windows'
+        run: choco install innosetup --no-progress -y
+      # The installer (setup.exe / .dmg) plus the zip the 0.3.x updater looks for.
       - name: Package
-        id: pkg
         shell: bash
-        run: |
-          asset="notelore-app-$VERSION-${{ matrix.asset }}"
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            # The files at the top of the zip: the updater swaps them into the app folder.
-            (cd apps/notelore/build/windows/x64/runner/Release && 7z a -tzip "$GITHUB_WORKSPACE/$asset" . > /dev/null)
-          else
-            # ditto keeps the bundle's symlinks; notelore.app at the top of the zip.
-            ditto -c -k --keepParent apps/notelore/build/macos/Build/Products/Release/notelore.app "$asset"
-          fi
-          # sha256sum format with an LF ending on every OS (print would write CRLF on Windows).
-          python3 -c "import hashlib, sys; d = open(sys.argv[1], 'rb').read(); open(sys.argv[1] + '.sha256', 'w', newline='\n').write(f'{hashlib.sha256(d).hexdigest()}  {sys.argv[1]}\n')" "$asset"
-          cat "$asset.sha256"
-          echo "asset=$asset" >> "$GITHUB_OUTPUT"
+        run: bash tool/package_desktop.sh "$VERSION" dist Release
       - name: Attach to the release
-        shell: bash  # PowerShell on Windows would not expand $TAG and $ASSET
+        shell: bash  # PowerShell on Windows would not expand $TAG
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.release.outputs.tag }}
-          ASSET: ${{ steps.pkg.outputs.asset }}
-        run: gh release upload "$TAG" "$ASSET" "$ASSET.sha256" --clobber
+        run: gh release upload "$TAG" dist/* --clobber
 
   app-android:
     name: App (android)
