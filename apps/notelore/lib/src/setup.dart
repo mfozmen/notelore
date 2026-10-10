@@ -71,6 +71,8 @@ class _SetupScreenState extends State<SetupScreen> {
               ),
             ),
             const SizedBox(height: 8),
+            Text(_spec.cost, style: theme.textTheme.bodySmall),
+            const SizedBox(height: 8),
             for (final (index, step) in _spec.keySteps.indexed) Text('${index + 1}. $step'),
             if (_spec.keyUrl case final url?) ...[
               const SizedBox(height: 4),
