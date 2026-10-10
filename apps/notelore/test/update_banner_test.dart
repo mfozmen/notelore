@@ -34,11 +34,8 @@ void main() {
     executable: p.join(install, 'notelore.exe'),
     current: '0.2.0',
     fetch: Pages(pages).call,
-    run: (command, args) async {
-      File(p.join(args.last, 'notelore.exe')).writeAsStringSync('new');
-      return ProcessResult(0, 0, '', '');
-    },
-    spawn: (exe) async => spawned.add(exe),
+    run: (command, args) async => ProcessResult(0, 0, '', ''),
+    spawn: (exe, args) async => spawned.add(exe),
   );
 
   Future<void> pump(WidgetTester tester, Updater updater) async {
@@ -54,36 +51,69 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  final zip = utf8.encode('zip');
+  final setup = utf8.encode('setup');
 
   testWidgets('a newer release: update, restart', (tester) async {
     await pump(
       tester,
-      updater({latestReleaseUrl: release(v), ...download('notelore-app-$v-windows-x64.zip', zip)}),
+      updater({
+        latestReleaseUrl: release(v),
+        ...download('notelore-app-$v-windows-x64-setup.exe', setup),
+      }),
     );
     expect(find.text('Notelore $v is available.'), findsOneWidget);
     await tester.tap(find.text('Update and restart'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
     await tester.pumpAndSettle();
-    expect(File(p.join(install, 'notelore.exe')).readAsStringSync(), 'new');
-    expect(spawned, [p.join(install, 'notelore.exe')]);
-    expect(exits, [0]);
+    expect(spawned.single, endsWith('notelore-app-$v-windows-x64-setup.exe')); // the setup
+    expect(exits, [0]); // so the setup can replace the files
   });
 
-  testWidgets('installed but not restarted: says so and offers no second install', (tester) async {
+  testWidgets('a setup that cannot start says why and the app keeps running', (tester) async {
     final u = Updater(
       system: 'windows',
       executable: p.join(install, 'notelore.exe'),
       current: '0.2.0',
       fetch: Pages({
         latestReleaseUrl: release(v),
-        ...download('notelore-app-$v-windows-x64.zip', zip),
+        ...download('notelore-app-$v-windows-x64-setup.exe', setup),
       }).call,
+      run: (command, args) async => ProcessResult(0, 0, '', ''),
+      spawn: (exe, args) async => throw const ProcessException('setup.exe', [], 'blocked'),
+    );
+    await pump(tester, u);
+    await tester.tap(find.text('Update and restart'));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('The setup could not start'), findsOneWidget);
+    expect(find.text('Update and restart'), findsOneWidget); // try again
+    expect(exits, isEmpty);
+  });
+
+  testWidgets('macOS: installed but not restarted says so, no second install', (tester) async {
+    final bundle = p.join(p.dirname(install), 'Applications', 'notelore.app');
+    File(p.join(bundle, 'Contents', 'MacOS', 'notelore'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('old');
+    final u = Updater(
+      system: 'macos',
+      executable: p.join(bundle, 'Contents', 'MacOS', 'notelore'),
+      current: '0.2.0',
+      fetch: Pages({latestReleaseUrl: release(v), ...download('notelore-app-$v-macos.dmg', setup)})
+          .call,
       run: (command, args) async {
-        File(p.join(args.last, 'notelore.exe')).writeAsStringSync('new');
+        if (command == 'hdiutil' && args.first == 'attach') {
+          File(p.join(args[args.indexOf('-mountpoint') + 1], 'notelore.app', 'x'))
+            ..parent.createSync(recursive: true)
+            ..writeAsStringSync('new');
+        } else if (command == 'ditto') {
+          File(p.join(args[1], 'x'))
+            ..parent.createSync(recursive: true)
+            ..writeAsStringSync('new');
+        }
         return ProcessResult(0, 0, '', '');
       },
-      spawn: (exe) async => throw const ProcessException('notelore.exe', [], 'access denied'),
+      spawn: (exe, args) async => throw const ProcessException('notelore', [], 'denied'),
     );
     await pump(tester, u);
     await tester.tap(find.text('Update and restart'));
@@ -128,7 +158,7 @@ void main() {
         return release(v);
       },
       run: (command, args) async => ProcessResult(0, 0, '', ''),
-      spawn: (exe) async {},
+      spawn: (exe, args) async {},
     );
     await pump(tester, slow);
     await tester.tap(find.text('Update and restart'));

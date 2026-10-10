@@ -3,11 +3,11 @@
 /// Port of the CLI's updater: at most one check a day (silent when offline),
 /// and an update is installed only when its SHA-256 matches the `.sha256`
 /// published with the release (this catches corrupt or partial downloads; it is
-/// not a signature). The zip is unpacked by the OS's own tool (`tar` on
-/// Windows, `ditto` on macOS, which keeps the bundle's symlinks), then swapped
-/// in: on Windows file by file (a running program's files can be renamed, not
-/// overwritten), on macOS the whole `.app`. The previous files stay as `.old`
-/// until the next start, and a failed swap is rolled back.
+/// not a signature). On Windows the release's setup runs silently into this
+/// app's folder once the app has exited, and starts it again. On macOS the
+/// `.app` comes out of the release's dmg (`hdiutil`, then `ditto`, which keeps
+/// the bundle's symlinks) and replaces the old bundle, which stays as `.old`
+/// until the next start; a failed swap is rolled back.
 library;
 
 import 'dart:convert';
@@ -25,7 +25,7 @@ const appVersion = String.fromEnvironment('NOTELORE_VERSION');
 
 typedef Fetch = Future<List<int>> Function(String url);
 typedef Run = Future<ProcessResult> Function(String command, List<String> args);
-typedef Spawn = Future<void> Function(String executable);
+typedef Spawn = Future<void> Function(String executable, List<String> args);
 
 void _renameDirectory(String from, String to) => Directory(from).renameSync(to);
 
@@ -55,8 +55,8 @@ bool isNewer(String candidate, String current) {
 
 /// The release asset for this OS, as release.yml names it.
 String assetName(String version, String system) => switch (system) {
-  'windows' => 'notelore-app-$version-windows-x64.zip',
-  'macos' => 'notelore-app-$version-macos.zip',
+  'windows' => 'notelore-app-$version-windows-x64-setup.exe',
+  'macos' => 'notelore-app-$version-macos.dmg',
   _ => throw UpdateFailed('no prebuilt app for $system'),
 };
 
@@ -163,7 +163,11 @@ class Updater {
   String get _installed =>
       system == 'windows' ? p.dirname(executable) : p.dirname(p.dirname(p.dirname(executable)));
 
-  /// Installs the latest release; its version, or null when this is current.
+  /// The downloaded Windows setup, run by [relaunch].
+  String? _setup;
+
+  /// Downloads the latest release and checks it; on macOS also swaps the bundle
+  /// in. Its version, or null when this is current.
   Future<String?> apply() async {
     final (:version, :assets) = await latestRelease(fetch);
     if (!isNewer(version, current)) return null;
@@ -185,8 +189,14 @@ class Updater {
     if (sha256.convert(data).toString() != fields.first.toLowerCase()) {
       throw UpdateFailed('checksum mismatch for $name; the download was not installed');
     }
+    if (system == 'windows') {
+      // The setup replaces the files once this app has exited (see relaunch).
+      final folder = Directory.systemTemp.createTempSync('notelore-update-');
+      _setup = (File(p.join(folder.path, name))..writeAsBytesSync(data)).path;
+      return version;
+    }
 
-    // Staged next to the app, so the swap is a rename on the same drive.
+    // Staged next to the bundle, so the swap is a rename on the same drive.
     final staging = Directory(p.join(p.dirname(_installed), '.notelore-update'));
     try {
       if (staging.existsSync()) staging.deleteSync(recursive: true);
@@ -198,47 +208,29 @@ class Updater {
       );
     }
     try {
-      final zip = File(p.join(staging.path, name))..writeAsBytesSync(data);
-      final unpacked = Directory(p.join(staging.path, 'app'))..createSync();
-      final result = system == 'windows'
-          ? await run('tar', ['-xf', zip.path, '-C', unpacked.path])
-          : await run('ditto', ['-x', '-k', zip.path, unpacked.path]);
-      if (result.exitCode != 0) throw UpdateFailed('unpacking $name failed: ${result.stderr}');
-      if (system == 'windows') {
-        _swapFiles(unpacked.path, _installed);
-      } else {
-        _swapBundle(p.join(unpacked.path, 'notelore.app'), _installed, renameDirectory);
+      final image = File(p.join(staging.path, name))..writeAsBytesSync(data);
+      final mount = p.join(staging.path, 'mnt');
+      final bundle = p.join(staging.path, 'app', 'notelore.app');
+      final attached = await run('hdiutil', [
+        'attach',
+        '-nobrowse',
+        '-readonly',
+        '-mountpoint',
+        mount,
+        image.path,
+      ]);
+      if (attached.exitCode != 0) throw UpdateFailed('opening $name failed: ${attached.stderr}');
+      try {
+        // ditto keeps the bundle's symlinks and permissions.
+        await run('ditto', [p.join(mount, 'notelore.app'), bundle]);
+      } finally {
+        await run('hdiutil', ['detach', mount, '-force']);
       }
+      _swapBundle(bundle, _installed, renameDirectory);
     } finally {
       staging.deleteSync(recursive: true);
     }
     return version;
-  }
-
-  /// Moves every file of [from] over [to]; each replaced file is kept as `.old`.
-  /// All or nothing: a failure puts back what was already swapped.
-  static void _swapFiles(String from, String to) {
-    final done = <(String, bool)>[]; // (target, had an old file)
-    try {
-      final files = Directory(from).listSync(recursive: true).whereType<File>().toList()
-        ..sort((a, b) => a.path.compareTo(b.path));
-      for (final file in files) {
-        final target = p.join(to, p.relative(file.path, from: from));
-        final old = File('$target.old');
-        if (old.existsSync()) old.deleteSync(); // left by an earlier update
-        final existed = File(target).existsSync();
-        if (existed) File(target).renameSync(old.path);
-        done.add((target, existed));
-        Directory(p.dirname(target)).createSync(recursive: true);
-        file.renameSync(target);
-      }
-    } catch (_) {
-      for (final (target, existed) in done.reversed) {
-        if (File(target).existsSync()) File(target).deleteSync();
-        if (existed) File('$target.old').renameSync(target);
-      }
-      rethrow;
-    }
   }
 
   /// Puts the bundle at [from] in place of [to]; the old one is kept as `.old`
@@ -258,8 +250,17 @@ class Updater {
     }
   }
 
-  /// Starts the (new) app; the caller then exits.
-  Future<void> relaunch() => spawn(executable);
+  /// Starts the new version; the caller then exits. On Windows that is the
+  /// setup, silent, into this app's folder; it starts the app when done.
+  Future<void> relaunch() => switch (_setup) {
+    final setup? => spawn(setup, [
+      '/VERYSILENT',
+      '/SUPPRESSMSGBOXES',
+      '/NORESTART',
+      '/DIR=$_installed',
+    ]),
+    _ => spawn(executable, const []),
+  };
 
   /// Removes what an earlier update left behind; whatever is still held stays
   /// for the next start.
