@@ -4,8 +4,9 @@ import 'package:google_sign_in_platform_interface/google_sign_in_platform_interf
 import 'package:notelore/src/drive_auth.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+
+import 'support.dart' show FakeLauncher;
 
 /// The Google sign-in plugin, in memory: one account that has or has not
 /// granted Drive access.
@@ -66,20 +67,6 @@ class FakeSignIn extends GoogleSignInPlatform with MockPlatformInterfaceMixin {
 
   @override
   Future<void> signOut(SignOutParams params) async {}
-}
-
-/// url_launcher, recording what it was asked to open.
-class FakeLauncher extends UrlLauncherPlatform with MockPlatformInterfaceMixin {
-  final opened = <String>[];
-
-  @override
-  LinkDelegate? get linkDelegate => null;
-
-  @override
-  Future<bool> launchUrl(String url, LaunchOptions options) async {
-    opened.add(url);
-    return true;
-  }
 }
 
 void main() {

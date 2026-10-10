@@ -3,12 +3,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:url_launcher_platform_interface/link.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 final today = DateTime.utc(2026, 9, 30);
 
@@ -148,5 +150,19 @@ class MemoryRemote implements Remote {
   @override
   Future<void> trash(String fileId) async {
     texts.remove(_ids.entries.firstWhere((e) => e.value == fileId).key);
+  }
+}
+
+/// url_launcher, recording what it was asked to open.
+class FakeLauncher extends UrlLauncherPlatform with MockPlatformInterfaceMixin {
+  final opened = <String>[];
+
+  @override
+  LinkDelegate? get linkDelegate => null;
+
+  @override
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    opened.add(url);
+    return true;
   }
 }
