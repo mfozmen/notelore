@@ -97,7 +97,9 @@ Future<Map<String, Object?>> _finalResponse(http.StreamedResponse answer) async 
   try {
     await for (final line in lines) {
       if (!line.startsWith('data:')) continue;
-      final event = jsonDecode(line.substring(5).trim()) as Map<String, Object?>;
+      // Keep-alives and markers like "[DONE]" are not events.
+      final event = _json(line.substring(5).trim());
+      if (event is! Map) continue;
       switch (event['type']) {
         case 'response.completed' || 'response.incomplete':
           return (event['response']! as Map).cast<String, Object?>();
@@ -217,12 +219,17 @@ AgentResponse fromResponse(Map<String, Object?> response) {
 
 /// The models the signed-in plan can use (their slugs), as ChatGPT lists them.
 Future<List<String>> listChatGptModels(BearerToken token, {http.Client? client}) async {
-  final answer = await _send(client ?? http.Client(), token, 'GET', '$_api/models');
-  return switch (_json(await answer.stream.bytesToString())) {
-    {'models': final List<Object?> models} => [
-      for (final m in models.whereType<Map<Object?, Object?>>())
-        if (m['visibility'] == 'list') '${m['slug']}',
-    ],
-    _ => [],
-  };
+  final used = client ?? http.Client();
+  try {
+    final answer = await _send(used, token, 'GET', '$_api/models');
+    return switch (_json(await answer.stream.bytesToString())) {
+      {'models': final List<Object?> models} => [
+        for (final m in models.whereType<Map<Object?, Object?>>())
+          if (m['visibility'] == 'list') '${m['slug']}',
+      ],
+      _ => [],
+    };
+  } finally {
+    if (client == null) used.close(); // ours to close; a caller's is theirs
+  }
 }

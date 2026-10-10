@@ -170,6 +170,21 @@ void main() {
     expect(store['refresh_token'], 'refresh-1');
   });
 
+  test('overlapping refreshes share one request (a reused refresh token is fatal)', () async {
+    store.addAll({'client_id': 'oaiapp_123', 'refresh_token': 'refresh-1'});
+    final a = auth();
+    final tokens = await Future.wait([a.token(), a.token(), a.token(refresh: true)]);
+    expect(tokens, ['access-1', 'access-1', 'access-1']);
+    expect(openai.forms, hasLength(1));
+    expect(await a.token(refresh: true), 'access-2'); // a later refresh is a new one
+  });
+
+  test('a stored refresh token without its client id asks to sign in again', () async {
+    store['refresh_token'] = 'refresh-1';
+    await expectLater(auth().token(), throwsA(isA<NotSignedIn>()));
+    expect(openai.forms, isEmpty);
+  });
+
   test('sign out forgets the tokens and keeps the registration', () async {
     store.addAll({
       'client_id': 'oaiapp_123',
