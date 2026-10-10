@@ -160,6 +160,13 @@ void main() {
     expect(systemPrompt(), isNot(contains('{today}')));
   });
 
+  test('the prompt keeps details, asks about names and looks before giving up (#92)', () {
+    final prompt = systemPrompt(today);
+    expect(prompt, contains('Keep every detail'));
+    expect(prompt, contains('a title or a name'));
+    expect(prompt, contains('If search_notes finds nothing'));
+  });
+
   test('a tool_use outside a tool_use stop is dropped so the history stays valid', () async {
     final provider = ScriptedProvider([
       const AgentResponse([

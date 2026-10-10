@@ -8,6 +8,7 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
@@ -310,26 +311,29 @@ class NoteIndex {
       _decision(row),
   ];
 
-  /// Hits containing every word of [query] in any order.
+  /// Hits for [query], best first: any search term is enough, and a line
+  /// matching more terms ranks higher, so a whole question still finds the
+  /// note ("which book was I going to buy" finds the todo about the book).
   List<Hit> search(String query, {String? kind}) {
-    final words = query.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
-    if (words.isEmpty) return [];
+    final terms = _terms(query);
+    if (terms.isEmpty) return [];
     const columns = 'SELECT slug, kind, title, section, text, superseded FROM content WHERE ';
+    const limit = 30; // enough to answer from; keeps a broad question's tool result small
     final ResultSet rows;
     if (fts) {
-      // Every word as a quoted phrase: user text never hits FTS5 query syntax.
-      final match = words.map((w) => '"${w.replaceAll('"', '""')}"').join(' ');
-      rows = _db.select('${columns}content MATCH ?1 AND (?2 IS NULL OR kind = ?2) ORDER BY rank', [
-        match,
-        kind,
-      ]);
+      // Terms are letters and digits only, so they never form FTS5 query syntax.
+      final match = terms.map((t) => '"$t"*').join(' OR ');
+      rows = _db.select(
+        '${columns}content MATCH ?1 AND (?2 IS NULL OR kind = ?2) ORDER BY rank LIMIT $limit',
+        [match, kind],
+      );
     } else {
-      final clauses = List.filled(words.length, r"folded LIKE ? ESCAPE '\'").join(' AND ');
-      rows = _db.select('$columns$clauses AND (? IS NULL OR kind = ?) ORDER BY path, rowid', [
-        for (final word in words) '%${_escapeLike(_fold(word))}%',
-        kind,
-        kind,
-      ]);
+      final score = terms.map((_) => '(folded LIKE ?)').join(' + ');
+      rows = _db.select(
+        '$columns($score) > 0 AND (? IS NULL OR kind = ?) '
+        'ORDER BY ($score) DESC, path, rowid LIMIT $limit',
+        [for (final t in terms) '%$t%', kind, kind, for (final t in terms) '%$t%'],
+      );
     }
     return [
       for (final row in rows)
@@ -353,8 +357,17 @@ final _mark = RegExp(r'\p{M}', unicode: true);
 /// Case- and accent-insensitive form for LIKE search, like FTS5's unicode61 tokenizer.
 String _fold(String text) => unorm.nfkd(text.toLowerCase()).replaceAll(_mark, '');
 
-String _escapeLike(String text) =>
-    text.replaceAll(r'\', r'\\').replaceAll('%', r'\%').replaceAll('_', r'\_');
+final _nonWord = RegExp(r'[^\p{L}\p{N}]+', unicode: true);
+
+/// The words of [query], folded and cut to a stem, so suffixes do not matter
+/// ("kitap", "kitabı" and "kitabını" all search for "kita"). Words under three
+/// letters are dropped. Only letters and digits remain, so no LIKE or FTS5 syntax.
+/// shortcut: a crude prefix stem, not a Turkish morphological analyser; upgrade
+/// if users still miss notes because a word's root changes.
+List<String> _terms(String query) => {
+  for (final word in _fold(query).split(_nonWord))
+    if (word.length >= 3) word.length <= 4 ? word : word.substring(0, max(4, word.length - 3)),
+}.toList();
 
 DateTime? _day(String? iso) => iso == null ? null : DateTime.parse('${iso}T00:00:00Z');
 
