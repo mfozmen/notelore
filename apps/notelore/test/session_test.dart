@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -137,6 +138,25 @@ void main() {
     await const FlutterSecureStorage().delete(key: 'notelore.anthropic.api_key');
     await session.refreshModels();
     expect(session.ready, isFalse);
+  });
+
+  test('logging out while a refresh is in flight drops the late list', () async {
+    final harness = Harness();
+    final answer = Completer<List<String>>();
+    var calls = 0;
+    final session = Session(
+      harness.paths,
+      validate: (spec, key) => calls++ == 0 ? Future.value(['a']) : answer.future,
+      makeProvider: (spec, key, {model}) => harness.provider,
+    );
+    addTearDown(session.dispose);
+    await session.connect(findProvider('anthropic'), 'k');
+    final refresh = session.refreshModels();
+    await session.logout();
+    answer.complete(['late']);
+    await refresh; // no null-check crash
+    expect(session.models, isEmpty);
+    expect(File(p.join(harness.paths.state.path, 'settings.json')).existsSync(), isFalse);
   });
 
   test('a refresh the provider refuses changes nothing', () async {

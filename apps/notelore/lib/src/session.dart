@@ -181,11 +181,14 @@ class Session extends ChangeNotifier {
   /// [KeyValidationError] or [TransientValidationError] and keeps the old list.
   Future<void> refreshModels() async {
     final current = spec;
-    if (current == null) return;
+    final chosen = model;
+    if (current == null || chosen == null) return;
     final key = current.requiresApiKey ? await keys.read(key: _keyName(current)) : '';
     if (key == null) return logout(); // the keystore lost it: set up again
     final listed = await validate(current, key);
-    _save(current, model!, listed);
+    // Logged out or switched provider while the list was on its way: it is stale.
+    if (spec != current || model != chosen) return;
+    _save(current, chosen, listed);
     models = listed;
     notifyListeners();
   }

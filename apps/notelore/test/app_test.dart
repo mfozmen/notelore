@@ -10,7 +10,6 @@ import 'package:notelore/src/session.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
-import 'drive_auth_test.dart' show FakeLauncher;
 import 'support.dart';
 
 /// The app on [harness]'s session. The app owns the session, so it is closed by
