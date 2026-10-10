@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:notelore_core/notelore_core.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'session.dart';
 
@@ -73,7 +74,13 @@ class _SetupScreenState extends State<SetupScreen> {
             for (final (index, step) in _spec.keySteps.indexed) Text('${index + 1}. $step'),
             if (_spec.keyUrl case final url?) ...[
               const SizedBox(height: 4),
-              SelectableText(url, style: TextStyle(color: theme.colorScheme.primary)),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+                  child: Text(url),
+                ),
+              ),
             ],
             if (_spec.requiresApiKey) ...[
               const SizedBox(height: 12),

@@ -2,12 +2,15 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore_core/notelore_core.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
+import 'drive_auth_test.dart' show FakeLauncher;
 import 'support.dart';
 
 /// The app on [harness]'s session. The app owns the session, so it is closed by
@@ -193,6 +196,42 @@ void main() {
     expect(find.text('Mopsos'), findsOneWidget);
   });
 
+  testWidgets('settings: pick a model from the list, refresh the list', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('model')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('model-b').last);
+    await tester.pumpAndSettle();
+    expect(session.model, 'model-b');
+    expect(find.text('Model saved.'), findsOneWidget);
+    harness.models = ['model-c'];
+    await tester.tap(find.byTooltip('Refresh the model list'));
+    await tester.pumpAndSettle();
+    expect(session.models, ['model-c']);
+    harness.rejected = const TransientValidationError('Anthropic is not reachable');
+    await tester.tap(find.byTooltip('Refresh the model list'));
+    await tester.pumpAndSettle();
+    expect(find.text('Anthropic is not reachable'), findsOneWidget);
+    expect(session.models, ['model-c']);
+  });
+
+  testWidgets('setup: the key page opens in the browser', (tester) async {
+    phone(tester);
+    final launcher = FakeLauncher();
+    UrlLauncherPlatform.instance = launcher;
+    await pumpApp(tester, Harness());
+    await tester.tap(find.text('Claude (Anthropic)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('https://console.anthropic.com/settings/keys'));
+    await tester.pumpAndSettle();
+    expect(launcher.opened, ['https://console.anthropic.com/settings/keys']);
+  });
+
   testWidgets('settings: change the model, then log out', (tester) async {
     phone(tester);
     final harness = Harness();
@@ -203,12 +242,14 @@ void main() {
     expect(find.text('Claude (Anthropic)'), findsOneWidget);
     expect(find.text(harness.paths.notes.path), findsOneWidget);
     await tester.enterText(find.byKey(const Key('model')), 'claude-x');
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape); // close the list over the button
     await tester.tap(find.text('Save model'));
     await tester.pumpAndSettle();
     expect(session.model, 'claude-x');
     expect(find.text('Model saved.'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('model')), '');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.tap(find.text('Save model'));
     await tester.pumpAndSettle();
     expect(session.model, 'claude-sonnet-5-5');
     await tester.tap(find.text('Log out'));

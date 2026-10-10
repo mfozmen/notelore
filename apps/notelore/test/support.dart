@@ -52,7 +52,12 @@ class Harness {
 
   late final NotelorePaths paths;
   late final ScriptedProvider provider;
-  final Exception? rejected;
+
+  /// When set, the provider refuses the key (tests may set it after connecting).
+  Exception? rejected;
+
+  /// What the provider lists for a good key; tests change it between calls.
+  var models = <String>['model-a', 'model-b'];
   final FakeAuth? auth;
   final remote = MemoryRemote();
   final created = <(String, String?, String?)>[];
@@ -63,6 +68,7 @@ class Harness {
       paths,
       validate: (spec, key) async {
         if (rejected != null) throw rejected!;
+        return models;
       },
       makeProvider: (spec, key, {model}) {
         created.add((spec.name, key, model));

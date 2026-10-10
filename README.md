@@ -33,7 +33,7 @@ Open Notelore and pick a model:
 
 Then just talk: *"Mopsos için not al: veritabanı olarak SQLite seçtik, tek kullanıcı."*
 - **Notes**: lists every project and topic and opens each one read-only.
-- **Settings**: change the model, or log out. Logging out forgets every saved key on that device; the notes stay.
+- **Settings**: pick the model from the ones your key can use (the list comes from the provider; refresh it there, or type any model name), or log out. Logging out forgets every saved key on that device; the notes stay.
 
 Notes go to `~/Notelore/` on the desktop and to the app's own storage on a phone. The macOS app is not sandboxed, so that folder is the real, visible one; it ships outside the Mac App Store.
 
