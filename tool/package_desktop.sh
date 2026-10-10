@@ -37,7 +37,7 @@ case "$(uname -s)" in
   Darwin)
     bundle="$app/build/macos/Build/Products/$mode/notelore.app"
     stage=$(mktemp -d)
-    cp -R "$bundle" "$stage/"
+    ditto "$bundle" "$stage/notelore.app" # keeps the bundle's symlinks and permissions
     ln -s /Applications "$stage/Applications" # drag the app onto it to install
     dmg="notelore-app-$version-macos.dmg"
     hdiutil create -quiet -volname Notelore -srcfolder "$stage" -ov -format UDZO "$out/$dmg"
