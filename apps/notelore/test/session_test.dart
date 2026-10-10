@@ -81,7 +81,7 @@ void main() {
     final session = Session(
       harness.paths,
       keys: const _BrokenDelete(),
-      validate: (spec, key) async {},
+      validate: (spec, key) async => <String>[],
       makeProvider: (spec, key, {model}) => harness.provider,
     );
     addTearDown(session.dispose);
@@ -101,6 +101,64 @@ void main() {
     Directory(p.join(settings.path, 'blocker')).createSync(recursive: true);
     await expectLater(session.setModel('claude-x'), throwsA(isA<FileSystemException>()));
     expect(session.model, 'claude-sonnet-5-5');
+  });
+
+  test('connecting keeps the models the key can use, across a restart', () async {
+    final harness = Harness()..models = ['claude-opus-5-5', 'claude-sonnet-5-5'];
+    final session = harness.session();
+    expect(session.models, isEmpty);
+    await session.connect(findProvider('anthropic'), 'k');
+    expect(session.models, ['claude-opus-5-5', 'claude-sonnet-5-5']);
+    final again = harness.session();
+    await again.load();
+    expect(again.models, ['claude-opus-5-5', 'claude-sonnet-5-5']); // no network needed
+    await again.setModel('claude-opus-5-5');
+    final third = harness.session();
+    await third.load();
+    expect(third.models, hasLength(2)); // choosing a model keeps the list
+  });
+
+  test('the model list can be refreshed; a failed refresh keeps the old one', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.refreshModels(); // nothing connected: nothing to do
+    await session.connect(findProvider('anthropic'), 'k');
+    harness.models = ['newer'];
+    await session.refreshModels();
+    expect(session.models, ['newer']);
+    final again = harness.session();
+    await again.load();
+    expect(again.models, ['newer']);
+  });
+
+  test('a refresh with the key gone from the keystore sends back to setup', () async {
+    final session = Harness().session();
+    await session.connect(findProvider('anthropic'), 'k');
+    await const FlutterSecureStorage().delete(key: 'notelore.anthropic.api_key');
+    await session.refreshModels();
+    expect(session.ready, isFalse);
+  });
+
+  test('a refresh the provider refuses changes nothing', () async {
+    final harness = Harness(rejected: const TransientValidationError('offline'));
+    final session = harness.session();
+    File(p.join(harness.paths.state.path, 'settings.json'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('{"provider": "ollama", "model": "m", "models": ["m"]}');
+    await session.load();
+    await expectLater(session.refreshModels(), throwsA(isA<TransientValidationError>()));
+    expect(session.models, ['m']);
+  });
+
+  test('settings from before the model list load with an empty list', () async {
+    final harness = Harness();
+    File(p.join(harness.paths.state.path, 'settings.json'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('{"provider": "ollama", "model": "m"}');
+    final session = harness.session();
+    await session.load();
+    expect(session.ready, isTrue);
+    expect(session.models, isEmpty);
   });
 
   test('settings and key survive a restart', () async {
@@ -216,6 +274,7 @@ void main() {
     await session.logout();
     expect(session.ready, isFalse);
     expect(session.transcript, isEmpty);
+    expect(session.models, isEmpty);
     expect(await const FlutterSecureStorage().read(key: 'notelore.anthropic.api_key'), isNull);
     final again = harness.session();
     await again.load();
@@ -247,7 +306,7 @@ void main() {
     final dev = Session(
       harness.paths,
       keySpace: 'notelore-dev',
-      validate: (spec, key) async {},
+      validate: (spec, key) async => <String>[],
       makeProvider: (spec, key, {model}) => harness.provider,
     );
     addTearDown(dev.dispose);

@@ -20,7 +20,8 @@ import 'package:http/http.dart' as http;
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
-typedef Validate = Future<void> Function(ProviderSpec spec, String key);
+/// Checks a key and returns the chat models it can use.
+typedef Validate = Future<List<String>> Function(ProviderSpec spec, String key);
 typedef MakeProvider = LlmProvider Function(ProviderSpec spec, String? key, {String? model});
 typedef RemoteFor = Remote Function(DriveAuth auth);
 
@@ -68,6 +69,10 @@ class Session extends ChangeNotifier {
 
   ProviderSpec? spec;
   String? model;
+
+  /// The chat models the key can use, as the provider listed them on connect
+  /// or refresh; kept in the settings so the list works offline.
+  List<String> models = const [];
   Agent? _agent;
   LlmProvider? _provider;
   Remote? _remote;
@@ -119,6 +124,10 @@ class Session extends ChangeNotifier {
       if (found == null) return;
       final key = found.requiresApiKey ? await keys.read(key: _keyName(found)) : '';
       if (key == null) return; // the keystore lost it: set up again
+      models = switch (saved['models']) {
+        final List<Object?> listed => listed.whereType<String>().toList(),
+        _ => const [], // settings from before the model list
+      };
       _use(found, key, chosen);
     }
   }
@@ -130,16 +139,17 @@ class Session extends ChangeNotifier {
   Future<void> connect(ProviderSpec spec, String key, {String? model}) async {
     final trimmed = key.trim();
     final chosen = model ?? spec.defaultModel;
-    await validate(spec, trimmed);
+    final listed = await validate(spec, trimmed);
     final name = _keyName(spec);
     final previous = spec.requiresApiKey ? await keys.read(key: name) : null;
     if (spec.requiresApiKey) await keys.write(key: name, value: trimmed);
     try {
-      _save(spec, chosen);
+      _save(spec, chosen, listed);
     } catch (_) {
       if (spec.requiresApiKey) await _restoreKey(name, previous);
       rethrow;
     }
+    models = listed;
     _use(spec, trimmed, chosen);
   }
 
@@ -163,8 +173,21 @@ class Session extends ChangeNotifier {
     if (key == null) return logout(); // the keystore lost it: set up again
     final trimmed = chosen.trim();
     final next = trimmed.isEmpty ? current.defaultModel : trimmed;
-    _save(current, next);
+    _save(current, next, models);
     _use(current, key, next);
+  }
+
+  /// Asks the provider again which models the key can use. Throws
+  /// [KeyValidationError] or [TransientValidationError] and keeps the old list.
+  Future<void> refreshModels() async {
+    final current = spec;
+    if (current == null) return;
+    final key = current.requiresApiKey ? await keys.read(key: _keyName(current)) : '';
+    if (key == null) return logout(); // the keystore lost it: set up again
+    final listed = await validate(current, key);
+    _save(current, model!, listed);
+    models = listed;
+    notifyListeners();
   }
 
   /// Forgets every provider's key on this device and the chosen provider; the
@@ -177,6 +200,7 @@ class Session extends ChangeNotifier {
     if (settings.existsSync()) settings.deleteSync();
     spec = null;
     model = null;
+    models = const [];
     _agent = null;
     _provider = null;
     transcript.clear();
@@ -192,8 +216,10 @@ class Session extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _save(ProviderSpec chosen, String chosenModel) =>
-      atomicWrite(_settings, '${jsonEncode({'provider': chosen.name, 'model': chosenModel})}\n');
+  void _save(ProviderSpec chosen, String chosenModel, List<String> listed) => atomicWrite(
+    _settings,
+    '${jsonEncode({'provider': chosen.name, 'model': chosenModel, 'models': listed})}\n',
+  );
 
   Future<T> _exclusive<T>(Future<T> Function() task) {
     final run = _queue.then((_) => task());

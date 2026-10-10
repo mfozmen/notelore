@@ -26,7 +26,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final messenger = ScaffoldMessenger.of(context);
     await widget.session.setModel(_model.text);
     _model.text = widget.session.model!;
-    messenger.showSnackBar(const SnackBar(content: Text('Model saved.')));
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('Model saved.')));
+  }
+
+  Future<void> _refreshModels() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await widget.session.refreshModels();
+    } on Exception catch (error) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text('$error')));
+    }
   }
 
   @override
@@ -42,15 +55,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Provider'),
             subtitle: Text(session.spec!.displayName),
           ),
-          TextField(
-            key: const Key('model'),
-            controller: _model,
-            decoration: InputDecoration(
-              labelText: 'Model',
-              helperText: 'Empty means ${session.spec!.defaultModel}',
-              border: const OutlineInputBorder(),
-            ),
-            onSubmitted: (_) => _saveModel(),
+          Row(
+            children: [
+              Expanded(
+                // The models the key can use; a name not in the list can be typed too.
+                child: DropdownMenu<String>(
+                  key: const Key('model'),
+                  controller: _model,
+                  expandedInsets: EdgeInsets.zero,
+                  requestFocusOnTap: true,
+                  label: const Text('Model'),
+                  helperText: 'Pick one or type a name; empty means ${session.spec!.defaultModel}',
+                  dropdownMenuEntries: [
+                    for (final m in session.models) DropdownMenuEntry(value: m, label: m),
+                  ],
+                  onSelected: (_) => _saveModel(),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Refresh the model list',
+                icon: const Icon(Icons.refresh),
+                onPressed: _refreshModels,
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Align(
