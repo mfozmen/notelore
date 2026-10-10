@@ -359,14 +359,20 @@ String _fold(String text) => unorm.nfkd(text.toLowerCase()).replaceAll(_mark, ''
 
 final _nonWord = RegExp(r'[^\p{L}\p{N}]+', unicode: true);
 
-/// The words of [query], folded and cut to a stem, so suffixes do not matter
-/// ("kitap", "kitabı" and "kitabını" all search for "kita"). Words under three
+/// The words of [query], folded and cut to prefixes, so suffixes do not matter.
+/// A long word gives two terms: a stem without its last three letters, and its
+/// first four letters, which survive Turkish root changes ("kitabını" → "kitab",
+/// "kita": both match "kitap"). A line matching both ranks above one matching
+/// only the short prefix ("postgresql" before "postponed"). Words under three
 /// letters are dropped. Only letters and digits remain, so no LIKE or FTS5 syntax.
-/// shortcut: a crude prefix stem, not a Turkish morphological analyser; upgrade
-/// if users still miss notes because a word's root changes.
+/// shortcut: prefixes, not a Turkish morphological analyser; upgrade if users
+/// still miss notes.
 List<String> _terms(String query) => {
   for (final word in _fold(query).split(_nonWord))
-    if (word.length >= 3) word.length <= 4 ? word : word.substring(0, max(4, word.length - 3)),
+    if (word.length >= 3) ...{
+      word.length <= 4 ? word : word.substring(0, max(4, word.length - 3)),
+      if (word.length > 4) word.substring(0, 4),
+    },
 }.toList();
 
 DateTime? _day(String? iso) => iso == null ? null : DateTime.parse('${iso}T00:00:00Z');
