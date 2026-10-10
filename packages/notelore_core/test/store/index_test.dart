@@ -182,8 +182,22 @@ void main() {
         expect(idx.search('ve bu'), isEmpty); // words under three letters are not searched
       });
 
+      test('a long inflection finds a note that only has the bare root', () {
+        final path = createNote(root, 'topic', 'Okuma', lang: 'tr', today: today);
+        addEntry(path, 'Yeni bir kitap aldım.', today: today);
+        idx.rebuild();
+        for (final query in ['kitabını', 'kitabımızı']) {
+          expect(idx.search(query).map((h) => h.slug), contains('okuma'), reason: query);
+        }
+      });
+
+      test('the closer match still ranks first', () {
+        // "postgresql" also reaches "postponed" through its short prefix, but lower.
+        expect(idx.search('postgresql').first.section, 'decisions');
+      });
+
       test('search marks superseded decisions', () {
-        expect(idx.search('postgresql').single.superseded, isTrue);
+        expect(idx.search('postgresql').first.superseded, isTrue); // the decision ranks first
         expect(idx.search('zero setup').single.superseded, isFalse);
         expect(idx.search('crypto').single.superseded, isFalse);
       });

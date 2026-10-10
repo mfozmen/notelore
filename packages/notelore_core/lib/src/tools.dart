@@ -113,7 +113,7 @@ final noteTools = List<Tool>.unmodifiable([
   Tool(
     'search_notes',
     'Full-text search over every note: any word may match, best matches first; '
-        'word endings do not matter.',
+        'word endings do not matter; words under three letters are ignored.',
     _schema(['query'], {'query': _string, 'kind': _kind}),
   ),
   Tool('find_stale_notes', 'Deterministic cleanup candidates.', _schema([])),
