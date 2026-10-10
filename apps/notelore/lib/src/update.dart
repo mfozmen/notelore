@@ -222,7 +222,9 @@ class Updater {
       if (attached.exitCode != 0) throw UpdateFailed('opening $name failed: ${attached.stderr}');
       try {
         // ditto keeps the bundle's symlinks and permissions.
-        await run('ditto', [p.join(mount, 'notelore.app'), bundle]);
+        final copied = await run('ditto', [p.join(mount, 'notelore.app'), bundle]);
+        // A half-copied bundle must never replace a working one.
+        if (copied.exitCode != 0) throw UpdateFailed('copying the app failed: ${copied.stderr}');
       } finally {
         await run('hdiutil', ['detach', mount, '-force']);
       }
@@ -270,6 +272,13 @@ class Updater {
         final old = Directory('$_installed.old');
         if (old.existsSync()) old.deleteSync(recursive: true);
         return;
+      }
+      // Setups of earlier updates: they ran after the app exited, so it could
+      // not delete them then.
+      for (final folder in Directory.systemTemp.listSync().whereType<Directory>()) {
+        if (p.basename(folder.path).startsWith('notelore-update-')) {
+          folder.deleteSync(recursive: true);
+        }
       }
       for (final file in Directory(_installed).listSync(recursive: true).whereType<File>()) {
         if (file.path.endsWith('.old')) file.deleteSync();

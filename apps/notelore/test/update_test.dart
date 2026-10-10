@@ -189,6 +189,16 @@ void main() {
       expect(read(p.join(install, 'notelore.exe')), 'old exe');
     });
 
+    test('cleanup removes the setups that earlier updates left in temp', () async {
+      final u = updater(good());
+      await u.apply();
+      await u.relaunch();
+      final setupFolder = p.dirname(spawned.single.first);
+      expect(Directory(setupFolder).existsSync(), isTrue);
+      updater(good()).cleanup(); // the next start
+      expect(Directory(setupFolder).existsSync(), isFalse);
+    });
+
     test('cleanup of a folder that is gone does nothing', () {
       Updater(
         system: 'windows',
@@ -301,6 +311,22 @@ void main() {
       );
       expect(ran.last, ['hdiutil', 'detach']); // the image is never left mounted
       expect(read(p.join(bundle, 'Contents', 'MacOS', 'notelore')), 'old binary');
+    });
+
+    test('a copy out of the dmg that fails installs nothing', () async {
+      Future<ProcessResult> halfCopy(String command, List<String> args) async {
+        await tools(command, args); // mounts, and ditto writes part of the bundle...
+        return command == 'ditto'
+            ? ProcessResult(0, 1, '', 'ditto: No space left on device') // ...then fails
+            : ProcessResult(0, 0, '', '');
+      }
+
+      await expectLater(
+        updater(good(), run: halfCopy).apply(),
+        throwsA(isA<UpdateFailed>().having((e) => '$e', 'message', contains('No space left'))),
+      );
+      expect(read(p.join(bundle, 'Contents', 'MacOS', 'notelore')), 'old binary');
+      expect(ran.last, ['hdiutil', 'detach']);
     });
 
     test('a folder next to the app that cannot be written says where to move it', () async {
