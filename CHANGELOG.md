@@ -2,6 +2,57 @@
 
 <!-- version list -->
 
+## v0.4.0 (2026-10-10)
+
+### Bug Fixes
+
+- A long Turkish inflection finds the bare root
+  ([`e34397b`](https://github.com/mfozmen/notelore/commit/e34397bb9e6bfa278504ef839d12de621fa2719d))
+
+- A model list that arrives after logout is dropped
+  ([`e3d3572`](https://github.com/mfozmen/notelore/commit/e3d3572f53ca451cc80f499ad45dfd06a7592abf))
+
+- A Turkish question finds its note; the agent keeps details
+  ([`8b7a52f`](https://github.com/mfozmen/notelore/commit/8b7a52fadc8d880dbd09ee6cc9076fb31f735059))
+
+- Give iscc the absolute build folder
+  ([`3b42968`](https://github.com/mfozmen/notelore/commit/3b42968bb539490a1ee10f42f1bd5d68a7aaec89))
+
+- Never swap in a half-copied app; clean leftover setups
+  ([`21b1786`](https://github.com/mfozmen/notelore/commit/21b17863c8ca0ec09cae76434283d1995b6d4c4c))
+
+- One ChatGPT token refresh at a time; tolerate stream markers
+  ([`8c27fb8`](https://github.com/mfozmen/notelore/commit/8c27fb830c14cd2b67bf01b1544b6a57d3eb5079))
+
+- One idle check for timer and resume syncs; count queued syncs
+  ([`3e0322a`](https://github.com/mfozmen/notelore/commit/3e0322ad02b867f3b4ac50f70acd26561e8db134))
+
+- Sync other devices' changes while the app is open
+  ([`9db6f8d`](https://github.com/mfozmen/notelore/commit/9db6f8dd0630fdcbfeaa9c65428b073b122e5b21))
+
+### Continuous Integration
+
+- Upload the Windows release assets with bash; rebuild an existing tag
+  ([`1a077e0`](https://github.com/mfozmen/notelore/commit/1a077e09849674e94416bcef56153b8c72a11acd))
+
+- Write release checksums with LF on every OS
+  ([`612acd4`](https://github.com/mfozmen/notelore/commit/612acd4b16f041ce5f3f10f8816b1b5490fa7dff))
+
+### Features
+
+- Installers instead of zips; updates run the installer
+  ([`4925298`](https://github.com/mfozmen/notelore/commit/4925298b49bba2b5b5a8a376c2529f0bd7b7395a))
+
+- Pick the model from the list the provider gives
+  ([`9b684f3`](https://github.com/mfozmen/notelore/commit/9b684f3e8198aadf5080a36ae069611b67f25f50))
+
+- Say what each model provider costs before asking for a key
+  ([`6fc5bf9`](https://github.com/mfozmen/notelore/commit/6fc5bf97fd8b5d1f91ded28a27a465eb872853db))
+
+- Use a ChatGPT Plus or Pro plan ("Sign in with ChatGPT")
+  ([`c8004ed`](https://github.com/mfozmen/notelore/commit/c8004edd810ce23ed577ec6b04c27e81a15003d7))
+
+
 ## v0.3.0 (2026-10-05)
 
 ### Bug Fixes
