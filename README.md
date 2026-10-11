@@ -39,7 +39,7 @@ What it costs (the setup screen says it too):
 
 Then just talk: *"Mopsos için not al: veritabanı olarak SQLite seçtik, tek kullanıcı."* The model chip above the message box switches between the models your provider offers at any time; the conversation carries on. While the assistant works, the chat shows what it is doing ("Searching the notes… 4 s"); *Stop* ends the turn, and a turn that takes more than 3 minutes stops by itself.
 - **Notes**: lists every project and topic and opens each one read-only. A long press (or the delete button of an open note) moves a note to the archive, `_archive/<date>/` in the notes folder, with an Undo; nothing is deleted for good.
-- **Settings**: pick the model from the ones your key can use (the list comes from the provider and is refreshed on every start, or with the refresh button; you can also type any model name; the last chosen model is kept), or log out. Logging out forgets every saved key on that device; the notes stay.
+- **Settings**: pick the model from the ones your key can use (the list comes from the provider and is refreshed on every start, or with the refresh button; you can also type any model name; the last chosen model is kept, and if the provider stops offering it the chat asks you to pick another), or log out. Logging out forgets every saved key on that device; the notes stay.
 
 Notes go to `~/Notelore/` on the desktop and to the app's own storage on a phone. The macOS app is not sandboxed, so that folder is the real, visible one; it ships outside the Mac App Store.
 

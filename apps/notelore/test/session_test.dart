@@ -324,9 +324,13 @@ void main() {
     // Even when the provider no longer lists it, the chosen model stays.
     harness.models = ['model-new'];
     final third = harness.session();
+    expect(third.modelGone, isFalse); // nothing connected yet
     await third.load();
     await pumpEventQueue();
     expect(third.model, 'model-b');
+    expect(third.modelGone, isTrue); // the chat asks the user to pick another
+    await third.setModel('model-new');
+    expect(third.modelGone, isFalse);
     // Offline or refused: the old list stays, and nothing is thrown.
     harness.rejected = const TransientValidationError('offline');
     final offline = harness.session();

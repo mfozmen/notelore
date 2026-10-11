@@ -227,6 +227,10 @@ class Session extends ChangeNotifier {
     _use(current, key, next);
   }
 
+  /// The chosen model is not among the ones the provider lists (any more): the
+  /// chat asks the user to pick another. An empty list proves nothing.
+  bool get modelGone => models.isNotEmpty && model != null && !models.contains(model);
+
   /// New models show up by themselves: on start the list is asked for again.
   /// Offline or refused, the old list stays; the chosen model never changes.
   Future<void> _refreshQuietly() async {
