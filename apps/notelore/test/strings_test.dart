@@ -96,6 +96,7 @@ void main() {
       'listening': s.listening,
       'speaking': s.speaking,
       'voiceUnavailable': s.voiceUnavailable,
+      'speechFailed': s.speechFailed('error_network'),
       'refresh': s.refresh,
       'noNotes': s.noNotes,
       'deleteQuestion': s.deleteQuestion('t'),
