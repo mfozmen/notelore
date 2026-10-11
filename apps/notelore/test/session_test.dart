@@ -378,6 +378,9 @@ void main() {
     // A file that cannot be written: the choice still applies, just not remembered.
     File(p.join(harness.paths.state.path, 'ui.json')).deleteSync();
     Directory(p.join(harness.paths.state.path, 'ui.json')).createSync();
+    // The time of the change cannot be kept either: still no error.
+    File(p.join(harness.paths.state.path, 'settings-changed.txt')).deleteSync();
+    Directory(p.join(harness.paths.state.path, 'settings-changed.txt')).createSync();
     damaged.setLanguage(AppLanguage.tr);
     expect(damaged.strings.languageCode, 'tr');
   });

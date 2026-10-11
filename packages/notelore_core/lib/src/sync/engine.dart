@@ -83,8 +83,11 @@ Future<SyncReport> sync(
         if (file.path.endsWith('.md'))
           unorm.nfc(p.split(p.relative(file.path, from: root)).join('/')): file,
   };
+  // Only notes: anything else in the remote folder (the shared app settings) is
+  // not ours to pull, and pulling it would later read as deleted here and trash it.
   final remoteFiles = {
-    for (final MapEntry(:key, :value) in (await remote.list()).entries) unorm.nfc(key): value,
+    for (final MapEntry(:key, :value) in (await remote.list()).entries)
+      if (key.endsWith('.md')) unorm.nfc(key): value,
   };
   final report = SyncReport();
   final keys = {...local.keys, ...remoteFiles.keys, ...manifest.paths()}.toList()..sort();
