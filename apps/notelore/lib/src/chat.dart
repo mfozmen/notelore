@@ -48,13 +48,29 @@ class _ChatScreenState extends State<ChatScreen> {
                       : _Bubble(lines[index]),
                 ),
         ),
-        if (session.spec?.name == 'chatgpt')
-          // OpenAI asks plan-usage apps to show this near the composer.
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            children: [
+              // The models the connected provider listed; switching keeps the conversation.
+              PopupMenuButton<String>(
+                tooltip: 'Change the model',
+                enabled: !session.busy,
+                initialValue: session.model,
+                onSelected: session.setModel,
+                itemBuilder: (_) => [
+                  for (final m in {...session.models, ?session.model})
+                    PopupMenuItem(value: m, child: Text(m)),
+                ],
+                child: Chip(
+                  avatar: const Icon(Icons.tune, size: 16),
+                  label: Text(session.model ?? ''),
+                ),
+              ),
+              if (session.spec?.name == 'chatgpt') ...[
+                // OpenAI asks plan-usage apps to show this near the composer.
                 const Text('Using ChatGPT plan'),
                 TextButton(
                   onPressed: () =>
@@ -62,8 +78,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: const Text('Manage usage'),
                 ),
               ],
-            ),
+            ],
           ),
+        ),
         Padding(
           padding: const EdgeInsets.all(8),
           child: Row(

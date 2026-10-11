@@ -308,6 +308,18 @@ void main() {
     expect(session.model, 'claude-sonnet-5-5'); // blank goes back to the default
   });
 
+  test('switching the model keeps the conversation', () async {
+    final harness = Harness(answers: ['first', 'second']);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    await session.send('a');
+    await session.setModel('model-b');
+    await session.send('b');
+    // The second turn, on the new model, still carries the first one.
+    expect(harness.provider.lengths, [1, 3]);
+    expect(harness.created.last, ('anthropic', 'k', 'model-b'));
+  });
+
   test('logout forgets the key, the provider and the conversation', () async {
     final harness = Harness(answers: ['hi']);
     final session = harness.session();

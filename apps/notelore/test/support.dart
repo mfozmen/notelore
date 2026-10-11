@@ -22,12 +22,16 @@ class ScriptedProvider implements LlmProvider {
   final List<Object> answers;
   final asked = <String>[];
 
+  /// How many messages of history each turn carried.
+  final lengths = <int>[];
+
   @override
   final String model;
 
   @override
   Future<AgentResponse> turn(String system, List<Message> messages, List<Tool> tools) async {
     asked.add('${messages.last['content']}');
+    lengths.add(messages.length);
     final answer = answers.removeAt(0);
     if (answer is Exception) throw answer;
     if (answer is Future<AgentResponse>) return answer;
