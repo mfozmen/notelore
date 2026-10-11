@@ -48,7 +48,13 @@ class ScriptedProvider implements LlmProvider {
 /// Everything a session test needs: temp folders, an empty keystore and a
 /// provider that answers from [answers]. Validation passes unless [rejected].
 class Harness {
-  Harness({List<Object> answers = const [], this.rejected, this.auth, this.chatGpt}) {
+  Harness({
+    List<Object> answers = const [],
+    this.rejected,
+    this.auth,
+    this.chatGpt,
+    MemoryRemote? remote,
+  }) : remote = remote ?? MemoryRemote() {
     final dir = Directory.systemTemp.createTempSync('notelore_app_');
     addTearDown(() => dir.deleteSync(recursive: true));
     paths = NotelorePaths(
@@ -68,7 +74,9 @@ class Harness {
   /// What the provider lists for a good key; tests change it between calls.
   var models = <String>['claude-sonnet-5-5', 'model-a', 'model-b'];
   final FakeAuth? auth;
-  final remote = MemoryRemote();
+
+  /// The Drive folder; two harnesses can share one, like two devices.
+  final MemoryRemote remote;
   final created = <(String, String?, String?)>[];
 
   /// The plan token each provider was built with (null for key providers).
@@ -85,10 +93,17 @@ class Harness {
   var planModels = <String>['gpt-plan-a', 'gpt-plan-b'];
 
   /// A session the test closes itself; pass [owned] false when an app takes it over.
-  Session session({bool owned = true, String systemLanguage = 'en'}) {
+  Session session({
+    bool owned = true,
+    String systemLanguage = 'en',
+    String keySpace = 'notelore',
+    DateTime Function()? clock,
+  }) {
     final session = Session(
       paths,
       systemLanguage: systemLanguage,
+      keySpace: keySpace,
+      clock: clock,
       speech: speech,
       voice: voice,
       validate: (spec, key) async {

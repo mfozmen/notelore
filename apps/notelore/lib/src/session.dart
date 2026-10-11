@@ -47,6 +47,10 @@ enum ChatRole { user, assistant, error }
 
 typedef ChatLine = ({ChatRole role, String text});
 
+/// The shared app settings in the notes folder on Drive (not a note: the sync
+/// engine leaves it alone).
+const sharedSettings = '.notelore/settings.json';
+
 class Session extends ChangeNotifier {
   Session(
     this.paths, {
@@ -54,6 +58,7 @@ class Session extends ChangeNotifier {
     this.makeProvider = createProvider,
     this.today,
     this.keySpace = 'notelore',
+    DateTime Function()? clock,
     this.keys = appKeys,
     this.driveAuth,
     this.remoteFor = _driveRemote,
@@ -62,7 +67,8 @@ class Session extends ChangeNotifier {
     this.systemLanguage = 'en',
     this._speech,
     this._voice,
-  }) : index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path),
+  }) : clock = clock ?? DateTime.timestamp,
+       index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path),
        manifest = Manifest(paths.state.path);
 
   final NotelorePaths paths;
@@ -74,6 +80,9 @@ class Session extends ChangeNotifier {
   /// The device's speech recognition and voices for voice mode, made on first use.
   late final Speech speech = _speech ?? DeviceSpeech();
   late final Voice voice = _voice ?? DeviceVoice();
+
+  /// Now, for the time of a settings change (tests pass their own).
+  final DateTime Function() clock;
 
   /// The device's language code; [AppLanguage.system] follows it.
   final String systemLanguage;
@@ -88,6 +97,11 @@ class Session extends ChangeNotifier {
 
   /// Picks the app language and remembers it on this device.
   void setLanguage(AppLanguage chosen) {
+    _applyLanguage(chosen);
+    _touch();
+  }
+
+  void _applyLanguage(AppLanguage chosen) {
     language = chosen;
     notifyListeners();
     try {
@@ -235,6 +249,7 @@ class Session extends ChangeNotifier {
       if (spec.requiresApiKey) await _restoreKey(name, previous);
       rethrow;
     }
+    _touch();
     models = listed;
     // Set before _use: the home screen it brings up shows the welcome.
     if (spec.name == 'chatgpt' && await keys.read(key: '$keySpace.chatgpt.welcomed') == null) {
@@ -275,6 +290,11 @@ class Session extends ChangeNotifier {
 
   /// A blank [chosen] goes back to [defaultModel].
   Future<void> setModel(String chosen) async {
+    await _applyModel(chosen);
+    _touch();
+  }
+
+  Future<void> _applyModel(String chosen) async {
     final current = spec;
     if (current == null) return;
     final key = current.requiresApiKey ? await keys.read(key: _keyName(current)) : '';
@@ -434,6 +454,83 @@ class Session extends ChangeNotifier {
     _autoSync = null;
   }
 
+  // Settings shared through Drive: the language and the provider and model, as
+  // [sharedSettings] in the notes folder on Drive. The newest change wins; each
+  // device keeps the time of its last change. Keys and sign-ins never travel.
+  String get _changed => p.join(paths.state.path, 'settings-changed.txt');
+
+  DateTime? get _changedAt {
+    try {
+      return DateTime.parse(File(_changed).readAsStringSync());
+    } on Exception {
+      return null; // nothing changed here yet, or unreadable
+    }
+  }
+
+  void _touch([DateTime? at]) {
+    try {
+      atomicWrite(_changed, (at ?? clock()).toUtc().toIso8601String());
+    } on FileSystemException {
+      // not remembered: the next change tries again
+    }
+  }
+
+  Future<void> _syncSettings(Remote remote) async {
+    final listed = (await remote.list())[sharedSettings];
+    final theirs = listed == null ? null : _json(await remote.download(listed.id));
+    final at = DateTime.tryParse('${theirs?['updated']}');
+    final mine = _changedAt;
+    if (at != null && (mine == null || at.isAfter(mine))) {
+      await _adopt(theirs!);
+      _touch(at);
+      return;
+    }
+    if (at != null && !mine!.isAfter(at)) return; // the same change on both sides
+    final stamp = mine ?? clock();
+    if (mine == null) _touch(stamp);
+    final shared = {
+      'updated': stamp.toUtc().toIso8601String(),
+      'language': language.name,
+      'provider': ?spec?.name,
+      'model': ?model,
+    };
+    await remote.upload(sharedSettings, utf8.encode(jsonEncode(shared)), listed?.id);
+  }
+
+  static Map<String, Object?>? _json(List<int> data) {
+    try {
+      return switch (jsonDecode(utf8.decode(data, allowMalformed: true))) {
+        final Map<String, Object?> map => map,
+        _ => null,
+      };
+    } on FormatException {
+      return null; // damaged: replaced with this device's settings
+    }
+  }
+
+  /// Another device's settings. Its provider only when this device can use it
+  /// without asking (a key, or the ChatGPT sign-in); Ollama is local to each machine.
+  Future<void> _adopt(Map<String, Object?> theirs) async {
+    if (AppLanguage.values.where((l) => l.name == theirs['language']).firstOrNull case final l?) {
+      _applyLanguage(l);
+    }
+    final (name, chosen) = (theirs['provider'], theirs['model']);
+    if (name is! String || chosen is! String || name == 'ollama') return;
+    final found = providerSpecs.where((s) => s.name == name).firstOrNull;
+    if (found == null) return;
+    if (found == spec) {
+      if (chosen != model) await _applyModel(chosen);
+      return;
+    }
+    final key = found.requiresApiKey ? await keys.read(key: _keyName(found)) : '';
+    if (key == null) return;
+    if (found.name == 'chatgpt' && !(await chatGpt?.signedIn() ?? false)) return;
+    models = const [];
+    _save(found, chosen, models);
+    _use(found, key, chosen);
+    unawaited(_refreshQuietly()); // its model list
+  }
+
   Future<void> syncNow() async {
     if (!driveConnected) return;
     _pendingSyncs++;
@@ -447,6 +544,7 @@ class Session extends ChangeNotifier {
           _remote ??= remoteFor(driveAuth!),
           resolver?.call ?? _unresolved, // no model connected: conflicts wait
         );
+        await _syncSettings(_remote!);
         final counts = (
           report.pushed.length + report.removedRemote.length,
           report.pulled.length + report.removedLocal.length,

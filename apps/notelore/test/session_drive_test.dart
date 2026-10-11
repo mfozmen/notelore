@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/session.dart';
+import 'package:notelore/src/strings.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -36,10 +37,96 @@ void main() {
     expect(session.driveAvailable, isTrue);
     await session.connectDrive();
     expect(session.driveConnected, isTrue);
-    expect(harness.remote.texts.keys, ['topics/mopsos.md']);
+    // The note, and the app settings other devices pick up.
+    expect(harness.remote.texts.keys, unorderedEquals(['topics/mopsos.md', sharedSettings]));
     expect(session.syncStatus, 'Synced: 1 sent.');
     await session.syncNow();
     expect(session.syncStatus, 'Synced; nothing changed.');
+  });
+
+  group('settings travel through Drive', () {
+    DateTime Function() at(int hour) =>
+        () => DateTime.utc(2026, 10, 12, hour);
+
+    test('the newer change wins: language, provider and model reach the other device', () async {
+      final drive = MemoryRemote();
+      // Every harness resets the shared test keystore: set the devices up first.
+      final laptop = Harness(auth: FakeAuth(), remote: drive).session(clock: at(10));
+      final phone = Harness(
+        auth: FakeAuth(),
+        remote: drive,
+      ).session(keySpace: 'phone', clock: at(9));
+      final later = Harness(
+        auth: FakeAuth()..granted = true,
+        remote: drive,
+      ).session(keySpace: 'phone', clock: at(11));
+      await laptop.connect(findProvider('anthropic'), 'k');
+      laptop.setLanguage(AppLanguage.tr);
+      await laptop.setModel('model-b');
+      await laptop.connectDrive();
+      expect(drive.texts[sharedSettings], contains('"language":"tr"'));
+      expect(drive.texts[sharedSettings], isNot(contains('k"'))); // no key ever leaves
+
+      // A phone set up earlier, with its own key for the same provider.
+      await phone.connect(findProvider('anthropic'), 'phone-key');
+      await phone.connectDrive();
+      expect(phone.language, AppLanguage.tr);
+      expect(phone.model, 'model-b');
+
+      // Later the phone changes the language: the laptop follows on its next sync.
+      await later.connect(findProvider('anthropic'), 'phone-key');
+      later.setLanguage(AppLanguage.en);
+      await later.connectDrive();
+      await laptop.syncNow();
+      expect(laptop.language, AppLanguage.en);
+      await laptop.syncNow(); // nothing new: nothing changes
+      expect(laptop.language, AppLanguage.en);
+    });
+
+    test('a provider this device has no key for is not switched to', () async {
+      final drive = MemoryRemote();
+      final laptop = Harness(auth: FakeAuth(), remote: drive).session(clock: at(10));
+      final phone = Harness(
+        auth: FakeAuth(),
+        remote: drive,
+      ).session(keySpace: 'phone', clock: at(9));
+      await laptop.connect(findProvider('openai'), 'sk');
+      laptop.setLanguage(AppLanguage.tr);
+      await laptop.connectDrive();
+      await phone.connect(findProvider('anthropic'), 'phone-key');
+      await phone.connectDrive();
+      expect(phone.spec!.name, 'anthropic'); // kept: no OpenAI key here
+      expect(phone.language, AppLanguage.tr); // the language still applies
+    });
+
+    test('another device can switch this one to a provider it has a key for', () async {
+      final drive = MemoryRemote();
+      final desk = Harness(auth: FakeAuth(), remote: drive).session(clock: at(9));
+      // The same keystore entries, as on one machine with two windows.
+      final other = Harness(auth: FakeAuth(), remote: drive).session(clock: at(10));
+      await desk.connect(findProvider('openai'), 'sk'); // a key here for OpenAI too
+      await desk.connect(findProvider('anthropic'), 'k');
+      await desk.connectDrive();
+      await other.connect(findProvider('openai'), 'sk');
+      await other.connectDrive();
+      await desk.syncNow();
+      expect(desk.spec!.name, 'openai');
+    });
+
+    test('Ollama is local to each machine, and a damaged settings file is replaced', () async {
+      final drive = MemoryRemote();
+      drive.texts[sharedSettings] =
+          '{"updated": "2026-10-12T12:00:00Z", "provider": "ollama", '
+          '"model": "llama3.2"}';
+      final phone = Harness(auth: FakeAuth(), remote: drive).session(clock: at(10));
+      await phone.connect(findProvider('anthropic'), 'k');
+      await phone.connectDrive();
+      expect(phone.spec!.name, 'anthropic');
+      drive.texts[sharedSettings] = 'not json';
+      phone.setLanguage(AppLanguage.tr);
+      await phone.syncNow();
+      expect(drive.texts[sharedSettings], contains('"language":"tr"'));
+    });
   });
 
   test('a failed sign-in leaves Drive disconnected', () async {
@@ -80,7 +167,7 @@ void main() {
     await session.load();
     await session.send('Mopsos diye proje aç');
     await session.syncDone;
-    expect(harness.remote.texts.keys, ['projects/mopsos.md']);
+    expect(harness.remote.texts.keys, unorderedEquals(['projects/mopsos.md', sharedSettings]));
   });
 
   test('offline is not an error: the next sync catches up', () async {

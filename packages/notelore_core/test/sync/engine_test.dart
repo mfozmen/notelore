@@ -206,6 +206,18 @@ void main() {
     expect(manifest.get('topics/t.md'), isNotNull);
   });
 
+  test('remote files that are not notes are left alone', () async {
+    drive
+      ..put('.notelore/settings.json', '{"language": "tr"}')
+      ..put('topics/fine.md', note);
+    expect((await run()).pulled, ['topics/fine.md']);
+    final again = await run(); // not pulled, so never seen as deleted here
+    expect(again.changed, 0);
+    expect(drive.trashed, isEmpty);
+    expect(drive.text('.notelore/settings.json'), '{"language": "tr"}');
+    expect(File(p.join(root, '.notelore', 'settings.json')).existsSync(), isFalse);
+  });
+
   test('unsafe remote paths are ignored', () async {
     drive
       ..put('../escape.md', note)
