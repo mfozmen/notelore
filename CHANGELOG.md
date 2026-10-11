@@ -2,6 +2,90 @@
 
 <!-- version list -->
 
+## v0.6.0 (2026-10-11)
+
+### Bug Fixes
+
+- A new top model never hides the cheaper ones before it
+  ([`81df1b3`](https://github.com/mfozmen/notelore/commit/81df1b37dccd96c1e0a7e6cf89a2271c4e962c14))
+
+- A recognizer failure reads in the app language
+  ([`a68a2a7`](https://github.com/mfozmen/notelore/commit/a68a2a774cc21e7cde24360864667183ccb4a85d))
+
+- A timer check never touches an installing update or a put-off version
+  ([`27bab7a`](https://github.com/mfozmen/notelore/commit/27bab7a812b96fc8d525da64928b4614cc80e726))
+
+- A visible delete button on every note in the list
+  ([`21a0c79`](https://github.com/mfozmen/notelore/commit/21a0c7931521be9057a82e8a127cd1bd71fbe9d2))
+
+- An installer failure shows in the banner; one APK copy at most, made off the main thread
+  ([`0f7baf9`](https://github.com/mfozmen/notelore/commit/0f7baf94bf65c357f420efa1096f0b9f530efc6e))
+
+- Keep the string tables out of duplicate detection; forgiving language save
+  ([`e9f96fd`](https://github.com/mfozmen/notelore/commit/e9f96fd89c8bf6c27da59c65d10856ba85f19a6c))
+
+- List the Windows app as plain "Notelore" in Installed apps
+  ([`aaaa6ec`](https://github.com/mfozmen/notelore/commit/aaaa6eca196a9415d80a8be7c6cb3ceb6ce81f5b))
+
+- Say OpenAI, not ChatGPT, in errors a key user can see
+  ([`ab74f49`](https://github.com/mfozmen/notelore/commit/ab74f49e5ed20619e34553d3b1e367eff04c0331))
+
+- Use the Responses API for GPT with an API key
+  ([`32ffaaf`](https://github.com/mfozmen/notelore/commit/32ffaafbf372bd219ece28b113256a5fdaad58a2))
+
+- Voice mode survives a closed chat, stops on real recognizer errors, speaks answers only
+  ([`27ff4e8`](https://github.com/mfozmen/notelore/commit/27ff4e8eddd7cd4225f754d113846906e753747b))
+
+### Chores
+
+- Install the ui-ux-pro-max skill for the redesign
+  ([`4a08b43`](https://github.com/mfozmen/notelore/commit/4a08b43d18bac35c7f3b9380fb5f102d6994219d))
+
+### Continuous Integration
+
+- Bump the actions group across 1 directory with 3 updates
+  ([`0d4e936`](https://github.com/mfozmen/notelore/commit/0d4e93657d2d2ff373d1f6b6f7845480b59f5095))
+
+- Skip the AI review on Dependabot's pull requests
+  ([`81ccf3c`](https://github.com/mfozmen/notelore/commit/81ccf3cbf74872a07138e94e859a976eb824037c))
+
+### Documentation
+
+- A simpler README, with the SonarCloud badges
+  ([`f233004`](https://github.com/mfozmen/notelore/commit/f233004132c434c82388b8a8132fb6e30c0985b2))
+
+- Full file names, the Claude subscription note, precise Android update wording
+  ([`a604af0`](https://github.com/mfozmen/notelore/commit/a604af0a7480fb623dff4ad154a262793231c8c5))
+
+### Features
+
+- A calmer, more polished look
+  ([`2fb1840`](https://github.com/mfozmen/notelore/commit/2fb1840d70fd2cd34a6b84d5cab4ff3c067d567a))
+
+- Check for updates by hand, and while the app stays open
+  ([`5cb2fb5`](https://github.com/mfozmen/notelore/commit/5cb2fb51f72a4d06dd5d22e1754a9cf4a9b27667))
+
+- List only the current model versions, cheapest by default
+  ([`87f0867`](https://github.com/mfozmen/notelore/commit/87f0867a5bb6ee27ca74358d9ec93f8e42fa1bed))
+
+- Sync the app settings through Google Drive
+  ([`9453f3a`](https://github.com/mfozmen/notelore/commit/9453f3ab2bc57c0771f1f2b22a7379e02c03f2ec))
+
+- Turkish app language, picked in Settings
+  ([`6527488`](https://github.com/mfozmen/notelore/commit/652748850fbdc0106216ef7c1c8507c2640c39fc))
+
+- Update the Android app from inside the app
+  ([`c229c0c`](https://github.com/mfozmen/notelore/commit/c229c0c1ca155b21281f8eadd4d31957769d58f6))
+
+- Voice mode, talk to the assistant and hear its answers
+  ([`d50e991`](https://github.com/mfozmen/notelore/commit/d50e9914a738f6450f8eae9691f0a5214fb63062))
+
+### Testing
+
+- Pin the theme's contract; one radius constant per shape
+  ([`dca5725`](https://github.com/mfozmen/notelore/commit/dca5725aca21cc240aa07deca122e649ae4eb416))
+
+
 ## v0.5.0 (2026-10-11)
 
 ### Bug Fixes
