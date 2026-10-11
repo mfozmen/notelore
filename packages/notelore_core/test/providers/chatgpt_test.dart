@@ -40,7 +40,7 @@ class FakeResponses {
 }
 
 http.Response stream(List<Map<String, Object?>> events) =>
-    http.Response(sse(events), 200, headers: {'content-type': 'text/event-stream'});
+    http.Response(sse(events), 200, headers: {'content-type': 'text/event-stream; charset=utf-8'});
 
 void main() {
   late List<bool> refreshes;
@@ -182,6 +182,39 @@ void main() {
         },
       ],
     );
+  });
+
+  test('items streamed one by one count when the final output is empty', () async {
+    // The plan route sends each item as it finishes and an empty final output.
+    final api = FakeResponses([
+      stream([
+        {
+          'type': 'response.output_item.done',
+          'item': {
+            'type': 'message',
+            'content': [
+              {'type': 'output_text', 'text': 'Not aldım.'},
+            ],
+          },
+        },
+        {
+          'type': 'response.output_item.done',
+          'item': {
+            'type': 'function_call',
+            'call_id': 'call_1',
+            'name': 'read_note',
+            'arguments': '{}',
+          },
+        },
+        completed([]),
+      ]),
+    ]);
+    final response = await provider(api).turn('', [], []);
+    expect(response.content, [
+      {'type': 'text', 'text': 'Not aldım.'},
+      {'type': 'tool_use', 'id': 'call_1', 'name': 'read_note', 'input': <String, Object?>{}},
+    ]);
+    expect(response.stopReason, 'tool_use');
   });
 
   test('lines that are not JSON events are skipped', () async {

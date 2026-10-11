@@ -94,6 +94,8 @@ NetworkError _slow() => const NetworkError('ChatGPT did not answer in time');
 /// `response.incomplete` (an answer cut short). `response.failed` throws.
 Future<Map<String, Object?>> _finalResponse(http.StreamedResponse answer) async {
   final lines = answer.stream.transform(utf8.decoder).transform(const LineSplitter());
+  // The plan route streams each finished item and leaves the final output empty.
+  final items = <Object?>[];
   try {
     await for (final line in lines) {
       if (!line.startsWith('data:')) continue;
@@ -101,8 +103,11 @@ Future<Map<String, Object?>> _finalResponse(http.StreamedResponse answer) async 
       final event = _json(line.substring(5).trim());
       if (event is! Map) continue;
       switch (event['type']) {
+        case 'response.output_item.done':
+          items.add(event['item']);
         case 'response.completed' || 'response.incomplete':
-          return (event['response']! as Map).cast<String, Object?>();
+          final response = (event['response']! as Map).cast<String, Object?>();
+          return items.isEmpty ? response : {...response, 'output': items};
         case 'response.failed':
           final error = ((event['response']! as Map)['error'] as Map?) ?? const {};
           throw _apiError(200, error);
