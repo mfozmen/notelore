@@ -1,4 +1,4 @@
-; The Windows setup (Inno Setup 6). It asks: for all users (admin rights, into
+; The Windows setup (Inno Setup 6). It asks: for all users (the default; admin rights, into
 ; Program Files) or only for me (no admin rights, %LOCALAPPDATA%\Programs\Notelore).
 ; The release workflow builds it with
 ;   iscc /DAppVersion=1.2.3 /DSourceDir=<flutter Release folder> /O<out> /F<name> notelore.iss
@@ -25,7 +25,9 @@ AppPublisherURL=https://github.com/mfozmen/notelore
 ; {autopf}: Program Files for all users, %LOCALAPPDATA%\Programs for one.
 DefaultDirName={autopf}\Notelore
 DisableProgramGroupPage=yes
-PrivilegesRequired=lowest
+; Default: all users. "Only for me" stays one click away, and an update keeps
+; whichever the earlier install chose (UsePreviousPrivileges).
+PrivilegesRequired=admin
 PrivilegesRequiredOverridesAllowed=dialog commandline
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
