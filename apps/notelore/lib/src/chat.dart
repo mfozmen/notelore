@@ -5,6 +5,7 @@ import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'session.dart';
+import 'strings.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen(this.session, {super.key});
@@ -34,32 +35,32 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final session = widget.session;
+    final s = session.strings;
     final lines = session.transcript.reversed.toList(); // newest at the bottom
     return Column(
       children: [
         Expanded(
           child: lines.isEmpty
-              ? const Center(child: Text('Ask or tell me something.'))
+              ? Center(child: Text(s.askSomething))
               : ListView.builder(
                   reverse: true,
                   padding: const EdgeInsets.all(12),
                   itemCount: lines.length + (session.busy ? 1 : 0),
                   itemBuilder: (context, index) => session.busy
-                      ? (index == 0 ? _Thinking(session.step) : _Bubble(lines[index - 1]))
+                      ? (index == 0
+                            ? _Thinking(s.core(session.step ?? 'Thinking'), s)
+                            : _Bubble(lines[index - 1]))
                       : _Bubble(lines[index]),
                 ),
         ),
         if (session.modelGone)
           MaterialBanner(
             leading: const Icon(Icons.warning_amber),
-            content: Text(
-              '${session.spec!.displayName} no longer offers ${session.model}. '
-              'Pick another model.',
-            ),
+            content: Text(s.modelGone(s.providerName(session.spec!), session.model!)),
             actions: [
               TextButton(
                 onPressed: () => _modelMenu.currentState!.showButtonMenu(),
-                child: const Text('Change model'),
+                child: Text(s.changeModel),
               ),
             ],
           ),
@@ -72,7 +73,7 @@ class _ChatScreenState extends State<ChatScreen> {
               // The models the connected provider listed; switching keeps the conversation.
               PopupMenuButton<String>(
                 key: _modelMenu,
-                tooltip: 'Change the model',
+                tooltip: s.changeTheModel,
                 enabled: !session.busy,
                 initialValue: session.model,
                 onSelected: session.setModel,
@@ -87,11 +88,11 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               if (session.spec?.name == 'chatgpt') ...[
                 // OpenAI asks plan-usage apps to show this near the composer.
-                const Text('Using ChatGPT plan'),
+                Text(s.usingChatGptPlan),
                 TextButton(
                   onPressed: () =>
                       launchUrl(Uri.parse(chatGptUsageUrl), mode: LaunchMode.externalApplication),
-                  child: const Text('Manage usage'),
+                  child: Text(s.manageUsage),
                 ),
               ],
             ],
@@ -110,16 +111,13 @@ class _ChatScreenState extends State<ChatScreen> {
                   maxLines: 5,
                   textInputAction: TextInputAction.send,
                   onSubmitted: (_) => _send(),
-                  decoration: const InputDecoration(
-                    hintText: 'Message',
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: InputDecoration(hintText: s.message, border: OutlineInputBorder()),
                 ),
               ),
               if (session.busy)
-                IconButton(tooltip: 'Stop', icon: const Icon(Icons.stop), onPressed: session.stop)
+                IconButton(tooltip: s.stop, icon: const Icon(Icons.stop), onPressed: session.stop)
               else
-                IconButton(tooltip: 'Send', icon: const Icon(Icons.send), onPressed: _send),
+                IconButton(tooltip: s.send, icon: const Icon(Icons.send), onPressed: _send),
             ],
           ),
         ),
@@ -130,9 +128,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
 /// The assistant's turn while it runs: what it is doing and for how long.
 class _Thinking extends StatefulWidget {
-  const _Thinking(this.step);
+  const _Thinking(this.step, this.strings);
 
-  final String? step;
+  /// What it is doing, in the app's language.
+  final String step;
+  final Strings strings;
 
   @override
   State<_Thinking> createState() => _ThinkingState();
@@ -171,7 +171,7 @@ class _ThinkingState extends State<_Thinking> {
           children: [
             const SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 2)),
             const SizedBox(width: 8),
-            Text('${widget.step ?? 'Thinking'}… $_seconds s'),
+            Text(widget.strings.thinking(widget.step, _seconds)),
           ],
         ),
       ),

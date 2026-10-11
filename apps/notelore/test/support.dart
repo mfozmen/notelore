@@ -80,9 +80,10 @@ class Harness {
   var planModels = <String>['gpt-plan-a', 'gpt-plan-b'];
 
   /// A session the test closes itself; pass [owned] false when an app takes it over.
-  Session session({bool owned = true}) {
+  Session session({bool owned = true, String systemLanguage = 'en'}) {
     final session = Session(
       paths,
+      systemLanguage: systemLanguage,
       validate: (spec, key) async {
         if (rejected != null) throw rejected!;
         return models;
