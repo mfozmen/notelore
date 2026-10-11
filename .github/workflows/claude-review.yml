@@ -31,9 +31,12 @@ jobs:
     # Fork safety: `pull_request` (never `pull_request_target`) and only when
     # the PR head repo is THIS repo, so the token is never exposed to forks.
     # Comment-triggered runs need @claude from a collaborator or above.
+    # Dependabot's PRs are skipped: its runs get no secrets, and the action
+    # refuses bot authors; a skipped required check passes, CI still gates them.
     if: >
       ( github.event_name == 'pull_request' &&
-        github.event.pull_request.head.repo.full_name == github.repository ) ||
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.user.login != 'dependabot[bot]' ) ||
       ( github.event_name == 'issue_comment' &&
         github.event.issue.pull_request != null &&
         contains(github.event.comment.body, '@claude') &&
