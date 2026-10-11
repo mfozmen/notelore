@@ -163,6 +163,7 @@ void main() {
       'Writing the notes',
       'Thinking',
     ]);
+    expect(describeTool('some_new_tool'), 'Working'); // never mislabelled as a write
   });
 
   test('stop: a turn waiting on the model ends at once and is taken back', () async {

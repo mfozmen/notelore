@@ -292,9 +292,11 @@ class Session extends ChangeNotifier {
     if (message.isEmpty || busy) return;
     transcript.add((role: ChatRole.user, text: message));
     busy = true;
+    _stopped = false;
     notifyListeners();
     await _exclusive(() async {
       try {
+        if (_stopped) throw const TurnStopped(); // stopped while queued behind a sync
         final answer = await _agent!.ask(
           message,
           onStep: (now) {
@@ -314,8 +316,13 @@ class Session extends ChangeNotifier {
     if (driveConnected) unawaited(syncNow());
   }
 
-  /// Ends the running chat turn; it shows as "Stopped.".
-  void stop() => _agent?.stop();
+  var _stopped = false;
+
+  /// Ends the chat turn, running or still queued; it shows as "Stopped.".
+  void stop() {
+    _stopped = true;
+    _agent?.stop();
+  }
 
   /// Interactive Google sign-in, then the first sync. Throws [SignInFailed].
   Future<void> connectDrive() async {
