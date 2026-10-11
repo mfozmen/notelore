@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'session.dart';
+import 'strings.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen(this.session, {this.checkForUpdates, super.key});
@@ -32,7 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _model.text = widget.session.model!;
     messenger
       ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('Model saved.')));
+      ..showSnackBar(SnackBar(content: Text(widget.session.strings.modelSaved)));
   }
 
   Future<void> _refreshModels() async {
@@ -49,15 +50,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final session = widget.session;
+    final s = session.strings;
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(s.settings)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Provider'),
-            subtitle: Text('${session.spec!.displayName} · ${session.spec!.group.heading}'),
+            title: Text(s.provider),
+            subtitle: Text(
+              '${s.providerName(session.spec!)} · ${s.groupHeading(session.spec!.group)}',
+            ),
           ),
           Row(
             children: [
@@ -68,8 +72,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   controller: _model,
                   expandedInsets: EdgeInsets.zero,
                   requestFocusOnTap: true,
-                  label: const Text('Model'),
-                  helperText: 'Pick one or type a name; empty means ${session.defaultModel}',
+                  label: Text(s.model),
+                  helperText: s.modelHelper(session.defaultModel),
                   dropdownMenuEntries: [
                     for (final m in session.models) DropdownMenuEntry(value: m, label: m),
                   ],
@@ -77,7 +81,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               IconButton(
-                tooltip: 'Refresh the model list',
+                tooltip: s.refreshModels,
                 icon: const Icon(Icons.refresh),
                 onPressed: _refreshModels,
               ),
@@ -86,12 +90,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerLeft,
-            child: OutlinedButton(onPressed: _saveModel, child: const Text('Save model')),
+            child: OutlinedButton(onPressed: _saveModel, child: Text(s.saveModel)),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(s.language),
+            trailing: DropdownButton<AppLanguage>(
+              key: const Key('language'),
+              value: session.language,
+              onChanged: (chosen) => session.setLanguage(chosen!),
+              items: [
+                for (final language in AppLanguage.values)
+                  DropdownMenuItem(value: language, child: Text(s.languageName(language))),
+              ],
+            ),
           ),
           _DriveSection(session),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Notes folder'),
+            title: Text(s.notesFolder),
             subtitle: SelectableText(session.paths.notes.path),
           ),
           if (widget.checkForUpdates case final check?)
@@ -109,15 +126,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ..hideCurrentSnackBar()
                           ..showSnackBar(SnackBar(content: Text(result)));
                       },
-                child: const Text('Check for updates'),
+                child: Text(s.checkForUpdates),
               ),
             ),
           const SizedBox(height: 16),
           Align(
             alignment: Alignment.centerLeft,
-            child: FilledButton.tonal(onPressed: session.logout, child: const Text('Log out')),
+            child: FilledButton.tonal(onPressed: session.logout, child: Text(s.logOut)),
           ),
-          const Text('Logging out forgets the API key on this device. Your notes stay.'),
+          Text(s.logOutExplained),
         ],
       ),
     );
@@ -142,34 +159,39 @@ class _DriveSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!session.driveAvailable) {
-      return const ListTile(
+      return ListTile(
         contentPadding: EdgeInsets.zero,
-        title: Text('Google Drive'),
-        subtitle: Text('Sync is not set up in this build.'),
+        title: Text(session.strings.drive),
+        subtitle: Text(session.strings.driveNotSetUp),
       );
     }
     if (!session.driveConnected) {
       return ListTile(
         contentPadding: EdgeInsets.zero,
-        title: const Text('Google Drive'),
-        subtitle: Text(session.syncStatus ?? 'Back up and sync your notes across your devices.'),
-        trailing: FilledButton(onPressed: () => _connect(context), child: const Text('Connect')),
+        title: Text(session.strings.drive),
+        subtitle: Text(session.syncStatus ?? session.strings.driveExplained),
+        trailing: FilledButton(
+          onPressed: () => _connect(context),
+          child: Text(session.strings.connect),
+        ),
       );
     }
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      title: const Text('Google Drive'),
-      subtitle: Text(session.syncing ? 'Syncing...' : session.syncStatus ?? 'Connected.'),
+      title: Text(session.strings.drive),
+      subtitle: Text(
+        session.syncing ? session.strings.syncing : session.syncStatus ?? session.strings.connected,
+      ),
       trailing: Wrap(
         spacing: 8,
         children: [
           IconButton(
-            tooltip: 'Sync now',
+            tooltip: session.strings.syncNow,
             icon: const Icon(Icons.sync),
             onPressed: session.syncing ? null : session.syncNow,
           ),
           IconButton(
-            tooltip: 'Disconnect Google Drive',
+            tooltip: session.strings.disconnectDrive,
             icon: const Icon(Icons.link_off),
             onPressed: session.disconnectDrive,
           ),

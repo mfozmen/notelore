@@ -18,16 +18,15 @@ class NotesScreen extends StatefulWidget {
 class _NotesScreenState extends State<NotesScreen> {
   /// Asks, then archives [note] with an Undo; true when it was deleted.
   Future<bool> _delete(NoteInfo note) async {
+    final s = widget.session.strings;
     final sure = await showDialog<bool>(
       context: context,
       builder: (dialog) => AlertDialog(
-        title: Text('Delete "${note.title}"?'),
-        content: const Text(
-          'It moves to the archive; you can bring it back from _archive/ in the notes folder.',
-        ),
+        title: Text(s.deleteQuestion(note.title)),
+        content: Text(s.deleteExplained),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialog, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(dialog, true), child: const Text('Delete')),
+          TextButton(onPressed: () => Navigator.pop(dialog, false), child: Text(s.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(dialog, true), child: Text(s.delete)),
         ],
       ),
     );
@@ -36,14 +35,14 @@ class _NotesScreenState extends State<NotesScreen> {
     final archived = await widget.session.deleteNote(note);
     setState(() {});
     if (archived == null) {
-      messenger.showSnackBar(SnackBar(content: Text('"${note.title}" was already gone.')));
+      messenger.showSnackBar(SnackBar(content: Text(s.alreadyGone(note.title))));
       return true;
     }
     messenger.showSnackBar(
       SnackBar(
-        content: Text('Moved "${note.title}" to the archive.'),
+        content: Text(s.movedToArchive(note.title)),
         action: SnackBarAction(
-          label: 'Undo',
+          label: s.undo,
           onPressed: () async {
             await widget.session.restoreNote(note, archived);
             if (mounted) setState(() {});
@@ -58,58 +57,65 @@ class _NotesScreenState extends State<NotesScreen> {
   // index only rereads files that changed.
   @override
   Widget build(BuildContext context) {
+    final s = widget.session.strings;
     final notes = widget.session.listNotes();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notes'),
+        title: Text(s.notes),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: s.refresh,
             icon: const Icon(Icons.refresh),
             onPressed: () => setState(() {}),
           ),
         ],
       ),
       body: notes.isEmpty
-          ? const Center(child: Text('No notes yet. Tell the assistant something to remember.'))
+          ? Center(child: Text(s.noNotes))
           : ListView(
               children: [
                 for (final note in notes)
                   ListTile(
                     title: Text(note.title),
                     subtitle: Text(
-                      '${note.kind} · updated ${note.updated == null ? '?' : isoDate(note.updated!)}',
+                      s.noteSubtitle(
+                        note.kind,
+                        note.updated == null ? '?' : isoDate(note.updated!),
+                      ),
                     ),
                     onLongPress: () => _delete(note),
                     trailing: IconButton(
-                      tooltip: 'Delete',
+                      tooltip: s.delete,
                       icon: const Icon(Icons.delete_outline),
                       onPressed: () => _delete(note),
                     ),
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (reader) => Scaffold(
-                          appBar: AppBar(
-                            title: Text(note.title),
-                            actions: [
-                              IconButton(
-                                tooltip: 'Delete',
-                                icon: const Icon(Icons.delete_outline),
-                                onPressed: () async {
-                                  if (await _delete(note) && reader.mounted) {
-                                    Navigator.of(reader).pop();
-                                  }
-                                },
-                              ),
-                            ],
-                          ),
-                          body: Markdown(data: widget.session.readNote(note), selectable: true),
-                        ),
-                      ),
-                    ),
+                    // Read once: the app rebuilds on every session change, and a
+                    // deleted note must not be read again under its reader.
+                    onTap: () => _open(note, widget.session.readNote(note)),
                   ),
               ],
             ),
     );
   }
+
+  /// The note, read-only, with its own delete button.
+  void _open(NoteInfo note, String text) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (reader) => Scaffold(
+        appBar: AppBar(
+          title: Text(note.title),
+          actions: [
+            IconButton(
+              tooltip: widget.session.strings.delete,
+              icon: const Icon(Icons.delete_outline),
+              onPressed: () async {
+                if (await _delete(note) && reader.mounted) Navigator.of(reader).pop();
+              },
+            ),
+          ],
+        ),
+        body: Markdown(data: text, selectable: true),
+      ),
+    ),
+  );
 }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:notelore_core/notelore_core.dart';
@@ -43,6 +44,7 @@ Future<Session> openSession({Map<String, String>? environment, bool? mobile}) as
     keySpace: keySpace,
     driveAuth: driveAuthFor(mobile: phone, keys: appKeys, keySpace: keySpace),
     chatGpt: chatGptAuthFor(mobile: phone, keys: appKeys, keySpace: keySpace),
+    systemLanguage: PlatformDispatcher.instance.locale.languageCode,
   );
   await session.load();
   return session;

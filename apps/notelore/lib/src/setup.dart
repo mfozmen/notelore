@@ -28,7 +28,7 @@ class _SetupScreenState extends State<SetupScreen> {
 
   Future<void> _connect() async {
     if (_spec.requiresApiKey && _key.text.trim().isEmpty) {
-      setState(() => _problem = 'Paste the key first.');
+      setState(() => _problem = widget.session.strings.pasteKeyFirst);
       return;
     }
     setState(() {
@@ -40,7 +40,7 @@ class _SetupScreenState extends State<SetupScreen> {
     } on KeyValidationError catch (error) {
       setState(() => _problem = error.message);
     } on TransientValidationError catch (error) {
-      setState(() => _problem = '${error.message}\nCheck the connection and try again.');
+      setState(() => _problem = '${error.message}\n${widget.session.strings.checkConnection}');
     } on Exception catch (error) {
       setState(() => _problem = '$error'); // the ChatGPT sign-in: refused, offline
     } finally {
@@ -51,13 +51,14 @@ class _SetupScreenState extends State<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = widget.session.strings;
     return Scaffold(
       appBar: AppBar(title: const Text('Notelore')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text('Choose a model provider', style: theme.textTheme.titleMedium),
+            Text(s.chooseProvider, style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             RadioGroup<ProviderSpec>(
               groupValue: _spec,
@@ -74,19 +75,19 @@ class _SetupScreenState extends State<SetupScreen> {
                         case final specs when specs.isNotEmpty) ...[
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
-                        child: Text(group.heading, style: theme.textTheme.titleSmall),
+                        child: Text(s.groupHeading(group), style: theme.textTheme.titleSmall),
                       ),
-                      Text(group.explanation, style: theme.textTheme.bodySmall),
+                      Text(s.groupExplanation(group), style: theme.textTheme.bodySmall),
                       for (final spec in specs)
-                        RadioListTile<ProviderSpec>(value: spec, title: Text(spec.displayName)),
+                        RadioListTile<ProviderSpec>(value: spec, title: Text(s.providerName(spec))),
                     ],
                 ],
               ),
             ),
             const SizedBox(height: 8),
-            Text(_spec.cost, style: theme.textTheme.bodySmall),
+            Text(s.cost(_spec), style: theme.textTheme.bodySmall),
             const SizedBox(height: 8),
-            for (final (index, step) in _spec.keySteps.indexed) Text('${index + 1}. $step'),
+            for (final (index, step) in s.keySteps(_spec).indexed) Text('${index + 1}. $step'),
             if (_spec.keyUrl case final url?) ...[
               const SizedBox(height: 4),
               Align(
@@ -105,14 +106,11 @@ class _SetupScreenState extends State<SetupScreen> {
                 obscureText: true,
                 autocorrect: false,
                 enableSuggestions: false,
-                decoration: const InputDecoration(
-                  labelText: 'API key',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: InputDecoration(labelText: s.apiKey, border: OutlineInputBorder()),
                 onSubmitted: (_) => _connect(),
               ),
             ] else if (_spec.name == 'ollama')
-              const Text('Ollama runs on this computer; no key is needed.'),
+              Text(s.ollamaNoKey),
             if (_problem case final problem?) ...[
               const SizedBox(height: 12),
               Text(problem, style: TextStyle(color: theme.colorScheme.error)),
@@ -123,7 +121,7 @@ class _SetupScreenState extends State<SetupScreen> {
               child: _checking
                   ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator())
                   // OpenAI's wording for its sign-in button.
-                  : Text(_spec.name == 'chatgpt' ? 'Continue with ChatGPT' : 'Connect'),
+                  : Text(_spec.name == 'chatgpt' ? s.continueWithChatGpt : s.connect),
             ),
           ],
         ),

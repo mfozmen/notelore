@@ -20,6 +20,8 @@ import 'package:http/http.dart' as http;
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
+import 'strings.dart';
+
 /// Checks a key and returns the chat models it can use.
 typedef Validate = Future<List<String>> Function(ProviderSpec spec, String key);
 typedef MakeProvider = LlmProvider Function(
@@ -56,11 +58,45 @@ class Session extends ChangeNotifier {
     this.remoteFor = _driveRemote,
     this.chatGpt,
     this.listPlanModels = listChatGptModels,
+    this.systemLanguage = 'en',
   }) : index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path),
        manifest = Manifest(paths.state.path);
 
   final NotelorePaths paths;
   final Validate validate;
+
+  /// The device's language code; [AppLanguage.system] follows it.
+  final String systemLanguage;
+
+  /// The language the user picked in Settings; the device's by default.
+  AppLanguage language = AppLanguage.system;
+
+  /// The app's words in [language].
+  Strings get strings => stringsFor(language, systemLanguage);
+
+  String get _ui => p.join(paths.state.path, 'ui.json');
+
+  /// Picks the app language and remembers it on this device.
+  void setLanguage(AppLanguage chosen) {
+    atomicWrite(_ui, jsonEncode({'language': chosen.name}));
+    language = chosen;
+    notifyListeners();
+  }
+
+  void _loadLanguage() {
+    try {
+      final saved = jsonDecode(File(_ui).readAsStringSync());
+      if (saved case {'language': final String name}) {
+        language = AppLanguage.values.firstWhere(
+          (l) => l.name == name,
+          orElse: () => AppLanguage.system,
+        );
+      }
+    } on Exception {
+      // none saved yet, or damaged: the device's language
+    }
+  }
+
   final MakeProvider makeProvider;
 
   /// "Sign in with ChatGPT" for the ChatGPT plan provider; null on phones.
@@ -131,6 +167,7 @@ class Session extends ChangeNotifier {
   /// Picks up the provider chosen on an earlier run, and syncs when Drive is
   /// connected (in the background: an offline start is fine).
   Future<void> load() async {
+    _loadLanguage();
     await _loadProvider();
     if (ready) unawaited(_refreshQuietly());
     driveConnected = await driveAuth?.signedIn() ?? false;
@@ -328,9 +365,9 @@ class Session extends ChangeNotifier {
             notifyListeners();
           },
         );
-        transcript.add((role: ChatRole.assistant, text: answer));
+        transcript.add((role: ChatRole.assistant, text: strings.core(answer)));
       } on Exception catch (error) {
-        transcript.add((role: ChatRole.error, text: '$error'));
+        transcript.add((role: ChatRole.error, text: strings.core('$error')));
       } finally {
         busy = false;
         step = null;
@@ -396,18 +433,25 @@ class Session extends ChangeNotifier {
           _remote ??= remoteFor(driveAuth!),
           resolver?.call ?? _unresolved, // no model connected: conflicts wait
         );
-        syncStatus = _describe(report, resolver?.explanations ?? const []);
+        syncStatus = [
+          strings.synced(
+            report.pushed.length + report.removedRemote.length,
+            report.pulled.length + report.removedLocal.length,
+            report.merged.length,
+            report.skipped.length,
+          ),
+          ...?resolver?.explanations,
+        ].join(' ');
       } on NotSignedIn catch (error) {
         driveConnected = false;
-        syncStatus = '${error.message}; connect again.';
+        syncStatus = strings.signInAgain(error.message);
       } on NetworkError {
-        syncStatus = 'Offline; your notes will sync when the connection is back.';
+        syncStatus = strings.offline;
       } on HttpError catch (error) {
-        syncStatus = 'Google Drive: ${error.message}';
+        syncStatus = strings.driveError(error.message);
       } on FileSystemException catch (error) {
         // Windows: antivirus or an editor holds a note past the store's retries.
-        syncStatus =
-            'A note is in use by another program (${error.message}); the next sync retries.';
+        syncStatus = strings.noteInUse(error.message);
       } finally {
         _pendingSyncs--;
         notifyListeners();
@@ -416,20 +460,6 @@ class Session extends ChangeNotifier {
   }
 
   static List<String>? _unresolved(Conflict conflict) => null;
-
-  static String _describe(SyncReport report, List<String> explanations) {
-    final parts = [
-      for (final (count, what) in [
-        (report.pushed.length + report.removedRemote.length, 'sent'),
-        (report.pulled.length + report.removedLocal.length, 'received'),
-        (report.merged.length, 'merged'),
-        (report.skipped.length, 'waiting for a conflict to be settled'),
-      ])
-        if (count > 0) '$count $what',
-    ];
-    if (parts.isEmpty) return 'Synced; nothing changed.';
-    return ['Synced: ${parts.join(', ')}.', ...explanations].join(' ');
-  }
 
   List<NoteInfo> listNotes() => (index..rebuild()).listNotes();
 

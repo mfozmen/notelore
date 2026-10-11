@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:path/path.dart' as p;
 
 import 'chat.dart';
@@ -9,6 +10,7 @@ import 'notes.dart';
 import 'session.dart';
 import 'settings.dart';
 import 'setup.dart';
+import 'strings.dart';
 import 'update.dart';
 
 /// Opens the session (folders, index, saved provider), then shows setup until a
@@ -42,29 +44,37 @@ class _NoteloreAppState extends State<NoteloreApp> {
     super.dispose();
   }
 
+  // The whole app follows the session's language, so it rebuilds when that changes.
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'Notelore',
-    theme: ThemeData(colorSchemeSeed: Colors.indigo),
-    darkTheme: ThemeData(colorSchemeSeed: Colors.indigo, brightness: Brightness.dark),
-    home: FutureBuilder(
-      future: _session,
-      builder: (context, snapshot) => switch (snapshot) {
-        AsyncSnapshot(:final Session data) => ListenableBuilder(
-          listenable: data,
-          builder: (context, _) => data.ready
-              ? Home(data, updater: widget.updater, exitApp: widget.exitApp)
-              : SetupScreen(data),
-        ),
-        AsyncSnapshot(:final Object error) => Scaffold(
-          body: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text('Notelore could not open its folders.\n\n$error'),
+  Widget build(BuildContext context) => FutureBuilder(
+    future: _session,
+    builder: (context, snapshot) => ListenableBuilder(
+      listenable: snapshot.data ?? Listenable.merge(const []),
+      builder: (context, _) {
+        final strings = snapshot.data?.strings ?? EnglishStrings();
+        return MaterialApp(
+          title: 'Notelore',
+          theme: ThemeData(colorSchemeSeed: Colors.indigo),
+          darkTheme: ThemeData(colorSchemeSeed: Colors.indigo, brightness: Brightness.dark),
+          locale: Locale(strings.languageCode),
+          supportedLocales: const [Locale('en'), Locale('tr')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          home: switch (snapshot) {
+            AsyncSnapshot(:final Session data) =>
+              data.ready
+                  ? Home(data, updater: widget.updater, exitApp: widget.exitApp)
+                  : SetupScreen(data),
+            AsyncSnapshot(:final Object error) => Scaffold(
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(strings.openFailed(error)),
+                ),
+              ),
             ),
-          ),
-        ),
-        _ => const Scaffold(body: Center(child: CircularProgressIndicator())),
+            _ => const Scaffold(body: Center(child: CircularProgressIndicator())),
+          },
+        );
       },
     ),
   );
@@ -115,13 +125,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("You're using your ChatGPT plan"),
-        content: const Text(
-          "Notelore's answers count against your ChatGPT Plus or Pro plan, with no separate "
-          'charges. You can see and manage that usage in ChatGPT.',
-        ),
+        title: Text(widget.session.strings.usingPlan),
+        content: Text(widget.session.strings.planWelcome),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Got it')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(widget.session.strings.gotIt),
+          ),
         ],
       ),
     );
@@ -163,9 +173,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     try {
       _dismissed = null; // asked by hand: show it even if put off before
       final newer = await _check(widget.updater!, force: true);
-      return newer == null ? 'Notelore is up to date.' : 'Notelore $newer is available.';
+      final s = widget.session.strings;
+      return newer == null ? s.upToDate : s.updateAvailable(newer);
     } on Object catch (error) {
-      return 'Could not check for updates: $error';
+      return widget.session.strings.checkFailed(error);
     }
   }
 
@@ -189,7 +200,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       setState(() {
         if (widget.updater!.system == 'windows') {
           // Windows installs by running the setup: nothing has changed yet.
-          _updateProblem = 'The setup could not start: $error';
+          _updateProblem = widget.session.strings.setupFailed(error);
         } else {
           _installed = true; // macOS: swapped in, only the restart failed
         }
@@ -200,58 +211,59 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: SafeArea(
-      child: Column(
-        children: [
-          if (_available case final version?)
-            MaterialBanner(
-              content: Text(
-                _installed
-                    ? 'Notelore $version is installed. Close and reopen Notelore to use it.'
-                    : _updateProblem ??
-                          (_updating
-                              ? 'Installing Notelore $version...'
-                              : 'Notelore $version is available.'),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: _updating
-                      ? null
-                      : () => setState(() {
-                          _dismissed = _available;
-                          _available = null;
-                        }),
-                  child: const Text('Later'),
+  Widget build(BuildContext context) {
+    final s = widget.session.strings;
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            if (_available case final version?)
+              MaterialBanner(
+                content: Text(
+                  _installed
+                      ? s.installed(version)
+                      : _updateProblem ??
+                            (_updating ? s.installing(version) : s.updateAvailable(version)),
                 ),
-                if (!_installed)
+                actions: [
                   TextButton(
-                    onPressed: _updating ? null : _update,
-                    child: const Text('Update and restart'),
+                    onPressed: _updating
+                        ? null
+                        : () => setState(() {
+                            _dismissed = _available;
+                            _available = null;
+                          }),
+                    child: Text(s.later),
                   ),
-              ],
-            ),
-          Expanded(
-            child: switch (_tab) {
-              0 => ChatScreen(widget.session),
-              1 => NotesScreen(widget.session),
-              _ => SettingsScreen(
-                widget.session,
-                checkForUpdates: widget.updater == null ? null : _checkNow,
+                  if (!_installed)
+                    TextButton(
+                      onPressed: _updating ? null : _update,
+                      child: Text(s.updateAndRestart),
+                    ),
+                ],
               ),
-            },
-          ),
+            Expanded(
+              child: switch (_tab) {
+                0 => ChatScreen(widget.session),
+                1 => NotesScreen(widget.session),
+                _ => SettingsScreen(
+                  widget.session,
+                  checkForUpdates: widget.updater == null ? null : _checkNow,
+                ),
+              },
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tab,
+        onDestinationSelected: (tab) => setState(() => _tab = tab),
+        destinations: [
+          NavigationDestination(icon: const Icon(Icons.chat_bubble_outline), label: s.chat),
+          NavigationDestination(icon: const Icon(Icons.description_outlined), label: s.notes),
+          NavigationDestination(icon: const Icon(Icons.settings_outlined), label: s.settings),
         ],
       ),
-    ),
-    bottomNavigationBar: NavigationBar(
-      selectedIndex: _tab,
-      onDestinationSelected: (tab) => setState(() => _tab = tab),
-      destinations: const [
-        NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'Chat'),
-        NavigationDestination(icon: Icon(Icons.description_outlined), label: 'Notes'),
-        NavigationDestination(icon: Icon(Icons.settings_outlined), label: 'Settings'),
-      ],
-    ),
-  );
+    );
+  }
 }

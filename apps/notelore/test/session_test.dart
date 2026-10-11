@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/session.dart';
+import 'package:notelore/src/strings.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -352,6 +353,39 @@ void main() {
     await pumpEventQueue();
     expect(offline.models, ['model-new']);
     expect(offline.ready, isTrue);
+  });
+
+  test('the app language: the device one first, then the one picked, remembered', () async {
+    final harness = Harness();
+    final turkishPhone = harness.session(systemLanguage: 'tr');
+    await turkishPhone.load();
+    expect(turkishPhone.language, AppLanguage.system);
+    expect(turkishPhone.strings.languageCode, 'tr');
+    turkishPhone.setLanguage(AppLanguage.en);
+    expect(turkishPhone.strings.chat, 'Chat');
+    final again = harness.session(systemLanguage: 'tr');
+    await again.load();
+    expect(again.language, AppLanguage.en);
+    // A damaged or unknown saved value: back to the device language.
+    File(p.join(harness.paths.state.path, 'ui.json')).writeAsStringSync('{"language": "xx"}');
+    final unknown = harness.session(systemLanguage: 'tr');
+    await unknown.load();
+    expect(unknown.language, AppLanguage.system);
+    File(p.join(harness.paths.state.path, 'ui.json')).writeAsStringSync('{not json');
+    final damaged = harness.session();
+    await damaged.load();
+    expect(damaged.language, AppLanguage.system);
+  });
+
+  test('in Turkish, the sync summary and a stopped turn read in Turkish', () async {
+    final harness = Harness(answers: [Completer<AgentResponse>().future]);
+    final session = harness.session(systemLanguage: 'tr');
+    await session.connect(findProvider('anthropic'), 'k');
+    final turn = session.send('selam');
+    await Future<void>.delayed(Duration.zero);
+    session.stop();
+    await turn;
+    expect(session.transcript.last.text, 'Durduruldu.');
   });
 
   test('switching the model keeps the conversation', () async {

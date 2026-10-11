@@ -157,6 +157,32 @@ void main() {
     expect(find.byTooltip('Send'), findsOneWidget);
   });
 
+  testWidgets('settings: switch the app to Turkish and back', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('language')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Türkçe').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Sohbet'), findsOneWidget);
+    expect(find.text('Ayarlar'), findsWidgets);
+    expect(find.text('Dil'), findsOneWidget);
+    await tester.tap(find.text('Sohbet'));
+    await tester.pumpAndSettle();
+    expect(find.text('Bana bir şey sor ya da anlat.'), findsOneWidget);
+    await tester.tap(find.text('Ayarlar').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('language')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('English').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Chat'), findsOneWidget);
+  });
+
   testWidgets('chat: switch the model at any time, not while it works', (tester) async {
     phone(tester);
     final harness = Harness(answers: [Completer<AgentResponse>().future]);
