@@ -157,6 +157,46 @@ void main() {
     expect(find.byTooltip('Send'), findsOneWidget);
   });
 
+  testWidgets('notes: delete from the list or the reader, with undo', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    createNote(harness.paths.notes.path, 'project', 'Mopsos', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+
+    // Long press, then Cancel: nothing changes.
+    await tester.longPress(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete "Kitaplar"?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kitaplar'), findsOneWidget);
+
+    // Long press, Delete, then Undo.
+    await tester.longPress(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kitaplar'), findsNothing);
+    expect(find.text('Moved "Kitaplar" to the archive.'), findsOneWidget);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kitaplar'), findsOneWidget);
+
+    // From the open note: the app bar's delete button, and back to the list.
+    await tester.tap(find.text('Mopsos'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Delete'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('Mopsos'), findsNothing);
+    expect(session.listNotes().map((n) => n.title), ['Kitaplar']);
+  });
+
   testWidgets('notes: the list, a reader, and an empty state', (tester) async {
     phone(tester);
     final harness = Harness(
