@@ -91,7 +91,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Anthropic Console'), findsOneWidget);
     expect(find.text('https://console.anthropic.com/settings/keys'), findsOneWidget);
-    expect(find.textContaining('per use'), findsOneWidget); // what it costs (#95)
+    expect(find.textContaining('Billed per use through the Anthropic API'), findsOneWidget); // #95
     await tester.tap(find.text('Connect'));
     await tester.pumpAndSettle();
     expect(find.text('Paste the key first.'), findsOneWidget);
@@ -288,7 +288,7 @@ void main() {
     await connect(tester, key: 'k');
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    expect(find.text('Claude (Anthropic)'), findsOneWidget);
+    expect(find.text('Claude (Anthropic) · API key'), findsOneWidget);
     expect(find.text(harness.paths.notes.path), findsOneWidget);
     await tester.enterText(find.byKey(const Key('model')), 'claude-x');
     await tester.sendKeyEvent(LogicalKeyboardKey.escape); // close the list over the button

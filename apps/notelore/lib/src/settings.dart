@@ -53,7 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Provider'),
-            subtitle: Text(session.spec!.displayName),
+            subtitle: Text('${session.spec!.displayName} · ${session.spec!.group.heading}'),
           ),
           Row(
             children: [

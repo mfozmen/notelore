@@ -46,6 +46,23 @@ void main() {
       'ollama',
     ]);
     expect(findProvider('anthropic').keySteps, isNotEmpty);
+    // Grouped by how they are paid for, in that order (#108).
+    expect(
+      {for (final s in providerSpecs) s.name: s.group},
+      {
+        'chatgpt': ProviderGroup.plan,
+        'anthropic': ProviderGroup.apiKey,
+        'openai': ProviderGroup.apiKey,
+        'gemini': ProviderGroup.apiKey,
+        'ollama': ProviderGroup.local,
+      },
+    );
+    expect(ProviderGroup.values.map((g) => g.heading), [
+      'Use your plan',
+      'API key',
+      'On this computer',
+    ]);
+    expect(ProviderGroup.apiKey.explanation, contains('per use'));
     // What each one costs, so nobody is surprised by a bill (#95).
     expect(findProvider('anthropic').cost, contains('Pro or Max subscription cannot'));
     expect(findProvider('openai').cost, contains('per use'));
