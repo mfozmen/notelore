@@ -168,12 +168,12 @@ class Session extends ChangeNotifier {
   Future<void> connect(ProviderSpec spec, String key, {String? model}) async {
     final trimmed = key.trim();
     final listed = await _models(spec, trimmed, signIn: true);
-    // An API key starts on the cheapest model it lists (the fixed default when it
-    // lists none); the ChatGPT plan, with no default, on the first it lists.
+    // A note-taking app needs no big model: start on the cheapest one listed (the
+    // fixed default when none is). Ollama keeps its default: its list is local.
     final chosen =
         model ??
-        (spec.requiresApiKey ? cheapestModel(spec.name, listed) : null) ??
-        (spec.defaultModel.isNotEmpty ? spec.defaultModel : listed.firstOrNull);
+        (spec.name == 'ollama' ? null : cheapestModel(spec.name, listed)) ??
+        (spec.defaultModel.isNotEmpty ? spec.defaultModel : null);
     if (chosen == null) throw TransientValidationError('${spec.displayName} lists no models');
     final name = _keyName(spec);
     final previous = spec.requiresApiKey ? await keys.read(key: name) : null;
@@ -197,9 +197,9 @@ class Session extends ChangeNotifier {
   /// plan signs in first when [signIn] (only on connect: a refresh never opens
   /// a browser).
   Future<List<String>> _models(ProviderSpec spec, String key, {required bool signIn}) async {
-    if (spec.name != 'chatgpt') return validate(spec, key);
+    if (spec.name != 'chatgpt') return currentModels(spec.name, await validate(spec, key));
     if (signIn) await chatGpt!.signIn();
-    return listPlanModels(chatGpt!.token);
+    return currentModels(spec.name, await listPlanModels(chatGpt!.token));
   }
 
   /// Puts back the key that was stored before (none: removes it). Best effort:
@@ -214,10 +214,13 @@ class Session extends ChangeNotifier {
     }
   }
 
-  /// The provider's default model; for one without a fixed default (the
-  /// ChatGPT plan), the first it lists.
-  String get defaultModel =>
-      spec!.defaultModel.isNotEmpty ? spec!.defaultModel : (models.firstOrNull ?? '');
+  /// The model a blank choice goes back to: the cheapest listed one, else the
+  /// provider's fixed default (always for Ollama, whose list is local).
+  String get defaultModel {
+    final current = spec!;
+    return (current.name == 'ollama' ? null : cheapestModel(current.name, models)) ??
+        current.defaultModel;
+  }
 
   /// A blank [chosen] goes back to [defaultModel].
   Future<void> setModel(String chosen) async {

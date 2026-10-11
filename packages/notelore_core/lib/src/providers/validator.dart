@@ -77,22 +77,61 @@ final _tiers = [
 
 // Previews, experiments and pinned versions (dated, -001): only when nothing else is left.
 final _pinned = RegExp(r'preview|exp|latest|-\d{4}-\d{2}-\d{2}$|-\d{8}$|-\d{3}$');
+final _number = RegExp(r'\d+(\.\d+)?');
+
+/// The first version number in a model id (`gpt-5.1` 5.1, `o4-mini` 4), 0 without one.
+double _version(String id) => double.parse(_number.firstMatch(id)?[0] ?? '0');
+
+/// [models] without previews and pinned versions (unless that leaves none),
+/// newest first: Anthropic already lists them so, the others by version number.
+List<String> _newestFirst(String provider, List<String> models) {
+  final plain = models.where((m) => !_pinned.hasMatch(m)).toList();
+  final pool = plain.isEmpty ? [...models] : plain;
+  if (provider != 'anthropic') {
+    pool.sort((a, b) {
+      final byVersion = _version(b).compareTo(_version(a));
+      return byVersion != 0 ? byVersion : b.compareTo(a);
+    });
+  }
+  return pool;
+}
+
+/// Only the current versions of what a provider lists: the newest of each model
+/// family (the id without its numbers), and only families of the newest
+/// generation of their line (the id up to its first number). A note-taking app
+/// needs no archive of old models. Ollama's list is the machine's own: untouched.
+List<String> currentModels(String provider, List<String> models) {
+  if (provider == 'ollama') return models;
+  final families = <String>{};
+  final newest = [
+    for (final m in _newestFirst(provider, models))
+      if (families.add(m.replaceAll(_number, '#'))) m,
+  ];
+  String line(String id) => id.substring(0, _number.firstMatch(id)?.start ?? id.length);
+  final generation = <String, int>{};
+  for (final m in newest) {
+    generation.update(
+      line(m),
+      (g) => g > _version(m).floor() ? g : _version(m).floor(),
+      ifAbsent: () => _version(m).floor(),
+    );
+  }
+  return [
+    for (final m in newest)
+      if (_version(m).floor() == generation[line(m)]) m,
+  ];
+}
 
 /// The cheapest of the [models] a provider listed, newest first within a tier;
 /// null when none is listed.
 String? cheapestModel(String provider, List<String> models) {
-  final plain = models.where((m) => !_pinned.hasMatch(m)).toList();
-  final pool = plain.isEmpty ? [...models] : plain;
-  // Anthropic lists newest first; the others' names sort newest last.
-  // shortcut: names compare as text, so a two-digit version (gpt-10) sorts wrong; revisit then.
-  if (provider != 'anthropic') pool.sort((a, b) => b.compareTo(a));
   int tier(String id) {
     final found = _tiers.indexWhere((t) => t.hasMatch(id));
     return found < 0 ? _tiers.length : found;
   }
 
   String? best;
-  for (final m in pool) {
+  for (final m in _newestFirst(provider, models)) {
     if (best == null || tier(m) < tier(best)) best = m;
   }
   return best;
