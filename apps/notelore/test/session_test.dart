@@ -308,6 +308,10 @@ void main() {
     expect(harness.created.last, ('anthropic', 'k', 'claude-x'));
     await session.setModel('');
     expect(session.model, 'claude-sonnet-5-5'); // blank goes back to the default
+    // Ollama's list is the machine's own: a blank goes back to its fixed default.
+    await session.connect(findProvider('ollama'), '');
+    await session.setModel('');
+    expect(session.model, 'llama3.2');
   });
 
   test('an API key starts on the cheapest model it lists', () async {

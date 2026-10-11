@@ -203,4 +203,50 @@ void main() {
     expect(cheapestModel('anthropic', ['claude-x', 'claude-y']), 'claude-x');
     expect(cheapestModel('openai', []), isNull);
   });
+
+  test('only the current versions stay in the list', () {
+    expect(
+      currentModels('openai', [
+        'gpt-4o-mini',
+        'gpt-4.1-nano',
+        'gpt-5-nano-2025-08-07',
+        'gpt-5-nano',
+        'gpt-5-mini',
+        'gpt-5',
+        'gpt-5.1',
+        'o3',
+        'o4-mini',
+      ]),
+      ['gpt-5.1', 'gpt-5-nano', 'gpt-5-mini', 'o4-mini'],
+    );
+    // Versions compare as numbers: 10 is newer than 9.
+    expect(currentModels('openai', ['gpt-9-mini', 'gpt-10-mini']), ['gpt-10-mini']);
+    expect(
+      currentModels('gemini', [
+        'gemini-2.0-flash',
+        'gemini-2.0-flash-lite-001',
+        'gemini-2.5-flash',
+        'gemini-2.5-flash-lite',
+        'gemini-2.5-pro',
+        'gemini-2.5-pro-preview-05-06',
+        'gemini-exp-1206',
+      ]),
+      ['gemini-2.5-pro', 'gemini-2.5-flash-lite', 'gemini-2.5-flash'],
+    );
+    // Anthropic: dated ids only, newest first as listed.
+    expect(
+      currentModels('anthropic', [
+        'claude-opus-5-5-20260801',
+        'claude-sonnet-5-5-20260801',
+        'claude-haiku-5-0-20260601',
+        'claude-sonnet-4-5-20250929',
+        'claude-haiku-4-5-20251001',
+      ]),
+      ['claude-opus-5-5-20260801', 'claude-sonnet-5-5-20260801', 'claude-haiku-5-0-20260601'],
+    );
+    // Previews only: they stay. Ollama: the machine's own models, untouched.
+    expect(currentModels('gemini', ['gemini-9-flash-preview']), ['gemini-9-flash-preview']);
+    expect(currentModels('ollama', ['llama3.2', 'llama3.1']), ['llama3.2', 'llama3.1']);
+    expect(currentModels('openai', ['custom']), ['custom']);
+  });
 }

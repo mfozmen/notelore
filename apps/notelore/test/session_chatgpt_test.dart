@@ -12,15 +12,15 @@ void main() {
     expect(Harness(chatGpt: FakeAuth()).session().providers.first.name, 'chatgpt');
   });
 
-  test('connecting signs in with ChatGPT and uses the first model the plan lists', () async {
+  test('connecting signs in with ChatGPT and starts on the cheapest plan model', () async {
     final sign = FakeAuth();
-    final harness = Harness(chatGpt: sign);
+    final harness = Harness(chatGpt: sign)..planModels = ['gpt-6.1', 'gpt-6.1-mini', 'gpt-5.5'];
     final session = harness.session();
     await session.connect(plan, '');
     expect(sign.granted, isTrue);
     expect(session.ready, isTrue);
-    expect(session.model, 'gpt-plan-a');
-    expect(session.models, ['gpt-plan-a', 'gpt-plan-b']);
+    expect(session.model, 'gpt-6.1-mini');
+    expect(session.models, ['gpt-6.1-mini', 'gpt-6.1']); // only the current versions
     expect(harness.tokens.last, isNotNull); // the provider gets the plan's token
     expect(await const FlutterSecureStorage().readAll(), {
       'notelore.chatgpt.welcomed': 'yes', // no API key is stored
@@ -68,13 +68,14 @@ void main() {
     expect(third.ready, isFalse);
   });
 
-  test('a blank model goes back to the first model the plan lists', () async {
-    final session = Harness(chatGpt: FakeAuth()).session();
+  test('a blank model goes back to the cheapest plan model', () async {
+    final harness = Harness(chatGpt: FakeAuth())..planModels = ['gpt-6.1', 'gpt-6.1-mini'];
+    final session = harness.session();
     await session.connect(plan, '');
-    await session.setModel('gpt-plan-b');
-    expect(session.defaultModel, 'gpt-plan-a');
+    await session.setModel('gpt-6.1');
+    expect(session.defaultModel, 'gpt-6.1-mini');
     await session.setModel('');
-    expect(session.model, 'gpt-plan-a');
+    expect(session.model, 'gpt-6.1-mini');
   });
 
   test('refreshing the list never opens a browser', () async {

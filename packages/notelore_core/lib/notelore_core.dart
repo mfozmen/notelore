@@ -24,7 +24,7 @@ export 'src/providers/http.dart' show HttpError, NetworkError, Transport, defaul
 export 'src/providers/ollama.dart' show ollamaHost;
 export 'src/providers/providers.dart' show createProvider;
 export 'src/providers/validator.dart'
-    show KeyValidationError, TransientValidationError, cheapestModel, validateKey;
+    show KeyValidationError, TransientValidationError, cheapestModel, currentModels, validateKey;
 export 'src/store/format.dart'
     show
         Decision,
