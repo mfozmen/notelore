@@ -96,8 +96,18 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     if (widget.session.showPlanWelcome) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _welcomePlan());
     }
-    if (widget.updater case final updater?) unawaited(_check(updater));
+    if (widget.updater case final updater?) {
+      updater.cleanup();
+      unawaited(_check(updater));
+      // An app left open still hears of a release, quietly.
+      _recheck = Timer.periodic(
+        const Duration(hours: 6),
+        (_) => _check(updater, force: true).then<void>((_) {}, onError: (Object _) {}),
+      );
+    }
   }
+
+  Timer? _recheck;
 
   /// OpenAI's first sign-in confirmation for plan usage, shown once per device.
   Future<void> _welcomePlan() async {
@@ -128,18 +138,31 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.session.stopAutoSync();
+    _recheck?.cancel();
     super.dispose();
   }
 
-  Future<void> _check(Updater updater) async {
-    updater.cleanup();
+  /// Shows the banner for a newer release; [force] skips the daily cache.
+  Future<String?> _check(Updater updater, {bool force = false}) async {
     final newer = await checkForUpdate(
       cache: File(p.join(widget.session.paths.state.path, 'update-check.json')),
       now: DateTime.now(),
       current: updater.current,
       fetch: updater.fetch,
+      force: force,
     );
     if (mounted) setState(() => _available = newer);
+    return newer;
+  }
+
+  /// Settings' *Check for updates*: what to tell the user.
+  Future<String> _checkNow() async {
+    try {
+      final newer = await _check(widget.updater!, force: true);
+      return newer == null ? 'Notelore is up to date.' : 'Notelore $newer is available.';
+    } on Object catch (error) {
+      return 'Could not check for updates: $error';
+    }
   }
 
   Future<void> _update() async {
@@ -203,7 +226,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             child: switch (_tab) {
               0 => ChatScreen(widget.session),
               1 => NotesScreen(widget.session),
-              _ => SettingsScreen(widget.session),
+              _ => SettingsScreen(
+                widget.session,
+                checkForUpdates: widget.updater == null ? null : _checkNow,
+              ),
             },
           ),
         ],

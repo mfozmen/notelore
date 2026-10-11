@@ -91,15 +91,18 @@ Future<({String version, Map<String, String> assets})> latestRelease(Fetch fetch
 }
 
 /// The newest version when it is newer than [current], else null. Asks GitHub
-/// at most once a day; offline or a garbled answer is silent.
+/// at most once a day; offline or a garbled answer is silent. [force] asks now,
+/// whatever the cache says, and throws when it cannot ask.
 Future<String?> checkForUpdate({
   required File cache,
   required DateTime now,
   required String current,
   required Fetch fetch,
+  bool force = false,
 }) async {
   String? version;
   try {
+    if (force) throw const UpdateFailed('asked to check now');
     final saved = jsonDecode(cache.readAsStringSync()) as Map<String, Object?>;
     final checked = DateTime.parse(saved['checked_at']! as String);
     if (now.difference(checked) < const Duration(days: 1)) version = saved['version']! as String;
@@ -110,6 +113,7 @@ Future<String?> checkForUpdate({
     try {
       version = (await latestRelease(fetch)).version;
     } on Object {
+      if (force) rethrow;
       return null; // offline or a garbled answer: try again next start
     }
     try {

@@ -5,9 +5,12 @@ import 'package:notelore_core/notelore_core.dart';
 import 'session.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen(this.session, {super.key});
+  const SettingsScreen(this.session, {this.checkForUpdates, super.key});
 
   final Session session;
+
+  /// Asks for a newer release now and says what came of it; desktop builds only.
+  final Future<String> Function()? checkForUpdates;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -90,6 +93,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Notes folder'),
             subtitle: SelectableText(session.paths.notes.path),
           ),
+          if (widget.checkForUpdates case final check?)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton(
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final result = await check();
+                  messenger
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(SnackBar(content: Text(result)));
+                },
+                child: const Text('Check for updates'),
+              ),
+            ),
           const SizedBox(height: 16),
           Align(
             alignment: Alignment.centerLeft,
