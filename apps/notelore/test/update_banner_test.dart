@@ -275,6 +275,7 @@ void main() {
   testWidgets('Android: Update opens the installer and the app keeps running', (tester) async {
     final opened = <String>[];
     var allowed = false;
+    var failInstaller = false;
     await pump(
       tester,
       Updater(
@@ -288,6 +289,7 @@ void main() {
         run: (command, args) async => ProcessResult(0, 0, '', ''),
         spawn: (exe, args) async => spawned.add(exe),
         openInstaller: (apk) async {
+          if (failInstaller) throw PlatformException(code: 'install_failed', message: 'no space');
           opened.add(apk);
           return allowed;
         },
@@ -305,6 +307,14 @@ void main() {
     expect(opened, hasLength(2));
     expect(exits, isEmpty); // the installer takes over; the app is not closed
     expect(spawned, isEmpty);
+    // The installer could not open (no space, no app for it): the banner says so.
+    allowed = true;
+    failInstaller = true;
+    await tester.tap(find.text('Update'));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('The setup could not start'), findsOneWidget);
+    expect(find.text('Update'), findsOneWidget); // still offered, nothing was installed
   });
 
   testWidgets('androidInstaller asks MainActivity, false unless it says true', (tester) async {

@@ -17,7 +17,7 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "io.github.mfozmen.notelore/install")
             .setMethodCallHandler { call, result ->
                 if (call.method == "install") {
-                    result.success(install(File(call.arguments as String)))
+                    install(File(call.arguments as String), result)
                 } else {
                     result.notImplemented()
                 }
@@ -25,25 +25,38 @@ class MainActivity : FlutterActivity() {
     }
 
     /**
-     * Opens Android's installer for [apk]. False when installs from Notelore are not
-     * allowed yet: the setting to allow them opens instead, and the user taps Update again.
+     * Opens Android's installer for [apk] and answers true. Answers false when installs
+     * from Notelore are not allowed yet: the setting to allow them opens instead, and the
+     * user taps Update again. Any failure comes back as an error for the update banner.
      */
-    private fun install(apk: File): Boolean {
+    private fun install(apk: File, result: MethodChannel.Result) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !packageManager.canRequestPackageInstalls()) {
             startActivity(
                 Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")),
             )
-            return false
+            result.success(false)
+            return
         }
-        // Shared from the cache through the FileProvider (res/xml/update_paths.xml).
-        val shared = File(cacheDir, "updates").apply { mkdirs() }.resolve(apk.name)
-        apk.copyTo(shared, overwrite = true)
-        val uri = FileProvider.getUriForFile(this, "$packageName.updates", shared)
-        startActivity(
-            Intent(Intent.ACTION_VIEW)
-                .setDataAndType(uri, "application/vnd.android.package-archive")
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK),
-        )
-        return true
+        // Copied off the main thread into the folder the FileProvider shares
+        // (res/xml/update_paths.xml); an earlier update's copy goes first.
+        Thread {
+            val shared = runCatching {
+                val folder = File(cacheDir, "updates").apply { deleteRecursively(); mkdirs() }
+                apk.copyTo(folder.resolve(apk.name), overwrite = true)
+            }
+            runOnUiThread {
+                try {
+                    val uri = FileProvider.getUriForFile(this, "$packageName.updates", shared.getOrThrow())
+                    startActivity(
+                        Intent(Intent.ACTION_VIEW)
+                            .setDataAndType(uri, "application/vnd.android.package-archive")
+                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                    result.success(true)
+                } catch (error: Exception) {
+                    result.error("install_failed", error.message, null)
+                }
+            }
+        }.start()
     }
 }
