@@ -32,9 +32,13 @@ class _NotesScreenState extends State<NotesScreen> {
       ),
     );
     if (sure != true || !mounted) return false;
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
     final archived = await widget.session.deleteNote(note);
     setState(() {});
+    if (archived == null) {
+      messenger.showSnackBar(SnackBar(content: Text('"${note.title}" was already gone.')));
+      return true;
+    }
     messenger.showSnackBar(
       SnackBar(
         content: Text('Moved "${note.title}" to the archive.'),

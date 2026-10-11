@@ -371,7 +371,7 @@ void main() {
     final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
     final original = File(path).readAsBytesSync();
     final note = session.listNotes().single;
-    final archived = await session.deleteNote(note);
+    final archived = (await session.deleteNote(note))!;
     expect(
       archived,
       p.join(harness.paths.notes.path, '_archive', '2026-09-30', 'topics', 'kitaplar.md'),
@@ -382,7 +382,8 @@ void main() {
     expect(File(path).readAsBytesSync(), original);
     expect(session.listNotes(), [note]);
     // A new note took the place meanwhile: undo never overwrites it.
-    final again = await session.deleteNote(note);
+    final again = (await session.deleteNote(note))!;
+    expect(await session.deleteNote(note), isNull); // already gone: nothing to do
     File(path).writeAsStringSync('new');
     await session.restoreNote(note, again);
     expect(File(path).readAsStringSync(), 'new');

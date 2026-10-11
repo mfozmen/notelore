@@ -195,6 +195,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Mopsos'), findsNothing);
     expect(session.listNotes().map((n) => n.title), ['Kitaplar']);
+
+    // Gone meanwhile (a sync, a chat turn): says so instead of failing.
+    File(notePath(harness.paths.notes.path, 'topic', 'kitaplar')).deleteSync();
+    await tester.longPress(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('"Kitaplar" was already gone.'), findsOneWidget);
   });
 
   testWidgets('notes: the list, a reader, and an empty state', (tester) async {
