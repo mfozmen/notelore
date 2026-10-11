@@ -20,6 +20,9 @@ import 'http.dart';
 
 const _api = 'https://api.openai.com/v1';
 
+/// The namespace the plan route wants function tools in.
+const planNamespace = 'notelore';
+
 /// Where a user sees and manages what their plan has left.
 const chatGptUsageUrl = 'https://chatgpt.com/settings/usage';
 
@@ -41,7 +44,7 @@ class ChatGptProvider implements LlmProvider {
     this.token, {
     http.Client? client,
     this.timeout = const Duration(seconds: 120),
-    this.namespace = 'notelore',
+    this.namespace = planNamespace,
   }) : _client = client ?? http.Client();
 
   @override
@@ -92,7 +95,7 @@ List<Map<String, Object?>> _functions(List<Tool> tools) => [
     {'type': 'function', 'name': t.name, 'description': t.description, 'parameters': t.inputSchema},
 ];
 
-NetworkError _slow() => const NetworkError('ChatGPT did not answer in time');
+NetworkError _slow() => const NetworkError('OpenAI did not answer in time');
 
 /// The stream's final `response`: from `response.completed`, or
 /// `response.incomplete` (an answer cut short). `response.failed` throws.
@@ -120,7 +123,7 @@ Future<Map<String, Object?>> _finalResponse(http.StreamedResponse answer) async 
   } on http.ClientException catch (error) {
     throw NetworkError(error.message);
   }
-  throw const NetworkError('the ChatGPT answer stopped before it was complete');
+  throw const NetworkError('the OpenAI answer stopped before it was complete');
 }
 
 /// Sends a request with the plan's bearer token, refreshing it once on a 401.
@@ -178,7 +181,7 @@ Exception _apiError(int status, Map<Object?, Object?> error) => switch (error['c
 /// tools' [namespace] when they have one.
 List<Map<String, Object?>> toResponsesInput(
   List<Message> messages, {
-  String? namespace = 'notelore',
+  String? namespace = planNamespace,
 }) => [
   for (final message in messages)
     if (splitBlocks(message['content']) case (:final texts, :final uses, :final results))
