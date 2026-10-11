@@ -157,6 +157,30 @@ void main() {
     expect(find.byTooltip('Send'), findsOneWidget);
   });
 
+  testWidgets('chat: switch the model at any time, not while it works', (tester) async {
+    phone(tester);
+    final harness = Harness(answers: [Completer<AgentResponse>().future]);
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    expect(find.text('claude-sonnet-5-5'), findsOneWidget); // the provider's default
+    await tester.tap(find.byTooltip('Change the model'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('model-b').last);
+    await tester.pumpAndSettle();
+    expect(session.model, 'model-b');
+    expect(find.text('model-b'), findsOneWidget);
+    // While a turn runs the menu is off.
+    await tester.enterText(find.byKey(const Key('message')), 'x');
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pump();
+    expect(
+      tester.widget<PopupMenuButton<String>>(find.byType(PopupMenuButton<String>)).enabled,
+      isFalse,
+    );
+    await tester.tap(find.byTooltip('Stop'));
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('notes: delete from the list or the reader, with undo', (tester) async {
     phone(tester);
     final harness = Harness();

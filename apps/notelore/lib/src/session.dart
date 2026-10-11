@@ -270,7 +270,9 @@ class Session extends ChangeNotifier {
       model: chosenModel,
       planToken: chosen.name == 'chatgpt' ? chatGpt!.token : null,
     );
-    _agent = Agent(_provider!, toolbox, today: today);
+    // A model switch keeps the conversation; logout has already dropped it.
+    final history = _agent?.messages ?? const <Message>[];
+    _agent = Agent(_provider!, toolbox, today: today)..messages.addAll(history);
     notifyListeners();
   }
 
