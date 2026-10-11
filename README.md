@@ -14,7 +14,7 @@ Tell it things. It writes tidy, human-readable Markdown notes on your disk. Ask 
 ## Install
 
 **The app** (Windows, macOS, Android): download it from the [releases page](https://github.com/mfozmen/notelore/releases).
-- **Windows**: `notelore-app-<version>-windows-x64-setup.exe`. Run it; it installs for your user only (no admin rights) with a Start menu entry and an uninstaller. Windows may warn that the publisher is unknown, because the setup is not code-signed yet.
+- **Windows**: `notelore-app-<version>-windows-x64-setup.exe`. Run it and choose: for all users (into Program Files, asks for admin rights) or only for you (no admin rights). It adds a Start menu entry and an uninstaller. Windows may warn that the publisher is unknown, because the setup is not code-signed yet.
 - **macOS**: `notelore-app-<version>-macos.dmg`. Open it and drag `notelore.app` onto *Applications*. It is not notarized yet, so the first time right-click it and choose *Open*.
 - **Android**: `notelore-app-<version>-android.apk`. Allow installing from your browser or file manager when Android asks.
 

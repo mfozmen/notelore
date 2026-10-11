@@ -1,8 +1,11 @@
-; The Windows setup (Inno Setup 6). Per-user: no admin rights, installs into
-; %LOCALAPPDATA%\Programs\Notelore. The release workflow builds it with
+; The Windows setup (Inno Setup 6). It asks: for all users (admin rights, into
+; Program Files) or only for me (no admin rights, %LOCALAPPDATA%\Programs\Notelore).
+; The release workflow builds it with
 ;   iscc /DAppVersion=1.2.3 /DSourceDir=<flutter Release folder> /O<out> /F<name> notelore.iss
 ; The in-app updater runs it with /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
-; /DIR=<the current folder>, after which it starts the app again.
+; /DIR=<the current folder>, after which it starts the app again. It keeps the
+; earlier install's choice (UsePreviousPrivileges), so an all-users install
+; updates after a UAC prompt.
 ; Notes in ~/Notelore are never touched, not even by the uninstaller.
 
 #ifndef AppVersion
@@ -19,9 +22,11 @@ AppName=Notelore
 AppVersion={#AppVersion}
 AppPublisher=mfozmen
 AppPublisherURL=https://github.com/mfozmen/notelore
-DefaultDirName={localappdata}\Programs\Notelore
+; {autopf}: Program Files for all users, %LOCALAPPDATA%\Programs for one.
+DefaultDirName={autopf}\Notelore
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
+PrivilegesRequiredOverridesAllowed=dialog commandline
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayIcon={app}\notelore.exe
