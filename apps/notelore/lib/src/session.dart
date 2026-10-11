@@ -119,6 +119,9 @@ class Session extends ChangeNotifier {
   final transcript = <ChatLine>[];
   bool busy = false;
 
+  /// What the running chat turn is doing ("Thinking", "Searching the notes").
+  String? step;
+
   bool get ready => _agent != null;
 
   String get _settings => p.join(paths.state.path, 'settings.json');
@@ -292,17 +295,27 @@ class Session extends ChangeNotifier {
     notifyListeners();
     await _exclusive(() async {
       try {
-        final answer = await _agent!.ask(message);
+        final answer = await _agent!.ask(
+          message,
+          onStep: (now) {
+            step = now;
+            notifyListeners();
+          },
+        );
         transcript.add((role: ChatRole.assistant, text: answer));
       } on Exception catch (error) {
         transcript.add((role: ChatRole.error, text: '$error'));
       } finally {
         busy = false;
+        step = null;
         notifyListeners();
       }
     });
     if (driveConnected) unawaited(syncNow());
   }
+
+  /// Ends the running chat turn; it shows as "Stopped.".
+  void stop() => _agent?.stop();
 
   /// Interactive Google sign-in, then the first sync. Throws [SignInFailed].
   Future<void> connectDrive() async {

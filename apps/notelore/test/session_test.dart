@@ -241,6 +241,22 @@ void main() {
     expect(session.transcript, hasLength(2));
   });
 
+  test('a turn says what it is doing and can be stopped', () async {
+    final harness = Harness(answers: [Completer<AgentResponse>().future]);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    session.stop(); // nothing running: nothing happens
+    final turn = session.send('selam');
+    await Future<void>.delayed(Duration.zero);
+    expect(session.step, 'Thinking');
+    session.stop();
+    await turn;
+    expect(session.transcript.last.role, ChatRole.error);
+    expect(session.transcript.last.text, 'Stopped.');
+    expect(session.busy, isFalse);
+    expect(session.step, isNull);
+  });
+
   test('a failed turn shows an error line and the next one works', () async {
     final harness = Harness(answers: [const NetworkError('offline'), 'back']);
     final session = harness.session();

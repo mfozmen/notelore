@@ -18,7 +18,8 @@ final today = DateTime.utc(2026, 9, 30);
 class ScriptedProvider implements LlmProvider {
   ScriptedProvider(this.answers, {this.model = 'scripted'});
 
-  final List<Object> answers; // AgentResponse, String (a text answer) or an Exception
+  // AgentResponse, String (a text answer), an Exception, or a Future (e.g. one never answered)
+  final List<Object> answers;
   final asked = <String>[];
 
   @override
@@ -29,6 +30,7 @@ class ScriptedProvider implements LlmProvider {
     asked.add('${messages.last['content']}');
     final answer = answers.removeAt(0);
     if (answer is Exception) throw answer;
+    if (answer is Future<AgentResponse>) return answer;
     if (answer is String) {
       return AgentResponse([
         {'type': 'text', 'text': answer},
