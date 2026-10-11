@@ -1,6 +1,6 @@
 name: notelore_core
 description: Notelore's shared core in pure Dart (no Flutter), used by every app.
-version: 0.4.1
+version: 0.5.0
 publish_to: none
 resolution: workspace
 

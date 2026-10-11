@@ -2,6 +2,49 @@
 
 <!-- version list -->
 
+## v0.5.0 (2026-10-11)
+
+### Bug Fixes
+
+- Keep API-key headers out of the dev trace; option values may hold '='
+  ([`4968242`](https://github.com/mfozmen/notelore/commit/4968242a1aaaf1b6715b719ff851b54a74241c5f))
+
+- Read the ChatGPT plan's answer from its streamed items
+  ([`7f1e0df`](https://github.com/mfozmen/notelore/commit/7f1e0df452b452a711dfebf9112200c91a074030))
+
+- Say so when a note to delete is already gone
+  ([`854a48d`](https://github.com/mfozmen/notelore/commit/854a48d3c212c87671f60ba7d6ee84f812e5082a))
+
+- Stop a turn still queued behind a sync; label unknown tools neutrally
+  ([`a8560b4`](https://github.com/mfozmen/notelore/commit/a8560b45e961c7a1e0cc16eb91a258628ff1a89e))
+
+### Features
+
+- A dev command line that runs and traces real agent turns
+  ([`1f7b348`](https://github.com/mfozmen/notelore/commit/1f7b34830e8fbc2e3e74e685d1bfbd22d3f06ad7))
+
+- Ask for another model when the chosen one is no longer offered
+  ([`0de8b66`](https://github.com/mfozmen/notelore/commit/0de8b665f33df6c40e2128fa2315773d103b394e))
+
+- Delete a note from the Notes screen, with undo
+  ([`40e13a6`](https://github.com/mfozmen/notelore/commit/40e13a61f06539317bdc49b93af20d2eaafa39b2))
+
+- Group model providers by how they are paid for
+  ([`84d5572`](https://github.com/mfozmen/notelore/commit/84d557275e3efeb90880ddabd98bb58d7334f100))
+
+- Refresh the model list on every start
+  ([`6243022`](https://github.com/mfozmen/notelore/commit/6243022b04e7656fd44d42205e5d2e5be420c3cb))
+
+- Show what the assistant is doing, and let a turn be stopped
+  ([`7ba166d`](https://github.com/mfozmen/notelore/commit/7ba166df8774884de4c87d88b33138380efa5bfe))
+
+- Start an API key on the cheapest model it lists
+  ([`99ecabf`](https://github.com/mfozmen/notelore/commit/99ecabf0722214a871d1ecedf754bc9a64bb5256))
+
+- Switch the model from the chat screen
+  ([`a9c7a8e`](https://github.com/mfozmen/notelore/commit/a9c7a8ee0fde41c4bfd4827a831fe67a8c7b811c))
+
+
 ## v0.4.1 (2026-10-11)
 
 ### Bug Fixes
