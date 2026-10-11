@@ -94,6 +94,37 @@ void main() {
       expect(pages.calls, 2);
     });
 
+    test('a forced check skips the cache and reports when it cannot ask', () async {
+      final pages = Pages({latestReleaseUrl: release('0.2.0')});
+      await checkForUpdate(cache: cache, now: now, current: '0.2.0', fetch: pages.call);
+      pages.pages[latestReleaseUrl] = release(v); // published after today's check
+      final later = now.add(const Duration(hours: 1));
+      expect(
+        await checkForUpdate(cache: cache, now: later, current: '0.2.0', fetch: pages.call),
+        isNull, // the cached answer
+      );
+      expect(
+        await checkForUpdate(
+          cache: cache,
+          now: later,
+          current: '0.2.0',
+          fetch: pages.call,
+          force: true,
+        ),
+        v,
+      );
+      await expectLater(
+        checkForUpdate(
+          cache: cache,
+          now: later,
+          current: '0.2.0',
+          fetch: Pages({}).call,
+          force: true,
+        ),
+        throwsA(isA<UpdateFailed>()),
+      );
+    });
+
     test('offline, garbled answers and a damaged cache are silent', () async {
       expect(
         await checkForUpdate(cache: cache, now: now, current: '0.2.0', fetch: Pages({}).call),

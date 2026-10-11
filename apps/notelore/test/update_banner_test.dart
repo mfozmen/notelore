@@ -166,4 +166,63 @@ void main() {
     expect(find.text('Installing Notelore $v...'), findsOneWidget);
     expect(tester.widget<TextButton>(find.widgetWithText(TextButton, 'Later')).onPressed, isNull);
   });
+
+  testWidgets('Settings checks by hand: up to date, offline, then a new release', (tester) async {
+    final pages = Pages({latestReleaseUrl: release('0.2.0')});
+    await pump(
+      tester,
+      Updater(
+        system: 'windows',
+        executable: p.join(install, 'notelore.exe'),
+        current: '0.2.0',
+        fetch: pages.call,
+        run: (command, args) async => ProcessResult(0, 0, '', ''),
+        spawn: (exe, args) async => spawned.add(exe),
+      ),
+    );
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    Future<void> check() async {
+      await tester.tap(find.text('Check for updates'));
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.pumpAndSettle();
+    }
+
+    await check();
+    expect(find.text('Notelore is up to date.'), findsOneWidget);
+    pages.pages.remove(latestReleaseUrl);
+    await check();
+    expect(find.textContaining('Could not check for updates'), findsOneWidget);
+    pages.pages[latestReleaseUrl] = release(v);
+    await check();
+    expect(find.text('Notelore $v is available.'), findsWidgets); // the banner too
+    expect(find.text('Update and restart'), findsOneWidget);
+  });
+
+  testWidgets('while open it checks again every 6 hours', (tester) async {
+    final pages = Pages({latestReleaseUrl: release('0.2.0')});
+    await pump(
+      tester,
+      Updater(
+        system: 'windows',
+        executable: p.join(install, 'notelore.exe'),
+        current: '0.2.0',
+        fetch: pages.call,
+        run: (command, args) async => ProcessResult(0, 0, '', ''),
+        spawn: (exe, args) async => spawned.add(exe),
+      ),
+    );
+    expect(find.text('Update and restart'), findsNothing);
+    pages.pages[latestReleaseUrl] = release(v);
+    await tester.pump(const Duration(hours: 6));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pumpAndSettle();
+    expect(find.text('Update and restart'), findsOneWidget);
+    // Offline on a later tick: quiet, the banner stays.
+    pages.pages.remove(latestReleaseUrl);
+    await tester.pump(const Duration(hours: 6));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pumpAndSettle();
+    expect(find.text('Update and restart'), findsOneWidget);
+  });
 }
