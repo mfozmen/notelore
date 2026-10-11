@@ -163,7 +163,8 @@ void main() {
   });
 
   test('a failing turn reports the error and where the trace is', () async {
-    expect(await run(['chat', '--model=gpt-x', 'hi']), 1);
+    expect(await run(['chat', '--model=gpt=x', 'hi']), 1);
+    expect('$out', contains('[chatgpt · gpt=x]')); // a value may hold '='
     expect('$out', contains('Error: not signed in with ChatGPT'));
     expect('$out', contains(p.join('state', 'trace')));
   });
@@ -250,12 +251,16 @@ void main() {
     );
     final response = await traced.post(
       Uri.parse('https://x.test/token'),
+      headers: {'x-api-key': 'sk-ant', 'x-goog-api-key': 'AIza', 'Cookie': 'c=1'},
       body: {'code': 'c0de', 'code_verifier': 'v', 'grant_type': 'authorization_code'},
     );
     expect(response.body, '{"id_token": "secret-id", "ok": 1}');
     expect(lines.first, contains('code=***'));
     expect(lines.first, contains('code_verifier=***'));
     expect(lines.first, contains('grant_type=authorization_code'));
+    for (final key in ['sk-ant', 'AIza', 'c=1']) {
+      expect(lines.first, isNot(contains(key)));
+    }
     expect(lines.last, contains('"id_token":"***"'));
     expect(lines.last, isNot(contains('secret-id')));
     traced.close();
