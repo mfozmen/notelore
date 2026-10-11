@@ -116,6 +116,8 @@ jobs:
           target="$RUNNER_TEMP/notelore-install"
           MSYS_NO_PATHCONV=1 dist/notelore-app-0.0.0-windows-x64-setup.exe             /CURRENTUSER /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /NOLAUNCH "/DIR=$(cygpath -w "$target")"
           test -f "$target/notelore.exe"
+          # Installed apps lists it as plain "Notelore" (the version has its own column).
+          MSYS_NO_PATHCONV=1 reg query 'HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\{8F3C2A51-6E2B-4D7A-9C1E-5B0A7D3E9F42}_is1' /v DisplayName | grep -E 'DisplayName +REG_SZ +Notelore\s*$'
           MSYS_NO_PATHCONV=1 "$target/unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
           # The uninstaller finishes in a copy of itself: wait for it, up to 30 s.
           for _ in $(seq 30); do [ -f "$target/notelore.exe" ] || break; sleep 1; done
