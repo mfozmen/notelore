@@ -132,6 +132,7 @@ class Session extends ChangeNotifier {
   /// connected (in the background: an offline start is fine).
   Future<void> load() async {
     await _loadProvider();
+    if (ready) unawaited(_refreshQuietly());
     driveConnected = await driveAuth?.signedIn() ?? false;
     notifyListeners();
     if (driveConnected) unawaited(syncNow());
@@ -224,6 +225,16 @@ class Session extends ChangeNotifier {
     final next = trimmed.isEmpty ? defaultModel : trimmed;
     _save(current, next, models);
     _use(current, key, next);
+  }
+
+  /// New models show up by themselves: on start the list is asked for again.
+  /// Offline or refused, the old list stays; the chosen model never changes.
+  Future<void> _refreshQuietly() async {
+    try {
+      await refreshModels();
+    } on Exception {
+      // the old list is still good enough
+    }
   }
 
   /// Asks the provider again which models the key can use. Throws
