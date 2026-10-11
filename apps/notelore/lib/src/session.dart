@@ -410,13 +410,12 @@ class Session extends ChangeNotifier {
   List<NoteInfo> listNotes() => (index..rebuild()).listNotes();
 
   /// Moves [note] under `_archive/<date>/`: nothing is ever hard-deleted. Returns
-  /// where it went, for [restoreNote]. Queued, so it never races a sync.
-  Future<String> deleteNote(NoteInfo note) => _exclusive(() async {
-    final archived = archiveNote(
-      paths.notes.path,
-      notePath(paths.notes.path, note.kind, note.slug),
-      today: today,
-    );
+  /// where it went, for [restoreNote]; null when a sync or a chat turn already
+  /// removed it. Queued, so it never races a sync.
+  Future<String?> deleteNote(NoteInfo note) => _exclusive(() async {
+    final path = notePath(paths.notes.path, note.kind, note.slug);
+    if (!File(path).existsSync()) return null;
+    final archived = archiveNote(paths.notes.path, path, today: today);
     notifyListeners();
     return archived;
   });
