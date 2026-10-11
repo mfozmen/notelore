@@ -170,7 +170,7 @@ void main() {
     expect(session.models, ['m']);
   });
 
-  test('settings from before the model list load with an empty list', () async {
+  test('settings from before the model list load, then the list fills in', () async {
     final harness = Harness();
     File(p.join(harness.paths.state.path, 'settings.json'))
       ..parent.createSync(recursive: true)
@@ -178,7 +178,9 @@ void main() {
     final session = harness.session();
     await session.load();
     expect(session.ready, isTrue);
-    expect(session.models, isEmpty);
+    await pumpEventQueue(); // the start refresh
+    expect(session.models, ['model-a', 'model-b']);
+    expect(session.model, 'm');
   });
 
   test('settings and key survive a restart', () async {
@@ -306,6 +308,32 @@ void main() {
     expect(harness.created.last, ('anthropic', 'k', 'claude-x'));
     await session.setModel('');
     expect(session.model, 'claude-sonnet-5-5'); // blank goes back to the default
+  });
+
+  test('every start refreshes the model list and keeps the chosen model', () async {
+    final harness = Harness();
+    final first = harness.session();
+    await first.connect(findProvider('anthropic'), 'k');
+    await first.setModel('model-b');
+    harness.models = ['model-new', 'model-b'];
+    final again = harness.session();
+    await again.load();
+    await pumpEventQueue(); // the refresh runs in the background
+    expect(again.models, ['model-new', 'model-b']);
+    expect(again.model, 'model-b');
+    // Even when the provider no longer lists it, the chosen model stays.
+    harness.models = ['model-new'];
+    final third = harness.session();
+    await third.load();
+    await pumpEventQueue();
+    expect(third.model, 'model-b');
+    // Offline or refused: the old list stays, and nothing is thrown.
+    harness.rejected = const TransientValidationError('offline');
+    final offline = harness.session();
+    await offline.load();
+    await pumpEventQueue();
+    expect(offline.models, ['model-new']);
+    expect(offline.ready, isTrue);
   });
 
   test('switching the model keeps the conversation', () async {
