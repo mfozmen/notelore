@@ -1,9 +1,12 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:notelore_core/src/providers/anthropic.dart';
 import 'package:notelore_core/src/providers/base.dart';
 import 'package:notelore_core/src/providers/chatgpt.dart';
 import 'package:notelore_core/src/providers/gemini.dart';
 import 'package:notelore_core/src/providers/ollama.dart';
-import 'package:notelore_core/src/providers/openai.dart';
 import 'package:notelore_core/src/providers/providers.dart';
 import 'package:test/test.dart';
 
@@ -77,7 +80,7 @@ void main() {
 
   final kinds = {
     'anthropic': isA<AnthropicProvider>(),
-    'openai': isA<OpenAIProvider>(),
+    'openai': isA<ChatGptProvider>(), // the Responses API, with the key as token
     'gemini': isA<GeminiProvider>(),
     'ollama': isA<OllamaProvider>(),
   };
@@ -89,6 +92,41 @@ void main() {
       expect(createProvider(findProvider(name), null, model: 'other').model, 'other');
     });
   }
+
+  test('createProvider: an OpenAI key uses the Responses API, plain tools', () async {
+    final requests = <http.Request>[];
+    final provider = createProvider(
+      findProvider('openai'),
+      'sk-1',
+      model: 'gpt-6.1-sol',
+      client: MockClient((request) async {
+        requests.add(request);
+        return http.Response(
+          'data: {"type":"response.completed","response":{"status":"completed","output":[]}}\n\n',
+          200,
+        );
+      }),
+    );
+    await provider.turn(
+      'sys',
+      [
+        {'role': 'user', 'content': 'hi'},
+      ],
+      [tool],
+    );
+    final request = requests.single;
+    expect(request.url.toString(), 'https://api.openai.com/v1/responses');
+    expect(request.headers['Authorization'], 'Bearer sk-1');
+    final body = jsonDecode(request.body) as Map;
+    expect(body['tools'], [
+      {
+        'type': 'function',
+        'name': 'read_note',
+        'description': 'Read a note',
+        'parameters': tool.inputSchema,
+      },
+    ]);
+  });
 
   test('createProvider: chatgpt needs the plan token', () {
     Future<String> token({bool refresh = false}) async => 't';

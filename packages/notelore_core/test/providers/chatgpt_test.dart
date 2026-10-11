@@ -111,6 +111,35 @@ void main() {
     });
   });
 
+  test('without a namespace (an API key): plain tools, plain calls in the history', () async {
+    final api = FakeResponses([
+      stream([completed([])]),
+    ]);
+    await ChatGptProvider('gpt-x', token, client: api.client, namespace: null).turn(
+      '',
+      [
+        {
+          'role': 'assistant',
+          'content': [
+            {'type': 'tool_use', 'id': 'c', 'name': 'read_note', 'input': <String, Object?>{}},
+          ],
+        },
+      ],
+      [tool],
+    );
+    expect(api.body(0)['tools'], [
+      {
+        'type': 'function',
+        'name': 'read_note',
+        'description': 'Read a note',
+        'parameters': tool.inputSchema,
+      },
+    ]);
+    expect(api.body(0)['input'], [
+      {'type': 'function_call', 'call_id': 'c', 'name': 'read_note', 'arguments': '{}'},
+    ]);
+  });
+
   test('tool calls come back as tool_use blocks', () async {
     final api = FakeResponses([
       stream([

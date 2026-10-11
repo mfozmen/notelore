@@ -1,5 +1,6 @@
-/// GPT on the user's ChatGPT Plus or Pro plan, over the Responses API with a
-/// "Sign in with ChatGPT" token ([ChatGptAuth]):
+/// GPT over OpenAI's Responses API: on the user's ChatGPT Plus or Pro plan with
+/// a "Sign in with ChatGPT" token ([ChatGptAuth]), or with an API key (no
+/// [ChatGptProvider.namespace]; newer models take tools only on this API):
 /// https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference
 ///
 /// The plan route has rules: every request streams (`stream: true`) and stores
@@ -18,7 +19,6 @@ import 'base.dart';
 import 'http.dart';
 
 const _api = 'https://api.openai.com/v1';
-const _namespace = 'notelore';
 
 /// Where a user sees and manages what their plan has left.
 const chatGptUsageUrl = 'https://chatgpt.com/settings/usage';
@@ -41,11 +41,15 @@ class ChatGptProvider implements LlmProvider {
     this.token, {
     http.Client? client,
     this.timeout = const Duration(seconds: 120),
+    this.namespace = 'notelore',
   }) : _client = client ?? http.Client();
 
   @override
   final String model;
   final BearerToken token;
+
+  /// The plan route wants function tools in a namespace; null for an API key.
+  final String? namespace;
 
   /// How long one answer may take, streaming included.
   final Duration timeout;
@@ -56,24 +60,19 @@ class ChatGptProvider implements LlmProvider {
     final body = {
       'model': model,
       if (system.isNotEmpty) 'instructions': system,
-      'input': toResponsesInput(messages),
+      'input': toResponsesInput(messages, namespace: namespace),
       if (tools.isNotEmpty)
-        'tools': [
-          {
-            'type': 'namespace',
-            'name': _namespace,
-            'description': "Notelore's note tools.",
-            'tools': [
-              for (final t in tools)
-                {
-                  'type': 'function',
-                  'name': t.name,
-                  'description': t.description,
-                  'parameters': t.inputSchema,
-                },
-            ],
-          },
-        ],
+        'tools': switch (namespace) {
+          final name? => [
+            {
+              'type': 'namespace',
+              'name': name,
+              'description': "Notelore's note tools.",
+              'tools': _functions(tools),
+            },
+          ],
+          null => _functions(tools),
+        },
       'store': false,
       'stream': true,
     };
@@ -87,6 +86,11 @@ class ChatGptProvider implements LlmProvider {
     return fromResponse(response);
   }
 }
+
+List<Map<String, Object?>> _functions(List<Tool> tools) => [
+  for (final t in tools)
+    {'type': 'function', 'name': t.name, 'description': t.description, 'parameters': t.inputSchema},
+];
 
 NetworkError _slow() => const NetworkError('ChatGPT did not answer in time');
 
@@ -170,8 +174,12 @@ Exception _apiError(int status, Map<Object?, Object?> error) => switch (error['c
   _ => HttpError(status, '${error['message'] ?? error['code']}'),
 };
 
-/// The Anthropic-shaped history as Responses `input` items.
-List<Map<String, Object?>> toResponsesInput(List<Message> messages) => [
+/// The Anthropic-shaped history as Responses `input` items; calls carry the
+/// tools' [namespace] when they have one.
+List<Map<String, Object?>> toResponsesInput(
+  List<Message> messages, {
+  String? namespace = 'notelore',
+}) => [
   for (final message in messages)
     if (splitBlocks(message['content']) case (:final texts, :final uses, :final results))
       if (message['role'] == 'assistant') ...[
@@ -180,7 +188,7 @@ List<Map<String, Object?>> toResponsesInput(List<Message> messages) => [
           {
             'type': 'function_call',
             'call_id': u['id'] ?? '',
-            'namespace': _namespace,
+            'namespace': ?namespace,
             'name': u['name'] ?? '',
             'arguments': jsonEncode(u['input'] ?? const <String, Object?>{}),
           },

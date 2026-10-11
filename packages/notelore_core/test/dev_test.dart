@@ -134,17 +134,16 @@ void main() {
     expect(await run(['chat', '--provider=openai', 'hi'], client: client), 1);
     expect('$out', contains('NOTELORE_OPENAI_API_KEY'));
     final openai = MockClient(
-      (request) async => http.Response(
-        jsonEncode({
-          'choices': [
-            {
-              'finish_reason': 'stop',
-              'message': {'role': 'assistant', 'content': 'merhaba'},
-            },
-          ],
-        }),
-        200,
-      ),
+      (request) async => events([
+        done([
+          {
+            'type': 'message',
+            'content': [
+              {'type': 'output_text', 'text': 'merhaba'},
+            ],
+          },
+        ]),
+      ]),
     );
     expect(
       await run(
@@ -158,6 +157,29 @@ void main() {
     expect('$out', contains('merhaba'));
     expect(trace(), contains('Authorization: ***'));
     expect(trace(), isNot(contains('sk-secret')));
+    // Claude goes through the traced transport; its key header is hidden too.
+    final anthropic = MockClient(
+      (request) async => http.Response(
+        jsonEncode({
+          'content': [
+            {'type': 'text', 'text': 'selam'},
+          ],
+          'stop_reason': 'end_turn',
+        }),
+        200,
+      ),
+    );
+    expect(
+      await run(
+        ['chat', '--provider=anthropic', 'hi'],
+        client: anthropic,
+        environment: {'NOTELORE_HOME': 'home', 'NOTELORE_ANTHROPIC_API_KEY': 'sk-ant-secret'},
+      ),
+      0,
+    );
+    expect('$out', contains('selam'));
+    expect(trace(), contains('x-api-key: ***'));
+    expect(trace(), isNot(contains('sk-ant-secret')));
     // An unknown provider is an error, not a crash.
     expect(await run(['chat', '--provider=nope', 'hi']), 1);
   });
