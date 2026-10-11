@@ -32,6 +32,8 @@ PrivilegesRequiredOverridesAllowed=dialog commandline
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayIcon={app}\notelore.exe
+; Installed apps shows the version in its own column: the name is just the name.
+UninstallDisplayName=Notelore
 ; An update runs while the old app may still be closing: close it, never ask.
 CloseApplications=force
 WizardStyle=modern
