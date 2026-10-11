@@ -4,8 +4,8 @@ import 'package:notelore_core/notelore_core.dart';
 
 import 'session.dart';
 
-/// Every project and topic, newest first; a tap opens the note read-only. A
-/// long press, or the open note's delete button, moves it to the archive.
+/// Every project and topic, newest first; a tap opens the note read-only. The
+/// entry's trash button (or a long press, or the open note's) archives it.
 class NotesScreen extends StatefulWidget {
   const NotesScreen(this.session, {super.key});
 
@@ -81,6 +81,11 @@ class _NotesScreenState extends State<NotesScreen> {
                       '${note.kind} · updated ${note.updated == null ? '?' : isoDate(note.updated!)}',
                     ),
                     onLongPress: () => _delete(note),
+                    trailing: IconButton(
+                      tooltip: 'Delete',
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () => _delete(note),
+                    ),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (reader) => Scaffold(

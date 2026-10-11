@@ -221,8 +221,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Kitaplar'), findsOneWidget);
 
-    // Long press, Delete, then Undo.
-    await tester.longPress(find.text('Kitaplar'));
+    // The entry's own trash button (#129), Delete, then Undo.
+    await tester.tap(
+      find.descendant(
+        of: find.widgetWithText(ListTile, 'Kitaplar'),
+        matching: find.byTooltip('Delete'),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
