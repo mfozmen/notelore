@@ -1,0 +1,224 @@
+/// The developer's command line (`bin/notelore_dev.dart`): runs the real agent
+/// against a real provider on the `NOTELORE_HOME` sandbox and traces every
+/// HTTP exchange, so a provider bug can be seen without the app.
+///
+///     notelore_dev signin              ChatGPT plan sign-in (opens the browser)
+///     notelore_dev models              the plan's models
+///     notelore_dev chat [--provider=chatgpt] [--model=<id>] <message...>
+///
+/// It refuses to run without `NOTELORE_HOME`, so the real notes are never
+/// touched. Secrets live in `<state>/dev-secrets.json`, never the app's
+/// keystore; traces in `<state>/trace/`, with tokens redacted.
+library;
+
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as p;
+
+import 'agent.dart';
+import 'paths.dart';
+import 'providers/base.dart';
+import 'providers/chatgpt.dart';
+import 'providers/chatgpt_auth.dart';
+import 'providers/http.dart';
+import 'providers/providers.dart';
+import 'store/index.dart';
+import 'tools.dart';
+
+const _usage =
+    'usage: notelore_dev signin | models | chat [--provider=<name>] [--model=<id>] <message>';
+
+/// Runs one command; the exit code is 0, 1 (it failed) or 64 (bad usage).
+Future<int> runDev(
+  List<String> args, {
+  required Map<String, String> environment,
+  required Directory currentDirectory,
+  required StringSink out,
+  required Future<void> Function(Uri url) openBrowser,
+  required http.Client client,
+}) async {
+  if ((environment['NOTELORE_HOME'] ?? '').isEmpty) {
+    out.writeln('Set NOTELORE_HOME (e.g. .dev-home): notelore_dev never touches the real notes.');
+    return 64;
+  }
+  final options = {
+    for (final a in args)
+      if (a.startsWith('--') && a.contains('=')) a.substring(2, a.indexOf('=')): a.split('=')[1],
+  };
+  final words = args.where((a) => !a.startsWith('--')).toList();
+  final command = words.firstOrNull;
+  final message = words.skip(1).join(' ');
+  if (command == null ||
+      !const {'signin', 'models', 'chat'}.contains(command) ||
+      (command == 'chat' && message.isEmpty)) {
+    out.writeln(_usage);
+    return 64;
+  }
+
+  final paths = NotelorePaths.resolve(
+    environment: environment,
+    currentDirectory: currentDirectory,
+    defaultNotes: currentDirectory, // unused: NOTELORE_HOME is set
+    defaultState: currentDirectory,
+  );
+  final traceFile = File(
+    p.join(
+      paths.state.path,
+      'trace',
+      '${DateTime.now().toUtc().toIso8601String().replaceAll(':', '-')}.log',
+    ),
+  )..createSync(recursive: true);
+  final traced = TracingClient(
+    client,
+    (entry) => traceFile.writeAsStringSync('$entry\n\n', mode: FileMode.append),
+  );
+  final secrets = File(p.join(paths.state.path, 'dev-secrets.json'));
+  Map<String, Object?> stored() => secrets.existsSync()
+      ? (jsonDecode(secrets.readAsStringSync()) as Map).cast()
+      : <String, Object?>{};
+  final auth = ChatGptAuth(
+    openBrowser: openBrowser,
+    read: (name) async => stored()[name] as String?,
+    write: (name, value) async => secrets.writeAsStringSync(
+      jsonEncode({...stored(), name: value}..removeWhere((_, v) => v == null)),
+    ),
+    client: traced,
+  );
+
+  try {
+    switch (command) {
+      case 'signin':
+        await auth.signIn();
+        out.writeln('Signed in with ChatGPT.');
+      case 'models':
+        out.writeln((await listChatGptModels(auth.token, client: traced)).join('\n'));
+      default:
+        final spec = findProvider(options['provider'] ?? 'chatgpt');
+        final keyName = 'NOTELORE_${spec.name.toUpperCase()}_API_KEY';
+        final key = environment[keyName];
+        if (spec.requiresApiKey && key == null) throw StateError('set $keyName');
+        final model =
+            options['model'] ??
+            (spec.name == 'chatgpt'
+                ? (await listChatGptModels(auth.token, client: traced)).first
+                : spec.defaultModel);
+        out.writeln('[${spec.name} · $model]');
+        final index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path);
+        try {
+          final provider = createProvider(
+            spec,
+            key,
+            model: model,
+            planToken: auth.token,
+            client: traced,
+            transport: (method, url, {headers = const {}, body, required timeout}) =>
+                request(traced, method, url, headers: headers, body: body, timeout: timeout),
+          );
+          final agent = Agent(provider, Toolbox(paths.notes.path, index));
+          final answer = await agent.ask(message);
+          _printTools(agent.messages, out);
+          out.writeln(answer);
+        } finally {
+          index.close();
+        }
+    }
+    return 0;
+  } on Object catch (error) {
+    out.writeln('Error: $error');
+    return 1;
+  } finally {
+    out.writeln('Trace: ${traceFile.path}');
+    traced.close();
+  }
+}
+
+void _printTools(List<Map<String, Object?>> messages, StringSink out) {
+  for (final message in messages) {
+    if (message['content'] case final List<Object?> blocks) {
+      for (final block in blocks.cast<Map<Object?, Object?>>()) {
+        switch (block['type']) {
+          case 'tool_use':
+            out.writeln('→ ${block['name']} ${jsonEncode(block['input'])}');
+          case 'tool_result':
+            final text = '${block['content']}';
+            out.writeln('← ${text.length > 300 ? '${text.substring(0, 300)}…' : text}');
+        }
+      }
+    }
+  }
+}
+
+final _jsonSecret = RegExp(
+  r'"(access_token|refresh_token|id_token|code_verifier|client_secret)"\s*:\s*"[^"]*"',
+);
+final _formSecret = RegExp(r'(^|&)(code|code_verifier|refresh_token|client_secret)=[^&]*');
+
+/// [text] with token values replaced by `***`, in JSON and in form bodies.
+String redact(String text) => text
+    .replaceAllMapped(_jsonSecret, (m) => '"${m[1]}":"***"')
+    .replaceAllMapped(_formSecret, (m) => '${m[1]}${m[2]}=***');
+
+/// An HTTP client that logs each request and, once read, its response.
+class TracingClient extends http.BaseClient {
+  TracingClient(this._inner, this._log);
+
+  final http.Client _inner;
+  final void Function(String entry) _log;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final headers = [
+      for (final MapEntry(:key, :value) in request.headers.entries)
+        '$key: ${key.toLowerCase() == 'authorization' ? '***' : value}',
+    ];
+    final body = request is http.Request ? request.body : '';
+    _log('> ${request.method} ${request.url}\n${headers.join('\n')}\n${redact(body)}');
+    final response = await _inner.send(request);
+    final bytes = <int>[];
+    var logged = false;
+    void logBody() {
+      if (logged) return;
+      logged = true;
+      _log(
+        '< ${response.statusCode} ${request.url}\n'
+        '${redact(utf8.decode(bytes, allowMalformed: true))}',
+      );
+    }
+
+    // A reader may stop early (the plan provider does at response.completed),
+    // so the body is logged on cancel as well as when it is done.
+    late final StreamSubscription<List<int>> source;
+    late final StreamController<List<int>> relay;
+    relay = StreamController(
+      onListen: () => source = response.stream.listen(
+        (chunk) {
+          bytes.addAll(chunk);
+          relay.add(chunk);
+        },
+        onError: relay.addError,
+        onDone: () {
+          logBody();
+          relay.close();
+        },
+      ),
+      onCancel: () {
+        logBody();
+        return source.cancel();
+      },
+    );
+    return http.StreamedResponse(
+      relay.stream,
+      response.statusCode,
+      contentLength: response.contentLength,
+      request: response.request,
+      headers: response.headers,
+      reasonPhrase: response.reasonPhrase,
+    );
+  }
+
+  @override
+  void close() => _inner.close();
+}
