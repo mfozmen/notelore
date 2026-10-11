@@ -80,7 +80,15 @@ final _pinned = RegExp(r'preview|exp|latest|-\d{4}-\d{2}-\d{2}$|-\d{8}$|-\d{3}$'
 final _number = RegExp(r'\d+(\.\d+)?');
 
 /// The first version number in a model id (`gpt-5.1` 5.1, `o4-mini` 4), 0 without one.
+/// shortcut: only the first number counts (`claude-sonnet-4-5` and `-4` tie); fine
+/// for today's ids, revisit if a provider puts a date or build number first.
 double _version(String id) => double.parse(_number.firstMatch(id)?[0] ?? '0');
+
+/// The price tier of a model id: 0 (nano) is the cheapest.
+int _tier(String id) {
+  final found = _tiers.indexWhere((t) => t.hasMatch(id));
+  return found < 0 ? _tiers.length : found;
+}
 
 /// [models] without previews and pinned versions (unless that leaves none),
 /// newest first: Anthropic already lists them so, the others by version number.
@@ -97,9 +105,10 @@ List<String> _newestFirst(String provider, List<String> models) {
 }
 
 /// Only the current versions of what a provider lists: the newest of each model
-/// family (the id without its numbers), and only families of the newest
-/// generation of their line (the id up to its first number). A note-taking app
-/// needs no archive of old models. Ollama's list is the machine's own: untouched.
+/// family (the id without its numbers), minus families whose line (the id up
+/// to its first number) has a newer generation that costs no more: a new top
+/// model never hides the cheaper ones before it. A note-taking app needs no
+/// archive of old models. Ollama's list is untouched.
 List<String> currentModels(String provider, List<String> models) {
   if (provider == 'ollama') return models;
   final families = <String>{};
@@ -108,31 +117,23 @@ List<String> currentModels(String provider, List<String> models) {
       if (families.add(m.replaceAll(_number, '#'))) m,
   ];
   String line(String id) => id.substring(0, _number.firstMatch(id)?.start ?? id.length);
-  final generation = <String, int>{};
-  for (final m in newest) {
-    generation.update(
-      line(m),
-      (g) => g > _version(m).floor() ? g : _version(m).floor(),
-      ifAbsent: () => _version(m).floor(),
-    );
-  }
+  int generation(String id) => _version(id).floor();
+  // Outdated: its line has a newer generation that costs no more.
+  bool outdated(String m) => newest.any(
+    (k) => line(k) == line(m) && generation(k) > generation(m) && _tier(k) <= _tier(m),
+  );
   return [
     for (final m in newest)
-      if (_version(m).floor() == generation[line(m)]) m,
+      if (!outdated(m)) m,
   ];
 }
 
 /// The cheapest of the [models] a provider listed, newest first within a tier;
 /// null when none is listed.
 String? cheapestModel(String provider, List<String> models) {
-  int tier(String id) {
-    final found = _tiers.indexWhere((t) => t.hasMatch(id));
-    return found < 0 ? _tiers.length : found;
-  }
-
   String? best;
   for (final m in _newestFirst(provider, models)) {
-    if (best == null || tier(m) < tier(best)) best = m;
+    if (best == null || _tier(m) < _tier(best)) best = m;
   }
   return best;
 }

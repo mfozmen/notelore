@@ -244,6 +244,19 @@ void main() {
       ]),
       ['claude-opus-5-5-20260801', 'claude-sonnet-5-5-20260801', 'claude-haiku-5-0-20260601'],
     );
+    // A new top model never pushes out the cheaper families of the generation
+    // before it: generations compare within a price tier.
+    expect(currentModels('gemini', ['gemini-3-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']), [
+      'gemini-3-pro',
+      'gemini-2.5-flash-lite',
+      'gemini-2.5-flash',
+    ]);
+    expect(currentModels('openai', ['gpt-6', 'gpt-5-mini', 'gpt-5-nano', 'gpt-4o-mini']), [
+      'gpt-6',
+      'gpt-5-nano',
+      'gpt-5-mini',
+    ]);
+    expect(cheapestModel('openai', ['gpt-6', 'gpt-5-mini', 'gpt-5-nano']), 'gpt-5-nano');
     // Previews only: they stay. Ollama: the machine's own models, untouched.
     expect(currentModels('gemini', ['gemini-9-flash-preview']), ['gemini-9-flash-preview']);
     expect(currentModels('ollama', ['llama3.2', 'llama3.1']), ['llama3.2', 'llama3.1']);
