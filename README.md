@@ -29,7 +29,7 @@ Releases are cut on demand from the Conventional Commit history on `main`: a `fe
 Open Notelore and pick a model. The list is grouped by how you pay: *Use your plan*, *API key* and *On this computer*; Settings shows which one is in use.
 
 0. **ChatGPT plan** (Windows and macOS): *Continue with ChatGPT* signs in in your browser and lets Notelore use your ChatGPT Plus or Pro plan ("Sign in with ChatGPT"). There are no separate charges, within your plan's limits; *Manage usage* under the chat opens ChatGPT's usage settings. You can disconnect Notelore in ChatGPT's settings.
-1. **Claude**, **GPT** or **Gemini**: the app shows where to create an API key. Paste the key and Notelore checks it with a free request (it lists the models). The key is kept in the platform keystore (Android Keystore, macOS Keychain, Windows Credential Manager), never in a file.
+1. **Claude**, **GPT** or **Gemini**: the app shows where to create an API key. Paste the key and Notelore checks it with a free request (it lists the models) and starts on the cheapest model listed; switch any time with the model chip in the chat. The key is kept in the platform keystore (Android Keystore, macOS Keychain, Windows Credential Manager), never in a file.
 2. **Ollama**: no key. Start Ollama first; Notelore checks that it answers on `http://localhost:11434` (or `OLLAMA_HOST`).
 
 What it costs (the setup screen says it too):

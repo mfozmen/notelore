@@ -70,6 +70,34 @@ List<String> chatModels(String provider, Object? answer) {
   };
 }
 
+/// Cheapest first. Listings carry no prices, so the family name decides.
+final _tiers = [
+  for (final family in ['nano', 'lite', 'mini|flash|haiku']) RegExp('(^|-)($family)(-|\$)'),
+];
+
+// Previews, experiments and pinned versions (dated, -001): only when nothing else is left.
+final _pinned = RegExp(r'preview|exp|latest|-\d{4}-\d{2}-\d{2}$|-\d{8}$|-\d{3}$');
+
+/// The cheapest of the [models] a provider listed, newest first within a tier;
+/// null when none is listed.
+String? cheapestModel(String provider, List<String> models) {
+  final plain = models.where((m) => !_pinned.hasMatch(m)).toList();
+  final pool = plain.isEmpty ? [...models] : plain;
+  // Anthropic lists newest first; the others' names sort newest last.
+  // shortcut: names compare as text, so a two-digit version (gpt-10) sorts wrong; revisit then.
+  if (provider != 'anthropic') pool.sort((a, b) => b.compareTo(a));
+  int tier(String id) {
+    final found = _tiers.indexWhere((t) => t.hasMatch(id));
+    return found < 0 ? _tiers.length : found;
+  }
+
+  String? best;
+  for (final m in pool) {
+    if (best == null || tier(m) < tier(best)) best = m;
+  }
+  return best;
+}
+
 /// Checks [apiKey] and returns the chat models it can use (newest first where the
 /// provider says so). Throws [KeyValidationError] or [TransientValidationError].
 Future<List<String>> validateKey(

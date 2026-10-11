@@ -185,8 +185,12 @@ void main() {
     phone(tester);
     final harness = Harness();
     final session = await pumpApp(tester, harness);
-    // The fake key lists model-a and model-b, not the default claude-sonnet-5-5.
     await connect(tester, key: 'k');
+    expect(find.text('Change model'), findsNothing);
+    // The provider drops the chosen claude-sonnet-5-5.
+    harness.models = ['model-a', 'model-b'];
+    await session.refreshModels();
+    await tester.pumpAndSettle();
     expect(
       find.text('Claude (Anthropic) no longer offers claude-sonnet-5-5. Pick another model.'),
       findsOneWidget,

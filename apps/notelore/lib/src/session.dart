@@ -168,8 +168,12 @@ class Session extends ChangeNotifier {
   Future<void> connect(ProviderSpec spec, String key, {String? model}) async {
     final trimmed = key.trim();
     final listed = await _models(spec, trimmed, signIn: true);
-    // A provider without a fixed default (the ChatGPT plan) starts on the first it lists.
-    final chosen = model ?? (spec.defaultModel.isNotEmpty ? spec.defaultModel : listed.firstOrNull);
+    // An API key starts on the cheapest model it lists (the fixed default when it
+    // lists none); the ChatGPT plan, with no default, on the first it lists.
+    final chosen =
+        model ??
+        (spec.requiresApiKey ? cheapestModel(spec.name, listed) : null) ??
+        (spec.defaultModel.isNotEmpty ? spec.defaultModel : listed.firstOrNull);
     if (chosen == null) throw TransientValidationError('${spec.displayName} lists no models');
     final name = _keyName(spec);
     final previous = spec.requiresApiKey ? await keys.read(key: name) : null;

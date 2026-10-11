@@ -179,7 +179,7 @@ void main() {
     await session.load();
     expect(session.ready, isTrue);
     await pumpEventQueue(); // the start refresh
-    expect(session.models, ['model-a', 'model-b']);
+    expect(session.models, harness.models);
     expect(session.model, 'm');
   });
 
@@ -308,6 +308,16 @@ void main() {
     expect(harness.created.last, ('anthropic', 'k', 'claude-x'));
     await session.setModel('');
     expect(session.model, 'claude-sonnet-5-5'); // blank goes back to the default
+  });
+
+  test('an API key starts on the cheapest model it lists', () async {
+    final harness = Harness()..models = ['gpt-5', 'gpt-5-nano', 'gpt-5-mini'];
+    final session = harness.session();
+    await session.connect(findProvider('openai'), 'sk');
+    expect(session.model, 'gpt-5-nano');
+    harness.models = [];
+    await session.connect(findProvider('openai'), 'sk');
+    expect(session.model, 'gpt-4o-mini'); // nothing listed: the fixed default
   });
 
   test('every start refreshes the model list and keeps the chosen model', () async {
