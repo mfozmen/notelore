@@ -26,11 +26,11 @@ Download the app from the [releases page](https://github.com/mfozmen/notelore/re
 
 | Platform | File | Notes |
 |---|---|---|
-| Windows | `…-windows-x64-setup.exe` | Installs for all users by default, or only for you. Windows may warn about an unknown publisher (not code-signed yet). |
-| macOS | `…-macos.dmg` | Drag `notelore.app` onto *Applications*. The first time, right-click it and choose *Open* (not notarized yet). |
-| Android | `…-android.apk` | Allow installing from your browser or file manager. |
+| Windows | `notelore-app-<version>-windows-x64-setup.exe` | Installs for all users by default, or only for you. Windows may warn about an unknown publisher (not code-signed yet). |
+| macOS | `notelore-app-<version>-macos.dmg` | Drag `notelore.app` onto *Applications*. The first time, right-click it and choose *Open* (not notarized yet). |
+| Android | `notelore-app-<version>-android.apk` | Allow installing from your browser or file manager. |
 
-The app updates itself: it checks for new releases and offers *Update*.
+The app checks for new releases and offers *Update* (on Android you confirm in the system installer).
 
 ## Get started
 
@@ -44,7 +44,7 @@ The app updates itself: it checks for new releases and offers *Update*.
 Notelore starts on the cheapest model your provider offers; switch any time with the model chip above the message box.
 
 > [!TIP]
-> Gemini is free with a key from a Google AI Studio project that has no billing, and Ollama is free too. Claude and GPT through their APIs are billed per use.
+> Gemini is free with a key from a Google AI Studio project that has no billing, and Ollama is free too. Claude and GPT through their APIs are billed per use; a Claude Pro or Max subscription cannot be used in other apps.
 
 ## Using it
 
