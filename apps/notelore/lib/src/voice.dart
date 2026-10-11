@@ -19,10 +19,27 @@ class VoiceUnavailable implements Exception {
   const VoiceUnavailable();
 }
 
+/// The recognizer failed for a reason other than silence (network, busy).
+class ListenFailed implements Exception {
+  const ListenFailed(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'Speech recognition failed: $message';
+}
+
+/// [markdown] as plain words for a voice: no emphasis marks, list bullets,
+/// heading marks or link targets.
+String spoken(String markdown) => markdown
+    .replaceAllMapped(RegExp(r'\[([^\]]*)\]\([^)]*\)'), (m) => m[1]!)
+    .replaceAll(RegExp(r'^\s*(#+|[-*+])\s+', multiLine: true), '')
+    .replaceAll(RegExp(r'[*_`]'), '');
+
 /// Listens for one phrase.
 abstract interface class Speech {
   /// The phrase heard in [language] (`en`, `tr`), or null for silence or a
-  /// [cancel]. Throws [VoiceUnavailable].
+  /// [cancel]. Throws [VoiceUnavailable] or [ListenFailed].
   Future<String?> listen(String language);
 
   Future<void> cancel();
@@ -84,8 +101,10 @@ class VoiceMode extends ChangeNotifier {
       _set(VoiceState.thinking);
       await session.send(text);
       if (!on) return;
+      final last = session.transcript.last;
+      if (last.role != ChatRole.assistant) continue; // an error stays on screen, unspoken
       _set(VoiceState.speaking);
-      await voice.speak(session.transcript.last.text, session.strings.languageCode);
+      await voice.speak(spoken(last.text), session.strings.languageCode);
     }
   }
 
@@ -106,9 +125,18 @@ class VoiceMode extends ChangeNotifier {
     unawaited(voice.stop());
   }
 
+  var _disposed = false;
+
+  /// The chat may close mid-loop: the loop then unwinds without notifying.
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
   void _set(VoiceState next) {
     state = next;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 }
 
@@ -120,9 +148,18 @@ class DeviceSpeech implements Speech {
   var _ready = false;
   Completer<String?>? _heard;
 
+  // Silence, not a failure: nothing was said, or nothing understood.
+  static const _silence = {'error_no_match', 'error_speech_timeout'};
+
   @override
   Future<String?> listen(String language) async {
-    _ready = _ready || await _recognizer.initialize(onStatus: _status, onError: (_) => _end(null));
+    _ready =
+        _ready ||
+        await _recognizer.initialize(
+          onStatus: _status,
+          onError: (error) =>
+              _silence.contains(error.errorMsg) ? _end(null) : _fail(ListenFailed(error.errorMsg)),
+        );
     if (!_ready) throw const VoiceUnavailable();
     final heard = _heard = Completer<String?>();
     await _recognizer.listen(
@@ -145,6 +182,10 @@ class DeviceSpeech implements Speech {
 
   void _end(String? words) {
     if (_heard case final heard? when !heard.isCompleted) heard.complete(words);
+  }
+
+  void _fail(ListenFailed error) {
+    if (_heard case final heard? when !heard.isCompleted) heard.completeError(error);
   }
 
   @override

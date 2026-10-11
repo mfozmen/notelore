@@ -79,11 +79,25 @@ void main() {
     await pumpEventQueue();
     platform.onError!(jsonEncode({'errorMsg': 'error_no_match', 'permanent': false}));
     expect(await failed, isNull);
+    final timedOut = speech.listen('en');
+    await pumpEventQueue();
+    platform.onError!(jsonEncode({'errorMsg': 'error_speech_timeout', 'permanent': false}));
+    expect(await timedOut, isNull);
     final cancelled = speech.listen('en');
     await pumpEventQueue();
     await speech.cancel();
     expect(await cancelled, isNull);
     expect(platform.cancels, 1);
+  });
+
+  test('a real recognizer error ends the listening with that error', () async {
+    final broken = speech.listen('en');
+    await pumpEventQueue();
+    platform.onError!(jsonEncode({'errorMsg': 'error_network', 'permanent': true}));
+    await expectLater(
+      broken,
+      throwsA(isA<ListenFailed>().having((e) => '$e', 'text', contains('error_network'))),
+    );
   });
 
   test('no recognizer or no permission: unavailable', () async {

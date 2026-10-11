@@ -75,6 +75,32 @@ void main() {
     mode.end();
   });
 
+  test('only answers are spoken, without Markdown symbols', () async {
+    final (session, mode, speech, voice) = await setUpVoice(
+      ['ne var', 've sonra'],
+      [
+        '**Kitap:** _Gülünün Solduğu Akşam_, [link](https://x.y)\n- `madde`\n# Başlık',
+        const NetworkError('offline'),
+      ],
+    );
+    final running = mode.start();
+    await pumpEventQueue();
+    // The failed second turn (an error line) is not read aloud.
+    expect(voice.spoken, [('Kitap: Gülünün Solduğu Akşam, link\nmadde\nBaşlık', 'en')]);
+    mode.end();
+    await running;
+  });
+
+  test('a closed chat ends voice mode without touching the disposed mode', () async {
+    final (session, mode, speech, voice) = await setUpVoice([], []);
+    final running = mode.start();
+    await pumpEventQueue();
+    mode
+      ..end()
+      ..dispose();
+    await running; // unwinding after dispose does not throw
+  });
+
   test('no speech recognition: it says so and stays in text mode', () async {
     final (session, mode, speech, voice) = await setUpVoice([], []);
     speech.failure = const VoiceUnavailable();
