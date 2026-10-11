@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v0.4.1 (2026-10-11)
+
+### Bug Fixes
+
+- Install for all users into Program Files by default
+  ([`ddc7d02`](https://github.com/mfozmen/notelore/commit/ddc7d02942086b51ccf660e75c80aafa27856926))
+
+- Let the Windows setup install for all users into Program Files
+  ([`b7bbed0`](https://github.com/mfozmen/notelore/commit/b7bbed0df6bf52e7725004ac74720a9e65763989))
+
+
 ## v0.4.0 (2026-10-10)
 
 ### Bug Fixes
