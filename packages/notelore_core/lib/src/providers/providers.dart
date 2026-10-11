@@ -9,7 +9,6 @@ import 'chatgpt.dart';
 import 'gemini.dart';
 import 'http.dart';
 import 'ollama.dart';
-import 'openai.dart';
 
 LlmProvider createProvider(
   ProviderSpec spec,
@@ -23,7 +22,13 @@ LlmProvider createProvider(
   return switch (spec.name) {
     'chatgpt' => ChatGptProvider(chosen, planToken!, client: client),
     'anthropic' => AnthropicProvider(apiKey ?? '', chosen, transport: transport),
-    'openai' => OpenAIProvider(apiKey ?? '', chosen, transport: transport),
+    // The key is a token that never needs a refresh.
+    'openai' => ChatGptProvider(
+      chosen,
+      ({refresh = false}) async => apiKey ?? '',
+      client: client,
+      namespace: null,
+    ),
     'gemini' => GeminiProvider(apiKey ?? '', chosen, transport: transport),
     _ => OllamaProvider(chosen, transport: transport),
   };
