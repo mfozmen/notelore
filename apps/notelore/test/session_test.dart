@@ -365,6 +365,30 @@ void main() {
     expect(session.readNote(session.listNotes().single), startsWith('# Windows\n'));
   });
 
+  test('deleting a note moves it to the archive, and undo brings it back', () async {
+    final harness = Harness();
+    final session = harness.session();
+    final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    final original = File(path).readAsBytesSync();
+    final note = session.listNotes().single;
+    final archived = await session.deleteNote(note);
+    expect(
+      archived,
+      p.join(harness.paths.notes.path, '_archive', '2026-09-30', 'topics', 'kitaplar.md'),
+    );
+    expect(File(path).existsSync(), isFalse);
+    expect(session.listNotes(), isEmpty);
+    await session.restoreNote(note, archived);
+    expect(File(path).readAsBytesSync(), original);
+    expect(session.listNotes(), [note]);
+    // A new note took the place meanwhile: undo never overwrites it.
+    final again = await session.deleteNote(note);
+    File(path).writeAsStringSync('new');
+    await session.restoreNote(note, again);
+    expect(File(path).readAsStringSync(), 'new');
+    expect(File(again).existsSync(), isTrue);
+  });
+
   test('withoutFrontMatter shows a note from its title down', () {
     expect(withoutFrontMatter('---\ntitle: T\n---\n# T\nbody\n'), '# T\nbody\n');
     expect(withoutFrontMatter('# Plain\n'), '# Plain\n');

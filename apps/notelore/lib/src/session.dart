@@ -409,6 +409,26 @@ class Session extends ChangeNotifier {
 
   List<NoteInfo> listNotes() => (index..rebuild()).listNotes();
 
+  /// Moves [note] under `_archive/<date>/`: nothing is ever hard-deleted. Returns
+  /// where it went, for [restoreNote]. Queued, so it never races a sync.
+  Future<String> deleteNote(NoteInfo note) => _exclusive(() async {
+    final archived = archiveNote(
+      paths.notes.path,
+      notePath(paths.notes.path, note.kind, note.slug),
+      today: today,
+    );
+    notifyListeners();
+    return archived;
+  });
+
+  /// Undoes [deleteNote], unless a new note has taken the place meanwhile.
+  Future<void> restoreNote(NoteInfo note, String archived) => _exclusive(() async {
+    final path = notePath(paths.notes.path, note.kind, note.slug);
+    if (File(path).existsSync()) return; // never overwrite; the archive copy stays
+    moveWithRetry(archived, path);
+    notifyListeners();
+  });
+
   /// The note as Markdown from its `# title` down (the front matter is for tools).
   /// CRLF (an editor on Windows may save one) reads like LF.
   String readNote(NoteInfo note) => withoutFrontMatter(
