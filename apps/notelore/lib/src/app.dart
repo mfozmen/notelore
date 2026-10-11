@@ -201,8 +201,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     } on Exception catch (error) {
       if (!mounted) return;
       setState(() {
-        if (widget.updater!.system == 'windows') {
-          // Windows installs by running the setup: nothing has changed yet.
+        if (widget.updater!.system != 'macos') {
+          // Windows runs the setup, Android opens the installer: nothing has changed yet.
           _updateProblem = widget.session.strings.setupFailed(error);
         } else {
           _installed = true; // macOS: swapped in, only the restart failed
