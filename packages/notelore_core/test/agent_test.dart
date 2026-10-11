@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -26,6 +27,16 @@ class ScriptedProvider implements LlmProvider {
     turns.add((system, (jsonDecode(jsonEncode(messages)) as List).cast<Message>(), tools));
     return responses.removeAt(0);
   }
+}
+
+/// A model that never answers.
+class HangingProvider implements LlmProvider {
+  @override
+  String get model => 'hanging';
+
+  @override
+  Future<AgentResponse> turn(String system, List<Message> messages, List<Tool> tools) =>
+      Completer<AgentResponse>().future;
 }
 
 AgentResponse text(String content) => AgentResponse([
@@ -126,12 +137,57 @@ void main() {
   test('an empty answer leaves a marker and the history consistent', () async {
     final provider = ScriptedProvider([const AgentResponse([], 'end_turn'), text('now')]);
     final agent = Agent(provider, box, today: today);
-    expect(await agent.ask('x'), '');
+    expect(await agent.ask('x'), 'The model sent no answer. Try again.');
     expect(agent.messages.last['content'], [
       {'type': 'text', 'text': '[no answer]'},
     ]);
     expect(await agent.ask('again'), 'now');
     expect(agent.messages.map((m) => m['role']), ['user', 'assistant', 'user', 'assistant']);
+  });
+
+  test('progress: every model call and tool round is reported', () async {
+    final provider = ScriptedProvider([
+      toolUse('search_notes'),
+      toolUse('read_note', 't2', {'slug': 'x'}),
+      toolUse('add_todo', 't3'),
+      text('ok'),
+    ]);
+    final steps = <String>[];
+    await Agent(provider, box, today: today).ask('x', onStep: steps.add);
+    expect(steps, [
+      'Thinking',
+      'Searching the notes',
+      'Thinking',
+      'Reading the notes',
+      'Thinking',
+      'Writing the notes',
+      'Thinking',
+    ]);
+  });
+
+  test('stop: a turn waiting on the model ends at once and is taken back', () async {
+    final agent = Agent(HangingProvider(), box, today: today);
+    agent.stop(); // nothing running: nothing happens
+    final turn = agent.ask('x');
+    await Future<void>.delayed(Duration.zero);
+    agent.stop();
+    await expectLater(turn, throwsA(isA<TurnStopped>().having((e) => '$e', 'text', 'Stopped.')));
+    expect(agent.messages, isEmpty);
+  });
+
+  test('a turn past its deadline stops with a clear message', () async {
+    final agent = Agent(
+      HangingProvider(),
+      box,
+      today: today,
+      deadline: const Duration(milliseconds: 10),
+    );
+    await expectLater(
+      agent.ask('x'),
+      throwsA(isA<TurnStopped>().having((e) => '$e', 'text', contains('No answer in time'))),
+    );
+    expect(agent.messages, isEmpty);
+    expect(Agent(HangingProvider(), box).deadline, const Duration(minutes: 3));
   });
 
   test('a runaway tool loop is cut off', () async {

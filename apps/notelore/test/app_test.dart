@@ -138,22 +138,23 @@ void main() {
     expect(find.textContaining('offline'), findsOneWidget);
   });
 
-  testWidgets('chat: input is locked while the model works', (tester) async {
+  testWidgets('chat: while the model works it says so, and Stop ends the turn', (tester) async {
     phone(tester);
-    final harness = Harness(answers: ['done']);
-    final session = await pumpApp(tester, harness);
+    final harness = Harness(answers: [Completer<AgentResponse>().future]);
+    await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    session.busy = true;
-    session.notifyListeners();
+    await tester.enterText(find.byKey(const Key('message')), 'selam');
+    await tester.tap(find.byTooltip('Send'));
     await tester.pump();
-    expect(find.byType(LinearProgressIndicator), findsOneWidget);
-    expect(
-      tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.send)).onPressed,
-      isNull,
-    );
-    session.busy = false;
-    session.notifyListeners();
-    await tester.pump();
+    expect(find.text('Thinking… 0 s'), findsOneWidget);
+    expect(tester.widget<TextField>(find.byKey(const Key('message'))).enabled, isFalse);
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.text('Thinking… 2 s'), findsOneWidget);
+    await tester.tap(find.byTooltip('Stop'));
+    await tester.pumpAndSettle();
+    expect(find.text('Stopped.'), findsOneWidget);
+    expect(find.textContaining('Thinking'), findsNothing);
+    expect(find.byTooltip('Send'), findsOneWidget);
   });
 
   testWidgets('notes: the list, a reader, and an empty state', (tester) async {

@@ -2,6 +2,8 @@
 /// Ported from the Python reference.
 library;
 
+import 'dart:async';
+
 import 'providers/base.dart';
 import 'store/format.dart';
 import 'store/notes.dart';
@@ -26,39 +28,90 @@ Rules:
 Today is {today}.''';
 
 const defaultMaxTurns = 20;
+
+/// The turn was stopped: by the user, or because it ran past the deadline.
+class TurnStopped implements Exception {
+  const TurnStopped([this.message = 'Stopped.']);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+/// What a tool round is doing, for the user to see while they wait.
+String describeTool(String name) => switch (name) {
+  'search_notes' || 'list_notes' => 'Searching the notes',
+  'read_note' || 'get_decision' || 'decision_history' => 'Reading the notes',
+  _ => 'Writing the notes',
+};
 const _kept = {'text', 'tool_use'}; // the only block types the API accepts back as history
 
 String systemPrompt([DateTime? today]) =>
     _prompt.replaceFirst('{today}', isoDate(today ?? localToday()));
 
 class Agent {
-  Agent(this.provider, this.toolbox, {this.today, this.maxTurns = defaultMaxTurns});
+  Agent(
+    this.provider,
+    this.toolbox, {
+    this.today,
+    this.maxTurns = defaultMaxTurns,
+    this.deadline = const Duration(minutes: 3),
+  });
 
   final LlmProvider provider;
   final Toolbox toolbox;
   final DateTime? today;
   final int maxTurns;
+
+  /// How long a whole turn, every model call and tool round, may take.
+  final Duration deadline;
   final messages = <Message>[];
+
+  /// Completes with [TurnStopped] to end the running turn.
+  Completer<AgentResponse>? _stop;
+
+  /// Ends the running turn at once, if there is one; [ask] throws [TurnStopped].
+  void stop([TurnStopped reason = const TurnStopped()]) {
+    if (_stop case final stop? when !stop.isCompleted) stop.completeError(reason);
+  }
 
   /// One user message in, the final text answer out; tool calls run in between.
   ///
   /// When the provider fails (offline, quota, auth) the whole turn is taken back
   /// out of [messages], so the history still alternates and the user can retry.
   /// Notes the tools already wrote stay written: the files are the truth.
-  Future<String> ask(String text) async {
+  /// The same holds when the turn is stopped ([stop], or past [deadline]).
+  /// [onStep] hears what the turn is doing ("Thinking", [describeTool]).
+  Future<String> ask(String text, {void Function(String step)? onStep}) async {
     final start = messages.length;
+    final stop = _stop = Completer()..future.ignore();
+    final timer = Timer(deadline, () => this.stop(const TurnStopped(_late)));
     try {
-      return await _ask(text);
+      return await _ask(text, onStep ?? (_) {}, stop.future);
     } catch (_) {
       messages.removeRange(start, messages.length);
       rethrow;
+    } finally {
+      timer.cancel();
     }
   }
 
-  Future<String> _ask(String text) async {
+  static const _late = 'No answer in time, so I stopped. Please try again.';
+
+  Future<String> _ask(
+    String text,
+    void Function(String step) onStep,
+    Future<AgentResponse> stopped,
+  ) async {
     messages.add({'role': 'user', 'content': text});
     for (var turn = 0; turn < maxTurns; turn++) {
-      final response = await provider.turn(systemPrompt(today), messages, toolbox.tools);
+      onStep('Thinking');
+      // A stopped turn does not wait for the model: its answer is dropped.
+      final response = await Future.any([
+        provider.turn(systemPrompt(today), messages, toolbox.tools),
+        stopped,
+      ]);
       // A tool_use outside a tool_use stop is half-built (e.g. cut by max_tokens):
       // never run it, and never keep it, since history needs a result for every call.
       final kept = response.stopReason == 'tool_use' ? _kept : const {'text'};
@@ -69,6 +122,7 @@ class Agent {
       if (uses.isEmpty) {
         return blocks.map((b) => b['text']).join('\n');
       }
+      onStep(describeTool('${uses.first['name']}'));
       messages.add({
         'role': 'user',
         'content': [for (final use in uses) _run(use)],
@@ -85,7 +139,7 @@ class Agent {
         {'type': 'text', 'text': answer.isEmpty ? '[no answer]' : answer},
       ],
     });
-    return answer;
+    return answer.isEmpty ? 'The model sent no answer. Try again.' : answer;
   }
 
   Block _run(Block use) {

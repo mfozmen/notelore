@@ -2,7 +2,7 @@
 /// LLM providers and the agent. The port from Python lands milestone by milestone (#60).
 library;
 
-export 'src/agent.dart' show Agent, defaultMaxTurns, systemPrompt;
+export 'src/agent.dart' show Agent, TurnStopped, defaultMaxTurns, describeTool, systemPrompt;
 export 'src/i18n.dart' show sectionHeading, sectionHeadings, sectionKey;
 export 'src/oauth.dart' show NotSignedIn, OAuthSignIn, SignInFailed;
 export 'src/paths.dart' show NotelorePaths;

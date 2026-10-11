@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -40,11 +42,12 @@ class _ChatScreenState extends State<ChatScreen> {
               : ListView.builder(
                   reverse: true,
                   padding: const EdgeInsets.all(12),
-                  itemCount: lines.length,
-                  itemBuilder: (context, index) => _Bubble(lines[index]),
+                  itemCount: lines.length + (session.busy ? 1 : 0),
+                  itemBuilder: (context, index) => session.busy
+                      ? (index == 0 ? _Thinking(session.step) : _Bubble(lines[index - 1]))
+                      : _Bubble(lines[index]),
                 ),
         ),
-        if (session.busy) const LinearProgressIndicator(),
         if (session.spec?.name == 'chatgpt')
           // OpenAI asks plan-usage apps to show this near the composer.
           Padding(
@@ -80,15 +83,65 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
               ),
-              IconButton(
-                tooltip: 'Send',
-                icon: const Icon(Icons.send),
-                onPressed: session.busy ? null : _send,
-              ),
+              if (session.busy)
+                IconButton(tooltip: 'Stop', icon: const Icon(Icons.stop), onPressed: session.stop)
+              else
+                IconButton(tooltip: 'Send', icon: const Icon(Icons.send), onPressed: _send),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The assistant's turn while it runs: what it is doing and for how long.
+class _Thinking extends StatefulWidget {
+  const _Thinking(this.step);
+
+  final String? step;
+
+  @override
+  State<_Thinking> createState() => _ThinkingState();
+}
+
+class _ThinkingState extends State<_Thinking> {
+  var _seconds = 0;
+  late final Timer _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) => setState(() => _seconds++));
+  }
+
+  @override
+  void dispose() {
+    _tick.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+            const SizedBox(width: 8),
+            Text('${widget.step ?? 'Thinking'}… $_seconds s'),
+          ],
+        ),
+      ),
     );
   }
 }
