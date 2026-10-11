@@ -1,81 +1,61 @@
 # Notelore
 
-**Your personal lore, kept by an LLM.**
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=mfozmen_notelore&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=mfozmen_notelore)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=mfozmen_notelore&metric=coverage)](https://sonarcloud.io/summary/new_code?id=mfozmen_notelore)
+[![Maintainability](https://sonarcloud.io/api/project_badges/measure?project=mfozmen_notelore&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=mfozmen_notelore)
+[![Reliability](https://sonarcloud.io/api/project_badges/measure?project=mfozmen_notelore&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=mfozmen_notelore)
+[![Security](https://sonarcloud.io/api/project_badges/measure?project=mfozmen_notelore&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=mfozmen_notelore)
+[![Release](https://img.shields.io/github/v/release/mfozmen/notelore)](https://github.com/mfozmen/notelore/releases)
 
-Tell it things. It writes tidy, human-readable Markdown notes on your disk. Ask it later: *"Which database did we pick for Mopsos?"* It answers from your notes, and backs them up to Google Drive.
+> A note-taking assistant you talk to. Your notes stay plain Markdown on your disk.
 
-- Local-first: plain Markdown files you can open in any editor or Obsidian
-- Bring your own model: Claude, GPT, Gemini, or a local model via Ollama
-- Decisions are tracked with history, so "what did we decide?" has one correct answer
-- Windows, macOS and Android (iOS next), all in sync through your Google Drive
+Tell it things; it writes tidy notes. Ask later, *"Which database did we pick for Mopsos?"*, and it answers from your notes.
 
-> **Status:** pre-alpha, under active development. See [`docs/PLAN.md`](docs/PLAN.md).
+- **Plain files:** Markdown you can open in any editor or Obsidian
+- **Your choice of model:** your ChatGPT plan, Claude, GPT, Gemini, or a local model with Ollama
+- **Talk or type:** voice mode listens and reads answers aloud
+- **Every device in sync** through your Google Drive: Windows, macOS and Android
+- **English and Turkish**
+
+> [!NOTE]
+> Notelore is early and under active development. See the [roadmap](docs/PLAN.md).
 
 ## Install
 
-**The app** (Windows, macOS, Android): download it from the [releases page](https://github.com/mfozmen/notelore/releases).
-- **Windows**: `notelore-app-<version>-windows-x64-setup.exe`. Run it; by default it installs for all users into Program Files (asks for admin rights), or choose to install only for you (no admin rights). It adds a Start menu entry and an uninstaller. Windows may warn that the publisher is unknown, because the setup is not code-signed yet.
-- **macOS**: `notelore-app-<version>-macos.dmg`. Open it and drag `notelore.app` onto *Applications*. It is not notarized yet, so the first time right-click it and choose *Open*.
-- **Android**: `notelore-app-<version>-android.apk`. Allow installing from your browser or file manager when Android asks.
+Download the app from the [releases page](https://github.com/mfozmen/notelore/releases):
 
-The desktop app checks for a newer release when it starts (at most once a day) and every 6 hours while it stays open, silently skipped when offline; *Settings → Check for updates* asks right away. *Update and restart* downloads it and checks it against the SHA-256 published with the release; this catches corrupted or partial downloads, it is not a signature. Only then does it install it: on Windows the setup runs silently and restarts Notelore; on macOS the new app replaces the old one, which is put back if that fails halfway. On Android the app checks the same way; *Update* downloads the APK, checks it the same way and opens Android's installer, where you tap Install (an app outside the Play Store cannot install itself silently). The first time, Android asks you to allow installs from Notelore. Your notes and settings stay.
+| Platform | File | Notes |
+|---|---|---|
+| Windows | `…-windows-x64-setup.exe` | Installs for all users by default, or only for you. Windows may warn about an unknown publisher (not code-signed yet). |
+| macOS | `…-macos.dmg` | Drag `notelore.app` onto *Applications*. The first time, right-click it and choose *Open* (not notarized yet). |
+| Android | `…-android.apk` | Allow installing from your browser or file manager. |
 
-The old command line (`notelore-<version>-*.zip`, v0.2.0 and earlier) is retired. Newer releases carry no executable for it, so its `notelore update` reports one missing. Switch to the app instead: it reads the same `~/Notelore` folder.
+The app updates itself: it checks for new releases and offers *Update*.
 
-Releases are cut on demand from the Conventional Commit history on `main`: a `feat` commit bumps the minor version, `fix` or `perf` the patch version; other types (`docs`, `chore`, `ci`...) do not.
+## Get started
 
-## First run
+1. Open Notelore and pick a model:
+   - **ChatGPT plan** (desktop): *Continue with ChatGPT* and sign in. No extra charges, within your plan's limits.
+   - **Claude, GPT or Gemini:** paste an API key; the app shows where to get one. Keys stay in your device's keystore.
+   - **Ollama:** start Ollama on this computer; no key needed.
+2. Talk to it: *"Mopsos için not al: veritabanı olarak SQLite seçtik."*
+3. Ask it later: *"Mopsos'ta hangi veritabanını seçmiştik?"*
 
-Open Notelore and pick a model. The list is grouped by how you pay: *Use your plan*, *API key* and *On this computer*; Settings shows which one is in use.
+Notelore starts on the cheapest model your provider offers; switch any time with the model chip above the message box.
 
-0. **ChatGPT plan** (Windows and macOS): *Continue with ChatGPT* signs in in your browser and lets Notelore use your ChatGPT Plus or Pro plan ("Sign in with ChatGPT"). There are no separate charges, within your plan's limits; *Manage usage* under the chat opens ChatGPT's usage settings. It starts on the plan's cheapest model, like the API keys. You can disconnect Notelore in ChatGPT's settings.
-1. **Claude**, **GPT** or **Gemini**: the app shows where to create an API key. Paste the key and Notelore checks it with a free request (it lists the models) and starts on the cheapest model listed. The list keeps only the current versions (no old models, previews or dated snapshots); switch any time with the model chip in the chat. The key is kept in the platform keystore (Android Keystore, macOS Keychain, Windows Credential Manager), never in a file.
-2. **Ollama**: no key. Start Ollama first; Notelore checks that it answers on `http://localhost:11434` (or `OLLAMA_HOST`).
+> [!TIP]
+> Gemini is free with a key from a Google AI Studio project that has no billing, and Ollama is free too. Claude and GPT through their APIs are billed per use.
 
-What it costs (the setup screen says it too):
-- **Free**: Gemini with a key from a Google AI Studio project that has no billing. It is rate limited, and Google may use free-tier requests to improve its products. Ollama is also free.
-- **Your ChatGPT plan**: no separate charges, within the plan's limits (desktop).
-- **Billed per use**: Claude and GPT through their APIs. A Claude Pro or Max subscription cannot be used in other apps (Anthropic's terms).
+## Using it
 
-Then just talk: *"Mopsos için not al: veritabanı olarak SQLite seçtik, tek kullanıcı."* The model chip above the message box switches between the models your provider offers at any time; the conversation carries on. While the assistant works, the chat shows what it is doing ("Searching the notes… 4 s"); *Stop* ends the turn, and a turn that takes more than 3 minutes stops by itself.
-- **Voice mode**: the chat opens in text mode; the voice icon next to the message box switches to talking. Notelore listens, sends what you said when you pause, shows the answer and reads it aloud, then listens again. You can still type (typing quiets the voice), and the same icon goes back to typing. It uses the device's own speech recognition and voices, in the app language, at no extra cost. Allow the microphone when asked; on Windows, recognition in a language needs that language's speech pack (Settings, Time & language, Speech).
-- **Notes**: lists every project and topic and opens each one read-only. The trash button next to a note (or a long press, or the delete button of an open note) moves it to the archive, `_archive/<date>/` in the notes folder, with an Undo; nothing is deleted for good.
-- **Settings**: the app language (System, English or Türkçe; System follows the device), pick the model from the ones your key can use (the list comes from the provider and is refreshed on every start, or with the refresh button; you can also type any model name; the last chosen model is kept, and if the provider stops offering it the chat asks you to pick another), or log out. Logging out forgets every saved key on that device; the notes stay.
+- **Chat:** the chat shows what the assistant is doing; *Stop* ends a turn.
+- **Voice mode:** the voice icon next to the message box switches to talking. Notelore listens, answers aloud, and listens again; typing still works. On Windows, add the speech pack for your language (Settings, Time & language, Speech).
+- **Notes:** browse your projects and topics. Deleting a note moves it to `_archive/` in the notes folder, with an Undo.
+- **Settings:** language (System, English or Türkçe), model, Google Drive, updates, log out.
+- **Google Drive:** *Settings → Google Drive → Connect* backs your notes up to a `Notelore` folder and keeps every device in sync. Notelore only sees the files it creates.
 
-Notes go to `~/Notelore/` on the desktop and to the app's own storage on a phone. The macOS app is not sandboxed, so that folder is the real, visible one; it ships outside the Mac App Store.
-
-### Google Drive
-
-In Settings, **Google Drive → Connect** backs the notes up to a `Notelore` folder in your Drive and keeps every device in sync: on start, after every chat turn, every few minutes while the app is open, whenever you come back to it, and on *Sync now*.
-- The app only asks for access to files it creates itself (`drive.file`), never the rest of your Drive.
-- Offline is fine; the next sync catches up.
-- When two devices changed the same line, the model merges them, and both originals are kept under `.notelore/history/`.
+Your notes live in `~/Notelore/` on the desktop and in the app's storage on a phone. Nothing is ever deleted for good: archived notes and both sides of a sync conflict are kept.
 
 ## Development
 
-Requires [Flutter](https://docs.flutter.dev/get-started/install) (the version pinned in the root `pubspec.yaml`). It is a Dart pub workspace:
-
-| Path | What it is |
-|---|---|
-| `packages/notelore_core` | pure Dart: note format, store, search index, sync, Drive, providers, agent |
-| `apps/notelore` | the Flutter app: Android, iOS, Windows, macOS |
-| `spec/fixtures` | the frozen format and merge contract from the original Python implementation |
-
-```bash
-flutter pub get
-(cd packages/notelore_core && dart test)
-(cd apps/notelore && flutter test)
-(cd apps/notelore && flutter run --dart-define-from-file=../../.env)
-```
-
-Drive sign-in needs the project's OAuth client ids, which are never committed. Put them in the repo's gitignored `.env`:
-- `NOTELORE_GOOGLE_CLIENT_ID` and `NOTELORE_GOOGLE_CLIENT_SECRET` for the desktop client.
-- `NOTELORE_GOOGLE_WEB_CLIENT_ID` for Android.
-
-A build without them works, just without sync. On Windows, Flutter needs Developer Mode for plugin builds.
-
-Contributor guide for humans and AI agents: [`CLAUDE.md`](CLAUDE.md). Note format spec: [`docs/note-format.md`](docs/note-format.md).
-
-## License
-
-MIT
+See [docs/development.md](docs/development.md).
