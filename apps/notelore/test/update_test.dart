@@ -12,7 +12,11 @@ const v = '9.9.9';
 
 /// A GitHub "latest release" answer with the app assets for [version].
 List<int> release(String version, {bool checksums = true}) {
-  final apps = ['notelore-app-$version-windows-x64-setup.exe', 'notelore-app-$version-macos.dmg'];
+  final apps = [
+    'notelore-app-$version-windows-x64-setup.exe',
+    'notelore-app-$version-macos.dmg',
+    'notelore-app-$version-android.apk',
+  ];
   final names = [...apps, if (checksums) ...apps.map((a) => '$a.sha256')];
   return utf8.encode(
     jsonEncode({
@@ -71,6 +75,7 @@ void main() {
   test('asset names follow release.yml', () {
     expect(assetName('1.2.3', 'windows'), 'notelore-app-1.2.3-windows-x64-setup.exe');
     expect(assetName('1.2.3', 'macos'), 'notelore-app-1.2.3-macos.dmg');
+    expect(assetName('1.2.3', 'android'), 'notelore-app-1.2.3-android.apk');
     expect(() => assetName('1.2.3', 'linux'), throwsA(isA<UpdateFailed>()));
   });
 
@@ -369,11 +374,67 @@ void main() {
     });
   });
 
-  test('only release builds on Windows and macOS update themselves', () {
+  test('release builds on Windows, macOS and Android update themselves', () {
     expect(updaterFor(system: 'windows', version: '', executable: 'x'), isNull);
-    expect(updaterFor(system: 'android', version: '1.0.0', executable: 'x'), isNull);
+    expect(updaterFor(system: 'linux', version: '1.0.0', executable: 'x'), isNull);
     final updater = updaterFor(system: 'macos', version: '1.0.0', executable: 'x')!;
     expect(updater.current, '1.0.0');
+    expect(updaterFor(system: 'android', version: '1.0.0', executable: 'x')!.system, 'android');
+  });
+
+  group('Android: the APK, handed to the system installer', () {
+    late List<String> opened;
+    var allowed = true;
+    setUp(() {
+      opened = [];
+      allowed = true;
+    });
+
+    Updater updater(Map<String, List<int>> pages) => Updater(
+      system: 'android',
+      executable: '/system/bin/app_process',
+      current: '0.2.0',
+      fetch: Pages(pages).call,
+      run: (command, args) async => fail('nothing runs on Android'),
+      spawn: (_, _) async => fail('nothing is spawned on Android'),
+      openInstaller: (apk) async {
+        opened.add(apk);
+        return allowed;
+      },
+    );
+
+    final apk = utf8.encode('apk bytes');
+    Map<String, List<int>> good() => {
+      latestReleaseUrl: release(v),
+      ...download('notelore-app-$v-android.apk', apk),
+    };
+
+    test('download and verify the APK, then open the installer', () async {
+      final u = updater(good());
+      expect(await u.apply(), v);
+      await u.relaunch();
+      expect(File(opened.single).readAsBytesSync(), apk);
+      expect(p.basename(opened.single), 'notelore-app-$v-android.apk');
+      // The next start removes it.
+      u.cleanup();
+      expect(File(opened.single).existsSync(), isFalse);
+    });
+
+    test('installs from Notelore not allowed yet: says so', () async {
+      allowed = false;
+      final u = updater(good());
+      await u.apply();
+      await expectLater(u.relaunch(), throwsA(isA<InstallNotAllowed>()));
+    });
+
+    test('a bad checksum installs nothing', () async {
+      final u = updater({
+        latestReleaseUrl: release(v),
+        ...download('notelore-app-$v-android.apk', apk, digest: 'f' * 64),
+      });
+      await expectLater(u.apply(), throwsA(isA<UpdateFailed>()));
+      expect(opened, isEmpty);
+    });
   });
 }
 

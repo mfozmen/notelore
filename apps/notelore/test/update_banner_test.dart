@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
 import 'package:notelore/src/update.dart';
@@ -269,5 +270,56 @@ void main() {
     hold.complete();
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('Android: Update opens the installer and the app keeps running', (tester) async {
+    final opened = <String>[];
+    var allowed = false;
+    await pump(
+      tester,
+      Updater(
+        system: 'android',
+        executable: '/system/bin/app_process',
+        current: '0.2.0',
+        fetch: Pages({
+          latestReleaseUrl: release(v),
+          ...download('notelore-app-$v-android.apk', utf8.encode('apk')),
+        }).call,
+        run: (command, args) async => ProcessResult(0, 0, '', ''),
+        spawn: (exe, args) async => spawned.add(exe),
+        openInstaller: (apk) async {
+          opened.add(apk);
+          return allowed;
+        },
+      ),
+    );
+    // Not allowed yet: the setting opened, the banner says what to do.
+    await tester.tap(find.text('Update'));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Allow Notelore to install apps'), findsOneWidget);
+    allowed = true;
+    await tester.tap(find.text('Update'));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    await tester.pumpAndSettle();
+    expect(opened, hasLength(2));
+    expect(exits, isEmpty); // the installer takes over; the app is not closed
+    expect(spawned, isEmpty);
+  });
+
+  testWidgets('androidInstaller asks MainActivity, false unless it says true', (tester) async {
+    final asked = <Object?>[];
+    Object? answer = true;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('io.github.mfozmen.notelore/install'),
+      (call) async {
+        asked.add([call.method, call.arguments]);
+        return answer;
+      },
+    );
+    expect(await androidInstaller('/cache/a.apk'), isTrue);
+    answer = null;
+    expect(await androidInstaller('/cache/a.apk'), isFalse);
+    expect(asked.first, ['install', '/cache/a.apk']);
   });
 }

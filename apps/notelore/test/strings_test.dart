@@ -129,6 +129,8 @@ void main() {
       'setupFailed': s.setupFailed('x'),
       'later': s.later,
       'updateAndRestart': s.updateAndRestart,
+      'update': s.update,
+      'allowInstalls': s.allowInstalls,
       'offline': s.offline,
       'signInAgain': s.signInAgain('x'),
       'noteInUse': s.noteInUse('x'),

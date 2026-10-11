@@ -7,13 +7,16 @@
 /// app's folder once the app has exited, and starts it again. On macOS the
 /// `.app` comes out of the release's dmg (`hdiutil`, then `ditto`, which keeps
 /// the bundle's symlinks) and replaces the old bundle, which stays as `.old`
-/// until the next start; a failed swap is rolled back.
+/// until the next start; a failed swap is rolled back. On Android the APK goes
+/// to the system installer, where the user taps Install (an app outside a store
+/// cannot install itself silently).
 library;
 
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
@@ -26,6 +29,22 @@ const appVersion = String.fromEnvironment('NOTELORE_VERSION');
 typedef Fetch = Future<List<int>> Function(String url);
 typedef Run = Future<ProcessResult> Function(String command, List<String> args);
 typedef Spawn = Future<void> Function(String executable, List<String> args);
+
+/// Hands an APK to Android's installer; false when installs from Notelore are
+/// not allowed yet (the setting to allow them has been opened instead).
+typedef OpenInstaller = Future<bool> Function(String apk);
+
+const _installer = MethodChannel('io.github.mfozmen.notelore/install');
+
+/// The [OpenInstaller] of the app, through MainActivity.
+Future<bool> androidInstaller(String apk) async =>
+    await _installer.invokeMethod<bool>('install', apk) ?? false;
+
+/// Android: allow installs from Notelore in the setting that just opened, then
+/// update again.
+class InstallNotAllowed implements Exception {
+  const InstallNotAllowed();
+}
 
 void _renameDirectory(String from, String to) => Directory(from).renameSync(to);
 
@@ -57,6 +76,7 @@ bool isNewer(String candidate, String current) {
 String assetName(String version, String system) => switch (system) {
   'windows' => 'notelore-app-$version-windows-x64-setup.exe',
   'macos' => 'notelore-app-$version-macos.dmg',
+  'android' => 'notelore-app-$version-android.apk',
   _ => throw UpdateFailed('no prebuilt app for $system'),
 };
 
@@ -131,7 +151,7 @@ Future<String?> checkForUpdate({
 
 /// The updater for a release build of the desktop app, or null.
 Updater? updaterFor({required String system, required String version, required String executable}) {
-  if (version.isEmpty || (system != 'windows' && system != 'macos')) return null;
+  if (version.isEmpty || !const {'windows', 'macos', 'android'}.contains(system)) return null;
   return Updater(
     system: system,
     executable: executable,
@@ -151,10 +171,14 @@ class Updater {
     required this.run,
     required this.spawn,
     this.renameDirectory = _renameDirectory,
+    this.openInstaller = androidInstaller,
   });
 
-  /// 'windows' or 'macos'.
+  /// 'windows', 'macos' or 'android'.
   final String system;
+
+  /// Android's installer (see [androidInstaller]).
+  final OpenInstaller openInstaller;
   final String executable;
   final String current;
   final Fetch fetch;
@@ -168,7 +192,7 @@ class Updater {
   String get _installed =>
       system == 'windows' ? p.dirname(executable) : p.dirname(p.dirname(p.dirname(executable)));
 
-  /// The downloaded Windows setup, run by [relaunch].
+  /// The downloaded Windows setup or Android APK, opened by [relaunch].
   String? _setup;
 
   /// Downloads the latest release and checks it; on macOS also swaps the bundle
@@ -194,8 +218,9 @@ class Updater {
     if (sha256.convert(data).toString() != fields.first.toLowerCase()) {
       throw UpdateFailed('checksum mismatch for $name; the download was not installed');
     }
-    if (system == 'windows') {
-      // The setup replaces the files once this app has exited (see relaunch).
+    if (system == 'windows' || system == 'android') {
+      // The setup replaces the files once this app has exited; the APK goes to
+      // the system installer (see relaunch).
       final folder = Directory.systemTemp.createTempSync('notelore-update-');
       _setup = (File(p.join(folder.path, name))..writeAsBytesSync(data)).path;
       return version;
@@ -257,9 +282,19 @@ class Updater {
     }
   }
 
-  /// Starts the new version; the caller then exits. On Windows that is the
-  /// setup, silent, into this app's folder; it starts the app when done.
-  Future<void> relaunch() => switch (_setup) {
+  /// Starts the new version; the caller then exits, except on Android, where
+  /// the installer takes over (and cancelling it leaves this app running). On
+  /// Windows that is the setup, silent, into this app's folder; it starts the
+  /// app when done. Throws [InstallNotAllowed] on Android until allowed.
+  Future<void> relaunch() async {
+    if (system == 'android') {
+      if (!await openInstaller(_setup!)) throw const InstallNotAllowed();
+      return;
+    }
+    return _start();
+  }
+
+  Future<void> _start() => switch (_setup) {
     final setup? => spawn(setup, [
       '/VERYSILENT',
       '/SUPPRESSMSGBOXES',
@@ -278,13 +313,14 @@ class Updater {
         if (old.existsSync()) old.deleteSync(recursive: true);
         return;
       }
-      // Setups of earlier updates: they ran after the app exited, so it could
-      // not delete them then.
+      // Setups and APKs of earlier updates: they were opened after this app
+      // handed over, so it could not delete them then.
       for (final folder in Directory.systemTemp.listSync().whereType<Directory>()) {
         if (p.basename(folder.path).startsWith('notelore-update-')) {
           folder.deleteSync(recursive: true);
         }
       }
+      if (system == 'android') return; // the APK replaced the app; nothing else is left
       for (final file in Directory(_installed).listSync(recursive: true).whereType<File>()) {
         if (file.path.endsWith('.old')) file.deleteSync();
       }

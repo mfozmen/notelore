@@ -195,6 +195,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     }
     try {
       await widget.updater!.relaunch();
+    } on InstallNotAllowed {
+      if (mounted) setState(() => _updateProblem = widget.session.strings.allowInstalls);
+      return;
     } on Exception catch (error) {
       if (!mounted) return;
       setState(() {
@@ -207,7 +210,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       });
       return;
     }
-    widget.exitApp(0);
+    // Android's installer takes over; cancelling it leaves this app running.
+    if (widget.updater!.system != 'android') widget.exitApp(0);
   }
 
   @override
@@ -238,7 +242,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   if (!_installed)
                     TextButton(
                       onPressed: _updating ? null : _update,
-                      child: Text(s.updateAndRestart),
+                      child: Text(
+                        widget.updater?.system == 'android' ? s.update : s.updateAndRestart,
+                      ),
                     ),
                 ],
               ),
