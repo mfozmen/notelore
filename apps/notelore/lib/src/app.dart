@@ -11,6 +11,7 @@ import 'session.dart';
 import 'settings.dart';
 import 'setup.dart';
 import 'strings.dart';
+import 'theme.dart';
 import 'update.dart';
 
 /// Opens the session (folders, index, saved provider), then shows setup until a
@@ -54,8 +55,8 @@ class _NoteloreAppState extends State<NoteloreApp> {
         final strings = snapshot.data?.strings ?? EnglishStrings();
         return MaterialApp(
           title: 'Notelore',
-          theme: ThemeData(colorSchemeSeed: Colors.indigo),
-          darkTheme: ThemeData(colorSchemeSeed: Colors.indigo, brightness: Brightness.dark),
+          theme: noteloreTheme(Brightness.light),
+          darkTheme: noteloreTheme(Brightness.dark),
           locale: Locale(strings.languageCode),
           supportedLocales: const [Locale('en'), Locale('tr')],
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
