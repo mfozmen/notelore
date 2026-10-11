@@ -7,6 +7,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
 import 'package:notelore/src/session.dart';
+import 'package:notelore/src/voice.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -155,6 +156,37 @@ void main() {
     expect(find.text('Stopped.'), findsOneWidget);
     expect(find.textContaining('Thinking'), findsNothing);
     expect(find.byTooltip('Send'), findsOneWidget);
+  });
+
+  testWidgets('chat: voice mode talks and listens, typing still works', (tester) async {
+    phone(tester);
+    final harness = Harness(answers: ['Cevap.', 'Yazdın.']);
+    harness.speech.phrases.add('merhaba');
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    expect(find.byKey(const Key('voice-state')), findsNothing); // starts in text mode
+    await tester.tap(find.byTooltip('Talk'));
+    await tester.pumpAndSettle();
+    expect(find.text('merhaba'), findsOneWidget);
+    expect(find.text('Cevap.'), findsOneWidget);
+    expect(harness.voice.spoken, [('Cevap.', 'en')]);
+    expect(find.text('Listening…'), findsOneWidget);
+    // Typing quiets the voice; the typed message is answered aloud too.
+    await tester.enterText(find.byKey(const Key('message')), 'yaz');
+    expect(harness.voice.stops, greaterThan(0));
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    expect(find.text('Yazdın.'), findsOneWidget);
+    expect(harness.voice.spoken.last, ('Yazdın.', 'en'));
+    await tester.tap(find.byTooltip('Back to typing'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('voice-state')), findsNothing);
+    // No recognizer: says so and stays in text mode.
+    harness.speech.failure = const VoiceUnavailable();
+    await tester.tap(find.byTooltip('Talk'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Speech recognition is not available'), findsOneWidget);
+    expect(find.byTooltip('Talk'), findsOneWidget);
   });
 
   testWidgets('settings: switch the app to Turkish and back', (tester) async {

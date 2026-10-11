@@ -50,6 +50,11 @@ abstract class Strings {
   String get changeModel;
   String modelGone(String provider, String model);
   String thinking(String step, int seconds);
+  String get talk;
+  String get backToTyping;
+  String get listening;
+  String get speaking;
+  String get voiceUnavailable;
 
   // Notes.
   String get refresh;
@@ -164,6 +169,18 @@ class EnglishStrings extends Strings {
       '$provider no longer offers $model. Pick another model.';
   @override
   String thinking(String step, int seconds) => '$step… $seconds s';
+  @override
+  String get talk => 'Talk';
+  @override
+  String get backToTyping => 'Back to typing';
+  @override
+  String get listening => 'Listening…';
+  @override
+  String get speaking => 'Speaking…';
+  @override
+  String get voiceUnavailable =>
+      'Speech recognition is not available. Allow the microphone; on Windows, add the '
+      "speech pack for the app's language (Settings, Time & language, Speech).";
 
   @override
   String get refresh => 'Refresh';
@@ -374,6 +391,18 @@ class TurkishStrings extends Strings {
       '$provider artık $model modelini sunmuyor. Başka bir model seç.';
   @override
   String thinking(String step, int seconds) => '$step… $seconds sn';
+  @override
+  String get talk => 'Sesli konuş';
+  @override
+  String get backToTyping => 'Yazmaya dön';
+  @override
+  String get listening => 'Dinliyorum…';
+  @override
+  String get speaking => 'Okuyorum…';
+  @override
+  String get voiceUnavailable =>
+      'Ses tanıma kullanılamıyor. Mikrofona izin ver; Windows’ta uygulama dilinin konuşma '
+      'paketini ekle (Ayarlar, Saat ve dil, Konuşma).';
 
   @override
   String get refresh => 'Yenile';

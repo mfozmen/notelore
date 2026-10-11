@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'session.dart';
 import 'strings.dart';
+import 'voice.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen(this.session, {super.key});
@@ -20,8 +21,18 @@ class _ChatScreenState extends State<ChatScreen> {
   final _message = TextEditingController();
   final _modelMenu = GlobalKey<PopupMenuButtonState<String>>();
 
+  /// Voice mode; the chat always opens in text mode.
+  late final _voice = VoiceMode(
+    widget.session,
+    speech: widget.session.speech,
+    voice: widget.session.voice,
+  );
+
   @override
   void dispose() {
+    _voice
+      ..end()
+      ..dispose();
     _message.dispose();
     super.dispose();
   }
@@ -29,7 +40,18 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _send() async {
     final text = _message.text;
     _message.clear();
+    if (_voice.on) return _voice.type(text); // sent by the voice loop, answered aloud
     await widget.session.send(text);
+  }
+
+  Future<void> _talk() async {
+    final messenger = ScaffoldMessenger.of(context);
+    await _voice.start();
+    if (_voice.problem case final problem?) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(problem)));
+    }
   }
 
   @override
@@ -98,26 +120,64 @@ class _ChatScreenState extends State<ChatScreen> {
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Row(
+        ListenableBuilder(
+          listenable: _voice,
+          builder: (context, _) => Column(
             children: [
-              Expanded(
-                child: TextField(
-                  key: const Key('message'),
-                  controller: _message,
-                  enabled: !session.busy,
-                  minLines: 1,
-                  maxLines: 5,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _send(),
-                  decoration: InputDecoration(hintText: s.message, border: OutlineInputBorder()),
+              if (_voice.state case VoiceState.listening || VoiceState.speaking)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _voice.state == VoiceState.listening ? s.listening : s.speaking,
+                    key: const Key('voice-state'),
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        key: const Key('message'),
+                        controller: _message,
+                        enabled: !session.busy,
+                        minLines: 1,
+                        maxLines: 5,
+                        textInputAction: TextInputAction.send,
+                        // Typing in voice mode quiets the voice; the text is still sent.
+                        onChanged: (text) {
+                          if (_voice.on && text.isNotEmpty) _voice.hush();
+                        },
+                        onSubmitted: (_) => _send(),
+                        decoration: InputDecoration(
+                          hintText: s.message,
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    if (_voice.on)
+                      IconButton.filled(
+                        tooltip: s.backToTyping,
+                        icon: const Icon(Icons.graphic_eq),
+                        onPressed: _voice.end,
+                      )
+                    else
+                      IconButton(
+                        tooltip: s.talk,
+                        icon: const Icon(Icons.graphic_eq),
+                        onPressed: session.busy ? null : _talk,
+                      ),
+                    if (session.busy)
+                      IconButton(
+                        tooltip: s.stop,
+                        icon: const Icon(Icons.stop),
+                        onPressed: session.stop,
+                      )
+                    else
+                      IconButton(tooltip: s.send, icon: const Icon(Icons.send), onPressed: _send),
+                  ],
                 ),
               ),
-              if (session.busy)
-                IconButton(tooltip: s.stop, icon: const Icon(Icons.stop), onPressed: session.stop)
-              else
-                IconButton(tooltip: s.send, icon: const Icon(Icons.send), onPressed: _send),
             ],
           ),
         ),
