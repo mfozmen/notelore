@@ -9,6 +9,10 @@ import 'package:flutter/material.dart';
 
 const _teal = Color(0xFF0D9488);
 
+/// Corner radii: cards and tiles, and the rounder input fields.
+const _card = 16.0;
+const _field = 24.0;
+
 /// The spacing steps every screen uses.
 abstract final class Gap {
   static const double xs = 4;
@@ -19,7 +23,7 @@ abstract final class Gap {
 
 ThemeData noteloreTheme(Brightness brightness) {
   final colors = ColorScheme.fromSeed(seedColor: _teal, brightness: brightness);
-  final rounded = RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
+  final rounded = RoundedRectangleBorder(borderRadius: BorderRadius.circular(_card));
   const tap = Size(48, 48);
   return ThemeData(
     colorScheme: colors,
@@ -36,7 +40,7 @@ ThemeData noteloreTheme(Brightness brightness) {
       margin: EdgeInsets.zero,
       color: colors.surfaceContainerLow,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(_card),
         side: BorderSide(color: colors.outlineVariant),
       ),
     ),
@@ -46,12 +50,12 @@ ThemeData noteloreTheme(Brightness brightness) {
       fillColor: colors.surfaceContainerHighest,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(_field),
         borderSide: BorderSide.none,
       ),
       // The focused field stays visible for keyboard users.
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(_field),
         borderSide: BorderSide(color: colors.primary, width: 2),
       ),
     ),
