@@ -18,6 +18,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late final _model = TextEditingController(text: widget.session.model);
+  var _checking = false; // one update check at a time
 
   @override
   void dispose() {
@@ -97,13 +98,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Align(
               alignment: Alignment.centerLeft,
               child: OutlinedButton(
-                onPressed: () async {
-                  final messenger = ScaffoldMessenger.of(context);
-                  final result = await check();
-                  messenger
-                    ..hideCurrentSnackBar()
-                    ..showSnackBar(SnackBar(content: Text(result)));
-                },
+                onPressed: _checking
+                    ? null
+                    : () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        setState(() => _checking = true);
+                        final result = await check();
+                        if (mounted) setState(() => _checking = false);
+                        messenger
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(SnackBar(content: Text(result)));
+                      },
                 child: const Text('Check for updates'),
               ),
             ),

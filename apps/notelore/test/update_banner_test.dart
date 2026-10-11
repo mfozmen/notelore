@@ -199,6 +199,13 @@ void main() {
     expect(find.text('Update and restart'), findsOneWidget);
   });
 
+  /// Six hours pass while the app is open.
+  Future<void> tick(WidgetTester tester) async {
+    await tester.pump(const Duration(hours: 6));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('while open it checks again every 6 hours', (tester) async {
     final pages = Pages({latestReleaseUrl: release('0.2.0')});
     await pump(
@@ -220,9 +227,47 @@ void main() {
     expect(find.text('Update and restart'), findsOneWidget);
     // Offline on a later tick: quiet, the banner stays.
     pages.pages.remove(latestReleaseUrl);
-    await tester.pump(const Duration(hours: 6));
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
-    await tester.pumpAndSettle();
+    await tick(tester);
     expect(find.text('Update and restart'), findsOneWidget);
+    // "Later" sticks: the next tick does not bring the same version back.
+    pages.pages[latestReleaseUrl] = release(v);
+    await tester.tap(find.text('Later'));
+    await tester.pumpAndSettle();
+    await tick(tester);
+    expect(find.text('Update and restart'), findsNothing);
+    // A newer one than the dismissed version does show.
+    pages.pages[latestReleaseUrl] = release('10.0.0');
+    await tick(tester);
+    expect(find.text('Notelore 10.0.0 is available.'), findsOneWidget);
+  });
+
+  testWidgets('a tick leaves the banner alone while an update installs', (tester) async {
+    final pages = Pages({
+      latestReleaseUrl: release(v),
+      ...download('notelore-app-$v-windows-x64-setup.exe', utf8.encode('setup')),
+    });
+    final hold = Completer<void>();
+    await pump(
+      tester,
+      Updater(
+        system: 'windows',
+        executable: p.join(install, 'notelore.exe'),
+        current: '0.2.0',
+        fetch: (url) async {
+          if (url.endsWith('setup.exe')) await hold.future; // the download is slow
+          return pages.call(url);
+        },
+        run: (command, args) async => ProcessResult(0, 0, '', ''),
+        spawn: (exe, args) async => spawned.add(exe),
+      ),
+    );
+    await tester.tap(find.text('Update and restart'));
+    await tester.pump();
+    pages.pages[latestReleaseUrl] = release('0.2.0'); // a tick would clear the banner
+    await tick(tester);
+    expect(find.textContaining('Installing Notelore $v'), findsOneWidget);
+    hold.complete();
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    await tester.pumpAndSettle();
   });
 }

@@ -101,13 +101,14 @@ Future<String?> checkForUpdate({
   bool force = false,
 }) async {
   String? version;
-  try {
-    if (force) throw const UpdateFailed('asked to check now');
-    final saved = jsonDecode(cache.readAsStringSync()) as Map<String, Object?>;
-    final checked = DateTime.parse(saved['checked_at']! as String);
-    if (now.difference(checked) < const Duration(days: 1)) version = saved['version']! as String;
-  } on Object {
-    version = null; // no cache yet, or a damaged one: ask again
+  if (!force) {
+    try {
+      final saved = jsonDecode(cache.readAsStringSync()) as Map<String, Object?>;
+      final checked = DateTime.parse(saved['checked_at']! as String);
+      if (now.difference(checked) < const Duration(days: 1)) version = saved['version']! as String;
+    } on Object {
+      version = null; // no cache yet, or a damaged one: ask again
+    }
   }
   if (version == null) {
     try {

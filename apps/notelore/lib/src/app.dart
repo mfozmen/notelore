@@ -87,6 +87,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   String? _updateProblem;
   var _updating = false;
   var _installed = false; // installed, waiting for a manual restart
+  String? _dismissed; // put off with Later: not shown again by the timer
+  Timer? _recheck;
 
   @override
   void initState() {
@@ -106,8 +108,6 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       );
     }
   }
-
-  Timer? _recheck;
 
   /// OpenAI's first sign-in confirmation for plan usage, shown once per device.
   Future<void> _welcomePlan() async {
@@ -151,13 +151,17 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       fetch: updater.fetch,
       force: force,
     );
-    if (mounted) setState(() => _available = newer);
+    // An install in progress keeps its banner; a version put off stays put off.
+    if (mounted && !_updating && !_installed) {
+      setState(() => _available = newer == _dismissed ? null : newer);
+    }
     return newer;
   }
 
   /// Settings' *Check for updates*: what to tell the user.
   Future<String> _checkNow() async {
     try {
+      _dismissed = null; // asked by hand: show it even if put off before
       final newer = await _check(widget.updater!, force: true);
       return newer == null ? 'Notelore is up to date.' : 'Notelore $newer is available.';
     } on Object catch (error) {
@@ -212,7 +216,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               ),
               actions: [
                 TextButton(
-                  onPressed: _updating ? null : () => setState(() => _available = null),
+                  onPressed: _updating
+                      ? null
+                      : () => setState(() {
+                          _dismissed = _available;
+                          _available = null;
+                        }),
                   child: const Text('Later'),
                 ),
                 if (!_installed)
