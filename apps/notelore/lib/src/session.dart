@@ -78,9 +78,13 @@ class Session extends ChangeNotifier {
 
   /// Picks the app language and remembers it on this device.
   void setLanguage(AppLanguage chosen) {
-    atomicWrite(_ui, jsonEncode({'language': chosen.name}));
     language = chosen;
     notifyListeners();
+    try {
+      atomicWrite(_ui, jsonEncode({'language': chosen.name}));
+    } on FileSystemException {
+      // not remembered this time (a locked folder); the choice still applies now
+    }
   }
 
   void _loadLanguage() {
@@ -433,14 +437,17 @@ class Session extends ChangeNotifier {
           _remote ??= remoteFor(driveAuth!),
           resolver?.call ?? _unresolved, // no model connected: conflicts wait
         );
+        final counts = (
+          report.pushed.length + report.removedRemote.length,
+          report.pulled.length + report.removedLocal.length,
+          report.merged.length,
+          report.skipped.length,
+        );
+        final changed = counts.$1 + counts.$2 + counts.$3 + counts.$4 > 0;
         syncStatus = [
-          strings.synced(
-            report.pushed.length + report.removedRemote.length,
-            report.pulled.length + report.removedLocal.length,
-            report.merged.length,
-            report.skipped.length,
-          ),
-          ...?resolver?.explanations,
+          strings.synced(counts.$1, counts.$2, counts.$3, counts.$4),
+          // How the model settled conflicts; nothing to explain when nothing moved.
+          if (changed) ...?resolver?.explanations,
         ].join(' ');
       } on NotSignedIn catch (error) {
         driveConnected = false;

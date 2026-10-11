@@ -375,6 +375,11 @@ void main() {
     final damaged = harness.session();
     await damaged.load();
     expect(damaged.language, AppLanguage.system);
+    // A file that cannot be written: the choice still applies, just not remembered.
+    File(p.join(harness.paths.state.path, 'ui.json')).deleteSync();
+    Directory(p.join(harness.paths.state.path, 'ui.json')).createSync();
+    damaged.setLanguage(AppLanguage.tr);
+    expect(damaged.strings.languageCode, 'tr');
   });
 
   test('in Turkish, the sync summary and a stopped turn read in Turkish', () async {
