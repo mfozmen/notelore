@@ -46,7 +46,8 @@ Future<int> runDev(
   }
   final options = {
     for (final a in args)
-      if (a.startsWith('--') && a.contains('=')) a.substring(2, a.indexOf('=')): a.split('=')[1],
+      if (a.startsWith('--') && a.contains('='))
+        a.substring(2, a.indexOf('=')): a.substring(a.indexOf('=') + 1),
   };
   final words = args.where((a) => !a.startsWith('--')).toList();
   final command = words.firstOrNull;
@@ -151,6 +152,8 @@ void _printTools(List<Map<String, Object?>> messages, StringSink out) {
   }
 }
 
+const _secretHeaders = {'authorization', 'x-api-key', 'x-goog-api-key', 'cookie'};
+
 final _jsonSecret = RegExp(
   r'"(access_token|refresh_token|id_token|code_verifier|client_secret)"\s*:\s*"[^"]*"',
 );
@@ -172,7 +175,7 @@ class TracingClient extends http.BaseClient {
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     final headers = [
       for (final MapEntry(:key, :value) in request.headers.entries)
-        '$key: ${key.toLowerCase() == 'authorization' ? '***' : value}',
+        '$key: ${_secretHeaders.contains(key.toLowerCase()) ? '***' : value}',
     ];
     final body = request is http.Request ? request.body : '';
     _log('> ${request.method} ${request.url}\n${headers.join('\n')}\n${redact(body)}');
