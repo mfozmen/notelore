@@ -97,6 +97,8 @@ abstract class Strings {
   String setupFailed(Object error);
   String get later;
   String get updateAndRestart;
+  String get update;
+  String get allowInstalls;
 
   // Sync status.
   String get offline;
@@ -263,6 +265,11 @@ class EnglishStrings extends Strings {
   String get later => 'Later';
   @override
   String get updateAndRestart => 'Update and restart';
+  @override
+  String get update => 'Update';
+  @override
+  String get allowInstalls =>
+      'Allow Notelore to install apps in the setting that just opened, then tap Update again.';
 
   @override
   String get offline => 'Offline; your notes will sync when the connection is back.';
@@ -492,6 +499,11 @@ class TurkishStrings extends Strings {
   String get later => 'Sonra';
   @override
   String get updateAndRestart => 'Güncelle ve yeniden başlat';
+  @override
+  String get update => 'Güncelle';
+  @override
+  String get allowInstalls =>
+      'Az önce açılan ayarda Notelore’un uygulama yüklemesine izin ver, sonra yeniden Güncelle’ye bas.';
 
   @override
   String get offline => 'Çevrimdışı; bağlantı gelince notların eşitlenecek.';
