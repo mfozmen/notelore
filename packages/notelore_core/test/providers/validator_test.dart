@@ -162,4 +162,45 @@ void main() {
       throwsA(isA<TransientValidationError>()),
     );
   });
+
+  test('the cheapest listed model, by family name', () {
+    // OpenAI: nano beats mini; the undated name beats its dated snapshot.
+    expect(
+      cheapestModel('openai', [
+        'o4-mini',
+        'gpt-5',
+        'gpt-5-nano-2025-08-07',
+        'gpt-5-nano',
+        'gpt-4.1-nano',
+        'gpt-4o-mini',
+      ]),
+      'gpt-5-nano',
+    );
+    // Gemini: flash-lite beats flash and pro; newest wins; previews only as a last resort.
+    expect(
+      cheapestModel('gemini', [
+        'gemini-2.5-pro',
+        'gemini-2.5-flash',
+        'gemini-2.0-flash-lite-001',
+        'gemini-2.5-flash-lite',
+        'gemini-3.0-flash-lite-preview-09-25',
+        'gemini-2.0-flash-lite',
+      ]),
+      'gemini-2.5-flash-lite',
+    );
+    expect(cheapestModel('gemini', ['gemini-9-flash-lite-preview']), 'gemini-9-flash-lite-preview');
+    // Anthropic lists newest first, every id dated: the first haiku.
+    expect(
+      cheapestModel('anthropic', [
+        'claude-opus-5-5-20260801',
+        'claude-sonnet-5-5-20260801',
+        'claude-haiku-5-0-20260601',
+        'claude-haiku-4-5-20251001',
+      ]),
+      'claude-haiku-5-0-20260601',
+    );
+    // No known family: the first listed; nothing listed: none.
+    expect(cheapestModel('anthropic', ['claude-x', 'claude-y']), 'claude-x');
+    expect(cheapestModel('openai', []), isNull);
+  });
 }

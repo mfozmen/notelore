@@ -65,7 +65,7 @@ class Harness {
   Exception? rejected;
 
   /// What the provider lists for a good key; tests change it between calls.
-  var models = <String>['model-a', 'model-b'];
+  var models = <String>['claude-sonnet-5-5', 'model-a', 'model-b'];
   final FakeAuth? auth;
   final remote = MemoryRemote();
   final created = <(String, String?, String?)>[];
