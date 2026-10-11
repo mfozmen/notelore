@@ -43,8 +43,15 @@ class TurnStopped implements Exception {
 String describeTool(String name) => switch (name) {
   'search_notes' || 'list_notes' => 'Searching the notes',
   'read_note' || 'get_decision' || 'decision_history' => 'Reading the notes',
-  _ => 'Writing the notes',
+  'create_note' ||
+  'add_note_entry' ||
+  'add_todo' ||
+  'complete_todo' ||
+  'record_decision' ||
+  'archive' => 'Writing the notes',
+  _ => 'Working',
 };
+
 const _kept = {'text', 'tool_use'}; // the only block types the API accepts back as history
 
 String systemPrompt([DateTime? today]) =>

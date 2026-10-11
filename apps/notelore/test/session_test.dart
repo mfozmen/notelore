@@ -255,6 +255,12 @@ void main() {
     expect(session.transcript.last.text, 'Stopped.');
     expect(session.busy, isFalse);
     expect(session.step, isNull);
+    // Stopped while still queued (e.g. behind a sync): the model is never asked.
+    final queued = session.send('again');
+    session.stop();
+    await queued;
+    expect(harness.provider.asked, ['selam']);
+    expect(session.transcript.last.text, 'Stopped.');
   });
 
   test('a failed turn shows an error line and the next one works', () async {
