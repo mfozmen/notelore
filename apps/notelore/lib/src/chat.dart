@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'session.dart';
 import 'strings.dart';
+import 'theme.dart';
 import 'voice.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -63,10 +64,30 @@ class _ChatScreenState extends State<ChatScreen> {
       children: [
         Expanded(
           child: lines.isEmpty
-              ? Center(child: Text(s.askSomething))
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(Gap.l),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.edit_note,
+                          size: 56,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(height: Gap.m),
+                        Text(
+                          s.askSomething,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                )
               : ListView.builder(
                   reverse: true,
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
                   itemCount: lines.length + (session.busy ? 1 : 0),
                   itemBuilder: (context, index) => session.busy
                       ? (index == 0
@@ -87,10 +108,10 @@ class _ChatScreenState extends State<ChatScreen> {
             ],
           ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, 0),
           child: Wrap(
             crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
+            spacing: Gap.s,
             children: [
               // The models the connected provider listed; switching keeps the conversation.
               PopupMenuButton<String>(
@@ -104,8 +125,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     PopupMenuItem(value: m, child: Text(m)),
                 ],
                 child: Chip(
-                  avatar: const Icon(Icons.tune, size: 16),
+                  avatar: const Icon(Icons.auto_awesome_outlined, size: 16),
                   label: Text(session.model ?? ''),
+                  visualDensity: VisualDensity.compact,
                 ),
               ),
               if (session.spec?.name == 'chatgpt') ...[
@@ -126,14 +148,25 @@ class _ChatScreenState extends State<ChatScreen> {
             children: [
               if (_voice.state case VoiceState.listening || VoiceState.speaking)
                 Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    _voice.state == VoiceState.listening ? s.listening : s.speaking,
-                    key: const Key('voice-state'),
+                  padding: const EdgeInsets.only(top: Gap.s),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _voice.state == VoiceState.listening ? Icons.mic : Icons.volume_up,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: Gap.s),
+                      Text(
+                        _voice.state == VoiceState.listening ? s.listening : s.speaking,
+                        key: const Key('voice-state'),
+                      ),
+                    ],
                   ),
                 ),
               Padding(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.s, Gap.s),
                 child: Row(
                   children: [
                     Expanded(
@@ -149,10 +182,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           if (_voice.on && text.isNotEmpty) _voice.hush();
                         },
                         onSubmitted: (_) => _send(),
-                        decoration: InputDecoration(
-                          hintText: s.message,
-                          border: const OutlineInputBorder(),
-                        ),
+                        decoration: InputDecoration(hintText: s.message),
                       ),
                     ),
                     if (_voice.on)
@@ -174,7 +204,11 @@ class _ChatScreenState extends State<ChatScreen> {
                         onPressed: session.stop,
                       )
                     else
-                      IconButton(tooltip: s.send, icon: const Icon(Icons.send), onPressed: _send),
+                      IconButton.filled(
+                        tooltip: s.send,
+                        icon: const Icon(Icons.arrow_upward),
+                        onPressed: _send,
+                      ),
                   ],
                 ),
               ),
@@ -220,11 +254,11 @@ class _ThinkingState extends State<_Thinking> {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        margin: const EdgeInsets.symmetric(vertical: Gap.xs),
+        padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: 10),
         decoration: BoxDecoration(
-          color: colors.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
+          color: colors.surfaceContainerHigh,
+          borderRadius: _bubbleRadius(mine: false),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -247,24 +281,33 @@ class _Bubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final (alignment, background, foreground) = switch (line.role) {
-      ChatRole.user => (Alignment.centerRight, colors.primaryContainer, colors.onPrimaryContainer),
-      ChatRole.assistant => (
-        Alignment.centerLeft,
-        colors.surfaceContainerHighest,
-        colors.onSurface,
-      ),
-      ChatRole.error => (Alignment.centerLeft, colors.errorContainer, colors.onErrorContainer),
+    final mine = line.role == ChatRole.user;
+    final (background, foreground) = switch (line.role) {
+      ChatRole.user => (colors.primary, colors.onPrimary),
+      ChatRole.assistant => (colors.surfaceContainerHigh, colors.onSurface),
+      ChatRole.error => (colors.errorContainer, colors.onErrorContainer),
     };
     return Align(
-      alignment: alignment,
+      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        margin: const EdgeInsets.symmetric(vertical: Gap.xs),
+        padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: 10),
+        // Readable line length on wide windows.
         constraints: const BoxConstraints(maxWidth: 560),
-        decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(12)),
-        child: SelectableText(line.text, style: TextStyle(color: foreground)),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: _bubbleRadius(mine: mine),
+        ),
+        child: SelectableText(line.text, style: TextStyle(color: foreground, height: 1.4)),
       ),
     );
   }
 }
+
+/// Rounded, with a smaller corner on the speaker's side, like a speech bubble.
+BorderRadius _bubbleRadius({required bool mine}) => BorderRadius.only(
+  topLeft: const Radius.circular(18),
+  topRight: const Radius.circular(18),
+  bottomLeft: Radius.circular(mine ? 18 : 4),
+  bottomRight: Radius.circular(mine ? 4 : 18),
+);

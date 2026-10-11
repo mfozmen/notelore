@@ -4,6 +4,7 @@ import 'package:notelore_core/notelore_core.dart';
 
 import 'session.dart';
 import 'strings.dart';
+import 'theme.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen(this.session, {this.checkForUpdates, super.key});
@@ -53,89 +54,128 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final s = session.strings;
     return Scaffold(
       appBar: AppBar(title: Text(s.settings)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(s.provider),
-            subtitle: Text(
-              '${s.providerName(session.spec!)} · ${s.groupHeading(session.spec!.group)}',
-            ),
-          ),
-          Row(
+      // Grouped in cards; a readable width on wide windows.
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
             children: [
-              Expanded(
-                // The models the key can use; a name not in the list can be typed too.
-                child: DropdownMenu<String>(
-                  key: const Key('model'),
-                  controller: _model,
-                  expandedInsets: EdgeInsets.zero,
-                  requestFocusOnTap: true,
-                  label: Text(s.model),
-                  helperText: s.modelHelper(session.defaultModel),
-                  dropdownMenuEntries: [
-                    for (final m in session.models) DropdownMenuEntry(value: m, label: m),
-                  ],
-                  onSelected: (_) => _saveModel(),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: Gap.m),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.auto_awesome_outlined),
+                        title: Text(s.provider),
+                        subtitle: Text(
+                          '${s.providerName(session.spec!)} · ${s.groupHeading(session.spec!.group)}',
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              // The models the key can use; a name not in the list can be typed too.
+                              child: DropdownMenu<String>(
+                                key: const Key('model'),
+                                controller: _model,
+                                expandedInsets: EdgeInsets.zero,
+                                requestFocusOnTap: true,
+                                label: Text(s.model),
+                                helperText: s.modelHelper(session.defaultModel),
+                                dropdownMenuEntries: [
+                                  for (final m in session.models)
+                                    DropdownMenuEntry(value: m, label: m),
+                                ],
+                                onSelected: (_) => _saveModel(),
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: s.refreshModels,
+                              icon: const Icon(Icons.refresh),
+                              onPressed: _refreshModels,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: Gap.s),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                        child: OutlinedButton(onPressed: _saveModel, child: Text(s.saveModel)),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              IconButton(
-                tooltip: s.refreshModels,
-                icon: const Icon(Icons.refresh),
-                onPressed: _refreshModels,
+              const SizedBox(height: Gap.m),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.translate),
+                  title: Text(s.language),
+                  trailing: DropdownButton<AppLanguage>(
+                    key: const Key('language'),
+                    value: session.language,
+                    underline: const SizedBox.shrink(),
+                    onChanged: (chosen) => session.setLanguage(chosen!),
+                    items: [
+                      for (final language in AppLanguage.values)
+                        DropdownMenuItem(value: language, child: Text(s.languageName(language))),
+                    ],
+                  ),
+                ),
               ),
+              const SizedBox(height: Gap.m),
+              Card(child: _DriveSection(session)),
+              const SizedBox(height: Gap.m),
+              Card(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.folder_outlined),
+                      title: Text(s.notesFolder),
+                      subtitle: SelectableText(session.paths.notes.path),
+                    ),
+                    if (widget.checkForUpdates case final check?)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.m),
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.system_update_alt),
+                          onPressed: _checking
+                              ? null
+                              : () async {
+                                  final messenger = ScaffoldMessenger.of(context);
+                                  setState(() => _checking = true);
+                                  final result = await check();
+                                  if (mounted) setState(() => _checking = false);
+                                  messenger
+                                    ..hideCurrentSnackBar()
+                                    ..showSnackBar(SnackBar(content: Text(result)));
+                                },
+                          label: Text(s.checkForUpdates),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: Gap.l),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.tonalIcon(
+                  icon: const Icon(Icons.logout),
+                  onPressed: session.logout,
+                  label: Text(s.logOut),
+                ),
+              ),
+              const SizedBox(height: Gap.s),
+              Text(s.logOutExplained, style: Theme.of(context).textTheme.bodySmall),
             ],
           ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton(onPressed: _saveModel, child: Text(s.saveModel)),
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(s.language),
-            trailing: DropdownButton<AppLanguage>(
-              key: const Key('language'),
-              value: session.language,
-              onChanged: (chosen) => session.setLanguage(chosen!),
-              items: [
-                for (final language in AppLanguage.values)
-                  DropdownMenuItem(value: language, child: Text(s.languageName(language))),
-              ],
-            ),
-          ),
-          _DriveSection(session),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(s.notesFolder),
-            subtitle: SelectableText(session.paths.notes.path),
-          ),
-          if (widget.checkForUpdates case final check?)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: OutlinedButton(
-                onPressed: _checking
-                    ? null
-                    : () async {
-                        final messenger = ScaffoldMessenger.of(context);
-                        setState(() => _checking = true);
-                        final result = await check();
-                        if (mounted) setState(() => _checking = false);
-                        messenger
-                          ..hideCurrentSnackBar()
-                          ..showSnackBar(SnackBar(content: Text(result)));
-                      },
-                child: Text(s.checkForUpdates),
-              ),
-            ),
-          const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.tonal(onPressed: session.logout, child: Text(s.logOut)),
-          ),
-          Text(s.logOutExplained),
-        ],
+        ),
       ),
     );
   }
@@ -160,14 +200,14 @@ class _DriveSection extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!session.driveAvailable) {
       return ListTile(
-        contentPadding: EdgeInsets.zero,
+        leading: const Icon(Icons.cloud_off_outlined),
         title: Text(session.strings.drive),
         subtitle: Text(session.strings.driveNotSetUp),
       );
     }
     if (!session.driveConnected) {
       return ListTile(
-        contentPadding: EdgeInsets.zero,
+        leading: const Icon(Icons.cloud_outlined),
         title: Text(session.strings.drive),
         subtitle: Text(session.syncStatus ?? session.strings.driveExplained),
         trailing: FilledButton(
@@ -177,13 +217,13 @@ class _DriveSection extends StatelessWidget {
       );
     }
     return ListTile(
-      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.cloud_done_outlined),
       title: Text(session.strings.drive),
       subtitle: Text(
         session.syncing ? session.strings.syncing : session.syncStatus ?? session.strings.connected,
       ),
       trailing: Wrap(
-        spacing: 8,
+        spacing: Gap.xs,
         children: [
           IconButton(
             tooltip: session.strings.syncNow,

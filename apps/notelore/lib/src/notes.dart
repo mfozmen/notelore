@@ -3,6 +3,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'session.dart';
+import 'theme.dart';
 
 /// Every project and topic, newest first; a tap opens the note read-only. The
 /// entry's trash button (or a long press, or the open note's) archives it.
@@ -58,6 +59,7 @@ class _NotesScreenState extends State<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     final s = widget.session.strings;
+    final colors = Theme.of(context).colorScheme;
     final notes = widget.session.listNotes();
     return Scaffold(
       appBar: AppBar(
@@ -71,11 +73,36 @@ class _NotesScreenState extends State<NotesScreen> {
         ],
       ),
       body: notes.isEmpty
-          ? Center(child: Text(s.noNotes))
-          : ListView(
-              children: [
-                for (final note in notes)
-                  ListTile(
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(Gap.l),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.description_outlined, size: 56, color: colors.primary),
+                    const SizedBox(height: Gap.m),
+                    Text(s.noNotes, textAlign: TextAlign.center),
+                  ],
+                ),
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
+              itemCount: notes.length,
+              separatorBuilder: (_, _) => const SizedBox(height: Gap.s),
+              itemBuilder: (context, index) {
+                final note = notes[index];
+                return Card(
+                  child: ListTile(
+                    // The kind at a glance: a folder for a project, a tag for a topic.
+                    leading: CircleAvatar(
+                      backgroundColor: colors.secondaryContainer,
+                      foregroundColor: colors.onSecondaryContainer,
+                      child: Icon(
+                        note.kind == 'project' ? Icons.folder_outlined : Icons.sell_outlined,
+                        size: 20,
+                      ),
+                    ),
                     title: Text(note.title),
                     subtitle: Text(
                       s.noteSubtitle(
@@ -93,7 +120,8 @@ class _NotesScreenState extends State<NotesScreen> {
                     // deleted note must not be read again under its reader.
                     onTap: () => _open(note, widget.session.readNote(note)),
                   ),
-              ],
+                );
+              },
             ),
     );
   }
@@ -114,7 +142,13 @@ class _NotesScreenState extends State<NotesScreen> {
             ),
           ],
         ),
-        body: Markdown(data: text, selectable: true),
+        // A comfortable reading width on wide windows.
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: Markdown(data: text, selectable: true, padding: const EdgeInsets.all(Gap.m)),
+          ),
+        ),
       ),
     ),
   );
