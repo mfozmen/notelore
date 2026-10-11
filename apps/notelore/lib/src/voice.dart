@@ -81,6 +81,8 @@ class VoiceMode extends ChangeNotifier {
       await _loop();
     } on VoiceUnavailable {
       problem = session.strings.voiceUnavailable;
+    } on ListenFailed catch (error) {
+      problem = session.strings.speechFailed(error.message);
     } on Exception catch (error) {
       problem = '$error';
     }

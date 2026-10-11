@@ -107,6 +107,9 @@ void main() {
     await mode.start();
     expect(mode.state, VoiceState.off);
     expect(mode.problem, session.strings.voiceUnavailable);
+    speech.failure = const ListenFailed('error_network');
+    await mode.start();
+    expect(mode.problem, session.strings.speechFailed('error_network'));
     speech.failure = Exception('the recognizer crashed');
     await mode.start();
     expect(mode.problem, contains('the recognizer crashed'));

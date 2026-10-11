@@ -55,6 +55,7 @@ abstract class Strings {
   String get listening;
   String get speaking;
   String get voiceUnavailable;
+  String speechFailed(String code);
 
   // Notes.
   String get refresh;
@@ -177,6 +178,8 @@ class EnglishStrings extends Strings {
   String get listening => 'Listening…';
   @override
   String get speaking => 'Speaking…';
+  @override
+  String speechFailed(String code) => 'Speech recognition failed ($code); back to typing.';
   @override
   String get voiceUnavailable =>
       'Speech recognition is not available. Allow the microphone; on Windows, add the '
@@ -399,6 +402,8 @@ class TurkishStrings extends Strings {
   String get listening => 'Dinliyorum…';
   @override
   String get speaking => 'Okuyorum…';
+  @override
+  String speechFailed(String code) => 'Ses tanıma başarısız oldu ($code); yazmaya dönüldü.';
   @override
   String get voiceUnavailable =>
       'Ses tanıma kullanılamıyor. Mikrofona izin ver; Windows’ta uygulama dilinin konuşma '
