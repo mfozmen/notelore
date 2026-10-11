@@ -1,0 +1,263 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:notelore_core/src/dev.dart';
+import 'package:path/path.dart' as p;
+import 'package:test/test.dart';
+
+http.Response events(List<Map<String, Object?>> list) => http.Response(
+  [for (final e in list) 'data: ${jsonEncode(e)}\n\n'].join(),
+  200,
+  headers: {'content-type': 'text/event-stream; charset=utf-8'},
+);
+
+Map<String, Object?> done(List<Object?> output) => {
+  'type': 'response.completed',
+  'response': {'status': 'completed', 'output': output},
+};
+
+void main() {
+  late Directory temp;
+  late StringBuffer out;
+  setUp(() {
+    temp = Directory.systemTemp.createTempSync('notelore-dev');
+    out = StringBuffer();
+  });
+  tearDown(() => temp.deleteSync(recursive: true));
+
+  Future<int> run(
+    List<String> args, {
+    http.Client? client,
+    Map<String, String>? environment,
+    List<Uri>? opened,
+  }) => runDev(
+    args,
+    environment: environment ?? {'NOTELORE_HOME': 'home'},
+    currentDirectory: temp,
+    out: out,
+    openBrowser: (url) async => opened?.add(url),
+    client: client ?? MockClient((_) async => http.Response('', 500)),
+  );
+
+  String home(String rel) => p.join(temp.path, 'home', rel);
+
+  void signedIn() {
+    File(home('state/dev-secrets.json'))
+      ..createSync(recursive: true)
+      ..writeAsStringSync(jsonEncode({'client_id': 'oaiapp_1', 'refresh_token': 'r1'}));
+  }
+
+  /// The newest trace.
+  String trace() {
+    final files = Directory(home('state/trace')).listSync().whereType<File>().toList()
+      ..sort((a, b) => a.path.compareTo(b.path));
+    return files.last.readAsStringSync();
+  }
+
+  test('refuses to run without NOTELORE_HOME: never the real notes', () async {
+    expect(await run(['chat', 'hi'], environment: {}), 64);
+    expect('$out', contains('NOTELORE_HOME'));
+  });
+
+  test('an unknown command or no message prints the usage', () async {
+    expect(await run([]), 64);
+    expect(await run(['dance']), 64);
+    expect(await run(['chat']), 64);
+    expect('$out', contains('usage: notelore_dev'));
+  });
+
+  test('chat: one real agent turn on the ChatGPT plan, tools shown, all traced', () async {
+    signedIn();
+    final requests = <String>[];
+    var turn = 0;
+    final client = MockClient((request) async {
+      requests.add(request.url.path);
+      if (request.url.path.endsWith('/oauth/token')) {
+        return http.Response(
+          jsonEncode({'access_token': 'a1', 'expires_in': 3600, 'refresh_token': 'r2'}),
+          200,
+        );
+      }
+      if (request.url.path == '/v1/models') {
+        return http.Response(
+          jsonEncode({
+            'models': [
+              {'slug': 'gpt-new', 'visibility': 'list'},
+            ],
+          }),
+          200,
+        );
+      }
+      expect((jsonDecode(request.body) as Map)['model'], 'gpt-new');
+      return events([
+        if (turn++ == 0)
+          done([
+            {'type': 'function_call', 'call_id': 'c1', 'name': 'list_notes', 'arguments': '{}'},
+          ])
+        else
+          done([
+            {
+              'type': 'message',
+              'content': [
+                {'type': 'output_text', 'text': 'Henüz not yok.'},
+              ],
+            },
+          ]),
+      ]);
+    });
+    expect(await run(['chat', 'notlarım', 'neler?'], client: client), 0);
+    expect('$out', contains('→ list_notes {}'));
+    expect('$out', contains('←'));
+    expect('$out', contains('Henüz not yok.'));
+    expect('$out', contains(p.join('state', 'trace')));
+    expect(requests, ['/api/accounts/oauth/token', '/v1/models', '/v1/responses', '/v1/responses']);
+    // The rotated refresh token is kept; no secret reaches the trace.
+    final secrets = File(home('state/dev-secrets.json')).readAsStringSync();
+    expect(secrets, contains('r2'));
+    final log = trace();
+    expect(log, contains('> POST https://api.openai.com/v1/responses'));
+    expect(log, contains('notlarım neler?'));
+    expect(log, contains('Henüz not yok.'));
+    expect(log, contains('Authorization: ***'));
+    for (final secret in ['a1', 'r1', 'r2']) {
+      expect(log, isNot(contains('$secret"')), reason: secret);
+      expect(log, isNot(contains('=$secret')), reason: secret);
+    }
+  });
+
+  test('chat with a model given and an API-key provider from the environment', () async {
+    final client = MockClient((_) async => http.Response('', 500));
+    // No key: says which variable to set.
+    expect(await run(['chat', '--provider=openai', 'hi'], client: client), 1);
+    expect('$out', contains('NOTELORE_OPENAI_API_KEY'));
+    final openai = MockClient(
+      (request) async => http.Response(
+        jsonEncode({
+          'choices': [
+            {
+              'finish_reason': 'stop',
+              'message': {'role': 'assistant', 'content': 'merhaba'},
+            },
+          ],
+        }),
+        200,
+      ),
+    );
+    expect(
+      await run(
+        ['chat', '--provider=openai', 'hi'],
+        client: openai,
+        environment: {'NOTELORE_HOME': 'home', 'NOTELORE_OPENAI_API_KEY': 'sk-secret'},
+      ),
+      0,
+    );
+    expect('$out', contains('[openai · gpt-4o-mini]'));
+    expect('$out', contains('merhaba'));
+    expect(trace(), contains('Authorization: ***'));
+    expect(trace(), isNot(contains('sk-secret')));
+    // An unknown provider is an error, not a crash.
+    expect(await run(['chat', '--provider=nope', 'hi']), 1);
+  });
+
+  test('a failing turn reports the error and where the trace is', () async {
+    expect(await run(['chat', '--model=gpt-x', 'hi']), 1);
+    expect('$out', contains('Error: not signed in with ChatGPT'));
+    expect('$out', contains(p.join('state', 'trace')));
+  });
+
+  test('signin opens the browser; models lists the plan', () async {
+    final opened = <Uri>[];
+    final signin = runDev(
+      ['signin'],
+      environment: {'NOTELORE_HOME': 'home'},
+      currentDirectory: temp,
+      out: out,
+      openBrowser: (url) async {
+        opened.add(url);
+        // Answer the loopback redirect with a refusal, as a browser would.
+        final redirect = Uri.parse(url.queryParameters['redirect_uri']!);
+        unawaited(http.get(redirect.replace(queryParameters: {'error': 'access_denied'})));
+      },
+      client: MockClient((_) async => http.Response('', 500)),
+    );
+    expect(await signin, 1);
+    expect(opened.first.host, 'auth.openai.com');
+    expect('$out', contains('access_denied'));
+    final granted = runDev(
+      ['signin'],
+      environment: {'NOTELORE_HOME': 'home'},
+      currentDirectory: temp,
+      out: out,
+      openBrowser: (url) async {
+        opened.add(url);
+        final redirect = Uri.parse(url.queryParameters['redirect_uri']!);
+        unawaited(
+          http.get(
+            redirect.replace(
+              queryParameters: {
+                'code': 'c',
+                'state': url.queryParameters['state'],
+                'client_id': 'oaiapp_9',
+              },
+            ),
+          ),
+        );
+      },
+      client: MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'access_token': 'a',
+            'expires_in': 60,
+            'refresh_token': 'r',
+            'scope': 'openid chatgpt.tokens.use.direct',
+          }),
+          200,
+        ),
+      ),
+    );
+    expect(await granted, 0);
+    expect('$out', contains('Signed in with ChatGPT.'));
+
+    signedIn();
+    final client = MockClient(
+      (request) async => request.url.path.endsWith('/oauth/token')
+          ? http.Response(
+              jsonEncode({'access_token': 'a', 'expires_in': 60, 'refresh_token': 'r'}),
+              200,
+            )
+          : http.Response(
+              jsonEncode({
+                'models': [
+                  {'slug': 'gpt-a', 'visibility': 'list'},
+                  {'slug': 'gpt-b', 'visibility': 'list'},
+                ],
+              }),
+              200,
+            ),
+    );
+    expect(await run(['models'], client: client), 0);
+    expect('$out', contains('gpt-a\ngpt-b'));
+  });
+
+  test('the tracing client passes a stream through untouched and redacts forms', () async {
+    final lines = <String>[];
+    final traced = TracingClient(
+      MockClient((request) async => http.Response('{"id_token": "secret-id", "ok": 1}', 200)),
+      lines.add,
+    );
+    final response = await traced.post(
+      Uri.parse('https://x.test/token'),
+      body: {'code': 'c0de', 'code_verifier': 'v', 'grant_type': 'authorization_code'},
+    );
+    expect(response.body, '{"id_token": "secret-id", "ok": 1}');
+    expect(lines.first, contains('code=***'));
+    expect(lines.first, contains('code_verifier=***'));
+    expect(lines.first, contains('grant_type=authorization_code'));
+    expect(lines.last, contains('"id_token":"***"'));
+    expect(lines.last, isNot(contains('secret-id')));
+    traced.close();
+  });
+}

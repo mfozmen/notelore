@@ -25,6 +25,7 @@ dart analyze --fatal-infos                        # strict analysis
 (cd apps/notelore && flutter test --coverage)                         # app tests + lcov
 (cd packages/notelore_core && dart test -t live)                       # live provider tests (keys in env, opt-in)
 dart run tool/coverage_gate.dart packages/notelore_core/coverage/lcov.info apps/notelore/coverage/lcov.info
+dart run notelore_core:notelore_dev chat "<message>"   # a real agent turn on .dev-home, traced to .dev-home/state/trace/ (also: signin, models)
 (cd apps/notelore && flutter run --dart-define-from-file=../../.env)  # run the app, with Drive sign-in
 (cd apps/notelore && flutter build apk --debug)   # Android; also `windows`, `macos`
 ```
