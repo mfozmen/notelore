@@ -15,10 +15,23 @@ typedef Block = Map<String, Object?>;
 /// A message: `{"role": "user" | "assistant", "content": String | List<Block>}`.
 typedef Message = Map<String, Object?>;
 
+/// How a provider is paid for; the setup screen groups providers by it.
+enum ProviderGroup {
+  plan('Use your plan', "No extra charges, within your plan's limits."),
+  apiKey('API key', 'Billed per use by the provider; Gemini has a free tier.'),
+  local('On this computer', 'Free: the model runs here.');
+
+  const ProviderGroup(this.heading, this.explanation);
+
+  final String heading;
+  final String explanation;
+}
+
 final class ProviderSpec {
   const ProviderSpec(
     this.name,
     this.displayName, {
+    required this.group,
     required this.requiresApiKey,
     required this.defaultModel,
     this.keyUrl,
@@ -28,6 +41,7 @@ final class ProviderSpec {
 
   final String name;
   final String displayName;
+  final ProviderGroup group;
   final bool requiresApiKey;
   final String defaultModel;
   final String? keyUrl;
@@ -41,6 +55,7 @@ const providerSpecs = [
   ProviderSpec(
     'chatgpt',
     'ChatGPT plan (OpenAI)',
+    group: ProviderGroup.plan,
     requiresApiKey: false,
     defaultModel: '', // the first model the plan lists
     cost:
@@ -50,6 +65,7 @@ const providerSpecs = [
   ProviderSpec(
     'anthropic',
     'Claude (Anthropic)',
+    group: ProviderGroup.apiKey,
     requiresApiKey: true,
     defaultModel: 'claude-sonnet-5-5',
     cost:
@@ -65,6 +81,7 @@ const providerSpecs = [
   ProviderSpec(
     'openai',
     'GPT (OpenAI)',
+    group: ProviderGroup.apiKey,
     requiresApiKey: true,
     defaultModel: 'gpt-4o-mini',
     cost:
@@ -80,6 +97,7 @@ const providerSpecs = [
   ProviderSpec(
     'gemini',
     'Gemini (Google)',
+    group: ProviderGroup.apiKey,
     requiresApiKey: true,
     defaultModel: 'gemini-2.5-flash',
     cost:
@@ -95,6 +113,7 @@ const providerSpecs = [
   ProviderSpec(
     'ollama',
     'Ollama (local)',
+    group: ProviderGroup.local,
     requiresApiKey: false,
     defaultModel: 'llama3.2',
     cost: 'Free: the model runs on this computer.',

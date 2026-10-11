@@ -33,6 +33,10 @@ void main() {
     // Offered first and selected; no key to paste.
     expect(find.text('ChatGPT plan (OpenAI)'), findsOneWidget);
     expect(find.textContaining('no separate charges'), findsOneWidget);
+    // Grouped by how they are paid for (#108).
+    for (final heading in ['Use your plan', 'API key', 'On this computer']) {
+      expect(find.text(heading), findsOneWidget);
+    }
     expect(find.byKey(const Key('api-key')), findsNothing);
     await tester.tap(find.text('Continue with ChatGPT'));
     await tester.pumpAndSettle();
@@ -62,6 +66,12 @@ void main() {
     await pumpPlanApp(tester, harness);
     await tester.tap(find.text('Claude (Anthropic)'));
     await tester.pumpAndSettle();
+    // Past the grouped list (the key field is a scrollable too: name the list's).
+    await tester.scrollUntilVisible(
+      find.text('Connect'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.enterText(find.byKey(const Key('api-key')), 'k');
     await tester.tap(find.text('Connect'));
     await tester.pumpAndSettle();

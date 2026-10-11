@@ -12,6 +12,7 @@ export 'src/providers/base.dart'
         Block,
         LlmProvider,
         Message,
+        ProviderGroup,
         ProviderSpec,
         Tool,
         findProvider,

@@ -66,9 +66,20 @@ class _SetupScreenState extends State<SetupScreen> {
                 _problem = null;
               }),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final spec in widget.session.providers)
-                    RadioListTile<ProviderSpec>(value: spec, title: Text(spec.displayName)),
+                  // Grouped by how they are paid for; a group with nothing to offer is left out.
+                  for (final group in ProviderGroup.values)
+                    if (widget.session.providers.where((s) => s.group == group).toList()
+                        case final specs when specs.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Text(group.heading, style: theme.textTheme.titleSmall),
+                      ),
+                      Text(group.explanation, style: theme.textTheme.bodySmall),
+                      for (final spec in specs)
+                        RadioListTile<ProviderSpec>(value: spec, title: Text(spec.displayName)),
+                    ],
                 ],
               ),
             ),
