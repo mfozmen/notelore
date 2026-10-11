@@ -21,6 +21,7 @@ import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
 import 'strings.dart';
+import 'voice.dart';
 
 /// Checks a key and returns the chat models it can use.
 typedef Validate = Future<List<String>> Function(ProviderSpec spec, String key);
@@ -59,11 +60,20 @@ class Session extends ChangeNotifier {
     this.chatGpt,
     this.listPlanModels = listChatGptModels,
     this.systemLanguage = 'en',
+    this._speech,
+    this._voice,
   }) : index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path),
        manifest = Manifest(paths.state.path);
 
   final NotelorePaths paths;
   final Validate validate;
+
+  final Speech? _speech;
+  final Voice? _voice;
+
+  /// The device's speech recognition and voices for voice mode, made on first use.
+  late final Speech speech = _speech ?? DeviceSpeech();
+  late final Voice voice = _voice ?? DeviceVoice();
 
   /// The device's language code; [AppLanguage.system] follows it.
   final String systemLanguage;

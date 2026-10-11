@@ -6,6 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/session.dart';
+import 'package:notelore/src/voice.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
@@ -76,6 +77,10 @@ class Harness {
   /// The ChatGPT sign-in; none on phones.
   final FakeAuth? chatGpt;
 
+  /// Voice mode's ears and mouth: nothing heard unless a test scripts it.
+  final speech = FakeSpeech([]);
+  final voice = FakeVoice();
+
   /// What the ChatGPT plan lists.
   var planModels = <String>['gpt-plan-a', 'gpt-plan-b'];
 
@@ -84,6 +89,8 @@ class Harness {
     final session = Session(
       paths,
       systemLanguage: systemLanguage,
+      speech: speech,
+      voice: voice,
       validate: (spec, key) async {
         if (rejected != null) throw rejected!;
         return models;
@@ -187,4 +194,41 @@ class FakeLauncher extends UrlLauncherPlatform with MockPlatformInterfaceMixin {
     opened.add(url);
     return true;
   }
+}
+
+/// Hears the scripted phrases in order; null is silence. Then waits until cancelled.
+class FakeSpeech implements Speech {
+  FakeSpeech(this.phrases);
+
+  final List<String?> phrases;
+  final languages = <String>[];
+  var cancels = 0;
+  Completer<String?>? _waiting;
+  Object? failure;
+
+  @override
+  Future<String?> listen(String language) {
+    languages.add(language);
+    if (failure case final error?) return Future.error(error);
+    if (phrases.isNotEmpty) return Future.value(phrases.removeAt(0));
+    return (_waiting = Completer<String?>()).future;
+  }
+
+  @override
+  Future<void> cancel() async {
+    cancels++;
+    _waiting?.complete(null);
+    _waiting = null;
+  }
+}
+
+class FakeVoice implements Voice {
+  final spoken = <(String, String)>[];
+  var stops = 0;
+
+  @override
+  Future<void> speak(String text, String language) async => spoken.add((text, language));
+
+  @override
+  Future<void> stop() async => stops++;
 }
