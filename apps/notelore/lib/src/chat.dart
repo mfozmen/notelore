@@ -17,6 +17,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final _message = TextEditingController();
+  final _modelMenu = GlobalKey<PopupMenuButtonState<String>>();
 
   @override
   void dispose() {
@@ -48,6 +49,20 @@ class _ChatScreenState extends State<ChatScreen> {
                       : _Bubble(lines[index]),
                 ),
         ),
+        if (session.modelGone)
+          MaterialBanner(
+            leading: const Icon(Icons.warning_amber),
+            content: Text(
+              '${session.spec!.displayName} no longer offers ${session.model}. '
+              'Pick another model.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => _modelMenu.currentState!.showButtonMenu(),
+                child: const Text('Change model'),
+              ),
+            ],
+          ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Wrap(
@@ -56,6 +71,7 @@ class _ChatScreenState extends State<ChatScreen> {
             children: [
               // The models the connected provider listed; switching keeps the conversation.
               PopupMenuButton<String>(
+                key: _modelMenu,
                 tooltip: 'Change the model',
                 enabled: !session.busy,
                 initialValue: session.model,

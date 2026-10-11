@@ -140,12 +140,12 @@ void main() {
     await pump(tester, updater({latestReleaseUrl: release(v)}));
     await tester.tap(find.text('Later'));
     await tester.pumpAndSettle();
-    expect(find.byType(MaterialBanner), findsNothing);
+    expect(find.text('Later'), findsNothing);
   });
 
   testWidgets('no banner when this is the newest version', (tester) async {
     await pump(tester, updater({latestReleaseUrl: release('0.2.0')}));
-    expect(find.byType(MaterialBanner), findsNothing);
+    expect(find.text('Later'), findsNothing);
   });
 
   testWidgets('while installing the buttons wait', (tester) async {

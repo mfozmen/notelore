@@ -181,6 +181,24 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('chat: a model the provider no longer offers asks for another', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    // The fake key lists model-a and model-b, not the default claude-sonnet-5-5.
+    await connect(tester, key: 'k');
+    expect(
+      find.text('Claude (Anthropic) no longer offers claude-sonnet-5-5. Pick another model.'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Change model'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('model-a').last);
+    await tester.pumpAndSettle();
+    expect(session.model, 'model-a');
+    expect(find.text('Change model'), findsNothing);
+  });
+
   testWidgets('notes: delete from the list or the reader, with undo', (tester) async {
     phone(tester);
     final harness = Harness();
