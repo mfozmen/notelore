@@ -227,6 +227,24 @@ void main() {
     expect(harness.created.last, ('ollama', '', 'llama3.2'));
   });
 
+  test('notes archived since the last turn are named to the model as unusable (#205)', () async {
+    final harness = Harness(answers: ['Okudum.', 'Tamam.', 'Peki.']);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    createNote(harness.paths.notes.path, 'project', 'Mopsos', today: today);
+    await session.send('kitaplarım ne');
+    expect(harness.provider.asked.last, 'kitaplarım ne'); // nothing changed yet
+    // Deleted here (or archived on another device and synced): gone from the notes.
+    await session.deleteNote(session.listNotes().firstWhere((n) => n.title == 'Kitaplar'));
+    await session.send('peki şimdi');
+    expect(harness.provider.asked.last, allOf(contains('peki şimdi'), contains('Kitaplar')));
+    expect(harness.provider.asked.last, contains('archive'));
+    expect(session.transcript[2].text, 'peki şimdi'); // the user's words, as typed
+    await session.send('ve sonra');
+    expect(harness.provider.asked.last, 've sonra'); // said once
+  });
+
   test('send runs the agent and keeps the transcript', () async {
     final harness = Harness(answers: ['Merhaba!']);
     final session = harness.session();
