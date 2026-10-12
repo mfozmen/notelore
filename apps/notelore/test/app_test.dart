@@ -194,7 +194,7 @@ void main() {
     expect(find.byTooltip('Talk'), findsOneWidget);
   });
 
-  testWidgets('settings: two columns on a wide window, one on a phone', (tester) async {
+  testWidgets('settings: two columns on a wide window', (tester) async {
     tester.view
       ..physicalSize = const Size(1280, 900)
       ..devicePixelRatio = 1;
