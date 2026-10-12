@@ -27,7 +27,6 @@ Speech nativeWhisper(WhisperModel model, String? Function() device) => WhisperSp
   transcriber: IsolateTranscriber(model),
 );
 
-/// The microphone as 16 kHz mono PCM.
 /// The microphones the device lists.
 Future<List<MicrophoneChoice>> nativeMicrophones() async {
   final recorder = AudioRecorder();
@@ -40,6 +39,7 @@ Future<List<MicrophoneChoice>> nativeMicrophones() async {
   }
 }
 
+/// The microphone as 16 kHz mono PCM.
 class RecordMicrophone implements Microphone {
   RecordMicrophone(this.device);
 
@@ -50,15 +50,15 @@ class RecordMicrophone implements Microphone {
   @override
   Future<Stream<Uint8List>> start() async {
     if (!await _recorder.hasPermission()) throw const VoiceUnavailable();
+    final id = device();
+    // One picked earlier but not plugged in now: the default instead.
+    final present = id != null && (await nativeMicrophones()).any((m) => m.id == id);
     return _recorder.startStream(
       RecordConfig(
         encoder: AudioEncoder.pcm16bits,
         sampleRate: _rate,
         numChannels: 1,
-        device: switch (device()) {
-          final String id => InputDevice(id: id, label: id),
-          null => null,
-        },
+        device: present ? InputDevice(id: id, label: id) : null,
       ),
     );
   }
