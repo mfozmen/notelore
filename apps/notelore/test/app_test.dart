@@ -178,7 +178,7 @@ void main() {
       timeStamp: const Duration(seconds: 10),
     );
     await tester.pump();
-    expect(find.text('Listening… let go to send'), findsOneWidget);
+    expect(find.text('Listening…'), findsOneWidget);
     await hold.up(timeStamp: const Duration(seconds: 12)); // held two seconds
     await tester.pump();
     await tester.pump();
