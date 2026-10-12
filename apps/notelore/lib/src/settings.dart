@@ -5,11 +5,15 @@ import 'package:notelore_core/notelore_core.dart';
 import 'session.dart';
 import 'strings.dart';
 import 'theme.dart';
+import 'update.dart' show appVersion;
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen(this.session, {this.checkForUpdates, super.key});
+  const SettingsScreen(this.session, {this.checkForUpdates, this.version = appVersion, super.key});
 
   final Session session;
+
+  /// This build's version ([appVersion]); empty in a development build.
+  final String version;
 
   /// Asks for a newer release now and says what came of it; desktop builds only.
   final Future<String> Function()? checkForUpdates;
@@ -240,6 +244,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: Gap.s),
               Text(s.logOutExplained, style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: Gap.l),
+              Center(
+                child: Text(
+                  s.versionLine(widget.version),
+                  style: Theme.of(context).textTheme.labelMedium
+                      ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
+              ),
             ],
           ),
         ),
