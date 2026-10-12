@@ -91,12 +91,18 @@ class Agent {
   /// Notes the tools already wrote stay written: the files are the truth.
   /// The same holds when the turn is stopped ([stop], or past [deadline]).
   /// [onStep] hears what the turn is doing ("Thinking", [describeTool]).
-  Future<String> ask(String text, {void Function(String step)? onStep}) async {
+  /// [takeLater] hands over what the user wrote while the turn ran; it joins
+  /// the next step, so the one final answer covers it.
+  Future<String> ask(
+    String text, {
+    void Function(String step)? onStep,
+    List<String> Function()? takeLater,
+  }) async {
     final start = messages.length;
     final stop = _stop = Completer()..future.ignore();
     final timer = Timer(deadline, () => this.stop(const TurnStopped(_late)));
     try {
-      return await _ask(text, onStep ?? (_) {}, stop.future);
+      return await _ask(text, onStep ?? (_) {}, takeLater ?? () => const [], stop.future);
     } catch (_) {
       messages.removeRange(start, messages.length);
       rethrow;
@@ -110,6 +116,7 @@ class Agent {
   Future<String> _ask(
     String text,
     void Function(String step) onStep,
+    List<String> Function() takeLater,
     Future<AgentResponse> stopped,
   ) async {
     messages.add({'role': 'user', 'content': text});
@@ -133,7 +140,10 @@ class Agent {
       onStep(describeTool('${uses.first['name']}'));
       messages.add({
         'role': 'user',
-        'content': [for (final use in uses) _run(use)],
+        'content': [
+          for (final use in uses) _run(use),
+          for (final later in takeLater()) {'type': 'text', 'text': later},
+        ],
       });
     }
     return _close('I stopped after too many tool calls in a row. Please rephrase the request.');

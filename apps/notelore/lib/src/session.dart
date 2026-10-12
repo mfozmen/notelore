@@ -436,10 +436,22 @@ class Session extends ChangeNotifier {
 
   /// One chat turn, then a sync. A provider failure becomes an error line; the
   /// agent has already taken the turn back, so the user can simply send again.
+  /// What the user wrote while a turn ran, not yet handed to the model.
+  final _later = <String>[];
+
   Future<void> send(String text) async {
     final message = text.trim();
-    if (message.isEmpty || busy) return;
+    if (message.isEmpty) return;
     transcript.add((role: ChatRole.user, text: message));
+    if (busy) {
+      _later.add(message); // joins the running turn at its next step
+      notifyListeners();
+      return;
+    }
+    await _turn(message);
+  }
+
+  Future<void> _turn(String message) async {
     busy = true;
     _stopped = false;
     notifyListeners();
@@ -452,6 +464,11 @@ class Session extends ChangeNotifier {
             step = now;
             notifyListeners();
           },
+          takeLater: () {
+            final taken = [..._later];
+            _later.clear();
+            return taken;
+          },
         );
         transcript.add((role: ChatRole.assistant, text: strings.core(answer)));
       } on Exception catch (error) {
@@ -462,6 +479,12 @@ class Session extends ChangeNotifier {
         notifyListeners();
       }
     });
+    // Written too late for that turn (or after a Stop): all of it in one more.
+    if (_later.isNotEmpty) {
+      final rest = _later.join('\n\n');
+      _later.clear();
+      return _turn(rest);
+    }
     if (driveConnected) unawaited(syncNow());
   }
 

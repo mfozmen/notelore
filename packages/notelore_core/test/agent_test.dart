@@ -166,6 +166,28 @@ void main() {
     expect(describeTool('some_new_tool'), 'Working'); // never mislabelled as a write
   });
 
+  test('messages written meanwhile join the next step, so one answer covers them', () async {
+    final provider = ScriptedProvider([toolUse('list_notes'), text('both answered')]);
+    final later = ['ayrıca kitabın yazarı kim?'];
+    final agent = Agent(provider, box, today: today);
+    final answer = await agent.ask(
+      'ne okuyorum?',
+      takeLater: () {
+        final taken = [...later];
+        later.clear();
+        return taken;
+      },
+    );
+    expect(answer, 'both answered');
+    final second = provider.turns[1].$2.last; // the user message after the tool round
+    expect(second['role'], 'user');
+    expect((second['content']! as List).last, {
+      'type': 'text',
+      'text': 'ayrıca kitabın yazarı kim?',
+    });
+    expect(provider.turns, hasLength(2)); // one answer, not two
+  });
+
   test('stop: a turn waiting on the model ends at once and is taken back', () async {
     final agent = Agent(HangingProvider(), box, today: today);
     agent.stop(); // nothing running: nothing happens

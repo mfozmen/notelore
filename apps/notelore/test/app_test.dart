@@ -149,7 +149,10 @@ void main() {
     await tester.tap(find.byTooltip('Send'));
     await tester.pump();
     expect(find.text('Thinking… 0 s'), findsOneWidget);
-    expect(tester.widget<TextField>(find.byKey(const Key('message'))).enabled, isFalse);
+    expect(
+      tester.widget<TextField>(find.byKey(const Key('message'))).enabled,
+      isNot(false),
+    ); // open: writing meanwhile joins the turn
     await tester.pump(const Duration(seconds: 2));
     expect(find.text('Thinking… 2 s'), findsOneWidget);
     await tester.tap(find.byTooltip('Stop'));
@@ -277,6 +280,30 @@ void main() {
     await tester.tap(find.text('English').last);
     await tester.pumpAndSettle();
     expect(find.text('Chat'), findsOneWidget);
+  });
+
+  testWidgets('chat: the message box stays open while it works', (tester) async {
+    phone(tester);
+    final first = Completer<AgentResponse>();
+    final harness = Harness(answers: [first.future, 'İkisi de.']);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'bir');
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pump();
+    // Still open (no longer disabled while the model works).
+    expect(tester.widget<TextField>(find.byKey(const Key('message'))).enabled, isNot(false));
+    await tester.enterText(find.byKey(const Key('message')), 'iki');
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pump();
+    expect(find.text('iki'), findsOneWidget);
+    first.complete(
+      const AgentResponse([
+        {'type': 'text', 'text': 'Bir.'},
+      ], 'end_turn'),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('İkisi de.'), findsOneWidget);
   });
 
   testWidgets('chat: switch the model at any time, not while it works', (tester) async {

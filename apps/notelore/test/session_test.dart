@@ -245,6 +245,51 @@ void main() {
     expect(session.transcript, hasLength(2));
   });
 
+  test('written while it works: taken into the running turn, one answer', () async {
+    final first = Completer<AgentResponse>();
+    final harness = Harness(answers: [first.future, 'İkisini de yanıtladım.']);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    final turn = session.send('ne okuyorum?');
+    await Future<void>.delayed(Duration.zero);
+    await session.send('yazarı da kim?'); // the model is still working
+    expect(session.transcript.last.text, 'yazarı da kim?');
+    first.complete(
+      const AgentResponse([
+        {'type': 'tool_use', 'id': 't1', 'name': 'list_notes', 'input': <String, Object?>{}},
+      ], 'tool_use'),
+    );
+    await turn;
+    await pumpEventQueue();
+    expect(harness.provider.asked.last, contains('yazarı da kim?'));
+    expect(session.transcript.map((l) => l.text), [
+      'ne okuyorum?',
+      'yazarı da kim?',
+      'İkisini de yanıtladım.',
+    ]);
+  });
+
+  test('written while it works, but the turn ends first: sent together right after', () async {
+    final first = Completer<AgentResponse>();
+    final harness = Harness(answers: [first.future, 'İki ve üç.']);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    final turn = session.send('bir');
+    await Future<void>.delayed(Duration.zero);
+    await session.send('iki');
+    await session.send('üç');
+    first.complete(
+      const AgentResponse([
+        {'type': 'text', 'text': 'Bir.'},
+      ], 'end_turn'),
+    );
+    await turn;
+    await pumpEventQueue();
+    expect(harness.provider.asked.last, 'iki\n\nüç'); // one follow-up turn
+    expect(session.transcript.map((l) => l.text), ['bir', 'iki', 'üç', 'Bir.', 'İki ve üç.']);
+    expect(session.busy, isFalse);
+  });
+
   test('a turn says what it is doing and can be stopped', () async {
     final harness = Harness(answers: [Completer<AgentResponse>().future]);
     final session = harness.session();
