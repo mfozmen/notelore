@@ -79,76 +79,24 @@ void main() {
     expect(() => assetName('1.2.3', 'linux'), throwsA(isA<UpdateFailed>()));
   });
 
-  group('the daily check', () {
-    late File cache;
-    final now = DateTime.utc(2026, 10, 5, 12);
-    setUp(() => cache = File(p.join(dir, 'state', 'update-check.json')));
-
-    test('asks GitHub at most once a day', () async {
-      final pages = Pages({latestReleaseUrl: release(v)});
-      expect(await checkForUpdate(cache: cache, now: now, current: '0.2.0', fetch: pages.call), v);
-      final later = now.add(const Duration(hours: 23));
-      expect(
-        await checkForUpdate(cache: cache, now: later, current: '0.2.0', fetch: pages.call),
-        v,
-      );
-      expect(pages.calls, 1);
-      expect(await checkForUpdate(cache: cache, now: later, current: v, fetch: pages.call), isNull);
-      final tomorrow = now.add(const Duration(hours: 25));
-      await checkForUpdate(cache: cache, now: tomorrow, current: '0.2.0', fetch: pages.call);
-      expect(pages.calls, 2);
+  group('the check', () {
+    test('asks GitHub every time, so each start hears of a new release', () async {
+      final pages = Pages({latestReleaseUrl: release('0.2.0')});
+      expect(await checkForUpdate(current: '0.2.0', fetch: pages.call), isNull);
+      pages.pages[latestReleaseUrl] = release(v); // published a minute later
+      expect(await checkForUpdate(current: '0.2.0', fetch: pages.call), v);
+      expect(await checkForUpdate(current: v, fetch: pages.call), isNull);
+      expect(pages.calls, 3);
     });
 
-    test('a forced check skips the cache and reports when it cannot ask', () async {
-      final pages = Pages({latestReleaseUrl: release('0.2.0')});
-      await checkForUpdate(cache: cache, now: now, current: '0.2.0', fetch: pages.call);
-      pages.pages[latestReleaseUrl] = release(v); // published after today's check
-      final later = now.add(const Duration(hours: 1));
-      expect(
-        await checkForUpdate(cache: cache, now: later, current: '0.2.0', fetch: pages.call),
-        isNull, // the cached answer
-      );
-      expect(
-        await checkForUpdate(
-          cache: cache,
-          now: later,
-          current: '0.2.0',
-          fetch: pages.call,
-          force: true,
-        ),
-        v,
-      );
+    test('offline or a garbled answer is silent, unless forced', () async {
+      expect(await checkForUpdate(current: '0.2.0', fetch: Pages({}).call), isNull);
+      final garbled = Pages({latestReleaseUrl: utf8.encode('<html>')});
+      expect(await checkForUpdate(current: '0.2.0', fetch: garbled.call), isNull);
       await expectLater(
-        checkForUpdate(
-          cache: cache,
-          now: later,
-          current: '0.2.0',
-          fetch: Pages({}).call,
-          force: true,
-        ),
+        checkForUpdate(current: '0.2.0', fetch: Pages({}).call, force: true),
         throwsA(isA<UpdateFailed>()),
       );
-    });
-
-    test('offline, garbled answers and a damaged cache are silent', () async {
-      expect(
-        await checkForUpdate(cache: cache, now: now, current: '0.2.0', fetch: Pages({}).call),
-        isNull,
-      );
-      final garbled = Pages({latestReleaseUrl: utf8.encode('<html>')});
-      expect(
-        await checkForUpdate(cache: cache, now: now, current: '0.2.0', fetch: garbled.call),
-        isNull,
-      );
-      write(cache.path, '{not json');
-      final pages = Pages({latestReleaseUrl: release(v)});
-      expect(await checkForUpdate(cache: cache, now: now, current: '0.2.0', fetch: pages.call), v);
-    });
-
-    test('a cache that cannot be written only means checking again', () async {
-      Directory(cache.path).createSync(recursive: true); // a folder where the file should go
-      final pages = Pages({latestReleaseUrl: release(v)});
-      expect(await checkForUpdate(cache: cache, now: now, current: '0.2.0', fetch: pages.call), v);
     });
   });
 

@@ -1,6 +1,6 @@
 /// Update check and self-update of the desktop app against GitHub Releases.
 ///
-/// Port of the CLI's updater: at most one check a day (silent when offline),
+/// Port of the CLI's updater: a check at every start (silent when offline),
 /// and an update is installed only when its SHA-256 matches the `.sha256`
 /// published with the release (this catches corrupt or partial downloads; it is
 /// not a signature). On Windows the release's setup runs silently into this
@@ -111,40 +111,18 @@ Future<({String version, Map<String, String> assets})> latestRelease(Fetch fetch
 }
 
 /// The newest version when it is newer than [current], else null. Asks GitHub
-/// at most once a day; offline or a garbled answer is silent. [force] asks now,
-/// whatever the cache says, and throws when it cannot ask.
+/// every time (each start); offline or a garbled answer is silent unless [force].
 Future<String?> checkForUpdate({
-  required File cache,
-  required DateTime now,
   required String current,
   required Fetch fetch,
   bool force = false,
 }) async {
-  String? version;
-  if (!force) {
-    try {
-      final saved = jsonDecode(cache.readAsStringSync()) as Map<String, Object?>;
-      final checked = DateTime.parse(saved['checked_at']! as String);
-      if (now.difference(checked) < const Duration(days: 1)) version = saved['version']! as String;
-    } on Object {
-      version = null; // no cache yet, or a damaged one: ask again
-    }
-  }
-  if (version == null) {
-    try {
-      version = (await latestRelease(fetch)).version;
-    } on Object {
-      if (force) rethrow;
-      return null; // offline or a garbled answer: try again next start
-    }
-    try {
-      cache.parent.createSync(recursive: true);
-      cache.writeAsStringSync(
-        jsonEncode({'version': version, 'checked_at': now.toUtc().toIso8601String()}),
-      );
-    } on FileSystemException {
-      // a read-only state folder: the check just repeats next start
-    }
+  final String version;
+  try {
+    version = (await latestRelease(fetch)).version;
+  } on Object {
+    if (force) rethrow;
+    return null; // offline or a garbled answer: try again next start
   }
   return isNewer(version, current) ? version : null;
 }

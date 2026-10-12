@@ -63,7 +63,7 @@ App (`apps/notelore/lib/`):
 - `src/session.dart`: what the screens share: provider and key, agent, conversation, notes, Drive sync (one queue for chat turns and syncs).
 - `src/drive_auth.dart`: google_sign_in on phones, the loopback flow on the desktop.
 - `src/voice.dart`: voice mode and the device recognizer; `src/whisper_speech.dart`, `whisper_model.dart`, `whisper_native.dart`: on-device Whisper (sherpa-onnx), its download, and the native glue.
-- `src/update.dart`: daily update check and checksum-verified self-update of the desktop app.
+- `src/update.dart`: update check at every start and checksum-verified self-update of the desktop app.
 - `src/app.dart`, `setup.dart`, `chat.dart`, `notes.dart`, `settings.dart`: the screens.
 
 Dependencies point one way: the app imports the core, the core never imports Flutter or the app.
