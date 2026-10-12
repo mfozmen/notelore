@@ -370,6 +370,24 @@ void main() {
     expect(find.text('Change model'), findsNothing);
   });
 
+  testWidgets('notes: the archived notice goes away by itself', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Delete').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('Moved "Kitaplar" to the archive.'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 7));
+    await tester.pumpAndSettle();
+    expect(find.text('Moved "Kitaplar" to the archive.'), findsNothing);
+  });
+
   testWidgets('notes: delete from the list or the reader, with undo', (tester) async {
     phone(tester);
     final harness = Harness();
@@ -400,6 +418,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Kitaplar'), findsNothing);
     expect(find.text('Moved "Kitaplar" to the archive.'), findsOneWidget);
+    expect(find.byIcon(Icons.close), findsOneWidget); // a close button too
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(find.text('Kitaplar'), findsOneWidget);
