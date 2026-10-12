@@ -162,15 +162,15 @@ void main() {
           'notes': [2],
         },
       }),
-      {'archived_to': '_archive/2026-09-30/projects/mopsos.md'},
+      {'archived_to': '_archive/2026-09-30/entries/projects/mopsos.md'},
     );
     expect(call('read_note', {'slug': 'mopsos'}), isNot(contains('old')));
     expect(call('archive', {'slug': 'mopsos'}), {
-      'archived_to': '_archive/2026-09-30/projects/mopsos-2.md',
+      'archived_to': '_archive/2026-09-30/projects/mopsos.md',
     });
     expect(call('list_notes'), isEmpty);
     expect(
-      File(p.join(box.root, '_archive', '2026-09-30', 'projects', 'mopsos-2.md')).existsSync(),
+      File(p.join(box.root, '_archive', '2026-09-30', 'projects', 'mopsos.md')).existsSync(),
       isTrue,
     );
   });
