@@ -22,7 +22,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _message = TextEditingController();
   final _modelMenu = GlobalKey<PopupMenuButtonState<String>>();
 
-  /// Voice mode; the chat always opens in text mode.
+  /// Push to talk, beside the message box.
   late final _voice = VoiceMode(widget.session, voice: widget.session.voice);
 
   @override
@@ -37,13 +37,13 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _send() async {
     final text = _message.text;
     _message.clear();
-    if (_voice.on) return _voice.type(text); // sent by the voice loop, answered aloud
     await widget.session.send(text);
   }
 
-  Future<void> _talk() async {
+  /// The talk button went down: one push-to-talk turn.
+  Future<void> _hold() async {
     final messenger = ScaffoldMessenger.of(context);
-    await _voice.start();
+    await _voice.press();
     if (_voice.problem case final problem?) {
       messenger
         ..hideCurrentSnackBar()
@@ -183,26 +183,42 @@ class _ChatScreenState extends State<ChatScreen> {
                         minLines: 1,
                         maxLines: 5,
                         textInputAction: TextInputAction.send,
-                        // Typing in voice mode quiets the voice; the text is still sent.
+                        // Typing quiets an answer read aloud.
                         onChanged: (text) {
-                          if (_voice.on && text.isNotEmpty) _voice.hush();
+                          if (_voice.state == VoiceState.speaking && text.isNotEmpty) {
+                            _voice.hush();
+                          }
                         },
                         onSubmitted: (_) => _send(),
                         decoration: InputDecoration(hintText: s.message),
                       ),
                     ),
-                    if (_voice.on)
-                      IconButton.filled(
-                        tooltip: s.backToTyping,
-                        icon: const Icon(Icons.graphic_eq),
-                        onPressed: _voice.end,
-                      )
-                    else
+                    if (_voice.state == VoiceState.speaking)
                       IconButton(
-                        tooltip: s.talk,
-                        icon: const Icon(Icons.graphic_eq),
-                        onPressed: session.busy ? null : _talk,
+                        tooltip: s.stopReading,
+                        icon: const Icon(Icons.volume_off_outlined),
+                        onPressed: _voice.end,
                       ),
+                    // Push to talk: held, it listens; let go, what was said is sent.
+                    Listener(
+                      onPointerDown: session.busy ? null : (_) => _hold(),
+                      onPointerUp: (_) => _voice.release(),
+                      onPointerCancel: (_) => _voice.release(),
+                      child: IconButton(
+                        tooltip: s.talk,
+                        isSelected: _voice.state == VoiceState.listening,
+                        icon: const Icon(Icons.mic_none),
+                        selectedIcon: const Icon(Icons.mic),
+                        // Filled while held; the Listener does the work.
+                        style: _voice.state == VoiceState.listening
+                            ? IconButton.styleFrom(
+                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                              )
+                            : null,
+                        onPressed: session.busy ? null : () {},
+                      ),
+                    ),
                     if (session.busy)
                       IconButton(
                         tooltip: s.stop,

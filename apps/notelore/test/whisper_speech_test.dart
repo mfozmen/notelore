@@ -24,43 +24,15 @@ class FakeMicrophone implements Microphone {
   Future<void> stop() async => stopped++;
 }
 
-/// Ends a phrase after [after] windows, returning everything it was fed.
-class FakeDetector implements PhraseDetector {
-  FakeDetector({this.after = 2});
-
-  final int after;
-  @override
-  var speaking = false;
-  final fed = <double>[];
-  var windows = 0;
-  var resets = 0;
-
-  @override
-  int get window => 4;
-
-  @override
-  Float32List? accept(Float32List samples) {
-    fed.addAll(samples);
-    windows++;
-    return windows == after ? Float32List.fromList(fed) : null;
-  }
-
-  @override
-  void reset() {
-    resets++;
-    windows = 0; // what was fed stays, for the test to read
-  }
-}
-
 class FakeTranscriber implements Transcriber {
   FakeTranscriber(this.text);
 
   final String text;
-  final heard = <(int, String)>[];
+  final heard = <(List<double>, String)>[];
 
   @override
   Future<String> transcribe(Float32List samples, String language) async {
-    heard.add((samples.length, language));
+    heard.add((samples.toList(), language));
     return text;
   }
 }
@@ -75,102 +47,70 @@ Uint8List pcm(List<int> values) {
 }
 
 void main() {
-  autoGainTests();
-  test('a phrase: windows fed to the detector, then transcribed in the language', () async {
+  test('push to talk: everything recorded until finish is transcribed in the language', () async {
     final mic = FakeMicrophone();
-    final detector = FakeDetector();
     final transcriber = FakeTranscriber(' Bugün kitap okudum. ');
-    final speech = WhisperSpeech(microphone: mic, detector: detector, transcriber: transcriber);
+    final speech = WhisperSpeech(microphone: mic, transcriber: transcriber);
     final heard = speech.listen('tr');
     await pumpEventQueue();
     mic.chunks
-      ..add(pcm([16384, -16384, 0])) // half a window: waits for more
-      ..add(pcm([32767, 0, 0, 0, 0]));
+      ..add(pcm([16384, -16384]))
+      ..add(pcm([0, 32767, 1]).sublist(0, 5)); // half a sample at the end is dropped
+    await pumpEventQueue();
+    await speech.finish();
     expect(await heard, 'Bugün kitap okudum.');
-    expect(transcriber.heard, [(8, 'tr')]);
-    expect(detector.fed.take(2), [0.5, -0.5]); // 16-bit samples as -1..1
+    expect(transcriber.heard.single.$1, [0.5, -0.5, 0, 32767 / 32768]); // 16-bit as -1..1
+    expect(transcriber.heard.single.$2, 'tr');
     expect(mic.stopped, 1);
-    expect(detector.resets, 1);
   });
 
-  test('silence for too long ends with nothing; a cancel too', () async {
+  test('a cancel, nothing recorded, or nothing understood is no phrase', () async {
     final mic = FakeMicrophone();
-    final speech = WhisperSpeech(
-      microphone: mic,
-      detector: FakeDetector(after: 100),
-      transcriber: FakeTranscriber('x'),
-      silence: const Duration(milliseconds: 20),
-    );
-    expect(await speech.listen('en'), isNull);
+    final transcriber = FakeTranscriber('  ');
+    final speech = WhisperSpeech(microphone: mic, transcriber: transcriber);
     final cancelled = speech.listen('en');
     await pumpEventQueue();
+    mic.chunks.add(pcm([1, 2]));
     await speech.cancel();
     expect(await cancelled, isNull);
-    expect(mic.stopped, 2);
+
+    final empty = speech.listen('en');
+    await pumpEventQueue();
+    await speech.finish(); // released at once: nothing was said
+    expect(await empty, isNull);
+
+    final mumbled = speech.listen('en');
+    await pumpEventQueue();
+    mic.chunks.add(pcm([1, 2]));
+    await pumpEventQueue();
+    await speech.finish();
+    expect(await mumbled, isNull);
+    expect(transcriber.heard, hasLength(1)); // only the mumble reached Whisper
     await speech.cancel(); // nothing running: nothing happens
   });
 
-  test('a long phrase is not cut off by the silence timeout', () async {
+  test('a button held too long ends the recording by itself', () async {
     final mic = FakeMicrophone();
     final speech = WhisperSpeech(
       microphone: mic,
-      detector: FakeDetector(after: 3)..speaking = true,
-      transcriber: FakeTranscriber('a long story'),
-      silence: const Duration(milliseconds: 30),
-    );
-    final heard = speech.listen('en');
-    for (var i = 0; i < 3; i++) {
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-      mic.chunks.add(pcm([1, 2, 3, 4]));
-    }
-    expect(await heard, 'a long story');
-  });
-
-  test('an empty transcription is silence; a microphone that fails says so', () async {
-    final mic = FakeMicrophone();
-    final speech = WhisperSpeech(
-      microphone: mic,
-      detector: FakeDetector(after: 1),
-      transcriber: FakeTranscriber('  '),
+      transcriber: FakeTranscriber('long'),
+      longest: const Duration(milliseconds: 20),
     );
     final heard = speech.listen('en');
     await pumpEventQueue();
-    mic.chunks.add(pcm([1, 2, 3, 4]));
-    expect(await heard, isNull);
+    mic.chunks.add(pcm([1]));
+    expect(await heard, 'long');
+  });
 
+  test('a microphone that fails says so', () async {
     final broken = FakeMicrophone();
-    final failing = WhisperSpeech(
-      microphone: broken,
-      detector: FakeDetector(),
-      transcriber: FakeTranscriber('x'),
-    );
-    final failed = failing.listen('en');
+    final speech = WhisperSpeech(microphone: broken, transcriber: FakeTranscriber('x'));
+    final failed = speech.listen('en');
     await pumpEventQueue();
     broken.chunks.addError(Exception('device lost'));
     await expectLater(failed, throwsA(isA<ListenFailed>()));
 
     broken.refuse = const VoiceUnavailable();
-    await expectLater(failing.listen('en'), throwsA(isA<VoiceUnavailable>()));
-  });
-}
-
-void autoGainTests() {
-  test('quiet speech is raised to a level the detector hears; loud speech is left alone', () {
-    final gain = AutoGain();
-    // A quiet microphone: speech peaks at 1% of full scale.
-    final quiet = gain.apply(Float32List.fromList([0.01, -0.005, 0.0]));
-    expect(quiet[0], closeTo(0.2, 1e-6)); // at most 20 times louder
-    expect(quiet[1], closeTo(-0.1, 1e-6));
-    final loud = AutoGain().apply(Float32List.fromList([0.8, -0.4]));
-    expect(loud, [closeTo(0.8, 1e-6), closeTo(-0.4, 1e-6)]); // never quieter than it came
-    // Half full scale is the aim: a 10% peak is raised five times.
-    expect(AutoGain().apply(Float32List.fromList([0.1]))[0], closeTo(0.5, 1e-6));
-  });
-
-  test('the gain follows the recent peak, which fades slowly', () {
-    final gain = AutoGain();
-    gain.apply(Float32List.fromList([0.25])); // gain 2
-    // Right after, a quiet window keeps nearly the same gain: no pumping between words.
-    expect(gain.apply(Float32List.fromList([0.01]))[0], closeTo(0.02, 0.001));
+    await expectLater(speech.listen('en'), throwsA(isA<VoiceUnavailable>()));
   });
 }

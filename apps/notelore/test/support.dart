@@ -258,9 +258,11 @@ class FakeLauncher extends UrlLauncherPlatform with MockPlatformInterfaceMixin {
 class FakeSpeech implements Speech {
   FakeSpeech(this.phrases);
 
+  /// What each let-go hands back, in order (null: nothing was said).
   final List<String?> phrases;
   final languages = <String>[];
   var cancels = 0;
+  var finishes = 0;
   Completer<String?>? _waiting;
   Object? failure;
 
@@ -268,8 +270,14 @@ class FakeSpeech implements Speech {
   Future<String?> listen(String language) {
     languages.add(language);
     if (failure case final error?) return Future.error(error);
-    if (phrases.isNotEmpty) return Future.value(phrases.removeAt(0));
     return (_waiting = Completer<String?>()).future;
+  }
+
+  @override
+  Future<void> finish() async {
+    finishes++;
+    _waiting?.complete(phrases.isEmpty ? null : phrases.removeAt(0));
+    _waiting = null;
   }
 
   @override
@@ -284,8 +292,14 @@ class FakeVoice implements Voice {
   final spoken = <(String, String)>[];
   var stops = 0;
 
+  /// While set, speaking lasts until it completes (or [stop]).
+  Completer<void>? holding;
+
   @override
-  Future<void> speak(String text, String language) async => spoken.add((text, language));
+  Future<void> speak(String text, String language) async {
+    spoken.add((text, language));
+    await holding?.future;
+  }
 
   @override
   Future<void> stop() async => stops++;

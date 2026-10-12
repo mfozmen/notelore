@@ -1,5 +1,5 @@
-/// The device side of on-device speech: the microphone (record), the Silero
-/// voice-activity detector and Whisper (sherpa-onnx, native code over FFI).
+/// The device side of on-device speech: the microphone (record) and Whisper
+/// (sherpa-onnx, native code over FFI).
 ///
 /// These run only on a device: `flutter test` cannot load the native
 /// libraries, so the bodies are left out of the coverage gate, and kept thin.
@@ -21,11 +21,8 @@ import 'whisper_speech.dart';
 const _rate = 16000;
 
 /// Whisper speech over a downloaded [model].
-Speech nativeWhisper(WhisperModel model, String? Function() device) => WhisperSpeech(
-  microphone: RecordMicrophone(device),
-  detector: SileroDetector(model),
-  transcriber: IsolateTranscriber(model),
-);
+Speech nativeWhisper(WhisperModel model, String? Function() device) =>
+    WhisperSpeech(microphone: RecordMicrophone(device), transcriber: IsolateTranscriber(model));
 
 /// The microphones the device lists.
 Future<List<MicrophoneChoice>> nativeMicrophones() async {
@@ -68,45 +65,6 @@ class RecordMicrophone implements Microphone {
   Future<void> stop() async {
     await _recorder.stop();
   }
-}
-
-/// Silero VAD: a phrase ends after 0.8 s of silence (or 30 s of speech).
-class SileroDetector implements PhraseDetector {
-  SileroDetector(this.model);
-
-  final WhisperModel model;
-  sherpa.VoiceActivityDetector? _vad;
-
-  @override
-  int get window => 512; // what Silero takes per call
-
-  @override
-  Float32List? accept(Float32List samples) {
-    if (_vad == null) sherpa.initBindings(); // once per isolate; the transcriber has its own
-    final vad = _vad ??= sherpa.VoiceActivityDetector(
-      config: sherpa.VadModelConfig(
-        sileroVad: sherpa.SileroVadModelConfig(
-          model: model.path('silero_vad.onnx'),
-          minSilenceDuration: 0.8,
-          maxSpeechDuration: 30,
-        ),
-        sampleRate: _rate,
-        debug: false,
-      ),
-      bufferSizeInSeconds: 60,
-    );
-    vad.acceptWaveform(samples);
-    if (vad.isEmpty()) return null;
-    final phrase = vad.front().samples;
-    vad.pop();
-    return phrase;
-  }
-
-  @override
-  bool get speaking => _vad?.isDetected() ?? false;
-
-  @override
-  void reset() => _vad?.reset();
 }
 
 /// Whisper in a background isolate, so the screen never waits on it. The

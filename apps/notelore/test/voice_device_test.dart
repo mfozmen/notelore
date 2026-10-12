@@ -86,6 +86,18 @@ void main() {
     expect(await heard, 'bugün kitap okudum');
   });
 
+  test('let go: the words heard so far are the phrase, or nothing', () async {
+    final heard = speech.listen('tr');
+    await pumpEventQueue();
+    platform.hear('yarım bir cümle', type: 1);
+    await speech.finish();
+    expect(await heard, 'yarım bir cümle');
+    final none = speech.listen('tr');
+    await pumpEventQueue();
+    await speech.finish();
+    expect(await none, isNull);
+  });
+
   test('silence, an error and a cancel end the listening without a phrase', () async {
     final silent = speech.listen('en');
     await pumpEventQueue();

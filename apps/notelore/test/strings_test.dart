@@ -93,7 +93,7 @@ void main() {
       'modelGone': s.modelGone('P', 'm'),
       'thinking': s.thinking('x', 3),
       'talk': s.talk,
-      'backToTyping': s.backToTyping,
+      'stopReading': s.stopReading,
       'listening': s.listening,
       'speaking': s.speaking,
       'voiceUnavailable': s.voiceUnavailable,
