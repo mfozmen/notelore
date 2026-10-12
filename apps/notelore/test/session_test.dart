@@ -290,6 +290,38 @@ void main() {
     expect(session.busy, isFalse);
   });
 
+  test('a turn that fails after taking a message: that message still goes out', () async {
+    final first = Completer<AgentResponse>();
+    final harness = Harness(
+      answers: [first.future, const NetworkError('offline'), 'Yazarı Can Dündar.'],
+    );
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    var busyFlips = 0;
+    var wasBusy = true;
+    session.addListener(() {
+      if (session.busy != wasBusy) busyFlips++;
+      wasBusy = session.busy;
+    });
+    final turn = session.send('ne okuyorum?');
+    await Future<void>.delayed(Duration.zero);
+    await session.send('yazarı kim?');
+    first.complete(
+      const AgentResponse([
+        {'type': 'tool_use', 'id': 't1', 'name': 'list_notes', 'input': <String, Object?>{}},
+      ], 'tool_use'), // the turn takes "yazarı kim?" here, then fails
+    );
+    await turn;
+    expect(harness.provider.asked.last, 'yazarı kim?'); // sent again, on its own
+    expect(session.transcript.map((l) => l.role), [
+      ChatRole.user,
+      ChatRole.user,
+      ChatRole.error,
+      ChatRole.assistant,
+    ]);
+    expect(busyFlips, 1); // busy the whole time, off once at the end
+  });
+
   test('a turn says what it is doing and can be stopped', () async {
     final harness = Harness(answers: [Completer<AgentResponse>().future]);
     final session = harness.session();
