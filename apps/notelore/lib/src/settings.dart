@@ -30,7 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   var _section = 0;
 
   /// The device's microphones, listed once per visit.
-  late final _microphones = widget.session.listMicrophones();
+  late var _microphones = widget.session.listMicrophones();
 
   @override
   void dispose() {
@@ -281,14 +281,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         return ListTile(
                           leading: const Icon(Icons.mic_none),
                           title: Text(s.microphone),
-                          trailing: DropdownButton<String?>(
-                            value: chosen,
-                            underline: const SizedBox.shrink(),
-                            onChanged: session.setMicrophone,
-                            items: [
-                              DropdownMenuItem(child: Text(s.systemMicrophone)),
-                              for (final m in microphones)
-                                DropdownMenuItem(value: m.id, child: Text(m.label)),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              DropdownButton<String?>(
+                                value: chosen,
+                                underline: const SizedBox.shrink(),
+                                onChanged: session.setMicrophone,
+                                items: [
+                                  DropdownMenuItem(child: Text(s.systemMicrophone)),
+                                  for (final m in microphones)
+                                    DropdownMenuItem(value: m.id, child: Text(m.label)),
+                                ],
+                              ),
+                              // One plugged in since Settings opened.
+                              IconButton(
+                                tooltip: s.listMicrophones,
+                                icon: const Icon(Icons.refresh),
+                                onPressed: () => setState(() {
+                                  _microphones = session.listMicrophones();
+                                }),
+                              ),
                             ],
                           ),
                         );

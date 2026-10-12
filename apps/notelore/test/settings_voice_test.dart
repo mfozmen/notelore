@@ -31,7 +31,7 @@ void main() {
     phone(tester);
     final harness = Harness()
       ..modelPage = 'whisper bytes'
-      ..microphones = [(id: 'usb', label: 'USB mic')];
+      ..microphones = [];
     final session = await pumpApp(tester, harness); // opening the app starts the download
     await connect(tester, key: 'k');
     await openVoice(tester);
@@ -39,6 +39,10 @@ void main() {
     await settle(tester, session);
     expect(session.whisper.ready, isTrue);
     expect(find.text('Download Whisper'), findsNothing);
+    // A headset plugged in while Settings is open: listed again on request.
+    harness.microphones = [(id: 'usb', label: 'USB mic')];
+    await tester.tap(find.byTooltip('List the microphones again'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('System default'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('USB mic').last);

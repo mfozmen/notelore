@@ -8,8 +8,8 @@ library;
 
 import 'dart:async';
 import 'dart:isolate';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:record/record.dart';
 import 'package:sherpa_onnx/sherpa_onnx.dart' as sherpa;
 
@@ -32,7 +32,8 @@ Future<List<MicrophoneChoice>> nativeMicrophones() async {
   final recorder = AudioRecorder();
   try {
     return [for (final d in await recorder.listInputDevices()) (id: d.id, label: d.label)];
-  } on Exception {
+  } on Exception catch (error) {
+    debugPrint('notelore voice: no microphones listed: $error');
     return const []; // none listed: the system default only
   } finally {
     unawaited(recorder.dispose());
