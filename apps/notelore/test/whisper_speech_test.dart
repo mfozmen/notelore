@@ -29,6 +29,8 @@ class FakeDetector implements PhraseDetector {
   FakeDetector({this.after = 2});
 
   final int after;
+  @override
+  var speaking = false;
   final fed = <double>[];
   var windows = 0;
   var resets = 0;
@@ -105,6 +107,22 @@ void main() {
     expect(await cancelled, isNull);
     expect(mic.stopped, 2);
     await speech.cancel(); // nothing running: nothing happens
+  });
+
+  test('a long phrase is not cut off by the silence timeout', () async {
+    final mic = FakeMicrophone();
+    final speech = WhisperSpeech(
+      microphone: mic,
+      detector: FakeDetector(after: 3)..speaking = true,
+      transcriber: FakeTranscriber('a long story'),
+      silence: const Duration(milliseconds: 30),
+    );
+    final heard = speech.listen('en');
+    for (var i = 0; i < 3; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      mic.chunks.add(pcm([1, 2, 3, 4]));
+    }
+    expect(await heard, 'a long story');
   });
 
   test('an empty transcription is silence; a microphone that fails says so', () async {
