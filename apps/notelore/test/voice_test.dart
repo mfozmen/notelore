@@ -156,4 +156,24 @@ void main() {
       expect(harness.whisper.finishes, 0);
     },
   );
+
+  test('a turn overtaken by a new press keeps its failure to itself', () async {
+    final speaking = Completer<void>();
+    final (session, mode, speech, voice) = await setUpVoice(['bir'], ['Bir.']);
+    voice.holding = speaking;
+    final first = mode.press();
+    await pumpEventQueue();
+    mode.release();
+    await pumpEventQueue();
+    expect(mode.state, VoiceState.speaking);
+    voice.holding = null;
+    final second = mode.press(); // overtakes the first while it speaks
+    await pumpEventQueue();
+    speaking.completeError(Exception('the voice broke')); // the first turn fails late
+    await first;
+    expect(mode.problem, isNull);
+    expect(mode.state, VoiceState.listening); // the second turn goes on
+    mode.end();
+    await second;
+  });
 }

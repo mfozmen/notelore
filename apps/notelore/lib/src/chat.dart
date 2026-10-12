@@ -40,6 +40,12 @@ class _ChatScreenState extends State<ChatScreen> {
     await widget.session.send(text);
   }
 
+  /// When the talk button last went down (the pointer's own clock).
+  var _down = Duration.zero;
+
+  /// The last press was a plain click: show how talking works.
+  var _holdHint = false;
+
   /// The talk button went down: one push-to-talk turn.
   Future<void> _hold() async {
     final messenger = ScaffoldMessenger.of(context);
@@ -153,24 +159,17 @@ class _ChatScreenState extends State<ChatScreen> {
           builder: (context, _) => Column(
             children: [
               if (_voice.state case VoiceState.listening || VoiceState.speaking)
-                Padding(
-                  padding: const EdgeInsets.only(top: Gap.s),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        _voice.state == VoiceState.listening ? Icons.mic : Icons.volume_up,
-                        size: 18,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(width: Gap.s),
-                      Text(
-                        _voice.state == VoiceState.listening ? s.listening : s.speaking,
-                        key: const Key('voice-state'),
-                      ),
-                    ],
+                _status(
+                  context,
+                  _voice.state == VoiceState.listening ? Icons.mic : Icons.volume_up,
+                  Text(
+                    _voice.state == VoiceState.listening ? s.listening : s.speaking,
+                    key: const Key('voice-state'),
                   ),
-                ),
+                )
+              // Above the button, not over it: a plain click learns to hold.
+              else if (_holdHint)
+                _status(context, Icons.touch_app_outlined, Text(s.holdHint)),
               Padding(
                 padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.s, Gap.s),
                 child: Row(
@@ -201,8 +200,20 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     // Push to talk: held, it listens; let go, what was said is sent.
                     Listener(
-                      onPointerDown: session.busy ? null : (_) => _hold(),
-                      onPointerUp: (_) => _voice.release(),
+                      onPointerDown: session.busy
+                          ? null
+                          : (down) {
+                              _down = down.timeStamp;
+                              setState(() => _holdHint = false);
+                              _hold();
+                            },
+                      onPointerUp: (up) {
+                        _voice.release();
+                        // A plain click records nothing: say how it works.
+                        if (up.timeStamp - _down < const Duration(milliseconds: 300)) {
+                          setState(() => _holdHint = true);
+                        }
+                      },
                       onPointerCancel: (_) => _voice.release(),
                       child: IconButton(
                         tooltip: s.talk,
@@ -240,6 +251,19 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 }
+
+/// A line above the message box: what voice is doing, or how to use it.
+Widget _status(BuildContext context, IconData icon, Widget text) => Padding(
+  padding: const EdgeInsets.only(top: Gap.s),
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+      const SizedBox(width: Gap.s),
+      Flexible(child: text), // wraps on a narrow phone
+    ],
+  ),
+);
 
 /// The assistant's turn while it runs: what it is doing and for how long.
 class _Thinking extends StatefulWidget {

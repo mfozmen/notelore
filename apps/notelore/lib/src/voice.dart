@@ -89,6 +89,7 @@ class VoiceMode extends ChangeNotifier {
     if (state case VoiceState.listening || VoiceState.thinking) return;
     final turn = ++_turn;
     problem = null;
+    String? failed;
     unawaited(voice.stop());
     _set(VoiceState.listening);
     try {
@@ -105,13 +106,15 @@ class VoiceMode extends ChangeNotifier {
         await voice.speak(spoken(last.text), session.strings.languageCode);
       } // an error stays on screen, unspoken
     } on VoiceUnavailable {
-      problem = session.strings.voiceUnavailable;
+      failed = session.strings.voiceUnavailable;
     } on ListenFailed catch (error) {
-      problem = session.strings.speechFailed(error.message);
+      failed = session.strings.speechFailed(error.message);
     } on Exception catch (error) {
-      problem = '$error';
+      failed = '$error';
     }
-    if (turn == _turn) _set(VoiceState.off);
+    if (turn != _turn) return; // ended or overtaken: its failure is its own
+    problem = failed;
+    _set(VoiceState.off);
   }
 
   /// The button came up: what was said is the phrase.

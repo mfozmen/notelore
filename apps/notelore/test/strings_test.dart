@@ -94,6 +94,7 @@ void main() {
       'thinking': s.thinking('x', 3),
       'talk': s.talk,
       'stopReading': s.stopReading,
+      'holdHint': s.holdHint,
       'listening': s.listening,
       'speaking': s.speaking,
       'voiceUnavailable': s.voiceUnavailable,
