@@ -95,11 +95,10 @@ class Session extends ChangeNotifier {
   late final Speech _device = _speech ?? DeviceSpeech();
   late final Voice voice = _voice ?? DeviceVoice();
 
-  /// What voice mode listens with: Whisper once downloaded (#168), unless
-  /// turned off; the device's recognizer otherwise.
-  Speech get speech => useWhisper && whisper.ready
-      ? _whisperSpeech ??= makeWhisper(whisper, () => microphone)
-      : _device;
+  /// What voice mode listens with: Whisper once downloaded (#168), the
+  /// device's recognizer until then.
+  Speech get speech =>
+      whisper.ready ? _whisperSpeech ??= makeWhisper(whisper, () => microphone) : _device;
   Speech? _whisperSpeech;
 
   /// On-device Whisper, downloaded on request into this device's state.
@@ -122,18 +121,11 @@ class Session extends ChangeNotifier {
     _saveUi();
   }
 
-  bool useWhisper = true;
-
   /// From 0 to 1 while Whisper downloads; null otherwise.
   double? whisperProgress;
 
   /// Why the last download failed.
   String? whisperProblem;
-
-  void setUseWhisper(bool on) {
-    useWhisper = on;
-    _saveUi();
-  }
 
   Future<void> downloadWhisper() async {
     if (whisperProgress != null) return;
@@ -231,7 +223,6 @@ class Session extends ChangeNotifier {
           'palette': palette.name,
           'appearance': appearance.name,
           'webSearch': webSearch,
-          'whisper': useWhisper,
           'microphone': ?microphone,
         }),
       );
@@ -248,7 +239,6 @@ class Session extends ChangeNotifier {
       palette = _named(Palette.values, saved['palette']) ?? Palette.lagoon;
       appearance = _named(Appearance.values, saved['appearance']) ?? Appearance.system;
       webSearch = saved['webSearch'] != false;
-      useWhisper = saved['whisper'] != false;
       microphone = switch (saved['microphone']) {
         final String id => id,
         _ => null,
@@ -329,6 +319,9 @@ class Session extends ChangeNotifier {
   /// connected (in the background: an offline start is fine).
   Future<void> load() async {
     _loadLanguage();
+    // Whisper comes by itself, in the background: not with the app, so that
+    // updates stay small.
+    if (!whisper.ready) unawaited(downloadWhisper());
     await _loadProvider();
     if (ready) unawaited(_refreshQuietly());
     driveConnected = await driveAuth?.signedIn() ?? false;

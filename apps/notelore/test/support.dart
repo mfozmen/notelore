@@ -101,7 +101,7 @@ class Harness {
   /// The microphones the device lists, and how Whisper asks which one is chosen.
   var microphones = <({String id, String label})>[];
   String? Function()? chosenMicrophone;
-  String? modelPage = 'whisper bytes';
+  String? modelPage; // not served unless a test sets it
   static final whisperFiles = [
     ModelFile(
       'w.onnx',

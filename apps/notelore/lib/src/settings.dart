@@ -266,12 +266,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: Text(s.whisper),
                     subtitle: Text(s.whisperExplained),
                   ),
-                  if (session.whisper.ready) ...[
-                    SwitchListTile(
-                      title: Text(s.useWhisper),
-                      value: session.useWhisper,
-                      onChanged: session.setUseWhisper,
-                    ),
+                  if (session.whisper.ready)
                     FutureBuilder(
                       future: _microphones,
                       builder: (context, listed) {
@@ -295,8 +290,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         );
                       },
-                    ),
-                  ] else if (progress != null)
+                    )
+                  else if (progress != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: Gap.m),
                       child: Column(
@@ -308,21 +303,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ],
                       ),
                     )
-                  else ...[
-                    if (session.whisperProblem case final problem?)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.s),
-                        child: Text(
-                          s.whisperFailed(problem),
-                          style: TextStyle(color: Theme.of(context).colorScheme.error),
-                        ),
+                  else if (session.whisperProblem case final problem?) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.s),
+                      child: Text(
+                        s.whisperFailed(problem),
+                        style: TextStyle(color: Theme.of(context).colorScheme.error),
                       ),
+                    ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: Gap.m),
                       child: OutlinedButton.icon(
-                        icon: const Icon(Icons.download),
+                        icon: const Icon(Icons.refresh),
                         onPressed: session.downloadWhisper,
-                        label: Text(s.downloadWhisper),
+                        label: Text(s.tryAgain),
                       ),
                     ),
                   ],

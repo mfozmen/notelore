@@ -98,10 +98,9 @@ abstract class Strings {
   String get webSearchUnavailable;
   String get whisper;
   String get whisperExplained;
-  String get downloadWhisper;
+  String get tryAgain;
   String whisperDownloading(int percent);
   String whisperFailed(String why);
-  String get useWhisper;
   String get microphone;
   String get systemMicrophone;
   String paletteName(Palette palette);
@@ -292,15 +291,14 @@ class EnglishStrings extends Strings {
   String get whisper => 'Whisper speech recognition';
   @override
   String get whisperExplained =>
-      'Hears you on this device, offline, in any language. A one-time download of about 375 MB.';
+      'Hears you on this device, offline, in any language. Notelore downloads it once by '
+      "itself (about 375 MB); until then voice mode uses the device's recognizer.";
   @override
-  String get downloadWhisper => 'Download Whisper';
+  String get tryAgain => 'Try again';
   @override
   String whisperDownloading(int percent) => 'Downloading… $percent%';
   @override
   String whisperFailed(String why) => 'The download failed: $why';
-  @override
-  String get useWhisper => 'Use Whisper in voice mode';
   @override
   String get microphone => 'Microphone';
   @override
@@ -588,15 +586,14 @@ class TurkishStrings extends Strings {
   String get whisper => 'Whisper ses tanıma';
   @override
   String get whisperExplained =>
-      'Seni bu cihazda, internetsiz ve her dilde duyar. Bir kerelik yaklaşık 375 MB indirme.';
+      'Seni bu cihazda, internetsiz ve her dilde duyar. Notelore onu bir kez kendisi indirir '
+      '(yaklaşık 375 MB); o zamana kadar sesli mod cihazın ses tanımasını kullanır.';
   @override
-  String get downloadWhisper => "Whisper'ı indir";
+  String get tryAgain => 'Tekrar dene';
   @override
   String whisperDownloading(int percent) => 'İndiriliyor… %$percent';
   @override
   String whisperFailed(String why) => 'İndirme başarısız oldu: $why';
-  @override
-  String get useWhisper => 'Sesli modda Whisper kullan';
   @override
   String get microphone => 'Mikrofon';
   @override

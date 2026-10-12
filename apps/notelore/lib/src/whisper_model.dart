@@ -94,15 +94,16 @@ class WhisperModel {
         onProgress(done / bytes);
         continue;
       }
+      final answer = await client.send(http.Request('GET', Uri.parse(file.url)));
+      if (answer.statusCode != 200) {
+        throw ModelDownloadFailed('${file.name}: HTTP ${answer.statusCode}');
+      }
+      // Opened only once the server answers: a refused download leaves no file.
       final part = File('${path(file.name)}.part');
       final sink = part.openWrite();
       final hash = _Digest();
       final hashing = sha256.startChunkedConversion(hash);
       try {
-        final answer = await client.send(http.Request('GET', Uri.parse(file.url)));
-        if (answer.statusCode != 200) {
-          throw ModelDownloadFailed('${file.name}: HTTP ${answer.statusCode}');
-        }
         await for (final chunk in answer.stream) {
           sink.add(chunk);
           hashing.add(chunk);
