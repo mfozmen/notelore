@@ -75,6 +75,7 @@ Uint8List pcm(List<int> values) {
 }
 
 void main() {
+  autoGainTests();
   test('a phrase: windows fed to the detector, then transcribed in the language', () async {
     final mic = FakeMicrophone();
     final detector = FakeDetector();
@@ -150,5 +151,26 @@ void main() {
 
     broken.refuse = const VoiceUnavailable();
     await expectLater(failing.listen('en'), throwsA(isA<VoiceUnavailable>()));
+  });
+}
+
+void autoGainTests() {
+  test('quiet speech is raised to a level the detector hears; loud speech is left alone', () {
+    final gain = AutoGain();
+    // A quiet microphone: speech peaks at 1% of full scale.
+    final quiet = gain.apply(Float32List.fromList([0.01, -0.005, 0.0]));
+    expect(quiet[0], closeTo(0.2, 1e-6)); // at most 20 times louder
+    expect(quiet[1], closeTo(-0.1, 1e-6));
+    final loud = AutoGain().apply(Float32List.fromList([0.8, -0.4]));
+    expect(loud, [closeTo(0.8, 1e-6), closeTo(-0.4, 1e-6)]); // never quieter than it came
+    // Half full scale is the aim: a 10% peak is raised five times.
+    expect(AutoGain().apply(Float32List.fromList([0.1]))[0], closeTo(0.5, 1e-6));
+  });
+
+  test('the gain follows the recent peak, which fades slowly', () {
+    final gain = AutoGain();
+    gain.apply(Float32List.fromList([0.25])); // gain 2
+    // Right after, a quiet window keeps nearly the same gain: no pumping between words.
+    expect(gain.apply(Float32List.fromList([0.01]))[0], closeTo(0.02, 0.001));
   });
 }
