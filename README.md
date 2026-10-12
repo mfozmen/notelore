@@ -30,7 +30,7 @@ Download the app from the [releases page](https://github.com/mfozmen/notelore/re
 | macOS | `notelore-app-<version>-macos.dmg` | Drag `notelore.app` onto *Applications*. The first time, right-click it and choose *Open* (not notarized yet). |
 | Android | `notelore-app-<version>-android.apk` | Allow installing from your browser or file manager. |
 
-The app checks for new releases and offers *Update* (on Android you confirm in the system installer).
+The app checks for a new release every time it opens (and every few hours while it stays open) and offers *Update* (on Android you confirm in the system installer).
 
 ## Get started
 

@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:path/path.dart' as p;
 
 import 'chat.dart';
 import 'notes.dart';
@@ -154,11 +153,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// Shows the banner for a newer release; [force] skips the daily cache.
+  /// Shows the banner for a newer release; [force] lets a failure through.
   Future<String?> _check(Updater updater, {bool force = false}) async {
     final newer = await checkForUpdate(
-      cache: File(p.join(widget.session.paths.state.path, 'update-check.json')),
-      now: DateTime.now(),
       current: updater.current,
       fetch: updater.fetch,
       force: force,
