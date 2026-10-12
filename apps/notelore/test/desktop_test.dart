@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore_core/notelore_core.dart';
@@ -69,6 +71,34 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
     await tester.pumpAndSettle();
     expect(find.text('Kitaplar'), findsNothing);
+    expect(find.text('Pick a note to read it here.'), findsOneWidget);
+  });
+
+  testWidgets('the open note follows changes from a sync or the assistant', (tester) async {
+    desktop(tester, 1600);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Dune'), findsNothing);
+
+    // Rewritten elsewhere (a later date): the reader shows the new text.
+    final text = File(path)
+        .readAsStringSync()
+        .replaceFirst('updated: 2026-09-30', 'updated: 2026-10-01');
+    File(path).writeAsStringSync('$text- Dune${String.fromCharCode(10)}');
+    await tester.tap(find.byTooltip('Refresh'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Dune'), findsOneWidget);
+
+    // Archived elsewhere: the reader empties.
+    await session.deleteNote(session.listNotes().single);
+    await tester.tap(find.byTooltip('Refresh'));
+    await tester.pumpAndSettle();
     expect(find.text('Pick a note to read it here.'), findsOneWidget);
   });
 }
