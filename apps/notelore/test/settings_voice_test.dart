@@ -27,38 +27,18 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('settings: download Whisper, then turn it off and on', (tester) async {
+  testWidgets('settings: Whisper arrives by itself; then pick its microphone', (tester) async {
     phone(tester);
-    final harness = Harness();
-    final session = await pumpApp(tester, harness);
+    final harness = Harness()
+      ..modelPage = 'whisper bytes'
+      ..microphones = [(id: 'usb', label: 'USB mic')];
+    final session = await pumpApp(tester, harness); // opening the app starts the download
     await connect(tester, key: 'k');
     await openVoice(tester);
     expect(find.textContaining('about 375 MB'), findsOneWidget);
-    expect(find.text('Use Whisper in voice mode'), findsNothing); // not downloaded yet
-
-    await tester.tap(find.text('Download Whisper'));
-    await tester.pump();
-    expect(find.byType(LinearProgressIndicator), findsOneWidget);
-    expect(find.textContaining('Downloading…'), findsOneWidget);
     await settle(tester, session);
     expect(session.whisper.ready, isTrue);
     expect(find.text('Download Whisper'), findsNothing);
-
-    await tester.tap(find.text('Use Whisper in voice mode'));
-    await tester.pumpAndSettle();
-    expect(session.useWhisper, isFalse);
-    expect(session.speech, same(harness.speech));
-  });
-
-  testWidgets('settings: pick the microphone Whisper records from', (tester) async {
-    phone(tester);
-    final harness = Harness()..microphones = [(id: 'usb', label: 'USB mic')];
-    final session = await pumpApp(tester, harness);
-    await connect(tester, key: 'k');
-    await openVoice(tester);
-    expect(find.text('Microphone'), findsNothing); // only once Whisper is there
-    await tester.tap(find.text('Download Whisper'));
-    await settle(tester, session);
     await tester.tap(find.text('System default'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('USB mic').last);
@@ -67,15 +47,22 @@ void main() {
     expect(find.text('USB mic'), findsOneWidget);
   });
 
-  testWidgets('settings: a failed Whisper download says why', (tester) async {
+  testWidgets('settings: a failed Whisper download says why, and tries again', (tester) async {
     phone(tester);
-    final harness = Harness()..modelPage = null;
+    final harness = Harness(); // the model is not served: the download fails
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     await openVoice(tester);
-    await tester.tap(find.text('Download Whisper'));
     await settle(tester, session);
     expect(find.textContaining('The download failed: w.onnx: HTTP 404'), findsOneWidget);
-    expect(find.text('Download Whisper'), findsOneWidget); // try again
+
+    harness.modelPage = 'whisper bytes';
+    await tester.tap(find.text('Try again'));
+    await tester.pump();
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(find.textContaining('Downloading…'), findsOneWidget);
+    await settle(tester, session);
+    expect(session.whisper.ready, isTrue);
+    expect(find.text('Microphone'), findsOneWidget);
   });
 }

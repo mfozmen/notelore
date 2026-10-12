@@ -1,39 +1,46 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/session.dart';
 
 import 'support.dart';
 
 void main() {
-  test(
-    'the device recognizer until Whisper is downloaded; then Whisper, unless turned off',
-    () async {
-      final harness = Harness();
-      final session = harness.session();
-      expect(session.speech, same(harness.speech));
-      expect(session.whisper.ready, isFalse);
+  /// Until the background download started by `load` is over.
+  Future<void> downloaded(Session session) async {
+    while (session.whisperProgress != null) {
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+    }
+  }
 
+  test(
+    'opening the app downloads Whisper when it is missing; voice mode uses it once there',
+    () async {
+      final harness = Harness()..modelPage = 'whisper bytes';
+      final session = harness.session();
+      expect(session.speech, same(harness.speech)); // the device's, until then
       final progress = <double?>[];
       session.addListener(() => progress.add(session.whisperProgress));
-      await session.downloadWhisper();
+      await session.load();
+      await downloaded(session);
       expect(session.whisper.ready, isTrue);
-      expect(session.whisperProgress, isNull);
       expect(progress, contains(1.0));
       expect(session.speech, same(harness.whisper));
 
-      session.setUseWhisper(false);
-      expect(session.speech, same(harness.speech));
-      // Remembered on this device.
+      // The next start has it: nothing is downloaded again.
+      harness.modelPage = null;
       final again = harness.session();
       await again.load();
-      expect(again.useWhisper, isFalse);
-      again.setUseWhisper(true);
+      expect(again.whisperProgress, isNull);
+      expect(again.whisperProblem, isNull);
       expect(again.speech, same(harness.whisper));
     },
   );
 
   test('the microphone Whisper records from: the default, or the one picked, remembered', () async {
-    final harness = Harness()..microphones = [(id: 'usb', label: 'USB mic')];
+    final harness = Harness()
+      ..modelPage = 'whisper bytes'
+      ..microphones = [(id: 'usb', label: 'USB mic')];
     final session = harness.session();
     expect(await session.listMicrophones(), [(id: 'usb', label: 'USB mic')]);
     await session.downloadWhisper();
