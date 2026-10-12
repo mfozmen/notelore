@@ -50,6 +50,23 @@ void main() {
     expect(session.speech, same(harness.speech));
   });
 
+  testWidgets('settings: pick the microphone Whisper records from', (tester) async {
+    phone(tester);
+    final harness = Harness()..microphones = [(id: 'usb', label: 'USB mic')];
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await openVoice(tester);
+    expect(find.text('Microphone'), findsNothing); // only once Whisper is there
+    await tester.tap(find.text('Download Whisper'));
+    await settle(tester, session);
+    await tester.tap(find.text('System default'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('USB mic').last);
+    await tester.pumpAndSettle();
+    expect(session.microphone, 'usb');
+    expect(find.text('USB mic'), findsOneWidget);
+  });
+
   testWidgets('settings: a failed Whisper download says why', (tester) async {
     phone(tester);
     final harness = Harness()..modelPage = null;

@@ -102,6 +102,8 @@ abstract class Strings {
   String whisperDownloading(int percent);
   String whisperFailed(String why);
   String get useWhisper;
+  String get microphone;
+  String get systemMicrophone;
   String paletteName(Palette palette);
   String get appearance;
   String appearanceName(Appearance appearance);
@@ -299,6 +301,10 @@ class EnglishStrings extends Strings {
   String whisperFailed(String why) => 'The download failed: $why';
   @override
   String get useWhisper => 'Use Whisper in voice mode';
+  @override
+  String get microphone => 'Microphone';
+  @override
+  String get systemMicrophone => 'System default';
   @override
   String paletteName(Palette palette) => switch (palette) {
     Palette.lagoon => 'Lagoon',
@@ -591,6 +597,10 @@ class TurkishStrings extends Strings {
   String whisperFailed(String why) => 'İndirme başarısız oldu: $why';
   @override
   String get useWhisper => 'Sesli modda Whisper kullan';
+  @override
+  String get microphone => 'Mikrofon';
+  @override
+  String get systemMicrophone => 'Sistem varsayılanı';
   @override
   String paletteName(Palette palette) => switch (palette) {
     Palette.lagoon => 'Lagün',

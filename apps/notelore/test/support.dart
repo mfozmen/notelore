@@ -97,6 +97,10 @@ class Harness {
 
   /// Whisper's speech, and the one small model file it downloads (absent: 404).
   final whisper = FakeSpeech([]);
+
+  /// The microphones the device lists, and how Whisper asks which one is chosen.
+  var microphones = <({String id, String label})>[];
+  String? Function()? chosenMicrophone;
   String? modelPage = 'whisper bytes';
   static final whisperFiles = [
     ModelFile(
@@ -130,7 +134,11 @@ class Harness {
       voice: voice,
       whisperFiles: whisperFiles,
       httpClient: _models,
-      makeWhisper: (_) => whisper,
+      makeWhisper: (_, microphone) {
+        chosenMicrophone = microphone;
+        return whisper;
+      },
+      listMicrophones: () async => microphones,
       validate: (spec, key) async {
         if (rejected != null) throw rejected!;
         return models;

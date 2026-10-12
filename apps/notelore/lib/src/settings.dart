@@ -26,6 +26,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final _model = TextEditingController(text: widget.session.model);
   var _checking = false; // one update check at a time
 
+  /// The device's microphones, listed once per visit.
+  late final _microphones = widget.session.listMicrophones();
+
   @override
   void dispose() {
     _model.dispose();
@@ -263,13 +266,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: Text(s.whisper),
                     subtitle: Text(s.whisperExplained),
                   ),
-                  if (session.whisper.ready)
+                  if (session.whisper.ready) ...[
                     SwitchListTile(
                       title: Text(s.useWhisper),
                       value: session.useWhisper,
                       onChanged: session.setUseWhisper,
-                    )
-                  else if (progress != null)
+                    ),
+                    FutureBuilder(
+                      future: _microphones,
+                      builder: (context, listed) {
+                        final microphones = listed.data ?? const [];
+                        // A microphone unplugged since it was picked: the default.
+                        final chosen = microphones.any((m) => m.id == session.microphone)
+                            ? session.microphone
+                            : null;
+                        return ListTile(
+                          leading: const Icon(Icons.mic_none),
+                          title: Text(s.microphone),
+                          trailing: DropdownButton<String?>(
+                            value: chosen,
+                            underline: const SizedBox.shrink(),
+                            onChanged: session.setMicrophone,
+                            items: [
+                              DropdownMenuItem(child: Text(s.systemMicrophone)),
+                              for (final m in microphones)
+                                DropdownMenuItem(value: m.id, child: Text(m.label)),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ] else if (progress != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: Gap.m),
                       child: Column(
