@@ -10,6 +10,8 @@ const _version = '2023-06-01';
 const _maxTokens = 4096;
 const _timeout = Duration(seconds: 60); // long enough for a reply, short enough not to freeze
 
+const _serverSide = {'server_tool_use', 'web_search_tool_result'};
+
 Map<String, String> anthropicHeaders(String apiKey) => {
   'x-api-key': apiKey,
   'anthropic-version': _version,
@@ -53,7 +55,9 @@ class AnthropicProvider implements LlmProvider {
       timeout: _timeout,
     ) as Map<String, Object?>;
     final blocks = [
-      for (final block in (answer['content'] as List? ?? const []).cast<Block>()) blockToMap(block),
+      for (final block in (answer['content'] as List? ?? const []).cast<Block>())
+        // The web search runs on Anthropic's side: its blocks are not part of our history.
+        if (!_serverSide.contains(block['type'])) blockToMap(block),
     ];
     final stop = answer['stop_reason'];
     if (!const ['end_turn', 'tool_use', 'stop_sequence'].contains(stop)) {
