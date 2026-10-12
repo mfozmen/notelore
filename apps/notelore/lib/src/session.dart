@@ -81,6 +81,7 @@ class Session extends ChangeNotifier {
     this.httpClient = http.Client.new,
     this.makeWhisper = nativeWhisper,
     this.listMicrophones = nativeMicrophones,
+    this.localModels = true,
   }) : clock = clock ?? DateTime.timestamp,
        index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path),
        manifest = Manifest(paths.state.path);
@@ -250,7 +251,7 @@ class Session extends ChangeNotifier {
 
   final MakeProvider makeProvider;
 
-  /// "Sign in with ChatGPT" for the ChatGPT plan provider; null on phones.
+  /// "Sign in with ChatGPT" for the ChatGPT plan provider; null when not offered.
   final OAuthSignIn? chatGpt;
   final ListPlanModels listPlanModels;
 
@@ -261,8 +262,12 @@ class Session extends ChangeNotifier {
   /// The providers this device offers.
   List<ProviderSpec> get providers => [
     for (final spec in providerSpecs)
-      if (spec.name != 'chatgpt' || chatGpt != null) spec,
+      if ((spec.name != 'chatgpt' || chatGpt != null) && (spec.name != 'ollama' || localModels))
+        spec,
   ];
+
+  /// Models running on this machine (Ollama) are offered: not on a phone.
+  final bool localModels;
 
   /// Tests pin it; the app uses the local date.
   final DateTime? today;

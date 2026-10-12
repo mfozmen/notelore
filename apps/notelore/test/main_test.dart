@@ -44,6 +44,10 @@ void main() {
     final session = await app.openSession(environment: {}, mobile: true);
     addTearDown(session.dispose);
     expect(session.paths.notes.path, p.join(root, 'documents', 'Notelore'));
+    // The ChatGPT plan is offered; a model "on this computer" is not.
+    final names = session.providers.map((p) => p.name);
+    expect(names, contains('chatgpt'));
+    expect(names, isNot(contains('ollama')));
   });
 
   test('NOTELORE_HOME overrides everything, the keystore included', () async {

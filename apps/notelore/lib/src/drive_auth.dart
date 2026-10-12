@@ -37,17 +37,18 @@ DriveAuth? driveAuthFor({
   );
 }
 
-/// The ChatGPT plan's sign-in, desktop only: OpenAI documents the loopback
-/// redirect for local apps, which a phone app cannot rely on.
-OAuthSignIn? chatGptAuthFor({
+/// The ChatGPT plan's sign-in: OpenAI's loopback redirect for local apps, on
+/// 127.0.0.1 of this device. A phone opens the page inside the app (a custom
+/// tab), so the app stays awake to hear the answer.
+OAuthSignIn chatGptAuthFor({
   required bool mobile,
   required FlutterSecureStorage keys,
   required String keySpace,
 }) {
-  if (mobile) return null;
   String name(String item) => '$keySpace.chatgpt.$item';
   return ChatGptAuth(
-    openBrowser: (url) => launchUrl(url, mode: LaunchMode.externalApplication),
+    openBrowser: (url) =>
+        launchUrl(url, mode: mobile ? LaunchMode.inAppBrowserView : LaunchMode.externalApplication),
     read: (item) => keys.read(key: name(item)),
     write: (item, value) =>
         value == null ? keys.delete(key: name(item)) : keys.write(key: name(item), value: value),
