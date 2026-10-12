@@ -72,9 +72,7 @@ abstract class Strings {
   // Settings.
   String get provider;
   String get model;
-  String modelHelper(String fallback);
   String get refreshModels;
-  String get saveModel;
   String get modelSaved;
   String get notesFolder;
   String get checkForUpdates;
@@ -246,11 +244,7 @@ class EnglishStrings extends Strings {
   @override
   String get model => 'Model';
   @override
-  String modelHelper(String fallback) => 'Pick one or type a name; empty means $fallback';
-  @override
   String get refreshModels => 'Refresh the model list';
-  @override
-  String get saveModel => 'Save model';
   @override
   String get modelSaved => 'Model saved.';
   @override
@@ -553,11 +547,7 @@ class TurkishStrings extends Strings {
   @override
   String get model => 'Model';
   @override
-  String modelHelper(String fallback) => 'Birini seç ya da bir ad yaz; boş bırakırsan $fallback';
-  @override
   String get refreshModels => 'Model listesini yenile';
-  @override
-  String get saveModel => 'Modeli kaydet';
   @override
   String get modelSaved => 'Model kaydedildi.';
   @override

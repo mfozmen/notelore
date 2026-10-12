@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
@@ -645,16 +644,10 @@ void main() {
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(find.text('Claude (Anthropic) · API key'), findsOneWidget);
-    await tester.enterText(find.byKey(const Key('model')), 'claude-x');
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape); // close the list over the button
-    await tester.tap(find.text('Save model'));
-    await tester.pumpAndSettle();
-    expect(session.model, 'claude-x');
-    expect(find.text('Model saved.'), findsOneWidget);
-    await tester.enterText(find.byKey(const Key('model')), '');
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await tester.tap(find.text('Save model'));
-    await tester.pumpAndSettle();
+    // The model is picked from the list, never typed: nothing to save by hand.
+    final picker = tester.widget<DropdownMenu<String?>>(find.byKey(const Key('model')));
+    expect(picker.requestFocusOnTap, isFalse);
+    expect(find.text('Save model'), findsNothing);
     expect(session.model, 'claude-sonnet-5-5');
     // Log out sits at the end of Settings: scroll all the way down.
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
