@@ -105,6 +105,9 @@ abstract class Strings {
   String get systemMicrophone;
   String paletteName(Palette palette);
   String get appearance;
+  String get voiceSection;
+  String get syncSection;
+  String get aboutSection;
   String appearanceName(Appearance appearance);
   String get drive;
   String get driveNotSetUp;
@@ -314,6 +317,12 @@ class EnglishStrings extends Strings {
   };
   @override
   String get appearance => 'Appearance';
+  @override
+  String get voiceSection => 'Voice';
+  @override
+  String get syncSection => 'Sync and files';
+  @override
+  String get aboutSection => 'About';
   @override
   String appearanceName(Appearance appearance) => switch (appearance) {
     Appearance.system => 'System',
@@ -609,6 +618,12 @@ class TurkishStrings extends Strings {
   };
   @override
   String get appearance => 'Görünüm';
+  @override
+  String get voiceSection => 'Ses';
+  @override
+  String get syncSection => 'Eşitleme ve dosyalar';
+  @override
+  String get aboutSection => 'Hakkında';
   @override
   String appearanceName(Appearance appearance) => switch (appearance) {
     Appearance.system => 'Sistem',

@@ -194,7 +194,7 @@ void main() {
     expect(find.byTooltip('Talk'), findsOneWidget);
   });
 
-  testWidgets('settings: two columns on a wide window', (tester) async {
+  testWidgets('settings: a wide window lists the sections and shows one at a time', (tester) async {
     tester.view
       ..physicalSize = const Size(1280, 900)
       ..devicePixelRatio = 1;
@@ -204,11 +204,31 @@ void main() {
     await connect(tester, key: 'k');
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    final provider = tester.getTopLeft(find.text('Provider'));
-    final language = tester.getTopLeft(find.text('Language'));
-    expect(language.dy, closeTo(provider.dy, 2)); // side by side
-    expect(language.dx, greaterThan(provider.dx));
-    // Updates and log out live in the About card, with the version.
+    final sections = find.byKey(const Key('settings-sections'));
+    Finder section(String name) => find.descendant(of: sections, matching: find.text(name));
+    for (final name in ['Model', 'Voice', 'Sync and files', 'Appearance', 'About']) {
+      expect(section(name), findsOneWidget, reason: name);
+    }
+    // The model first, alone.
+    expect(find.text('Provider'), findsOneWidget);
+    expect(find.text('Language'), findsNothing);
+
+    await tester.tap(section('Appearance'));
+    await tester.pumpAndSettle();
+    expect(find.text('Language'), findsOneWidget);
+    expect(find.text('Provider'), findsNothing);
+
+    await tester.tap(section('Voice'));
+    await tester.pumpAndSettle();
+    expect(find.text('Whisper speech recognition'), findsOneWidget);
+
+    await tester.tap(section('Sync and files'));
+    await tester.pumpAndSettle();
+    expect(find.text('Notes folder'), findsOneWidget);
+
+    // Updates and log out live under About, with the version.
+    await tester.tap(section('About'));
+    await tester.pumpAndSettle();
     final version = tester.getTopLeft(find.text('Notelore · development build'));
     expect(tester.getTopLeft(find.text('Log out')).dy, greaterThan(version.dy));
   });

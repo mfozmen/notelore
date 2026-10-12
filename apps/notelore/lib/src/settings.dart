@@ -26,6 +26,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final _model = TextEditingController(text: widget.session.model);
   var _checking = false; // one update check at a time
 
+  /// The section shown on a wide window.
+  var _section = 0;
+
   /// The device's microphones, listed once per visit.
   late final _microphones = widget.session.listMicrophones();
 
@@ -324,23 +327,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           );
-          final wide = size.maxWidth >= 840;
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
+          if (size.maxWidth < 840) {
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
+              children: [
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: _cards([model, language, look, drive, folder, voice, about]),
+                  ),
+                ),
+              ],
+            );
+          }
+          // A wide window: the sections on the left, one shown at a time, like
+          // a desktop's own settings.
+          final sections = [
+            (Icons.auto_awesome_outlined, s.model, [model]),
+            (Icons.record_voice_over_outlined, s.voiceSection, [voice]),
+            (Icons.cloud_outlined, s.syncSection, [drive, folder]),
+            (Icons.palette_outlined, s.appearance, [language, look]),
+            (Icons.info_outline, s.aboutSection, [about]),
+          ];
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: wide ? 1120 : 720),
-                  child: wide
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: _cards([model, drive, folder])),
-                            const SizedBox(width: Gap.m),
-                            Expanded(child: _cards([language, look, voice, about])),
-                          ],
-                        )
-                      : _cards([model, language, look, drive, folder, voice, about]),
+              SizedBox(
+                width: 260,
+                child: ListView(
+                  key: const Key('settings-sections'),
+                  padding: const EdgeInsets.fromLTRB(Gap.s, Gap.s, Gap.s, Gap.l),
+                  children: [
+                    for (final (index, (icon, name, _)) in sections.indexed)
+                      ListTile(
+                        leading: Icon(icon),
+                        title: Text(name),
+                        selected: index == _section,
+                        selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
+                        onTap: () => setState(() => _section = index),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.l, Gap.l),
+                  children: [
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 760),
+                        child: _cards(sections[_section].$3),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
