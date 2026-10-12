@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:notelore_core/notelore_core.dart';
@@ -102,9 +103,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
                   itemCount: lines.length + (session.busy ? 1 : 0),
                   itemBuilder: (context, index) => session.busy
-                      ? (index == 0
-                            ? _Thinking(s.core(session.step ?? 'Thinking'), s)
-                            : _Bubble(lines[index - 1]))
+                      ? (index == 0 ? _Thinking(s) : _Bubble(lines[index - 1]))
                       : _Bubble(lines[index]),
                 ),
         ),
@@ -265,12 +264,11 @@ Widget _status(BuildContext context, IconData icon, Widget text) => Padding(
   ),
 );
 
-/// The assistant's turn while it runs: what it is doing and for how long.
+/// The assistant's turn while it runs: a playful line that changes every few
+/// seconds (its steps, a search or a write, pass too fast to read).
 class _Thinking extends StatefulWidget {
-  const _Thinking(this.step, this.strings);
+  const _Thinking(this.strings);
 
-  /// What it is doing, in the app's language.
-  final String step;
   final Strings strings;
 
   @override
@@ -279,6 +277,9 @@ class _Thinking extends StatefulWidget {
 
 class _ThinkingState extends State<_Thinking> {
   var _seconds = 0;
+
+  /// Where in the waiting lines this turn starts: a different one each time.
+  final _first = Random().nextInt(1 << 16);
   late final Timer _tick;
 
   @override
@@ -291,6 +292,11 @@ class _ThinkingState extends State<_Thinking> {
   void dispose() {
     _tick.cancel();
     super.dispose();
+  }
+
+  String get _waiting {
+    final lines = widget.strings.waitingLines;
+    return lines[(_first + _seconds ~/ 4) % lines.length];
   }
 
   @override
@@ -310,7 +316,7 @@ class _ThinkingState extends State<_Thinking> {
           children: [
             const SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 2)),
             const SizedBox(width: 8),
-            Text(widget.strings.thinking(widget.step, _seconds)),
+            Flexible(child: Text(_waiting)),
           ],
         ),
       ),

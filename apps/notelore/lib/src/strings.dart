@@ -51,7 +51,9 @@ abstract class Strings {
   String get changeTheModel;
   String get changeModel;
   String modelGone(String provider, String model);
-  String thinking(String step, int seconds);
+
+  /// Shown in turn while the model only thinks, instead of a plain "Thinking".
+  List<String> get waitingLines;
   String get talk;
   String get stopReading;
   String get holdHint;
@@ -206,7 +208,28 @@ class EnglishStrings extends Strings {
   String modelGone(String provider, String model) =>
       '$provider no longer offers $model. Pick another model.';
   @override
-  String thinking(String step, int seconds) => '$step… $seconds s';
+  List<String> get waitingLines => const [
+    'Went to make coffee, back in a sec.',
+    'Waiting for the muse to call back.',
+    'Sharpening a pencil…',
+    'Rummaging through your notes.',
+    'Warming up the brain cells.',
+    'Untangling a ball of thoughts.',
+    'Asking the rubber duck.',
+    'Polishing the commas.',
+    'Browsing the shelves, aisle by aisle.',
+    'Counting to ten, slowly.',
+    'Dusting off the memory palace.',
+    'Weighing every word.',
+    'Brewing a fresh pot of ideas.',
+    'Looking for its reading glasses.',
+    'Herding stray thoughts.',
+    'Consulting the oracle (it is on a break).',
+    'Flipping through the index cards.',
+    'Making its thinking face.',
+    'Tying its shoelaces first.',
+    'Feeding the hamster on the wheel.',
+  ];
   @override
   String get talk => 'Hold to talk';
   @override
@@ -506,7 +529,28 @@ class TurkishStrings extends Strings {
   String modelGone(String provider, String model) =>
       '$provider artık $model modelini sunmuyor. Başka bir model seç.';
   @override
-  String thinking(String step, int seconds) => '$step… $seconds sn';
+  List<String> get waitingLines => const [
+    'Kahve koymaya gitti, birazdan döner.',
+    'Keyfinin kâhyasını bekliyor.',
+    'İlham perisine mesaj attı, cevap bekliyor.',
+    'Kalemini açıyor…',
+    'Notlarının arasında dolaşıyor.',
+    'Beyin hücrelerini ısıtıyor.',
+    'Düşünce yumağını çözüyor.',
+    'Çay demlendi, bardaklara koyuyor.',
+    'Virgülleri parlatıyor.',
+    'Rafları tek tek geziyor.',
+    'İçinden ona kadar sayıyor.',
+    'Hafızasının tozunu alıyor.',
+    'Kelimeleri tartıyor, bir gram fazla gelmesin.',
+    'Gözlüğünü arıyor.',
+    'Simitçiden dönüyor.',
+    'Kâhine danıştı, kâhin molada.',
+    'Fişleri karıştırıyor.',
+    'Düşünür pozunu verdi.',
+    'Önce ayakkabılarını bağlıyor.',
+    'Çarktaki hamsteri besliyor.',
+  ];
   @override
   String get talk => 'Basılı tut, konuş';
   @override
