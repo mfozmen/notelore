@@ -194,6 +194,25 @@ void main() {
     expect(find.byTooltip('Talk'), findsOneWidget);
   });
 
+  testWidgets('settings: two columns on a wide window, one on a phone', (tester) async {
+    tester.view
+      ..physicalSize = const Size(1280, 900)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    final provider = tester.getTopLeft(find.text('Provider'));
+    final language = tester.getTopLeft(find.text('Language'));
+    expect(language.dy, closeTo(provider.dy, 2)); // side by side
+    expect(language.dx, greaterThan(provider.dx));
+    // Updates and log out live in the About card, with the version.
+    final version = tester.getTopLeft(find.text('Notelore · development build'));
+    expect(tester.getTopLeft(find.text('Log out')).dy, greaterThan(version.dy));
+  });
+
   testWidgets('settings: the app version at the bottom', (tester) async {
     phone(tester);
     final harness = Harness();
