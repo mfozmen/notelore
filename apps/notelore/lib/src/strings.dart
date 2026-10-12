@@ -104,6 +104,7 @@ abstract class Strings {
   String whisperFailed(String why);
   String get microphone;
   String get systemMicrophone;
+  String get listMicrophones;
   String paletteName(Palette palette);
   String get appearance;
   String get voiceSection;
@@ -309,6 +310,8 @@ class EnglishStrings extends Strings {
   String get microphone => 'Microphone';
   @override
   String get systemMicrophone => 'System default';
+  @override
+  String get listMicrophones => 'List the microphones again';
   @override
   String paletteName(Palette palette) => switch (palette) {
     Palette.lagoon => 'Lagoon',
@@ -612,6 +615,8 @@ class TurkishStrings extends Strings {
   String get microphone => 'Mikrofon';
   @override
   String get systemMicrophone => 'Sistem varsayılanı';
+  @override
+  String get listMicrophones => 'Mikrofonları yeniden listele';
   @override
   String paletteName(Palette palette) => switch (palette) {
     Palette.lagoon => 'Lagün',
