@@ -72,6 +72,16 @@ class _NotesScreenState extends State<NotesScreen> {
   Widget build(BuildContext context) {
     final s = widget.session.strings;
     final notes = widget.session.listNotes();
+    // The open note follows the files: archived elsewhere, it closes; changed
+    // (by a sync or the assistant), it is read again.
+    if (_reading case (final open, _)?) {
+      final now = notes.where((n) => n.kind == open.kind && n.slug == open.slug).firstOrNull;
+      _reading = now == null
+          ? null
+          : now.updated == open.updated
+          ? _reading
+          : (now, widget.session.readNote(now));
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(s.notes),
@@ -151,9 +161,9 @@ class _NotesScreenState extends State<NotesScreen> {
                     icon: const Icon(Icons.delete_outline),
                     onPressed: () => _delete(note),
                   ),
+                  selected: wide && _isOpen(note),
                   // Read once: the app rebuilds on every session change, and a
                   // deleted note must not be read again under its reader.
-                  selected: wide && _isOpen(note),
                   onTap: () {
                     final text = widget.session.readNote(note);
                     if (wide) {
