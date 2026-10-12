@@ -21,6 +21,7 @@ import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
 import 'strings.dart';
+import 'theme.dart';
 import 'voice.dart';
 
 /// Checks a key and returns the chat models it can use.
@@ -46,6 +47,10 @@ Remote _driveRemote(DriveAuth auth) => DriveRemote(http.Client(), auth.token);
 enum ChatRole { user, assistant, error }
 
 typedef ChatLine = ({ChatRole role, String text});
+
+/// The value of [values] named [name], or null.
+T? _named<T extends Enum>(List<T> values, Object? name) =>
+    values.where((v) => v.name == name).firstOrNull;
 
 /// The shared app settings in the notes folder on Drive (not a note: the sync
 /// engine leaves it alone).
@@ -90,6 +95,10 @@ class Session extends ChangeNotifier {
   /// The language the user picked in Settings; the device's by default.
   AppLanguage language = AppLanguage.system;
 
+  /// The look: a nature palette, and light, dark or the device's.
+  Palette palette = Palette.lagoon;
+  Appearance appearance = Appearance.system;
+
   /// The app's words in [language].
   Strings get strings => stringsFor(language, systemLanguage);
 
@@ -103,9 +112,37 @@ class Session extends ChangeNotifier {
 
   void _applyLanguage(AppLanguage chosen) {
     language = chosen;
+    _saveUi();
+  }
+
+  void setPalette(Palette chosen) {
+    _applyLook(chosen, appearance);
+    _touch();
+  }
+
+  void setAppearance(Appearance chosen) {
+    _applyLook(palette, chosen);
+    _touch();
+  }
+
+  void _applyLook(Palette chosenPalette, Appearance chosenAppearance) {
+    palette = chosenPalette;
+    appearance = chosenAppearance;
+    _saveUi();
+  }
+
+  /// Announces the language and look, and remembers them on this device.
+  void _saveUi() {
     notifyListeners();
     try {
-      atomicWrite(_ui, jsonEncode({'language': chosen.name}));
+      atomicWrite(
+        _ui,
+        jsonEncode({
+          'language': language.name,
+          'palette': palette.name,
+          'appearance': appearance.name,
+        }),
+      );
     } on FileSystemException {
       // not remembered this time (a locked folder); the choice still applies now
     }
@@ -114,12 +151,10 @@ class Session extends ChangeNotifier {
   void _loadLanguage() {
     try {
       final saved = jsonDecode(File(_ui).readAsStringSync());
-      if (saved case {'language': final String name}) {
-        language = AppLanguage.values.firstWhere(
-          (l) => l.name == name,
-          orElse: () => AppLanguage.system,
-        );
-      }
+      if (saved is! Map) return;
+      language = _named(AppLanguage.values, saved['language']) ?? AppLanguage.system;
+      palette = _named(Palette.values, saved['palette']) ?? Palette.lagoon;
+      appearance = _named(Appearance.values, saved['appearance']) ?? Appearance.system;
     } on Exception {
       // none saved yet, or damaged: the device's language
     }
@@ -491,6 +526,8 @@ class Session extends ChangeNotifier {
     final shared = {
       'updated': stamp.toUtc().toIso8601String(),
       'language': language.name,
+      'palette': palette.name,
+      'appearance': appearance.name,
       'provider': ?spec?.name,
       'model': ?model,
     };
@@ -511,9 +548,11 @@ class Session extends ChangeNotifier {
   /// Another device's settings. Its provider only when this device can use it
   /// without asking (a key, or the ChatGPT sign-in); Ollama is local to each machine.
   Future<void> _adopt(Map<String, Object?> theirs) async {
-    if (AppLanguage.values.where((l) => l.name == theirs['language']).firstOrNull case final l?) {
-      _applyLanguage(l);
-    }
+    if (_named(AppLanguage.values, theirs['language']) case final l?) _applyLanguage(l);
+    _applyLook(
+      _named(Palette.values, theirs['palette']) ?? palette,
+      _named(Appearance.values, theirs['appearance']) ?? appearance,
+    );
     final (name, chosen) = (theirs['provider'], theirs['model']);
     if (name is! String || chosen is! String || name == 'ollama') return;
     final found = providerSpecs.where((s) => s.name == name).firstOrNull;

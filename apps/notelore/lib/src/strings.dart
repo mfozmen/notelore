@@ -6,6 +6,8 @@ library;
 
 import 'package:notelore_core/notelore_core.dart';
 
+import 'theme.dart';
+
 /// The language the app speaks: the device's, or a fixed one.
 enum AppLanguage { system, en, tr }
 
@@ -80,6 +82,10 @@ abstract class Strings {
   String get logOutExplained;
   String get language;
   String languageName(AppLanguage language);
+  String get theme;
+  String paletteName(Palette palette);
+  String get appearance;
+  String appearanceName(Appearance appearance);
   String get drive;
   String get driveNotSetUp;
   String get driveExplained;
@@ -232,6 +238,25 @@ class EnglishStrings extends Strings {
     AppLanguage.system => 'System',
     AppLanguage.en => 'English',
     AppLanguage.tr => 'Türkçe',
+  };
+  @override
+  String get theme => 'Theme';
+  @override
+  String paletteName(Palette palette) => switch (palette) {
+    Palette.lagoon => 'Lagoon',
+    Palette.forest => 'Pine forest',
+    Palette.sea => 'Open sea',
+    Palette.sunset => 'Sunset',
+    Palette.lavender => 'Lavender field',
+    Palette.aurora => 'Northern lights',
+  };
+  @override
+  String get appearance => 'Appearance';
+  @override
+  String appearanceName(Appearance appearance) => switch (appearance) {
+    Appearance.system => 'System',
+    Appearance.light => 'Light',
+    Appearance.dark => 'Dark',
   };
   @override
   String get drive => 'Google Drive';
@@ -466,6 +491,25 @@ class TurkishStrings extends Strings {
     AppLanguage.system => 'Sistem',
     AppLanguage.en => 'English',
     AppLanguage.tr => 'Türkçe',
+  };
+  @override
+  String get theme => 'Tema';
+  @override
+  String paletteName(Palette palette) => switch (palette) {
+    Palette.lagoon => 'Lagün',
+    Palette.forest => 'Çam ormanı',
+    Palette.sea => 'Açık deniz',
+    Palette.sunset => 'Gün batımı',
+    Palette.lavender => 'Lavanta tarlası',
+    Palette.aurora => 'Kuzey ışıkları',
+  };
+  @override
+  String get appearance => 'Görünüm';
+  @override
+  String appearanceName(Appearance appearance) => switch (appearance) {
+    Appearance.system => 'Sistem',
+    Appearance.light => 'Açık',
+    Appearance.dark => 'Koyu',
   };
   @override
   String get drive => 'Google Drive';

@@ -55,8 +55,9 @@ class _NoteloreAppState extends State<NoteloreApp> {
         final strings = snapshot.data?.strings ?? EnglishStrings();
         return MaterialApp(
           title: 'Notelore',
-          theme: noteloreTheme(Brightness.light),
-          darkTheme: noteloreTheme(Brightness.dark),
+          theme: noteloreTheme(Brightness.light, snapshot.data?.palette ?? Palette.lagoon),
+          darkTheme: noteloreTheme(Brightness.dark, snapshot.data?.palette ?? Palette.lagoon),
+          themeMode: snapshot.data?.appearance.mode ?? ThemeMode.system,
           locale: Locale(strings.languageCode),
           supportedLocales: const [Locale('en'), Locale('tr')],
           localizationsDelegates: GlobalMaterialLocalizations.delegates,

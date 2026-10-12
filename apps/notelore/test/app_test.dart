@@ -7,6 +7,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
 import 'package:notelore/src/session.dart';
+import 'package:notelore/src/theme.dart';
 import 'package:notelore/src/voice.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
@@ -187,6 +188,32 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Speech recognition is not available'), findsOneWidget);
     expect(find.byTooltip('Talk'), findsOneWidget);
+  });
+
+  testWidgets('settings: pick a nature theme and dark mode', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byTooltip('Pine forest'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byTooltip('Pine forest'));
+    await tester.pumpAndSettle();
+    expect(session.palette, Palette.forest);
+    await tester.tap(find.text('Dark'));
+    await tester.pumpAndSettle();
+    expect(session.appearance, Appearance.dark);
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.themeMode, ThemeMode.dark);
+    expect(
+      app.darkTheme!.colorScheme.primary,
+      noteloreTheme(Brightness.dark, Palette.forest).colorScheme.primary,
+    );
   });
 
   testWidgets('settings: switch the app to Turkish and back', (tester) async {
@@ -410,6 +437,9 @@ void main() {
     await tester.tap(find.text('Save model'));
     await tester.pumpAndSettle();
     expect(session.model, 'claude-sonnet-5-5');
+    // Log out sits at the end of Settings: scroll all the way down.
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Log out'));
     await tester.pumpAndSettle();
     expect(find.text('Choose a model provider'), findsOneWidget);

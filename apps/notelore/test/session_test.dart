@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/strings.dart';
+import 'package:notelore/src/theme.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -383,6 +384,24 @@ void main() {
     Directory(p.join(harness.paths.state.path, 'settings-changed.txt')).createSync();
     damaged.setLanguage(AppLanguage.tr);
     expect(damaged.strings.languageCode, 'tr');
+  });
+
+  test('the theme and the appearance: picked, remembered, lagoon and system by default', () async {
+    final harness = Harness();
+    final first = harness.session();
+    await first.load();
+    expect(first.palette, Palette.lagoon);
+    expect(first.appearance, Appearance.system);
+    first
+      ..setPalette(Palette.forest)
+      ..setAppearance(Appearance.dark)
+      ..setLanguage(AppLanguage.tr);
+    final again = harness.session();
+    await again.load();
+    expect(
+      (again.palette, again.appearance, again.language),
+      (Palette.forest, Appearance.dark, AppLanguage.tr),
+    );
   });
 
   test('in Turkish, the sync summary and a stopped turn read in Turkish', () async {

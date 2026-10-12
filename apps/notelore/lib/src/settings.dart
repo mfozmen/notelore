@@ -129,6 +129,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: Gap.m),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: Gap.m),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.palette_outlined),
+                        title: Text(s.theme),
+                        subtitle: Text(s.paletteName(session.palette)),
+                      ),
+                      // A swatch per landscape; the chosen one is ringed.
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                        child: Wrap(
+                          spacing: Gap.s,
+                          runSpacing: Gap.s,
+                          children: [
+                            for (final palette in Palette.values)
+                              _Swatch(
+                                palette,
+                                label: s.paletteName(palette),
+                                chosen: palette == session.palette,
+                                onTap: () => session.setPalette(palette),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: Gap.m),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                        child: SegmentedButton<Appearance>(
+                          segments: [
+                            for (final a in Appearance.values)
+                              ButtonSegment(
+                                value: a,
+                                label: Text(s.appearanceName(a)),
+                                icon: Icon(switch (a) {
+                                  Appearance.system => Icons.brightness_auto_outlined,
+                                  Appearance.light => Icons.light_mode_outlined,
+                                  Appearance.dark => Icons.dark_mode_outlined,
+                                }),
+                              ),
+                          ],
+                          selected: {session.appearance},
+                          showSelectedIcon: false,
+                          onSelectionChanged: (chosen) => session.setAppearance(chosen.single),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: Gap.m),
               Card(child: _DriveSection(session)),
               const SizedBox(height: Gap.m),
               Card(
@@ -236,6 +290,57 @@ class _DriveSection extends StatelessWidget {
             onPressed: session.disconnectDrive,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// One palette as a round swatch of its light and dark colours.
+class _Swatch extends StatelessWidget {
+  const _Swatch(this.palette, {required this.label, required this.chosen, required this.onTap});
+
+  final Palette palette;
+  final String label;
+  final bool chosen;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final light = noteloreTheme(Brightness.light, palette).colorScheme;
+    final dark = noteloreTheme(Brightness.dark, palette).colorScheme;
+    return Tooltip(
+      message: label,
+      child: Semantics(
+        button: true,
+        selected: chosen,
+        label: label,
+        child: InkResponse(
+          onTap: onTap,
+          radius: 28,
+          child: Container(
+            width: 48,
+            height: 48,
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: chosen ? Theme.of(context).colorScheme.onSurface : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  stops: const [0.5, 0.5],
+                  colors: [light.primary, dark.primaryContainer],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
