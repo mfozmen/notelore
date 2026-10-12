@@ -102,10 +102,13 @@ class WhisperModel {
       if (kept >= file.size) kept = 0; // not a beginning of this file: start over
       var answer = await client.send(_get(file.url, from: kept));
       var resumed = false;
-      if (kept > 0 && answer.statusCode == 206) {
-        // Appended only when the server sends the rest from exactly there.
-        resumed = '${answer.headers['content-range']}'.startsWith('bytes $kept-');
-        if (!resumed) {
+      if (kept > 0) {
+        // Appended only when the server sends the rest from exactly there; any
+        // other answer to the range (a refusal, another range) fetches it whole.
+        resumed =
+            answer.statusCode == 206 &&
+            '${answer.headers['content-range']}'.startsWith('bytes $kept-');
+        if (!resumed && answer.statusCode != 200) {
           await answer.stream.drain<void>();
           answer = await client.send(_get(file.url));
         }
