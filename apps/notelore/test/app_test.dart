@@ -7,6 +7,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
 import 'package:notelore/src/session.dart';
+import 'package:notelore/src/settings.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore/src/voice.dart';
 import 'package:notelore_core/notelore_core.dart';
@@ -191,6 +192,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Speech recognition is not available'), findsOneWidget);
     expect(find.byTooltip('Talk'), findsOneWidget);
+  });
+
+  testWidgets('settings: the app version at the bottom', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));
+    await tester.pumpAndSettle();
+    expect(find.text('Notelore · development build'), findsOneWidget); // no release version
+    // A release build names its version.
+    await tester.pumpWidget(MaterialApp(home: SettingsScreen(session, version: '0.7.0')));
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));
+    await tester.pumpAndSettle();
+    expect(find.text('Notelore 0.7.0'), findsOneWidget);
   });
 
   testWidgets('settings: web search can be turned off', (tester) async {

@@ -136,6 +136,7 @@ void main() {
       'signInAgain': s.signInAgain('x'),
       'noteInUse': s.noteInUse('x'),
       'theme': s.theme,
+      'devBuild': s.versionLine(''),
       'webSearch': s.webSearch,
       'webSearchExplained': s.webSearchExplained,
       'webSearchBilled': s.webSearchBilled,

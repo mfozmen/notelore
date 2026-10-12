@@ -83,6 +83,9 @@ abstract class Strings {
   String get language;
   String languageName(AppLanguage language);
   String get theme;
+
+  /// The app and its version; a development build has none.
+  String versionLine(String version);
   String get webSearch;
   String get webSearchExplained;
   String get webSearchBilled;
@@ -245,6 +248,9 @@ class EnglishStrings extends Strings {
   };
   @override
   String get theme => 'Theme';
+  @override
+  String versionLine(String version) =>
+      version.isEmpty ? 'Notelore · development build' : 'Notelore $version';
   @override
   String get webSearch => 'Look things up on the web';
   @override
@@ -508,6 +514,9 @@ class TurkishStrings extends Strings {
   };
   @override
   String get theme => 'Tema';
+  @override
+  String versionLine(String version) =>
+      version.isEmpty ? 'Notelore · geliştirme sürümü' : 'Notelore $version';
   @override
   String get webSearch => 'Gerekirse internette araştır';
   @override
