@@ -107,6 +107,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: Gap.m),
                         child: OutlinedButton(onPressed: _saveModel, child: Text(s.saveModel)),
                       ),
+                      SwitchListTile(
+                        secondary: const Icon(Icons.travel_explore),
+                        title: Text(s.webSearch),
+                        subtitle: Text(
+                          !session.spec!.webSearch
+                              ? s.webSearchUnavailable
+                              : session.spec!.name == 'anthropic'
+                              ? s.webSearchBilled
+                              : s.webSearchExplained,
+                        ),
+                        value: session.webSearch && session.spec!.webSearch,
+                        onChanged: session.spec!.webSearch ? session.setWebSearch : null,
+                      ),
                     ],
                   ),
                 ),

@@ -17,17 +17,24 @@ LlmProvider createProvider(
   Transport transport = defaultTransport,
   BearerToken? planToken,
   http.Client? client,
+  bool webSearch = false,
 }) {
   final chosen = model ?? spec.defaultModel;
   return switch (spec.name) {
-    'chatgpt' => ChatGptProvider(chosen, planToken!, client: client),
-    'anthropic' => AnthropicProvider(apiKey ?? '', chosen, transport: transport),
+    'chatgpt' => ChatGptProvider(chosen, planToken!, client: client, webSearch: webSearch),
+    'anthropic' => AnthropicProvider(
+      apiKey ?? '',
+      chosen,
+      transport: transport,
+      webSearch: webSearch,
+    ),
     // The key is a token that never needs a refresh.
     'openai' => ChatGptProvider(
       chosen,
       ({refresh = false}) async => apiKey ?? '',
       client: client,
       namespace: null,
+      webSearch: webSearch,
     ),
     'gemini' => GeminiProvider(apiKey ?? '', chosen, transport: transport),
     _ => OllamaProvider(chosen, transport: transport),

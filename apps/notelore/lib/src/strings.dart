@@ -83,6 +83,10 @@ abstract class Strings {
   String get language;
   String languageName(AppLanguage language);
   String get theme;
+  String get webSearch;
+  String get webSearchExplained;
+  String get webSearchBilled;
+  String get webSearchUnavailable;
   String paletteName(Palette palette);
   String get appearance;
   String appearanceName(Appearance appearance);
@@ -241,6 +245,16 @@ class EnglishStrings extends Strings {
   };
   @override
   String get theme => 'Theme';
+  @override
+  String get webSearch => 'Look things up on the web';
+  @override
+  String get webSearchExplained =>
+      'Only when it helps get a note right, like the author of a book you mention.';
+  @override
+  String get webSearchBilled =>
+      'Only when it helps get a note right. Anthropic bills each search on top of the tokens.';
+  @override
+  String get webSearchUnavailable => 'Not available with this provider.';
   @override
   String paletteName(Palette palette) => switch (palette) {
     Palette.lagoon => 'Lagoon',
@@ -494,6 +508,16 @@ class TurkishStrings extends Strings {
   };
   @override
   String get theme => 'Tema';
+  @override
+  String get webSearch => 'Gerekirse internette araştır';
+  @override
+  String get webSearchExplained =>
+      'Yalnızca notu doğru tutmaya yardım edecekse; örneğin andığın bir kitabın yazarı.';
+  @override
+  String get webSearchBilled =>
+      'Yalnızca notu doğru tutmaya yardım edecekse. Anthropic her aramayı ayrıca ücretlendirir.';
+  @override
+  String get webSearchUnavailable => 'Bu sağlayıcıda kullanılamıyor.';
   @override
   String paletteName(Palette palette) => switch (palette) {
     Palette.lagoon => 'Lagün',

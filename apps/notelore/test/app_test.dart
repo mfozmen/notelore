@@ -190,6 +190,43 @@ void main() {
     expect(find.byTooltip('Talk'), findsOneWidget);
   });
 
+  testWidgets('settings: web search can be turned off', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('bills each search'), findsOneWidget); // Claude
+    await tester.tap(find.text('Look things up on the web'));
+    await tester.pumpAndSettle();
+    expect(session.webSearch, isFalse);
+    expect(harness.searches.last, isFalse);
+  });
+
+  testWidgets('settings: what web search says for GPT and for Ollama', (tester) async {
+    phone(tester);
+    await pumpApp(tester, Harness());
+    await connect(tester, provider: 'GPT (OpenAI)', key: 'sk');
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('like the author of a book'), findsOneWidget);
+  });
+
+  testWidgets('settings: Ollama cannot search the web', (tester) async {
+    phone(tester);
+    await pumpApp(tester, Harness());
+    await tester.tap(find.text('Ollama (local)'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Connect'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    expect(find.text('Not available with this provider.'), findsOneWidget);
+  });
+
   testWidgets('settings: pick a nature theme and dark mode', (tester) async {
     phone(tester);
     final harness = Harness();
@@ -425,7 +462,6 @@ void main() {
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(find.text('Claude (Anthropic) · API key'), findsOneWidget);
-    expect(find.text(harness.paths.notes.path), findsOneWidget);
     await tester.enterText(find.byKey(const Key('model')), 'claude-x');
     await tester.sendKeyEvent(LogicalKeyboardKey.escape); // close the list over the button
     await tester.tap(find.text('Save model'));
@@ -440,6 +476,7 @@ void main() {
     // Log out sits at the end of Settings: scroll all the way down.
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
     await tester.pumpAndSettle();
+    expect(find.text(harness.paths.notes.path), findsOneWidget);
     await tester.tap(find.text('Log out'));
     await tester.pumpAndSettle();
     expect(find.text('Choose a model provider'), findsOneWidget);

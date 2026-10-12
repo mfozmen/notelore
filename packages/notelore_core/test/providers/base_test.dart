@@ -49,6 +49,14 @@ void main() {
       'ollama',
     ]);
     expect(findProvider('anthropic').keySteps, isNotEmpty);
+    // Who can look things up on the web (#96).
+    expect(
+      [
+        for (final s in providerSpecs)
+          if (s.webSearch) s.name,
+      ],
+      ['chatgpt', 'anthropic', 'openai'],
+    );
     // Grouped by how they are paid for, in that order (#108).
     expect(
       {for (final s in providerSpecs) s.name: s.group},
@@ -126,6 +134,35 @@ void main() {
         'parameters': tool.inputSchema,
       },
     ]);
+  });
+
+  test('createProvider passes web search to the providers that have it', () {
+    Future<String> token({bool refresh = false}) async => 't';
+    expect(
+      (createProvider(
+        findProvider('anthropic'),
+        'k',
+        webSearch: true,
+      ) as AnthropicProvider).webSearch,
+      isTrue,
+    );
+    expect(
+      (createProvider(findProvider('openai'), 'k', webSearch: true) as ChatGptProvider).webSearch,
+      isTrue,
+    );
+    expect(
+      (createProvider(
+        findProvider('chatgpt'),
+        null,
+        planToken: token,
+        webSearch: true,
+      ) as ChatGptProvider).webSearch,
+      isTrue,
+    );
+    expect(
+      (createProvider(findProvider('anthropic'), 'k') as AnthropicProvider).webSearch,
+      isFalse,
+    );
   });
 
   test('createProvider: chatgpt needs the plan token', () {

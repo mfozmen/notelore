@@ -85,7 +85,7 @@ void main() {
       harness.paths,
       keys: const _BrokenDelete(),
       validate: (spec, key) async => <String>[],
-      makeProvider: (spec, key, {model, planToken}) => harness.provider,
+      makeProvider: (spec, key, {model, planToken, webSearch = false}) => harness.provider,
     );
     addTearDown(session.dispose);
     Directory(p.join(harness.paths.state.path, 'settings.json', 'blocker'))
@@ -149,7 +149,7 @@ void main() {
     final session = Session(
       harness.paths,
       validate: (spec, key) => calls++ == 0 ? Future.value(['a']) : answer.future,
-      makeProvider: (spec, key, {model, planToken}) => harness.provider,
+      makeProvider: (spec, key, {model, planToken, webSearch = false}) => harness.provider,
     );
     addTearDown(session.dispose);
     await session.connect(findProvider('anthropic'), 'k');
@@ -404,6 +404,24 @@ void main() {
     );
   });
 
+  test('web search: on by default where the provider has it, and can be turned off', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.load();
+    expect(session.webSearch, isTrue);
+    await session.connect(findProvider('anthropic'), 'k');
+    expect(harness.searches.last, isTrue);
+    await session.setWebSearch(false);
+    expect(harness.searches.last, isFalse); // the provider is rebuilt without it
+    final again = harness.session();
+    await again.load();
+    expect(again.webSearch, isFalse);
+    // Gemini cannot search alongside the note tools: never asked to.
+    await again.setWebSearch(true);
+    await again.connect(findProvider('gemini'), 'g');
+    expect(harness.searches.last, isFalse);
+  });
+
   test('in Turkish, the sync summary and a stopped turn read in Turkish', () async {
     final harness = Harness(answers: [Completer<AgentResponse>().future]);
     final session = harness.session(systemLanguage: 'tr');
@@ -468,7 +486,7 @@ void main() {
       harness.paths,
       keySpace: 'notelore-dev',
       validate: (spec, key) async => <String>[],
-      makeProvider: (spec, key, {model, planToken}) => harness.provider,
+      makeProvider: (spec, key, {model, planToken, webSearch = false}) => harness.provider,
     );
     addTearDown(dev.dispose);
     await dev.connect(findProvider('anthropic'), 'dev-key');

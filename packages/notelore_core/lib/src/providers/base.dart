@@ -37,6 +37,7 @@ final class ProviderSpec {
     this.keyUrl,
     this.keySteps = const [],
     required this.cost,
+    this.webSearch = false,
   });
 
   final String name;
@@ -49,6 +50,9 @@ final class ProviderSpec {
 
   /// What using it costs, shown before a key is asked for.
   final String cost;
+
+  /// The model can look things up on the web through the provider's own tool.
+  final bool webSearch;
 }
 
 const providerSpecs = [
@@ -56,6 +60,7 @@ const providerSpecs = [
     'chatgpt',
     'ChatGPT plan (OpenAI)',
     group: ProviderGroup.plan,
+    webSearch: true,
     requiresApiKey: false,
     defaultModel: '', // the first model the plan lists
     cost:
@@ -66,6 +71,7 @@ const providerSpecs = [
     'anthropic',
     'Claude (Anthropic)',
     group: ProviderGroup.apiKey,
+    webSearch: true,
     requiresApiKey: true,
     defaultModel: 'claude-sonnet-5-5',
     cost:
@@ -82,6 +88,7 @@ const providerSpecs = [
     'openai',
     'GPT (OpenAI)',
     group: ProviderGroup.apiKey,
+    webSearch: true,
     requiresApiKey: true,
     defaultModel: 'gpt-4o-mini',
     cost:

@@ -140,6 +140,38 @@ void main() {
     ]);
   });
 
+  test('web search: the hosted tool goes along; its calls in the output are skipped', () async {
+    final api = FakeResponses([
+      stream([
+        completed([
+          {'type': 'web_search_call', 'id': 'ws1', 'status': 'completed'},
+          {
+            'type': 'message',
+            'content': [
+              {'type': 'output_text', 'text': 'Can Dündar', 'annotations': <Object?>[]},
+            ],
+          },
+        ]),
+      ]),
+      stream([completed([])]),
+    ]);
+    final response = await ChatGptProvider(
+      'gpt-x',
+      token,
+      client: api.client,
+      webSearch: true,
+    ).turn('', [], [tool]);
+    expect(response.content, [
+      {'type': 'text', 'text': 'Can Dündar'},
+    ]);
+    expect((api.body(0)['tools']! as List).last, {'type': 'web_search'});
+    // Search alone, without note tools, still sends the tools list.
+    await ChatGptProvider('gpt-x', token, client: api.client, webSearch: true).turn('', [], []);
+    expect(api.body(1)['tools'], [
+      {'type': 'web_search'},
+    ]);
+  });
+
   test('tool calls come back as tool_use blocks', () async {
     final api = FakeResponses([
       stream([
