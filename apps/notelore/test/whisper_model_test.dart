@@ -171,6 +171,23 @@ void main() {
     expect(asked, 3); // the odd answer, the whole encoder again, the tokens
   });
 
+  test('a range the server refuses (416) starts the file over, not fails forever', () async {
+    final model = WhisperModel(dir.path, files: files);
+    File(p.join(dir.path, 'encoder.onnx.part')).writeAsStringSync('stale');
+    final refusing = MockClient.streaming((request, _) async {
+      if (request.headers['range'] != null) {
+        return http.StreamedResponse(const Stream.empty(), 416);
+      }
+      final name = request.url.pathSegments.last;
+      return http.StreamedResponse(
+        Stream.value(utf8.encode(name == 'tokens.txt' ? 'a 1\nb 2\n' : 'encoder bytes')),
+        200,
+      );
+    });
+    await model.download(client: refusing, onProgress: (_) {});
+    expect(model.ready, isTrue);
+  });
+
   test('the real model: Whisper small int8 and the Silero VAD, with checksums', () {
     expect(whisperSmall.map((f) => f.name), [
       'small-encoder.int8.onnx',
