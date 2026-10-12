@@ -8,6 +8,7 @@ library;
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
@@ -155,13 +156,22 @@ class DeviceSpeech implements Speech {
 
   @override
   Future<String?> listen(String language) async {
-    _ready =
-        _ready ||
-        await _recognizer.initialize(
-          onStatus: _status,
-          onError: (error) =>
-              _silence.contains(error.errorMsg) ? _end(null) : _fail(ListenFailed(error.errorMsg)),
-        );
+    try {
+      _ready =
+          _ready ||
+          await _recognizer.initialize(
+            onStatus: _status,
+            onError: (error) => _silence.contains(error.errorMsg)
+                ? _end(null)
+                : _fail(ListenFailed(error.errorMsg)),
+            // Only the microphone: the headset setup would ask for Bluetooth too.
+            options: [SpeechToText.androidNoBluetooth],
+          );
+    } on PlatformException catch (error) {
+      // Android: no speech service on the device (or none the app may use).
+      if (error.code == 'recognizerNotAvailable') throw const VoiceUnavailable();
+      throw ListenFailed(error.message ?? error.code);
+    }
     if (!_ready) throw const VoiceUnavailable();
     final heard = _heard = Completer<String?>();
     await _recognizer.listen(
