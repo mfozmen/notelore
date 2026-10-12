@@ -11,12 +11,17 @@ import 'package:speech_to_text_platform_interface/speech_to_text_platform_interf
 /// The platform side of speech_to_text, driven by the test.
 class FakeRecognizer extends SpeechToTextPlatform with MockPlatformInterfaceMixin {
   var available = true;
+  PlatformException? refuse;
+  List<SpeechConfigOption>? options;
   final asked = <String?>[];
   var cancels = 0;
 
   @override
-  Future<bool> initialize({debugLogging = false, List<SpeechConfigOption>? options}) async =>
-      available;
+  Future<bool> initialize({debugLogging = false, List<SpeechConfigOption>? options}) async {
+    this.options = options;
+    if (refuse case final error?) throw error;
+    return available;
+  }
 
   @override
   Future<bool> listen({
@@ -103,6 +108,21 @@ void main() {
   test('no recognizer or no permission: unavailable', () async {
     platform.available = false;
     await expectLater(speech.listen('en'), throwsA(isA<VoiceUnavailable>()));
+  });
+
+  test('Android: no Bluetooth headset setup, and a refused start reads clearly', () async {
+    platform.refuse = PlatformException(
+      code: 'recognizerNotAvailable',
+      message: 'Speech recognition not available on this device',
+    );
+    await expectLater(speech.listen('tr'), throwsA(isA<VoiceUnavailable>()));
+    // Only the microphone is needed: the headset setup asks for Bluetooth too.
+    expect(platform.options!.map((o) => o.name), contains(SpeechToText.androidNoBluetooth.name));
+    platform.refuse = PlatformException(code: 'missingContext', message: 'no context');
+    await expectLater(
+      DeviceSpeech(SpeechToText.withMethodChannel()).listen('tr'),
+      throwsA(isA<ListenFailed>().having((e) => '$e', 'text', contains('no context'))),
+    );
   });
 
   test('the device voice speaks in the app language and stops', () async {
