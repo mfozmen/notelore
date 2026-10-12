@@ -35,9 +35,9 @@ The app checks for a new release every time it opens (and every few hours while 
 ## Get started
 
 1. Open Notelore and pick a model:
-   - **ChatGPT plan** (desktop): *Continue with ChatGPT* and sign in. No extra charges, within your plan's limits.
+   - **ChatGPT plan** (desktop and phone): *Continue with ChatGPT* and sign in. No extra charges, within your plan's limits.
    - **Claude, GPT or Gemini:** paste an API key; the app shows where to get one. Keys stay in your device's keystore.
-   - **Ollama:** start Ollama on this computer; no key needed.
+   - **Ollama** (desktop): start Ollama on this computer; no key needed.
 2. Talk to it: *"Mopsos için not al: veritabanı olarak SQLite seçtik."*
 3. Ask it later: *"Mopsos'ta hangi veritabanını seçmiştik?"*
 

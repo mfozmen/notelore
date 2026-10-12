@@ -240,12 +240,16 @@ class MemoryRemote implements Remote {
 class FakeLauncher extends UrlLauncherPlatform with MockPlatformInterfaceMixin {
   final opened = <String>[];
 
+  /// How each was opened: the browser app or one inside Notelore.
+  final modes = <PreferredLaunchMode>[];
+
   @override
   LinkDelegate? get linkDelegate => null;
 
   @override
   Future<bool> launchUrl(String url, LaunchOptions options) async {
     opened.add(url);
+    modes.add(options.mode);
     return true;
   }
 }

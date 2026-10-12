@@ -142,15 +142,19 @@ void main() {
 }
 
 void planTests() {
-  test('the ChatGPT plan sign-in: desktop only, kept in the keystore', () async {
+  test('the ChatGPT plan sign-in, on phones too, kept in the keystore', () async {
     const keys = FlutterSecureStorage();
-    expect(chatGptAuthFor(mobile: true, keys: keys, keySpace: 'n'), isNull);
     final launcher = FakeLauncher();
     UrlLauncherPlatform.instance = launcher;
-    final auth =
-        chatGptAuthFor(mobile: false, keys: keys, keySpace: 'notelore-dev')! as ChatGptAuth;
+    // A phone opens the page inside the app, which keeps it running for the
+    // loopback answer; the desktop uses the browser.
+    final phone = chatGptAuthFor(mobile: true, keys: keys, keySpace: 'n') as ChatGptAuth;
+    await phone.openBrowser(Uri.parse('https://auth.openai.com/p'));
+    expect(launcher.modes.single, PreferredLaunchMode.inAppBrowserView);
+    final auth = chatGptAuthFor(mobile: false, keys: keys, keySpace: 'notelore-dev') as ChatGptAuth;
     await auth.openBrowser(Uri.parse('https://auth.openai.com/x'));
-    expect(launcher.opened, ['https://auth.openai.com/x']);
+    expect(launcher.opened.last, 'https://auth.openai.com/x');
+    expect(launcher.modes.last, PreferredLaunchMode.externalApplication);
     await auth.write('client_id', 'oaiapp_1');
     expect(await keys.read(key: 'notelore-dev.chatgpt.client_id'), 'oaiapp_1');
     expect(await auth.read('client_id'), 'oaiapp_1');
