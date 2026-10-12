@@ -25,6 +25,9 @@ abstract interface class PhraseDetector {
   /// Takes one [window] of samples; returns the phrase once it has ended.
   Float32List? accept(Float32List samples);
 
+  /// Someone is talking right now.
+  bool get speaking;
+
   void reset();
 }
 
@@ -55,7 +58,7 @@ class WhisperSpeech implements Speech {
     final phrase = _phrase = Completer<Float32List?>();
     final audio = await microphone.start();
     final pending = <double>[];
-    final timer = Timer(silence, () => _end(null));
+    var timer = Timer(silence, () => _end(null));
     final listening = audio.listen(
       (bytes) {
         pending.addAll(_samples(bytes));
@@ -63,6 +66,11 @@ class WhisperSpeech implements Speech {
           final window = Float32List.fromList(pending.sublist(0, detector.window));
           pending.removeRange(0, detector.window);
           if (detector.accept(window) case final done?) _end(done);
+          if (detector.speaking) {
+            // The timeout is for silence: a long phrase keeps it waiting.
+            timer.cancel();
+            timer = Timer(silence, () => _end(null));
+          }
         }
       },
       onError: (Object error) {

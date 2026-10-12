@@ -19,7 +19,8 @@ final class ModelFile {
   final int size;
 }
 
-const _whisper = 'https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small/resolve/main';
+const _whisper =
+    'https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small/resolve/8f3c18b358db4d1f2fc1eae49d75cd20989e4309';
 
 /// sherpa-onnx's export of OpenAI Whisper small (MIT), and Silero VAD (MIT).
 const whisperSmall = [

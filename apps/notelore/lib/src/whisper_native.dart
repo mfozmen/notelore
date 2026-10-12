@@ -78,6 +78,9 @@ class SileroDetector implements PhraseDetector {
   }
 
   @override
+  bool get speaking => _vad?.isDetected() ?? false;
+
+  @override
   void reset() => _vad?.reset();
 }
 
