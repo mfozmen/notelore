@@ -173,7 +173,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       child: TextField(
                         key: const Key('message'),
                         controller: _message,
-                        enabled: !session.busy,
+                        // Open while the model works: what is written meanwhile joins its turn.
                         minLines: 1,
                         maxLines: 5,
                         textInputAction: TextInputAction.send,
@@ -202,13 +202,12 @@ class _ChatScreenState extends State<ChatScreen> {
                         tooltip: s.stop,
                         icon: const Icon(Icons.stop),
                         onPressed: session.stop,
-                      )
-                    else
-                      IconButton.filled(
-                        tooltip: s.send,
-                        icon: const Icon(Icons.arrow_upward),
-                        onPressed: _send,
                       ),
+                    IconButton.filled(
+                      tooltip: s.send,
+                      icon: const Icon(Icons.arrow_upward),
+                      onPressed: _send,
+                    ),
                   ],
                 ),
               ),
