@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v0.8.0 (2026-10-12)
+
+### Bug Fixes
+
+- The "moved to the archive" notice goes away by itself, with a close button
+  ([`3b88be9`](https://github.com/mfozmen/notelore/commit/3b88be9a2dfdd90b81ee3dfc0ba4943846606caf))
+
+### Features
+
+- An Archive in the Notes screen, to browse and restore deleted notes
+  ([`ad68dd5`](https://github.com/mfozmen/notelore/commit/ad68dd50b55a2011e196394ddc937728a270be31))
+
+- Show the app version in Settings
+  ([`ec0afae`](https://github.com/mfozmen/notelore/commit/ec0afae7f3cc10997d2e85a18e2629bc6518d6be))
+
+
 ## v0.7.0 (2026-10-12)
 
 ### Bug Fixes
