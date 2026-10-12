@@ -119,7 +119,9 @@ void main() {
           );
       final tools = (api.last['body']! as Map)['tools']! as List;
       expect(tools.last, {'type': 'web_search_20250305', 'name': 'web_search', 'max_uses': 3});
-      expect(response.content.last, {'type': 'text', 'text': 'Abim Deniz, Can Dündar'});
+      expect(response.content, [
+        {'type': 'text', 'text': 'Abim Deniz, Can Dündar'}, // the search blocks stay out
+      ]);
       expect(response.stopReason, 'end_turn');
     },
   );
