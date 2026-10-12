@@ -110,7 +110,12 @@ class Harness {
       13,
     ),
   ];
+
+  /// Thrown by the model download instead of an answer (an Error, say).
+  Object? modelFailure;
+
   http.Client _models() => MockClient((request) async {
+    if (modelFailure case final failure?) throw failure;
     if (modelPage case final page?) return http.Response(page, 200);
     return http.Response('', 404);
   });

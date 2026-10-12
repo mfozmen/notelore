@@ -64,6 +64,10 @@ class VoiceMode extends ChangeNotifier {
 
   /// The session's, by default: Whisper or the device's, as Settings has it now.
   Speech get speech => _speech ?? session.speech;
+
+  /// The recognizer of the listen under way: Whisper may arrive meanwhile, and
+  /// a cancel must reach the one that is listening.
+  Speech? _listening;
   final Voice voice;
 
   VoiceState state = VoiceState.off;
@@ -99,7 +103,8 @@ class VoiceMode extends ChangeNotifier {
       _typed = null;
       if (text == null) {
         _set(VoiceState.listening);
-        text = await speech.listen(session.strings.languageCode) ?? _typed;
+        final ears = _listening = speech;
+        text = await ears.listen(session.strings.languageCode) ?? _typed;
         _typed = null;
       }
       if (!on) return;
@@ -120,14 +125,14 @@ class VoiceMode extends ChangeNotifier {
   /// A typed message: sent in place of listening, and answered aloud.
   void type(String text) {
     _typed = text;
-    unawaited(speech.cancel());
+    unawaited((_listening ?? speech).cancel());
     unawaited(voice.stop());
   }
 
   /// Back to text mode.
   void end() {
     _set(VoiceState.off);
-    unawaited(speech.cancel());
+    unawaited((_listening ?? speech).cancel());
     unawaited(voice.stop());
   }
 

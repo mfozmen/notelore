@@ -82,6 +82,67 @@ void main() {
     expect(model.ready, isFalse);
   });
 
+  /// Serves [pages] and honours a Range header with 206, as Hugging Face does.
+  http.Client resuming(Map<String, String> pages, List<String?> ranges) =>
+      MockClient.streaming((request, _) async {
+        ranges.add(request.headers['range']);
+        final bytes = utf8.encode(pages[request.url.pathSegments.last]!);
+        if (request.headers['range'] case final range?) {
+          final from = int.parse(range.substring('bytes='.length, range.length - 1));
+          return http.StreamedResponse(Stream.value(bytes.sublist(from)), 206);
+        }
+        return http.StreamedResponse(Stream.value(bytes), 200);
+      });
+
+  test('a download cut off midway keeps what arrived, then resumes from there', () async {
+    final model = WhisperModel(dir.path, files: files);
+    final cut = MockClient.streaming((request, _) async {
+      final bytes = utf8.encode('encoder bytes');
+      Stream<List<int>> broken() async* {
+        yield bytes.sublist(0, 6);
+        throw const SocketException('connection reset');
+      }
+
+      return http.StreamedResponse(broken(), 200);
+    });
+    await expectLater(
+      model.download(client: cut, onProgress: (_) {}),
+      throwsA(isA<ModelDownloadFailed>().having((e) => '$e', 'text', contains('connection reset'))),
+    );
+    expect(File(p.join(dir.path, 'encoder.onnx.part')).readAsStringSync(), 'encode');
+
+    final ranges = <String?>[];
+    final progress = <double>[];
+    await model.download(
+      client: resuming({'encoder.onnx': 'encoder bytes', 'tokens.txt': 'a 1\nb 2\n'}, ranges),
+      onProgress: progress.add,
+    );
+    expect(ranges, ['bytes=6-', null]); // the rest of the encoder, then the tokens whole
+    expect(model.ready, isTrue);
+    expect(progress.first, greaterThan(0)); // what was kept counts from the start
+  });
+
+  test('a server that ignores the range sends it all again, and that is fine', () async {
+    final model = WhisperModel(dir.path, files: files);
+    File(p.join(dir.path, 'encoder.onnx.part')).writeAsStringSync('encode');
+    await model.download(
+      client: serving({'encoder.onnx': 'encoder bytes', 'tokens.txt': 'a 1\nb 2\n'}),
+      onProgress: (_) {},
+    );
+    expect(model.ready, isTrue);
+    // A part longer than the file is not resumed but started over.
+    final other = Directory(p.join(dir.path, 'other'));
+    File(p.join(other.path, 'encoder.onnx.part'))
+      ..createSync(recursive: true)
+      ..writeAsStringSync('far too many bytes for this file');
+    final ranges = <String?>[];
+    await WhisperModel(other.path, files: files).download(
+      client: resuming({'encoder.onnx': 'encoder bytes', 'tokens.txt': 'a 1\nb 2\n'}, ranges),
+      onProgress: (_) {},
+    );
+    expect(ranges, [null, null]);
+  });
+
   test('the real model: Whisper small int8 and the Silero VAD, with checksums', () {
     expect(whisperSmall.map((f) => f.name), [
       'small-encoder.int8.onnx',

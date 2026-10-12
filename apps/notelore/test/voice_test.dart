@@ -116,4 +116,22 @@ void main() {
     expect(mode.start, returnsNormally);
     mode.end();
   });
+
+  test(
+    'ending a listen reaches the recognizer that is listening, even if Whisper arrived meanwhile',
+    () async {
+      final harness = Harness()..modelPage = 'whisper bytes';
+      final session = harness.session();
+      await session.connect(findProvider('anthropic'), 'k');
+      final mode = VoiceMode(session, voice: harness.voice); // the session's speech
+      unawaited(mode.start());
+      await pumpEventQueue();
+      expect(harness.speech.languages, hasLength(1)); // the device's, listening
+      await session.downloadWhisper(); // now the session would pick Whisper
+      mode.end();
+      await pumpEventQueue();
+      expect(harness.speech.cancels, 1);
+      expect(harness.whisper.cancels, 0);
+    },
+  );
 }

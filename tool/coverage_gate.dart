@@ -26,7 +26,8 @@ Map<String, List<int>> missingLines(String lcov) {
   return missing;
 }
 
-/// The lines of [source] (1-based) that the gate does not count.
+/// The lines of [source] (1-based) that the gate does not count. Throws a
+/// [FormatException] for an ignore-start never closed: it would hide the rest.
 Set<int> ignoredLines(String source) {
   final ignored = <int>{};
   var inBlock = false;
@@ -34,6 +35,9 @@ Set<int> ignoredLines(String source) {
     if (line.contains('coverage:ignore-start')) inBlock = true;
     if (inBlock || line.contains('coverage:ignore-line')) ignored.add(index + 1);
     if (line.contains('coverage:ignore-end')) inBlock = false;
+  }
+  if (inBlock) {
+    throw const FormatException('coverage:ignore-start without coverage:ignore-end');
   }
   return ignored;
 }
@@ -61,7 +65,13 @@ int gate(List<String> reports, StringSink out) {
       return 1;
     }
     for (final entry in missingLines(file.readAsStringSync()).entries) {
-      final ignored = _ignoredIn(entry.key, report);
+      final Set<int> ignored;
+      try {
+        ignored = _ignoredIn(entry.key, report);
+      } on FormatException catch (error) {
+        out.writeln('${entry.key}: ${error.message}');
+        return 1;
+      }
       final left = [
         for (final line in entry.value)
           if (!ignored.contains(line)) line,
