@@ -58,17 +58,36 @@ class ChatGptProvider implements LlmProvider {
   /// Lets the model search the web itself (OpenAI's hosted tool).
   final bool webSearch;
 
+  /// The route refused the search tool once: turns go without it from then on.
+  var _searchRefused = false;
+
   /// How long one answer may take, streaming included.
   final Duration timeout;
   final http.Client _client;
 
   @override
   Future<AgentResponse> turn(String system, List<Message> messages, List<Tool> tools) async {
+    final search = webSearch && !_searchRefused;
+    try {
+      return await _turn(system, messages, tools, search: search);
+    } on HttpError catch (error) {
+      if (!search || error.status != 400 || !error.message.contains('web_search')) rethrow;
+      _searchRefused = true; // e.g. the plan route without hosted tools
+      return _turn(system, messages, tools, search: false);
+    }
+  }
+
+  Future<AgentResponse> _turn(
+    String system,
+    List<Message> messages,
+    List<Tool> tools, {
+    required bool search,
+  }) async {
     final body = {
       'model': model,
       if (system.isNotEmpty) 'instructions': system,
       'input': toResponsesInput(messages, namespace: namespace),
-      if (tools.isNotEmpty || webSearch)
+      if (tools.isNotEmpty || search)
         'tools': [
           if (tools.isNotEmpty)
             ...switch (namespace) {
@@ -83,7 +102,7 @@ class ChatGptProvider implements LlmProvider {
               null => _functions(tools),
             },
           // Searches run on OpenAI's side; their calls in the output are skipped.
-          if (webSearch) {'type': 'web_search'},
+          if (search) {'type': 'web_search'},
         ],
       'store': false,
       'stream': true,
