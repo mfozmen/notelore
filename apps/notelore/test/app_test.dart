@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/settings.dart';
+import 'package:notelore/src/strings.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore/src/voice.dart';
 import 'package:notelore_core/notelore_core.dart';
@@ -149,17 +150,26 @@ void main() {
     await tester.enterText(find.byKey(const Key('message')), 'selam');
     await tester.tap(find.byTooltip('Send'));
     await tester.pump();
-    expect(find.text('Thinking… 0 s'), findsOneWidget);
+    // A playful line instead of a plain "Thinking", a new one every few seconds.
+    final lines = EnglishStrings().waitingLines;
+    String? waiting() => tester
+        .widgetList<Text>(find.byType(Text))
+        .map((t) => t.data)
+        .where(lines.contains)
+        .firstOrNull;
+    final first = waiting();
+    expect(first, isNotNull);
+    expect(find.textContaining('Thinking'), findsNothing);
     expect(
       tester.widget<TextField>(find.byKey(const Key('message'))).enabled,
       isNot(false),
     ); // open: writing meanwhile joins the turn
-    await tester.pump(const Duration(seconds: 2));
-    expect(find.text('Thinking… 2 s'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 4));
+    expect(waiting(), allOf(isNotNull, isNot(first)));
     await tester.tap(find.byTooltip('Stop'));
     await tester.pumpAndSettle();
     expect(find.text('Stopped.'), findsOneWidget);
-    expect(find.textContaining('Thinking'), findsNothing);
+    expect(waiting(), isNull);
     expect(find.byTooltip('Send'), findsOneWidget);
   });
 

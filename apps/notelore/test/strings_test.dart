@@ -49,6 +49,14 @@ void main() {
     }
   });
 
+  test('plenty of waiting lines in both languages, each its own', () {
+    for (final s in [en, tr]) {
+      expect(s.waitingLines.length, greaterThanOrEqualTo(15));
+      expect(s.waitingLines.toSet(), hasLength(s.waitingLines.length));
+    }
+    expect(tr.waitingLines.first, isNot(en.waitingLines.first));
+  });
+
   test('the sync summary and the note kinds', () {
     expect(en.synced(0, 0, 0, 0), 'Synced; nothing changed.');
     expect(en.synced(1, 2, 3, 4), contains('1 sent, 2 received, 3 merged, 4 waiting'));
@@ -91,7 +99,6 @@ void main() {
       'changeTheModel': s.changeTheModel,
       'changeModel': s.changeModel,
       'modelGone': s.modelGone('P', 'm'),
-      'thinking': s.thinking('x', 3),
       'talk': s.talk,
       'stopReading': s.stopReading,
       'holdHint': s.holdHint,
