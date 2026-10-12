@@ -100,10 +100,16 @@ class WhisperModel {
       final part = File('${path(file.name)}.part');
       var kept = part.existsSync() ? part.lengthSync() : 0;
       if (kept >= file.size) kept = 0; // not a beginning of this file: start over
-      final request = http.Request('GET', Uri.parse(file.url));
-      if (kept > 0) request.headers['range'] = 'bytes=$kept-';
-      final answer = await client.send(request);
-      final resumed = kept > 0 && answer.statusCode == 206;
+      var answer = await client.send(_get(file.url, from: kept));
+      var resumed = false;
+      if (kept > 0 && answer.statusCode == 206) {
+        // Appended only when the server sends the rest from exactly there.
+        resumed = '${answer.headers['content-range']}'.startsWith('bytes $kept-');
+        if (!resumed) {
+          await answer.stream.drain<void>();
+          answer = await client.send(_get(file.url));
+        }
+      }
       if (answer.statusCode != 200 && !resumed) {
         throw ModelDownloadFailed('${file.name}: HTTP ${answer.statusCode}');
       }
@@ -124,7 +130,9 @@ class WhisperModel {
           onProgress(done / bytes);
         }
       } on Object catch (error) {
-        await sink.close(); // what arrived stays, for the next try to go on from
+        // What arrived stays, for the next try to go on from; the download's
+        // error says more than one from closing the file.
+        await sink.close().then<void>((_) {}, onError: (Object _) {});
         throw ModelDownloadFailed('${file.name}: $error');
       }
       hashing.close();
@@ -137,6 +145,13 @@ class WhisperModel {
     }
     onProgress(1);
   }
+}
+
+/// A GET for [url], from byte [from] on when it is not 0.
+http.Request _get(String url, {int from = 0}) {
+  final request = http.Request('GET', Uri.parse(url));
+  if (from > 0) request.headers['range'] = 'bytes=$from-';
+  return request;
 }
 
 class _Digest implements Sink<Digest> {

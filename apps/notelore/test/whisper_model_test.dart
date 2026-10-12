@@ -89,7 +89,11 @@ void main() {
         final bytes = utf8.encode(pages[request.url.pathSegments.last]!);
         if (request.headers['range'] case final range?) {
           final from = int.parse(range.substring('bytes='.length, range.length - 1));
-          return http.StreamedResponse(Stream.value(bytes.sublist(from)), 206);
+          return http.StreamedResponse(
+            Stream.value(bytes.sublist(from)),
+            206,
+            headers: {'content-range': 'bytes $from-${bytes.length - 1}/${bytes.length}'},
+          );
         }
         return http.StreamedResponse(Stream.value(bytes), 200);
       });
@@ -141,6 +145,30 @@ void main() {
       onProgress: (_) {},
     );
     expect(ranges, [null, null]);
+  });
+
+  test('a 206 for a different range is not appended: the file starts over', () async {
+    final model = WhisperModel(dir.path, files: files);
+    File(p.join(dir.path, 'encoder.onnx.part')).writeAsStringSync('encode');
+    var asked = 0;
+    final odd = MockClient.streaming((request, _) async {
+      asked++;
+      final bytes = utf8.encode(
+        request.url.pathSegments.last == 'tokens.txt' ? 'a 1\nb 2\n' : 'encoder bytes',
+      );
+      if (request.headers['range'] != null) {
+        // A proxy that answers 206 from the start of the file.
+        return http.StreamedResponse(
+          Stream.value(bytes),
+          206,
+          headers: {'content-range': 'bytes 0-12/13'},
+        );
+      }
+      return http.StreamedResponse(Stream.value(bytes), 200);
+    });
+    await model.download(client: odd, onProgress: (_) {});
+    expect(model.ready, isTrue);
+    expect(asked, 3); // the odd answer, the whole encoder again, the tokens
   });
 
   test('the real model: Whisper small int8 and the Silero VAD, with checksums', () {
