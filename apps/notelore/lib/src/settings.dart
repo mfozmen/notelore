@@ -59,206 +59,235 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(s.settings)),
       // Grouped in cards; a readable width on wide windows.
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: ListView(
+      // Cards side by side on wide windows (the desktop), one column on phones.
+      body: LayoutBuilder(
+        builder: (context, size) {
+          final model = Card(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: Gap.m),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.auto_awesome_outlined),
+                    title: Text(s.provider),
+                    subtitle: Text(
+                      '${s.providerName(session.spec!)} · ${s.groupHeading(session.spec!.group)}',
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          // The models the key can use; a name not in the list can be typed too.
+                          child: DropdownMenu<String>(
+                            key: const Key('model'),
+                            controller: _model,
+                            expandedInsets: EdgeInsets.zero,
+                            requestFocusOnTap: true,
+                            label: Text(s.model),
+                            helperText: s.modelHelper(session.defaultModel),
+                            dropdownMenuEntries: [
+                              for (final m in session.models) DropdownMenuEntry(value: m, label: m),
+                            ],
+                            onSelected: (_) => _saveModel(),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: s.refreshModels,
+                          icon: const Icon(Icons.refresh),
+                          onPressed: _refreshModels,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: Gap.s),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                    child: OutlinedButton(onPressed: _saveModel, child: Text(s.saveModel)),
+                  ),
+                  SwitchListTile(
+                    secondary: const Icon(Icons.travel_explore),
+                    title: Text(s.webSearch),
+                    subtitle: Text(
+                      !session.spec!.webSearch
+                          ? s.webSearchUnavailable
+                          : session.spec!.name == 'anthropic'
+                          ? s.webSearchBilled
+                          : s.webSearchExplained,
+                    ),
+                    value: session.webSearch && session.spec!.webSearch,
+                    onChanged: session.spec!.webSearch ? session.setWebSearch : null,
+                  ),
+                ],
+              ),
+            ),
+          );
+          final language = Card(
+            child: ListTile(
+              leading: const Icon(Icons.translate),
+              title: Text(s.language),
+              trailing: DropdownButton<AppLanguage>(
+                key: const Key('language'),
+                value: session.language,
+                underline: const SizedBox.shrink(),
+                onChanged: (chosen) => session.setLanguage(chosen!),
+                items: [
+                  for (final language in AppLanguage.values)
+                    DropdownMenuItem(value: language, child: Text(s.languageName(language))),
+                ],
+              ),
+            ),
+          );
+          final look = Card(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: Gap.m),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.palette_outlined),
+                    title: Text(s.theme),
+                    subtitle: Text(s.paletteName(session.palette)),
+                  ),
+                  // A swatch per landscape; the chosen one is ringed.
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                    child: Wrap(
+                      spacing: Gap.s,
+                      runSpacing: Gap.s,
+                      children: [
+                        for (final palette in Palette.values)
+                          _Swatch(
+                            palette,
+                            label: s.paletteName(palette),
+                            chosen: palette == session.palette,
+                            onTap: () => session.setPalette(palette),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: Gap.m),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                    child: SegmentedButton<Appearance>(
+                      segments: [
+                        for (final a in Appearance.values)
+                          ButtonSegment(
+                            value: a,
+                            label: Text(s.appearanceName(a)),
+                            icon: Icon(switch (a) {
+                              Appearance.system => Icons.brightness_auto_outlined,
+                              Appearance.light => Icons.light_mode_outlined,
+                              Appearance.dark => Icons.dark_mode_outlined,
+                            }),
+                          ),
+                      ],
+                      selected: {session.appearance},
+                      showSelectedIcon: false,
+                      onSelectionChanged: (chosen) => session.setAppearance(chosen.single),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+          final drive = Card(child: _DriveSection(session));
+          final folder = Card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.folder_outlined),
+                  title: Text(s.notesFolder),
+                  subtitle: SelectableText(session.paths.notes.path),
+                ),
+              ],
+            ),
+          );
+          final about = Card(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: Gap.m),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.info_outline),
+                    title: Text(s.versionLine(widget.version)),
+                  ),
+                  if (widget.checkForUpdates case final check?)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.m),
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.system_update_alt),
+                        onPressed: _checking
+                            ? null
+                            : () async {
+                                final messenger = ScaffoldMessenger.of(context);
+                                setState(() => _checking = true);
+                                final result = await check();
+                                if (mounted) setState(() => _checking = false);
+                                messenger
+                                  ..hideCurrentSnackBar()
+                                  ..showSnackBar(SnackBar(content: Text(result)));
+                              },
+                        label: Text(s.checkForUpdates),
+                      ),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                    child: FilledButton.tonalIcon(
+                      icon: const Icon(Icons.logout),
+                      onPressed: session.logout,
+                      label: Text(s.logOut),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, 0),
+                    child: Text(s.logOutExplained, style: Theme.of(context).textTheme.bodySmall),
+                  ),
+                ],
+              ),
+            ),
+          );
+          final wide = size.maxWidth >= 840;
+          return ListView(
             padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
             children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: Gap.m),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.auto_awesome_outlined),
-                        title: Text(s.provider),
-                        subtitle: Text(
-                          '${s.providerName(session.spec!)} · ${s.groupHeading(session.spec!.group)}',
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              // The models the key can use; a name not in the list can be typed too.
-                              child: DropdownMenu<String>(
-                                key: const Key('model'),
-                                controller: _model,
-                                expandedInsets: EdgeInsets.zero,
-                                requestFocusOnTap: true,
-                                label: Text(s.model),
-                                helperText: s.modelHelper(session.defaultModel),
-                                dropdownMenuEntries: [
-                                  for (final m in session.models)
-                                    DropdownMenuEntry(value: m, label: m),
-                                ],
-                                onSelected: (_) => _saveModel(),
-                              ),
-                            ),
-                            IconButton(
-                              tooltip: s.refreshModels,
-                              icon: const Icon(Icons.refresh),
-                              onPressed: _refreshModels,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: Gap.s),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-                        child: OutlinedButton(onPressed: _saveModel, child: Text(s.saveModel)),
-                      ),
-                      SwitchListTile(
-                        secondary: const Icon(Icons.travel_explore),
-                        title: Text(s.webSearch),
-                        subtitle: Text(
-                          !session.spec!.webSearch
-                              ? s.webSearchUnavailable
-                              : session.spec!.name == 'anthropic'
-                              ? s.webSearchBilled
-                              : s.webSearchExplained,
-                        ),
-                        value: session.webSearch && session.spec!.webSearch,
-                        onChanged: session.spec!.webSearch ? session.setWebSearch : null,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: Gap.m),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.translate),
-                  title: Text(s.language),
-                  trailing: DropdownButton<AppLanguage>(
-                    key: const Key('language'),
-                    value: session.language,
-                    underline: const SizedBox.shrink(),
-                    onChanged: (chosen) => session.setLanguage(chosen!),
-                    items: [
-                      for (final language in AppLanguage.values)
-                        DropdownMenuItem(value: language, child: Text(s.languageName(language))),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: Gap.m),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: Gap.m),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.palette_outlined),
-                        title: Text(s.theme),
-                        subtitle: Text(s.paletteName(session.palette)),
-                      ),
-                      // A swatch per landscape; the chosen one is ringed.
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-                        child: Wrap(
-                          spacing: Gap.s,
-                          runSpacing: Gap.s,
-                          children: [
-                            for (final palette in Palette.values)
-                              _Swatch(
-                                palette,
-                                label: s.paletteName(palette),
-                                chosen: palette == session.palette,
-                                onTap: () => session.setPalette(palette),
-                              ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: Gap.m),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-                        child: SegmentedButton<Appearance>(
-                          segments: [
-                            for (final a in Appearance.values)
-                              ButtonSegment(
-                                value: a,
-                                label: Text(s.appearanceName(a)),
-                                icon: Icon(switch (a) {
-                                  Appearance.system => Icons.brightness_auto_outlined,
-                                  Appearance.light => Icons.light_mode_outlined,
-                                  Appearance.dark => Icons.dark_mode_outlined,
-                                }),
-                              ),
-                          ],
-                          selected: {session.appearance},
-                          showSelectedIcon: false,
-                          onSelectionChanged: (chosen) => session.setAppearance(chosen.single),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: Gap.m),
-              Card(child: _DriveSection(session)),
-              const SizedBox(height: Gap.m),
-              Card(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.folder_outlined),
-                      title: Text(s.notesFolder),
-                      subtitle: SelectableText(session.paths.notes.path),
-                    ),
-                    if (widget.checkForUpdates case final check?)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.m),
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.system_update_alt),
-                          onPressed: _checking
-                              ? null
-                              : () async {
-                                  final messenger = ScaffoldMessenger.of(context);
-                                  setState(() => _checking = true);
-                                  final result = await check();
-                                  if (mounted) setState(() => _checking = false);
-                                  messenger
-                                    ..hideCurrentSnackBar()
-                                    ..showSnackBar(SnackBar(content: Text(result)));
-                                },
-                          label: Text(s.checkForUpdates),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: Gap.l),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: FilledButton.tonalIcon(
-                  icon: const Icon(Icons.logout),
-                  onPressed: session.logout,
-                  label: Text(s.logOut),
-                ),
-              ),
-              const SizedBox(height: Gap.s),
-              Text(s.logOutExplained, style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(height: Gap.l),
               Center(
-                child: Text(
-                  s.versionLine(widget.version),
-                  style: Theme.of(context).textTheme.labelMedium
-                      ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: wide ? 1120 : 720),
+                  child: wide
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: _cards([model, drive, folder])),
+                            const SizedBox(width: Gap.m),
+                            Expanded(child: _cards([language, look, about])),
+                          ],
+                        )
+                      : _cards([model, language, look, drive, folder, about]),
                 ),
               ),
             ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 }
+
+/// [cards] stacked with the usual gap between them.
+Widget _cards(List<Widget> cards) => Column(
+  crossAxisAlignment: CrossAxisAlignment.stretch,
+  children: [
+    for (final (index, card) in cards.indexed) ...[
+      if (index > 0) const SizedBox(height: Gap.m),
+      card,
+    ],
+  ],
+);
 
 /// Connect, sync now, disconnect; or why there is no sync in this build.
 class _DriveSection extends StatelessWidget {

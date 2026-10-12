@@ -184,11 +184,9 @@ void main() {
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     Future<void> check() async {
-      await tester.scrollUntilVisible(
-        find.text('Check for updates'),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
+      // At the end of Settings, in the About card.
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Check for updates'));
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
       await tester.pumpAndSettle();
