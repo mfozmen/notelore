@@ -172,10 +172,14 @@ void main() {
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     expect(find.byKey(const Key('voice-state')), findsNothing);
-    final hold = await tester.startGesture(tester.getCenter(find.byTooltip('Hold to talk')));
+    final hold = await tester.createGesture();
+    await hold.down(
+      tester.getCenter(find.byTooltip('Hold to talk')),
+      timeStamp: const Duration(seconds: 10),
+    );
     await tester.pump();
     expect(find.text('Listening… let go to send'), findsOneWidget);
-    await hold.up();
+    await hold.up(timeStamp: const Duration(seconds: 12)); // held two seconds
     await tester.pump();
     await tester.pump();
     expect(find.text('merhaba'), findsOneWidget);
@@ -194,6 +198,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Yazdın.'), findsOneWidget);
     expect(harness.voice.spoken, hasLength(1)); // typed: not read aloud
+    // A plain click records nothing: it says to hold.
+    await tester.tap(find.byTooltip('Hold to talk'));
+    await tester.pumpAndSettle();
+    expect(find.text('Hold the button while you talk.'), findsOneWidget);
     // A hold the system takes away (a call, say) ends like a let-go.
     final taken = await tester.startGesture(tester.getCenter(find.byTooltip('Hold to talk')));
     await tester.pump();
@@ -202,9 +210,13 @@ void main() {
     expect(find.byKey(const Key('voice-state')), findsNothing);
     // No recognizer: says so.
     harness.speech.failure = const VoiceUnavailable();
-    final again = await tester.startGesture(tester.getCenter(find.byTooltip('Hold to talk')));
+    final again = await tester.createGesture();
+    await again.down(
+      tester.getCenter(find.byTooltip('Hold to talk')),
+      timeStamp: const Duration(seconds: 20),
+    );
     await tester.pumpAndSettle();
-    await again.up();
+    await again.up(timeStamp: const Duration(seconds: 22));
     await tester.pumpAndSettle();
     expect(find.textContaining('Speech recognition is not available'), findsOneWidget);
   });

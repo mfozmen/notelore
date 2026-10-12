@@ -54,6 +54,7 @@ abstract class Strings {
   String thinking(String step, int seconds);
   String get talk;
   String get stopReading;
+  String get holdHint;
   String get listening;
   String get speaking;
   String get voiceUnavailable;
@@ -210,6 +211,8 @@ class EnglishStrings extends Strings {
   String get talk => 'Hold to talk';
   @override
   String get stopReading => 'Stop reading aloud';
+  @override
+  String get holdHint => 'Hold the button while you talk.';
   @override
   String get listening => 'Listening… let go to send';
   @override
@@ -508,6 +511,8 @@ class TurkishStrings extends Strings {
   String get talk => 'Basılı tut, konuş';
   @override
   String get stopReading => 'Sesli okumayı durdur';
+  @override
+  String get holdHint => 'Konuşurken düğmeyi basılı tut.';
   @override
   String get listening => 'Dinliyorum… bırakınca gönderilir';
   @override
