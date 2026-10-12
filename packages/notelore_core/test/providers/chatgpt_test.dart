@@ -172,6 +172,36 @@ void main() {
     ]);
   });
 
+  test(
+    'a route that refuses the search tool: the turn goes again without it, and stays so',
+    () async {
+      final api = FakeResponses([
+        http.Response(
+          '{"error": {"message": "Tool type web_search is not supported for this request"}}',
+          400,
+        ),
+        stream([completed([])]),
+        stream([completed([])]),
+      ]);
+      final provider = ChatGptProvider('gpt-x', token, client: api.client, webSearch: true);
+      await provider.turn('', [], [tool]);
+      await provider.turn('', [], [tool]);
+      expect((api.body(0)['tools']! as List).last, {'type': 'web_search'});
+      expect(api.body(1)['tools'], isNot(contains({'type': 'web_search'})));
+      expect(api.body(2)['tools'], isNot(contains({'type': 'web_search'})));
+      // Any other 400 is still an error.
+      await expectLater(
+        ChatGptProvider(
+          'gpt-x',
+          token,
+          client: FakeResponses([http.Response('{"error": {"message": "bad input"}}', 400)]).client,
+          webSearch: true,
+        ).turn('', [], [tool]),
+        throwsA(isA<HttpError>()),
+      );
+    },
+  );
+
   test('tool calls come back as tool_use blocks', () async {
     final api = FakeResponses([
       stream([
