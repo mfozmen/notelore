@@ -5,8 +5,9 @@ import 'package:notelore_core/notelore_core.dart';
 import 'session.dart';
 import 'theme.dart';
 
-/// Every project and topic, newest first; a tap opens the note read-only. The
-/// entry's trash button (or a long press, or the open note's) archives it.
+/// Every project and topic, newest first; a tap opens the note read-only, beside
+/// the list on a wide window. The entry's trash button (or a long press, or the
+/// open note's) archives it.
 class NotesScreen extends StatefulWidget {
   const NotesScreen(this.session, {super.key});
 
@@ -17,6 +18,11 @@ class NotesScreen extends StatefulWidget {
 }
 
 class _NotesScreenState extends State<NotesScreen> {
+  /// The note open beside the list on a wide window, read once.
+  (NoteInfo, String)? _reading;
+
+  bool _isOpen(NoteInfo note) => _reading?.$1.kind == note.kind && _reading?.$1.slug == note.slug;
+
   /// Asks, then archives [note] with an Undo; true when it was deleted.
   Future<bool> _delete(NoteInfo note) async {
     final s = widget.session.strings;
@@ -34,7 +40,9 @@ class _NotesScreenState extends State<NotesScreen> {
     if (sure != true || !mounted) return false;
     final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
     final archived = await widget.session.deleteNote(note);
-    setState(() {});
+    setState(() {
+      if (_isOpen(note)) _reading = null;
+    });
     if (archived == null) {
       messenger.showSnackBar(SnackBar(content: Text(s.alreadyGone(note.title))));
       return true;
@@ -63,7 +71,6 @@ class _NotesScreenState extends State<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     final s = widget.session.strings;
-    final colors = Theme.of(context).colorScheme;
     final notes = widget.session.listNotes();
     return Scaffold(
       appBar: AppBar(
@@ -83,57 +90,115 @@ class _NotesScreenState extends State<NotesScreen> {
           ),
         ],
       ),
-      body: notes.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(Gap.l),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.description_outlined, size: 56, color: colors.primary),
-                    const SizedBox(height: Gap.m),
-                    Text(s.noNotes, textAlign: TextAlign.center),
-                  ],
-                ),
+      body: LayoutBuilder(
+        builder: (context, size) {
+          final list = _list(context, notes, wide: size.maxWidth >= 840);
+          if (size.maxWidth < 840) return list;
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(width: 400, child: list),
+              const VerticalDivider(width: 1),
+              Expanded(child: _reader(context)),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _list(BuildContext context, List<NoteInfo> notes, {required bool wide}) {
+    final s = widget.session.strings;
+    final colors = Theme.of(context).colorScheme;
+    return notes.isEmpty
+        ? Center(
+            child: Padding(
+              padding: const EdgeInsets.all(Gap.l),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.description_outlined, size: 56, color: colors.primary),
+                  const SizedBox(height: Gap.m),
+                  Text(s.noNotes, textAlign: TextAlign.center),
+                ],
               ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
-              itemCount: notes.length,
-              separatorBuilder: (_, _) => const SizedBox(height: Gap.s),
-              itemBuilder: (context, index) {
-                final note = notes[index];
-                return Card(
-                  child: ListTile(
-                    // The kind at a glance: a folder for a project, a tag for a topic.
-                    leading: CircleAvatar(
-                      backgroundColor: colors.secondaryContainer,
-                      foregroundColor: colors.onSecondaryContainer,
-                      child: Icon(
-                        note.kind == 'project' ? Icons.folder_outlined : Icons.sell_outlined,
-                        size: 20,
-                      ),
-                    ),
-                    title: Text(note.title),
-                    subtitle: Text(
-                      s.noteSubtitle(
-                        note.kind,
-                        note.updated == null ? '?' : isoDate(note.updated!),
-                      ),
-                    ),
-                    onLongPress: () => _delete(note),
-                    trailing: IconButton(
-                      tooltip: s.delete,
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () => _delete(note),
-                    ),
-                    // Read once: the app rebuilds on every session change, and a
-                    // deleted note must not be read again under its reader.
-                    onTap: () => _open(note, widget.session.readNote(note)),
-                  ),
-                );
-              },
             ),
+          )
+        : ListView.separated(
+            padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
+            itemCount: notes.length,
+            separatorBuilder: (_, _) => const SizedBox(height: Gap.s),
+            itemBuilder: (context, index) {
+              final note = notes[index];
+              return Card(
+                child: ListTile(
+                  // The kind at a glance: a folder for a project, a tag for a topic.
+                  leading: CircleAvatar(
+                    backgroundColor: colors.secondaryContainer,
+                    foregroundColor: colors.onSecondaryContainer,
+                    child: Icon(
+                      note.kind == 'project' ? Icons.folder_outlined : Icons.sell_outlined,
+                      size: 20,
+                    ),
+                  ),
+                  title: Text(note.title),
+                  subtitle: Text(
+                    s.noteSubtitle(note.kind, note.updated == null ? '?' : isoDate(note.updated!)),
+                  ),
+                  onLongPress: () => _delete(note),
+                  trailing: IconButton(
+                    tooltip: s.delete,
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => _delete(note),
+                  ),
+                  // Read once: the app rebuilds on every session change, and a
+                  // deleted note must not be read again under its reader.
+                  selected: wide && _isOpen(note),
+                  onTap: () {
+                    final text = widget.session.readNote(note);
+                    if (wide) {
+                      setState(() => _reading = (note, text));
+                    } else {
+                      _open(note, text);
+                    }
+                  },
+                ),
+              );
+            },
+          );
+  }
+
+  /// The open note beside the list, or where it will be.
+  Widget _reader(BuildContext context) {
+    final s = widget.session.strings;
+    final Widget content;
+    if (_reading case (final note, final text)?) {
+      content = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // The note's own heading is its title; above it only its action.
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(0, Gap.s, Gap.s, 0),
+              child: IconButton(
+                tooltip: s.delete,
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () => _delete(note),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Markdown(data: text, selectable: true, padding: const EdgeInsets.all(Gap.m)),
+          ),
+        ],
+      );
+    } else {
+      content = Center(child: Text(s.pickNote));
+    }
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760), child: content),
     );
   }
 

@@ -48,9 +48,10 @@ Notelore starts on the cheapest model your provider offers; switch any time with
 
 ## Using it
 
+- **On the desktop:** a side rail (with labels when the window is wide enough) replaces the phone's bottom bar, and the chat is a readable column.
 - **Chat:** the chat shows what the assistant is doing; *Stop* ends a turn. You can keep writing while it works: what you add joins its answer. With ChatGPT, GPT or Claude it can look things up on the web when that helps get a note right (the author of a book you mention, say); turn it off in Settings. Anthropic bills each search.
 - **Voice mode:** the voice icon next to the message box switches to talking. Notelore listens, answers aloud, and listens again; typing still works. On first start Notelore downloads Whisper by itself in the background (about 375 MB, once per device; not bundled, so updates stay small). Whisper hears you on the device, offline, in any language; Settings shows the download and lets you pick the microphone. Until it is there, voice mode uses the device's speech recognition (on Windows that needs the speech pack for your language, and Windows has no Turkish one).
-- **Notes:** browse your projects and topics. Deleting a note moves it to `_archive/` in the notes folder, with an Undo; the *Archive* button lists what was deleted and restores it.
+- **Notes:** browse your projects and topics; on a wide window the open note sits beside the list. Deleting a note moves it to `_archive/` in the notes folder, with an Undo; the *Archive* button lists what was deleted and restores it.
 - **Settings:** language (System, English or Türkçe), a theme from six nature palettes (lagoon, pine forest, open sea, sunset, lavender field, northern lights) in light or dark, model, Google Drive, and an About card with the version, updates and log out. On a wide window the sections (model, voice, sync and files, appearance, about) are listed on the left, one shown at a time.
 - **Google Drive:** *Settings → Google Drive → Connect* backs your notes up to a `Notelore` folder and keeps every device in sync, settings too (language, theme, provider and model; never your keys). Notelore only sees the files it creates.
 

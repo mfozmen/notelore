@@ -56,6 +56,16 @@ class _ChatScreenState extends State<ChatScreen> {
     final session = widget.session;
     final s = session.strings;
     final lines = session.transcript.reversed.toList(); // newest at the bottom
+    // On a wide window the conversation is a readable column, like a page.
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 840),
+        child: _conversation(context, session, s, lines),
+      ),
+    );
+  }
+
+  Widget _conversation(BuildContext context, Session session, Strings s, List<ChatLine> lines) {
     return Column(
       children: [
         Expanded(
