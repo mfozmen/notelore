@@ -86,10 +86,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Dune'), findsNothing);
 
-    // Rewritten elsewhere (a later date): the reader shows the new text.
-    final text = File(path)
-        .readAsStringSync()
-        .replaceFirst('updated: 2026-09-30', 'updated: 2026-10-01');
+    // Added to elsewhere the same day (the date stays): the reader shows it.
+    final text = File(path).readAsStringSync();
     File(path).writeAsStringSync('$text- Dune${String.fromCharCode(10)}');
     await tester.tap(find.byTooltip('Refresh'));
     await tester.pumpAndSettle();

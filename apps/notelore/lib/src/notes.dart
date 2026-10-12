@@ -72,15 +72,11 @@ class _NotesScreenState extends State<NotesScreen> {
   Widget build(BuildContext context) {
     final s = widget.session.strings;
     final notes = widget.session.listNotes();
-    // The open note follows the files: archived elsewhere, it closes; changed
-    // (by a sync or the assistant), it is read again.
+    // The open note follows the files: archived elsewhere, it closes; else it
+    // is read again (one file), so a sync or the assistant shows at once.
     if (_reading case (final open, _)?) {
       final now = notes.where((n) => n.kind == open.kind && n.slug == open.slug).firstOrNull;
-      _reading = now == null
-          ? null
-          : now.updated == open.updated
-          ? _reading
-          : (now, widget.session.readNote(now));
+      _reading = now == null ? null : (now, widget.session.readNote(now));
     }
     return Scaffold(
       appBar: AppBar(
