@@ -45,6 +45,7 @@ class ChatGptProvider implements LlmProvider {
     http.Client? client,
     this.timeout = const Duration(seconds: 120),
     this.namespace = planNamespace,
+    this.webSearch = false,
   }) : _client = client ?? http.Client();
 
   @override
@@ -53,6 +54,9 @@ class ChatGptProvider implements LlmProvider {
 
   /// The plan route wants function tools in a namespace; null for an API key.
   final String? namespace;
+
+  /// Lets the model search the web itself (OpenAI's hosted tool).
+  final bool webSearch;
 
   /// How long one answer may take, streaming included.
   final Duration timeout;
@@ -64,18 +68,23 @@ class ChatGptProvider implements LlmProvider {
       'model': model,
       if (system.isNotEmpty) 'instructions': system,
       'input': toResponsesInput(messages, namespace: namespace),
-      if (tools.isNotEmpty)
-        'tools': switch (namespace) {
-          final name? => [
-            {
-              'type': 'namespace',
-              'name': name,
-              'description': "Notelore's note tools.",
-              'tools': _functions(tools),
+      if (tools.isNotEmpty || webSearch)
+        'tools': [
+          if (tools.isNotEmpty)
+            ...switch (namespace) {
+              final name? => [
+                {
+                  'type': 'namespace',
+                  'name': name,
+                  'description': "Notelore's note tools.",
+                  'tools': _functions(tools),
+                },
+              ],
+              null => _functions(tools),
             },
-          ],
-          null => _functions(tools),
-        },
+          // Searches run on OpenAI's side; their calls in the output are skipped.
+          if (webSearch) {'type': 'web_search'},
+        ],
       'store': false,
       'stream': true,
     };

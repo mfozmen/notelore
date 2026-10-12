@@ -16,12 +16,20 @@ Map<String, String> anthropicHeaders(String apiKey) => {
 };
 
 class AnthropicProvider implements LlmProvider {
-  AnthropicProvider(this._apiKey, this.model, {this.transport = defaultTransport});
+  AnthropicProvider(
+    this._apiKey,
+    this.model, {
+    this.transport = defaultTransport,
+    this.webSearch = false,
+  });
 
   final String _apiKey;
   @override
   final String model;
   final Transport transport;
+
+  /// Lets Claude search the web itself (Anthropic's server tool, billed per search).
+  final bool webSearch;
 
   @override
   Future<AgentResponse> turn(String system, List<Message> messages, List<Tool> tools) async {
@@ -34,10 +42,12 @@ class AnthropicProvider implements LlmProvider {
         'max_tokens': _maxTokens,
         if (system.isNotEmpty) 'system': system,
         'messages': messages,
-        if (tools.isNotEmpty)
+        if (tools.isNotEmpty || webSearch)
           'tools': [
             for (final t in tools)
               {'name': t.name, 'description': t.description, 'input_schema': t.inputSchema},
+            // The searches run on Anthropic's side; their blocks are not ours to run.
+            if (webSearch) {'type': 'web_search_20250305', 'name': 'web_search', 'max_uses': 3},
           ],
       },
       timeout: _timeout,

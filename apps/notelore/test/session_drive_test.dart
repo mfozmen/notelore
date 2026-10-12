@@ -66,6 +66,7 @@ void main() {
         ..setLanguage(AppLanguage.tr)
         ..setPalette(Palette.sunset)
         ..setAppearance(Appearance.dark);
+      await laptop.setWebSearch(false);
       await laptop.setModel('model-b');
       await laptop.connectDrive();
       expect(drive.texts[sharedSettings], contains('"language":"tr"'));
@@ -77,6 +78,7 @@ void main() {
       expect(phone.language, AppLanguage.tr);
       expect(phone.model, 'model-b');
       expect((phone.palette, phone.appearance), (Palette.sunset, Appearance.dark));
+      expect(phone.webSearch, isFalse);
 
       // Later the phone changes the language: the laptop follows on its next sync.
       await later.connect(findProvider('anthropic'), 'phone-key');

@@ -31,6 +31,7 @@ typedef MakeProvider = LlmProvider Function(
   String? key, {
   String? model,
   BearerToken? planToken,
+  bool webSearch,
 });
 
 /// The models a ChatGPT plan can use.
@@ -99,6 +100,21 @@ class Session extends ChangeNotifier {
   Palette palette = Palette.lagoon;
   Appearance appearance = Appearance.system;
 
+  /// The model may look things up on the web, where its provider can (#96).
+  bool webSearch = true;
+
+  /// Turns web search on or off; the provider is rebuilt to match.
+  Future<void> setWebSearch(bool on) async {
+    await _applyWebSearch(on);
+    _touch();
+  }
+
+  Future<void> _applyWebSearch(bool on) async {
+    webSearch = on;
+    _saveUi();
+    if (model case final current?) await _applyModel(current);
+  }
+
   /// The app's words in [language].
   Strings get strings => stringsFor(language, systemLanguage);
 
@@ -141,6 +157,7 @@ class Session extends ChangeNotifier {
           'language': language.name,
           'palette': palette.name,
           'appearance': appearance.name,
+          'webSearch': webSearch,
         }),
       );
     } on FileSystemException {
@@ -155,6 +172,7 @@ class Session extends ChangeNotifier {
       language = _named(AppLanguage.values, saved['language']) ?? AppLanguage.system;
       palette = _named(Palette.values, saved['palette']) ?? Palette.lagoon;
       appearance = _named(Appearance.values, saved['appearance']) ?? Appearance.system;
+      webSearch = saved['webSearch'] != false;
     } on Exception {
       // none saved yet, or damaged: the device's language
     }
@@ -397,6 +415,7 @@ class Session extends ChangeNotifier {
       key,
       model: chosenModel,
       planToken: chosen.name == 'chatgpt' ? chatGpt!.token : null,
+      webSearch: webSearch && chosen.webSearch,
     );
     // A model switch keeps the conversation; logout has already dropped it.
     final history = _agent?.messages ?? const <Message>[];
@@ -528,6 +547,7 @@ class Session extends ChangeNotifier {
       'language': language.name,
       'palette': palette.name,
       'appearance': appearance.name,
+      'webSearch': webSearch,
       'provider': ?spec?.name,
       'model': ?model,
     };
@@ -553,6 +573,7 @@ class Session extends ChangeNotifier {
       _named(Palette.values, theirs['palette']) ?? palette,
       _named(Appearance.values, theirs['appearance']) ?? appearance,
     );
+    if (theirs['webSearch'] case final bool on when on != webSearch) await _applyWebSearch(on);
     final (name, chosen) = (theirs['provider'], theirs['model']);
     if (name is! String || chosen is! String || name == 'ollama') return;
     final found = providerSpecs.where((s) => s.name == name).firstOrNull;

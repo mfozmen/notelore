@@ -48,7 +48,7 @@ Notelore starts on the cheapest model your provider offers; switch any time with
 
 ## Using it
 
-- **Chat:** the chat shows what the assistant is doing; *Stop* ends a turn.
+- **Chat:** the chat shows what the assistant is doing; *Stop* ends a turn. With ChatGPT, GPT or Claude it can look things up on the web when that helps get a note right (the author of a book you mention, say); turn it off in Settings. Anthropic bills each search.
 - **Voice mode:** the voice icon next to the message box switches to talking. Notelore listens, answers aloud, and listens again; typing still works. On Windows, add the speech pack for your language (Settings, Time & language, Speech).
 - **Notes:** browse your projects and topics. Deleting a note moves it to `_archive/` in the notes folder, with an Undo.
 - **Settings:** language (System, English or Türkçe), a theme from six nature palettes (lagoon, pine forest, open sea, sunset, lavender field, northern lights) in light or dark, model, Google Drive, updates, log out.

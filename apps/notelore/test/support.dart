@@ -79,6 +79,9 @@ class Harness {
   final MemoryRemote remote;
   final created = <(String, String?, String?)>[];
 
+  /// Whether each provider was built with web search.
+  final searches = <bool>[];
+
   /// The plan token each provider was built with (null for key providers).
   final tokens = <BearerToken?>[];
 
@@ -110,7 +113,8 @@ class Harness {
         if (rejected != null) throw rejected!;
         return models;
       },
-      makeProvider: (spec, key, {model, planToken}) {
+      makeProvider: (spec, key, {model, planToken, webSearch = false}) {
+        searches.add(webSearch);
         created.add((spec.name, key, model));
         tokens.add(planToken);
         return provider;

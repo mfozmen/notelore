@@ -92,4 +92,35 @@ void main() {
     expect(blockToMap({'type': 'text', 'text': 'hi', 'extra': 1}), {'type': 'text', 'text': 'hi'});
     expect(blockToMap({'type': 'thinking', 'thinking': '...'}), {'type': 'thinking'});
   });
+
+  test(
+    'web search: the server tool goes along, and its result blocks are not ours to keep',
+    () async {
+      api.answers.add({
+        'content': [
+          {
+            'type': 'server_tool_use',
+            'id': 's1',
+            'name': 'web_search',
+            'input': {'query': 'x'},
+          },
+          {'type': 'web_search_tool_result', 'tool_use_id': 's1', 'content': <Object?>[]},
+          {'type': 'text', 'text': 'Abim Deniz, Can Dündar', 'citations': <Object?>[]},
+        ],
+        'stop_reason': 'end_turn',
+      });
+      final response =
+          await AnthropicProvider('sk-ant', 'claude-x', transport: api.call, webSearch: true).turn(
+            '',
+            [
+              {'role': 'user', 'content': 'abim deniz'},
+            ],
+            [tool],
+          );
+      final tools = (api.last['body']! as Map)['tools']! as List;
+      expect(tools.last, {'type': 'web_search_20250305', 'name': 'web_search', 'max_uses': 3});
+      expect(response.content.last, {'type': 'text', 'text': 'Abim Deniz, Can Dündar'});
+      expect(response.stopReason, 'end_turn');
+    },
+  );
 }
