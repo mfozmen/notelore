@@ -70,6 +70,13 @@ class _NotesScreenState extends State<NotesScreen> {
         title: Text(s.notes),
         actions: [
           IconButton(
+            tooltip: s.archive,
+            icon: const Icon(Icons.inventory_2_outlined),
+            onPressed: () =>
+                Navigator.of(context)
+                    .push(MaterialPageRoute<void>(builder: (_) => ArchiveScreen(widget.session))),
+          ),
+          IconButton(
             tooltip: s.refresh,
             icon: const Icon(Icons.refresh),
             onPressed: () => setState(() {}),
@@ -156,4 +163,82 @@ class _NotesScreenState extends State<NotesScreen> {
       ),
     ),
   );
+}
+
+/// What was deleted, newest first; each opens read-only with Restore.
+class ArchiveScreen extends StatefulWidget {
+  const ArchiveScreen(this.session, {super.key});
+
+  final Session session;
+
+  @override
+  State<ArchiveScreen> createState() => _ArchiveScreenState();
+}
+
+class _ArchiveScreenState extends State<ArchiveScreen> {
+  Future<void> _restore(BuildContext reader, ArchivedNote archived) async {
+    final s = widget.session.strings;
+    final messenger = ScaffoldMessenger.of(context);
+    final done = await widget.session.restoreArchived(archived);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(done ? s.restored(archived.title) : s.restoreTaken(archived.title))),
+      );
+    if (done && reader.mounted) Navigator.of(reader).pop();
+    if (mounted) setState(() {});
+  }
+
+  // Read once: a restore moves the file while the app rebuilds this route.
+  void _open(ArchivedNote archived) => _show(archived, widget.session.readArchived(archived));
+
+  void _show(ArchivedNote archived, String text) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (reader) => Scaffold(
+        appBar: AppBar(title: Text(archived.title)),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: Markdown(data: text, selectable: true, padding: const EdgeInsets.all(Gap.m)),
+          ),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          icon: const Icon(Icons.restore),
+          label: Text(widget.session.strings.restore),
+          onPressed: () => _restore(reader, archived),
+        ),
+      ),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.session.strings;
+    final archived = widget.session.listArchived();
+    return Scaffold(
+      appBar: AppBar(title: Text(s.archive)),
+      body: archived.isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(Gap.l),
+                child: Text(s.archiveEmpty, textAlign: TextAlign.center),
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
+              itemCount: archived.length,
+              separatorBuilder: (_, _) => const SizedBox(height: Gap.s),
+              itemBuilder: (context, index) => Card(
+                child: ListTile(
+                  leading: const Icon(Icons.inventory_2_outlined),
+                  title: Text(archived[index].title),
+                  subtitle: Text(
+                    '${s.archivedOn(archived[index].archivedOn)} · ${archived[index].original}',
+                  ),
+                  onTap: () => _open(archived[index]),
+                ),
+              ),
+            ),
+    );
+  }
 }

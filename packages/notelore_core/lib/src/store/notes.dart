@@ -294,6 +294,61 @@ String archiveNote(String root, String path, {DateTime? today}) {
   return target;
 }
 
+/// A note (or part of one) in the archive.
+final class ArchivedNote {
+  const ArchivedNote(this.path, this.original, this.archivedOn, this.title);
+
+  /// Where it lies now, under `_archive/<date>/`.
+  final String path;
+
+  /// Where it came from, relative to the notes root (`topics/x.md`).
+  final String original;
+
+  /// The day it was archived (`YYYY-MM-DD`).
+  final String archivedOn;
+  final String title;
+}
+
+/// Everything in the archive, newest first.
+List<ArchivedNote> listArchived(String root) => [
+  if (Directory(p.join(root, archiveFolder)) case final archive when archive.existsSync())
+    for (final file in archive.listSync(recursive: true).whereType<File>())
+      if (file.path.endsWith('.md'))
+        if (p.split(p.relative(file.path, from: p.join(root, archiveFolder))) case [
+          final day,
+          ...final rest,
+        ])
+          ArchivedNote(file.path, rest.join('/'), day, _titleOf(file)),
+]..sort((a, b) => b.archivedOn.compareTo(a.archivedOn));
+
+String _titleOf(File file) {
+  try {
+    return readNote(file.path).title;
+  } on Exception {
+    return p.basenameWithoutExtension(file.path); // not a note: named after the file
+  }
+}
+
+/// A note with [original]'s name exists again: restoring would overwrite it.
+class RestoreTaken implements Exception {
+  const RestoreTaken(this.original);
+
+  final String original;
+
+  @override
+  String toString() => 'a note at $original exists; not restored';
+}
+
+/// Moves [archived] back to where it came from; returns that path. Never
+/// overwrites: throws [RestoreTaken] when the place is taken.
+String restoreArchived(String root, ArchivedNote archived) {
+  final target = p.joinAll([root, ...archived.original.split('/')]);
+  if (File(target).existsSync()) throw RestoreTaken(archived.original);
+  Directory(p.dirname(target)).createSync(recursive: true);
+  moveWithRetry(archived.path, target);
+  return target;
+}
+
 /// Moves numbered entries per section into the archive copy of the same note.
 String archiveEntries(
   String root,
