@@ -9,6 +9,8 @@ Notelore/                         # notes root (default ~/Notelore, or $NOTELORE
 ├── projects/<slug>.md            # one file per project
 ├── topics/<slug>.md              # everything that is not a project (people, ideas, how-tos...)
 ├── _archive/<YYYY-MM-DD>/<relative path>   # notes removed by cleanup, never deleted
+│   (a note archived again the same day: <YYYY-MM-DD>-2/, -3/...; entries archived
+│    from a note that stays: <YYYY-MM-DD>/entries/<relative path>)
 └── .notelore/
     └── history/<YYYY-MM-DD>T<hhmmss>Z/<relative path>   # losing side of sync conflicts
 ```

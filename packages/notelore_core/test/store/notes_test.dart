@@ -357,9 +357,17 @@ void main() {
       expect(target, p.join(root, '_archive', '2026-09-30', 'projects', 'mopsos.md'));
       expect(File(path).existsSync(), isFalse);
       expect(read(target), startsWith('---\ntitle: Mopsos'));
-      // the same file archived again the same day: nothing is overwritten
+      // the same file archived again the same day: a numbered day, the same name
       createNote(root, 'project', 'Mopsos', today: today);
-      expect(archiveNote(root, path, today: today), p.join(p.dirname(target), 'mopsos-2.md'));
+      expect(
+        archiveNote(root, path, today: today),
+        p.join(root, '_archive', '2026-09-30-2', 'projects', 'mopsos.md'),
+      );
+      createNote(root, 'project', 'Mopsos', today: today);
+      expect(
+        archiveNote(root, path, today: today),
+        p.join(root, '_archive', '2026-09-30-3', 'projects', 'mopsos.md'),
+      );
       createNote(root, 'project', 'Mopsos', today: today);
       expect(archiveNote(root, path), endsWith('mopsos.md'));
     });
@@ -374,7 +382,7 @@ void main() {
         'notes': [2],
         'todo': [1],
       }, today: today);
-      expect(target, p.join(root, '_archive', '2026-09-30', 'projects', 'mopsos.md'));
+      expect(target, p.join(root, '_archive', '2026-09-30', 'entries', 'projects', 'mopsos.md'));
       expect(entries(path, 'notes').whereType<Entry>(), [Entry(today, 'keep')]);
       expect(entries(path, 'todo').whereType<Todo>(), isEmpty);
       expect(readNote(target).title, 'Mopsos');
@@ -488,6 +496,45 @@ void main() {
         ..createSync(recursive: true)
         ..writeAsStringSync('no front matter');
       expect(listArchived(root).single.title, 'broken'); // named after the file
+    });
+
+    test('a note archived twice the same day comes back under its own name', () {
+      final path = createNote(root, 'topic', 'Kitaplar', today: DateTime(2026, 10, 1));
+      archiveNote(root, path, today: DateTime(2026, 10, 2));
+      createNote(root, 'topic', 'Kitaplar', today: DateTime(2026, 10, 2));
+      archiveNote(root, path, today: DateTime(2026, 10, 2));
+      final listed = listArchived(root);
+      expect(listed.map((a) => (a.archivedOn, a.original)), [
+        ('2026-10-02', 'topics/kitaplar.md'),
+        ('2026-10-02', 'topics/kitaplar.md'),
+      ]);
+      expect(restoreArchived(root, listed.last), p.join(root, 'topics', 'kitaplar.md'));
+    });
+
+    test('archived entries are listed as entries and go back into their note', () {
+      final path = createNote(root, 'topic', 'Kitaplar', today: DateTime(2026, 10, 1));
+      addEntry(path, 'Dune', today: DateTime(2026, 10, 1));
+      addEntry(path, 'Solaris', today: DateTime(2026, 10, 1));
+      archiveEntries(root, path, {
+        'notes': [1],
+      }, today: DateTime(2026, 10, 2));
+      final archived = listArchived(root).single;
+      expect(archived.entries, isTrue);
+      expect(archived.original, 'topics/kitaplar.md');
+      expect(archived.title, 'Kitaplar');
+
+      expect(restoreArchived(root, archived), path); // merged back, the note kept
+      expect(entries(path, 'notes').whereType<Entry>().map((e) => e.text), ['Solaris', 'Dune']);
+      expect(listArchived(root), isEmpty);
+
+      // The note gone meanwhile: the entries come back as the note.
+      archiveEntries(root, path, {
+        'notes': [1],
+      }, today: DateTime(2026, 10, 3));
+      archiveNote(root, path, today: DateTime(2026, 10, 3));
+      final copy = listArchived(root).firstWhere((a) => a.entries);
+      expect(restoreArchived(root, copy), path);
+      expect(entries(path, 'notes').whereType<Entry>().map((e) => e.text), ['Solaris']);
     });
   });
 }

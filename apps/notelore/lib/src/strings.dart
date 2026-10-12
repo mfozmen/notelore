@@ -88,6 +88,11 @@ abstract class Strings {
   String versionLine(String version);
   String get archive;
   String get pickNote;
+
+  /// An archived note's name; archived entries say whose they are.
+  String archivedTitle(ArchivedNote archived) =>
+      archived.entries ? entriesFrom(archived.title) : archived.title;
+  String entriesFrom(String title);
   String get archiveEmpty;
   String archivedOn(String date);
   String get restore;
@@ -273,6 +278,8 @@ class EnglishStrings extends Strings {
   String get archive => 'Archive';
   @override
   String get pickNote => 'Pick a note to read it here.';
+  @override
+  String entriesFrom(String title) => 'Entries from $title';
   @override
   String get archiveEmpty => 'The archive is empty. Deleted notes go here.';
   @override
@@ -578,6 +585,8 @@ class TurkishStrings extends Strings {
   String get archive => 'Arşiv';
   @override
   String get pickNote => 'Okumak için bir not seç.';
+  @override
+  String entriesFrom(String title) => '$title notundan girdiler';
   @override
   String get archiveEmpty => 'Arşiv boş. Silinen notlar buraya gelir.';
   @override

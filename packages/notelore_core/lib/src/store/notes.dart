@@ -279,24 +279,27 @@ Decision? activeDecision(Note note, String topic) {
       .lastOrNull;
 }
 
-String _archivePath(String root, String path, DateTime today) =>
-    p.join(root, archiveFolder, isoDate(today), p.relative(path, from: root));
+/// Where archived entries of a note go: `_archive/<date>/entries/<path>`.
+const _entries = 'entries';
 
-/// Moves a whole file under `_archive/<date>/`, never overwriting an earlier archive.
+/// Moves a whole file under `_archive/<date>/`, keeping its relative path and
+/// never overwriting an earlier archive: the same note archived again that day
+/// goes under `_archive/<date>-2/`, and so on.
 String archiveNote(String root, String path, {DateTime? today}) {
-  final first = _archivePath(root, path, today ?? localToday());
-  Directory(p.dirname(first)).createSync(recursive: true);
-  var target = first;
+  final day = isoDate(today ?? localToday());
+  final relative = p.relative(path, from: root);
+  var target = p.join(root, archiveFolder, day, relative);
   for (var number = 2; File(target).existsSync(); number++) {
-    target = p.join(p.dirname(first), '${p.basenameWithoutExtension(first)}-$number.md');
+    target = p.join(root, archiveFolder, '$day-$number', relative);
   }
+  Directory(p.dirname(target)).createSync(recursive: true);
   moveWithRetry(path, target);
   return target;
 }
 
 /// A note (or part of one) in the archive.
 final class ArchivedNote {
-  const ArchivedNote(this.path, this.original, this.archivedOn, this.title);
+  const ArchivedNote(this.path, this.original, this.archivedOn, this.title, {this.entries = false});
 
   /// Where it lies now, under `_archive/<date>/`.
   final String path;
@@ -307,6 +310,9 @@ final class ArchivedNote {
   /// The day it was archived (`YYYY-MM-DD`).
   final String archivedOn;
   final String title;
+
+  /// Only some entries of the note, not the whole note.
+  final bool entries;
 }
 
 /// Everything in the archive, newest first.
@@ -318,7 +324,20 @@ List<ArchivedNote> listArchived(String root) => [
           final day,
           ...final rest,
         ])
-          ArchivedNote(file.path, rest.join('/'), day, _titleOf(file)),
+          rest.first == _entries && rest.length > 1
+              ? ArchivedNote(
+                  file.path,
+                  rest.skip(1).join('/'),
+                  day.substring(0, day.length.clamp(0, 10)),
+                  _titleOf(file),
+                  entries: true,
+                )
+              : ArchivedNote(
+                  file.path,
+                  rest.join('/'),
+                  day.substring(0, day.length.clamp(0, 10)), // `<date>-2` is that day too
+                  _titleOf(file),
+                ),
 ]..sort((a, b) => b.archivedOn.compareTo(a.archivedOn));
 
 String _titleOf(File file) {
@@ -339,10 +358,24 @@ class RestoreTaken implements Exception {
   String toString() => 'a note at $original exists; not restored';
 }
 
-/// Moves [archived] back to where it came from; returns that path. Never
-/// overwrites: throws [RestoreTaken] when the place is taken.
-String restoreArchived(String root, ArchivedNote archived) {
+/// Moves [archived] back to where it came from; returns that path. Archived
+/// entries go back into their note, or become it when it is gone. Never
+/// overwrites: a whole note throws [RestoreTaken] when the place is taken.
+String restoreArchived(String root, ArchivedNote archived, {DateTime? today}) {
   final target = p.joinAll([root, ...archived.original.split('/')]);
+  if (archived.entries && File(target).existsSync()) {
+    final note = readNote(target);
+    for (final section in readNote(archived.path).sections) {
+      if (section.key case final key?) {
+        for (final entry in section.entries.where((e) => e is! Raw)) {
+          _append(_section(note, key, _lang(note)), entry);
+        }
+      }
+    }
+    writeNote(target, note, today: today); // the note first: a failure here loses nothing
+    File(archived.path).deleteSync(); // now in the note
+    return target;
+  }
   if (File(target).existsSync()) throw RestoreTaken(archived.original);
   Directory(p.dirname(target)).createSync(recursive: true);
   moveWithRetry(archived.path, target);
@@ -358,7 +391,7 @@ String archiveEntries(
 }) {
   final note = readNote(path);
   final day = today ?? localToday();
-  final target = _archivePath(root, path, day);
+  final target = p.join(root, archiveFolder, isoDate(day), _entries, p.relative(path, from: root));
   final archive = File(target).existsSync()
       ? readNote(target)
       : Note({...note.meta}, note.heading, preamble: ['']);
