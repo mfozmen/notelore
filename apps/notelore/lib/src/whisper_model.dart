@@ -81,7 +81,10 @@ class WhisperModel {
   bool get ready => files.every(_present);
 
   /// Downloads what is missing, reporting progress from 0 to 1. Each file is
-  /// written as `.part`, checked, then renamed. Throws [ModelDownloadFailed].
+  /// written as `.part`, checked, then renamed. A connection lost midway keeps
+  /// the `.part`, and the next download asks only for the rest (a Range
+  /// request); a server that ignores it sends the whole file again. Throws
+  /// [ModelDownloadFailed].
   Future<void> download({
     required http.Client client,
     required void Function(double done) onProgress,
@@ -94,15 +97,25 @@ class WhisperModel {
         onProgress(done / bytes);
         continue;
       }
-      final answer = await client.send(http.Request('GET', Uri.parse(file.url)));
-      if (answer.statusCode != 200) {
+      final part = File('${path(file.name)}.part');
+      var kept = part.existsSync() ? part.lengthSync() : 0;
+      if (kept >= file.size) kept = 0; // not a beginning of this file: start over
+      final request = http.Request('GET', Uri.parse(file.url));
+      if (kept > 0) request.headers['range'] = 'bytes=$kept-';
+      final answer = await client.send(request);
+      final resumed = kept > 0 && answer.statusCode == 206;
+      if (answer.statusCode != 200 && !resumed) {
         throw ModelDownloadFailed('${file.name}: HTTP ${answer.statusCode}');
       }
-      // Opened only once the server answers: a refused download leaves no file.
-      final part = File('${path(file.name)}.part');
-      final sink = part.openWrite();
       final hash = _Digest();
       final hashing = sha256.startChunkedConversion(hash);
+      if (resumed) {
+        await part.openRead().forEach(hashing.add); // what is kept counts toward the checksum
+        done += kept;
+        onProgress(done / bytes);
+      }
+      // Opened only once the server answers: a refused download leaves no file.
+      final sink = part.openWrite(mode: resumed ? FileMode.append : FileMode.write);
       try {
         await for (final chunk in answer.stream) {
           sink.add(chunk);
@@ -110,17 +123,17 @@ class WhisperModel {
           done += chunk.length;
           onProgress(done / bytes);
         }
-        hashing.close();
-        await sink.close();
-        if ('${hash.value}' != file.sha256) {
-          throw ModelDownloadFailed('${file.name}: the download does not match its checksum');
-        }
-        part.renameSync(path(file.name));
-      } catch (_) {
-        await sink.close();
-        if (part.existsSync()) part.deleteSync();
-        rethrow;
+      } on Object catch (error) {
+        await sink.close(); // what arrived stays, for the next try to go on from
+        throw ModelDownloadFailed('${file.name}: $error');
       }
+      hashing.close();
+      await sink.close();
+      if ('${hash.value}' != file.sha256) {
+        part.deleteSync();
+        throw ModelDownloadFailed('${file.name}: the download does not match its checksum');
+      }
+      part.renameSync(path(file.name));
     }
     onProgress(1);
   }

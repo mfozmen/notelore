@@ -108,4 +108,23 @@ void c() {}
     expect(gate([elsewhere.path], out), 1);
     expect(out.toString(), contains('lib/gone.dart: 2'));
   });
+
+  test('an ignore-start that is never closed fails the gate rather than hide the file', () async {
+    final dir = await Directory.systemTemp.createTemp('gate');
+    addTearDown(() => dir.delete(recursive: true));
+    Directory('${dir.path}/lib').createSync();
+    Directory('${dir.path}/coverage').createSync();
+    File('${dir.path}/lib/n.dart').writeAsStringSync('''
+// coverage:ignore-start
+void a() {}
+''');
+    final report = File('${dir.path}/coverage/lcov.info')
+      ..writeAsStringSync(_lcov(['SF:lib/n.dart', 'DA:2,0']));
+    final out = StringBuffer();
+    expect(gate([report.path], out), 1);
+    expect(
+      out.toString(),
+      contains('lib/n.dart: coverage:ignore-start without coverage:ignore-end'),
+    );
+  });
 }

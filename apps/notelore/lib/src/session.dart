@@ -143,8 +143,8 @@ class Session extends ChangeNotifier {
           notifyListeners();
         },
       );
-    } on Exception catch (error) {
-      whisperProblem = '$error';
+    } on Object catch (error) {
+      whisperProblem = '$error'; // whatever it was, said rather than lost
     } finally {
       client.close();
       whisperProgress = null;

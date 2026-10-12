@@ -68,4 +68,12 @@ void main() {
     expect(session.whisperProblem, isNull);
     expect(session.whisper.ready, isTrue);
   });
+
+  test('even an unexpected error in the download is shown, not lost', () async {
+    final harness = Harness()..modelFailure = StateError('broken client');
+    final session = harness.session();
+    await session.downloadWhisper();
+    expect(session.whisperProblem, contains('broken client'));
+    expect(session.whisperProgress, isNull);
+  });
 }
