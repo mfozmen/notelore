@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/strings.dart';
+import 'package:notelore/src/theme.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -61,17 +62,21 @@ void main() {
         remote: drive,
       ).session(keySpace: 'phone', clock: at(11));
       await laptop.connect(findProvider('anthropic'), 'k');
-      laptop.setLanguage(AppLanguage.tr);
+      laptop
+        ..setLanguage(AppLanguage.tr)
+        ..setPalette(Palette.sunset)
+        ..setAppearance(Appearance.dark);
       await laptop.setModel('model-b');
       await laptop.connectDrive();
       expect(drive.texts[sharedSettings], contains('"language":"tr"'));
-      expect(drive.texts[sharedSettings], isNot(contains('k"'))); // no key ever leaves
+      expect(drive.texts[sharedSettings], isNot(contains('"k"'))); // no key ever leaves
 
       // A phone set up earlier, with its own key for the same provider.
       await phone.connect(findProvider('anthropic'), 'phone-key');
       await phone.connectDrive();
       expect(phone.language, AppLanguage.tr);
       expect(phone.model, 'model-b');
+      expect((phone.palette, phone.appearance), (Palette.sunset, Appearance.dark));
 
       // Later the phone changes the language: the laptop follows on its next sync.
       await later.connect(findProvider('anthropic'), 'phone-key');

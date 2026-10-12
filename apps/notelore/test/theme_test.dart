@@ -19,4 +19,23 @@ void main() {
     }
     expect(Gap.s * 2, Gap.m);
   });
+
+  test('every nature palette has a light and a dark theme from its own colour', () {
+    final seeds = <Color>{};
+    for (final palette in Palette.values) {
+      final light = noteloreTheme(Brightness.light, palette);
+      final dark = noteloreTheme(Brightness.dark, palette);
+      expect(light.colorScheme.brightness, Brightness.light, reason: palette.name);
+      expect(dark.colorScheme.brightness, Brightness.dark, reason: palette.name);
+      seeds.add(light.colorScheme.primary);
+    }
+    expect(seeds, hasLength(Palette.values.length)); // each looks different
+    expect(
+      noteloreTheme(Brightness.light).colorScheme.primary,
+      noteloreTheme(Brightness.light, Palette.lagoon).colorScheme.primary,
+    );
+    expect(Appearance.system.mode, ThemeMode.system);
+    expect(Appearance.light.mode, ThemeMode.light);
+    expect(Appearance.dark.mode, ThemeMode.dark);
+  });
 }

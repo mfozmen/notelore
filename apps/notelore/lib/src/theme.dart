@@ -1,4 +1,4 @@
-/// The app's look: flat and calm, teal, light and dark following the system.
+/// The app's look: flat and calm, in a nature palette, light or dark.
 ///
 /// From the ui-ux-pro-max skill's design system for a productivity tool: flat
 /// surfaces (outlines instead of shadows), one teal accent, an 8-point spacing
@@ -7,7 +7,31 @@ library;
 
 import 'package:flutter/material.dart';
 
-const _teal = Color(0xFF0D9488);
+/// Colour palettes taken from landscapes. Each seeds a light and a dark
+/// scheme, so Material 3 keeps the contrast right in both.
+enum Palette {
+  lagoon(Color(0xFF0D9488)), // shallow water over sand
+  forest(Color(0xFF15803D)), // pine needles and moss
+  sea(Color(0xFF0369A1)), // open water far from shore
+  sunset(Color(0xFFEA580C)), // the sky as the sun goes down
+  lavender(Color(0xFF7C3AED)), // a lavender field in summer
+  aurora(Color(0xFF4F46E5)); // a northern night sky
+
+  const Palette(this.seed);
+
+  final Color seed;
+}
+
+/// Light, dark, or whatever the device uses.
+enum Appearance {
+  system(ThemeMode.system),
+  light(ThemeMode.light),
+  dark(ThemeMode.dark);
+
+  const Appearance(this.mode);
+
+  final ThemeMode mode;
+}
 
 /// Corner radii: cards and tiles, and the rounder input fields.
 const _card = 16.0;
@@ -21,8 +45,8 @@ abstract final class Gap {
   static const double l = 24;
 }
 
-ThemeData noteloreTheme(Brightness brightness) {
-  final colors = ColorScheme.fromSeed(seedColor: _teal, brightness: brightness);
+ThemeData noteloreTheme(Brightness brightness, [Palette palette = Palette.lagoon]) {
+  final colors = ColorScheme.fromSeed(seedColor: palette.seed, brightness: brightness);
   final rounded = RoundedRectangleBorder(borderRadius: BorderRadius.circular(_card));
   const tap = Size(48, 48);
   return ThemeData(

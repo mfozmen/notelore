@@ -51,8 +51,8 @@ Notelore starts on the cheapest model your provider offers; switch any time with
 - **Chat:** the chat shows what the assistant is doing; *Stop* ends a turn.
 - **Voice mode:** the voice icon next to the message box switches to talking. Notelore listens, answers aloud, and listens again; typing still works. On Windows, add the speech pack for your language (Settings, Time & language, Speech).
 - **Notes:** browse your projects and topics. Deleting a note moves it to `_archive/` in the notes folder, with an Undo.
-- **Settings:** language (System, English or Türkçe), model, Google Drive, updates, log out.
-- **Google Drive:** *Settings → Google Drive → Connect* backs your notes up to a `Notelore` folder and keeps every device in sync, settings too (language, provider and model; never your keys). Notelore only sees the files it creates.
+- **Settings:** language (System, English or Türkçe), a theme from six nature palettes (lagoon, pine forest, open sea, sunset, lavender field, northern lights) in light or dark, model, Google Drive, updates, log out.
+- **Google Drive:** *Settings → Google Drive → Connect* backs your notes up to a `Notelore` folder and keeps every device in sync, settings too (language, theme, provider and model; never your keys). Notelore only sees the files it creates.
 
 Your notes live in `~/Notelore/` on the desktop and in the app's storage on a phone. Nothing is ever deleted for good: archived notes and both sides of a sync conflict are kept.
 

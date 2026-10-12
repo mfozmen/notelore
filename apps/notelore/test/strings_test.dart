@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/strings.dart';
+import 'package:notelore/src/theme.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 void main() {
@@ -134,6 +135,10 @@ void main() {
       'offline': s.offline,
       'signInAgain': s.signInAgain('x'),
       'noteInUse': s.noteInUse('x'),
+      'theme': s.theme,
+      'appearance': s.appearance,
+      for (final palette in Palette.values) palette.name: s.paletteName(palette),
+      for (final a in Appearance.values) 'appearance-${a.name}': s.appearanceName(a),
     };
     final english = all(en);
     final turkish = all(tr);
