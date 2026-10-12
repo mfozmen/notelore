@@ -96,10 +96,11 @@ class _NotesScreenState extends State<NotesScreen> {
           ),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, size) {
-          final list = _list(context, notes, wide: size.maxWidth >= 840);
-          if (size.maxWidth < 840) return list;
+      body: Builder(
+        builder: (context) {
+          final wide = Layout.isWide(context);
+          final list = _list(context, notes, wide: wide);
+          if (!wide) return list;
           return Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -204,7 +205,10 @@ class _NotesScreenState extends State<NotesScreen> {
     }
     return Align(
       alignment: Alignment.topCenter,
-      child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760), child: content),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: Layout.column),
+        child: content,
+      ),
     );
   }
 
@@ -227,7 +231,7 @@ class _NotesScreenState extends State<NotesScreen> {
         // A comfortable reading width on wide windows.
         body: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
+            constraints: const BoxConstraints(maxWidth: Layout.column),
             child: Markdown(data: text, selectable: true, padding: const EdgeInsets.all(Gap.m)),
           ),
         ),
@@ -269,7 +273,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
         appBar: AppBar(title: Text(archived.title)),
         body: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
+            constraints: const BoxConstraints(maxWidth: Layout.column),
             child: Markdown(data: text, selectable: true, padding: const EdgeInsets.all(Gap.m)),
           ),
         ),

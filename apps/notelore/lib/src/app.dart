@@ -219,8 +219,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final width = MediaQuery.sizeOf(context).width;
     // A desktop window navigates from a side rail, with its labels when there
     // is room; a phone from the bottom bar.
-    final wide = width >= 840;
-    final extended = width >= 1200;
+    final wide = width >= Layout.wide;
+    final extended = width >= Layout.roomy;
     final destinations = [
       (Icons.chat_bubble_outline, Icons.chat_bubble, s.chat),
       (Icons.description_outlined, Icons.description, s.notes),

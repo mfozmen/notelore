@@ -59,7 +59,7 @@ class _ChatScreenState extends State<ChatScreen> {
     // On a wide window the conversation is a readable column, like a page.
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 840),
+        constraints: const BoxConstraints(maxWidth: Layout.chat),
         child: _conversation(context, session, s, lines),
       ),
     );

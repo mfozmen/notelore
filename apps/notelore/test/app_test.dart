@@ -47,6 +47,7 @@ Future<void> connect(
 /// A phone-sized screen (432 x 960 logical pixels); a tap that misses its widget fails.
 void phone(WidgetTester tester) {
   WidgetController.hitTestWarningShouldBeFatal = true;
+  addTearDown(() => WidgetController.hitTestWarningShouldBeFatal = false);
   tester.view
     ..physicalSize = const Size(1080, 2400)
     ..devicePixelRatio = 2.5;
