@@ -29,7 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// The section shown on a wide window.
   var _section = 0;
 
-  /// The device's microphones, listed once per visit.
+  /// The device's microphones, listed on opening and again on request.
   late var _microphones = widget.session.listMicrophones();
 
   @override

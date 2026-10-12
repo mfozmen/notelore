@@ -139,6 +139,7 @@ void main() {
       'devBuild': s.versionLine(''),
       'archive': s.archive,
       'pickNote': s.pickNote,
+      'entriesFrom': s.entriesFrom('t'),
       'archiveEmpty': s.archiveEmpty,
       'archivedOn': s.archivedOn('2026-10-12'),
       'restore': s.restore,

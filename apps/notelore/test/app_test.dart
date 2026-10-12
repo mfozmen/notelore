@@ -443,6 +443,30 @@ void main() {
     expect(find.text('Kitaplar'), findsOneWidget); // back in the notes
   });
 
+  testWidgets('notes: archived entries are shown as such and go back into their note', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    addEntry(path, 'Dune', today: today);
+    archiveEntries(harness.paths.notes.path, path, {
+      'notes': [1],
+    }, today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Archive'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Entries from Kitaplar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Entries from Kitaplar'), findsOneWidget); // the reader's title
+    await tester.tap(find.text('Restore'));
+    await tester.pumpAndSettle();
+    expect(session.readNote(session.listNotes().single), contains('Dune'));
+  });
+
   testWidgets('notes: restoring over a note that took the name says so', (tester) async {
     phone(tester);
     final harness = Harness();

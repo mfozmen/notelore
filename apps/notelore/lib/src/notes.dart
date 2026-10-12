@@ -270,7 +270,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
   void _show(ArchivedNote archived, String text) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (reader) => Scaffold(
-        appBar: AppBar(title: Text(archived.title)),
+        appBar: AppBar(title: Text(widget.session.strings.archivedTitle(archived))),
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: Layout.column),
@@ -306,7 +306,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
               itemBuilder: (context, index) => Card(
                 child: ListTile(
                   leading: const Icon(Icons.inventory_2_outlined),
-                  title: Text(archived[index].title),
+                  title: Text(s.archivedTitle(archived[index])),
                   subtitle: Text(
                     '${s.archivedOn(archived[index].archivedOn)} · ${archived[index].original}',
                   ),
