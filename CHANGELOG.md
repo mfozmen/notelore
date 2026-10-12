@@ -2,6 +2,33 @@
 
 <!-- version list -->
 
+## v0.9.0 (2026-10-12)
+
+### Bug Fixes
+
+- A long phrase is not cut off by Whisper's silence timeout; pinned model
+  ([`80a090a`](https://github.com/mfozmen/notelore/commit/80a090aa7dc2768f0418601835a3742b2101deca))
+
+- Android voice mode asks only for the microphone, and says why it cannot start
+  ([`560d130`](https://github.com/mfozmen/notelore/commit/560d1300130d70f10cf9d52f16595f961a9126a8))
+
+- Voice mode uses the words it heard even when the recognizer never marks them final
+  ([`1206ad1`](https://github.com/mfozmen/notelore/commit/1206ad1e46cfdd71c63f6f5a125a5fec1d51f066))
+
+### Documentation
+
+- The README describes the Settings layout; a precise test title
+  ([`a4e5ab3`](https://github.com/mfozmen/notelore/commit/a4e5ab378e0cdeb7d927bd3b18f0d2c48d859704))
+
+### Features
+
+- On-device Whisper for voice mode, downloaded from Settings
+  ([`9b69e75`](https://github.com/mfozmen/notelore/commit/9b69e75b88120b00d341bb412cb89de7759d7d31))
+
+- Settings in two columns on wide windows, with an About card
+  ([`87ab3eb`](https://github.com/mfozmen/notelore/commit/87ab3eb516a46a8c57385d74a7e730ae46ba6c49))
+
+
 ## v0.8.0 (2026-10-12)
 
 ### Bug Fixes
