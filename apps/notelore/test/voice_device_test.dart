@@ -42,12 +42,12 @@ class FakeRecognizer extends SpeechToTextPlatform with MockPlatformInterfaceMixi
   @override
   Future<void> cancel() async => cancels++;
 
-  void hear(String words) => onTextRecognition!(
+  void hear(String words, {int type = 2}) => onTextRecognition!(
     jsonEncode({
       'alternates': [
         {'recognizedWords': words, 'confidence': 0.9},
       ],
-      'resultType': 2, // final
+      'resultType': type, // 2 final, 1 intermediate, 0 partial
     }),
   );
 }
@@ -73,6 +73,17 @@ void main() {
     platform.hear('hello');
     expect(await english, 'hello');
     expect(platform.asked.last, 'en_US');
+  });
+
+  test('words never marked final are still used when the listening ends', () async {
+    // Some Android recognizers send the last result as "intermediate" and then stop.
+    final heard = speech.listen('tr');
+    await pumpEventQueue();
+    platform
+      ..hear('bugün', type: 1)
+      ..hear('bugün kitap okudum', type: 1);
+    platform.onStatus!('done');
+    expect(await heard, 'bugün kitap okudum');
   });
 
   test('silence, an error and a cancel end the listening without a phrase', () async {
