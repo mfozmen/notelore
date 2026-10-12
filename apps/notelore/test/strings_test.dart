@@ -154,6 +154,8 @@ void main() {
       'whisperDownloading': s.whisperDownloading(42),
       'whisperFailed': s.whisperFailed('x'),
       'useWhisper': s.useWhisper,
+      'microphone': s.microphone,
+      'systemMicrophone': s.systemMicrophone,
       for (final palette in Palette.values) palette.name: s.paletteName(palette),
       for (final a in Appearance.values) 'appearance-${a.name}': s.appearanceName(a),
     };

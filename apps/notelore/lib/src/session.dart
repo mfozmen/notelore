@@ -26,6 +26,7 @@ import 'theme.dart';
 import 'voice.dart';
 import 'whisper_model.dart';
 import 'whisper_native.dart';
+import 'whisper_speech.dart' show MicrophoneChoice;
 
 /// Checks a key and returns the chat models it can use.
 typedef Validate = Future<List<String>> Function(ProviderSpec spec, String key);
@@ -79,6 +80,7 @@ class Session extends ChangeNotifier {
     this.whisperFiles = whisperSmall,
     this.httpClient = http.Client.new,
     this.makeWhisper = nativeWhisper,
+    this.listMicrophones = nativeMicrophones,
   }) : clock = clock ?? DateTime.timestamp,
        index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path),
        manifest = Manifest(paths.state.path);
@@ -95,8 +97,9 @@ class Session extends ChangeNotifier {
 
   /// What voice mode listens with: Whisper once downloaded (#168), unless
   /// turned off; the device's recognizer otherwise.
-  Speech get speech =>
-      useWhisper && whisper.ready ? _whisperSpeech ??= makeWhisper(whisper) : _device;
+  Speech get speech => useWhisper && whisper.ready
+      ? _whisperSpeech ??= makeWhisper(whisper, () => microphone)
+      : _device;
   Speech? _whisperSpeech;
 
   /// On-device Whisper, downloaded on request into this device's state.
@@ -106,7 +109,18 @@ class Session extends ChangeNotifier {
   );
   final List<ModelFile> whisperFiles;
   final http.Client Function() httpClient;
-  final Speech Function(WhisperModel model) makeWhisper;
+  final Speech Function(WhisperModel model, String? Function() microphone) makeWhisper;
+
+  /// The device's microphones, for Whisper to record from.
+  final Future<List<MicrophoneChoice>> Function() listMicrophones;
+
+  /// The microphone picked in Settings; null is the system default.
+  String? microphone;
+
+  void setMicrophone(String? id) {
+    microphone = id;
+    _saveUi();
+  }
 
   bool useWhisper = true;
 
@@ -218,6 +232,7 @@ class Session extends ChangeNotifier {
           'appearance': appearance.name,
           'webSearch': webSearch,
           'whisper': useWhisper,
+          'microphone': ?microphone,
         }),
       );
     } on FileSystemException {
@@ -234,6 +249,10 @@ class Session extends ChangeNotifier {
       appearance = _named(Appearance.values, saved['appearance']) ?? Appearance.system;
       webSearch = saved['webSearch'] != false;
       useWhisper = saved['whisper'] != false;
+      microphone = switch (saved['microphone']) {
+        final String id => id,
+        _ => null,
+      };
     } on Exception {
       // none saved yet, or damaged: the device's language
     }

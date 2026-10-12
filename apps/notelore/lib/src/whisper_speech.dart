@@ -10,6 +10,9 @@ import 'dart:typed_data';
 
 import 'voice.dart';
 
+/// A microphone the device lists: its platform id and its name.
+typedef MicrophoneChoice = ({String id, String label});
+
 /// 16 kHz, mono, 16-bit PCM from the microphone.
 abstract interface class Microphone {
   /// Throws [VoiceUnavailable] without a microphone or its permission.

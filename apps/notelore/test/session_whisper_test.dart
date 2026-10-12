@@ -32,6 +32,20 @@ void main() {
     },
   );
 
+  test('the microphone Whisper records from: the default, or the one picked, remembered', () async {
+    final harness = Harness()..microphones = [(id: 'usb', label: 'USB mic')];
+    final session = harness.session();
+    expect(await session.listMicrophones(), [(id: 'usb', label: 'USB mic')]);
+    await session.downloadWhisper();
+    expect(session.speech, same(harness.whisper));
+    expect(harness.chosenMicrophone!(), isNull); // the system default
+    session.setMicrophone('usb');
+    expect(harness.chosenMicrophone!(), 'usb'); // the next listen uses it
+    final again = harness.session();
+    await again.load();
+    expect(again.microphone, 'usb');
+  });
+
   test('a failed download says why and keeps nothing; a second tap while running waits', () async {
     final harness = Harness()..modelPage = null;
     final session = harness.session();

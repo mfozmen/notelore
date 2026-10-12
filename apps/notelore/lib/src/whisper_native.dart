@@ -21,21 +21,45 @@ import 'whisper_speech.dart';
 const _rate = 16000;
 
 /// Whisper speech over a downloaded [model].
-Speech nativeWhisper(WhisperModel model) => WhisperSpeech(
-  microphone: RecordMicrophone(),
+Speech nativeWhisper(WhisperModel model, String? Function() device) => WhisperSpeech(
+  microphone: RecordMicrophone(device),
   detector: SileroDetector(model),
   transcriber: IsolateTranscriber(model),
 );
 
 /// The microphone as 16 kHz mono PCM.
+/// The microphones the device lists.
+Future<List<MicrophoneChoice>> nativeMicrophones() async {
+  final recorder = AudioRecorder();
+  try {
+    return [for (final d in await recorder.listInputDevices()) (id: d.id, label: d.label)];
+  } on Exception {
+    return const []; // none listed: the system default only
+  } finally {
+    unawaited(recorder.dispose());
+  }
+}
+
 class RecordMicrophone implements Microphone {
+  RecordMicrophone(this.device);
+
+  /// The chosen microphone's id, asked at every start; null is the default.
+  final String? Function() device;
   final _recorder = AudioRecorder();
 
   @override
   Future<Stream<Uint8List>> start() async {
     if (!await _recorder.hasPermission()) throw const VoiceUnavailable();
     return _recorder.startStream(
-      const RecordConfig(encoder: AudioEncoder.pcm16bits, sampleRate: _rate, numChannels: 1),
+      RecordConfig(
+        encoder: AudioEncoder.pcm16bits,
+        sampleRate: _rate,
+        numChannels: 1,
+        device: switch (device()) {
+          final String id => InputDevice(id: id, label: id),
+          null => null,
+        },
+      ),
     );
   }
 
