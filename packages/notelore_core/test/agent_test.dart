@@ -246,6 +246,12 @@ void main() {
     expect(prompt, contains('If search_notes finds nothing'));
   });
 
+  test('the prompt answers from the notes as they are now, never the archive (#205)', () {
+    final prompt = systemPrompt(today);
+    expect(prompt, contains('as they are now'));
+    expect(prompt, contains('moved to the archive'));
+  });
+
   test('a tool_use outside a tool_use stop is dropped so the history stays valid', () async {
     final provider = ScriptedProvider([
       const AgentResponse([

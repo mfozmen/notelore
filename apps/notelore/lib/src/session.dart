@@ -552,7 +552,7 @@ class Session extends ChangeNotifier {
         try {
           if (_stopped) throw const TurnStopped(); // stopped while queued behind a sync
           final answer = await (asked = _agent!).ask(
-            message!,
+            _withArchived(message!),
             takeLater: () {
               taken.addAll(_later);
               _later.clear();
@@ -570,6 +570,7 @@ class Session extends ChangeNotifier {
             text: asked?.wroteNotes ?? false ? '$failed\n\n${strings.notesMayBeSaved}' : failed,
           ));
         } finally {
+          _lastNotes = _noteTitles(); // what this turn could see, the agent's own changes too
           notifyListeners();
         }
       });
@@ -577,6 +578,26 @@ class Session extends ChangeNotifier {
     busy = false;
     notifyListeners();
     if (driveConnected) unawaited(syncNow());
+  }
+
+  /// The notes there were after the last turn, by kind and slug.
+  Map<String, String>? _lastNotes;
+
+  Map<String, String> _noteTitles() => {
+    for (final note in listNotes()) '${note.kind}/${note.slug}': note.title,
+  };
+
+  /// [message], and the notes archived since the last turn (here, on another
+  /// device, anywhere): the model may have read them before and must not use them.
+  String _withArchived(String message) {
+    final now = _noteTitles();
+    final gone = [
+      for (final MapEntry(:key, :value) in (_lastNotes ?? const {}).entries)
+        if (!now.containsKey(key)) value,
+    ];
+    if (gone.isEmpty) return message;
+    return '$message\n\n(Notelore: moved to the archive since the last message, so not to be '
+        'used: ${gone.join(', ')}.)';
   }
 
   /// What was written too late for the last turn (or after a Stop), as one
