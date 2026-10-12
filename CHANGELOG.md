@@ -2,6 +2,51 @@
 
 <!-- version list -->
 
+## v0.11.0 (2026-10-12)
+
+### Bug Fixes
+
+- A plain click on the talk button says to hold; an overtaken turn keeps its failure
+  ([`8a23b6a`](https://github.com/mfozmen/notelore/commit/8a23b6a8f931af6fc40a6a87c43c2edf83d047c5))
+
+- A resume the server refuses starts the Whisper file over
+  ([`420cd39`](https://github.com/mfozmen/notelore/commit/420cd392bd5b4a049f722ca780d3e3f90e57e678))
+
+- A resumed Whisper download appends only the rest it asked for
+  ([`a2d76e5`](https://github.com/mfozmen/notelore/commit/a2d76e5b2756532a7a0a81a456bdf76dcdc5e68d))
+
+- An archived note comes back under its own name; archived entries go back into their note
+  ([`ce0426f`](https://github.com/mfozmen/notelore/commit/ce0426f718eba63e20d537761f14203fc6e1a522))
+
+- Just "Listening…" while the button is held
+  ([`a0e5d82`](https://github.com/mfozmen/notelore/commit/a0e5d82a2a1d789ab4417c10527814dce3b6da29))
+
+- List the microphones again from Settings; log why none were listed
+  ([`7ca397a`](https://github.com/mfozmen/notelore/commit/7ca397a22b34f44774ff624c31b4c96e63142a2a))
+
+- Phones offer the ChatGPT plan and no longer a model "on this computer"
+  ([`0d32315`](https://github.com/mfozmen/notelore/commit/0d323158f182aec768694437b2c42251e627b7aa))
+
+- The side rail and side-by-side panes switch at one window width
+  ([`320f992`](https://github.com/mfozmen/notelore/commit/320f9925008f989da1c70270e0190c993c01ad20))
+
+- Whisper's download resumes after a lost connection; review follow-ups
+  ([`feb6619`](https://github.com/mfozmen/notelore/commit/feb6619492a9069b68f42cd1ed37a3d53f6de840))
+
+### Features
+
+- Push to talk: hold the microphone button, let go to send
+  ([`19aa72d`](https://github.com/mfozmen/notelore/commit/19aa72dc6e23d2498be74cbc5acf754f9b8298f8))
+
+- Settings pickers with one designed look; the model is picked, never typed
+  ([`cee79a4`](https://github.com/mfozmen/notelore/commit/cee79a45af4d51d028cca351740bbd52d1144cd4))
+
+### Testing
+
+- The archive tool reports the new archive paths
+  ([`a258801`](https://github.com/mfozmen/notelore/commit/a258801b09338e0256522a9c409d056a5a9fe6ae))
+
+
 ## v0.10.0 (2026-10-12)
 
 ### Bug Fixes
