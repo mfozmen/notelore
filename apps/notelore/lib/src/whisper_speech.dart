@@ -5,6 +5,7 @@
 library;
 
 import 'dart:async';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'voice.dart';
@@ -36,6 +37,23 @@ abstract interface class Transcriber {
   Future<String> transcribe(Float32List samples, String language);
 }
 
+/// Raises a quiet microphone to a level the detector hears (Windows applies no
+/// gain of its own): towards half full scale, at most 20 times, never quieter.
+/// The level is the recent peak, fading slowly, so words keep one gain.
+class AutoGain {
+  static const _target = 0.5;
+  static const _most = 20.0;
+  static const _fade = 0.995; // per 32 ms window: about 4 s to halve
+
+  double _level = 0;
+
+  Float32List apply(Float32List samples) {
+    _level = samples.fold(_level * _fade, (level, s) => max(level, s.abs()));
+    final gain = _level == 0 ? 1.0 : (_target / _level).clamp(1.0, _most);
+    return Float32List.fromList([for (final s in samples) s * gain]);
+  }
+}
+
 class WhisperSpeech implements Speech {
   WhisperSpeech({
     required this.microphone,
@@ -52,6 +70,7 @@ class WhisperSpeech implements Speech {
   final Duration silence;
 
   Completer<Float32List?>? _phrase;
+  final _gain = AutoGain();
 
   @override
   Future<String?> listen(String language) async {
@@ -65,7 +84,7 @@ class WhisperSpeech implements Speech {
         while (pending.length >= detector.window && !phrase.isCompleted) {
           final window = Float32List.fromList(pending.sublist(0, detector.window));
           pending.removeRange(0, detector.window);
-          if (detector.accept(window) case final done?) _end(done);
+          if (detector.accept(_gain.apply(window)) case final done?) _end(done);
           if (detector.speaking) {
             // The timeout is for silence: a long phrase keeps it waiting.
             timer.cancel();
