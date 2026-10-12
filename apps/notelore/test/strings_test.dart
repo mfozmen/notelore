@@ -148,6 +148,12 @@ void main() {
       'webSearchBilled': s.webSearchBilled,
       'webSearchUnavailable': s.webSearchUnavailable,
       'appearance': s.appearance,
+      'whisper': s.whisper,
+      'whisperExplained': s.whisperExplained,
+      'downloadWhisper': s.downloadWhisper,
+      'whisperDownloading': s.whisperDownloading(42),
+      'whisperFailed': s.whisperFailed('x'),
+      'useWhisper': s.useWhisper,
       for (final palette in Palette.values) palette.name: s.paletteName(palette),
       for (final a in Appearance.values) 'appearance-${a.name}': s.appearanceName(a),
     };

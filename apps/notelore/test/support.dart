@@ -5,8 +5,11 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/voice.dart';
+import 'package:notelore/src/whisper_model.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
@@ -92,6 +95,22 @@ class Harness {
   final speech = FakeSpeech([]);
   final voice = FakeVoice();
 
+  /// Whisper's speech, and the one small model file it downloads (absent: 404).
+  final whisper = FakeSpeech([]);
+  String? modelPage = 'whisper bytes';
+  static final whisperFiles = [
+    ModelFile(
+      'w.onnx',
+      'https://models.test/w.onnx',
+      sha256.convert(utf8.encode('whisper bytes')).toString(),
+      13,
+    ),
+  ];
+  http.Client _models() => MockClient((request) async {
+    if (modelPage case final page?) return http.Response(page, 200);
+    return http.Response('', 404);
+  });
+
   /// What the ChatGPT plan lists.
   var planModels = <String>['gpt-plan-a', 'gpt-plan-b'];
 
@@ -109,6 +128,9 @@ class Harness {
       clock: clock,
       speech: speech,
       voice: voice,
+      whisperFiles: whisperFiles,
+      httpClient: _models,
+      makeWhisper: (_) => whisper,
       validate: (spec, key) async {
         if (rejected != null) throw rejected!;
         return models;

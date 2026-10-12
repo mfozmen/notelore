@@ -24,6 +24,8 @@ import 'package:path/path.dart' as p;
 import 'strings.dart';
 import 'theme.dart';
 import 'voice.dart';
+import 'whisper_model.dart';
+import 'whisper_native.dart';
 
 /// Checks a key and returns the chat models it can use.
 typedef Validate = Future<List<String>> Function(ProviderSpec spec, String key);
@@ -74,6 +76,9 @@ class Session extends ChangeNotifier {
     this.systemLanguage = 'en',
     this._speech,
     this._voice,
+    this.whisperFiles = whisperSmall,
+    this.httpClient = http.Client.new,
+    this.makeWhisper = nativeWhisper,
   }) : clock = clock ?? DateTime.timestamp,
        index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path),
        manifest = Manifest(paths.state.path);
@@ -85,8 +90,61 @@ class Session extends ChangeNotifier {
   final Voice? _voice;
 
   /// The device's speech recognition and voices for voice mode, made on first use.
-  late final Speech speech = _speech ?? DeviceSpeech();
+  late final Speech _device = _speech ?? DeviceSpeech();
   late final Voice voice = _voice ?? DeviceVoice();
+
+  /// What voice mode listens with: Whisper once downloaded (#168), unless
+  /// turned off; the device's recognizer otherwise.
+  Speech get speech =>
+      useWhisper && whisper.ready ? _whisperSpeech ??= makeWhisper(whisper) : _device;
+  Speech? _whisperSpeech;
+
+  /// On-device Whisper, downloaded on request into this device's state.
+  late final WhisperModel whisper = WhisperModel(
+    p.join(paths.state.path, 'models', 'whisper-small'),
+    files: whisperFiles,
+  );
+  final List<ModelFile> whisperFiles;
+  final http.Client Function() httpClient;
+  final Speech Function(WhisperModel model) makeWhisper;
+
+  bool useWhisper = true;
+
+  /// From 0 to 1 while Whisper downloads; null otherwise.
+  double? whisperProgress;
+
+  /// Why the last download failed.
+  String? whisperProblem;
+
+  void setUseWhisper(bool on) {
+    useWhisper = on;
+    _saveUi();
+  }
+
+  Future<void> downloadWhisper() async {
+    if (whisperProgress != null) return;
+    whisperProblem = null;
+    whisperProgress = 0;
+    notifyListeners();
+    final client = httpClient();
+    try {
+      await whisper.download(
+        client: client,
+        onProgress: (done) {
+          // Each percent, not each chunk: the screen redraws on every notify.
+          if ((done * 100).floor() == (whisperProgress! * 100).floor()) return;
+          whisperProgress = done;
+          notifyListeners();
+        },
+      );
+    } on Exception catch (error) {
+      whisperProblem = '$error';
+    } finally {
+      client.close();
+      whisperProgress = null;
+      notifyListeners();
+    }
+  }
 
   /// Now, for the time of a settings change (tests pass their own).
   final DateTime Function() clock;
@@ -159,6 +217,7 @@ class Session extends ChangeNotifier {
           'palette': palette.name,
           'appearance': appearance.name,
           'webSearch': webSearch,
+          'whisper': useWhisper,
         }),
       );
     } on FileSystemException {
@@ -174,6 +233,7 @@ class Session extends ChangeNotifier {
       palette = _named(Palette.values, saved['palette']) ?? Palette.lagoon;
       appearance = _named(Appearance.values, saved['appearance']) ?? Appearance.system;
       webSearch = saved['webSearch'] != false;
+      useWhisper = saved['whisper'] != false;
     } on Exception {
       // none saved yet, or damaged: the device's language
     }

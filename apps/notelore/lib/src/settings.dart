@@ -251,6 +251,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           );
+          final progress = session.whisperProgress;
+          final voice = Card(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: Gap.m),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.record_voice_over_outlined),
+                    title: Text(s.whisper),
+                    subtitle: Text(s.whisperExplained),
+                  ),
+                  if (session.whisper.ready)
+                    SwitchListTile(
+                      title: Text(s.useWhisper),
+                      value: session.useWhisper,
+                      onChanged: session.setUseWhisper,
+                    )
+                  else if (progress != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          LinearProgressIndicator(value: progress),
+                          const SizedBox(height: Gap.s),
+                          Text(s.whisperDownloading((progress * 100).floor())),
+                        ],
+                      ),
+                    )
+                  else ...[
+                    if (session.whisperProblem case final problem?)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.s),
+                        child: Text(
+                          s.whisperFailed(problem),
+                          style: TextStyle(color: Theme.of(context).colorScheme.error),
+                        ),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.download),
+                        onPressed: session.downloadWhisper,
+                        label: Text(s.downloadWhisper),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          );
           final wide = size.maxWidth >= 840;
           return ListView(
             padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
@@ -264,10 +316,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           children: [
                             Expanded(child: _cards([model, drive, folder])),
                             const SizedBox(width: Gap.m),
-                            Expanded(child: _cards([language, look, about])),
+                            Expanded(child: _cards([language, look, voice, about])),
                           ],
                         )
-                      : _cards([model, language, look, drive, folder, about]),
+                      : _cards([model, language, look, drive, folder, voice, about]),
                 ),
               ),
             ],

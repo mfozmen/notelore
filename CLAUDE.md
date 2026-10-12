@@ -62,6 +62,7 @@ App (`apps/notelore/lib/`):
 - `main.dart`: opens the session on the platform folders.
 - `src/session.dart`: what the screens share: provider and key, agent, conversation, notes, Drive sync (one queue for chat turns and syncs).
 - `src/drive_auth.dart`: google_sign_in on phones, the loopback flow on the desktop.
+- `src/voice.dart`: voice mode and the device recognizer; `src/whisper_speech.dart`, `whisper_model.dart`, `whisper_native.dart`: on-device Whisper (sherpa-onnx), its download, and the native glue.
 - `src/update.dart`: daily update check and checksum-verified self-update of the desktop app.
 - `src/app.dart`, `setup.dart`, `chat.dart`, `notes.dart`, `settings.dart`: the screens.
 
@@ -99,7 +100,7 @@ The Google OAuth client ids are never committed. Locally they live in the gitign
 
 ## Testing (TDD)
 
-All new production code is written test-first: RED (one minimal failing test, watch it fail for the right reason) → GREEN (minimal code) → REFACTOR (tests stay green). Line coverage is 100% for both packages, enforced by `tool/coverage_gate.dart` in CI and tracked in SonarCloud.
+All new production code is written test-first: RED (one minimal failing test, watch it fail for the right reason) → GREEN (minimal code) → REFACTOR (tests stay green). Line coverage is 100% for both packages, enforced by `tool/coverage_gate.dart` in CI and tracked in SonarCloud. The one exception is native code `flutter test` cannot load (FFI plugins such as sherpa-onnx): it goes between `// coverage:ignore-start` and `// coverage:ignore-end` (also excluded in `sonar-project.properties`), stays thin glue behind an interface, and the logic around it is tested with fakes.
 
 - Tests mirror the source tree (`lib/src/store/format.dart` → `test/store/format_test.dart`).
 - Prefer real code and real files in temp folders; fake only external services (LLM APIs, Drive, Google sign-in, path_provider).

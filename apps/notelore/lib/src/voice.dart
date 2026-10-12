@@ -57,10 +57,13 @@ abstract interface class Voice {
 enum VoiceState { off, listening, thinking, speaking }
 
 class VoiceMode extends ChangeNotifier {
-  VoiceMode(this.session, {required this.speech, required this.voice});
+  VoiceMode(this.session, {this._speech, required this.voice});
 
   final Session session;
-  final Speech speech;
+  final Speech? _speech;
+
+  /// The session's, by default: Whisper or the device's, as Settings has it now.
+  Speech get speech => _speech ?? session.speech;
   final Voice voice;
 
   VoiceState state = VoiceState.off;
