@@ -163,35 +163,50 @@ void main() {
     expect(find.byTooltip('Send'), findsOneWidget);
   });
 
-  testWidgets('chat: voice mode talks and listens, typing still works', (tester) async {
+  testWidgets('chat: hold to talk, let go to send; the answer is read aloud', (tester) async {
     phone(tester);
     final harness = Harness(answers: ['Cevap.', 'Yazdın.']);
     harness.speech.phrases.add('merhaba');
+    final reading = Completer<void>();
+    harness.voice.holding = reading;
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    expect(find.byKey(const Key('voice-state')), findsNothing); // starts in text mode
-    await tester.tap(find.byTooltip('Talk'));
-    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('voice-state')), findsNothing);
+    final hold = await tester.startGesture(tester.getCenter(find.byTooltip('Hold to talk')));
+    await tester.pump();
+    expect(find.text('Listening… let go to send'), findsOneWidget);
+    await hold.up();
+    await tester.pump();
+    await tester.pump();
     expect(find.text('merhaba'), findsOneWidget);
     expect(find.text('Cevap.'), findsOneWidget);
     expect(harness.voice.spoken, [('Cevap.', 'en')]);
-    expect(find.text('Listening…'), findsOneWidget);
-    // Typing quiets the voice; the typed message is answered aloud too.
+    expect(find.text('Speaking…'), findsOneWidget);
+    // Typing quiets the voice; a typed message is answered on screen.
     await tester.enterText(find.byKey(const Key('message')), 'yaz');
     expect(harness.voice.stops, greaterThan(0));
+    await tester.tap(find.byTooltip('Stop reading aloud'));
+    await tester.pump();
+    reading.complete();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('voice-state')), findsNothing);
     await tester.tap(find.byTooltip('Send'));
     await tester.pumpAndSettle();
     expect(find.text('Yazdın.'), findsOneWidget);
-    expect(harness.voice.spoken.last, ('Yazdın.', 'en'));
-    await tester.tap(find.byTooltip('Back to typing'));
+    expect(harness.voice.spoken, hasLength(1)); // typed: not read aloud
+    // A hold the system takes away (a call, say) ends like a let-go.
+    final taken = await tester.startGesture(tester.getCenter(find.byTooltip('Hold to talk')));
+    await tester.pump();
+    await taken.cancel();
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('voice-state')), findsNothing);
-    // No recognizer: says so and stays in text mode.
+    // No recognizer: says so.
     harness.speech.failure = const VoiceUnavailable();
-    await tester.tap(find.byTooltip('Talk'));
+    final again = await tester.startGesture(tester.getCenter(find.byTooltip('Hold to talk')));
+    await tester.pumpAndSettle();
+    await again.up();
     await tester.pumpAndSettle();
     expect(find.textContaining('Speech recognition is not available'), findsOneWidget);
-    expect(find.byTooltip('Talk'), findsOneWidget);
   });
 
   testWidgets('settings: a wide window lists the sections and shows one at a time', (tester) async {

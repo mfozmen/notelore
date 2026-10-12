@@ -22,7 +22,7 @@ final class ModelFile {
 const _whisper =
     'https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small/resolve/8f3c18b358db4d1f2fc1eae49d75cd20989e4309';
 
-/// sherpa-onnx's export of OpenAI Whisper small (MIT), and Silero VAD (MIT).
+/// sherpa-onnx's export of OpenAI Whisper small (MIT).
 const whisperSmall = [
   ModelFile(
     'small-encoder.int8.onnx',
@@ -41,12 +41,6 @@ const whisperSmall = [
     '$_whisper/small-tokens.txt',
     'b34b360dbb493e781e479794586d661700670d65564001f23024971d1f2fa126',
     816730,
-  ),
-  ModelFile(
-    'silero_vad.onnx',
-    'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx',
-    '9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6',
-    643854,
   ),
 ];
 

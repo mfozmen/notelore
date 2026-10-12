@@ -21,58 +21,73 @@ void main() {
     return (session, VoiceMode(session, speech: speech, voice: voice), speech, voice);
   }
 
-  test('starts off; a heard phrase is sent, the answer spoken, then it listens again', () async {
+  test('push to talk: held it listens, let go it sends, and the answer is spoken', () async {
     final (session, mode, speech, voice) = await setUpVoice(
-      ['hangi kitabı okuyorum', null, 'teşekkürler'],
-      ['Gülünün Solduğu Akşam.', 'Rica ederim.'],
+      ['hangi kitabı okuyorum'],
+      ['Gülünün Solduğu Akşam.'],
       language: 'tr',
     );
     expect(mode.state, VoiceState.off);
-    final running = mode.start();
+    final talk = mode.press();
     await pumpEventQueue();
-    expect(mode.state, VoiceState.listening); // silence was skipped, still listening
-    expect(voice.spoken, [('Gülünün Solduğu Akşam.', 'tr'), ('Rica ederim.', 'tr')]);
+    expect(mode.state, VoiceState.listening);
+    expect(speech.languages, ['tr']);
+    mode.release();
+    await talk;
     expect(session.transcript.map((l) => l.text), [
       'hangi kitabı okuyorum',
       'Gülünün Solduğu Akşam.',
-      'teşekkürler',
-      'Rica ederim.',
     ]);
-    expect(speech.languages.toSet(), {'tr'});
-    mode.end();
-    await running;
-    expect(mode.state, VoiceState.off);
-    expect(speech.cancels, greaterThan(0));
-    expect(voice.stops, greaterThan(0));
+    expect(voice.spoken, [('Gülünün Solduğu Akşam.', 'tr')]);
+    expect(mode.state, VoiceState.off); // waits for the next press, not listening
   });
 
-  test('a typed message in voice mode is sent and answered aloud', () async {
-    final (session, mode, speech, voice) = await setUpVoice([], ['Yazdın.']);
-    final running = mode.start();
+  test('let go without words: nothing is sent', () async {
+    final (session, mode, speech, voice) = await setUpVoice([null], []);
+    final talk = mode.press();
     await pumpEventQueue();
-    mode.hush(); // typing began: the voice stops
-    expect(voice.stops, 1);
-    mode.type('selam');
+    mode.release();
+    await talk;
+    expect(session.transcript, isEmpty);
+    expect(mode.state, VoiceState.off);
+    mode.release(); // not listening: nothing happens
+    expect(speech.finishes, 1);
+  });
+
+  test('a press while the answer is read aloud cuts it short and listens', () async {
+    final speaking = Completer<void>();
+    final (session, mode, speech, voice) = await setUpVoice(['bir', 'iki'], ['Bir.', 'İki.']);
+    voice.holding = speaking;
+    final first = mode.press();
     await pumpEventQueue();
-    expect(session.transcript.first.text, 'selam');
-    expect(voice.spoken, [('Yazdın.', 'en')]);
+    mode.release();
+    await pumpEventQueue();
+    expect(mode.state, VoiceState.speaking);
+    final second = mode.press(); // a new question while it talks
+    await pumpEventQueue();
+    expect(voice.stops, greaterThan(0));
     expect(mode.state, VoiceState.listening);
-    mode.end();
-    await running;
+    expect(mode.press(), completes); // held already: a second press does nothing
+    speaking.complete();
+    voice.holding = null;
+    mode.release();
+    await Future.wait([first, second]);
+    expect(session.transcript.map((l) => l.text), ['bir', 'Bir.', 'iki', 'İki.']);
   });
 
   test('ending while it waits for the answer speaks nothing', () async {
     final answer = Completer<AgentResponse>();
     final (session, mode, speech, voice) = await setUpVoice(['merhaba'], [answer.future]);
-    final running = mode.start();
+    final talk = mode.press();
+    await pumpEventQueue();
+    mode.release();
     await pumpEventQueue();
     expect(mode.state, VoiceState.thinking);
     mode.end();
     session.stop();
-    await running;
+    await talk;
     expect(voice.spoken, isEmpty);
-    expect(mode.start(), completes); // it can start again
-    mode.end();
+    expect(mode.state, VoiceState.off);
   });
 
   test('only answers are spoken, without Markdown symbols', () async {
@@ -83,55 +98,62 @@ void main() {
         const NetworkError('offline'),
       ],
     );
-    final running = mode.start();
-    await pumpEventQueue();
+    for (var i = 0; i < 2; i++) {
+      final talk = mode.press();
+      await pumpEventQueue();
+      mode.release();
+      await talk;
+    }
     // The failed second turn (an error line) is not read aloud.
     expect(voice.spoken, [('Kitap: Gülünün Solduğu Akşam, link\nmadde\nBaşlık', 'en')]);
-    mode.end();
-    await running;
   });
 
-  test('a closed chat ends voice mode without touching the disposed mode', () async {
+  test('a closed chat ends voice without touching the disposed mode', () async {
     final (session, mode, speech, voice) = await setUpVoice([], []);
-    final running = mode.start();
+    final talk = mode.press();
     await pumpEventQueue();
     mode
       ..end()
       ..dispose();
-    await running; // unwinding after dispose does not throw
+    await talk; // unwinding after dispose does not throw
+    expect(speech.cancels, 1);
   });
 
-  test('no speech recognition: it says so and stays in text mode', () async {
+  test('no speech recognition: it says so', () async {
     final (session, mode, speech, voice) = await setUpVoice([], []);
     speech.failure = const VoiceUnavailable();
-    await mode.start();
+    await mode.press();
     expect(mode.state, VoiceState.off);
     expect(mode.problem, session.strings.voiceUnavailable);
     speech.failure = const ListenFailed('error_network');
-    await mode.start();
+    await mode.press();
     expect(mode.problem, session.strings.speechFailed('error_network'));
     speech.failure = Exception('the recognizer crashed');
-    await mode.start();
+    await mode.press();
     expect(mode.problem, contains('the recognizer crashed'));
-    expect(mode.start, returnsNormally);
-    mode.end();
+  });
+
+  test('typing quiets the voice', () async {
+    final (session, mode, speech, voice) = await setUpVoice([], []);
+    mode.hush();
+    expect(voice.stops, 1);
   });
 
   test(
-    'ending a listen reaches the recognizer that is listening, even if Whisper arrived meanwhile',
+    'letting go reaches the recognizer that is listening, even if Whisper arrived meanwhile',
     () async {
       final harness = Harness()..modelPage = 'whisper bytes';
       final session = harness.session();
       await session.connect(findProvider('anthropic'), 'k');
       final mode = VoiceMode(session, voice: harness.voice); // the session's speech
-      unawaited(mode.start());
+      unawaited(mode.press());
       await pumpEventQueue();
       expect(harness.speech.languages, hasLength(1)); // the device's, listening
       await session.downloadWhisper(); // now the session would pick Whisper
-      mode.end();
+      mode.release();
       await pumpEventQueue();
-      expect(harness.speech.cancels, 1);
-      expect(harness.whisper.cancels, 0);
+      expect(harness.speech.finishes, 1);
+      expect(harness.whisper.finishes, 0);
     },
   );
 }

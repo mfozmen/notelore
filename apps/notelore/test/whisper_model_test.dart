@@ -188,12 +188,11 @@ void main() {
     expect(model.ready, isTrue);
   });
 
-  test('the real model: Whisper small int8 and the Silero VAD, with checksums', () {
+  test('the real model: Whisper small int8, with checksums', () {
     expect(whisperSmall.map((f) => f.name), [
       'small-encoder.int8.onnx',
       'small-decoder.int8.onnx',
       'small-tokens.txt',
-      'silero_vad.onnx',
     ]);
     for (final f in whisperSmall) {
       expect(f.url, startsWith('https://'));

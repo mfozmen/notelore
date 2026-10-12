@@ -53,7 +53,7 @@ abstract class Strings {
   String modelGone(String provider, String model);
   String thinking(String step, int seconds);
   String get talk;
-  String get backToTyping;
+  String get stopReading;
   String get listening;
   String get speaking;
   String get voiceUnavailable;
@@ -207,11 +207,11 @@ class EnglishStrings extends Strings {
   @override
   String thinking(String step, int seconds) => '$step… $seconds s';
   @override
-  String get talk => 'Talk';
+  String get talk => 'Hold to talk';
   @override
-  String get backToTyping => 'Back to typing';
+  String get stopReading => 'Stop reading aloud';
   @override
-  String get listening => 'Listening…';
+  String get listening => 'Listening… let go to send';
   @override
   String get speaking => 'Speaking…';
   @override
@@ -505,11 +505,11 @@ class TurkishStrings extends Strings {
   @override
   String thinking(String step, int seconds) => '$step… $seconds sn';
   @override
-  String get talk => 'Sesli konuş';
+  String get talk => 'Basılı tut, konuş';
   @override
-  String get backToTyping => 'Yazmaya dön';
+  String get stopReading => 'Sesli okumayı durdur';
   @override
-  String get listening => 'Dinliyorum…';
+  String get listening => 'Dinliyorum… bırakınca gönderilir';
   @override
   String get speaking => 'Okuyorum…';
   @override
