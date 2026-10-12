@@ -102,6 +102,11 @@ ThemeData noteloreTheme(Brightness brightness, [Palette palette = Palette.lagoon
       backgroundColor: colors.surfaceContainer,
       indicatorColor: colors.secondaryContainer,
     ),
+    // The desktop side rail: a sidebar tone (its labels are sized in Home).
+    navigationRailTheme: NavigationRailThemeData(
+      backgroundColor: colors.surfaceContainer,
+      indicatorColor: colors.secondaryContainer,
+    ),
     dividerTheme: DividerThemeData(color: colors.outlineVariant, space: 1),
   );
 }

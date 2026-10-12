@@ -87,6 +87,7 @@ abstract class Strings {
   /// The app and its version; a development build has none.
   String versionLine(String version);
   String get archive;
+  String get pickNote;
   String get archiveEmpty;
   String archivedOn(String date);
   String get restore;
@@ -269,6 +270,8 @@ class EnglishStrings extends Strings {
       version.isEmpty ? 'Notelore · development build' : 'Notelore $version';
   @override
   String get archive => 'Archive';
+  @override
+  String get pickNote => 'Pick a note to read it here.';
   @override
   String get archiveEmpty => 'The archive is empty. Deleted notes go here.';
   @override
@@ -570,6 +573,8 @@ class TurkishStrings extends Strings {
       version.isEmpty ? 'Notelore · geliştirme sürümü' : 'Notelore $version';
   @override
   String get archive => 'Arşiv';
+  @override
+  String get pickNote => 'Okumak için bir not seç.';
   @override
   String get archiveEmpty => 'Arşiv boş. Silinen notlar buraya gelir.';
   @override

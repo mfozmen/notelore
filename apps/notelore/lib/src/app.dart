@@ -216,59 +216,104 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final s = widget.session.strings;
+    final width = MediaQuery.sizeOf(context).width;
+    // A desktop window navigates from a side rail, with its labels when there
+    // is room; a phone from the bottom bar.
+    final wide = width >= 840;
+    final extended = width >= 1200;
+    final destinations = [
+      (Icons.chat_bubble_outline, Icons.chat_bubble, s.chat),
+      (Icons.description_outlined, Icons.description, s.notes),
+      (Icons.settings_outlined, Icons.settings, s.settings),
+    ];
+    void select(int tab) => setState(() => _tab = tab);
+    final labels = Theme.of(context).textTheme.labelLarge!;
+    final page = Column(
+      children: [
+        if (_available case final version?)
+          MaterialBanner(
+            content: Text(
+              _installed
+                  ? s.installed(version)
+                  : _updateProblem ??
+                        (_updating ? s.installing(version) : s.updateAvailable(version)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: _updating
+                    ? null
+                    : () => setState(() {
+                        _dismissed = _available;
+                        _available = null;
+                      }),
+                child: Text(s.later),
+              ),
+              if (!_installed)
+                TextButton(
+                  onPressed: _updating ? null : _update,
+                  child: Text(widget.updater?.system == 'android' ? s.update : s.updateAndRestart),
+                ),
+            ],
+          ),
+        Expanded(
+          child: switch (_tab) {
+            0 => ChatScreen(widget.session),
+            1 => NotesScreen(widget.session),
+            _ => SettingsScreen(
+              widget.session,
+              checkForUpdates: widget.updater == null ? null : _checkNow,
+            ),
+          },
+        ),
+      ],
+    );
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            if (_available case final version?)
-              MaterialBanner(
-                content: Text(
-                  _installed
-                      ? s.installed(version)
-                      : _updateProblem ??
-                            (_updating ? s.installing(version) : s.updateAvailable(version)),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: _updating
-                        ? null
-                        : () => setState(() {
-                            _dismissed = _available;
-                            _available = null;
-                          }),
-                    child: Text(s.later),
-                  ),
-                  if (!_installed)
-                    TextButton(
-                      onPressed: _updating ? null : _update,
-                      child: Text(
-                        widget.updater?.system == 'android' ? s.update : s.updateAndRestart,
-                      ),
+        child: wide
+            ? Row(
+                children: [
+                  NavigationRail(
+                    extended: extended,
+                    minExtendedWidth: 220,
+                    // Labels sized for reading at a desk, not a phone's caption.
+                    selectedLabelTextStyle: labels.copyWith(fontWeight: FontWeight.w600),
+                    unselectedLabelTextStyle: labels.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
+                    labelType: extended ? null : NavigationRailLabelType.all,
+                    selectedIndex: _tab,
+                    onDestinationSelected: select,
+                    leading: extended
+                        ? Padding(
+                            padding: const EdgeInsets.fromLTRB(Gap.s, Gap.m, 0, Gap.m),
+                            child: Text('Notelore', style: Theme.of(context).textTheme.titleLarge),
+                          )
+                        : null,
+                    destinations: [
+                      for (final (icon, chosen, label) in destinations)
+                        NavigationRailDestination(
+                          icon: Icon(icon),
+                          selectedIcon: Icon(chosen),
+                          label: Text(label),
+                        ),
+                    ],
+                  ),
+                  const VerticalDivider(width: 1),
+                  Expanded(child: page),
                 ],
-              ),
-            Expanded(
-              child: switch (_tab) {
-                0 => ChatScreen(widget.session),
-                1 => NotesScreen(widget.session),
-                _ => SettingsScreen(
-                  widget.session,
-                  checkForUpdates: widget.updater == null ? null : _checkNow,
-                ),
-              },
+              )
+            : page,
+      ),
+      bottomNavigationBar: wide
+          ? null
+          : NavigationBar(
+              selectedIndex: _tab,
+              onDestinationSelected: select,
+              destinations: [
+                for (final (icon, chosen, label) in destinations)
+                  NavigationDestination(icon: Icon(icon), selectedIcon: Icon(chosen), label: label),
+              ],
             ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (tab) => setState(() => _tab = tab),
-        destinations: [
-          NavigationDestination(icon: const Icon(Icons.chat_bubble_outline), label: s.chat),
-          NavigationDestination(icon: const Icon(Icons.description_outlined), label: s.notes),
-          NavigationDestination(icon: const Icon(Icons.settings_outlined), label: s.settings),
-        ],
-      ),
     );
   }
 }

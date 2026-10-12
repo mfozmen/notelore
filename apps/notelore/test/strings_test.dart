@@ -138,6 +138,7 @@ void main() {
       'theme': s.theme,
       'devBuild': s.versionLine(''),
       'archive': s.archive,
+      'pickNote': s.pickNote,
       'archiveEmpty': s.archiveEmpty,
       'archivedOn': s.archivedOn('2026-10-12'),
       'restore': s.restore,
