@@ -151,6 +151,9 @@ class DeviceSpeech implements Speech {
   var _ready = false;
   Completer<String?>? _heard;
 
+  /// The latest words heard in this listening, final or not.
+  var _latest = '';
+
   // Silence, not a failure: nothing was said, or nothing understood.
   static const _silence = {'error_no_match', 'error_speech_timeout'};
 
@@ -161,9 +164,12 @@ class DeviceSpeech implements Speech {
           _ready ||
           await _recognizer.initialize(
             onStatus: _status,
-            onError: (error) => _silence.contains(error.errorMsg)
-                ? _end(null)
-                : _fail(ListenFailed(error.errorMsg)),
+            onError: (error) {
+              _trace('error ${error.errorMsg} (permanent: ${error.permanent})');
+              _silence.contains(error.errorMsg)
+                  ? _end(_latest.isEmpty ? null : _latest)
+                  : _fail(ListenFailed(error.errorMsg));
+            },
             // Only the microphone: the headset setup would ask for Bluetooth too.
             options: [SpeechToText.androidNoBluetooth],
           );
@@ -174,8 +180,12 @@ class DeviceSpeech implements Speech {
     }
     if (!_ready) throw const VoiceUnavailable();
     final heard = _heard = Completer<String?>();
+    _latest = '';
+    _trace('listening ($language)');
     await _recognizer.listen(
       onResult: (result) {
+        _trace('result ${result.resultTypeValue.name}, ${result.recognizedWords.length} chars');
+        if (result.recognizedWords.isNotEmpty) _latest = result.recognizedWords;
         if (result.finalResult) _end(result.recognizedWords);
       },
       listenOptions: SpeechListenOptions(
@@ -189,7 +199,10 @@ class DeviceSpeech implements Speech {
   }
 
   void _status(String status) {
-    if (status == SpeechToText.doneStatus) _end(null); // done without a phrase
+    _trace('status $status');
+    // Some recognizers (Windows, some Android) never mark their last words
+    // final: when listening is done, what was heard last is the phrase.
+    if (status == SpeechToText.doneStatus) _end(_latest.isEmpty ? null : _latest);
   }
 
   void _end(String? words) {
@@ -202,10 +215,15 @@ class DeviceSpeech implements Speech {
 
   @override
   Future<void> cancel() async {
+    _trace('cancel');
     _end(null);
     await _recognizer.cancel();
   }
 }
+
+/// One line per voice step in the device log (logcat, the console): how a
+/// recognizer behaves on a given device can only be seen there.
+void _trace(String step) => debugPrint('notelore voice: $step');
 
 /// The device's voices (flutter_tts).
 class DeviceVoice implements Voice {
