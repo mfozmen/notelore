@@ -214,7 +214,7 @@ class EnglishStrings extends Strings {
   @override
   String get holdHint => 'Hold the button while you talk.';
   @override
-  String get listening => 'Listening… let go to send';
+  String get listening => 'Listening…';
   @override
   String get speaking => 'Speaking…';
   @override
@@ -514,7 +514,7 @@ class TurkishStrings extends Strings {
   @override
   String get holdHint => 'Konuşurken düğmeyi basılı tut.';
   @override
-  String get listening => 'Dinliyorum… bırakınca gönderilir';
+  String get listening => 'Dinliyorum…';
   @override
   String get speaking => 'Okuyorum…';
   @override
