@@ -23,6 +23,9 @@ LH:1
 end_of_record
 ''';
 
+/// An lcov record from its lines.
+String _lcov(List<String> lines) => [...lines, 'end_of_record', ''].join(String.fromCharCode(10));
+
 void main() {
   test('fully covered files have nothing missing', () {
     expect(missingLines(_full), isEmpty);
@@ -64,5 +67,45 @@ void main() {
     final out = StringBuffer();
     expect(gate(['does/not/exist.info'], out), 1);
     expect(out.toString(), contains('no coverage report'));
+  });
+
+  test('lines marked coverage:ignore (native code tests cannot load) do not count', () {
+    const source = '''
+void a() {}
+// coverage:ignore-start
+void b() {
+  native();
+}
+// coverage:ignore-end
+void c() {} // coverage:ignore-line
+void d() {}
+''';
+    expect(ignoredLines(source), {2, 3, 4, 5, 6, 7});
+  });
+
+  test('the gate reads each source next to its report and skips ignored lines', () async {
+    final dir = await Directory.systemTemp.createTemp('gate');
+    addTearDown(() => dir.delete(recursive: true));
+    Directory('${dir.path}/lib').createSync();
+    Directory('${dir.path}/coverage').createSync();
+    File('${dir.path}/lib/n.dart').writeAsStringSync('''
+void a() {}
+// coverage:ignore-start
+void b() => native();
+// coverage:ignore-end
+void c() {}
+''');
+    final report = File('${dir.path}/coverage/lcov.info')
+      ..writeAsStringSync(_lcov(['SF:lib/n.dart', 'DA:1,1', 'DA:3,0', 'DA:5,0']));
+    final out = StringBuffer();
+    expect(gate([report.path], out), 1);
+    expect(out.toString(), contains('lib/n.dart: 5')); // 3 is ignored, 5 is not
+    expect(out.toString(), isNot(contains('3, 5')));
+    // A source that cannot be read ignores nothing.
+    final elsewhere = File('${dir.path}/other.info')
+      ..writeAsStringSync(_lcov(['SF:lib/gone.dart', 'DA:2,0']));
+    out.clear();
+    expect(gate([elsewhere.path], out), 1);
+    expect(out.toString(), contains('lib/gone.dart: 2'));
   });
 }

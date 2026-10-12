@@ -96,6 +96,12 @@ abstract class Strings {
   String get webSearchExplained;
   String get webSearchBilled;
   String get webSearchUnavailable;
+  String get whisper;
+  String get whisperExplained;
+  String get downloadWhisper;
+  String whisperDownloading(int percent);
+  String whisperFailed(String why);
+  String get useWhisper;
   String paletteName(Palette palette);
   String get appearance;
   String appearanceName(Appearance appearance);
@@ -280,6 +286,19 @@ class EnglishStrings extends Strings {
       'Only when it helps get a note right. Anthropic bills each search on top of the tokens.';
   @override
   String get webSearchUnavailable => 'Not available with this provider.';
+  @override
+  String get whisper => 'Whisper speech recognition';
+  @override
+  String get whisperExplained =>
+      'Hears you on this device, offline, in any language. A one-time download of about 375 MB.';
+  @override
+  String get downloadWhisper => 'Download Whisper';
+  @override
+  String whisperDownloading(int percent) => 'Downloading… $percent%';
+  @override
+  String whisperFailed(String why) => 'The download failed: $why';
+  @override
+  String get useWhisper => 'Use Whisper in voice mode';
   @override
   String paletteName(Palette palette) => switch (palette) {
     Palette.lagoon => 'Lagoon',
@@ -559,6 +578,19 @@ class TurkishStrings extends Strings {
       'Yalnızca notu doğru tutmaya yardım edecekse. Anthropic her aramayı ayrıca ücretlendirir.';
   @override
   String get webSearchUnavailable => 'Bu sağlayıcıda kullanılamıyor.';
+  @override
+  String get whisper => 'Whisper ses tanıma';
+  @override
+  String get whisperExplained =>
+      'Seni bu cihazda, internetsiz ve her dilde duyar. Bir kerelik yaklaşık 375 MB indirme.';
+  @override
+  String get downloadWhisper => "Whisper'ı indir";
+  @override
+  String whisperDownloading(int percent) => 'İndiriliyor… %$percent';
+  @override
+  String whisperFailed(String why) => 'İndirme başarısız oldu: $why';
+  @override
+  String get useWhisper => 'Sesli modda Whisper kullan';
   @override
   String paletteName(Palette palette) => switch (palette) {
     Palette.lagoon => 'Lagün',

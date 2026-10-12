@@ -23,11 +23,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _modelMenu = GlobalKey<PopupMenuButtonState<String>>();
 
   /// Voice mode; the chat always opens in text mode.
-  late final _voice = VoiceMode(
-    widget.session,
-    speech: widget.session.speech,
-    voice: widget.session.voice,
-  );
+  late final _voice = VoiceMode(widget.session, voice: widget.session.voice);
 
   @override
   void dispose() {
