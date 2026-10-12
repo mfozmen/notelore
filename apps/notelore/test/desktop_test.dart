@@ -10,6 +10,7 @@ import 'support.dart';
 /// A desktop window of [width] x 1000 logical pixels.
 void desktop(WidgetTester tester, double width) {
   WidgetController.hitTestWarningShouldBeFatal = true;
+  addTearDown(() => WidgetController.hitTestWarningShouldBeFatal = false);
   tester.view
     ..physicalSize = Size(width, 1000)
     ..devicePixelRatio = 1;
@@ -62,7 +63,8 @@ void main() {
     await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
     expect(find.text('Mopsos'), findsOneWidget); // the list stays
-    expect(find.text('Kitaplar'), findsNWidgets(2)); // in the list and over the note
+    expect(find.text('Kitaplar'), findsNWidgets(2)); // in the list and the note's heading
+    expect(tester.widget<ListTile>(find.widgetWithText(ListTile, 'Kitaplar')).selected, isTrue);
     expect(find.text('Pick a note to read it here.'), findsNothing);
 
     // Deleting the open note empties the reader.
@@ -98,5 +100,22 @@ void main() {
     await tester.tap(find.byTooltip('Refresh'));
     await tester.pumpAndSettle();
     expect(find.text('Pick a note to read it here.'), findsOneWidget);
+  });
+
+  testWidgets('the side rail and the side-by-side panes start at the same window width', (
+    tester,
+  ) async {
+    desktop(tester, 900); // the rail takes some of it: the body is narrower than 840
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    expect(find.byType(NavigationRail), findsOneWidget);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pick a note to read it here.'), findsOneWidget);
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('settings-sections')), findsOneWidget);
   });
 }

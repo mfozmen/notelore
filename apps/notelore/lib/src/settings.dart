@@ -66,8 +66,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(title: Text(s.settings)),
       // Grouped in cards; a readable width on wide windows.
       // Cards side by side on wide windows (the desktop), one column on phones.
-      body: LayoutBuilder(
-        builder: (context, size) {
+      body: Builder(
+        builder: (context) {
           final model = Card(
             child: Padding(
               padding: const EdgeInsets.only(bottom: Gap.m),
@@ -327,13 +327,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           );
-          if (size.maxWidth < 840) {
+          if (!Layout.isWide(context)) {
             return ListView(
               padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
               children: [
                 Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 720),
+                    constraints: const BoxConstraints(maxWidth: Layout.column),
                     child: _cards([model, language, look, drive, folder, voice, about]),
                   ),
                 ),
@@ -376,7 +376,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Align(
                       alignment: Alignment.topLeft,
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 760),
+                        constraints: const BoxConstraints(maxWidth: Layout.column),
                         child: _cards(sections[_section].$3),
                       ),
                     ),

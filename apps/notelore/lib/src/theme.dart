@@ -45,6 +45,24 @@ abstract final class Gap {
   static const double l = 24;
 }
 
+/// The sizes the screens lay out by.
+abstract final class Layout {
+  /// From this window width the app is laid out for a desk: a side rail, and
+  /// panes side by side. The screens all go by the window, so they switch together.
+  static const double wide = 840;
+
+  /// From this window width the rail shows its labels.
+  static const double roomy = 1200;
+
+  /// The widest a column of text or cards gets.
+  static const double column = 760;
+
+  /// The widest the conversation gets.
+  static const double chat = 840;
+
+  static bool isWide(BuildContext context) => MediaQuery.sizeOf(context).width >= wide;
+}
+
 ThemeData noteloreTheme(Brightness brightness, [Palette palette = Palette.lagoon]) {
   final colors = ColorScheme.fromSeed(seedColor: palette.seed, brightness: brightness);
   final rounded = RoundedRectangleBorder(borderRadius: BorderRadius.circular(_card));
