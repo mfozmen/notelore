@@ -434,11 +434,12 @@ class Session extends ChangeNotifier {
     return run;
   }
 
-  /// One chat turn, then a sync. A provider failure becomes an error line; the
-  /// agent has already taken the turn back, so the user can simply send again.
   /// What the user wrote while a turn ran, not yet handed to the model.
   final _later = <String>[];
 
+  /// One chat turn, then a sync. A provider failure becomes an error line; the
+  /// agent has already taken the turn back, so the user can simply send again.
+  /// Sent while a turn runs, a message joins that turn instead (see [_later]).
   Future<void> send(String text) async {
     final message = text.trim();
     if (message.isEmpty) return;
@@ -448,44 +449,54 @@ class Session extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    await _turn(message);
+    await _turns(message);
   }
 
-  Future<void> _turn(String message) async {
+  /// Turns until nothing written meanwhile is left; busy throughout.
+  Future<void> _turns(String first) async {
     busy = true;
-    _stopped = false;
     notifyListeners();
-    await _exclusive(() async {
-      try {
-        if (_stopped) throw const TurnStopped(); // stopped while queued behind a sync
-        final answer = await _agent!.ask(
-          message,
-          onStep: (now) {
-            step = now;
-            notifyListeners();
-          },
-          takeLater: () {
-            final taken = [..._later];
-            _later.clear();
-            return taken;
-          },
-        );
-        transcript.add((role: ChatRole.assistant, text: strings.core(answer)));
-      } on Exception catch (error) {
-        transcript.add((role: ChatRole.error, text: strings.core('$error')));
-      } finally {
-        busy = false;
-        step = null;
-        notifyListeners();
-      }
-    });
-    // Written too late for that turn (or after a Stop): all of it in one more.
-    if (_later.isNotEmpty) {
-      final rest = _later.join('\n\n');
-      _later.clear();
-      return _turn(rest);
+    for (String? message = first; message != null; message = _rest()) {
+      _stopped = false;
+      final taken = <String>[];
+      await _exclusive(() async {
+        try {
+          if (_stopped) throw const TurnStopped(); // stopped while queued behind a sync
+          final answer = await _agent!.ask(
+            message!,
+            onStep: (now) {
+              step = now;
+              notifyListeners();
+            },
+            takeLater: () {
+              taken.addAll(_later);
+              _later.clear();
+              return [...taken];
+            },
+          );
+          transcript.add((role: ChatRole.assistant, text: strings.core(answer)));
+        } on Exception catch (error) {
+          // The failed turn was taken back: what it had taken goes out again.
+          _later.insertAll(0, taken);
+          transcript.add((role: ChatRole.error, text: strings.core('$error')));
+        } finally {
+          step = null;
+          notifyListeners();
+        }
+      });
     }
+    busy = false;
+    notifyListeners();
     if (driveConnected) unawaited(syncNow());
+  }
+
+  /// What was written too late for the last turn (or after a Stop), as one
+  /// message; null when there is none.
+  String? _rest() {
+    if (_later.isEmpty) return null;
+    final rest = _later.join('\n\n');
+    _later.clear();
+    return rest;
   }
 
   var _stopped = false;
