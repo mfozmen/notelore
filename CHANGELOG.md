@@ -2,6 +2,40 @@
 
 <!-- version list -->
 
+## v0.10.0 (2026-10-12)
+
+### Bug Fixes
+
+- A microphone not plugged in now records from the default; doc comments in place
+  ([`0417a57`](https://github.com/mfozmen/notelore/commit/0417a57cae7d6ec8d3a0a3f7841cfd62251754f4))
+
+- The open note follows a sync or the assistant; comment on its line
+  ([`02d617c`](https://github.com/mfozmen/notelore/commit/02d617cdc69bd1d58684ad1d918316aa0441cc49))
+
+- The open note shows same-day changes too
+  ([`43448ea`](https://github.com/mfozmen/notelore/commit/43448ea809637c9f4e4b969d567913aaf32d0ff0))
+
+- Whisper hears a quiet Windows microphone
+  ([`d72680a`](https://github.com/mfozmen/notelore/commit/d72680ab70a6fc3918f8d614abd5d1baed502aec))
+
+### Features
+
+- A desktop layout: side rail, a readable chat column, notes beside the reader
+  ([`bc4dbf0`](https://github.com/mfozmen/notelore/commit/bc4dbf02f4766dc27b0df73e99a2417b5efadd04))
+
+- Check for updates every time the app opens
+  ([`9b5282f`](https://github.com/mfozmen/notelore/commit/9b5282f7276e66eed80b34de7af61be1ba2b61b3))
+
+- Pick the microphone Whisper records from
+  ([`709960a`](https://github.com/mfozmen/notelore/commit/709960a0dc601dbb3886153e130a8fa61563a8d1))
+
+- Settings on a wide window: sections on the left, one at a time
+  ([`074306a`](https://github.com/mfozmen/notelore/commit/074306afbecf818fc399b96eca26b2b5dc6831f1))
+
+- Whisper downloads by itself on first start; no button, no switch
+  ([`210f1ff`](https://github.com/mfozmen/notelore/commit/210f1ff8e7aae92c1694543939d6aef10063b055))
+
+
 ## v0.9.0 (2026-10-12)
 
 ### Bug Fixes
