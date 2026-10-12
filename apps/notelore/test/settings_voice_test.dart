@@ -43,12 +43,12 @@ void main() {
     harness.microphones = [(id: 'usb', label: 'USB mic')];
     await tester.tap(find.byTooltip('List the microphones again'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('System default'));
+    await tester.tap(find.byKey(const Key('microphone')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('USB mic').last);
     await tester.pumpAndSettle();
     expect(session.microphone, 'usb');
-    expect(find.text('USB mic'), findsOneWidget);
+    expect(find.text('USB mic'), findsOneWidget); // shown as the choice
   });
 
   testWidgets('settings: a failed Whisper download says why, and tries again', (tester) async {

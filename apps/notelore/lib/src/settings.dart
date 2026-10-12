@@ -23,7 +23,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  late final _model = TextEditingController(text: widget.session.model);
   var _checking = false; // one update check at a time
 
   /// The section shown on a wide window.
@@ -32,16 +31,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// The device's microphones, listed on opening and again on request.
   late var _microphones = widget.session.listMicrophones();
 
-  @override
-  void dispose() {
-    _model.dispose();
-    super.dispose();
-  }
-
-  Future<void> _saveModel() async {
+  Future<void> _pickModel(String model) async {
     final messenger = ScaffoldMessenger.of(context);
-    await widget.session.setModel(_model.text);
-    _model.text = widget.session.model!;
+    await widget.session.setModel(model);
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(widget.session.strings.modelSaved)));
@@ -81,23 +73,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       '${s.providerName(session.spec!)} · ${s.groupHeading(session.spec!.group)}',
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-                    child: Row(
+                  _SettingRow(
+                    icon: Icons.psychology_outlined,
+                    title: s.model,
+                    control: Row(
                       children: [
                         Expanded(
-                          // The models the key can use; a name not in the list can be typed too.
-                          child: DropdownMenu<String>(
+                          // The models the key can use, picked from the list.
+                          child: _picker(
                             key: const Key('model'),
-                            controller: _model,
-                            expandedInsets: EdgeInsets.zero,
-                            requestFocusOnTap: true,
-                            label: Text(s.model),
-                            helperText: s.modelHelper(session.defaultModel),
-                            dropdownMenuEntries: [
-                              for (final m in session.models) DropdownMenuEntry(value: m, label: m),
+                            value: session.model,
+                            entries: [
+                              for (final m in {...session.models, ?session.model}) (m, m),
                             ],
-                            onSelected: (_) => _saveModel(),
+                            onSelected: (String? m) => _pickModel(m!),
                           ),
                         ),
                         IconButton(
@@ -107,11 +96,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: Gap.s),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-                    child: OutlinedButton(onPressed: _saveModel, child: Text(s.saveModel)),
                   ),
                   SwitchListTile(
                     secondary: const Icon(Icons.travel_explore),
@@ -131,18 +115,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           );
           final language = Card(
-            child: ListTile(
-              leading: const Icon(Icons.translate),
-              title: Text(s.language),
-              trailing: DropdownButton<AppLanguage>(
-                key: const Key('language'),
-                value: session.language,
-                underline: const SizedBox.shrink(),
-                onChanged: (chosen) => session.setLanguage(chosen!),
-                items: [
-                  for (final language in AppLanguage.values)
-                    DropdownMenuItem(value: language, child: Text(s.languageName(language))),
-                ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: Gap.s),
+              child: _SettingRow(
+                icon: Icons.translate,
+                title: s.language,
+                control: _picker(
+                  key: const Key('language'),
+                  value: session.language,
+                  entries: [
+                    for (final language in AppLanguage.values) (language, s.languageName(language)),
+                  ],
+                  onSelected: (AppLanguage? chosen) => session.setLanguage(chosen!),
+                ),
               ),
             ),
           );
@@ -278,21 +263,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         final chosen = microphones.any((m) => m.id == session.microphone)
                             ? session.microphone
                             : null;
-                        return ListTile(
-                          leading: const Icon(Icons.mic_none),
-                          title: Text(s.microphone),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
+                        return _SettingRow(
+                          icon: Icons.mic_none,
+                          title: s.microphone,
+                          control: Row(
                             children: [
-                              DropdownButton<String?>(
-                                value: chosen,
-                                underline: const SizedBox.shrink(),
-                                onChanged: session.setMicrophone,
-                                items: [
-                                  DropdownMenuItem(child: Text(s.systemMicrophone)),
-                                  for (final m in microphones)
-                                    DropdownMenuItem(value: m.id, child: Text(m.label)),
-                                ],
+                              Expanded(
+                                child: _picker<String?>(
+                                  key: const Key('microphone'),
+                                  value: chosen,
+                                  entries: [
+                                    (null, s.systemMicrophone),
+                                    for (final m in microphones) (m.id, m.label),
+                                  ],
+                                  onSelected: session.setMicrophone,
+                                ),
                               ),
                               // One plugged in since Settings opened.
                               IconButton(
@@ -402,6 +387,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+}
+
+/// A choice from a list, never typed: the one look every picker in Settings has
+/// (themed in theme.dart).
+Widget _picker<T>({
+  required Key key,
+  required T value,
+  required List<(T, String)> entries,
+  required void Function(T) onSelected,
+}) => DropdownMenu<T>(
+  key: key,
+  initialSelection: value,
+  requestFocusOnTap: false,
+  expandedInsets: EdgeInsets.zero,
+  dropdownMenuEntries: [
+    for (final (value, label) in entries) DropdownMenuEntry(value: value, label: label),
+  ],
+  onSelected: (chosen) => onSelected(chosen as T),
+);
+
+/// A setting: what it is on the left and its control on the right, or under it
+/// where there is no room (a phone).
+class _SettingRow extends StatelessWidget {
+  const _SettingRow({required this.icon, required this.title, required this.control});
+
+  final IconData icon;
+  final String title;
+  final Widget control;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, size) {
+      final label = ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(icon),
+        title: Text(title),
+      );
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+        child: size.maxWidth < 560
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  label,
+                  control,
+                  const SizedBox(height: Gap.s),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(child: label),
+                  const SizedBox(width: Gap.m),
+                  SizedBox(width: 320, child: control),
+                ],
+              ),
+      );
+    },
+  );
 }
 
 /// [cards] stacked with the usual gap between them.

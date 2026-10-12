@@ -36,6 +36,7 @@ enum Appearance {
 /// Corner radii: cards and tiles, and the rounder input fields.
 const _card = 16.0;
 const _field = 24.0;
+const _control = 12.0;
 
 /// The spacing steps every screen uses.
 abstract final class Gap {
@@ -124,6 +125,30 @@ ThemeData noteloreTheme(Brightness brightness, [Palette palette = Palette.lagoon
     navigationRailTheme: NavigationRailThemeData(
       backgroundColor: colors.surfaceContainer,
       indicatorColor: colors.secondaryContainer,
+    ),
+    // Every picker: a filled, rounded field and a rounded menu above the page.
+    dropdownMenuTheme: DropdownMenuThemeData(
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: colors.surfaceContainerHighest,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(_control),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(_control),
+          borderSide: BorderSide(color: colors.primary, width: 2),
+        ),
+      ),
+      menuStyle: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(colors.surfaceContainerHigh),
+        elevation: const WidgetStatePropertyAll(3),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(_control)),
+        ),
+        padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: Gap.xs)),
+      ),
     ),
     dividerTheme: DividerThemeData(color: colors.outlineVariant, space: 1),
   );

@@ -28,6 +28,8 @@ void main() {
     await connect(tester, key: 'k');
     await openSettings(tester);
     expect(find.text('Back up and sync your notes across your devices.'), findsOneWidget);
+    await tester.ensureVisible(find.widgetWithText(FilledButton, 'Connect'));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Connect'));
     await tester.pumpAndSettle();
     expect(find.text('Synced; nothing changed.'), findsOneWidget);
@@ -39,6 +41,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('T'), findsOneWidget); // the pulled note is listed
     await openSettings(tester);
+    await tester.ensureVisible(find.byTooltip('Disconnect Google Drive'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Disconnect Google Drive'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(FilledButton, 'Connect'), findsOneWidget);
@@ -64,6 +68,8 @@ void main() {
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     await openSettings(tester);
+    await tester.ensureVisible(find.widgetWithText(FilledButton, 'Connect'));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Connect'));
     await tester.pumpAndSettle();
     expect(find.text('Google sign-in failed: access_denied'), findsOneWidget);
