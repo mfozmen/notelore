@@ -2,6 +2,31 @@
 
 <!-- version list -->
 
+## v0.7.0 (2026-10-12)
+
+### Bug Fixes
+
+- A message taken by a turn that then fails still goes out; busy stays on across follow-ups
+  ([`0ca1336`](https://github.com/mfozmen/notelore/commit/0ca13363ce08fe7ec380c08fe99138e7756d2fd4))
+
+- A route that refuses the search tool still answers, without search
+  ([`99d61bb`](https://github.com/mfozmen/notelore/commit/99d61bbb6554f7a13349344b20a9a0be3cc942ed))
+
+- Keep Anthropic's search blocks out of the provider's answer
+  ([`01c5277`](https://github.com/mfozmen/notelore/commit/01c5277adfe08340cdbffa2d0539e22321b4eaa1))
+
+### Features
+
+- Keep writing while the assistant works, one answer for all
+  ([`de42d9e`](https://github.com/mfozmen/notelore/commit/de42d9e0f62eac86195ea010209746f78c1ee84d))
+
+- Look things up on the web when it helps a note, with a setting
+  ([`aea5c9a`](https://github.com/mfozmen/notelore/commit/aea5c9a305acb4d8eae070938a0ce4c41f811cb5))
+
+- Nature themes, each in light and dark
+  ([`b886856`](https://github.com/mfozmen/notelore/commit/b886856207aa057e0c6b8eaabd21a65269b796fa))
+
+
 ## v0.6.0 (2026-10-11)
 
 ### Bug Fixes
