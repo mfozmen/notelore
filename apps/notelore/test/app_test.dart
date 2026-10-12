@@ -370,6 +370,61 @@ void main() {
     expect(find.text('Change model'), findsNothing);
   });
 
+  testWidgets('notes: the archive lists what was deleted and restores it', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Archive'));
+    await tester.pumpAndSettle();
+    expect(find.text('The archive is empty. Deleted notes go here.'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Delete').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kitaplar'), findsNothing);
+    await tester.tap(find.byTooltip('Archive'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kitaplar'), findsOneWidget);
+    expect(find.textContaining('archived 2026-09-30'), findsOneWidget);
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Restore'));
+    await tester.pumpAndSettle();
+    expect(find.text('Restored "Kitaplar".'), findsOneWidget);
+    expect(find.text('The archive is empty. Deleted notes go here.'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Kitaplar'), findsOneWidget); // back in the notes
+  });
+
+  testWidgets('notes: restoring over a note that took the name says so', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    createNote(harness.paths.notes.path, 'project', 'Mopsos', today: today);
+    for (final note in session.listNotes()) {
+      await session.deleteNote(note); // two in the archive
+    }
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Archive'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Restore'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('already exists'), findsOneWidget);
+  });
+
   testWidgets('notes: the archived notice goes away by itself', (tester) async {
     phone(tester);
     final harness = Harness();

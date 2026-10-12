@@ -604,6 +604,24 @@ void main() {
     expect(File(again).existsSync(), isTrue);
   });
 
+  test('the archive: listed, read, restored; a taken name is refused', () async {
+    final harness = Harness();
+    final session = harness.session();
+    final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    await session.deleteNote(session.listNotes().single);
+    final archived = session.listArchived().single;
+    expect(archived.title, 'Kitaplar');
+    expect(session.readArchived(archived), startsWith('# Kitaplar'));
+    expect(await session.restoreArchived(archived), isTrue);
+    expect(File(path).existsSync(), isTrue);
+    expect(session.listArchived(), isEmpty);
+    // Archived again, then a new note takes the name: restoring is refused.
+    await session.deleteNote(session.listNotes().single);
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    expect(await session.restoreArchived(session.listArchived().single), isFalse);
+    expect(session.listArchived(), hasLength(1));
+  });
+
   test('withoutFrontMatter shows a note from its title down', () {
     expect(withoutFrontMatter('---\ntitle: T\n---\n# T\nbody\n'), '# T\nbody\n');
     expect(withoutFrontMatter('# Plain\n'), '# Plain\n');

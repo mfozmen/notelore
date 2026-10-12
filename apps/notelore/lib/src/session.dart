@@ -18,6 +18,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:notelore_core/notelore_core.dart';
+import 'package:notelore_core/notelore_core.dart' as core show listArchived, restoreArchived;
 import 'package:path/path.dart' as p;
 
 import 'strings.dart';
@@ -681,6 +682,24 @@ class Session extends ChangeNotifier {
     final archived = archiveNote(paths.notes.path, path, today: today);
     notifyListeners();
     return archived;
+  });
+
+  /// What was archived, newest first.
+  List<ArchivedNote> listArchived() => core.listArchived(paths.notes.path);
+
+  /// An archived note as Markdown from its title down.
+  String readArchived(ArchivedNote archived) =>
+      withoutFrontMatter(File(archived.path).readAsStringSync().replaceAll('\r\n', '\n'));
+
+  /// Puts [archived] back where it came from; false when a note took the name.
+  Future<bool> restoreArchived(ArchivedNote archived) => _exclusive(() async {
+    try {
+      core.restoreArchived(paths.notes.path, archived);
+    } on RestoreTaken {
+      return false;
+    }
+    notifyListeners();
+    return true;
   });
 
   /// Undoes [deleteNote], unless a new note has taken the place meanwhile.

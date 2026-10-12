@@ -447,4 +447,47 @@ void main() {
       );
     });
   });
+
+  group('the archive, browsed and restored', () {
+    late String root;
+    setUp(() {
+      root = Directory.systemTemp.createTempSync('notelore_archive_').path;
+      addTearDown(() => Directory(root).deleteSync(recursive: true));
+    });
+
+    test('lists what was archived, newest first, and restores it to its place', () {
+      final older = createNote(root, 'topic', 'Kitaplar', today: DateTime(2026, 10, 1));
+      archiveNote(root, older, today: DateTime(2026, 10, 2));
+      final newer = createNote(root, 'project', 'Mopsos', today: DateTime(2026, 10, 1));
+      archiveNote(root, newer, today: DateTime(2026, 10, 5));
+      File(p.join(root, archiveFolder, '2026-10-05', 'stray.txt')).writeAsStringSync('x');
+      final listed = listArchived(root);
+      expect(listed.map((a) => (a.title, a.archivedOn, a.original)), [
+        ('Mopsos', '2026-10-05', 'projects/mopsos.md'),
+        ('Kitaplar', '2026-10-02', 'topics/kitaplar.md'),
+      ]);
+      final restored = restoreArchived(root, listed.last);
+      expect(restored, p.join(root, 'topics', 'kitaplar.md'));
+      expect(readNote(restored).title, 'Kitaplar');
+      expect(listArchived(root), hasLength(1));
+    });
+
+    test('never overwrites a note that took the name again', () {
+      final first = createNote(root, 'topic', 'Kitaplar', today: DateTime(2026, 10, 1));
+      archiveNote(root, first, today: DateTime(2026, 10, 2));
+      createNote(root, 'topic', 'Kitaplar', today: DateTime(2026, 10, 3)); // a new one
+      final archived = listArchived(root).single;
+      expect(() => restoreArchived(root, archived), throwsA(isA<RestoreTaken>()));
+      expect(File(archived.path).existsSync(), isTrue); // still in the archive
+      expect('${RestoreTaken(archived.original)}', contains('topics/kitaplar.md'));
+    });
+
+    test('an empty archive, and an archived file that is not a note', () {
+      expect(listArchived(root), isEmpty);
+      File(p.join(root, archiveFolder, '2026-10-02', 'topics', 'broken.md'))
+        ..createSync(recursive: true)
+        ..writeAsStringSync('no front matter');
+      expect(listArchived(root).single.title, 'broken'); // named after the file
+    });
+  });
 }

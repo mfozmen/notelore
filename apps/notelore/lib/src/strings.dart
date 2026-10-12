@@ -86,6 +86,12 @@ abstract class Strings {
 
   /// The app and its version; a development build has none.
   String versionLine(String version);
+  String get archive;
+  String get archiveEmpty;
+  String archivedOn(String date);
+  String get restore;
+  String restored(String title);
+  String restoreTaken(String title);
   String get webSearch;
   String get webSearchExplained;
   String get webSearchBilled;
@@ -251,6 +257,19 @@ class EnglishStrings extends Strings {
   @override
   String versionLine(String version) =>
       version.isEmpty ? 'Notelore · development build' : 'Notelore $version';
+  @override
+  String get archive => 'Archive';
+  @override
+  String get archiveEmpty => 'The archive is empty. Deleted notes go here.';
+  @override
+  String archivedOn(String date) => 'archived $date';
+  @override
+  String get restore => 'Restore';
+  @override
+  String restored(String title) => 'Restored "$title".';
+  @override
+  String restoreTaken(String title) =>
+      'A note called "$title" already exists, so this one stays in the archive.';
   @override
   String get webSearch => 'Look things up on the web';
   @override
@@ -517,6 +536,19 @@ class TurkishStrings extends Strings {
   @override
   String versionLine(String version) =>
       version.isEmpty ? 'Notelore · geliştirme sürümü' : 'Notelore $version';
+  @override
+  String get archive => 'Arşiv';
+  @override
+  String get archiveEmpty => 'Arşiv boş. Silinen notlar buraya gelir.';
+  @override
+  String archivedOn(String date) => '$date tarihinde arşivlendi';
+  @override
+  String get restore => 'Geri getir';
+  @override
+  String restored(String title) => '"$title" geri getirildi.';
+  @override
+  String restoreTaken(String title) =>
+      '"$title" adında bir not zaten var, bu yüzden bu not arşivde kalıyor.';
   @override
   String get webSearch => 'Gerekirse internette araştır';
   @override
