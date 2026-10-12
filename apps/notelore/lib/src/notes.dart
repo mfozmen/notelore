@@ -42,6 +42,10 @@ class _NotesScreenState extends State<NotesScreen> {
     messenger.showSnackBar(
       SnackBar(
         content: Text(s.movedToArchive(note.title)),
+        // Flutter keeps a snackbar with an action until dismissed: this one goes.
+        persist: false,
+        duration: const Duration(seconds: 6),
+        showCloseIcon: true,
         action: SnackBarAction(
           label: s.undo,
           onPressed: () async {
