@@ -104,7 +104,6 @@ abstract class Strings {
   String get webSearchBilled;
   String get webSearchUnavailable;
   String get whisper;
-  String get whisperExplained;
   String get tryAgain;
   String whisperDownloading(int percent);
   String whisperFailed(String why);
@@ -323,10 +322,6 @@ class EnglishStrings extends Strings {
   String get webSearchUnavailable => 'Not available with this provider.';
   @override
   String get whisper => 'Whisper speech recognition';
-  @override
-  String get whisperExplained =>
-      'Hears you on this device, offline, in any language. Notelore downloads it once by '
-      "itself (about 375 MB); until then voice mode uses the device's recognizer.";
   @override
   String get tryAgain => 'Try again';
   @override
@@ -649,10 +644,6 @@ class TurkishStrings extends Strings {
   String get webSearchUnavailable => 'Bu sağlayıcıda kullanılamıyor.';
   @override
   String get whisper => 'Whisper ses tanıma';
-  @override
-  String get whisperExplained =>
-      'Seni bu cihazda, internetsiz ve her dilde duyar. Notelore onu bir kez kendisi indirir '
-      '(yaklaşık 375 MB); o zamana kadar sesli mod cihazın ses tanımasını kullanır.';
   @override
   String get tryAgain => 'Tekrar dene';
   @override

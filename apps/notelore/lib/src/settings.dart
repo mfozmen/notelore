@@ -252,7 +252,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ListTile(
                     leading: const Icon(Icons.record_voice_over_outlined),
                     title: Text(s.whisper),
-                    subtitle: Text(s.whisperExplained),
                   ),
                   if (session.whisper.ready)
                     FutureBuilder(

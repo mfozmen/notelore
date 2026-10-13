@@ -160,7 +160,6 @@ void main() {
       'syncSection': s.syncSection,
       'aboutSection': s.aboutSection,
       'whisper': s.whisper,
-      'whisperExplained': s.whisperExplained,
       'tryAgain': s.tryAgain,
       'whisperDownloading': s.whisperDownloading(42),
       'whisperFailed': s.whisperFailed('x'),
