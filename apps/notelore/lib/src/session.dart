@@ -311,9 +311,6 @@ class Session extends ChangeNotifier {
   final transcript = <ChatLine>[];
   bool busy = false;
 
-  /// What the running chat turn is doing ("Thinking", "Searching the notes").
-  String? step;
-
   bool get ready => _agent != null;
 
   String get _settings => p.join(paths.state.path, 'settings.json');
@@ -542,10 +539,6 @@ class Session extends ChangeNotifier {
           if (_stopped) throw const TurnStopped(); // stopped while queued behind a sync
           final answer = await _agent!.ask(
             message!,
-            onStep: (now) {
-              step = now;
-              notifyListeners();
-            },
             takeLater: () {
               taken.addAll(_later);
               _later.clear();
@@ -558,7 +551,6 @@ class Session extends ChangeNotifier {
           _later.insertAll(0, taken);
           transcript.add((role: ChatRole.error, text: strings.core('$error')));
         } finally {
-          step = null;
           notifyListeners();
         }
       });

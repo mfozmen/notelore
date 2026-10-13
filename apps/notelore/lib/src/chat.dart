@@ -264,10 +264,13 @@ Widget _status(BuildContext context, IconData icon, Widget text) => Padding(
   ),
 );
 
-/// The assistant's turn while it runs: a playful line that changes every few
-/// seconds (its steps, a search or a write, pass too fast to read).
+/// The assistant's turn while it runs: a playful line that changes every
+/// [_rotation] (its steps, a search or a write, pass too fast to read).
 class _Thinking extends StatefulWidget {
   const _Thinking(this.strings);
+
+  /// How long each waiting line stays before the next one.
+  static const _rotation = Duration(seconds: 4);
 
   final Strings strings;
 
@@ -296,7 +299,7 @@ class _ThinkingState extends State<_Thinking> {
 
   String get _waiting {
     final lines = widget.strings.waitingLines;
-    return lines[(_first + _seconds ~/ 4) % lines.length];
+    return lines[(_first + _seconds ~/ _Thinking._rotation.inSeconds) % lines.length];
   }
 
   @override

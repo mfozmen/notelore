@@ -322,20 +322,19 @@ void main() {
     expect(busyFlips, 1); // busy the whole time, off once at the end
   });
 
-  test('a turn says what it is doing and can be stopped', () async {
+  test('a running turn can be stopped', () async {
     final harness = Harness(answers: [Completer<AgentResponse>().future]);
     final session = harness.session();
     await session.connect(findProvider('anthropic'), 'k');
     session.stop(); // nothing running: nothing happens
     final turn = session.send('selam');
     await Future<void>.delayed(Duration.zero);
-    expect(session.step, 'Thinking');
+    expect(session.busy, isTrue);
     session.stop();
     await turn;
     expect(session.transcript.last.role, ChatRole.error);
     expect(session.transcript.last.text, 'Stopped.');
     expect(session.busy, isFalse);
-    expect(session.step, isNull);
     // Stopped while still queued (e.g. behind a sync): the model is never asked.
     final queued = session.send('again');
     session.stop();

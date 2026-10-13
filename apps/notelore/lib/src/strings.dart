@@ -52,7 +52,7 @@ abstract class Strings {
   String get changeModel;
   String modelGone(String provider, String model);
 
-  /// Shown in turn while the model only thinks, instead of a plain "Thinking".
+  /// Shown in rotation while a chat turn runs, instead of a plain "Thinking".
   List<String> get waitingLines;
   String get talk;
   String get stopReading;
