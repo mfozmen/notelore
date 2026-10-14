@@ -637,6 +637,33 @@ void main() {
     expect(find.text('Mopsos'), findsOneWidget);
   });
 
+  testWidgets('notes: saved links open in the browser', (tester) async {
+    phone(tester);
+    final launcher = FakeLauncher();
+    UrlLauncherPlatform.instance = launcher;
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final path = createNote(harness.paths.notes.path, 'topic', 'Links', today: today);
+    addEntry(path, '[Example](https://example.com/page)', today: today);
+
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Links'));
+    await tester.pumpAndSettle();
+    final markdown = tester.widget<Markdown>(find.byType(Markdown));
+    expect(markdown.selectable, isTrue);
+    expect(markdown.onTapLink, isNotNull);
+    expect(markdown.data, contains('[Example](https://example.com/page)'));
+    markdown.onTapLink!('Example', 'https://example.com/page', '');
+    await tester.pump();
+    expect(launcher.opened, ['https://example.com/page']);
+    markdown.onTapLink!('Unsafe', 'javascript:alert(1)', '');
+    markdown.onTapLink!('Missing', null, '');
+    await tester.pump();
+    expect(launcher.opened, ['https://example.com/page']);
+  });
+
   testWidgets('settings: pick a model from the list, refresh the list', (tester) async {
     phone(tester);
     final harness = Harness();
