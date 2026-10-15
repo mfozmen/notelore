@@ -110,11 +110,13 @@ class _ChatScreenState extends State<ChatScreen> {
                   reverse: true,
                   padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
                   itemCount: lines.length + (session.busy ? 1 : 0),
-                  itemBuilder: (context, index) => session.busy
-                      ? (index == 0 ? _Thinking(s) : _Bubble(lines[index - 1]))
-                      : index == resendable
-                      ? _Resendable(_Bubble(lines[index]), s, session.resend)
-                      : _Bubble(lines[index]),
+                  itemBuilder: (context, index) {
+                    if (!session.busy) {
+                      final bubble = _Bubble(lines[index]);
+                      return index == resendable ? _Resendable(bubble, s, session.resend) : bubble;
+                    }
+                    return index == 0 ? _Thinking(s) : _Bubble(lines[index - 1]);
+                  },
                 ),
         ),
         if (session.modelGone)
