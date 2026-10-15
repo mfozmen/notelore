@@ -543,9 +543,10 @@ class Session extends ChangeNotifier {
       _stopped = false;
       final taken = <String>[];
       await _exclusive(() async {
+        Agent? asked; // the one that ran the turn, even if a logout replaced it since
         try {
           if (_stopped) throw const TurnStopped(); // stopped while queued behind a sync
-          final answer = await _agent!.ask(
+          final answer = await (asked = _agent!).ask(
             message!,
             takeLater: () {
               taken.addAll(_later);
@@ -557,7 +558,12 @@ class Session extends ChangeNotifier {
         } on Exception catch (error) {
           // The failed turn was taken back: what it had taken goes out again.
           _later.insertAll(0, taken);
-          transcript.add((role: ChatRole.error, text: strings.core('$error')));
+          final failed = strings.core('$error');
+          transcript.add((
+            role: ChatRole.error,
+            // Its writes stay: a resend could write them twice.
+            text: asked?.wroteNotes ?? false ? '$failed\n\n${strings.notesMayBeSaved}' : failed,
+          ));
         } finally {
           notifyListeners();
         }

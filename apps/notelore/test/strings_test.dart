@@ -96,6 +96,7 @@ void main() {
       'message': s.message,
       'send': s.send,
       'resend': s.resend,
+      'notesMayBeSaved': s.notesMayBeSaved,
       'stop': s.stop,
       'changeTheModel': s.changeTheModel,
       'changeModel': s.changeModel,

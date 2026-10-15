@@ -364,6 +364,7 @@ void main() {
     await session.send('  one  ');
     expect(session.lastSent, 'one');
     expect(session.transcript.last.role, ChatRole.error);
+    expect(session.transcript.last.text, isNot(contains(session.strings.notesMayBeSaved)));
     await session.resend();
     expect(harness.provider.asked, ['one', 'one']); // once per resend
     expect(session.transcript.map((l) => l.role), [
@@ -374,6 +375,28 @@ void main() {
     ]);
     expect(session.transcript[2].text, 'one');
     expect(session.transcript.last.text, 'back');
+  });
+
+  test('a failure after a note was written warns before a resend', () async {
+    final harness = Harness(
+      answers: [
+        const AgentResponse([
+          {
+            'type': 'tool_use',
+            'id': 't1',
+            'name': 'create_note',
+            'input': {'kind': 'project', 'title': 'Mopsos'},
+          },
+        ], 'tool_use'),
+        const NetworkError('offline'), // the note is written, the answer fails
+      ],
+    );
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    await session.send('note Mopsos');
+    expect(session.transcript.last.role, ChatRole.error);
+    expect(session.transcript.last.text, contains('offline'));
+    expect(session.transcript.last.text, contains(session.strings.notesMayBeSaved));
   });
 
   test('the agent really writes notes, and the notes list sees them', () async {

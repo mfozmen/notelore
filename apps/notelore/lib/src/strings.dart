@@ -48,6 +48,9 @@ abstract class Strings {
   String get message;
   String get send;
   String get resend;
+
+  /// After an error, when the failed turn had already changed the notes.
+  String get notesMayBeSaved;
   String get stop;
   String get changeTheModel;
   String get changeModel;
@@ -200,6 +203,10 @@ class EnglishStrings extends Strings {
   String get send => 'Send';
   @override
   String get resend => 'Resend';
+  @override
+  String get notesMayBeSaved =>
+      'Some notes may already have been saved before this failed. Check them before you '
+      'resend, so nothing is saved twice.';
   @override
   String get stop => 'Stop';
   @override
@@ -519,6 +526,10 @@ class TurkishStrings extends Strings {
   String get send => 'Gönder';
   @override
   String get resend => 'Yeniden gönder';
+  @override
+  String get notesMayBeSaved =>
+      'Bu hatadan önce bazı notlar kaydedilmiş olabilir. Bir şey iki kez kaydedilmesin diye '
+      'yeniden göndermeden önce onlara bak.';
   @override
   String get stop => 'Durdur';
   @override
