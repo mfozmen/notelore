@@ -95,6 +95,7 @@ void main() {
       'askSomething': s.askSomething,
       'message': s.message,
       'send': s.send,
+      'resend': s.resend,
       'stop': s.stop,
       'changeTheModel': s.changeTheModel,
       'changeModel': s.changeModel,

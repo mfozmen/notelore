@@ -47,6 +47,7 @@ abstract class Strings {
   String get askSomething;
   String get message;
   String get send;
+  String get resend;
   String get stop;
   String get changeTheModel;
   String get changeModel;
@@ -197,6 +198,8 @@ class EnglishStrings extends Strings {
   String get message => 'Message';
   @override
   String get send => 'Send';
+  @override
+  String get resend => 'Resend';
   @override
   String get stop => 'Stop';
   @override
@@ -514,6 +517,8 @@ class TurkishStrings extends Strings {
   String get message => 'Mesaj';
   @override
   String get send => 'Gönder';
+  @override
+  String get resend => 'Yeniden gönder';
   @override
   String get stop => 'Durdur';
   @override

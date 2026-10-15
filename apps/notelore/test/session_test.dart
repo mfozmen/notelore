@@ -354,6 +354,28 @@ void main() {
     expect(session.transcript.last.text, 'back');
   });
 
+  test('resend sends the last message again, exactly, also after a failure', () async {
+    final harness = Harness(answers: [const NetworkError('offline'), 'back']);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    expect(session.lastSent, isNull);
+    await session.resend(); // nothing sent yet: nothing happens
+    expect(harness.provider.asked, isEmpty);
+    await session.send('  one  ');
+    expect(session.lastSent, 'one');
+    expect(session.transcript.last.role, ChatRole.error);
+    await session.resend();
+    expect(harness.provider.asked, ['one', 'one']); // once per resend
+    expect(session.transcript.map((l) => l.role), [
+      ChatRole.user,
+      ChatRole.error,
+      ChatRole.user, // the resend shows as a message of its own
+      ChatRole.assistant,
+    ]);
+    expect(session.transcript[2].text, 'one');
+    expect(session.transcript.last.text, 'back');
+  });
+
   test('the agent really writes notes, and the notes list sees them', () async {
     final harness = Harness(
       answers: [

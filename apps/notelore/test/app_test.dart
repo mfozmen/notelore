@@ -142,6 +142,24 @@ void main() {
     expect(find.textContaining('offline'), findsOneWidget);
   });
 
+  testWidgets('chat: one tap resends the last message, also after a failure', (tester) async {
+    phone(tester);
+    final harness = Harness(answers: [const NetworkError('offline'), 'Merhaba!']);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    expect(find.byTooltip('Resend'), findsNothing); // nothing sent yet
+    await tester.enterText(find.byKey(const Key('message')), 'selam');
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('offline'), findsOneWidget);
+    await tester.tap(find.byTooltip('Resend'));
+    await tester.pumpAndSettle();
+    expect(harness.provider.asked, ['selam', 'selam']);
+    expect(find.text('selam'), findsNWidgets(2)); // the resend shows, then its answer
+    expect(find.text('Merhaba!'), findsOneWidget);
+    expect(find.byTooltip('Resend'), findsOneWidget); // only under the last message
+  });
+
   testWidgets('chat: while the model works it says so, and Stop ends the turn', (tester) async {
     phone(tester);
     final harness = Harness(answers: [Completer<AgentResponse>().future]);
@@ -160,6 +178,7 @@ void main() {
     final first = waiting();
     expect(first, isNotNull);
     expect(find.textContaining('Thinking'), findsNothing);
+    expect(find.byTooltip('Resend'), findsNothing); // not while a turn runs
     expect(
       tester.widget<TextField>(find.byKey(const Key('message'))).enabled,
       isNot(false),

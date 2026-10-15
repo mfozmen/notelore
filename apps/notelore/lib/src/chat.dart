@@ -63,16 +63,24 @@ class _ChatScreenState extends State<ChatScreen> {
     final session = widget.session;
     final s = session.strings;
     final lines = session.transcript.reversed.toList(); // newest at the bottom
+    // One tap sends the last message again; not while a turn runs.
+    final resendable = session.busy ? -1 : lines.indexWhere((l) => l.role == ChatRole.user);
     // On a wide window the conversation is a readable column, like a page.
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: Layout.chat),
-        child: _conversation(context, session, s, lines),
+        child: _conversation(context, session, s, lines, resendable),
       ),
     );
   }
 
-  Widget _conversation(BuildContext context, Session session, Strings s, List<ChatLine> lines) {
+  Widget _conversation(
+    BuildContext context,
+    Session session,
+    Strings s,
+    List<ChatLine> lines,
+    int resendable,
+  ) {
     return Column(
       children: [
         Expanded(
@@ -104,6 +112,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemCount: lines.length + (session.busy ? 1 : 0),
                   itemBuilder: (context, index) => session.busy
                       ? (index == 0 ? _Thinking(s) : _Bubble(lines[index - 1]))
+                      : index == resendable
+                      ? _Resendable(_Bubble(lines[index]), s, session.resend)
                       : _Bubble(lines[index]),
                 ),
         ),
@@ -325,6 +335,29 @@ class _ThinkingState extends State<_Thinking> {
       ),
     );
   }
+}
+
+/// The last message, with a button under it that sends it again.
+class _Resendable extends StatelessWidget {
+  const _Resendable(this.bubble, this.strings, this.resend);
+
+  final Widget bubble;
+  final Strings strings;
+  final VoidCallback resend;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.end,
+    children: [
+      bubble,
+      IconButton(
+        tooltip: strings.resend,
+        icon: const Icon(Icons.replay, size: 18),
+        visualDensity: VisualDensity.compact,
+        onPressed: resend,
+      ),
+    ],
+  );
 }
 
 class _Bubble extends StatelessWidget {
