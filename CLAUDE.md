@@ -129,6 +129,7 @@ At runtime, the agent answers in the language the user writes in, and writes not
 - **Releases:** manual (`gh workflow run release.yml`). Python Semantic Release (configured in `releaserc.toml`) bumps both pubspec versions from the Conventional Commits; the workflow builds and attaches the app for Windows, macOS and Android with SHA-256 files.
 - **UI work uses the design skills:** before changing how anything looks (a screen, a component, spacing, colour, copy on screen), invoke `ui-ux-pro-max` and, where installed, `mobile-app-ui-design`; for layout code, `flutter-build-responsive-layout` and `flutter-fix-layout-issues` (in `.claude/skills/`). Check the result against them, and put before/after off-screen renders (golden renders in a test, never desktop captures) in the PR.
 - **README stays current:** any user-visible change updates `README.md` in the same PR.
+- **Review agents:** `.claude/agents/ui-reviewer.md` (renders screens off-screen and judges them against the design skills) after a UI change, and `.claude/agents/security-reviewer.md` (OWASP MASVS plus Notelore's own risks) on changes to auth, providers, sync, the updater, the app lock, manifests, dependencies or workflows. Address their Critical findings before the PR.
 - **Plan:** `docs/PLAN.md` is the single roadmap. Tick items off as PRs land; keep it short.
 
 ## Platform
