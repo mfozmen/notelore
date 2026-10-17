@@ -158,7 +158,6 @@ void main() {
       'provider': s.provider,
       'refreshModels': s.refreshModels,
       'modelSaved': s.modelSaved,
-      'notesFolder': s.notesFolder,
       'checkForUpdates': s.checkForUpdates,
       'logOut': s.logOut,
       'logOutExplained': s.logOutExplained,

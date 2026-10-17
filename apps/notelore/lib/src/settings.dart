@@ -54,7 +54,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final language = _LanguageCard(session);
     final look = _LookCard(session);
     final drive = Card(child: _DriveSection(session));
-    final folder = _FolderCard(session);
     final voice = _VoiceCard(
       session,
       microphones: _microphones,
@@ -83,7 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 [
                   (Icons.auto_awesome_outlined, s.model, [model, usage]),
                   (Icons.record_voice_over_outlined, s.voiceSection, [voice]),
-                  (Icons.cloud_outlined, s.syncSection, [drive, folder]),
+                  (Icons.cloud_outlined, s.syncSection, [drive]),
                   (Icons.palette_outlined, s.appearance, [language, look]),
                   (Icons.lock_outline, s.appLock, [lock]),
                   (Icons.info_outline, s.aboutSection, [about]),
@@ -102,7 +101,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         language,
                         look,
                         drive,
-                        folder,
                         voice,
                         lock,
                         usage,
@@ -389,27 +387,6 @@ class _LookCard extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Where the notes are on this device.
-class _FolderCard extends StatelessWidget {
-  const _FolderCard(this.session);
-
-  final Session session;
-
-  @override
-  Widget build(BuildContext context) => Card(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ListTile(
-          leading: const Icon(Icons.folder_outlined),
-          title: Text(session.strings.notesFolder),
-          subtitle: SelectableText(session.paths.notes.path),
-        ),
-      ],
-    ),
-  );
 }
 
 /// Whisper: the microphone once it is there, else its download or why it failed.

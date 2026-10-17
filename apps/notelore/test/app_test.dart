@@ -730,7 +730,7 @@ void main() {
     await tester.pumpAndSettle();
     final sections = find.byKey(const Key('settings-sections'));
     Finder section(String name) => find.descendant(of: sections, matching: find.text(name));
-    for (final name in ['Model', 'Voice', 'Sync and files', 'Appearance', 'About']) {
+    for (final name in ['Model', 'Voice', 'Sync', 'Appearance', 'About']) {
       expect(section(name), findsOneWidget, reason: name);
     }
     // The model first, alone.
@@ -746,9 +746,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Whisper speech recognition'), findsOneWidget);
 
-    await tester.tap(section('Sync and files'));
+    await tester.tap(section('Sync'));
     await tester.pumpAndSettle();
-    expect(find.text('Notes folder'), findsOneWidget);
+    expect(find.text('Google Drive'), findsOneWidget);
+    expect(find.text('Notes folder'), findsNothing); // no path to show (#207)
 
     // Updates and log out live under About, with the version.
     await tester.tap(section('About'));
@@ -1222,7 +1223,7 @@ void main() {
     // Log out sits at the end of Settings: scroll all the way down.
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
     await tester.pumpAndSettle();
-    expect(find.text(harness.paths.notes.path), findsOneWidget);
+    expect(find.text(harness.paths.notes.path), findsNothing); // never shown (#207)
     await tester.tap(find.text('Log out'));
     await tester.pumpAndSettle();
     expect(find.text('Choose a model provider'), findsOneWidget);
