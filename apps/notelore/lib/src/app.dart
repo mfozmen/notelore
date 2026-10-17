@@ -161,7 +161,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   /// pick up what other devices changed meanwhile.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) widget.session.syncIfIdle();
+    if (state == AppLifecycleState.resumed) {
+      widget.session
+        ..setForeground(true)
+        ..syncIfIdle();
+    } else if (state case AppLifecycleState.paused || AppLifecycleState.hidden) {
+      widget.session.setForeground(false);
+    }
   }
 
   @override

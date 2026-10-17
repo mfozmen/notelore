@@ -127,6 +127,25 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
   });
 
+  testWidgets('chat: a reply the background cut off arrives on return (#226)', (tester) async {
+    phone(tester);
+    final harness = Harness(answers: [const NetworkError('offline'), 'Geldi.']);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'selam');
+    await tester.pump();
+    void go(List<AppLifecycleState> states) =>
+        states.forEach(tester.binding.handleAppLifecycleStateChanged);
+    // The phone puts Notelore away, the way Android does: step by step.
+    go([AppLifecycleState.inactive, AppLifecycleState.hidden, AppLifecycleState.paused]);
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pump();
+    go([AppLifecycleState.hidden, AppLifecycleState.inactive, AppLifecycleState.resumed]);
+    await tester.pumpAndSettle();
+    expect(find.text('Geldi.'), findsOneWidget);
+    expect(find.textContaining('offline'), findsNothing); // never shown as an error
+  });
+
   testWidgets('chat: send a message, see the answer and errors', (tester) async {
     phone(tester);
     final harness = Harness(answers: ['Merhaba!', const NetworkError('offline')]);

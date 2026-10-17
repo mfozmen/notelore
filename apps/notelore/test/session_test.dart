@@ -258,6 +258,55 @@ void main() {
     expect(harness.provider.asked.last, allOf(contains('şimdi'), contains('Kitaplar')));
   });
 
+  test('a reply lost to the network while the app was away runs again on return (#226)', () async {
+    final harness = Harness(answers: [const NetworkError('offline'), 'Geldi.']);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    session.setForeground(false); // the phone put Notelore in the background
+    await session.send('kitabı kaydet');
+    expect(session.transcript.map((l) => l.role), [ChatRole.user]); // no error line
+    expect(harness.provider.asked, ['kitabı kaydet']);
+    session.setForeground(true); // back: the same message goes out once more
+    await pumpEventQueue();
+    while (session.busy) {
+      await pumpEventQueue();
+    }
+    expect(harness.provider.asked, ['kitabı kaydet', 'kitabı kaydet']);
+    expect(session.transcript.map((l) => (l.role, l.text)), [
+      (ChatRole.user, 'kitabı kaydet'),
+      (ChatRole.assistant, 'Geldi.'),
+    ]);
+    session.setForeground(true); // nothing waiting: nothing happens
+    expect(harness.provider.asked, hasLength(2));
+  });
+
+  test('in the foreground, or after it wrote notes, a network failure shows as before', () async {
+    final harness = Harness(
+      answers: [
+        const NetworkError('offline'),
+        const AgentResponse([
+          {
+            'type': 'tool_use',
+            'id': 't1',
+            'name': 'create_note',
+            'input': {'kind': 'topic', 'title': 'Kitaplar'},
+          },
+        ], 'tool_use'),
+        const NetworkError('offline'),
+      ],
+    );
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    await session.send('bir'); // in the foreground
+    expect(session.transcript.last.role, ChatRole.error);
+    session.setForeground(false);
+    await session.send('iki'); // away, but it already wrote a note: no silent retry
+    expect(session.transcript.last.role, ChatRole.error);
+    session.setForeground(true);
+    await pumpEventQueue();
+    expect(harness.provider.asked, hasLength(3));
+  });
+
   test('send runs the agent and keeps the transcript', () async {
     final harness = Harness(answers: ['Merhaba!']);
     final session = harness.session();
