@@ -88,6 +88,7 @@ class Agent {
     this.today,
     this.maxTurns = defaultMaxTurns,
     this.deadline = const Duration(minutes: 3),
+    this.timing,
   });
 
   final LlmProvider provider;
@@ -98,6 +99,12 @@ class Agent {
   /// How long a whole turn, every model call and tool round, may take.
   final Duration deadline;
   final messages = <Message>[];
+
+  /// Hears how long each model call and tool call took (#232): names and
+  /// milliseconds only, never note text, arguments or keys.
+  final void Function(String entry)? timing;
+
+  void _took(String what, Stopwatch watch) => timing?.call('$what ${watch.elapsedMilliseconds} ms');
 
   /// Whether the last [ask] called a tool that writes the notes. A failed turn
   /// is taken back out of [messages] but its writes stay, so asking the same
@@ -151,9 +158,12 @@ class Agent {
     messages.add({'role': 'user', 'content': text});
     for (var turn = 0; turn < maxTurns; turn++) {
       onStep('Thinking');
+      final watch = Stopwatch()..start();
       // A stopped turn does not wait for the model: its answer is dropped.
       final response = await Future.any([
-        provider.turn(systemPrompt(today), messages, toolbox.tools),
+        provider
+            .turn(systemPrompt(today), messages, toolbox.tools)
+            .whenComplete(() => _took('model', watch)),
         stopped,
       ]);
       // A tool_use outside a tool_use stop is half-built (e.g. cut by max_tokens):
@@ -190,11 +200,18 @@ class Agent {
     return answer.isEmpty ? 'The model sent no answer. Try again.' : answer;
   }
 
+  String _call(String name, Map<String, Object?> args) {
+    final watch = Stopwatch()..start();
+    final result = toolbox.call(name, args);
+    _took('tool $name', watch);
+    return result;
+  }
+
   Block _run(Block use) {
     final args = use['input'] ?? const <String, Object?>{};
     final result = switch (args) {
       {'__raw': final raw} => 'Error: the tool arguments were not valid JSON: $raw',
-      final Map<String, Object?> map => toolbox.call('${use['name']}', map),
+      final Map<String, Object?> map => _call('${use['name']}', map),
       _ => 'Error: the tool arguments must be a JSON object.',
     };
     return {'type': 'tool_result', 'tool_use_id': use['id'], 'content': result};
