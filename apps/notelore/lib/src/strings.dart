@@ -479,8 +479,7 @@ class TurkishStrings extends Strings {
   @override
   String cost(ProviderSpec spec) => switch (spec.name) {
     'chatgpt' =>
-      'ChatGPT Plus veya Pro planını kullanır: ayrıca ücret yok, planının limitleri '
-          'içinde. Şimdilik yalnızca masaüstünde.',
+      'ChatGPT Plus veya Pro planını kullanır: ayrıca ücret yok, planının limitleri içinde.',
     'anthropic' =>
       'Anthropic API üzerinden kullandıkça ücretlendirilir. Claude Pro veya Max aboneliği '
           'başka uygulamalarda kullanılamaz.',

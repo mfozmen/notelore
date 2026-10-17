@@ -63,9 +63,7 @@ const providerSpecs = [
     webSearch: true,
     requiresApiKey: false,
     defaultModel: '', // the first model the plan lists
-    cost:
-        "Uses your ChatGPT Plus or Pro plan: no separate charges, within your plan's "
-        'limits. Desktop only for now.',
+    cost: "Uses your ChatGPT Plus or Pro plan: no separate charges, within your plan's limits.",
   ),
   ProviderSpec(
     'anthropic',
