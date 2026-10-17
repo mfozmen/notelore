@@ -63,9 +63,25 @@ class AnthropicProvider implements LlmProvider {
     if (!const ['end_turn', 'tool_use', 'stop_sequence'].contains(stop)) {
       blocks.add(stoppedEarly(stop));
     }
-    return AgentResponse(blocks, stop == 'tool_use' ? 'tool_use' : 'end_turn');
+    return AgentResponse(
+      blocks,
+      stop == 'tool_use' ? 'tool_use' : 'end_turn',
+      usage: _usage(answer['usage']),
+    );
   }
 }
+
+/// Cache reads and writes are input too; caching is not asked for, so they
+/// are rare.
+TokenUsage? _usage(Object? usage) => switch (usage) {
+  {'input_tokens': final int input, 'output_tokens': final int output} => TokenUsage(
+    input +
+        (usage['cache_creation_input_tokens'] as int? ?? 0) +
+        (usage['cache_read_input_tokens'] as int? ?? 0),
+    output,
+  ),
+  _ => null,
+};
 
 /// Only the fields the API accepts back in history (it rejects response-only ones).
 Block blockToMap(Block block) => switch (block['type']) {

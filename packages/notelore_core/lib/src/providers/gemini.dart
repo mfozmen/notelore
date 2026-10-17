@@ -88,8 +88,9 @@ List<Map<String, Object?>> toGemini(List<Message> messages) {
 }
 
 AgentResponse fromGemini(Map<String, Object?> answer) {
+  final usage = _usage(answer['usageMetadata']);
   final candidates = (answer['candidates'] as List? ?? const []).cast<Map<String, Object?>>();
-  if (candidates.isEmpty) return const AgentResponse([], 'end_turn');
+  if (candidates.isEmpty) return AgentResponse(const [], 'end_turn', usage: usage);
   final candidate = candidates.first;
   final content = candidate['content'] as Map<String, Object?>? ?? const {};
   final blocks = <Block>[
@@ -109,5 +110,14 @@ AgentResponse fromGemini(Map<String, Object?> answer) {
   if (!toolUse && finish != 'STOP' && finish != 'FINISH_REASON_UNSPECIFIED') {
     blocks.add(stoppedEarly(finish));
   }
-  return AgentResponse(blocks, toolUse ? 'tool_use' : 'end_turn');
+  return AgentResponse(blocks, toolUse ? 'tool_use' : 'end_turn', usage: usage);
 }
+
+/// Thinking tokens are billed as output.
+TokenUsage? _usage(Object? metadata) => switch (metadata) {
+  {'promptTokenCount': final int input, 'candidatesTokenCount': final int output} => TokenUsage(
+    input,
+    output + (metadata['thoughtsTokenCount'] as int? ?? 0),
+  ),
+  _ => null,
+};

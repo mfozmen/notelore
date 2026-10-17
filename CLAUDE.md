@@ -56,6 +56,7 @@ Core (`packages/notelore_core/lib/src/`):
 - `store/transfer.dart`: importing a shared note without overwriting (a taken name gets "(2)"), and the HTML page and plain outline exports are built from.
 - `providers/`: one `LlmProvider` interface over Anthropic, OpenAI, Gemini and Ollama, plain HTTPS through an injectable `Transport`, and key validation by listing models.
 - `agent.dart`: the tool-use loop; `tools.dart`: the narrow tools the agent may call (contracts in the library doc).
+- `usage.dart`: the tokens each model call reported, per conversation and on this device, and the dated price table cost estimates come from.
 - `sync/merge.dart`: decision table and three-way merge (a port of difflib); `sync/resolve.dart`: the model as last resort for same-line conflicts; `sync/manifest.dart`: per-device record of the last synced state; `sync/engine.dart`: one sync pass against a `Remote`.
 - `sync/drive.dart`: Google Drive as the `Remote` (scope `drive.file` only); `sync/google_auth.dart`: `DriveAuth` and the desktop loopback sign-in.
 

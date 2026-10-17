@@ -144,13 +144,24 @@ final class Tool {
   final Map<String, Object?> inputSchema;
 }
 
+/// The tokens one model call used, as the provider reported them.
+final class TokenUsage {
+  const TokenUsage(this.input, this.output);
+
+  final int input;
+  final int output;
+}
+
 final class AgentResponse {
-  const AgentResponse(this.content, this.stopReason);
+  const AgentResponse(this.content, this.stopReason, {this.usage});
 
   final List<Block> content;
 
   /// "end_turn" | "tool_use"
   final String stopReason;
+
+  /// Null when the provider did not say: never estimated.
+  final TokenUsage? usage;
 }
 
 abstract interface class LlmProvider {

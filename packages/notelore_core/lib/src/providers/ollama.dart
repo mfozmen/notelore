@@ -100,5 +100,12 @@ AgentResponse fromOllama(Map<String, Object?> answer) {
       },
   ];
   final toolUse = blocks.any((b) => b['type'] == 'tool_use');
-  return AgentResponse(blocks, toolUse ? 'tool_use' : 'end_turn');
+  final usage = switch (answer) {
+    {'prompt_eval_count': final int input, 'eval_count': final int output} => TokenUsage(
+      input,
+      output,
+    ),
+    _ => null,
+  };
+  return AgentResponse(blocks, toolUse ? 'tool_use' : 'end_turn', usage: usage);
 }

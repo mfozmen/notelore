@@ -50,6 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final session = widget.session;
     final s = session.strings;
     final model = _ModelCard(session);
+    final usage = _UsageCard(session);
     final language = _LanguageCard(session);
     final look = _LookCard(session);
     final drive = Card(child: _DriveSection(session));
@@ -80,7 +81,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // a desktop's own settings.
             ? _Sections(
                 [
-                  (Icons.auto_awesome_outlined, s.model, [model]),
+                  (Icons.auto_awesome_outlined, s.model, [model, usage]),
                   (Icons.record_voice_over_outlined, s.voiceSection, [voice]),
                   (Icons.cloud_outlined, s.syncSection, [drive, folder]),
                   (Icons.palette_outlined, s.appearance, [language, look]),
@@ -96,7 +97,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: Layout.column),
-                      child: _cards([model, language, look, drive, folder, voice, lock, about]),
+                      child: _cards([
+                        model,
+                        language,
+                        look,
+                        drive,
+                        folder,
+                        voice,
+                        lock,
+                        usage,
+                        about,
+                      ]),
                     ),
                   ),
                 ],
@@ -229,6 +240,55 @@ class _ModelCard extends StatelessWidget {
               subtitle: Text(webSearch),
               value: session.webSearch && spec.webSearch,
               onChanged: spec.webSearch ? session.setWebSearch : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// What the model calls used (#217): this conversation and this device.
+class _UsageCard extends StatelessWidget {
+  const _UsageCard(this.session);
+
+  final Session session;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = session.strings;
+    final small = Theme.of(context).textTheme.bodySmall;
+    final device = session.usage.device;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: Gap.m),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(leading: const Icon(Icons.data_usage), title: Text(s.usage)),
+            for (final (title, summary) in [
+              (s.usageConversation, session.usage.conversation),
+              (s.usageDevice, device),
+            ])
+              ListTile(
+                title: Text(title),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [for (final line in s.usageLines(summary)) Text(line)],
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: Gap.s,
+                children: [
+                  if (device.plan || session.spec?.name == 'chatgpt')
+                    Text(s.usagePlan, style: small),
+                  if (session.spec?.name == 'ollama') Text(s.usageLocal, style: small),
+                  Text(s.usageEstimate(pricesTaken), style: small),
+                ],
+              ),
             ),
           ],
         ),

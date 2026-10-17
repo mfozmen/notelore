@@ -15,6 +15,7 @@ export 'src/providers/base.dart'
         Message,
         ProviderGroup,
         ProviderSpec,
+        TokenUsage,
         Tool,
         findProvider,
         providerSpecs;
@@ -90,3 +91,13 @@ export 'src/sync/merge.dart'
         threeWay;
 export 'src/sync/resolve.dart' show Ask, ModelResolver, askProvider;
 export 'src/tools.dart' show Toolbox, noteTools;
+export 'src/usage.dart'
+    show
+        MeteredProvider,
+        Price,
+        UsageCount,
+        UsageMeter,
+        UsageSummary,
+        prices,
+        pricesTaken,
+        summarize;

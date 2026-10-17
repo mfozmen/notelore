@@ -271,7 +271,14 @@ AgentResponse fromResponse(Map<String, Object?> response) {
   if (!toolUse && response['status'] == 'incomplete') {
     blocks.add(stoppedEarly((response['incomplete_details'] as Map?)?['reason']));
   }
-  return AgentResponse(blocks, toolUse ? 'tool_use' : 'end_turn');
+  final usage = switch (response['usage']) {
+    {'input_tokens': final int input, 'output_tokens': final int output} => TokenUsage(
+      input,
+      output,
+    ),
+    _ => null,
+  };
+  return AgentResponse(blocks, toolUse ? 'tool_use' : 'end_turn', usage: usage);
 }
 
 /// The models the signed-in plan can use (their slugs), as ChatGPT lists them.

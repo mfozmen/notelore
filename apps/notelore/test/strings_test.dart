@@ -224,4 +224,60 @@ void main() {
       expect(s.languageName(AppLanguage.tr), 'Türkçe');
     }
   });
+
+  test('usage: tokens grouped, the cost an estimate, missing data said so (#217)', () {
+    const none = UsageSummary(UsageCount(), cost: 0, plan: false);
+    expect(en.usageLines(none), ['Nothing yet.']);
+    const known = UsageSummary(
+      UsageCount(calls: 3, input: 1234567, output: 8900),
+      cost: 2.5,
+      plan: false,
+    );
+    expect(en.usageLines(known), [
+      'Tokens: 1,234,567 in, 8,900 out',
+      'Estimated cost: about \$2.50',
+    ]);
+    expect(tr.usageLines(known), [
+      'Token: 1.234.567 giriş, 8.900 çıkış',
+      'Tahmini maliyet: yaklaşık \$2,50',
+    ]);
+    const small = UsageSummary(
+      UsageCount(calls: 1, input: 10, output: 1),
+      cost: 0.00042,
+      plan: false,
+    );
+    expect(en.usageLines(small).last, 'Estimated cost: about \$0.0004');
+    const gaps = UsageSummary(
+      UsageCount(calls: 3, unreported: 1, input: 5, output: 1),
+      cost: null,
+      plan: false,
+    );
+    expect(en.usageLines(gaps), [
+      'Tokens: 5 in, 1 out',
+      '1 model call did not report usage',
+      'Estimated cost: not available',
+    ]);
+    const blank = UsageSummary(UsageCount(calls: 2, unreported: 2), cost: null, plan: false);
+    expect(en.usageLines(blank), [
+      'Tokens: not available',
+      '2 model calls did not report usage',
+      'Estimated cost: not available',
+    ]);
+    expect(tr.usageLines(blank), [
+      'Token: bilgi yok',
+      '2 model çağrısı kullanım bildirmedi',
+      'Tahmini maliyet: bilgi yok',
+    ]);
+    expect(tr.usageLines(none), ['Henüz yok.']);
+    for (final s in [en, tr]) {
+      expect([
+        s.usage,
+        s.usageConversation,
+        s.usageDevice,
+        s.usagePlan,
+        s.usageLocal,
+      ], everyElement(isNotEmpty));
+      expect(s.usageEstimate('2026-10-17'), contains('2026-10-17'));
+    }
+  });
 }

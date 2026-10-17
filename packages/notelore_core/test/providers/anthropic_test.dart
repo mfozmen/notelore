@@ -125,4 +125,23 @@ void main() {
       expect(response.stopReason, 'end_turn');
     },
   );
+
+  test('the tokens the answer used, cache reads and writes counted as input', () async {
+    api.answers
+      ..add({
+        'content': <Object?>[],
+        'stop_reason': 'end_turn',
+        'usage': {
+          'input_tokens': 120,
+          'cache_creation_input_tokens': 30,
+          'cache_read_input_tokens': 50,
+          'output_tokens': 40,
+        },
+      })
+      ..add({'content': <Object?>[], 'stop_reason': 'end_turn'});
+    final provider = AnthropicProvider('sk', 'm', transport: api.call);
+    final used = (await provider.turn('', [], [])).usage!;
+    expect((used.input, used.output), (200, 40));
+    expect((await provider.turn('', [], [])).usage, isNull); // not reported: not invented
+  });
 }

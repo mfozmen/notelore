@@ -488,4 +488,13 @@ void main() {
     expect(ChatGptProvider('m', token).model, 'm');
     expect('${const PlanLimitReached()}', contains(chatGptUsageUrl));
   });
+
+  test('usage: the final response reports the tokens; none when it does not', () {
+    final used = fromResponse({
+      'output': <Object?>[],
+      'usage': {'input_tokens': 300, 'output_tokens': 25, 'total_tokens': 325},
+    }).usage!;
+    expect((used.input, used.output), (300, 25));
+    expect(fromResponse({'output': <Object?>[]}).usage, isNull);
+  });
 }
