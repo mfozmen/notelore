@@ -455,7 +455,7 @@ void main() {
     const message = 'what is it\n\n<attached image="r.png"/>';
 
     test('go to the model with the message; the transcript keeps only their name', () async {
-      final harness = Harness(answers: ['A receipt.', 'Again.']);
+      final harness = Harness(answers: ['A receipt.', 'Again.', 'Words.']);
       final session = harness.session();
       await session.connect(findProvider('anthropic'), 'k');
       expect(session.acceptsImages, isTrue);
@@ -465,6 +465,10 @@ void main() {
       // Resend sends the picture again, too.
       await session.resend();
       expect(harness.provider.asked.last, contains('AQID'));
+      // Switched to a provider that cannot look at images: the words only.
+      await session.connect(findProvider('ollama'), '');
+      await session.resend();
+      expect(harness.provider.asked.last, allOf(contains('what is it'), isNot(contains('AQID'))));
     });
 
     test('never wait offline: an error says to send them again; nothing is kept', () async {

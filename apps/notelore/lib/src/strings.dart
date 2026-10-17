@@ -65,6 +65,10 @@ abstract class Strings {
   String get imagesNotNow;
   String get imagesCannotWait;
 
+  /// A file or an image sent with a message, for screen readers.
+  String attachedFile(String name);
+  String attachedImage(String name);
+
   /// The app lock (#224): Settings, its dialogs and the screen at start.
   String get appLock;
   String get appLockOn;
@@ -303,6 +307,10 @@ class EnglishStrings extends Strings {
   String get copied => 'Copied';
   @override
   String get attachFile => 'Attach a file';
+  @override
+  String attachedFile(String name) => 'File: $name';
+  @override
+  String attachedImage(String name) => 'Image: $name';
   @override
   String notText(String name) =>
       'Notelore reads text files, PDFs (txt, md, csv, pdf and the like) and images (PNG, '
@@ -753,6 +761,10 @@ class TurkishStrings extends Strings {
   String get copied => 'Kopyalandı';
   @override
   String get attachFile => 'Dosya ekle';
+  @override
+  String attachedFile(String name) => 'Dosya: $name';
+  @override
+  String attachedImage(String name) => 'Görsel: $name';
   @override
   String notText(String name) =>
       "Notelore şimdilik metin dosyalarını, PDF'leri (txt, md, csv, pdf gibi) ve görselleri "

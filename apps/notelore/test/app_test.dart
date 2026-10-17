@@ -481,6 +481,7 @@ void main() {
     await tester.pump();
     expect(harness.provider.asked.single, allOf(contains('what is it'), contains('image/gif')));
     expect(find.text('r.gif'), findsOneWidget); // its name in the bubble, not its bytes
+    expect(find.bySemanticsLabel('Image: r.gif'), findsOneWidget); // told apart from a file
     // While that turn runs, another image cannot join it.
     await tester.tap(find.byTooltip('Attach a file'));
     await tester.pump();
@@ -572,6 +573,7 @@ void main() {
     ]);
     expect(find.text('for Mopsos'), findsOneWidget); // the bubble: words and the file's name
     expect(find.text('plan.txt'), findsOneWidget);
+    expect(find.bySemanticsLabel('File: plan.txt'), findsOneWidget);
     expect(find.textContaining('Ship in May'), findsNothing); // not the whole file
     expect(find.text('Filed under Mopsos.'), findsOneWidget);
     expect(tester.widget<TextField>(find.byKey(const Key('message'))).controller!.text, isEmpty);

@@ -316,7 +316,8 @@ void main() {
     );
     final shown = attachedFiles(message);
     expect(shown.text, 'what is it');
-    expect(shown.files, ['a.txt', "receipt '1'.png"]);
+    expect(shown.files, ['a.txt']);
+    expect(shown.images, ["receipt '1'.png"]); // apart: the chat shows them as images
   });
 
   test('a question ends with its likely answers in double brackets (#210)', () {
