@@ -62,37 +62,35 @@ List<Map<String, Object?>> toGemini(List<Message> messages) {
   final names = toolUseNames(messages);
   return [
     for (final message in messages)
-      if (splitBlocks(message['content']) case (
-        :final texts,
-        :final uses,
-        :final results,
-        :final images,
-      ))
-        {
-          // Function responses go under role "user", like plain user text.
-          'role': message['role'] == 'user' ? 'user' : 'model',
-          'parts': [
-            for (final t in texts) {'text': t},
-            for (final (mimeType, data) in images.map(imageData))
-              {
-                'inlineData': {'mimeType': mimeType, 'data': data},
-              },
-            for (final u in uses)
-              {
-                'functionCall': {
-                  'name': u['name'] ?? '',
-                  'args': u['input'] ?? const <String, Object?>{},
-                },
-              },
-            for (final r in results)
-              {
-                'functionResponse': {
-                  'name': names['${r['tool_use_id'] ?? ''}'] ?? '',
-                  'response': {'result': r['content'] ?? ''},
-                },
-              },
-          ],
+      {
+        // Function responses go under role "user", like plain user text.
+        'role': message['role'] == 'user' ? 'user' : 'model',
+        'parts': _parts(message, names),
+      },
+  ];
+}
+
+/// [message]'s content as Gemini parts: text, images, then function calls and
+/// their responses (named through [names], since Gemini has no call ids).
+List<Map<String, Object?>> _parts(Message message, Map<String, String> names) {
+  final (:texts, :uses, :results, :images) = splitBlocks(message['content']);
+  return [
+    for (final t in texts) {'text': t},
+    for (final (mimeType, data) in images.map(imageData))
+      {
+        'inlineData': {'mimeType': mimeType, 'data': data},
+      },
+    for (final u in uses)
+      {
+        'functionCall': {'name': u['name'] ?? '', 'args': u['input'] ?? const <String, Object?>{}},
+      },
+    for (final r in results)
+      {
+        'functionResponse': {
+          'name': names['${r['tool_use_id'] ?? ''}'] ?? '',
+          'response': {'result': r['content'] ?? ''},
         },
+      },
   ];
 }
 

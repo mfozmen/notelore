@@ -181,7 +181,14 @@ class Agent {
               {'type': 'text', 'text': text},
               ...images,
             ];
-      return await _ask(content, onStep ?? (_) {}, takeLater ?? () => const [], stop.future);
+      final answer = await _ask(
+        content,
+        onStep ?? (_) {},
+        takeLater ?? () => const [],
+        stop.future,
+      );
+      if (images.isNotEmpty) _forgetImages(start);
+      return answer;
     } catch (_) {
       messages.removeRange(start, messages.length);
       rethrow;
@@ -191,6 +198,22 @@ class Agent {
   }
 
   static const _late = 'No answer in time, so I stopped. Please try again.';
+
+  /// Once its turn is over, the message at [at] keeps a note in place of its
+  /// images: later turns would send them again (cost, and the providers'
+  /// request size).
+  void _forgetImages(int at) {
+    final content = (messages[at]['content']! as List).cast<Block>();
+    messages[at] = {
+      'role': 'user',
+      'content': [
+        for (final block in content)
+          block['type'] == 'image'
+              ? const {'type': 'text', 'text': '(An image was shown here.)'}
+              : block,
+      ],
+    };
+  }
 
   Future<String> _ask(
     Object content,

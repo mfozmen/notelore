@@ -70,6 +70,12 @@ void main() {
         image,
       ],
     });
+    // Its turn over, the picture leaves the history: later turns do not send
+    // it again (cost, request size); a note says one was there.
+    expect(agent.messages.first['content'], [
+      {'type': 'text', 'text': 'what is this'},
+      {'type': 'text', 'text': '(An image was shown here.)'},
+    ]);
   });
 
   test('a plain answer keeps the history', () async {
