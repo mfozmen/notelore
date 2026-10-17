@@ -1506,6 +1506,49 @@ void main() {
     await tester.tapAt(line.localToGlobal(box.toRect().center));
   }
 
+  testWidgets('chat: the Markdown of an answer is formatted, not shown raw; links open (#305)', (
+    tester,
+  ) async {
+    phone(tester);
+    final launcher = FakeLauncher();
+    UrlLauncherPlatform.instance = launcher;
+    const answer =
+        'Saved to **Mopsos**.\n\n- Reason: _single user_\n\nSee [the docs](https://example.com/d).';
+    await pumpApp(tester, Harness(answers: [answer]));
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), '**not** markdown');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    String shown(RenderEditable r) => r.text!.toPlainText();
+    final lines = tester.allRenderObjects.whereType<RenderEditable>().map(shown).toList();
+    // No Markdown marks left in the answer; the user's words stay exactly as typed.
+    expect(lines, containsAll(['Saved to Mopsos.', 'Reason: single user', 'See the docs.']));
+    expect(lines.where((l) => l.contains('**') && l != '**not** markdown'), isEmpty);
+    expect(lines, contains('**not** markdown'));
+    final body = tester.widget<MarkdownBody>(find.byType(MarkdownBody));
+    expect(body.selectable, isTrue);
+    // The bubble's own colour for every part, so it reads in both themes.
+    final ink = Theme.of(tester.element(find.byType(MarkdownBody))).colorScheme.onSurface;
+    final sheet = body.styleSheet!;
+    expect(
+      [
+        sheet.p,
+        sheet.listBullet,
+        sheet.strong,
+        sheet.em,
+        sheet.h1,
+        sheet.h3,
+        sheet.a,
+        sheet.code,
+      ].map((s) => s!.color),
+      everyElement(ink),
+    );
+    await tapOnPart(tester, 'the docs');
+    await tester.pump();
+    expect(launcher.opened, ['https://example.com/d']);
+  });
+
   testWidgets('notes: saved links open in the browser', (tester) async {
     phone(tester);
     final launcher = FakeLauncher();
