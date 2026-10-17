@@ -555,6 +555,8 @@ class Session extends ChangeNotifier {
             },
           );
           transcript.add((role: ChatRole.assistant, text: strings.core(answer)));
+          // Seen only once answered: a failed turn's notice goes out again.
+          _lastNotes = _noteTitles(); // the agent's own changes included
         } on Exception catch (error) {
           // The failed turn was taken back: what it had taken goes out again.
           _later.insertAll(0, taken);
@@ -565,7 +567,6 @@ class Session extends ChangeNotifier {
             text: asked?.wroteNotes ?? false ? '$failed\n\n${strings.notesMayBeSaved}' : failed,
           ));
         } finally {
-          _lastNotes = _noteTitles(); // what this turn could see, the agent's own changes too
           notifyListeners();
         }
       });
