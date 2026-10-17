@@ -11,6 +11,8 @@ import 'package:path/path.dart' as p;
 /// Moves one file.
 typedef MoveFile = void Function(String source, String target);
 
+List<int> _readBytes(String path) => File(path).readAsBytesSync();
+
 void _rename(String source, String target) => File(source).renameSync(target);
 
 /// Renames [source] to [target]; across disks, where a rename cannot go,
@@ -29,20 +31,26 @@ void moveFile(String source, String target, {MoveFile rename = _rename}) {
 /// the same content drops the old copy; a different one keeps the old copy
 /// under `.notelore/history/<stamp>/moved/`. A file that cannot move stays
 /// where it is and is tried again next time; nothing is lost.
-void moveNotes(Directory from, Directory to, {required String stamp, MoveFile move = moveFile}) {
+void moveNotes(
+  Directory from,
+  Directory to, {
+  required String stamp,
+  MoveFile move = moveFile,
+  List<int> Function(String path) read = _readBytes,
+}) {
   if (!from.existsSync()) return;
   for (final file in from.listSync(recursive: true).whereType<File>()) {
     final rel = p.relative(file.path, from: from.path);
     var target = p.join(to.path, rel);
-    final there = File(target);
-    if (there.existsSync()) {
-      if (sha256.convert(there.readAsBytesSync()) == sha256.convert(file.readAsBytesSync())) {
-        file.deleteSync(); // already in place
-        continue;
-      }
-      target = p.join(to.path, '.notelore', 'history', stamp, 'moved', rel);
-    }
     try {
+      final there = File(target);
+      if (there.existsSync()) {
+        if (sha256.convert(read(target)) == sha256.convert(read(file.path))) {
+          file.deleteSync(); // already in place
+          continue;
+        }
+        target = p.join(to.path, '.notelore', 'history', stamp, 'moved', rel);
+      }
       Directory(p.dirname(target)).createSync(recursive: true);
       move(file.path, target);
     } on FileSystemException {
