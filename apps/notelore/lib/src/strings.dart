@@ -684,7 +684,7 @@ class EnglishStrings extends Strings {
   @override
   String core(String english) => english;
   @override
-  String get errorOffline => "Couldn't reach the model: you seem to be offline.";
+  String get errorOffline => "Couldn't reach the model. Check your connection.";
   @override
   String get errorKey => 'The provider turned the key or sign-in down. Check it in Settings.';
   @override
@@ -1174,7 +1174,7 @@ class TurkishStrings extends Strings {
   @override
   String core(String english) => _core[english] ?? english;
   @override
-  String get errorOffline => 'Modele ulaşılamadı: çevrimdışı görünüyorsun.';
+  String get errorOffline => 'Modele ulaşılamadı. Bağlantını kontrol et.';
   @override
   String get errorKey => 'Sağlayıcı anahtarı ya da girişi kabul etmedi. Ayarlar’dan kontrol et.';
   @override
