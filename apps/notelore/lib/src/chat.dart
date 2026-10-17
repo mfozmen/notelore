@@ -252,11 +252,8 @@ class _ComposerState extends State<_Composer> {
       listenable: _voice,
       builder: (context, _) => Column(
         children: [
-          if (_voice.state == VoiceState.speaking)
-            _status(context, Icons.volume_up, Text(s.speaking, key: const Key('voice-state')))
-          // Above the button, not over it: a plain click learns to hold.
-          else if (_holdHint)
-            _status(context, Icons.touch_app_outlined, Text(s.holdHint)),
+          if (_voice.state == VoiceState.speaking || _holdHint)
+            _VoiceStatus(s, speaking: _voice.state == VoiceState.speaking),
           Padding(
             padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.s, Gap.s),
             child: ValueListenableBuilder(
@@ -429,18 +426,36 @@ class _Recording extends StatelessWidget {
   }
 }
 
-/// A line above the message box: what voice is doing, or how to use it.
-Widget _status(BuildContext context, IconData icon, Widget text) => Padding(
-  padding: const EdgeInsets.only(top: Gap.s),
-  child: Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
-      const SizedBox(width: Gap.s),
-      Flexible(child: text), // wraps on a narrow phone
-    ],
-  ),
-);
+/// A line above the message box: the answer is read aloud ([speaking]), or else
+/// how to talk: above the button, not over it, so a plain click learns to hold.
+class _VoiceStatus extends StatelessWidget {
+  const _VoiceStatus(this.strings, {required this.speaking});
+
+  final Strings strings;
+  final bool speaking;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: Gap.s),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          speaking ? Icons.volume_up : Icons.touch_app_outlined,
+          size: 18,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        const SizedBox(width: Gap.s),
+        Flexible(
+          // wraps on a narrow phone
+          child: speaking
+              ? Text(strings.speaking, key: const Key('voice-state'))
+              : Text(strings.holdHint),
+        ),
+      ],
+    ),
+  );
+}
 
 /// The assistant's turn while it runs: a playful line that changes every
 /// [_rotation] (its steps, a search or a write, pass too fast to read).
