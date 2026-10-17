@@ -70,6 +70,22 @@ void main() {
     expect(from.existsSync(), isTrue);
   });
 
+  test('a file that cannot even be read stays, and the rest still moves', () {
+    write(from, 'projects/a.md', 'A');
+    write(from, 'projects/b.md', 'B');
+    write(to, 'projects/b.md', 'other');
+    final b = p.join(from.path, 'projects', 'b.md');
+    moveNotes(
+      from,
+      to,
+      stamp: 'T',
+      read: (path) =>
+          path == b ? throw FileSystemException('in use', path) : File(path).readAsBytesSync(),
+    );
+    expect(read(to, 'projects/a.md'), 'A');
+    expect(File(b).existsSync(), isTrue); // tried again on the next start
+  });
+
   test('a file on another disk is copied, then the original removed', () {
     write(from, 'projects/a.md', 'A');
     final target = p.join(root.path, 'a.md');
