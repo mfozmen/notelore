@@ -371,10 +371,13 @@ class _ComposerRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = session.strings;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.s, Gap.s),
+      padding: const EdgeInsets.fromLTRB(Gap.s, Gap.s, Gap.m, Gap.m),
       child: ValueListenableBuilder(
         valueListenable: message,
+        // Apart, and level with the box's last line as it grows.
         builder: (context, typed, _) => Row(
+          spacing: Gap.s,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             IconButton(
               tooltip: s.attachFile,
