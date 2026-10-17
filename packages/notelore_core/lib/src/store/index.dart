@@ -96,6 +96,53 @@ final class Hit {
   String toString() => 'Hit($kind/$slug, $section: $text${superseded ? ', superseded' : ''})';
 }
 
+/// An existing note a new one may belong with (#229), and why.
+final class Related {
+  const Related(this.slug, this.kind, this.title, {required this.titleWords, required this.lines});
+
+  final String slug;
+  final String kind;
+  final String title;
+
+  /// The new title's words (folded) that its title shares.
+  final List<String> titleWords;
+
+  /// How many of its lines match what the new note is about.
+  final int lines;
+}
+
+/// Words too common to tie two notes together.
+const _common = {
+  'the',
+  'and',
+  'for',
+  'with',
+  'from',
+  'about',
+  'note',
+  'notes',
+  'project',
+  'projects',
+  'topic',
+  'topics',
+  'plan',
+  'new',
+  'ile',
+  'icin',
+  'bir',
+  'notlar',
+  'notlari',
+  'proje',
+  'konu',
+  'yeni',
+};
+
+/// The words of [title] that can tie notes together: folded, three letters or more, not common.
+List<String> _titleWords(String title) => [
+  for (final word in _fold(title).split(_nonWord))
+    if (word.length >= 3 && !_common.contains(word)) word,
+];
+
 class NoteIndex {
   /// Opens (or creates) the index at [dbPath] for the notes under [root]. [fts5]
   /// forces a backend; by default the SQLite build is probed.
@@ -317,10 +364,12 @@ class NoteIndex {
   /// A question that names notes (every word of a title; an ending only after
   /// an apostrophe, "Notelore'daki") searches
   /// only those, so "notes about Notelore" stays out of other notes (#219).
-  List<Hit> search(String query, {String? kind}) {
+  List<Hit> search(String query, {String? kind}) => _hits(query, kind, _named(query));
+
+  /// Hits for [query] in [kind], only in the notes at [named] when there are any.
+  List<Hit> _hits(String query, String? kind, List<String> named) {
     final terms = _terms(query);
     if (terms.isEmpty) return [];
-    final named = _named(query);
     final scope = named.isEmpty ? null : jsonEncode(named);
     const columns = 'SELECT slug, kind, title, section, text, superseded FROM content WHERE ';
     const filter =
@@ -354,6 +403,46 @@ class NoteIndex {
           row.columnAt(4) as String,
           superseded: row.columnAt(5) == 1,
         ),
+    ];
+  }
+
+  /// Notes, in either category, a new note called [title] (about [about]) may
+  /// belong with, best first: those whose title shares a word with it, and
+  /// those with at least two lines matching [about]. Deterministic: the model
+  /// only proposes from these, and the user decides.
+  List<Related> related(String title, {String? about}) {
+    final words = _titleWords(title);
+    final lines = <(String, String), int>{};
+    // Every note, even when [about] names one: the others are the question.
+    for (final hit in about == null ? const <Hit>[] : _hits(about, null, const [])) {
+      lines.update((hit.slug, hit.kind), (n) => n + 1, ifAbsent: () => 1);
+    }
+    final found = [
+      for (final note in listNotes())
+        if (_shared(words, note.title) case final shared
+            when shared.isNotEmpty || (lines[(note.slug, note.kind)] ?? 0) >= 2)
+          Related(
+            note.slug,
+            note.kind,
+            note.title,
+            titleWords: shared,
+            lines: lines[(note.slug, note.kind)] ?? 0,
+          ),
+    ];
+    int order(Related a, Related b) => [
+      b.titleWords.length.compareTo(a.titleWords.length),
+      b.lines.compareTo(a.lines),
+      a.slug.compareTo(b.slug),
+    ].firstWhere((c) => c != 0, orElse: () => 0);
+    return found..sort(order);
+  }
+
+  /// The [words] that share a search term with a word of [title].
+  static List<String> _shared(List<String> words, String title) {
+    final theirs = _terms(_titleWords(title).join(' ')).toSet();
+    return [
+      for (final word in words)
+        if (_terms(word).any(theirs.contains)) word,
     ];
   }
 

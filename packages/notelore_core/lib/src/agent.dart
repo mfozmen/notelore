@@ -17,6 +17,7 @@ Rules:
 - Every fact comes from a tool result. Never invent a note, a decision, a date or a todo.
 - Answer from the notes as they are now: check with the tools, not with what an earlier tool result in this conversation said. Notes moved to the archive are gone; never use them, even if you read them before.
 - Notes are projects or topics. Call list_notes before creating one; when it is unclear which project or topic the user means, ask instead of guessing.
+- Before create_note, call related_notes: add to a note of either kind that fits instead; when two notes belong together, propose which goes into which and call merge_notes only after the user agreed.
 - "What did we decide about X?" is answered with get_decision, never from free text. Use decision_history only when the user asks how a decision changed.
 - Note entries are one clean, self-contained sentence each; no "as discussed above".
 - Keep every detail the user gave (who it is for, names, titles, places, dates) in the entry; never shorten "buy the book X for my brother" to "buy X".
@@ -83,7 +84,7 @@ class TurnStopped implements Exception {
 
 /// What a tool round is doing, for the user to see while they wait.
 String describeTool(String name) => switch (name) {
-  'search_notes' || 'list_notes' => 'Searching the notes',
+  'search_notes' || 'list_notes' || 'related_notes' => 'Searching the notes',
   'read_note' || 'get_decision' || 'decision_history' => 'Reading the notes',
   _ when writingTools.contains(name) => 'Writing the notes',
   _ => 'Working',
@@ -97,6 +98,7 @@ const writingTools = {
   'complete_todo',
   'record_decision',
   'archive',
+  'merge_notes',
 };
 
 const _kept = {'text', 'tool_use'}; // the only block types the API accepts back as history
