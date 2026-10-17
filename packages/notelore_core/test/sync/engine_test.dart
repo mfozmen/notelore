@@ -24,6 +24,9 @@ class FakeDrive implements Remote {
   var offline = false;
   var _next = 0;
 
+  /// Runs during a download: the user saving the note in another editor meanwhile.
+  void Function()? whileDownloading;
+
   void put(String rel, String text) => files[rel] = (files[rel]?.$1 ?? _newId(), utf8.encode(text));
 
   String _newId() => 'id${++_next}';
@@ -39,8 +42,10 @@ class FakeDrive implements Remote {
   Future<Map<String, RemoteFile>> list() async => {for (final rel in files.keys) rel: _meta(rel)};
 
   @override
-  Future<List<int>> download(String fileId) async =>
-      files.values.firstWhere((file) => file.$1 == fileId).$2;
+  Future<List<int>> download(String fileId) async {
+    whileDownloading?.call();
+    return files.values.firstWhere((file) => file.$1 == fileId).$2;
+  }
 
   @override
   Future<RemoteFile> upload(String rel, List<int> data, String? fileId) async {
@@ -130,6 +135,32 @@ void main() {
     expect(drive.text('projects/a.md'), merged);
     expect(manifest.base('projects/a.md'), merged);
     expect(report.history, isEmpty);
+  });
+
+  test('an edit saved while the sync downloads is never written over (#249)', () async {
+    write('projects/a.md', note);
+    await run();
+    // Pull: only the remote changed, but the user saves here during the download.
+    const remote = '- [ ] 2026-10-02: remote\n';
+    const saved = '- [ ] 2026-10-03: saved here\n';
+    const again = '- [ ] 2026-10-04: again\n';
+    drive.put('projects/a.md', '$note$remote');
+    drive.whileDownloading = () => write('projects/a.md', '$note$saved');
+    final pulled = await run();
+    expect(pulled.skipped, ['projects/a.md']);
+    expect(readRel('projects/a.md'), endsWith(saved));
+    // Merge: both changed, and the user saves again during the download.
+    drive.whileDownloading = () => write('projects/a.md', '$note$saved$again');
+    final merged = await run();
+    expect(merged.skipped, ['projects/a.md']);
+    expect(readRel('projects/a.md'), endsWith(again));
+    // Nothing more saved meanwhile: the next sync keeps every edit.
+    drive.whileDownloading = null;
+    expect((await run()).merged, ['projects/a.md']);
+    expect(
+      readRel('projects/a.md'),
+      allOf(contains('remote'), contains('saved here'), contains('again')),
+    );
   });
 
   test('a real conflict asks the resolver and keeps both sides', () async {
