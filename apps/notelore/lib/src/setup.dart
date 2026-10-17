@@ -3,6 +3,7 @@ import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'session.dart';
+import 'strings.dart';
 import 'theme.dart';
 
 /// First run (and after logging out): pick a provider, paste its key, connect.
@@ -232,41 +233,207 @@ class _GoogleScreenState extends State<GoogleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final s = widget.session.strings;
+    final theme = Theme.of(context);
+    // The way on: why it failed (when it did), what it asks for, Google's button.
+    final action = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: Gap.m,
+      children: [
+        if (_problem case final problem?) _SignInProblem(problem),
+        Text(
+          s.welcomeAccount,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
+        _GoogleButton(s.signInWithGoogle, busy: _signingIn, onPressed: _signingIn ? null : _signIn),
+      ],
+    );
     return Scaffold(
-      appBar: AppBar(title: const Text('Notelore')),
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: ListView(
-              shrinkWrap: true,
-              padding: const EdgeInsets.all(Gap.l),
-              children: [
-                Icon(Icons.cloud_outlined, size: 56, color: theme.colorScheme.primary),
-                const SizedBox(height: Gap.m),
-                Text(s.googleExplained, textAlign: TextAlign.center),
-                const SizedBox(height: Gap.l),
-                Center(
-                  child: FilledButton.icon(
-                    icon: const Icon(Icons.login),
-                    onPressed: _signingIn ? null : _signIn,
-                    label: Text(s.signInWithGoogle),
+        child: LayoutBuilder(
+          builder: (context, size) => size.maxWidth >= Layout.wide
+              // A desk: one card of a readable width, in the middle.
+              ? Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(Gap.l),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: Card(
+                        key: const Key('google-card'),
+                        child: Padding(
+                          padding: const EdgeInsets.all(Gap.l + Gap.s), // 32
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            spacing: Gap.l,
+                            children: [_Welcome(s), action],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              // A phone: the welcome above, the button where the thumb is.
+              : Padding(
+                  padding: const EdgeInsets.all(Gap.l),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: Center(child: SingleChildScrollView(child: _Welcome(s))),
+                      ),
+                      action,
+                    ],
                   ),
                 ),
-                if (_problem case final problem?) ...[
-                  const SizedBox(height: Gap.m),
-                  Text(
-                    problem,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: theme.colorScheme.error),
-                  ),
-                ],
-              ],
-            ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Who Notelore is and why it asks for Google: the app's mark, a welcome, a
+/// promise, and two lines that build trust (where the notes go, what it sees).
+class _Welcome extends StatelessWidget {
+  const _Welcome(this.strings);
+
+  final Strings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(color: colors.primaryContainer, shape: BoxShape.circle),
+          child: Icon(Icons.edit_note, size: 40, color: colors.onPrimaryContainer),
+        ),
+        const SizedBox(height: Gap.l),
+        Text(
+          strings.welcomeTitle,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.headlineSmall,
+        ),
+        const SizedBox(height: Gap.s),
+        Text(
+          strings.welcomePromise,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyLarge?.copyWith(color: colors.onSurfaceVariant),
+        ),
+        const SizedBox(height: Gap.l),
+        _Reason(Icons.cloud_done_outlined, strings.welcomeDrive),
+        const SizedBox(height: Gap.m),
+        _Reason(Icons.lock_outline, strings.welcomePrivate),
+      ],
+    );
+  }
+}
+
+/// One reason to trust it: an icon and a line.
+class _Reason extends StatelessWidget {
+  const _Reason(this.icon, this.text);
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: Gap.m,
+      children: [
+        ExcludeSemantics(child: Icon(icon, size: 24, color: theme.colorScheme.primary)),
+        Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
+      ],
+    );
+  }
+}
+
+/// Why signing in did not work, said kindly, and read out when it appears.
+class _SignInProblem extends StatelessWidget {
+  const _SignInProblem(this.problem);
+
+  final String problem;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+      key: const Key('google-problem'),
+      liveRegion: true,
+      label: problem,
+      excludeSemantics: true,
+      child: Card(
+        margin: EdgeInsets.zero,
+        color: colors.errorContainer,
+        child: Padding(
+          padding: const EdgeInsets.all(Gap.m),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: Gap.m,
+            children: [
+              Icon(Icons.error_outline, color: colors.onErrorContainer),
+              Expanded(
+                child: Text(problem, style: TextStyle(color: colors.onErrorContainer)),
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Google's own Sign in with Google button, as its branding guidelines draw it
+/// (https://developers.google.com/identity/branding-guidelines): its G, its
+/// fills, outline and label colours, whatever the app's palette. While it
+/// works, a spinner takes the G's place.
+class _GoogleButton extends StatelessWidget {
+  const _GoogleButton(this.label, {required this.busy, required this.onPressed});
+
+  final String label;
+  final bool busy;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final (fill, outline, text) = dark
+        ? (const Color(0xFF131314), const Color(0xFF8E918F), const Color(0xFFE3E3E3))
+        : (Colors.white, const Color(0xFF747775), const Color(0xFF1F1F1F));
+    return OutlinedButton(
+      key: const Key('google-sign-in'),
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        backgroundColor: fill,
+        disabledBackgroundColor: fill,
+        foregroundColor: text,
+        disabledForegroundColor: text,
+        side: BorderSide(color: outline),
+        minimumSize: const Size.fromHeight(48),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        shape: const StadiumBorder(),
+        // The app's font, at the guidelines' size and weight.
+        textStyle: Theme.of(context).textTheme.labelLarge
+            ?.copyWith(fontSize: 14, fontWeight: FontWeight.w500, height: 20 / 14),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        spacing: 10,
+        children: [
+          SizedBox.square(
+            dimension: 20,
+            child: busy
+                ? CircularProgressIndicator(strokeWidth: 2, color: text)
+                : Image.asset('assets/google/g_${dark ? 'dark' : 'light'}.png'),
+          ),
+          Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+        ],
       ),
     );
   }

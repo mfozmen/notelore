@@ -223,7 +223,13 @@ abstract class Strings {
 
   /// Google sign-in, the first step of setup (#208).
   String get signInWithGoogle;
-  String get googleExplained;
+
+  /// The welcome before Google sign-in (#296).
+  String get welcomeTitle;
+  String get welcomePromise;
+  String get welcomeDrive;
+  String get welcomePrivate;
+  String get welcomeAccount;
   String get googleRequired;
   String get syncing;
   String get connected;
@@ -623,10 +629,17 @@ class EnglishStrings extends Strings {
   @override
   String get signInWithGoogle => 'Sign in with Google';
   @override
-  String get googleExplained =>
-      'Notelore keeps your notes in your own Google Drive, so all your devices have them. '
-      'Sign in with your Google (Gmail) account to start. Notelore can only see the files it '
-      'creates there.';
+  String get welcomeTitle => 'Welcome to Notelore';
+  @override
+  String get welcomePromise =>
+      'Tell it things and it keeps tidy notes. Ask later, and it answers from them.';
+  @override
+  String get welcomeDrive =>
+      'Your notes are backed up and synced through your own Google Drive, on all your devices.';
+  @override
+  String get welcomePrivate => 'Notelore can only see the files it creates there.';
+  @override
+  String get welcomeAccount => 'Sign in with your Google (Gmail) account to start.';
   @override
   String get googleRequired => 'Notelore needs a Google account to continue. Sign in to go on.';
   @override
@@ -1098,10 +1111,17 @@ class TurkishStrings extends Strings {
   @override
   String get signInWithGoogle => 'Google ile giriş yap';
   @override
-  String get googleExplained =>
-      'Notelore notlarını kendi Google Drive’ında tutar, böylece tüm cihazlarında olurlar. '
-      'Başlamak için Google (Gmail) hesabınla giriş yap. Notelore orada yalnızca kendi '
-      'oluşturduğu dosyaları görebilir.';
+  String get welcomeTitle => 'Notelore’a hoş geldin';
+  @override
+  String get welcomePromise =>
+      'Ona anlat, düzenli notlar tutsun. Sonra sor, notlarından yanıtlasın.';
+  @override
+  String get welcomeDrive =>
+      'Notların kendi Google Drive’ın üzerinden yedeklenir ve tüm cihazlarında eşitlenir.';
+  @override
+  String get welcomePrivate => 'Notelore orada yalnızca kendi oluşturduğu dosyaları görebilir.';
+  @override
+  String get welcomeAccount => 'Başlamak için Google (Gmail) hesabınla giriş yap.';
   @override
   String get googleRequired =>
       'Notelore’u kullanmak için bir Google hesabı gerekir. Devam etmek için giriş yap.';

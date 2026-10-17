@@ -18,6 +18,23 @@ void desktop(WidgetTester tester, double width) {
 }
 
 void main() {
+  testWidgets('Google sign-in on a wide window: a card of a readable width, centred (#296)', (
+    tester,
+  ) async {
+    desktop(tester, 1280);
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    await pumpApp(tester, Harness(auth: FakeAuth()));
+    final card = find.byKey(const Key('google-card'));
+    expect(tester.getSize(card).width, lessThanOrEqualTo(480));
+    expect(tester.getCenter(card).dx, closeTo(640, 1));
+    // Dark: Google's dark G.
+    expect(
+      find.byWidgetPredicate((w) => w is Image && '${w.image}'.contains('g_dark.png')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('a wide window navigates from a side rail; a phone from the bottom bar', (
     tester,
   ) async {

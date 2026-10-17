@@ -124,13 +124,42 @@ void main() {
     phone(tester);
     final auth = FakeAuth()..failSignIn = const SignInFailed('access_denied');
     await pumpApp(tester, Harness(auth: auth));
+    // A welcome first (#296): who we are, what it does, why Google.
+    expect(find.text('Welcome to Notelore'), findsOneWidget);
+    expect(find.textContaining('your own Google Drive'), findsOneWidget);
+    expect(find.textContaining('only see the files it creates'), findsOneWidget);
     expect(find.textContaining('Google (Gmail) account'), findsOneWidget);
+    expect(find.byType(AppBar), findsNothing);
+    // Google's own button: its G, its words; in the thumb's reach on a phone.
+    final button = find.byKey(const Key('google-sign-in'));
+    expect(
+      find.descendant(
+        of: button,
+        matching: find.byWidgetPredicate(
+          (w) => w is Image && '${w.image}'.contains('assets/google/g_light.png'),
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(find.descendant(of: button, matching: find.text('Sign in with Google')), findsOneWidget);
+    expect(tester.getBottomLeft(button).dy, greaterThan(960 * 0.75));
     expect(find.text('Claude (Anthropic)'), findsNothing); // no provider before Google
     await tester.tap(find.text('Sign in with Google'));
     await tester.pumpAndSettle();
+    final problem = find.byKey(const Key('google-problem'));
     expect(
-      find.text('Notelore needs a Google account to continue. Sign in to go on.'),
+      find.descendant(
+        of: problem,
+        matching: find.text('Notelore needs a Google account to continue. Sign in to go on.'),
+      ),
       findsOneWidget,
+    );
+    expect(
+      tester.getSemantics(problem),
+      matchesSemantics(
+        isLiveRegion: true,
+        label: 'Notelore needs a Google account to continue. Sign in to go on.',
+      ),
     );
     expect(find.textContaining('access_denied'), findsNothing); // no raw codes (#302)
     expect(find.text('Claude (Anthropic)'), findsNothing);
@@ -145,7 +174,16 @@ void main() {
     expect(find.textContaining('offline'), findsNothing);
     expect(find.textContaining('needs a Google account'), findsNothing);
     auth.failSignIn = null;
+    // While Google answers, the button waits: a spinner in the G's place.
+    auth.hold = Completer<void>();
     await tester.tap(find.text('Sign in with Google'));
+    await tester.pump();
+    expect(
+      find.descendant(of: button, matching: find.byType(CircularProgressIndicator)),
+      findsOneWidget,
+    );
+    expect(tester.widget<OutlinedButton>(button).onPressed, isNull);
+    auth.hold!.complete();
     await tester.pumpAndSettle();
     expect(auth.granted, isTrue);
     expect(find.text('Claude (Anthropic)'), findsOneWidget); // on to the provider
