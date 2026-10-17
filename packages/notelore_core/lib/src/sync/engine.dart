@@ -135,22 +135,18 @@ class _Pass {
     final entry = manifest.get(rel);
     final baseHash = entry?.localHash;
     final String? localText;
-    String? remoteText;
-    final String? remoteHash;
+    final String? remoteText;
     try {
       localText = found == null ? null : utf8.decode(found.readAsBytesSync());
-      if (meta == null) {
-        remoteHash = null;
-      } else if (entry != null && meta.md5 == entry.md5) {
-        remoteHash = baseHash; // untouched since the last sync: no download needed
-      } else {
-        remoteText = utf8.decode(await remote.download(meta.id));
-        remoteHash = contentHash(remoteText);
-      }
+      // Untouched since the last sync: no download needed.
+      remoteText = meta == null || (entry != null && meta.md5 == entry.md5)
+          ? null
+          : utf8.decode(await remote.download(meta.id));
     } on FormatException {
       report.skipped.add(rel); // not a UTF-8 note; one bad file never stops the rest
       return;
     }
+    final remoteHash = _remoteHash(meta, remoteText, baseHash);
     final localHash = localText == null ? null : contentHash(localText);
 
     switch (decide(baseHash, localHash, remoteHash)) {
@@ -184,6 +180,13 @@ class _Pass {
         manifest.forget(rel);
         report.removedRemote.add(rel);
     }
+  }
+
+  /// The remote side's hash: none when it is gone, the base's when untouched
+  /// since the last sync (not downloaded), else that of what was downloaded.
+  static String? _remoteHash(RemoteFile? meta, String? downloaded, String? baseHash) {
+    if (meta == null) return null;
+    return downloaded == null ? baseHash : contentHash(downloaded);
   }
 
   /// The file still holds what this pass read before downloading (seconds
