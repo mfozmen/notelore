@@ -125,7 +125,7 @@ class ChatGptAuth implements OAuthSignIn {
       'resource': _resource,
     });
     if (!'${tokens['scope']}'.split(' ').contains(_planScope)) {
-      throw const SignInFailed('the ChatGPT plan was not shared with Notelore', service: 'ChatGPT');
+      throw const NoChatGptPlan();
     }
     await write('client_id', clientId);
     await _keep(tokens);

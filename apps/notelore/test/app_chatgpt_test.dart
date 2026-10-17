@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
 import 'package:notelore/src/session.dart';
@@ -89,6 +90,65 @@ void main() {
       }
     });
   }
+
+  testWidgets('a ChatGPT account without Plus or Pro: said plainly, and a free way on (#321)', (
+    tester,
+  ) async {
+    final launcher = FakeLauncher();
+    UrlLauncherPlatform.instance = launcher;
+    String? clipboard;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (
+      call,
+    ) async {
+      if (call.method == 'Clipboard.getData') return {'text': clipboard};
+      return null;
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    final harness = Harness(chatGpt: FakeAuth()..failSignIn = const NoChatGptPlan());
+    await pumpPlanApp(tester, harness);
+    await tester.tap(find.text('Continue with ChatGPT'));
+    await tester.pumpAndSettle();
+    final card = find.byKey(const Key('no-chatgpt-plan'));
+    expect(
+      find.descendant(
+        of: card,
+        matching: find.text('Your ChatGPT account has no Plus or Pro plan'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: card, matching: find.textContaining('improve its products')),
+      findsOneWidget,
+    );
+    expect(find.text('Sign-in did not finish. Please try again.'), findsNothing); // no retry loop
+    // One tap: Gemini chosen, and Google AI Studio's key page opens.
+    await tester.ensureVisible(find.text('Get a free Gemini key'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Get a free Gemini key'));
+    await tester.pumpAndSettle();
+    expect(launcher.opened, ['https://aistudio.google.com/apikey']);
+    final key = find.byKey(const Key('api-key'));
+    expect(key, findsOneWidget);
+    // Back in the app: something else on the clipboard is left alone...
+    clipboard = 'a shopping list';
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(key).controller!.text, isEmpty);
+    // ...a copied key goes into the box, said so; it connects only on Connect.
+    clipboard = 'AIza${'x' * 35}';
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(key).controller!.text, clipboard);
+    expect(find.textContaining('pasted from the clipboard'), findsOneWidget);
+    expect(find.byKey(const Key('message')), findsNothing); // still in setup
+  });
 
   testWidgets('ChatGPT plan: a failed sign-in is shown on the setup screen', (tester) async {
     final harness = Harness(

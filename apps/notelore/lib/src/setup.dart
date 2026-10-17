@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -16,16 +19,63 @@ class SetupScreen extends StatefulWidget {
   State<SetupScreen> createState() => _SetupScreenState();
 }
 
-class _SetupScreenState extends State<SetupScreen> {
+class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
   late ProviderSpec _spec = widget.session.providers.first;
   final _key = TextEditingController();
   String? _problem;
   var _checking = false;
 
+  /// The ChatGPT account signed in but has no plan to share (#321).
+  var _noPlan = false;
+
+  /// Sent to Google AI Studio for a key: on return, it may be on the clipboard.
+  var _awaitingKey = false;
+
+  /// The key in the box came from the clipboard; said under it.
+  var _pasted = false;
+
+  /// What a Gemini API key looks like; nothing else is taken from the clipboard.
+  static final _geminiKey = RegExp(r'^AIza[0-9A-Za-z_\-]{35}$');
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _key.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _awaitingKey) unawaited(_pickUpKey());
+  }
+
+  /// Back from AI Studio: a copied key goes into the box (only one that looks
+  /// like a Gemini key, only into an empty box); connecting stays the user's.
+  Future<void> _pickUpKey() async {
+    final copied = (await Clipboard.getData(Clipboard.kTextPlain))?.text?.trim() ?? '';
+    if (!mounted || !_geminiKey.hasMatch(copied) || _key.text.isNotEmpty) return;
+    setState(() {
+      _key.text = copied;
+      _pasted = true;
+      _awaitingKey = false;
+    });
+  }
+
+  /// The free way on: Gemini chosen, and its key page opened in the browser.
+  void _freeGemini() {
+    final gemini = widget.session.providers.firstWhere((p) => p.name == 'gemini');
+    setState(() {
+      _spec = gemini;
+      _noPlan = false;
+      _awaitingKey = true;
+    });
+    unawaited(launchUrl(Uri.parse(gemini.keyUrl!), mode: LaunchMode.externalApplication));
   }
 
   /// The providers that take a key or run on this computer.
@@ -42,9 +92,12 @@ class _SetupScreenState extends State<SetupScreen> {
     setState(() {
       _checking = true;
       _problem = null;
+      _noPlan = false;
     });
     try {
       await widget.session.connect(_spec, _key.text);
+    } on NoChatGptPlan {
+      setState(() => _noPlan = true); // no retry helps: another way in does
     } on KeyValidationError catch (error) {
       setState(() => _problem = error.message);
     } on TransientValidationError catch (error) {
@@ -127,17 +180,22 @@ class _SetupScreenState extends State<SetupScreen> {
                     decoration: InputDecoration(
                       labelText: s.apiKey,
                       prefixIcon: const Icon(Icons.key_outlined),
+                      helperText: _pasted ? s.keyFromClipboard : null,
                     ),
                     onSubmitted: (_) => _connect(),
                   ),
                 ] else if (_spec.name == 'ollama')
                   Text(s.ollamaNoKey),
-                if (_problem case final problem?) ...[
+                if (_noPlan)
+                  _NoPlan(s, getKey: _freeGemini)
+                else if (_problem case final problem?) ...[
                   const SizedBox(height: 12),
                   Text(problem, style: TextStyle(color: theme.colorScheme.error)),
                 ],
                 const SizedBox(height: Gap.m),
-                FilledButton(
+                _ConnectButton(
+                  // Without a plan, the free way in leads; this stays, for an upgrade.
+                  primary: !_noPlan,
                   onPressed: _checking ? null : _connect,
                   child: _checking
                       ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator())
@@ -147,6 +205,81 @@ class _SetupScreenState extends State<SetupScreen> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Setup's last step: filled as the one primary action, or outlined when
+/// something else on the screen leads ([primary] false).
+class _ConnectButton extends StatelessWidget {
+  const _ConnectButton({required this.primary, required this.onPressed, required this.child});
+
+  final bool primary;
+  final VoidCallback? onPressed;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => primary
+      ? FilledButton(onPressed: onPressed, child: child)
+      : OutlinedButton(onPressed: onPressed, child: child);
+}
+
+/// A ChatGPT account without Plus or Pro (#321): what happened, plainly, and
+/// the free way on in the same place: a Gemini key from Google AI Studio, with
+/// what its free tier means for privacy. Not an alarm: nothing went wrong.
+class _NoPlan extends StatelessWidget {
+  const _NoPlan(this.strings, {required this.getKey});
+
+  final Strings strings;
+  final VoidCallback getKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Card(
+      key: const Key('no-chatgpt-plan'),
+      margin: const EdgeInsets.only(top: Gap.m),
+      color: colors.surfaceContainerHigh,
+      child: Padding(
+        padding: const EdgeInsets.all(Gap.m),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              spacing: Gap.s,
+              children: [
+                Icon(Icons.info_outline, color: colors.primary),
+                Expanded(child: Text(strings.noChatGptPlan, style: theme.textTheme.titleMedium)),
+              ],
+            ),
+            const SizedBox(height: Gap.s),
+            Text(strings.noChatGptPlanWhy, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: Gap.m),
+            Text(strings.freeGemini, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: Gap.s),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: Gap.s,
+              children: [
+                Icon(Icons.privacy_tip_outlined, size: 16, color: colors.onSurfaceVariant),
+                Expanded(
+                  child: Text(
+                    strings.freeGeminiPrivacy,
+                    style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: Gap.m),
+            FilledButton.icon(
+              onPressed: getKey,
+              icon: const Icon(Icons.open_in_new),
+              label: Text(strings.getFreeGeminiKey),
+            ),
+          ],
         ),
       ),
     );
