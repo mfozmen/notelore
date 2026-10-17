@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'chat.dart';
+import 'lock.dart';
 import 'notes.dart';
 import 'session.dart';
 import 'settings.dart';
@@ -28,7 +29,22 @@ class NoteloreApp extends StatefulWidget {
   State<NoteloreApp> createState() => _NoteloreAppState();
 }
 
-class _NoteloreAppState extends State<NoteloreApp> {
+class _NoteloreAppState extends State<NoteloreApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  /// The app lock closes again after a while in the background (#224). Losing
+  /// focus alone (inactive) is not the background.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) => switch (state) {
+    AppLifecycleState.hidden || AppLifecycleState.paused => _opened?.backgrounded(),
+    AppLifecycleState.resumed => _opened?.foregrounded(),
+    _ => null,
+  };
+
   late final Future<Session> _session = widget.open()
     ..then<void>(_adopt, onError: (Object _) {}); // the error shows below
   Session? _opened;
@@ -38,6 +54,7 @@ class _NoteloreAppState extends State<NoteloreApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     // The app owns the session. Closing it closes the index: an open SQLite file
     // cannot be moved or deleted on Windows.
     _opened?.dispose();
@@ -61,6 +78,8 @@ class _NoteloreAppState extends State<NoteloreApp> {
           supportedLocales: const [Locale('en'), Locale('tr')],
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
           home: switch (snapshot) {
+            // With the app lock on, nothing else shows until it is opened (#224).
+            AsyncSnapshot(:final Session data) when data.locked => LockScreen(data),
             AsyncSnapshot(:final Session data) =>
               data.ready
                   ? Home(data, updater: widget.updater, exitApp: widget.exitApp)

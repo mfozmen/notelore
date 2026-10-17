@@ -58,6 +58,23 @@ void main() {
     expect(draft(), 'half a thought');
   });
 
+  testWidgets('wide settings have their own section for the app lock', (tester) async {
+    desktop(tester, 1600);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('settings-sections')),
+        matching: find.text('App lock'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Turn on'), findsOneWidget);
+    expect(find.textContaining('opens without asking'), findsOneWidget);
+  });
+
   testWidgets('chat on a wide window is a readable column, not the full width', (tester) async {
     desktop(tester, 1920);
     await pumpApp(tester, Harness());

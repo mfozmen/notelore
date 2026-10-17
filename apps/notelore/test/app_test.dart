@@ -19,8 +19,8 @@ import 'support.dart';
 
 /// The app on [harness]'s session. The app owns the session, so it is closed by
 /// unmounting the app before the temp folders go.
-Future<Session> pumpApp(WidgetTester tester, Harness harness) async {
-  final session = harness.session(owned: false);
+Future<Session> pumpApp(WidgetTester tester, Harness harness, {DateTime Function()? clock}) async {
+  final session = harness.session(owned: false, clock: clock);
   addTearDown(() => tester.pumpWidget(const SizedBox()));
   await tester.pumpWidget(
     NoteloreApp(
@@ -144,6 +144,193 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.send);
     await tester.pumpAndSettle();
     expect(find.textContaining('offline'), findsOneWidget);
+  });
+
+  /// Opens Settings and brings the app lock card into view.
+  Future<void> openLock(WidgetTester tester) async {
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('App lock'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+  }
+
+  /// Closes the app and opens it again on the same folders and keystore.
+  Future<void> restart(WidgetTester tester, Harness harness) async {
+    await tester.pumpWidget(const SizedBox());
+    await pumpApp(tester, harness);
+  }
+
+  testWidgets('lock: set a PIN in Settings; the next start asks for it first', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await openLock(tester);
+    expect(find.textContaining('opens without asking'), findsOneWidget);
+    await tester.tap(find.text('Turn on'));
+    await tester.pumpAndSettle();
+    FilledButton confirm() => tester.widget<FilledButton>(
+      find.descendant(of: find.byType(AlertDialog), matching: find.byType(FilledButton)),
+    );
+    await tester.enterText(find.byKey(const Key('lock-new')), '24');
+    await tester.pump();
+    expect(find.text('At least 4 characters.'), findsOneWidget);
+    expect(confirm().onPressed, isNull);
+    await tester.enterText(find.byKey(const Key('lock-new')), '2468');
+    await tester.enterText(find.byKey(const Key('lock-repeat')), '2469');
+    await tester.pump();
+    expect(find.text("They don't match."), findsOneWidget);
+    expect(confirm().onPressed, isNull);
+    await tester.enterText(find.byKey(const Key('lock-repeat')), '2468');
+    await tester.pump();
+    await tester.tap(find.descendant(of: find.byType(AlertDialog), matching: find.text('Turn on')));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.textContaining('asks for your PIN or password'), findsOneWidget);
+
+    // The next start: locked, nothing of the notes or the chat shows.
+    await restart(tester, harness);
+    expect(find.text('Notelore is locked'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byKey(const Key('message')), findsNothing);
+    await tester.enterText(find.byKey(const Key('unlock')), '1357');
+    await tester.tap(find.text('Unlock'));
+    await tester.pumpAndSettle();
+    expect(find.text("That's not it. Try again."), findsOneWidget);
+    expect(find.byKey(const Key('message')), findsNothing);
+    await tester.enterText(find.byKey(const Key('unlock')), '2468');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.text('Notelore is locked'), findsNothing);
+    expect(find.byKey(const Key('message')), findsOneWidget);
+  });
+
+  /// The app goes to the background the way a phone sends it there.
+  void toBackground(WidgetTester tester) {
+    for (final state in [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.paused,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+  }
+
+  void toForeground(WidgetTester tester) {
+    for (final state in [
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+  }
+
+  testWidgets('lock: back from a minute in the background it asks again; a short trip not', (
+    tester,
+  ) async {
+    phone(tester);
+    var now = DateTime.utc(2026, 10, 17, 12);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness, clock: () => now);
+    await connect(tester, key: 'k');
+    await session.setLock('2468');
+    await tester.pumpAndSettle();
+    toBackground(tester);
+    now = now.add(const Duration(seconds: 59));
+    toForeground(tester);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('message')), findsOneWidget); // still open
+    // Losing focus alone (a desktop window behind another) is not the background.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    now = now.add(const Duration(minutes: 5));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('message')), findsOneWidget);
+    toBackground(tester);
+    now = now.add(const Duration(minutes: 1));
+    toForeground(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Notelore is locked'), findsOneWidget);
+    expect(find.byKey(const Key('message')), findsNothing);
+    await tester.enterText(find.byKey(const Key('unlock')), '2468');
+    await tester.tap(find.text('Unlock'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('message')), findsOneWidget);
+  });
+
+  testWidgets('lock: after five wrong tries the screen waits, then lets one try again', (
+    tester,
+  ) async {
+    phone(tester);
+    var now = DateTime.utc(2026, 10, 17, 12);
+    final harness = Harness();
+    final first = await pumpApp(tester, harness, clock: () => now);
+    await connect(tester, key: 'k');
+    await first.setLock('2468');
+    await tester.pumpWidget(const SizedBox());
+    await pumpApp(tester, harness, clock: () => now);
+    for (var i = 0; i < 5; i++) {
+      await tester.enterText(find.byKey(const Key('unlock')), '0000');
+      await tester.tap(find.text('Unlock'));
+      await tester.pump();
+      await tester.pump();
+    }
+    expect(find.text('Too many tries. Try again in 0:30.'), findsOneWidget);
+    expect(tester.widget<TextField>(find.byKey(const Key('unlock'))).enabled, isFalse);
+    now = now.add(const Duration(seconds: 10));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('Too many tries. Try again in 0:20.'), findsOneWidget);
+    now = now.add(const Duration(seconds: 20));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.textContaining('Too many tries'), findsNothing);
+    expect(tester.widget<TextField>(find.byKey(const Key('unlock'))).enabled, isTrue);
+    await tester.enterText(find.byKey(const Key('unlock')), '2468');
+    await tester.tap(find.text('Unlock'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('message')), findsOneWidget);
+  });
+
+  testWidgets('lock: turning it off asks for the PIN; Cancel keeps it', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final first = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await first.setLock('2468');
+    await tester.pumpAndSettle();
+    await openLock(tester);
+    await tester.tap(find.text('Turn off'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(first.lockEnabled, isTrue);
+    await tester.tap(find.text('Turn off'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('lock-current')), '0000');
+    await tester.tap(
+      find.descendant(of: find.byType(AlertDialog), matching: find.text('Turn off')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text("That's not it. Try again."), findsOneWidget);
+    expect(first.lockEnabled, isTrue);
+    await tester.enterText(find.byKey(const Key('lock-current')), '2468');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(first.lockEnabled, isFalse);
+    expect(find.textContaining('opens without asking'), findsOneWidget);
+    // Setting it up can be called off too.
+    await tester.tap(find.text('Turn on'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(first.lockEnabled, isFalse);
+    await restart(tester, harness);
+    expect(find.text('Notelore is locked'), findsNothing);
   });
 
   testWidgets('chat: an unsent draft survives a trip to another tab; sending clears it', (
