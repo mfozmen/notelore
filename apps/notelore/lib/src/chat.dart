@@ -254,58 +254,80 @@ class _ComposerState extends State<_Composer> {
         children: [
           if (_voice.state == VoiceState.speaking || _holdHint)
             _VoiceStatus(s, speaking: _voice.state == VoiceState.speaking),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.s, Gap.s),
-            child: ValueListenableBuilder(
-              valueListenable: widget.message,
-              builder: (context, typed, _) => Row(
-                children: [
-                  Expanded(
-                    // While recording, the recording takes the field's place;
-                    // the field's text stays in its controller.
-                    child: _voice.state == VoiceState.listening
-                        ? _Recording(s.listening)
-                        : _MessageField(
-                            widget.message,
-                            voice: _voice,
-                            hint: s.message,
-                            send: widget.send,
-                          ),
-                  ),
-                  if (_voice.state == VoiceState.speaking)
-                    IconButton(
-                      tooltip: s.stopReading,
-                      icon: const Icon(Icons.volume_off_outlined),
-                      onPressed: _voice.end,
-                    ),
-                  if (session.busy)
-                    IconButton(
-                      tooltip: s.stop,
-                      icon: const Icon(Icons.stop),
-                      onPressed: session.stop,
-                    ),
-                  if (typed.text.trim().isNotEmpty)
-                    IconButton.filled(
-                      tooltip: s.send,
-                      icon: const Icon(Icons.arrow_upward),
-                      onPressed: widget.send,
-                    )
-                  else
-                    _TalkButton(
-                      label: s.talk,
-                      listening: _voice.state == VoiceState.listening,
-                      busy: session.busy,
-                      pressed: _pressed,
-                      released: _released,
-                      cancelled: _voice.release,
-                      toggle: _toggleTalk,
-                      onKey: (event) => _talkKey(event, busy: session.busy),
-                    ),
-                ],
-              ),
+          _ComposerRow(
+            session,
+            voice: _voice,
+            message: widget.message,
+            send: widget.send,
+            talk: _TalkButton(
+              label: s.talk,
+              listening: _voice.state == VoiceState.listening,
+              busy: session.busy,
+              pressed: _pressed,
+              released: _released,
+              cancelled: _voice.release,
+              toggle: _toggleTalk,
+              onKey: (event) => _talkKey(event, busy: session.busy),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The message box (or the recording in its place) and its buttons: stop the
+/// reading, stop the turn, and one button that sends with text and is [talk]
+/// without.
+class _ComposerRow extends StatelessWidget {
+  const _ComposerRow(
+    this.session, {
+    required this.voice,
+    required this.message,
+    required this.send,
+    required this.talk,
+  });
+
+  final Session session;
+  final VoiceMode voice;
+  final TextEditingController message;
+  final Future<void> Function() send;
+  final Widget talk;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = session.strings;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.s, Gap.s),
+      child: ValueListenableBuilder(
+        valueListenable: message,
+        builder: (context, typed, _) => Row(
+          children: [
+            Expanded(
+              // While recording, the recording takes the field's place;
+              // the field's text stays in its controller.
+              child: voice.state == VoiceState.listening
+                  ? _Recording(s.listening)
+                  : _MessageField(message, voice: voice, hint: s.message, send: send),
+            ),
+            if (voice.state == VoiceState.speaking)
+              IconButton(
+                tooltip: s.stopReading,
+                icon: const Icon(Icons.volume_off_outlined),
+                onPressed: voice.end,
+              ),
+            if (session.busy)
+              IconButton(tooltip: s.stop, icon: const Icon(Icons.stop), onPressed: session.stop),
+            if (typed.text.trim().isNotEmpty)
+              IconButton.filled(
+                tooltip: s.send,
+                icon: const Icon(Icons.arrow_upward),
+                onPressed: send,
+              )
+            else
+              talk,
+          ],
+        ),
       ),
     );
   }
