@@ -26,6 +26,10 @@ abstract class Strings {
 
   // Setup.
   String get chooseProvider;
+
+  /// Setup's API-key and local providers, under the one-tap plan (#206).
+  String get advanced;
+  String get advancedExplained;
   String get apiKey;
   String get pasteKeyFirst;
   String get checkConnection;
@@ -249,6 +253,10 @@ class EnglishStrings extends Strings {
 
   @override
   String get chooseProvider => 'Choose a model provider';
+  @override
+  String get advanced => 'Advanced';
+  @override
+  String get advancedExplained => 'Your own API key, or a model on this computer.';
   @override
   String get apiKey => 'API key';
   @override
@@ -635,6 +643,10 @@ class TurkishStrings extends Strings {
 
   @override
   String get chooseProvider => 'Bir model sağlayıcı seç';
+  @override
+  String get advanced => 'Gelişmiş';
+  @override
+  String get advancedExplained => 'Kendi API anahtarın ya da bu bilgisayardaki bir model.';
   @override
   String get apiKey => 'API anahtarı';
   @override

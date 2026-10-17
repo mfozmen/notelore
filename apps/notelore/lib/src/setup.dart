@@ -27,6 +27,12 @@ class _SetupScreenState extends State<SetupScreen> {
     super.dispose();
   }
 
+  /// The providers that take a key or run on this computer.
+  List<Widget> get _advanced => [
+    _ProviderGroup(widget.session, ProviderGroup.apiKey),
+    _ProviderGroup(widget.session, ProviderGroup.local),
+  ];
+
   Future<void> _connect() async {
     if (_spec.requiresApiKey && _key.text.trim().isEmpty) {
       setState(() => _problem = widget.session.strings.pasteKeyFirst);
@@ -70,41 +76,24 @@ class _SetupScreenState extends State<SetupScreen> {
                     _spec = spec!;
                     _problem = null;
                   }),
+                  // Grouped by how they are paid for. The plan, one tap, leads;
+                  // keys and local models wait under Advanced (#206). Without a
+                  // plan to offer there is nothing to be advanced from: all show.
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Grouped by how they are paid for; a group with nothing to offer is left out.
-                      for (final group in ProviderGroup.values)
-                        if (widget.session.providers.where((s) => s.group == group).toList()
-                            case final specs when specs.isNotEmpty) ...[
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(Gap.xs, Gap.m, Gap.xs, Gap.xs),
-                            child: Text(
-                              s.groupHeading(group),
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                color: theme.colorScheme.primary,
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(Gap.xs, 0, Gap.xs, Gap.s),
-                            child: Text(
-                              s.groupExplanation(group),
-                              style: theme.textTheme.bodySmall,
-                            ),
-                          ),
-                          Card(
-                            child: Column(
-                              children: [
-                                for (final spec in specs)
-                                  RadioListTile<ProviderSpec>(
-                                    value: spec,
-                                    title: Text(s.providerName(spec)),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      _ProviderGroup(widget.session, ProviderGroup.plan),
+                      if (widget.session.providers.any((p) => p.group == ProviderGroup.plan))
+                        ExpansionTile(
+                          title: Text(s.advanced),
+                          subtitle: Text(s.advancedExplained),
+                          tilePadding: const EdgeInsets.symmetric(horizontal: Gap.xs),
+                          childrenPadding: EdgeInsets.zero,
+                          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                          children: _advanced,
+                        )
+                      else
+                        ..._advanced,
                     ],
                   ),
                 ),
@@ -156,6 +145,47 @@ class _SetupScreenState extends State<SetupScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// One way of paying, with its providers to pick from (inside the screen's
+/// RadioGroup); nothing when this device offers none of them.
+class _ProviderGroup extends StatelessWidget {
+  const _ProviderGroup(this.session, this.group);
+
+  final Session session;
+  final ProviderGroup group;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final s = session.strings;
+    final specs = session.providers.where((p) => p.group == group).toList();
+    if (specs.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(Gap.xs, Gap.m, Gap.xs, Gap.xs),
+          child: Text(
+            s.groupHeading(group),
+            style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(Gap.xs, 0, Gap.xs, Gap.s),
+          child: Text(s.groupExplanation(group), style: theme.textTheme.bodySmall),
+        ),
+        Card(
+          child: Column(
+            children: [
+              for (final spec in specs)
+                RadioListTile<ProviderSpec>(value: spec, title: Text(s.providerName(spec))),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

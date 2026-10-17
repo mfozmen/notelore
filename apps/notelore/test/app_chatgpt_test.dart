@@ -33,11 +33,19 @@ void main() {
     // Offered first and selected; no key to paste.
     expect(find.text('ChatGPT plan (OpenAI)'), findsOneWidget);
     expect(find.textContaining('no separate charges'), findsOneWidget);
-    // Grouped by how they are paid for (#108).
-    for (final heading in ['Use your plan', 'API key', 'On this computer']) {
+    // Grouped by how they are paid for (#108); the key and local ones wait
+    // under Advanced, closed (#206).
+    expect(find.text('Use your plan'), findsOneWidget);
+    expect(find.text('Advanced'), findsOneWidget);
+    for (final heading in ['API key', 'On this computer']) {
+      expect(find.text(heading), findsNothing);
+    }
+    await tester.tap(find.text('Advanced'));
+    await tester.pumpAndSettle();
+    for (final heading in ['API key', 'On this computer']) {
       expect(find.text(heading), findsOneWidget);
     }
-    expect(find.byKey(const Key('api-key')), findsNothing);
+    expect(find.byKey(const Key('api-key')), findsNothing); // ChatGPT still the choice
     await tester.tap(find.text('Continue with ChatGPT'));
     await tester.pumpAndSettle();
     expect(find.text("You're using your ChatGPT plan"), findsOneWidget);
@@ -64,6 +72,8 @@ void main() {
   testWidgets('other providers show no plan line in the chat', (tester) async {
     final harness = Harness(chatGpt: FakeAuth());
     await pumpPlanApp(tester, harness);
+    await tester.tap(find.text('Advanced')); // a key setup still works, from Advanced
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Claude (Anthropic)'));
     await tester.pumpAndSettle();
     // Past the grouped list (the key field is a scrollable too: name the list's).
