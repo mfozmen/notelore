@@ -94,12 +94,7 @@ Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider) async {
   final index = NoteIndex(p.join(dir.path, 'state', 'index.sqlite'), root);
   final watch = Stopwatch()..start();
   try {
-    for (final MapEntry(:key, :value) in evalCase.notes.entries) {
-      File(p.joinAll([root, ...key.split('/')]))
-        ..createSync(recursive: true)
-        ..writeAsStringSync(value);
-    }
-    Directory(root).createSync(recursive: true);
+    _write(root, evalCase.notes);
     final before = _files(root);
     final agent = Agent(provider, Toolbox(root, index, today: evalToday), today: evalToday);
     var answer = '';
@@ -110,18 +105,16 @@ Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider) async {
       problems.add('error: $error');
     }
     final after = _files(root);
-    final changed = {
-      for (final path in {...before.keys, ...after.keys})
-        if (before[path] != after[path]) path,
-    }.toList()..sort();
-    final tools = [
-      for (final message in agent.messages)
-        if (message['content'] case final List<Object?> blocks)
-          for (final block in blocks.cast<Map<Object?, Object?>>())
-            if (block['type'] == 'tool_use') '${block['name']}',
-    ];
+    final changed = _changed(before, after);
+    final tools = _toolsCalled(agent.messages);
     if (problems.isEmpty) {
-      problems.addAll(_check(evalCase.expect, tools, changed, after, answer));
+      problems.addAll([
+        ..._missingTools(evalCase.expect, tools),
+        ..._strayWrites(evalCase.expect, changed),
+        ..._missingFacts(evalCase.expect, changed, after),
+        for (final fact in evalCase.expect.answer)
+          if (!_has(answer, fact)) 'the answer lacks "$fact"',
+      ]);
     }
     return EvalResult(evalCase, tools, changed, answer, problems, watch.elapsed);
   } finally {
@@ -130,28 +123,53 @@ Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider) async {
   }
 }
 
-List<String> _check(
-  Expectation expect,
-  List<String> tools,
-  List<String> changed,
-  Map<String, String> after,
-  String answer,
-) {
+void _write(String root, Map<String, String> notes) {
+  Directory(root).createSync(recursive: true);
+  for (final MapEntry(:key, :value) in notes.entries) {
+    File(p.joinAll([root, ...key.split('/')]))
+      ..createSync(recursive: true)
+      ..writeAsStringSync(value);
+  }
+}
+
+/// The paths added, removed or changed, sorted.
+List<String> _changed(Map<String, String> before, Map<String, String> after) => {
+  for (final path in {...before.keys, ...after.keys})
+    if (before[path] != after[path]) path,
+}.toList()..sort();
+
+/// The tools the turn called, in order.
+List<String> _toolsCalled(List<Message> messages) => [
+  for (final message in messages)
+    if (message['content'] case final List<Object?> blocks)
+      for (final block in blocks.cast<Map<Object?, Object?>>())
+        if (block['type'] == 'tool_use') '${block['name']}',
+];
+
+Iterable<String> _missingTools(Expectation expect, List<String> tools) => [
+  for (final tool in expect.tools)
+    if (!tools.contains(tool)) 'did not call $tool',
+];
+
+Iterable<String> _strayWrites(Expectation expect, List<String> changed) {
   final patterns = [for (final key in expect.notes.keys) RegExp(key)];
   return [
-    for (final tool in expect.tools)
-      if (!tools.contains(tool)) 'did not call $tool',
     for (final path in changed)
       if (!patterns.any((pattern) => pattern.hasMatch(path)))
         'wrote $path, which it should not have',
-    for (final MapEntry(:key, :value) in expect.notes.entries)
-      for (final fact in value)
-        if (!changed.any((path) => RegExp(key).hasMatch(path) && _has(after[path] ?? '', fact)))
-          'no changed note matching $key contains "$fact"',
-    for (final fact in expect.answer)
-      if (!_has(answer, fact)) 'the answer lacks "$fact"',
   ];
 }
+
+Iterable<String> _missingFacts(
+  Expectation expect,
+  List<String> changed,
+  Map<String, String> after,
+) => [
+  for (final MapEntry(:key, :value) in expect.notes.entries)
+    for (final fact in value)
+      if (!changed.any((path) => RegExp(key).hasMatch(path) && _has(after[path] ?? '', fact)))
+        'no changed note matching $key contains "$fact"',
+];
 
 bool _has(String text, String fact) => text.toLowerCase().contains(fact.toLowerCase());
 
@@ -165,6 +183,7 @@ Map<String, String> _files(String root) => {
 String summarize(List<EvalResult> results) {
   String line(String name, Iterable<EvalResult> group) {
     final passed = group.where((r) => r.passed).length;
+    if (group.isEmpty) return '$name: 0/0';
     return '$name: $passed/${group.length} (${(100 * passed / group.length).round()}%)';
   }
 
