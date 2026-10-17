@@ -251,6 +251,23 @@ abstract class Strings {
 
   /// A text the core produced in English, in this language.
   String core(String english);
+
+  /// A failed chat turn, said kindly (#306): never the provider's raw reply.
+  /// The core's own messages (a Stop, the plan's limit, a sign-in) stay as
+  /// they are; any other refusal keeps its detail, framed.
+  String chatError(Exception error) => switch (error) {
+    NetworkError() => errorOffline,
+    HttpError(status: 401 || 403) => errorKey,
+    HttpError(status: 429) => errorBusy,
+    HttpError(:final status) when status >= 500 => errorProvider,
+    HttpError(:final message) => errorOther(message),
+    _ => core('$error'),
+  };
+  String get errorOffline;
+  String get errorKey;
+  String get errorBusy;
+  String get errorProvider;
+  String errorOther(String detail);
 }
 
 class EnglishStrings extends Strings {
@@ -666,6 +683,16 @@ class EnglishStrings extends Strings {
 
   @override
   String core(String english) => english;
+  @override
+  String get errorOffline => "Couldn't reach the model: you seem to be offline.";
+  @override
+  String get errorKey => 'The provider turned the key or sign-in down. Check it in Settings.';
+  @override
+  String get errorBusy => 'The provider is getting too many requests just now. Wait a moment.';
+  @override
+  String get errorProvider => "The model's service is having trouble right now. Try again soon.";
+  @override
+  String errorOther(String detail) => 'The provider could not answer: $detail';
 }
 
 class TurkishStrings extends Strings {
@@ -1146,6 +1173,16 @@ class TurkishStrings extends Strings {
 
   @override
   String core(String english) => _core[english] ?? english;
+  @override
+  String get errorOffline => 'Modele ulaşılamadı: çevrimdışı görünüyorsun.';
+  @override
+  String get errorKey => 'Sağlayıcı anahtarı ya da girişi kabul etmedi. Ayarlar’dan kontrol et.';
+  @override
+  String get errorBusy => 'Sağlayıcı şu an çok fazla istek alıyor. Biraz bekle.';
+  @override
+  String get errorProvider => 'Modelin hizmetinde şu an bir sorun var; birazdan yeniden dene.';
+  @override
+  String errorOther(String detail) => 'Sağlayıcı yanıt veremedi: $detail';
 }
 
 /// The strings for [language], [system] being the device's language code.

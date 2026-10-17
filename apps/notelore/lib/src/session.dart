@@ -738,7 +738,7 @@ class Session extends ChangeNotifier {
     transcript.add((
       role: ChatRole.error,
       text: [
-        strings.core('$error'),
+        strings.chatError(error),
         if (wrote) strings.notesMayBeSaved,
         if (later && images) strings.imagesCannotWait,
       ].join('\n\n'),

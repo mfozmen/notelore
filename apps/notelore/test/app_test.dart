@@ -217,7 +217,7 @@ void main() {
     await tester.pump(); // the Send button appears with the text
     await tester.testTextInput.receiveAction(TextInputAction.send);
     await tester.pumpAndSettle();
-    expect(find.textContaining('offline'), findsOneWidget);
+    expect(find.textContaining('having trouble'), findsOneWidget); // said kindly, not "HTTP 500"
   });
 
   /// Opens Settings and brings the app lock card into view.
@@ -670,9 +670,11 @@ void main() {
     );
   });
 
-  testWidgets('chat: one tap resends the last message, also after a failure', (tester) async {
+  testWidgets('chat: an error is a status row with Try again beside it, not an answer (#306)', (
+    tester,
+  ) async {
     phone(tester);
-    final harness = Harness(answers: [const HttpError(500, 'offline'), 'Merhaba!']);
+    final harness = Harness(answers: [const HttpError(500, 'upstream exploded'), 'Merhaba!']);
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     expect(find.byTooltip('Resend'), findsNothing); // nothing sent yet
@@ -680,8 +682,20 @@ void main() {
     await tester.pump(); // the Send button appears with the text
     await tester.tap(find.byTooltip('Send'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('offline'), findsOneWidget);
-    await tester.tap(find.byTooltip('Resend'));
+    final row = find.byKey(const Key('chat-error'));
+    expect(row, findsOneWidget);
+    expect(find.descendant(of: row, matching: find.byIcon(Icons.error_outline)), findsOneWidget);
+    expect(
+      find.descendant(of: row, matching: find.textContaining('having trouble')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('upstream exploded'), findsNothing); // no raw provider text
+    expect(find.textContaining('HTTP'), findsNothing);
+    // The way out sits with the error, not under the message above it.
+    expect(find.byTooltip('Resend'), findsNothing);
+    final tryAgain = find.descendant(of: row, matching: find.text('Try again'));
+    expect(tryAgain, findsOneWidget);
+    await tester.tap(tryAgain);
     await tester.pumpAndSettle();
     expect(harness.provider.asked, ['selam', 'selam']);
     expect(find.text('selam'), findsNWidgets(2)); // the resend shows, then its answer

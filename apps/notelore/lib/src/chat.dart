@@ -211,7 +211,12 @@ class _Lines extends StatelessWidget {
     final s = session.strings;
     final lines = session.transcript.reversed.toList();
     // One tap sends the last message again; not while a turn runs.
-    final resendable = session.busy ? -1 : lines.indexWhere((l) => l.role == ChatRole.user);
+    // After a failure, the way out is the error's own Try again (#306).
+    final resendable = switch (lines.firstOrNull?.role) {
+      _ when session.busy => -1,
+      ChatRole.error => 0,
+      _ => lines.indexWhere((l) => l.role == ChatRole.user),
+    };
     return ListView.builder(
       reverse: true,
       padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
@@ -689,14 +694,15 @@ class _Bubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A failed turn is a status, not an answer: no bubble (#306).
+    if (line.role == ChatRole.error) return _ErrorRow(line.text, strings, retry: resend);
     final colors = Theme.of(context).colorScheme;
     final mine = line.role == ChatRole.user || line.role == ChatRole.pending;
     final (background, foreground) = switch (line.role) {
       ChatRole.user => (colors.primary, colors.onPrimary),
       // Not sent yet: the user's, in a quieter tone.
       ChatRole.pending => (colors.primaryContainer, colors.onPrimaryContainer),
-      ChatRole.assistant => (colors.surfaceContainerHigh, colors.onSurface),
-      ChatRole.error => (colors.errorContainer, colors.onErrorContainer),
+      ChatRole.assistant || ChatRole.error => (colors.surfaceContainerHigh, colors.onSurface),
     };
     final (:text, :answers, :files, :images) = _shown(line);
     final bubble = _bubble(
@@ -704,7 +710,6 @@ class _Bubble extends StatelessWidget {
       mine,
       background,
     );
-    if (line.role == ChatRole.error) return bubble;
     if (line.role == ChatRole.pending) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -765,6 +770,58 @@ class _Bubble extends StatelessWidget {
           borderRadius: _bubbleRadius(mine: mine),
         ),
         child: content,
+      ),
+    );
+  }
+}
+
+/// A failed turn, as a status between the lines (#306): an icon and what went
+/// wrong, centred, and its way out right there ([retry], for the newest one).
+/// The message keeps the normal text colour, so it reads as a notice, not an
+/// alarm; only the icon carries the error colour.
+class _ErrorRow extends StatelessWidget {
+  const _ErrorRow(this.message, this.strings, {this.retry});
+
+  final String message;
+  final Strings strings;
+  final VoidCallback? retry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      key: const Key('chat-error'),
+      padding: const EdgeInsets.symmetric(vertical: Gap.s),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: Gap.s,
+                children: [
+                  Icon(Icons.error_outline, size: 20, color: colors.error),
+                  Flexible(
+                    child: Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: colors.onSurfaceVariant, height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+              if (retry case final retry?)
+                TextButton.icon(
+                  onPressed: retry,
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: Text(strings.tryAgain),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
