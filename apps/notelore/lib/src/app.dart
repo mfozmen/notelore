@@ -245,40 +245,27 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     // A desktop window navigates from a side rail, with its labels when there
     // is room; a phone from the bottom bar.
     final wide = width >= Layout.wide;
-    final extended = width >= Layout.roomy;
     final destinations = [
       (Icons.chat_bubble_outline, Icons.chat_bubble, s.chat),
       (Icons.description_outlined, Icons.description, s.notes),
       (Icons.settings_outlined, Icons.settings, s.settings),
     ];
     void select(int tab) => setState(() => _tab = tab);
-    final labels = Theme.of(context).textTheme.labelLarge!;
     final page = Column(
       children: [
         if (_available case final version?)
-          MaterialBanner(
-            content: Text(
-              _installed
-                  ? s.installed(version)
-                  : _updateProblem ??
-                        (_updating ? s.installing(version) : s.updateAvailable(version)),
-            ),
-            actions: [
-              TextButton(
-                onPressed: _updating
-                    ? null
-                    : () => setState(() {
-                        _dismissed = _available;
-                        _available = null;
-                      }),
-                child: Text(s.later),
-              ),
-              if (!_installed)
-                TextButton(
-                  onPressed: _updating ? null : _update,
-                  child: Text(widget.updater?.system == 'android' ? s.update : s.updateAndRestart),
-                ),
-            ],
+          _UpdateBanner(
+            s,
+            version: version,
+            installed: _installed,
+            updating: _updating,
+            problem: _updateProblem,
+            android: widget.updater?.system == 'android',
+            later: () => setState(() {
+              _dismissed = _available;
+              _available = null;
+            }),
+            update: _update,
           ),
         Expanded(
           child: switch (_tab) {
@@ -297,31 +284,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         child: wide
             ? Row(
                 children: [
-                  NavigationRail(
-                    extended: extended,
-                    minExtendedWidth: 220,
-                    // Labels sized for reading at a desk, not a phone's caption.
-                    selectedLabelTextStyle: labels.copyWith(fontWeight: FontWeight.w600),
-                    unselectedLabelTextStyle: labels.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    labelType: extended ? null : NavigationRailLabelType.all,
-                    selectedIndex: _tab,
-                    onDestinationSelected: select,
-                    leading: extended
-                        ? Padding(
-                            padding: const EdgeInsets.fromLTRB(Gap.s, Gap.m, 0, Gap.m),
-                            child: Text('Notelore', style: Theme.of(context).textTheme.titleLarge),
-                          )
-                        : null,
-                    destinations: [
-                      for (final (icon, chosen, label) in destinations)
-                        NavigationRailDestination(
-                          icon: Icon(icon),
-                          selectedIcon: Icon(chosen),
-                          label: Text(label),
-                        ),
-                    ],
+                  _SideRail(
+                    destinations,
+                    selected: _tab,
+                    select: select,
+                    extended: width >= Layout.roomy,
                   ),
                   const VerticalDivider(width: 1),
                   Expanded(child: page),
@@ -339,6 +306,98 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   NavigationDestination(icon: Icon(icon), selectedIcon: Icon(chosen), label: label),
               ],
             ),
+    );
+  }
+}
+
+/// A newer release: install it, or put it off with Later. While it installs
+/// both wait; once installed (macOS, when the restart failed) only Later stays.
+class _UpdateBanner extends StatelessWidget {
+  const _UpdateBanner(
+    this.strings, {
+    required this.version,
+    required this.installed,
+    required this.updating,
+    required this.problem,
+    required this.android,
+    required this.later,
+    required this.update,
+  });
+
+  final Strings strings;
+  final String version;
+  final bool installed;
+  final bool updating;
+  final String? problem;
+  final bool android;
+  final VoidCallback later;
+  final VoidCallback update;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = strings;
+    final message = switch (problem) {
+      _ when installed => s.installed(version),
+      final problem? => problem,
+      _ when updating => s.installing(version),
+      _ => s.updateAvailable(version),
+    };
+    return MaterialBanner(
+      content: Text(message),
+      actions: [
+        TextButton(onPressed: updating ? null : later, child: Text(s.later)),
+        if (!installed)
+          TextButton(
+            onPressed: updating ? null : update,
+            child: Text(android ? s.update : s.updateAndRestart),
+          ),
+      ],
+    );
+  }
+}
+
+/// A desktop window's navigation: a rail on the left, with the app's name and
+/// the labels beside the icons when [extended].
+class _SideRail extends StatelessWidget {
+  const _SideRail(
+    this.destinations, {
+    required this.selected,
+    required this.select,
+    required this.extended,
+  });
+
+  final List<(IconData, IconData, String)> destinations;
+  final int selected;
+  final ValueChanged<int> select;
+  final bool extended;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final labels = theme.textTheme.labelLarge!;
+    return NavigationRail(
+      extended: extended,
+      minExtendedWidth: 220,
+      // Labels sized for reading at a desk, not a phone's caption.
+      selectedLabelTextStyle: labels.copyWith(fontWeight: FontWeight.w600),
+      unselectedLabelTextStyle: labels.copyWith(color: theme.colorScheme.onSurfaceVariant),
+      labelType: extended ? null : NavigationRailLabelType.all,
+      selectedIndex: selected,
+      onDestinationSelected: select,
+      leading: extended
+          ? Padding(
+              padding: const EdgeInsets.fromLTRB(Gap.s, Gap.m, 0, Gap.m),
+              child: Text('Notelore', style: theme.textTheme.titleLarge),
+            )
+          : null,
+      destinations: [
+        for (final (icon, chosen, label) in destinations)
+          NavigationRailDestination(
+            icon: Icon(icon),
+            selectedIcon: Icon(chosen),
+            label: Text(label),
+          ),
+      ],
     );
   }
 }
