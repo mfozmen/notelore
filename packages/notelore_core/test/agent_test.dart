@@ -244,6 +244,31 @@ void main() {
     }
   });
 
+  test(
+    'an attached text file travels in the message, marked, and is filed by the tools (#222)',
+    () {
+      expect(systemPrompt(today), contains('<attached file='));
+      final message = withAttachments('for Mopsos', [
+        (name: 'plan "v2".txt', text: 'Ship in May.\n'),
+        (name: 'b.md', text: '# B'),
+      ]);
+      expect(
+        message,
+        'for Mopsos\n\n'
+        '<attached file="plan \'v2\'.txt">\nShip in May.\n</attached>\n\n'
+        '<attached file="b.md">\n# B\n</attached>',
+      );
+      final shown = attachedFiles(message);
+      expect(shown.text, 'for Mopsos');
+      expect(shown.files, ["plan 'v2'.txt", 'b.md']);
+      // A file alone, with nothing typed.
+      final alone = attachedFiles(withAttachments('', [(name: 'a.txt', text: 'x')]));
+      expect(alone.text, isEmpty);
+      expect(alone.files, ['a.txt']);
+      expect(attachedFiles('plain').files, isEmpty);
+    },
+  );
+
   test('a question ends with its likely answers in double brackets (#210)', () {
     expect(systemPrompt(today), contains('[[Yes]] [[No]]'));
     final asked = suggestedAnswers('Which project?\n[[Mopsos]] [[ Atlas ]]');

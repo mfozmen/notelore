@@ -56,6 +56,11 @@ abstract class Strings {
   String get copy;
   String get copied;
 
+  /// Text files attached in the chat (#222).
+  String get attachFile;
+  String notText(String name);
+  String tooLarge(String name);
+
   /// The app lock (#224): Settings, its dialogs and the screen at start.
   String get appLock;
   String get appLockOn;
@@ -292,6 +297,13 @@ class EnglishStrings extends Strings {
   String get copy => 'Copy';
   @override
   String get copied => 'Copied';
+  @override
+  String get attachFile => 'Attach a text file';
+  @override
+  String notText(String name) =>
+      'Notelore reads text files for now (txt, md, csv and the like); $name is not one.';
+  @override
+  String tooLarge(String name) => '$name is too large to send; split it into smaller files.';
   @override
   String get appLock => 'App lock';
   @override
@@ -724,6 +736,13 @@ class TurkishStrings extends Strings {
   String get copy => 'Kopyala';
   @override
   String get copied => 'Kopyalandı';
+  @override
+  String get attachFile => 'Metin dosyası ekle';
+  @override
+  String notText(String name) =>
+      'Notelore şimdilik metin dosyalarını okuyor (txt, md, csv gibi); $name metin değil.';
+  @override
+  String tooLarge(String name) => '$name gönderilemeyecek kadar büyük; daha küçük dosyalara böl.';
   @override
   String get appLock => 'Uygulama kilidi';
   @override

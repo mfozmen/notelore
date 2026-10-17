@@ -29,8 +29,28 @@ Rules:
 - archive only after the user confirmed in this conversation which entries to archive.
 - Keep replies short. Say what you saved or found; do not narrate tool calls.
 - When you ask the user a question that has a few likely answers, end the reply with the question, then one line of up to four short answers, each in double brackets, in the user's language: [[Yes]] [[No]]. The app shows them as buttons; never use that line otherwise.
+- A message may carry text files, each between <attached file="name"> and </attached>. File what they say with the tools: read them, find the project or topic they belong to (the user's words beside them count), and add their points as entries, decisions or todos. Ask which note when it is unclear. Never claim a file says something it does not.
 
 Today is {today}.''';
+
+/// A text file sent along with a message.
+typedef Attachment = ({String name, String text});
+
+/// [message] with [files] after it, each marked the way the prompt describes.
+String withAttachments(String message, List<Attachment> files) => [
+  if (message.isNotEmpty) message,
+  for (final f in files)
+    '<attached file="${f.name.replaceAll('"', "'")}">\n${f.text.trimRight()}\n</attached>',
+].join('\n\n');
+
+final _attached = RegExp(r'<attached file="([^"]*)">\n[\s\S]*?\n</attached>');
+
+/// What [message] says besides its files, and the files' names: what a chat
+/// shows of it.
+({String text, List<String> files}) attachedFiles(String message) => (
+  text: message.replaceAll(_attached, '').trim(),
+  files: [for (final m in _attached.allMatches(message)) m[1]!],
+);
 
 final _answerLine = RegExp(r'^\s*(\[\[[^\[\]\n]*\S[^\[\]\n]*\]\]\s*)+$');
 final _answer = RegExp(r'\[\[([^\]]+)\]\]');

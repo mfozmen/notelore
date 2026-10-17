@@ -180,9 +180,10 @@ class Exchange {
 
   /// The files the person picks to import; none when called off. A desktop
   /// offers Markdown; a phone anything, as apps seldom say what a .md is.
-  Future<List<PickedFile>> pick() async {
+  /// [any] offers every file everywhere (a chat attachment: its content decides).
+  Future<List<PickedFile>> pick({bool any = false}) async {
     final picked = await openFiles(
-      acceptedTypeGroups: mobile
+      acceptedTypeGroups: mobile || any
           ? const []
           : const [
               XTypeGroup(
