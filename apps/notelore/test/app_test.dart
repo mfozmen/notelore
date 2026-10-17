@@ -277,7 +277,7 @@ void main() {
     final harness = Harness();
     final session = await pumpApp(tester, harness, clock: () => now);
     await connect(tester, key: 'k');
-    await session.setLock('2468');
+    await session.lock.set('2468');
     await tester.pumpAndSettle();
     toBackground(tester);
     now = now.add(const Duration(seconds: 59));
@@ -310,7 +310,7 @@ void main() {
     final harness = Harness();
     final first = await pumpApp(tester, harness, clock: () => now);
     await connect(tester, key: 'k');
-    await first.setLock('2468');
+    await first.lock.set('2468');
     await tester.pumpWidget(const SizedBox());
     await pumpApp(tester, harness, clock: () => now);
     for (var i = 0; i < 5; i++) {
@@ -339,14 +339,14 @@ void main() {
     final harness = Harness();
     final first = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    await first.setLock('2468');
+    await first.lock.set('2468');
     await tester.pumpAndSettle();
     await openLock(tester);
     await tester.tap(find.text('Turn off'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
-    expect(first.lockEnabled, isTrue);
+    expect(first.lock.enabled, isTrue);
     await tester.tap(find.text('Turn off'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('lock-current')), '0000');
@@ -355,19 +355,19 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text("That's not it. Try again."), findsOneWidget);
-    expect(first.lockEnabled, isTrue);
+    expect(first.lock.enabled, isTrue);
     await tester.enterText(find.byKey(const Key('lock-current')), '2468');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);
-    expect(first.lockEnabled, isFalse);
+    expect(first.lock.enabled, isFalse);
     expect(find.textContaining('opens without asking'), findsOneWidget);
     // Setting it up can be called off too.
     await tester.tap(find.text('Turn on'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
-    expect(first.lockEnabled, isFalse);
+    expect(first.lock.enabled, isFalse);
     await restart(tester, harness);
     expect(find.text('Notelore is locked'), findsNothing);
   });

@@ -40,8 +40,8 @@ class _NoteloreAppState extends State<NoteloreApp> with WidgetsBindingObserver {
   /// focus alone (inactive) is not the background.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) => switch (state) {
-    AppLifecycleState.hidden || AppLifecycleState.paused => _opened?.backgrounded(),
-    AppLifecycleState.resumed => _opened?.foregrounded(),
+    AppLifecycleState.hidden || AppLifecycleState.paused => _opened?.lock.backgrounded(),
+    AppLifecycleState.resumed => _opened?.lock.foregrounded(),
     _ => null,
   };
 
@@ -79,7 +79,7 @@ class _NoteloreAppState extends State<NoteloreApp> with WidgetsBindingObserver {
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
           home: switch (snapshot) {
             // With the app lock on, nothing else shows until it is opened (#224).
-            AsyncSnapshot(:final Session data) when data.locked => LockScreen(data),
+            AsyncSnapshot(:final Session data) when data.lock.locked => LockScreen(data),
             AsyncSnapshot(:final Session data) =>
               data.ready
                   ? Home(data, updater: widget.updater, exitApp: widget.exitApp)
