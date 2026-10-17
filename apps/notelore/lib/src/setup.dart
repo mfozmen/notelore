@@ -52,18 +52,23 @@ class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _awaitingKey) unawaited(_pickUpKey());
+    // One look on the first return, key or not: every read shows Android's
+    // "pasted from clipboard" notice.
+    if (state == AppLifecycleState.resumed && _awaitingKey) {
+      _awaitingKey = false;
+      unawaited(_pickUpKey());
+    }
   }
 
   /// Back from AI Studio: a copied key goes into the box (only one that looks
   /// like a Gemini key, only into an empty box); connecting stays the user's.
   Future<void> _pickUpKey() async {
-    final copied = (await Clipboard.getData(Clipboard.kTextPlain))?.text?.trim() ?? '';
+    final copied = await Clipboard.getData(Clipboard.kTextPlain)
+        .then((data) => data?.text?.trim() ?? '', onError: (Object _) => ''); // unreadable: none
     if (!mounted || !_geminiKey.hasMatch(copied) || _key.text.isNotEmpty) return;
     setState(() {
       _key.text = copied;
       _pasted = true;
-      _awaitingKey = false;
     });
   }
 
@@ -130,6 +135,7 @@ class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
                   onChanged: (spec) => setState(() {
                     _spec = spec!;
                     _problem = null;
+                    _noPlan = false; // about ChatGPT: gone with another choice
                   }),
                   // Grouped by how they are paid for. The plan, one tap, leads;
                   // keys and local models wait under Advanced (#206). Without a

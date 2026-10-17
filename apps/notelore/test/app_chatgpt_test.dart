@@ -134,13 +134,8 @@ void main() {
     expect(launcher.opened, ['https://aistudio.google.com/apikey']);
     final key = find.byKey(const Key('api-key'));
     expect(key, findsOneWidget);
-    // Back in the app: something else on the clipboard is left alone...
-    clipboard = 'a shopping list';
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await tester.pumpAndSettle();
-    expect(tester.widget<TextField>(key).controller!.text, isEmpty);
-    // ...a copied key goes into the box, said so; it connects only on Connect.
+    // Back in the app with the key copied: it goes into the box, said so; it
+    // connects only on Connect.
     clipboard = 'AIza${'x' * 35}';
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
@@ -148,6 +143,67 @@ void main() {
     expect(tester.widget<TextField>(key).controller!.text, clipboard);
     expect(find.textContaining('pasted from the clipboard'), findsOneWidget);
     expect(find.byKey(const Key('message')), findsNothing); // still in setup
+  });
+
+  testWidgets('no plan: the clipboard is read once, only for a key; another provider clears it', (
+    tester,
+  ) async {
+    UrlLauncherPlatform.instance = FakeLauncher();
+    String? clipboard;
+    var reads = 0;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (
+      call,
+    ) async {
+      if (call.method != 'Clipboard.getData') return null;
+      reads++;
+      return {'text': clipboard};
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    Future<void> comeBack() async {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+    }
+
+    await pumpPlanApp(tester, Harness(chatGpt: FakeAuth()..failSignIn = const NoChatGptPlan()));
+    await tester.tap(find.text('Continue with ChatGPT'));
+    await tester.pumpAndSettle();
+    final card = find.byKey(const Key('no-chatgpt-plan'));
+    expect(card, findsOneWidget);
+    // Another provider chosen: the card is about ChatGPT, so it goes.
+    await tester.tap(find.text('Advanced'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Claude (Anthropic)'));
+    await tester.pumpAndSettle();
+    final list = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(find.text('Connect'), 200, scrollable: list);
+    expect(card, findsNothing);
+    await comeBack();
+    expect(reads, 0); // never asked for a key: the clipboard is not read
+    await tester.scrollUntilVisible(find.text('ChatGPT plan (OpenAI)'), -200, scrollable: list);
+    await tester.ensureVisible(find.text('ChatGPT plan (OpenAI)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ChatGPT plan (OpenAI)'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Continue with ChatGPT'), 200, scrollable: list);
+    await tester.tap(find.text('Continue with ChatGPT'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Get a free Gemini key'), 200, scrollable: list);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Get a free Gemini key'));
+    await tester.pumpAndSettle();
+    // Something else on the clipboard is left alone, and it is read only once.
+    clipboard = 'a shopping list';
+    await comeBack();
+    clipboard = 'AIza${'x' * 35}';
+    await comeBack();
+    expect(reads, 1);
+    expect(tester.widget<TextField>(find.byKey(const Key('api-key'))).controller!.text, isEmpty);
   });
 
   testWidgets('ChatGPT plan: a failed sign-in is shown on the setup screen', (tester) async {
