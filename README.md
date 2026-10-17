@@ -36,7 +36,7 @@ The app checks for a new release every time it opens (and every few hours while 
 
 1. Open Notelore and *Sign in with Google* with your Google (Gmail) account: this also connects Google Drive, where your notes are backed up and synced.
 2. Pick a model:
-   - **ChatGPT plan** (desktop and phone), the default: *Continue with ChatGPT* and sign in, one tap. No extra charges, within your plan's limits.
+   - **ChatGPT plan** (desktop and phone), the default: *Continue with ChatGPT* and sign in, one tap; on a phone the browser hands you back to Notelore by itself. No extra charges, within your plan's limits.
    - Under **Advanced**, for your own API key or a local model:
      - **Claude, GPT or Gemini:** paste an API key; the app shows step by step where to get one. Keys stay in your device's keystore.
      - **Ollama** (desktop): start Ollama on this computer; no key needed.

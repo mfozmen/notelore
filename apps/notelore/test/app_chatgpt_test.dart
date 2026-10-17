@@ -65,8 +65,15 @@ void main() {
     await pumpPlanApp(tester, harness);
     await tester.tap(find.text('Continue with ChatGPT'));
     await tester.pumpAndSettle();
-    expect(find.text('ChatGPT sign-in failed: access_denied'), findsOneWidget);
+    expect(find.text('Sign-in did not finish. Please try again.'), findsOneWidget);
+    expect(find.textContaining('access_denied'), findsNothing); // no raw codes (#302)
     expect(find.text('Continue with ChatGPT'), findsOneWidget);
+    // A raw HTTP answer is not shown either.
+    harness.chatGpt!.failSignIn = const HttpError(400, '{"error": "invalid_grant"}');
+    await tester.tap(find.text('Continue with ChatGPT'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sign-in did not finish. Please try again.'), findsOneWidget);
+    expect(find.textContaining('invalid_grant'), findsNothing);
   });
 
   testWidgets('other providers show no plan line in the chat', (tester) async {

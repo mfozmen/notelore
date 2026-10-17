@@ -128,13 +128,21 @@ void main() {
     expect(find.text('Claude (Anthropic)'), findsNothing); // no provider before Google
     await tester.tap(find.text('Sign in with Google'));
     await tester.pumpAndSettle();
-    expect(find.text('Notelore needs a Google account to continue: access_denied'), findsOneWidget);
+    expect(
+      find.text('Notelore needs a Google account to continue. Sign in to go on.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('access_denied'), findsNothing); // no raw codes (#302)
     expect(find.text('Claude (Anthropic)'), findsNothing);
     // Not a refusal: said as it is, not as a missing account.
     auth.failSignIn = const NetworkError('offline');
     await tester.tap(find.text('Sign in with Google'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('offline'), findsOneWidget);
+    expect(
+      find.text('Could not reach the service. Check the connection and try again.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('offline'), findsNothing);
     expect(find.textContaining('needs a Google account'), findsNothing);
     auth.failSignIn = null;
     await tester.tap(find.text('Sign in with Google'));

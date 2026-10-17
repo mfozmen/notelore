@@ -42,6 +42,8 @@ class ChatGptAuth implements OAuthSignIn {
     this.timeout = const Duration(seconds: 30),
     this.exchangeFor = const Duration(minutes: 2),
     this.retryEvery = const Duration(seconds: 2),
+    this.backInApp,
+    this.returnTo,
   }) : _client = client ?? http.Client(),
        clock = clock ?? DateTime.timestamp;
 
@@ -61,6 +63,14 @@ class ChatGptAuth implements OAuthSignIn {
   /// sign-in tab until the user is back in it.
   final Duration exchangeFor;
   final Duration retryEvery;
+
+  /// On a phone: completes once Notelore is in front again. The code is
+  /// exchanged only then, so the one try is never cut off behind the browser
+  /// and the code never sent twice (#300).
+  final Future<void> Function()? backInApp;
+
+  /// Where the browser goes after the sign-in: the app, on a phone (#301).
+  final Uri? returnTo;
   final http.Client _client;
 
   String? _access;
@@ -99,7 +109,9 @@ class ChatGptAuth implements OAuthSignIn {
       state: state,
       openBrowser: openBrowser,
       wait: wait,
+      returnTo: returnTo,
     );
+    await backInApp?.call();
     final clientId = saved ?? query['client_id'];
     if (clientId == null) {
       throw const SignInFailed('ChatGPT did not register Notelore', service: 'ChatGPT');
@@ -163,12 +175,20 @@ class ChatGptAuth implements OAuthSignIn {
   /// The code exchange, tried again while the network is held back.
   Future<Map<String, Object?>> _exchange(Map<String, String> form) async {
     final trying = Stopwatch()..start();
+    var retried = false;
     while (true) {
       try {
         return await _post(form);
       } on NetworkError {
         if (trying.elapsed >= exchangeFor) rethrow;
+        retried = true;
         await Future<void>.delayed(retryEvery);
+      } on HttpError catch (error) {
+        // A lost first try may have used the code up: the sign-in has to start over.
+        if (retried && error.message.contains('invalid_grant')) {
+          throw const SignInFailed('it was interrupted; please try again', service: 'ChatGPT');
+        }
+        rethrow;
       }
     }
   }

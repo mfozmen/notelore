@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
@@ -160,5 +163,34 @@ void planTests() {
     expect(await auth.read('client_id'), 'oaiapp_1');
     await auth.write('client_id', null);
     expect(await auth.read('client_id'), isNull);
+  });
+
+  testWidgets('phone: the browser comes back to the app, then the code is exchanged (#300, #301)', (
+    tester,
+  ) async {
+    const keys = FlutterSecureStorage();
+    final phone = chatGptAuthFor(mobile: true, keys: keys, keySpace: 'n') as ChatGptAuth;
+    expect(phone.returnTo, Uri.parse('notelore://signed-in'));
+    // Behind the sign-in tab: waits until Notelore is in front again.
+    tester.binding
+      ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.hidden)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    var back = false;
+    unawaited(phone.backInApp!().then((_) => back = true));
+    await tester.pump();
+    expect(back, isFalse);
+    tester.binding
+      ..handleAppLifecycleStateChanged(AppLifecycleState.hidden)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(back, isTrue);
+    // Already in front (the user came back before the answer): no wait.
+    await phone.backInApp!();
+    // The desktop's browser is another app: nothing to wait for or return to.
+    final desktop = chatGptAuthFor(mobile: false, keys: keys, keySpace: 'n') as ChatGptAuth;
+    expect(desktop.backInApp, isNull);
+    expect(desktop.returnTo, isNull);
   });
 }

@@ -37,6 +37,21 @@
                 <data android:mimeType="text/plain"/>
             </intent-filter>
         </activity>
+        <!-- The sign-in page's way back into the app (SignedInActivity.kt, #301). -->
+        <activity
+            android:name=".SignedInActivity"
+            android:exported="true"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="notelore" android:host="signed-in"/>
+            </intent-filter>
+        </activity>
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.updates"
