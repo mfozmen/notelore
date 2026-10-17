@@ -2,6 +2,220 @@
 
 <!-- version list -->
 
+## v0.12.0 (2026-10-17)
+
+### Bug Fixes
+
+- A device synced before the update opens offline; only a refusal means no account
+  ([`2b41d69`](https://github.com/mfozmen/notelore/commit/2b41d69b338d22c24c7cbd21bbed4b5eb084b49c))
+
+- A file cannot break out of its marker; the size limit counts every file
+  ([`3a1416f`](https://github.com/mfozmen/notelore/commit/3a1416f64fa7d0291b3ec43b05d3cba36615833b))
+
+- A folder the old notes move cannot remove does not stop the start
+  ([`d2cd3fc`](https://github.com/mfozmen/notelore/commit/d2cd3fcfbe2527ca35b2e135372bc51972930330))
+
+- A Gemini answer without answer tokens still counts its prompt
+  ([`b9b53c7`](https://github.com/mfozmen/notelore/commit/b9b53c7fb12caba50f00af81e7257c64e9b7738a))
+
+- A message written during a retry waits too, and logout mid-retry leaves nothing stuck
+  ([`ac0a300`](https://github.com/mfozmen/notelore/commit/ac0a3006b032153e12151d01e679eac366a48954))
+
+- A note file that cannot be read stays put instead of stopping the start
+  ([`2cf4b0a`](https://github.com/mfozmen/notelore/commit/2cf4b0a8625fba99ee0196f08ee9858bdb21bd3d))
+
+- A question that names a note searches only that note
+  ([`3d6f36c`](https://github.com/mfozmen/notelore/commit/3d6f36c806163832278aa2084114f16a3e875ef3))
+
+- A reply lost while the phone had Notelore in the background arrives on return
+  ([`6012107`](https://github.com/mfozmen/notelore/commit/6012107ea3def5f047f66379f7e07ef540de6fd0))
+
+- A turn that never got an answer keeps the archive notice for the next
+  ([`eec31d1`](https://github.com/mfozmen/notelore/commit/eec31d17a7af898e94bedee568feb1edd06f7b64))
+
+- Back before the failure surfaced, the reply is fetched at once; logout drops a held message
+  ([`d37d1ba`](https://github.com/mfozmen/notelore/commit/d37d1ba7f2b375d3de2302c2b5f160a9d3bfc59a))
+
+- Cut pages keep no script, stalled downloads stop, Recents shares once
+  ([`7637ff4`](https://github.com/mfozmen/notelore/commit/7637ff41b7c7f9f433c66a35d04a68807d10cf27))
+
+- Keep an unsent chat draft across tabs and layouts
+  ([#234](https://github.com/mfozmen/notelore/pull/234),
+  [`dd0a3de`](https://github.com/mfozmen/notelore/commit/dd0a3deb1e430e3f061c32ddb7dda7c511cfe3d0))
+
+- Messages that joined a turn which has to wait are kept in the queue too
+  ([`2bcbf8c`](https://github.com/mfozmen/notelore/commit/2bcbf8c6c7603b0b29b9e8981d7678a4a26b4888))
+
+- Name a note with whole words only, so "Plan" does not capture "planning"
+  ([`c544d29`](https://github.com/mfozmen/notelore/commit/c544d291b5f3aa38247552fd518e31c7b70d88cf))
+
+- Suggested answers only after a question
+  ([`f9eaf80`](https://github.com/mfozmen/notelore/commit/f9eaf80950d2376cc9fcf2fc2b96fe97850f53bd))
+
+- Sync never writes over an edit saved while it downloads
+  ([`c04fd32`](https://github.com/mfozmen/notelore/commit/c04fd32c32ffe6149db847f82b8e0ac177cf30c2))
+
+- The assistant never answers from archived notes
+  ([`79bb872`](https://github.com/mfozmen/notelore/commit/79bb872cfefb0208e82e11468d06fca0b0c67310))
+
+- The ChatGPT sign-in on a phone keeps trying until OpenAI is reachable
+  ([`ab89164`](https://github.com/mfozmen/notelore/commit/ab8916440bfa7e537a204802961816e0e67fc819))
+
+- The talk button reads as disabled to a screen reader while it works
+  ([`9a2cbda`](https://github.com/mfozmen/notelore/commit/9a2cbda56363ce706aaffd4546e4460bd4b5cbe1))
+
+- Write English terms the way they are spelled, not how they sounded
+  ([`ed65f88`](https://github.com/mfozmen/notelore/commit/ed65f88caf9af1831a1654036cc0d2dc1b7c2762))
+
+### Chores
+
+- Share project guidance with Codex ([#230](https://github.com/mfozmen/notelore/pull/230),
+  [`0731a6f`](https://github.com/mfozmen/notelore/commit/0731a6f32cc74f6559f5b940eee2477fcd02846f))
+
+### Continuous Integration
+
+- A PR with new SonarCloud issues fails the SonarCloud check
+  ([`4e8199c`](https://github.com/mfozmen/notelore/commit/4e8199c0123cad36dc5161e33a93a440c53b2afa))
+
+- Every issue carries a priority label
+  ([`e7074ce`](https://github.com/mfozmen/notelore/commit/e7074ce8b7b8ab0a1c7092fd78914b96d2ffbbfb))
+
+### Documentation
+
+- Clarify emulator probe setup ([#267](https://github.com/mfozmen/notelore/pull/267),
+  [`890bb8e`](https://github.com/mfozmen/notelore/commit/890bb8eb055deddc67eae1779aa84bf6015de970))
+
+- Clarify large-corpus timing limits ([#259](https://github.com/mfozmen/notelore/pull/259),
+  [`b907713`](https://github.com/mfozmen/notelore/commit/b90771343a2c8b128e0c5a8c161f878ef774decb))
+
+- Measure assistant response latency ([#259](https://github.com/mfozmen/notelore/pull/259),
+  [`b907713`](https://github.com/mfozmen/notelore/commit/b90771343a2c8b128e0c5a8c161f878ef774decb))
+
+- Measure synthetic assistant response latency
+  ([#259](https://github.com/mfozmen/notelore/pull/259),
+  [`b907713`](https://github.com/mfozmen/notelore/commit/b90771343a2c8b128e0c5a8c161f878ef774decb))
+
+- Name the Sync settings section
+  ([`4644253`](https://github.com/mfozmen/notelore/commit/46442535d36337ac6884772854d68772dfd44c21))
+
+- Say where a named note's ending may go
+  ([`59a3854`](https://github.com/mfozmen/notelore/commit/59a38540f2b009ea92c88e28cc4e7ea8eff3f6bf))
+
+### Features
+
+- Attach text files in the chat; the assistant files them into notes
+  ([`ae72f90`](https://github.com/mfozmen/notelore/commit/ae72f90ec818c7f96569b8b18edf50f63226cf77))
+
+- Copy a message or an answer with one tap
+  ([`c9129a4`](https://github.com/mfozmen/notelore/commit/c9129a4385537de3ca692e4080b98b38f6e574a4))
+
+- Export, share and import notes ([#247](https://github.com/mfozmen/notelore/pull/247),
+  [`be9a66c`](https://github.com/mfozmen/notelore/commit/be9a66c7ce8f8c1a768e0351a785554b1bcfae46))
+
+- Find related notes across categories and merge them on request
+  ([`61dc37a`](https://github.com/mfozmen/notelore/commit/61dc37a1e26717b73ab73cfd6511918c61928d38))
+
+- Messages wait offline or over the usage limit, and go out later
+  ([`8e0d030`](https://github.com/mfozmen/notelore/commit/8e0d030dbf1d95e8d967f0ce9952ae27dfaa66de))
+
+- Notes live in the app's own folder, one copy, no path to manage
+  ([`99d90df`](https://github.com/mfozmen/notelore/commit/99d90dff9e998db84b8fe777375bc985baf9b84b))
+
+- One composer button: Send with text, push to talk without
+  ([`749b386`](https://github.com/mfozmen/notelore/commit/749b38647ba805d5400591d79488544d820d039c))
+
+- Open saved note links in browser ([#223](https://github.com/mfozmen/notelore/pull/223),
+  [`4718f81`](https://github.com/mfozmen/notelore/commit/4718f815de193c965fcb05b842dd4ccc919d3b3d))
+
+- Optional PIN or password to open Notelore ([#241](https://github.com/mfozmen/notelore/pull/241),
+  [`b72ce5b`](https://github.com/mfozmen/notelore/commit/b72ce5bd0120f24f8761f270c25cda7e60be7099))
+
+- Playful waiting lines instead of a plain "Thinking"
+  ([`be4357c`](https://github.com/mfozmen/notelore/commit/be4357c2970c3b56e7b3dcc69308a37bc6ff0df5))
+
+- Push to talk by keyboard and screen reader
+  ([`12b4c14`](https://github.com/mfozmen/notelore/commit/12b4c147adf5c55d54056fb8ea5f912701a961cb))
+
+- Read shared links and file them by what the page says
+  ([`db8226c`](https://github.com/mfozmen/notelore/commit/db8226cdf61995912cb5cff0a9fe2ae05f9e0702))
+
+- Resend the last message with one tap ([#220](https://github.com/mfozmen/notelore/pull/220),
+  [`218441f`](https://github.com/mfozmen/notelore/commit/218441fc2cf0b09df205a38030e8d7ce5182c1d9))
+
+- Setup leads with Continue with ChatGPT; keys and local models under Advanced
+  ([`b99334c`](https://github.com/mfozmen/notelore/commit/b99334c09b569c9124acea4b5489cdbe414de4dd))
+
+- Show token usage and an estimated cost in Settings
+  ([`7bf8ad1`](https://github.com/mfozmen/notelore/commit/7bf8ad1b39f9ebe78dafaf32e3d575814e1224c1))
+
+- Sign in with Google first; Notelore needs a Google account
+  ([`c10552a`](https://github.com/mfozmen/notelore/commit/c10552a1d01152f04fe8400394c4b7bdc20efdad))
+
+- Suggested answers as buttons under the assistant's question
+  ([`7ca8d0e`](https://github.com/mfozmen/notelore/commit/7ca8d0ea92ef9f003d8f566c3e8124560a1e98ee))
+
+- Time each model call, tool call and queue wait in development runs
+  ([`6bfe564`](https://github.com/mfozmen/notelore/commit/6bfe564ca66fa318f06784603393a97399ae65e7))
+
+### Performance Improvements
+
+- Document Android latency probe ([#267](https://github.com/mfozmen/notelore/pull/267),
+  [`890bb8e`](https://github.com/mfozmen/notelore/commit/890bb8eb055deddc67eae1779aa84bf6015de970))
+
+### Refactoring
+
+- Const text styles in the PDF layout
+  ([`f71d5dd`](https://github.com/mfozmen/notelore/commit/f71d5dd6a7c154c50609888bf16c87b7fdb94c34))
+
+- No nested ternaries, one Content-Type constant
+  ([`af917b0`](https://github.com/mfozmen/notelore/commit/af917b0b4d0e763c43f8d39d199cc5b52c0231e0))
+
+- One chat turn and its failure in their own methods
+  ([`c656317`](https://github.com/mfozmen/notelore/commit/c6563176be76586faf04997bf66aa92e827ac803))
+
+- One chat turn and its failure in their own methods
+  ([`f766850`](https://github.com/mfozmen/notelore/commit/f7668507090aed1e379172a520e6bc6501ecad26))
+
+- Reading both sides of a note in its own method
+  ([`4852268`](https://github.com/mfozmen/notelore/commit/48522680203098edca452f6c90c38cf0770f53de))
+
+- Reading both sides of a note in its own method
+  ([`bd6e56c`](https://github.com/mfozmen/notelore/commit/bd6e56cd9854de2b4c24ba7b9775ff29acc47d90))
+
+- Split core functions over Sonar's complexity limit by job
+  ([`253c2d0`](https://github.com/mfozmen/notelore/commit/253c2d0a32202975f85f35f0bc9b824277fb85a4))
+
+- Split Home.build and the Whisper download by job
+  ([`51e63b1`](https://github.com/mfozmen/notelore/commit/51e63b1326dd0ae2c8cb0c62e73c678d02610053))
+
+- Split mergeNotes by job, under Sonar's complexity limit
+  ([`978dd31`](https://github.com/mfozmen/notelore/commit/978dd3192224e5bc1ef9678e7d79c8b5b3538996))
+
+- Split the chat and Settings screens into widgets by what they show
+  ([`4d8f95a`](https://github.com/mfozmen/notelore/commit/4d8f95ab6fdbdf6aa8610981ed8b8446cf716aba))
+
+- The app lock's state in its own class
+  ([`e146d30`](https://github.com/mfozmen/notelore/commit/e146d304ebf653240be7ff4f376bcf5ff2cece5e))
+
+- The composer's row is a widget of its own
+  ([`f489b80`](https://github.com/mfozmen/notelore/commit/f489b807abe07a22c9b530d3eda806ee59ffb4e5))
+
+- The remote side's hash in its own function
+  ([`85e0d80`](https://github.com/mfozmen/notelore/commit/85e0d80544e8ccb06e94000286b56c6c3cd79e76))
+
+- The voice status line is a widget of its own
+  ([`7184a80`](https://github.com/mfozmen/notelore/commit/7184a80a2604b33b586fb9fd0349e28b539bf248))
+
+### Testing
+
+- A hold begun while an answer is read aloud still sends
+  ([`90f72f8`](https://github.com/mfozmen/notelore/commit/90f72f8f2356a25a878a7855467571db9e42db05))
+
+- Tap the rendered note links, including a bare URL
+  ([#223](https://github.com/mfozmen/notelore/pull/223),
+  [`4718f81`](https://github.com/mfozmen/notelore/commit/4718f815de193c965fcb05b842dd4ccc919d3b3d))
+
+
 ## v0.11.0 (2026-10-12)
 
 ### Bug Fixes
