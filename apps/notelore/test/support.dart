@@ -216,11 +216,15 @@ class FakeAuth implements DriveAuth {
   Exception? failToken;
   var signedOut = false;
 
+  /// When set, a sign-in waits for it: the time a browser or a picker takes.
+  Completer<void>? hold;
+
   @override
   Future<bool> signedIn() async => granted;
 
   @override
   Future<void> signIn() async {
+    await hold?.future;
     if (failSignIn case final error?) throw error;
     granted = true;
   }

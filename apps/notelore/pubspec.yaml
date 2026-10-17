@@ -50,3 +50,6 @@ flutter:
     # letter, which the PDF standard fonts lack.
     - assets/fonts/NotoSans-Regular.ttf
     - assets/fonts/NotoSans-Bold.ttf
+    # Google's G for the Sign in with Google button (assets/google/README.md).
+    - assets/google/g_light.png
+    - assets/google/g_dark.png
