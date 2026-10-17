@@ -37,10 +37,13 @@ Today is {today}.''';
 typedef Attachment = ({String name, String text});
 
 /// [message] with [files] after it, each marked the way the prompt describes.
+/// A file cannot end its own marker (its closing tag is escaped), nor its name
+/// leave the quotes: what a file holds stays inside it.
 String withAttachments(String message, List<Attachment> files) => [
   if (message.isNotEmpty) message,
   for (final f in files)
-    '<attached file="${f.name.replaceAll('"', "'")}">\n${f.text.trimRight()}\n</attached>',
+    '<attached file="${f.name.replaceAll('"', "'").replaceAll(RegExp(r'[\r\n]+'), ' ')}">\n'
+        '${f.text.trimRight().replaceAll('</attached>', r'<\/attached>')}\n</attached>',
 ].join('\n\n');
 
 final _attached = RegExp(r'<attached file="([^"]*)">\n[\s\S]*?\n</attached>');

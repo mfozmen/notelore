@@ -44,8 +44,9 @@ class _ChatScreenState extends State<ChatScreen> {
     await widget.session.send(text);
   }
 
-  /// A file larger than this is refused rather than sent: it would fill the
-  /// model's context. shortcut: text only, whole; PDFs, images and audio are #278.
+  /// Files adding up to more than this are refused rather than sent: they
+  /// would fill the model's context. shortcut: text only, whole; PDFs, images
+  /// and audio are #278.
   static const maxAttachment = 200000;
 
   /// Sends the text files picked, with what is typed as their explanation. A
@@ -55,11 +56,12 @@ class _ChatScreenState extends State<ChatScreen> {
     final s = widget.session.strings;
     final picked = await widget.session.exchange.pick(any: true);
     final files = <Attachment>[];
+    var sent = 0; // characters, over every file of the message
     for (final file in picked) {
       final text = _text(file.bytes);
       final refused = switch (text) {
         null => s.notText(file.name),
-        _ when text.length > maxAttachment => s.tooLarge(file.name),
+        _ when sent + text.length > maxAttachment => s.tooLarge(file.name),
         _ => null,
       };
       if (refused != null) {
@@ -69,6 +71,7 @@ class _ChatScreenState extends State<ChatScreen> {
         return;
       }
       files.add((name: file.name, text: text!));
+      sent += text.length;
     }
     if (files.isEmpty) return; // called off
     final typed = _message.text.trim();

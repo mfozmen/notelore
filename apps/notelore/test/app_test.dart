@@ -483,13 +483,24 @@ void main() {
     expect(harness.provider.asked, isEmpty);
     await tester.pump(const Duration(seconds: 5)); // the notice goes
     await tester.pumpAndSettle();
-    // Text, but too much to send whole.
+    // Valid UTF-8, but binary: a NUL byte.
     harness.files.picked = [
-      XFile.fromData(Uint8List.fromList(utf8.encode('a' * 200001)), path: 'huge.log'),
+      XFile.fromData(Uint8List.fromList([0x61, 0x00, 0x62]), path: 'x.bin'),
     ];
     await tester.tap(find.byTooltip('Attach a text file'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('huge.log is too large'), findsOneWidget);
+    expect(find.textContaining('x.bin is not one'), findsOneWidget);
+    expect(harness.provider.asked, isEmpty);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    // Text, but too much to send: the limit counts every file of the message.
+    harness.files.picked = [
+      XFile.fromData(Uint8List.fromList(utf8.encode('a' * 120000)), path: 'one.log'),
+      XFile.fromData(Uint8List.fromList(utf8.encode('b' * 120000)), path: 'two.log'),
+    ];
+    await tester.tap(find.byTooltip('Attach a text file'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('two.log is too large'), findsOneWidget);
     expect(harness.provider.asked, isEmpty);
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
