@@ -1001,6 +1001,7 @@ class Session extends ChangeNotifier {
     _pendingSyncs++;
     notifyListeners();
     await _exclusive(() async {
+      var completed = false;
       try {
         final resolver = _provider == null ? null : ModelResolver(askProvider(_provider!));
         final report = await sync(
@@ -1009,6 +1010,8 @@ class Session extends ChangeNotifier {
           _remote ??= remoteFor(driveAuth!),
           resolver?.call ?? _unresolved, // no model connected: conflicts wait
         );
+        _markSyncedNotes(report);
+        completed = true;
         await _syncSettings(_remote!);
         final counts = (
           report.pushed.length + report.removedRemote.length,
@@ -1033,10 +1036,17 @@ class Session extends ChangeNotifier {
         // Windows: antivirus or an editor holds a note past the store's retries.
         syncStatus = strings.noteInUse(error.message);
       } finally {
+        if (!completed) index.invalidateAll();
         _pendingSyncs--;
         notifyListeners();
       }
     });
+  }
+
+  void _markSyncedNotes(SyncReport report) {
+    for (final rel in [...report.pulled, ...report.merged, ...report.removedLocal]) {
+      index.markChanged(p.joinAll([paths.notes.path, ...rel.split('/')]));
+    }
   }
 
   static List<String>? _unresolved(Conflict conflict) => null;
@@ -1081,7 +1091,9 @@ class Session extends ChangeNotifier {
 
   Imported? _import(List<int> bytes) {
     try {
-      return importNote(paths.notes.path, utf8.decode(bytes));
+      final imported = importNote(paths.notes.path, utf8.decode(bytes));
+      if (imported.outcome != ImportOutcome.alreadyThere) index.markChanged(imported.path);
+      return imported;
     } on FormatException {
       return null; // not UTF-8, or not a Notelore note
     }
@@ -1094,6 +1106,7 @@ class Session extends ChangeNotifier {
     final path = notePath(paths.notes.path, note.kind, note.slug);
     if (!File(path).existsSync()) return null;
     final archived = archiveNote(paths.notes.path, path, today: today);
+    index.markChanged(path);
     notifyListeners();
     return archived;
   });
@@ -1108,7 +1121,8 @@ class Session extends ChangeNotifier {
   /// Puts [archived] back where it came from; false when a note took the name.
   Future<bool> restoreArchived(ArchivedNote archived) => _exclusive(() async {
     try {
-      core.restoreArchived(paths.notes.path, archived);
+      final path = core.restoreArchived(paths.notes.path, archived);
+      index.markChanged(path);
     } on RestoreTaken {
       return false;
     }
@@ -1121,6 +1135,7 @@ class Session extends ChangeNotifier {
     final path = notePath(paths.notes.path, note.kind, note.slug);
     if (File(path).existsSync()) return; // never overwrite; the archive copy stays
     moveWithRetry(archived, path);
+    index.markChanged(path);
     notifyListeners();
   });
 

@@ -215,23 +215,22 @@ class Toolbox {
         (args['tags'] as List?)?.cast<String>(),
         optional('lang') ?? 'en',
       ),
-      'add_note_entry' => _ok(
-        () => notes.addEntry(_path(arg('slug'), kind), arg('text'), today: today),
+      'add_note_entry' => _write(
+        _path(arg('slug'), kind),
+        (path) => notes.addEntry(path, arg('text'), today: today),
       ),
-      'add_todo' => _ok(
-        () => notes.addTodo(
-          _path(arg('slug'), kind),
-          arg('text'),
-          due: _due(optional('due')),
-          today: today,
-        ),
+      'add_todo' => _write(
+        _path(arg('slug'), kind),
+        (path) => notes.addTodo(path, arg('text'), due: _due(optional('due')), today: today),
       ),
-      'complete_todo' => _ok(
-        () => notes.completeTodo(_path(arg('slug'), kind), args['number']! as int, today: today),
+      'complete_todo' => _write(
+        _path(arg('slug'), kind),
+        (path) => notes.completeTodo(path, args['number']! as int, today: today),
       ),
-      'record_decision' => _ok(
-        () => notes.recordDecision(
-          _path(arg('slug'), kind),
+      'record_decision' => _write(
+        _path(arg('slug'), kind),
+        (path) => notes.recordDecision(
+          path,
           arg('topic'),
           arg('value'),
           reason: optional('reason'),
@@ -269,8 +268,9 @@ class Toolbox {
 
   NoteIndex _fresh() => index..rebuild();
 
-  static String _ok(void Function() write) {
-    write();
+  String _write(String path, void Function(String) write) {
+    write(path);
+    index.markChanged(path);
     return 'ok';
   }
 
@@ -284,6 +284,7 @@ class Toolbox {
 
   Map<String, Object?> _createNote(String kind, String title, List<String>? tags, String lang) {
     final path = notes.createNote(root, kind, title, tags: tags, lang: lang, today: today);
+    index.markChanged(path);
     return {'slug': p.basenameWithoutExtension(path), 'kind': kind, 'path': _rel(path)};
   }
 
@@ -300,6 +301,9 @@ class Toolbox {
 
   Map<String, Object?> _merge(String from, String into) {
     final (:archivedTo, :added, :duplicates) = notes.mergeNotes(root, from, into, today: today);
+    index
+      ..markChanged(from)
+      ..markChanged(into);
     return {
       'merged_into': _rel(into),
       'archived_to': _rel(archivedTo),
@@ -316,6 +320,7 @@ class Toolbox {
             for (final MapEntry(:key, :value) in entries.entries)
               '$key': (value! as List).cast<int>(),
           }, today: today);
+    index.markChanged(path);
     return {'archived_to': _rel(target)};
   }
 }
