@@ -231,6 +231,12 @@ void main() {
     }
   });
 
+  test('the prompt restores English terms that speech recognition spelled out (#209)', () {
+    final prompt = systemPrompt(today);
+    expect(prompt, contains('dictated'));
+    expect(prompt, contains('"deyta beys"'));
+  });
+
   test('the system prompt states the rules', () {
     final prompt = systemPrompt(today);
     for (final rule in ['get_decision', 'language', 'ask', 'archive', '2026-09-30']) {
