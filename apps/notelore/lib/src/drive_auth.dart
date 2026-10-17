@@ -5,6 +5,9 @@
 /// build without them has no Drive sync.
 library;
 
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:notelore_core/notelore_core.dart';
@@ -52,7 +55,25 @@ OAuthSignIn chatGptAuthFor({
     read: (item) => keys.read(key: name(item)),
     write: (item, value) =>
         value == null ? keys.delete(key: name(item)) : keys.write(key: name(item), value: value),
+    // A phone: the page sends the browser back here (SignedInActivity), and the
+    // code goes out only once the app is in front, never cut off behind the tab.
+    returnTo: mobile ? Uri.parse('notelore://signed-in') : null,
+    backInApp: mobile ? _inFront : null,
   );
+}
+
+/// Completes once the app is in front: at once if it already is.
+Future<void> _inFront() {
+  if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) return Future.value();
+  final back = Completer<void>();
+  late final AppLifecycleListener listener;
+  listener = AppLifecycleListener(
+    onResume: () {
+      listener.dispose();
+      back.complete();
+    },
+  );
+  return back.future;
 }
 
 /// Drive access through the google_sign_in plugin. The plugin keeps the grant;

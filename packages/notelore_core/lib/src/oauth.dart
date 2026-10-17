@@ -58,9 +58,24 @@ String randomSecret(int bytes) =>
 String pkceChallenge(String verifier) =>
     base64Url.encode(sha256.convert(ascii.encode(verifier)).bytes).replaceAll('=', '');
 
-const _page =
-    '<!doctype html><meta charset="utf-8"><title>Notelore</title>'
-    '<p style="font-family:sans-serif">You can close this tab and go back to Notelore.</p>';
+/// What the browser shows once the sign-in is back: on a phone it sends the
+/// browser on to [returnTo], the app (#301); a link stays for browsers that
+/// hold the redirect back.
+String _page(Uri? returnTo) {
+  final back = returnTo == null
+      ? null
+      : const HtmlEscape(HtmlEscapeMode.attribute).convert('$returnTo');
+  return '<!doctype html><meta charset="utf-8">'
+      '<meta name="viewport" content="width=device-width, initial-scale=1">'
+      '${back == null ? '' : '<meta http-equiv="refresh" content="0;url=$back">'}'
+      '<title>Notelore</title>'
+      '<body style="font-family:system-ui,sans-serif;display:flex;flex-direction:column;'
+      'align-items:center;justify-content:center;min-height:90vh;margin:0 24px;'
+      'text-align:center;color:#1b1c1c">'
+      '<h1 style="font-size:24px;font-weight:600;margin:0 0 8px">Signed in</h1>'
+      '${back == null ? '<p style="margin:0;color:#5c5f5f">You can close this tab and go back to Notelore.</p>' : '<a href="$back" style="margin-top:16px;padding:14px 28px;border-radius:24px;'
+                'background:#00695c;color:#fff;text-decoration:none;font-weight:600">Back to Notelore</a>'}';
+}
 
 /// Opens the authorization page built by [authorizeUrl] for a loopback
 /// redirect on 127.0.0.1 ([path] on a free port) and waits up to [wait] for the
@@ -74,6 +89,7 @@ Future<({Map<String, String> query, String redirect})> loopbackRedirect({
   required Duration wait,
   String path = '',
   String service = 'Google',
+  Uri? returnTo,
 }) async {
   final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
   try {
@@ -91,7 +107,7 @@ Future<({Map<String, String> query, String redirect})> loopbackRedirect({
     final query = request.uri.queryParameters;
     request.response
       ..headers.contentType = ContentType.html
-      ..write(_page);
+      ..write(_page(returnTo));
     await request.response.close();
     if (query['error'] case final error?) throw SignInFailed(error, service: service);
     if (query['state'] != state || query['code'] == null) {

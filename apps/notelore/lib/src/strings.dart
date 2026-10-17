@@ -42,6 +42,12 @@ abstract class Strings {
 
   // ChatGPT plan (OpenAI's wording where it asks for it).
   String get continueWithChatGpt => 'Continue with ChatGPT';
+
+  /// A sign-in that failed, in plain words: never a raw code or HTTP body (#302).
+  String signInProblem(Object error) =>
+      error is NetworkError ? '$cannotReach $checkConnection' : signInUnfinished;
+  String get signInUnfinished;
+  String get cannotReach;
   String get usingPlan => "You're using your ChatGPT plan";
   String get planWelcome;
   String get gotIt => 'Got it';
@@ -209,7 +215,7 @@ abstract class Strings {
   /// Google sign-in, the first step of setup (#208).
   String get signInWithGoogle;
   String get googleExplained;
-  String googleRequired(String why);
+  String get googleRequired;
   String get syncing;
   String get connected;
   String get syncNow;
@@ -268,6 +274,10 @@ class EnglishStrings extends Strings {
   String get pasteKeyFirst => 'Paste the key first.';
   @override
   String get checkConnection => 'Check the connection and try again.';
+  @override
+  String get signInUnfinished => 'Sign-in did not finish. Please try again.';
+  @override
+  String get cannotReach => 'Could not reach the service.';
   @override
   String get ollamaNoKey => 'Ollama runs on this computer; no key is needed.';
   @override
@@ -579,7 +589,7 @@ class EnglishStrings extends Strings {
       'Sign in with your Google (Gmail) account to start. Notelore can only see the files it '
       'creates there.';
   @override
-  String googleRequired(String why) => 'Notelore needs a Google account to continue: $why';
+  String get googleRequired => 'Notelore needs a Google account to continue. Sign in to go on.';
   @override
   String get syncing => 'Syncing...';
   @override
@@ -666,6 +676,10 @@ class TurkishStrings extends Strings {
   String get pasteKeyFirst => 'Önce anahtarı yapıştır.';
   @override
   String get checkConnection => 'Bağlantını kontrol edip yeniden dene.';
+  @override
+  String get signInUnfinished => 'Giriş tamamlanmadı. Lütfen yeniden dene.';
+  @override
+  String get cannotReach => 'Hizmete ulaşılamadı.';
   @override
   String get ollamaNoKey => 'Ollama bu bilgisayarda çalışır; anahtar gerekmez.';
   @override
@@ -1025,7 +1039,8 @@ class TurkishStrings extends Strings {
       'Başlamak için Google (Gmail) hesabınla giriş yap. Notelore orada yalnızca kendi '
       'oluşturduğu dosyaları görebilir.';
   @override
-  String googleRequired(String why) => 'Notelore’u kullanmak için bir Google hesabı gerekir: $why';
+  String get googleRequired =>
+      'Notelore’u kullanmak için bir Google hesabı gerekir. Devam etmek için giriş yap.';
   @override
   String get syncing => 'Eşitleniyor...';
   @override

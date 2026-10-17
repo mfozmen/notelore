@@ -51,31 +51,38 @@ void main() {
 
   /// A browser that signs in and comes back with [query] (or a code, and the
   /// issued client id on a first registration).
-  Future<void> Function(Uri) browser({List<Uri>? opened, Map<String, String>? query}) =>
-      (url) async {
-        opened?.add(url);
-        final params = url.queryParameters;
-        final answer =
-            query ??
-            {
-              'code': 'the-code',
-              'state': params['state']!,
-              if (params['client_id'] == 'dynamic_agent_client') 'client_id': 'oaiapp_123',
-            };
-        unawaited(() async {
-          final client = HttpClient();
-          final redirect = Uri.parse(params['redirect_uri']!).replace(queryParameters: answer);
-          final response = await (await client.getUrl(redirect)).close();
-          await response.drain<void>();
-          client.close();
-        }());
-      };
+  Future<void> Function(Uri) browser({
+    List<Uri>? opened,
+    Map<String, String>? query,
+    List<String>? pages,
+  }) => (url) async {
+    opened?.add(url);
+    final params = url.queryParameters;
+    final answer =
+        query ??
+        {
+          'code': 'the-code',
+          'state': params['state']!,
+          if (params['client_id'] == 'dynamic_agent_client') 'client_id': 'oaiapp_123',
+        };
+    unawaited(() async {
+      final client = HttpClient();
+      final redirect = Uri.parse(params['redirect_uri']!).replace(queryParameters: answer);
+      final response = await (await client.getUrl(redirect)).close();
+      pages?.add(await response.transform(utf8.decoder).join());
+      client.close();
+    }());
+  };
 
   ChatGptAuth auth({
     Future<void> Function(Uri)? openBrowser,
     http.Client? client,
     Duration exchangeFor = const Duration(seconds: 1),
+    Future<void> Function()? backInApp,
+    Uri? returnTo,
   }) => ChatGptAuth(
+    backInApp: backInApp,
+    returnTo: returnTo,
     openBrowser: openBrowser ?? browser(),
     read: (name) async => store[name],
     write: (name, value) async => value == null ? store.remove(name) : store[name] = value,
@@ -136,6 +143,44 @@ void main() {
       throwsA(isA<NetworkError>()),
     );
   });
+
+  test('on a phone the code is exchanged only once the app is in front again (#300)', () async {
+    final back = Completer<void>();
+    final pages = <String>[];
+    final signingIn = auth(
+      openBrowser: browser(pages: pages),
+      backInApp: () => back.future,
+      returnTo: Uri.parse('notelore://signed-in'),
+    ).signIn();
+    while (pages.isEmpty) {
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+    }
+    // The redirect is in, but the app is still behind the browser: no exchange yet.
+    expect(openai.forms, isEmpty);
+    // The page sends the browser back to the app (#301).
+    expect(pages.single, contains('notelore://signed-in'));
+    back.complete();
+    await signingIn;
+    expect(openai.forms, hasLength(1));
+    expect(store['refresh_token'], isNotNull);
+  });
+
+  test(
+    'a code used up by a lost first try is a clear "try again", not invalid_grant (#300)',
+    () async {
+      var tries = 0;
+      final lost = MockClient((request) async {
+        // The first POST reaches OpenAI and uses the code, but its answer is lost.
+        if (tries++ == 0) throw http.ClientException('Connection closed while receiving data');
+        return http.Response('{"error": "invalid_grant"}', 400);
+      });
+      await expectLater(
+        auth(client: lost).signIn(),
+        throwsA(isA<SignInFailed>().having((e) => e.message, 'message', contains('try again'))),
+      );
+      expect(store['refresh_token'], isNull);
+    },
+  );
 
   test('a later sign-in reuses the client id, host id and id token', () async {
     store.addAll({'client_id': 'oaiapp_123', 'host_id': 'urn:uuid:h', 'id_token': 'id-0'});

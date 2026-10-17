@@ -49,7 +49,8 @@ class _SetupScreenState extends State<SetupScreen> {
     } on TransientValidationError catch (error) {
       setState(() => _problem = '${error.message}\n${widget.session.strings.checkConnection}');
     } on Exception catch (error) {
-      setState(() => _problem = '$error'); // the ChatGPT sign-in: refused, offline
+      debugPrint('sign-in failed: $error'); // the detail, for the log only
+      setState(() => _problem = widget.session.strings.signInProblem(error));
     } finally {
       if (mounted) setState(() => _checking = false);
     }
@@ -216,10 +217,12 @@ class _GoogleScreenState extends State<GoogleScreen> {
     } on SignInFailed catch (error) {
       // Refused or cancelled: no account to go on with.
       if (mounted) {
-        setState(() => _problem = widget.session.strings.googleRequired(error.message));
+        debugPrint('Google sign-in refused: ${error.message}');
+        setState(() => _problem = widget.session.strings.googleRequired);
       }
     } on Exception catch (error) {
-      if (mounted) setState(() => _problem = '$error'); // offline, say: try again
+      debugPrint('Google sign-in failed: $error');
+      if (mounted) setState(() => _problem = widget.session.strings.signInProblem(error));
     } finally {
       if (mounted) setState(() => _signingIn = false);
     }
