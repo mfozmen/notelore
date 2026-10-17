@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:file_selector_platform_interface/file_selector_platform_interface.dart';
@@ -55,6 +56,9 @@ class ScriptedProvider implements LlmProvider {
 /// Everything a session test needs: temp folders, an empty keystore and a
 /// provider that answers from [answers]. Validation passes unless [rejected].
 class Harness {
+  /// What the PDF reader finds in a PDF's bytes.
+  Future<String> Function(Uint8List bytes) pdfText = (_) async => '';
+
   Harness({
     List<Object> answers = const [],
     this.rejected,
@@ -167,6 +171,7 @@ class Harness {
         return whisper;
       },
       listMicrophones: () async => microphones,
+      readPdf: (bytes) => pdfText(bytes),
       validate: (spec, key) async {
         if (rejected != null) throw rejected!;
         return models;

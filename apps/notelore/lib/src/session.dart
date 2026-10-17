@@ -24,6 +24,7 @@ import 'package:notelore_core/notelore_core.dart' as core show listArchived, res
 import 'package:path/path.dart' as p;
 
 import 'lock_state.dart';
+import 'pdf_native.dart';
 import 'strings.dart';
 import 'theme.dart';
 import 'transfer.dart';
@@ -89,6 +90,7 @@ class Session extends ChangeNotifier {
     this.whisperFiles = whisperSmall,
     this.httpClient = http.Client.new,
     this.makeWhisper = nativeWhisper,
+    this.readPdf = nativePdfText,
     this.listMicrophones = nativeMicrophones,
     this.localModels = true,
     this.retryEvery = const Duration(minutes: 1),
@@ -139,6 +141,9 @@ class Session extends ChangeNotifier {
   final List<ModelFile> whisperFiles;
   final http.Client Function() httpClient;
   final Speech Function(WhisperModel model, String? Function() microphone) makeWhisper;
+
+  /// An attached PDF's text (#284); throws on a damaged file.
+  final Future<String> Function(Uint8List bytes) readPdf;
 
   /// The device's microphones, for Whisper to record from.
   final Future<List<MicrophoneChoice>> Function() listMicrophones;

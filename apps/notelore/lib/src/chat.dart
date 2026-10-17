@@ -45,12 +45,13 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   /// Files adding up to more than this are refused rather than sent: they
-  /// would fill the model's context. shortcut: text only, whole; PDFs, images
-  /// and audio are #278.
+  /// would fill the model's context. shortcut: text and PDF text only, whole;
+  /// images and audio are #278 and #285.
   static const maxAttachment = 200000;
 
-  /// Sends the text files picked, with what is typed as their explanation. A
-  /// file that is not text, or too large, is refused and nothing is sent.
+  /// Sends the text files and PDFs picked, with what is typed as their
+  /// explanation. A file that is not text, a PDF with no text in it (scanned,
+  /// or damaged), or too much is refused and nothing is sent.
   Future<void> _attach() async {
     final messenger = ScaffoldMessenger.of(context);
     final s = widget.session.strings;
@@ -58,8 +59,10 @@ class _ChatScreenState extends State<ChatScreen> {
     final files = <Attachment>[];
     var sent = 0; // characters, over every file of the message
     for (final file in picked) {
-      final text = _text(file.bytes);
+      final pdf = _isPdf(file.bytes);
+      final text = pdf ? await _pdfText(file.bytes) : _text(file.bytes);
       final refused = switch (text) {
+        null when pdf => s.noPdfText(file.name),
         null => s.notText(file.name),
         _ when sent + text.length > maxAttachment => s.tooLarge(file.name),
         _ => null,
@@ -77,6 +80,19 @@ class _ChatScreenState extends State<ChatScreen> {
     final typed = _message.text.trim();
     _message.clear();
     await widget.session.send(withAttachments(typed, files));
+  }
+
+  static bool _isPdf(List<int> bytes) =>
+      bytes.length >= 5 && ascii.decode(bytes.sublist(0, 5), allowInvalid: true) == '%PDF-';
+
+  /// A PDF's text, or null when it has none: scanned, or damaged.
+  Future<String?> _pdfText(List<int> bytes) async {
+    try {
+      final text = await widget.session.readPdf(Uint8List.fromList(bytes));
+      return text.trim().isEmpty ? null : text;
+    } on Object {
+      return null;
+    }
   }
 
   /// [bytes] as text, or null for a file that is not (not UTF-8, or binary).

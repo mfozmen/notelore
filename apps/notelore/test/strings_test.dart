@@ -109,6 +109,7 @@ void main() {
       'attachFile': s.attachFile,
       'notText': s.notText('x'),
       'tooLarge': s.tooLarge('x'),
+      'noPdfText': s.noPdfText('x'),
       'appLock': s.appLock,
       'appLockOn': s.appLockOn,
       'appLockOff': s.appLockOff,
