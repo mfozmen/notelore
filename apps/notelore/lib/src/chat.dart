@@ -262,6 +262,8 @@ class _ChatScreenState extends State<ChatScreen> {
                           child: Semantics(
                             label: s.talk,
                             button: true,
+                            enabled: !session.busy,
+                            focusable: true,
                             excludeSemantics: true,
                             onTap: session.busy ? null : _toggleTalk,
                             // The keyboard holds Space or Enter instead.
