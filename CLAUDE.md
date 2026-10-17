@@ -128,6 +128,7 @@ At runtime, the agent answers in the language the user writes in, and writes not
 - **Branches:** one branch per feature/fix, `<type>/<slug>` (e.g. `feat/note-format-parser`), merged via PR with summary, context and test plan. `main` is protected by a repository ruleset: every change goes through a PR (docs too), the Flutter, CI script, SonarCloud and claude-review checks must pass, and force-push and deletion are blocked. The only bypass is the release deploy key (`RELEASE_DEPLOY_KEY`), which the manual release workflow uses to push its version commit and tag.
 - **Releases:** manual (`gh workflow run release.yml`). Python Semantic Release (configured in `releaserc.toml`) bumps both pubspec versions from the Conventional Commits; the workflow builds and attaches the app for Windows, macOS and Android with SHA-256 files.
 - **README stays current:** any user-visible change updates `README.md` in the same PR.
+- **Review agents:** `.claude/agents/ui-reviewer.md` (renders screens off-screen and judges them against the design skills) after a UI change, and `.claude/agents/security-reviewer.md` (OWASP MASVS plus Notelore's own risks) on changes to auth, providers, sync, the updater, the app lock, manifests, dependencies or workflows. Address their Critical findings before the PR.
 - **Plan:** `docs/PLAN.md` is the single roadmap. Tick items off as PRs land; keep it short.
 
 ## Platform
