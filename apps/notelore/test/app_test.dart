@@ -365,6 +365,40 @@ void main() {
     expect(draft(), isEmpty);
   });
 
+  testWidgets('chat: a question offers its answers as buttons, sent once (#210)', (tester) async {
+    phone(tester);
+    final harness = Harness(answers: ['Hangi proje?\n[[Mopsos]] [[Atlas]]', 'Kaydedildi.']);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'not al');
+    await tester.pump(); // the Send button appears with the text
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    expect(find.text('Hangi proje?'), findsOneWidget); // without the answer line
+    expect(find.textContaining('[['), findsNothing);
+    final atlas = find.widgetWithText(OutlinedButton, 'Atlas');
+    expect(atlas, findsOneWidget);
+    expect(
+      tester.getSemantics(atlas),
+      matchesSemantics(
+        label: 'Atlas',
+        isButton: true,
+        hasTapAction: true,
+        isEnabled: true,
+        hasEnabledState: true,
+        isFocusable: true,
+        hasFocusAction: true,
+      ),
+    );
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Mopsos'));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Mopsos'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(harness.provider.asked, ['not al', 'Mopsos']); // once
+    expect(find.text('Kaydedildi.'), findsOneWidget);
+    expect(find.byType(OutlinedButton), findsNothing); // answered: gone
+    expect(find.byKey(const Key('message')), findsOneWidget); // typing stays
+  });
+
   testWidgets('chat: copy a message or an answer, with a short confirmation (#225)', (
     tester,
   ) async {

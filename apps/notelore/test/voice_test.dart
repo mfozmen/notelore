@@ -90,11 +90,12 @@ void main() {
     expect(mode.state, VoiceState.off);
   });
 
-  test('only answers are spoken, without Markdown symbols', () async {
+  test('only answers are spoken, without Markdown symbols or suggested answers', () async {
     final (session, mode, speech, voice) = await setUpVoice(
       ['ne var', 've sonra'],
       [
-        '**Kitap:** _Gülünün Solduğu Akşam_, [link](https://x.y)\n- `madde`\n# Başlık',
+        '**Kitap:** _Gülünün Solduğu Akşam_, [link](https://x.y)\n- `madde`\n# Başlık\n'
+            '[[Evet]] [[Hayır]]',
         const NetworkError('offline'),
       ],
     );

@@ -9,6 +9,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:notelore_core/notelore_core.dart' show suggestedAnswers;
 import 'package:speech_to_text/speech_to_text.dart';
 
 import 'session.dart';
@@ -30,11 +31,12 @@ class ListenFailed implements Exception {
 }
 
 /// [markdown] as plain words for a voice: no emphasis marks, list bullets,
-/// heading marks or link targets.
-String spoken(String markdown) => markdown
-    .replaceAllMapped(RegExp(r'\[([^\]]*)\]\([^)]*\)'), (m) => m[1]!)
-    .replaceAll(RegExp(r'^\s*(#+|[-*+])\s+', multiLine: true), '')
-    .replaceAll(RegExp(r'[*_`]'), '');
+/// heading marks, link targets or suggested answers.
+String spoken(String markdown) =>
+    suggestedAnswers(markdown).text
+        .replaceAllMapped(RegExp(r'\[([^\]]*)\]\([^)]*\)'), (m) => m[1]!)
+        .replaceAll(RegExp(r'^\s*(#+|[-*+])\s+', multiLine: true), '')
+        .replaceAll(RegExp(r'[*_`]'), '');
 
 /// Listens while the button is held: push to talk.
 abstract interface class Speech {

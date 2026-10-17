@@ -133,6 +133,12 @@ class _ChatScreenState extends State<ChatScreen> {
                         lines[index],
                         s,
                         resend: index == resendable ? session.resend : null,
+                        // Only the newest question, and only once: a later tap finds the
+                        // conversation moved on, even before the screen redraws.
+                        answer: index == 0
+                            ? (a) =>
+                                  session.transcript.length == lines.length ? session.send(a) : null
+                            : null,
                       );
                     }
                     return index == 0 ? _Thinking(s) : _Bubble(lines[index - 1], s);
@@ -406,17 +412,19 @@ class _ThinkingState extends State<_Thinking> {
 }
 
 /// One line of the conversation. Messages and answers have a Copy button under
-/// them; the last message also one that sends it again ([resend]).
+/// them; the last message also one that sends it again ([resend]). The answers
+/// the newest question suggests are buttons that send one of them ([answer]).
 class _Bubble extends StatelessWidget {
-  const _Bubble(this.line, this.strings, {this.resend});
+  const _Bubble(this.line, this.strings, {this.resend, this.answer});
 
   final ChatLine line;
   final Strings strings;
   final VoidCallback? resend;
+  final ValueChanged<String>? answer;
 
-  Future<void> _copy(BuildContext context) async {
+  Future<void> _copy(BuildContext context, String text) async {
     final messenger = ScaffoldMessenger.of(context);
-    await Clipboard.setData(ClipboardData(text: line.text));
+    await Clipboard.setData(ClipboardData(text: text));
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(strings.copied), duration: const Duration(seconds: 2)));
@@ -431,7 +439,10 @@ class _Bubble extends StatelessWidget {
       ChatRole.assistant => (colors.surfaceContainerHigh, colors.onSurface),
       ChatRole.error => (colors.errorContainer, colors.onErrorContainer),
     };
-    final bubble = _bubble(mine, background, foreground);
+    final (:text, :answers) = line.role == ChatRole.assistant
+        ? suggestedAnswers(line.text)
+        : (text: line.text, answers: const <String>[]);
+    final bubble = _bubble(text, mine, background, foreground);
     if (line.role == ChatRole.error) return bubble;
     Widget button(String tooltip, IconData icon, VoidCallback onPressed) => IconButton(
       tooltip: tooltip,
@@ -443,10 +454,18 @@ class _Bubble extends StatelessWidget {
       crossAxisAlignment: mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
         bubble,
+        if (answer case final answer? when answers.isNotEmpty)
+          Wrap(
+            spacing: Gap.s,
+            runSpacing: Gap.xs,
+            children: [
+              for (final a in answers) OutlinedButton(onPressed: () => answer(a), child: Text(a)),
+            ],
+          ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            button(strings.copy, Icons.copy, () => _copy(context)),
+            button(strings.copy, Icons.copy, () => _copy(context, text)),
             if (resend case final resend?) button(strings.resend, Icons.replay, resend),
           ],
         ),
@@ -454,7 +473,7 @@ class _Bubble extends StatelessWidget {
     );
   }
 
-  Widget _bubble(bool mine, Color background, Color foreground) {
+  Widget _bubble(String text, bool mine, Color background, Color foreground) {
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -466,7 +485,7 @@ class _Bubble extends StatelessWidget {
           color: background,
           borderRadius: _bubbleRadius(mine: mine),
         ),
-        child: SelectableText(line.text, style: TextStyle(color: foreground, height: 1.4)),
+        child: SelectableText(text, style: TextStyle(color: foreground, height: 1.4)),
       ),
     );
   }

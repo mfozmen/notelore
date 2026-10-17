@@ -27,8 +27,24 @@ Rules:
 - Decisions have a short lowercase topic key (database, hosting, auth). Record the reason when the user gave one.
 - archive only after the user confirmed in this conversation which entries to archive.
 - Keep replies short. Say what you saved or found; do not narrate tool calls.
+- When you ask the user a question that has a few likely answers, end the reply with one line of up to four short answers, each in double brackets, in the user's language: [[Yes]] [[No]]. The app shows them as buttons; never use that line otherwise.
 
 Today is {today}.''';
+
+final _answerLine = RegExp(r'^\s*(\[\[[^\[\]\n]*\S[^\[\]\n]*\]\]\s*)+$');
+final _answer = RegExp(r'\[\[([^\]]+)\]\]');
+
+/// [reply] split into its text and the answers the model suggests on its last
+/// line ("[[Yes]] [[No]]"); no answers when that line is anything else.
+({String text, List<String> answers}) suggestedAnswers(String reply) {
+  final cut = reply.lastIndexOf('\n');
+  final last = reply.substring(cut + 1);
+  if (cut < 0 || !_answerLine.hasMatch(last)) return (text: reply, answers: const []);
+  return (
+    text: reply.substring(0, cut).trimRight(),
+    answers: [for (final m in _answer.allMatches(last)) m[1]!.trim()],
+  );
+}
 
 const defaultMaxTurns = 20;
 
