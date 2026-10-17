@@ -183,9 +183,13 @@ class _GoogleScreenState extends State<GoogleScreen> {
     });
     try {
       await widget.session.connectDrive();
+    } on SignInFailed catch (error) {
+      // Refused or cancelled: no account to go on with.
+      if (mounted) {
+        setState(() => _problem = widget.session.strings.googleRequired(error.message));
+      }
     } on Exception catch (error) {
-      final why = error is SignInFailed ? error.message : '$error';
-      if (mounted) setState(() => _problem = widget.session.strings.googleRequired(why));
+      if (mounted) setState(() => _problem = '$error'); // offline, say: try again
     } finally {
       if (mounted) setState(() => _signingIn = false);
     }

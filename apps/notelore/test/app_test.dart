@@ -128,6 +128,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Notelore needs a Google account to continue: access_denied'), findsOneWidget);
     expect(find.text('Claude (Anthropic)'), findsNothing);
+    // Not a refusal: said as it is, not as a missing account.
+    auth.failSignIn = const NetworkError('offline');
+    await tester.tap(find.text('Sign in with Google'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('offline'), findsOneWidget);
+    expect(find.textContaining('needs a Google account'), findsNothing);
     auth.failSignIn = null;
     await tester.tap(find.text('Sign in with Google'));
     await tester.pumpAndSettle();
