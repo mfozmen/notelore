@@ -122,6 +122,15 @@ through `_exclusive`; any sync already in that queue may add waiting time.
 delay that turn's displayed answer. These are code-path observations, not
 timings. A device trace is needed to separate UI and queue delay reliably.
 
+## Timing trace
+
+Development runs time every turn, with names and milliseconds only (never note text, tool arguments or keys):
+
+- `dart run notelore_core:notelore_dev chat "<message>"` prints `⏱ model <ms> ms` and `⏱ tool <name> <ms> ms` for each call.
+- The app run with `NOTELORE_HOME` set (`flutter run`) prints the same lines to the debug console, plus `queue <ms> ms`: how long the turn waited behind a sync or an earlier turn. A release build prints nothing.
+
+Rendered frames are measured with Flutter DevTools in profile mode, not by the trace.
+
 ## Options and decision
 
 | Option | Potential gain | Cost or correctness risk |

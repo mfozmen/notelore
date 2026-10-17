@@ -166,6 +166,19 @@ void main() {
     expect(describeTool('some_new_tool'), 'Working'); // never mislabelled as a write
   });
 
+  test('timing: each model call and tool call, names and milliseconds only', () async {
+    final provider = ScriptedProvider([
+      toolUse('search_notes', 't1', {'query': 'secret plan'}),
+      text('ok'),
+    ]);
+    final timings = <String>[];
+    await Agent(provider, box, today: today, timing: timings.add).ask('my secret');
+    expect(timings, hasLength(3));
+    expect(timings[0], matches(RegExp(r'^model \d+ ms$')));
+    expect(timings[1], matches(RegExp(r'^tool search_notes \d+ ms$')));
+    expect(timings[2], matches(RegExp(r'^model \d+ ms$'))); // never the note text or arguments
+  });
+
   test('messages written meanwhile join the next step, so one answer covers them', () async {
     final provider = ScriptedProvider([toolUse('list_notes'), text('both answered')]);
     final later = ['ayrıca kitabın yazarı kim?'];

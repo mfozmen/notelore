@@ -138,6 +138,8 @@ void main() {
     expect('$out', contains('←'));
     expect('$out', contains('Henüz not yok.'));
     expect('$out', contains(p.join('state', 'trace')));
+    expect('$out', matches(RegExp(r'⏱ model \d+ ms')));
+    expect('$out', matches(RegExp(r'⏱ tool list_notes \d+ ms')));
     expect(requests, ['/api/accounts/oauth/token', '/v1/models', '/v1/responses', '/v1/responses']);
     // The rotated refresh token is kept; no secret reaches the trace.
     final secrets = File(home('state/dev-secrets.json')).readAsStringSync();

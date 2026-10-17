@@ -95,12 +95,17 @@ class Session extends ChangeNotifier {
     this.lockIterations = defaultIterations,
     this.offThread = Isolate.run,
     this._exchange,
+    this.timing,
   }) : clock = clock ?? DateTime.timestamp,
        index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path),
        manifest = Manifest(paths.state.path);
 
   final NotelorePaths paths;
   final Validate validate;
+
+  /// Hears how long a turn waited in the queue and each model and tool call
+  /// took (#232); development runs only, never note text.
+  final void Function(String entry)? timing;
 
   /// Where exports go and imports come from (#215): the share sheet on a phone,
   /// save and open dialogs on the desktop.
@@ -581,7 +586,7 @@ class Session extends ChangeNotifier {
     );
     // A model switch keeps the conversation; logout has already dropped it.
     final history = _agent?.messages ?? const <Message>[];
-    _agent = Agent(_provider!, toolbox, today: today)..messages.addAll(history);
+    _agent = Agent(_provider!, toolbox, today: today, timing: timing)..messages.addAll(history);
     notifyListeners();
   }
 
@@ -638,7 +643,11 @@ class Session extends ChangeNotifier {
     while (message != null) {
       _stopped = false; // before the queue: a Stop while it waits behind a sync still counts
       final (current, wasQueued) = (message, fromQueue);
-      await _exclusive(() => _turn(current, queued: wasQueued));
+      final waiting = Stopwatch()..start();
+      await _exclusive(() {
+        timing?.call('queue ${waiting.elapsedMilliseconds} ms');
+        return _turn(current, queued: wasQueued);
+      });
       (message, fromQueue) = _next();
     }
     busy = false;

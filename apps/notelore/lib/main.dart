@@ -53,6 +53,7 @@ Future<Session> openSession({Map<String, String>? environment, bool? mobile}) as
     chatGpt: chatGptAuthFor(mobile: phone, keys: appKeys, keySpace: keySpace),
     localModels: !phone,
     systemLanguage: PlatformDispatcher.instance.locale.languageCode,
+    timing: keySpace == 'notelore-dev' ? debugPrint : null, // #232: development runs only
   );
   await session.load();
   if (phone && Platform.isAndroid) listenForShares(session); // "Share → Notelore" (#211)

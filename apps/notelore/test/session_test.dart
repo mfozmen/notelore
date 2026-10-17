@@ -468,6 +468,17 @@ void main() {
     expect(session.transcript, hasLength(2));
   });
 
+  test('timing (#232): the wait in the queue, each model and tool call; no text', () async {
+    final harness = Harness(answers: ['Merhaba!']);
+    final timings = <String>[];
+    final session = harness.session(timing: timings.add);
+    await session.connect(findProvider('anthropic'), 'k');
+    await session.send('gizli');
+    expect(timings, hasLength(2));
+    expect(timings[0], matches(RegExp(r'^queue \d+ ms$')));
+    expect(timings[1], matches(RegExp(r'^model \d+ ms$')));
+  });
+
   test('written while it works: taken into the running turn, one answer', () async {
     final first = Completer<AgentResponse>();
     final harness = Harness(answers: [first.future, 'İkisini de yanıtladım.']);

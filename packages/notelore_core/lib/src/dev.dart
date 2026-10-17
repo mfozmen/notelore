@@ -147,7 +147,11 @@ Future<void> _chat(
       transport: (method, url, {headers = const {}, body, required timeout}) =>
           request(traced, method, url, headers: headers, body: body, timeout: timeout),
     );
-    final agent = Agent(provider, Toolbox(paths.notes.path, index));
+    final agent = Agent(
+      provider,
+      Toolbox(paths.notes.path, index),
+      timing: (entry) => out.writeln('⏱ $entry'),
+    );
     final answer = await agent.ask(message);
     _printTools(agent.messages, out);
     out.writeln(answer);
