@@ -15,6 +15,7 @@ dependencies:
   collection: ^1.19.1
   crypto: ^3.0.7
   http: ^1.6.0
+  markdown: ^7.3.1
   path: ^1.9.1
   sqlite3: ^3.7.0
   unorm_dart: 0.3.3
