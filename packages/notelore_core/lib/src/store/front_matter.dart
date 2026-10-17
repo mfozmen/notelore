@@ -202,14 +202,23 @@ bool _needsQuotes(String text, {required bool flow}) {
   if (_resolve(text) is! String || _special.hasMatch(text)) return true;
   if (text.startsWith(' ') || text.endsWith(' ')) return true;
   if (text.startsWith('---') || text.startsWith('...')) return true;
+  return _leadingIndicator(text, flow: flow) || _innerIndicator(text, flow: flow);
+}
+
+/// An indicator as the first character, as analyze_scalar sees it at index 0.
+bool _leadingIndicator(String text, {required bool flow}) {
   final first = text[0];
-  final firstFollowedBySpace = text.length == 1 || text[1] == ' ';
+  final followedBySpace = text.length == 1 || text[1] == ' ';
   if ('#,[]{}&*!|>\'"%@`'.contains(first)) return true;
-  if ('?:'.contains(first) && (flow || firstFollowedBySpace)) return true;
-  if (first == '-' && firstFollowedBySpace) return true;
+  if ('?:'.contains(first) && (flow || followedBySpace)) return true;
+  return first == '-' && followedBySpace;
+}
+
+/// An indicator after the first character: ` #`, `: ` or a final `:`, and in a
+/// flow collection any flow indicator.
+bool _innerIndicator(String text, {required bool flow}) {
   final rest = text.substring(1);
   if (text.contains(' #')) return true;
   if (rest.contains(': ') || text.endsWith(':')) return true;
-  if (flow && RegExp(r'[,?\[\]{}:]').hasMatch(rest)) return true;
-  return false;
+  return flow && RegExp(r'[,?\[\]{}:]').hasMatch(rest);
 }

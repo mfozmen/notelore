@@ -91,6 +91,34 @@ class DriveRemote implements Remote {
 
   @override
   Future<Map<String, RemoteFile>> list() async {
+    final all = await _listAll();
+    final byId = {for (final file in all) file['id']! as String: file};
+    // Two devices may each have created a Notelore folder before either synced:
+    // the oldest one wins (the listing is in creation order).
+    final root = all
+        .where((f) => f['mimeType'] == _folderType && f['name'] == _rootName)
+        .where((f) => (f['appProperties'] as Map?)?['notelore'] == 'root')
+        .firstOrNull;
+    _folders.clear();
+    if (root == null) return {};
+
+    _folders[''] = root['id']! as String;
+    final notes = <String, RemoteFile>{};
+    for (final file in all) {
+      final path = file == root ? null : _pathOf(file, root['id'], byId);
+      if (path == null) continue;
+      if (file['mimeType'] == _folderType) {
+        _folders[path] = file['id']! as String;
+      } else if (file['md5Checksum'] != null) {
+        notes[path] = _remoteFile(file); // Google Docs have no content hash: not notes
+      }
+    }
+    return notes;
+  }
+
+  /// Every file the app can see that is not in the trash, page by page, in
+  /// creation order.
+  Future<List<Map<String, Object?>>> _listAll() async {
     final all = <Map<String, Object?>>[];
     String? page;
     do {
@@ -108,44 +136,26 @@ class DriveRemote implements Remote {
       all.addAll((answer['files']! as List).cast<Map<String, Object?>>());
       page = answer['nextPageToken'] as String?;
     } while (page != null);
+    return all;
+  }
 
-    final byId = {for (final file in all) file['id']! as String: file};
-    // Two devices may each have created a Notelore folder before either synced:
-    // the oldest one wins (the listing is in creation order).
-    final root = all
-        .where((f) => f['mimeType'] == _folderType && f['name'] == _rootName)
-        .where((f) => (f['appProperties'] as Map?)?['notelore'] == 'root')
-        .firstOrNull;
-    _folders.clear();
-    if (root == null) return {};
-
-    /// The path of [file] under the root, or null when it lies outside it.
-    String? pathOf(Map<String, Object?> file) {
-      final names = <String>[];
-      var current = file;
-      for (var depth = 0; depth < 64; depth++) {
-        names.add('${current['name']}');
-        final parent = (current['parents'] as List?)?.first as String?;
-        if (parent == root['id']) return names.reversed.join('/');
-        final next = byId[parent];
-        if (next == null) return null;
-        current = next;
-      }
-      return null; // a parent cycle or an absurd depth: not ours
+  /// The path of [file] under the folder [rootId], or null when it lies outside it.
+  static String? _pathOf(
+    Map<String, Object?> file,
+    Object? rootId,
+    Map<String, Map<String, Object?>> byId,
+  ) {
+    final names = <String>[];
+    var current = file;
+    for (var depth = 0; depth < 64; depth++) {
+      names.add('${current['name']}');
+      final parent = (current['parents'] as List?)?.first as String?;
+      if (parent == rootId) return names.reversed.join('/');
+      final next = byId[parent];
+      if (next == null) return null;
+      current = next;
     }
-
-    _folders[''] = root['id']! as String;
-    final notes = <String, RemoteFile>{};
-    for (final file in all) {
-      final path = file == root ? null : pathOf(file);
-      if (path == null) continue;
-      if (file['mimeType'] == _folderType) {
-        _folders[path] = file['id']! as String;
-      } else if (file['md5Checksum'] != null) {
-        notes[path] = _remoteFile(file); // Google Docs have no content hash: not notes
-      }
-    }
-    return notes;
+    return null; // a parent cycle or an absurd depth: not ours
   }
 
   @override
