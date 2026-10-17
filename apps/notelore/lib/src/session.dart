@@ -317,6 +317,9 @@ class Session extends ChangeNotifier {
   List<String> models = const [];
   Agent? _agent;
   LlmProvider? _provider;
+
+  /// The tokens the model calls used, this conversation and on this device (#217).
+  late final usage = UsageMeter(p.join(paths.state.path, 'usage.json'));
   Remote? _remote;
   var driveConnected = false;
   var _pendingSyncs = 0;
@@ -642,6 +645,7 @@ class Session extends ChangeNotifier {
     _agent = null;
     _provider = null;
     transcript.clear();
+    usage.newConversation();
     draft = '';
     notifyListeners();
   }
@@ -650,12 +654,16 @@ class Session extends ChangeNotifier {
     spec = chosen;
     model = chosenModel;
     final toolbox = Toolbox(paths.notes.path, index, today: today);
-    _provider = makeProvider(
-      chosen,
-      key,
-      model: chosenModel,
-      planToken: chosen.name == 'chatgpt' ? chatGpt!.token : null,
-      webSearch: webSearch && chosen.webSearch,
+    _provider = MeteredProvider(
+      makeProvider(
+        chosen,
+        key,
+        model: chosenModel,
+        planToken: chosen.name == 'chatgpt' ? chatGpt!.token : null,
+        webSearch: webSearch && chosen.webSearch,
+      ),
+      chosen.name,
+      usage,
     );
     // A model switch keeps the conversation; logout has already dropped it.
     final history = _agent?.messages ?? const <Message>[];

@@ -104,4 +104,19 @@ void main() {
     expect(second.containsKey('tools'), isFalse);
     expect(second['messages'], hi);
   });
+
+  test('usage: the prompt and answer token counts Ollama reports', () {
+    final used = fromOllama({
+      'message': {'role': 'assistant', 'content': 'hi'},
+      'prompt_eval_count': 26,
+      'eval_count': 290,
+    }).usage!;
+    expect((used.input, used.output), (26, 290));
+    expect(
+      fromOllama({
+        'message': {'role': 'assistant', 'content': 'hi'},
+      }).usage,
+      isNull,
+    );
+  });
 }

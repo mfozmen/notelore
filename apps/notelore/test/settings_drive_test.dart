@@ -34,6 +34,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Synced; nothing changed.'), findsOneWidget);
     harness.remote.texts['topics/t.md'] = '---\ntitle: T\n---\n# T\n';
+    await tester.ensureVisible(find.byTooltip('Sync now'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Sync now'));
     await tester.pumpAndSettle();
     expect(find.text('Synced: 1 received.'), findsOneWidget);

@@ -127,6 +127,43 @@ abstract class Strings {
 
   /// The app and its version; a development build has none.
   String versionLine(String version);
+
+  // Usage (#217).
+  String get usage;
+  String get usageConversation;
+  String get usageDevice;
+  String get usageNothing;
+  String usageTokens(String input, String output);
+  String get usageTokensUnavailable;
+  String usageUnreported(int calls);
+  String usageCost(String dollars);
+  String get usageCostUnavailable;
+  String usageEstimate(String date);
+  String get usagePlan;
+  String get usageLocal;
+  String get thousands;
+  String get decimalPoint;
+
+  /// What [summary] used: tokens, the calls that did not say, the estimated
+  /// cost; "not available" where the provider gave nothing to go on.
+  List<String> usageLines(UsageSummary summary) {
+    if (summary.calls == 0) return [usageNothing];
+    String grouped(int n) => '$n'.replaceAllMapped(RegExp(r'\B(?=(\d{3})+$)'), (_) => thousands);
+    return [
+      if (summary.tokensKnown)
+        usageTokens(grouped(summary.input), grouped(summary.output))
+      else
+        usageTokensUnavailable,
+      if (summary.unreported > 0) usageUnreported(summary.unreported),
+      switch (summary.cost) {
+        null => usageCostUnavailable,
+        final cost => usageCost(
+          cost.toStringAsFixed(cost == 0 || cost >= 0.01 ? 2 : 4).replaceFirst('.', decimalPoint),
+        ),
+      },
+    ];
+  }
+
   String get archive;
   String get pickNote;
 
@@ -407,6 +444,37 @@ class EnglishStrings extends Strings {
   @override
   String versionLine(String version) =>
       version.isEmpty ? 'Notelore · development build' : 'Notelore $version';
+  @override
+  String get usage => 'Usage';
+  @override
+  String get usageConversation => 'This conversation';
+  @override
+  String get usageDevice => 'On this device';
+  @override
+  String get usageNothing => 'Nothing yet.';
+  @override
+  String usageTokens(String input, String output) => 'Tokens: $input in, $output out';
+  @override
+  String get usageTokensUnavailable => 'Tokens: not available';
+  @override
+  String usageUnreported(int calls) =>
+      '$calls model ${calls == 1 ? 'call' : 'calls'} did not report usage';
+  @override
+  String usageCost(String dollars) => 'Estimated cost: about \$$dollars';
+  @override
+  String get usageCostUnavailable => 'Estimated cost: not available';
+  @override
+  String usageEstimate(String date) =>
+      "Costs are estimates from list prices taken on $date; your provider's bill is what counts.";
+  @override
+  String get usagePlan =>
+      "The ChatGPT plan has no per-token charge: use counts against your plan's limits.";
+  @override
+  String get usageLocal => 'A local model has no per-token charge.';
+  @override
+  String get thousands => ',';
+  @override
+  String get decimalPoint => '.';
   @override
   String get archive => 'Archive';
   @override
@@ -802,6 +870,36 @@ class TurkishStrings extends Strings {
   @override
   String versionLine(String version) =>
       version.isEmpty ? 'Notelore · geliştirme sürümü' : 'Notelore $version';
+  @override
+  String get usage => 'Kullanım';
+  @override
+  String get usageConversation => 'Bu konuşma';
+  @override
+  String get usageDevice => 'Bu cihazda';
+  @override
+  String get usageNothing => 'Henüz yok.';
+  @override
+  String usageTokens(String input, String output) => 'Token: $input giriş, $output çıkış';
+  @override
+  String get usageTokensUnavailable => 'Token: bilgi yok';
+  @override
+  String usageUnreported(int calls) => '$calls model çağrısı kullanım bildirmedi';
+  @override
+  String usageCost(String dollars) => 'Tahmini maliyet: yaklaşık \$$dollars';
+  @override
+  String get usageCostUnavailable => 'Tahmini maliyet: bilgi yok';
+  @override
+  String usageEstimate(String date) =>
+      'Maliyetler $date tarihli liste fiyatlarından tahmindir; geçerli olan sağlayıcınızın faturasıdır.';
+  @override
+  String get usagePlan =>
+      'ChatGPT planında token başına ücret yok: kullanım planınızın sınırlarından düşer.';
+  @override
+  String get usageLocal => 'Yerel modelde token başına ücret yok.';
+  @override
+  String get thousands => '.';
+  @override
+  String get decimalPoint => ',';
   @override
   String get archive => 'Arşiv';
   @override

@@ -162,4 +162,29 @@ void main() {
     await provider.turn('', hi, []);
     expect((api.last['body']! as Map).keys, ['contents']);
   });
+
+  test('usage: prompt tokens in; answer and thinking tokens out; none when not reported', () {
+    final used = fromGemini({
+      ...candidate([
+        {'text': 'hi'},
+      ]),
+      'usageMetadata': {
+        'promptTokenCount': 90,
+        'candidatesTokenCount': 10,
+        'thoughtsTokenCount': 5,
+      },
+    }).usage!;
+    expect((used.input, used.output), (90, 15));
+    final noThoughts = fromGemini({
+      'usageMetadata': {'promptTokenCount': 7, 'candidatesTokenCount': 3},
+    }).usage!;
+    expect((noThoughts.input, noThoughts.output), (7, 3));
+    expect(fromGemini(candidate([])).usage, isNull);
+    expect(
+      fromGemini({
+        'usageMetadata': {'promptTokenCount': 7},
+      }).usage,
+      isNull,
+    );
+  });
 }
