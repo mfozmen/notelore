@@ -133,11 +133,13 @@ void main() {
     await connect(tester, key: 'sk-ant');
     expect(find.text('Ask or tell me something.'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('message')), 'selam');
+    await tester.pump(); // the Send button appears with the text
     await tester.tap(find.byTooltip('Send'));
     await tester.pumpAndSettle();
     expect(find.text('selam'), findsOneWidget);
     expect(find.text('Merhaba!'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('message')), 'again');
+    await tester.pump(); // the Send button appears with the text
     await tester.testTextInput.receiveAction(TextInputAction.send);
     await tester.pumpAndSettle();
     expect(find.textContaining('offline'), findsOneWidget);
@@ -150,6 +152,7 @@ void main() {
     await connect(tester, key: 'k');
     expect(find.byTooltip('Resend'), findsNothing); // nothing sent yet
     await tester.enterText(find.byKey(const Key('message')), 'selam');
+    await tester.pump(); // the Send button appears with the text
     await tester.tap(find.byTooltip('Send'));
     await tester.pumpAndSettle();
     expect(find.textContaining('offline'), findsOneWidget);
@@ -167,6 +170,7 @@ void main() {
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     await tester.enterText(find.byKey(const Key('message')), 'selam');
+    await tester.pump(); // the Send button appears with the text
     await tester.tap(find.byTooltip('Send'));
     await tester.pump();
     // A playful line instead of a plain "Thinking", a new one every few seconds.
@@ -190,7 +194,45 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Stopped.'), findsOneWidget);
     expect(waiting(), isNull);
+    expect(find.byTooltip('Hold to talk'), findsOneWidget); // the box is empty again
+  });
+
+  testWidgets('chat: one button, Send with text and the microphone without (#231)', (tester) async {
+    phone(tester);
+    final harness = Harness(answers: ['Tamam.']);
+    harness.speech.phrases.add('sesli not');
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    // Empty: the button records.
+    expect(find.byTooltip('Hold to talk'), findsOneWidget);
+    expect(find.byTooltip('Send'), findsNothing);
+    // Text: the same place sends.
+    await tester.enterText(find.byKey(const Key('message')), 'yazı');
+    await tester.pump();
     expect(find.byTooltip('Send'), findsOneWidget);
+    expect(find.byTooltip('Hold to talk'), findsNothing);
+    await tester.enterText(find.byKey(const Key('message')), '');
+    await tester.pump();
+
+    // Held with the keyboard open: the field gives way to the recording, the
+    // keyboard closes and the layout moves, and the press still sends once (#212).
+    tester.view.viewInsets = const FakeViewPadding(bottom: 800);
+    await tester.pump();
+    final hold = await tester.createGesture();
+    await hold.down(
+      tester.getCenter(find.byTooltip('Hold to talk')),
+      timeStamp: const Duration(seconds: 10),
+    );
+    await tester.pump();
+    expect(find.byKey(const Key('message')), findsNothing);
+    expect(find.text('Listening…'), findsOneWidget);
+    tester.view.resetViewInsets(); // the keyboard went away
+    await tester.pump();
+    await hold.moveBy(const Offset(0, 300)); // the finger is no longer on the button
+    await hold.up(timeStamp: const Duration(seconds: 12));
+    await tester.pumpAndSettle();
+    expect(harness.provider.asked, ['sesli not']);
+    expect(find.byKey(const Key('message')), findsOneWidget);
   });
 
   testWidgets('chat: hold to talk, let go to send; the answer is read aloud', (tester) async {
@@ -218,6 +260,7 @@ void main() {
     expect(find.text('Speaking…'), findsOneWidget);
     // Typing quiets the voice; a typed message is answered on screen.
     await tester.enterText(find.byKey(const Key('message')), 'yaz');
+    await tester.pump(); // the Send button appears with the text
     expect(harness.voice.stops, greaterThan(0));
     await tester.tap(find.byTooltip('Stop reading aloud'));
     await tester.pump();
@@ -403,11 +446,13 @@ void main() {
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     await tester.enterText(find.byKey(const Key('message')), 'bir');
+    await tester.pump(); // the Send button appears with the text
     await tester.tap(find.byTooltip('Send'));
     await tester.pump();
     // Still open (no longer disabled while the model works).
     expect(tester.widget<TextField>(find.byKey(const Key('message'))).enabled, isNot(false));
     await tester.enterText(find.byKey(const Key('message')), 'iki');
+    await tester.pump(); // the Send button appears with the text
     await tester.tap(find.byTooltip('Send'));
     await tester.pump();
     expect(find.text('iki'), findsOneWidget);
@@ -434,6 +479,7 @@ void main() {
     expect(find.text('model-b'), findsOneWidget);
     // While a turn runs the menu is off.
     await tester.enterText(find.byKey(const Key('message')), 'x');
+    await tester.pump(); // the Send button appears with the text
     await tester.tap(find.byTooltip('Send'));
     await tester.pump();
     expect(
@@ -640,6 +686,7 @@ void main() {
     await tester.tap(find.text('Chat'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('message')), 'Mopsos diye proje aç');
+    await tester.pump(); // the Send button appears with the text
     await tester.tap(find.byTooltip('Send'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Notes'));
