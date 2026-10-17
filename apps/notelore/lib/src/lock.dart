@@ -3,6 +3,8 @@
 /// the session stores only its salted hash, in the keystore.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'session.dart';
@@ -27,8 +29,29 @@ class _LockScreenState extends State<LockScreen> {
   var _checking = false;
   var _wrong = false;
 
+  /// Ticks while a wait after wrong tries runs, so the countdown moves and the
+  /// field opens again when it ends.
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _waitIfNeeded();
+  }
+
+  void _waitIfNeeded() {
+    if (widget.session.lockWait == Duration.zero) return;
+    _tick ??= Timer.periodic(const Duration(seconds: 1), (_) {
+      setState(() {});
+      if (widget.session.lockWait > Duration.zero) return;
+      _tick?.cancel();
+      _tick = null;
+    });
+  }
+
   @override
   void dispose() {
+    _tick?.cancel();
     _secret.dispose();
     super.dispose();
   }
@@ -45,12 +68,15 @@ class _LockScreenState extends State<LockScreen> {
       _checking = false;
       _wrong = true;
     });
+    _waitIfNeeded();
   }
 
   @override
   Widget build(BuildContext context) {
     final s = widget.session.strings;
     final theme = Theme.of(context);
+    final wait = widget.session.lockWait;
+    final waiting = wait > Duration.zero;
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -75,16 +101,23 @@ class _LockScreenState extends State<LockScreen> {
                     controller: _secret,
                     obscureText: true,
                     autofocus: true,
-                    enabled: !_checking,
+                    enabled: !_checking && !waiting,
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) => _unlock(),
                     decoration: InputDecoration(
                       labelText: s.lockSecret,
-                      errorText: _wrong ? s.wrongSecret : null,
+                      errorText: waiting
+                          ? s.lockWaiting(wait)
+                          : _wrong
+                          ? s.wrongSecret
+                          : null,
                     ),
                   ),
                   const SizedBox(height: Gap.m),
-                  FilledButton(onPressed: _checking ? null : _unlock, child: Text(s.unlock)),
+                  FilledButton(
+                    onPressed: _checking || waiting ? null : _unlock,
+                    child: Text(s.unlock),
+                  ),
                   const SizedBox(height: Gap.l),
                   Text(s.lockedHint, textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
                 ],

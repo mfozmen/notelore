@@ -60,6 +60,11 @@ void main() {
   test('the sync summary and the note kinds', () {
     expect(en.synced(0, 0, 0, 0), 'Synced; nothing changed.');
     expect(en.synced(1, 2, 3, 4), contains('1 sent, 2 received, 3 merged, 4 waiting'));
+    expect(en.lockWaiting(const Duration(minutes: 5)), 'Too many tries. Try again in 5:00.');
+    expect(
+      tr.lockWaiting(const Duration(seconds: 30)),
+      'Çok fazla deneme. 0:30 sonra tekrar dene.',
+    );
     expect(tr.synced(0, 0, 0, 0), 'Eşitlendi; değişiklik yok.');
     expect(tr.synced(1, 2, 3, 4), contains('1 gönderildi, 2 alındı, 3 birleştirildi, 4 '));
     expect(tr.noteSubtitle('project', '2026-10-11'), 'proje · güncelleme 2026-10-11');
@@ -109,6 +114,7 @@ void main() {
       'lockedHint': s.lockedHint,
       'unlock': s.unlock,
       'wrongSecret': s.wrongSecret,
+      'lockWaiting': s.lockWaiting(const Duration(minutes: 1, seconds: 5)),
       'notesMayBeSaved': s.notesMayBeSaved,
       'stop': s.stop,
       'changeTheModel': s.changeTheModel,

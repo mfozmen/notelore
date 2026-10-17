@@ -31,6 +31,16 @@ import 'tools.dart';
 const _usage =
     'usage: notelore_dev signin | models | chat [--provider=<name>] [--model=<id>] <message>';
 
+/// A trace file's name for a run started at [time]: UTC to the microsecond,
+/// always six digits, so names sort in time order (`toIso8601String()` drops
+/// zero microseconds, and `.120Z` sorts after `.120345Z`).
+String traceName(DateTime time) {
+  final utc = time.toUtc();
+  final second = utc.toIso8601String().substring(0, 19).replaceAll(':', '-');
+  final micros = (utc.millisecond * 1000 + utc.microsecond).toString().padLeft(6, '0');
+  return '$second.${micros}Z.log';
+}
+
 /// Runs one command; the exit code is 0, 1 (it failed) or 64 (bad usage).
 Future<int> runDev(
   List<String> args, {
@@ -39,6 +49,7 @@ Future<int> runDev(
   required StringSink out,
   required Future<void> Function(Uri url) openBrowser,
   required http.Client client,
+  DateTime Function() now = DateTime.now,
 }) async {
   if ((environment['NOTELORE_HOME'] ?? '').isEmpty) {
     out.writeln('Set NOTELORE_HOME (e.g. .dev-home): notelore_dev never touches the real notes.');
@@ -65,13 +76,8 @@ Future<int> runDev(
     defaultNotes: currentDirectory, // unused: NOTELORE_HOME is set
     defaultState: currentDirectory,
   );
-  final traceFile = File(
-    p.join(
-      paths.state.path,
-      'trace',
-      '${DateTime.now().toUtc().toIso8601String().replaceAll(':', '-')}.log',
-    ),
-  )..createSync(recursive: true);
+  final traceFile = File(p.join(paths.state.path, 'trace', traceName(now())))
+    ..createSync(recursive: true);
   final traced = TracingClient(
     client,
     (entry) => traceFile.writeAsStringSync('$entry\n\n', mode: FileMode.append),

@@ -18,8 +18,8 @@ import 'support.dart';
 
 /// The app on [harness]'s session. The app owns the session, so it is closed by
 /// unmounting the app before the temp folders go.
-Future<Session> pumpApp(WidgetTester tester, Harness harness) async {
-  final session = harness.session(owned: false);
+Future<Session> pumpApp(WidgetTester tester, Harness harness, {DateTime Function()? clock}) async {
+  final session = harness.session(owned: false, clock: clock);
   addTearDown(() => tester.pumpWidget(const SizedBox()));
   await tester.pumpWidget(
     NoteloreApp(
@@ -203,6 +203,92 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     expect(find.text('Notelore is locked'), findsNothing);
+    expect(find.byKey(const Key('message')), findsOneWidget);
+  });
+
+  /// The app goes to the background the way a phone sends it there.
+  void toBackground(WidgetTester tester) {
+    for (final state in [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.paused,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+  }
+
+  void toForeground(WidgetTester tester) {
+    for (final state in [
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+  }
+
+  testWidgets('lock: back from a minute in the background it asks again; a short trip not', (
+    tester,
+  ) async {
+    phone(tester);
+    var now = DateTime.utc(2026, 10, 17, 12);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness, clock: () => now);
+    await connect(tester, key: 'k');
+    await session.setLock('2468');
+    await tester.pumpAndSettle();
+    toBackground(tester);
+    now = now.add(const Duration(seconds: 59));
+    toForeground(tester);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('message')), findsOneWidget); // still open
+    // Losing focus alone (a desktop window behind another) is not the background.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    now = now.add(const Duration(minutes: 5));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('message')), findsOneWidget);
+    toBackground(tester);
+    now = now.add(const Duration(minutes: 1));
+    toForeground(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Notelore is locked'), findsOneWidget);
+    expect(find.byKey(const Key('message')), findsNothing);
+    await tester.enterText(find.byKey(const Key('unlock')), '2468');
+    await tester.tap(find.text('Unlock'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('message')), findsOneWidget);
+  });
+
+  testWidgets('lock: after five wrong tries the screen waits, then lets one try again', (
+    tester,
+  ) async {
+    phone(tester);
+    var now = DateTime.utc(2026, 10, 17, 12);
+    final harness = Harness();
+    final first = await pumpApp(tester, harness, clock: () => now);
+    await connect(tester, key: 'k');
+    await first.setLock('2468');
+    await tester.pumpWidget(const SizedBox());
+    await pumpApp(tester, harness, clock: () => now);
+    for (var i = 0; i < 5; i++) {
+      await tester.enterText(find.byKey(const Key('unlock')), '0000');
+      await tester.tap(find.text('Unlock'));
+      await tester.pump();
+      await tester.pump();
+    }
+    expect(find.text('Too many tries. Try again in 0:30.'), findsOneWidget);
+    expect(tester.widget<TextField>(find.byKey(const Key('unlock'))).enabled, isFalse);
+    now = now.add(const Duration(seconds: 10));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('Too many tries. Try again in 0:20.'), findsOneWidget);
+    now = now.add(const Duration(seconds: 20));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.textContaining('Too many tries'), findsNothing);
+    expect(tester.widget<TextField>(find.byKey(const Key('unlock'))).enabled, isTrue);
+    await tester.enterText(find.byKey(const Key('unlock')), '2468');
+    await tester.tap(find.text('Unlock'));
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key('message')), findsOneWidget);
   });
 

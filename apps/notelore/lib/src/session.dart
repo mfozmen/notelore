@@ -338,9 +338,90 @@ class Session extends ChangeNotifier {
   /// Closed until [unlock] gets the right PIN or password; only when [lockEnabled].
   var locked = false;
 
-  /// Opens the app when [secret] is the lock's PIN or password.
+  /// How long the app may be in the background before it locks again: a
+  /// phone keeps it in memory for hours, but a quick look elsewhere (the
+  /// ChatGPT sign-in tab, a share sheet, a file picker) must not lock.
+  static const relockAfter = Duration(minutes: 1);
+
+  /// When the app went to the background; null while it is in front.
+  DateTime? _awaySince;
+
+  /// The app went to the background (hidden or paused); the first one counts.
+  void backgrounded() => _awaySince ??= clock();
+
+  /// The app is in front again: locked when it was away [relockAfter] or longer.
+  void foregrounded() {
+    final since = _awaySince;
+    _awaySince = null;
+    if (!lockEnabled || locked || since == null) return;
+    if (clock().difference(since) < relockAfter) return;
+    locked = true;
+    notifyListeners();
+  }
+
+  /// Wrong tries in a row and when the last one was, kept in the keystore
+  /// beside the hash so a restart does not wipe them.
+  String get _failuresKey => '$_lockKey.failures';
+  var _failures = 0;
+  DateTime? _lastFailure;
+
+  /// How long a run of [failures] wrong tries makes the next one wait: nothing
+  /// for the first four, then 30 seconds, a minute, and five minutes from the
+  /// seventh on (a 4-digit PIN has only 10,000 values).
+  static Duration lockDelay(int failures) => switch (failures) {
+    < 5 => Duration.zero,
+    5 => const Duration(seconds: 30),
+    6 => const Duration(minutes: 1),
+    _ => const Duration(minutes: 5),
+  };
+
+  /// What is left of the wait before the next try; zero when one may try now.
+  Duration get lockWait {
+    final last = _lastFailure;
+    if (last == null) return Duration.zero;
+    final left = last.add(lockDelay(_failures)).difference(clock());
+    return left.isNegative ? Duration.zero : left;
+  }
+
+  Future<void> _loadFailures() async {
+    final saved = await keys.read(key: _failuresKey);
+    final decoded = saved == null ? null : _decodeFailures(saved);
+    _failures = decoded?.$1 ?? 0;
+    _lastFailure = decoded?.$2;
+  }
+
+  static (int, DateTime)? _decodeFailures(String saved) {
+    try {
+      if (jsonDecode(saved) case {'count': final int count, 'last': final String last}) {
+        return (count, DateTime.parse(last));
+      }
+    } on FormatException {
+      // damaged: start over
+    }
+    return null;
+  }
+
+  Future<void> _clearFailures() async {
+    _failures = 0;
+    _lastFailure = null;
+    await keys.delete(key: _failuresKey);
+  }
+
+  /// Opens the app when [secret] is the lock's PIN or password; not while a
+  /// wait after wrong tries runs ([lockWait]).
   Future<bool> unlock(String secret) async {
-    if (!await _matches(secret)) return false;
+    if (lockWait > Duration.zero) return false;
+    if (!await _matches(secret)) {
+      _failures++;
+      _lastFailure = clock();
+      await keys.write(
+        key: _failuresKey,
+        value: jsonEncode({'count': _failures, 'last': _lastFailure!.toIso8601String()}),
+      );
+      notifyListeners();
+      return false;
+    }
+    await _clearFailures();
     locked = false;
     notifyListeners();
     return true;
@@ -351,6 +432,7 @@ class Session extends ChangeNotifier {
     final iterations = lockIterations;
     final hash = await offThread(() => hashSecret(secret, iterations: iterations));
     await keys.write(key: _lockKey, value: hash);
+    await _clearFailures();
     lockEnabled = true;
     notifyListeners();
   }
@@ -360,6 +442,7 @@ class Session extends ChangeNotifier {
   Future<bool> removeLock(String current) async {
     if (!await _matches(current)) return false;
     await keys.delete(key: _lockKey);
+    await _clearFailures();
     lockEnabled = locked = false;
     notifyListeners();
     return true;
@@ -375,6 +458,7 @@ class Session extends ChangeNotifier {
   /// connected (in the background: an offline start is fine).
   Future<void> load() async {
     lockEnabled = locked = await keys.read(key: _lockKey) != null;
+    await _loadFailures();
     _loadLanguage();
     // Whisper comes by itself, in the background: not with the app, so that
     // updates stay small.

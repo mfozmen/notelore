@@ -33,6 +33,7 @@ void main() {
     http.Client? client,
     Map<String, String>? environment,
     List<Uri>? opened,
+    DateTime Function()? now,
   }) => runDev(
     args,
     environment: environment ?? {'NOTELORE_HOME': 'home'},
@@ -40,6 +41,7 @@ void main() {
     out: out,
     openBrowser: (url) async => opened?.add(url),
     client: client ?? MockClient((_) async => http.Response('', 500)),
+    now: now ?? DateTime.now,
   );
 
   String home(String rel) => p.join(temp.path, 'home', rel);
@@ -56,6 +58,29 @@ void main() {
       ..sort((a, b) => a.path.compareTo(b.path));
     return files.last.readAsStringSync();
   }
+
+  test('trace names sort in time order, also on a whole millisecond (regression)', () async {
+    // toIso8601String() drops zero microseconds (".120Z" vs ".120345Z"), so the
+    // earlier run used to sort last and trace() read the wrong, empty file.
+    final times = [
+      DateTime.utc(2026, 10, 17, 17, 34, 45, 120),
+      DateTime.utc(2026, 10, 17, 17, 34, 45, 120, 345),
+    ];
+    expect(await run(['chat', '--provider=openai', 'hi'], now: () => times[0]), 1); // no key
+    expect(
+      await run(
+        ['chat', '--provider=openai', 'hi'],
+        environment: {'NOTELORE_HOME': 'home', 'NOTELORE_OPENAI_API_KEY': 'sk'},
+        now: () => times[1],
+        client: MockClient((_) async => http.Response('', 500)),
+      ),
+      1,
+    );
+    final names = Directory(home('state/trace')).listSync().map((f) => p.basename(f.path)).toList()
+      ..sort();
+    expect(names, ['2026-10-17T17-34-45.120000Z.log', '2026-10-17T17-34-45.120345Z.log']);
+    expect(trace(), contains('POST')); // the newest run's trace, not the empty one
+  });
 
   test('refuses to run without NOTELORE_HOME: never the real notes', () async {
     expect(await run(['chat', 'hi'], environment: {}), 64);

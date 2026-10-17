@@ -63,6 +63,7 @@ abstract class Strings {
   String get lockedHint;
   String get unlock;
   String get wrongSecret;
+  String lockWaiting(Duration wait);
 
   /// After an error, when the failed turn had already changed the notes.
   String get notesMayBeSaved;
@@ -245,6 +246,8 @@ class EnglishStrings extends Strings {
   String get unlock => 'Unlock';
   @override
   String get wrongSecret => "That's not it. Try again.";
+  @override
+  String lockWaiting(Duration wait) => 'Too many tries. Try again in ${_minutes(wait)}.';
   @override
   String get notesMayBeSaved =>
       'Some notes may already have been saved before this failed. Check them before you '
@@ -596,6 +599,8 @@ class TurkishStrings extends Strings {
   @override
   String get wrongSecret => 'Bu değil. Tekrar dene.';
   @override
+  String lockWaiting(Duration wait) => 'Çok fazla deneme. ${_minutes(wait)} sonra tekrar dene.';
+  @override
   String get notesMayBeSaved =>
       'Bu hatadan önce bazı notlar kaydedilmiş olabilir. Bir şey iki kez kaydedilmesin diye '
       'yeniden göndermeden önce onlara bak.';
@@ -846,3 +851,7 @@ Strings stringsFor(AppLanguage language, String system) => switch (language) {
   AppLanguage.en => EnglishStrings(),
   AppLanguage.system => system == 'tr' ? TurkishStrings() : EnglishStrings(),
 };
+
+/// A wait as minutes and seconds, like a timer: 0:30, 5:00.
+String _minutes(Duration wait) =>
+    '${wait.inMinutes}:${(wait.inSeconds % 60).toString().padLeft(2, '0')}';
