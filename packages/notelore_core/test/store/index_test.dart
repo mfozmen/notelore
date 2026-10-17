@@ -472,6 +472,21 @@ void main() {
     expect(index.search('notification').map((hit) => hit.slug), ['mopsos']);
   });
 
+  test('a marked write is read during a full audit even with the old stamp', () {
+    final index = NoteIndex(db, root)..rebuild();
+    addTearDown(index.close);
+    final path = p.join(root, 'projects', 'mopsos.md');
+    final file = File(path);
+    final stamp = file.lastModifiedSync();
+    file.writeAsStringSync(file.readAsStringSync().replaceAll('crypto', 'krypta'));
+    file.setLastModifiedSync(stamp);
+    index
+      ..markChanged(path)
+      ..invalidateAll()
+      ..rebuild();
+    expect(index.search('krypta').map((hit) => hit.slug), ['mopsos']);
+  });
+
   test('a new kind folder is watched and indexed', () {
     final dir = tempDir();
     final notes = p.join(dir, 'notes');

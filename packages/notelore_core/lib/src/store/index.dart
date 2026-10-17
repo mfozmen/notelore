@@ -289,7 +289,8 @@ class NoteIndex {
     try {
       for (final MapEntry(key: kind, value: folder) in kinds.entries) {
         for (final file in markdownFiles(p.join(root, folder))) {
-          _refresh(file, kind, known, seen);
+          final rel = p.posix.joinAll(p.split(p.relative(file.path, from: root)));
+          _refresh(file, kind, known, seen, force: _changed.contains(rel));
         }
       }
       known.keys.where((rel) => !seen.contains(rel)).forEach(_forget);
