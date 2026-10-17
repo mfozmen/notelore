@@ -44,13 +44,18 @@ class TurnStopped implements Exception {
 String describeTool(String name) => switch (name) {
   'search_notes' || 'list_notes' => 'Searching the notes',
   'read_note' || 'get_decision' || 'decision_history' => 'Reading the notes',
-  'create_note' ||
-  'add_note_entry' ||
-  'add_todo' ||
-  'complete_todo' ||
-  'record_decision' ||
-  'archive' => 'Writing the notes',
+  _ when writingTools.contains(name) => 'Writing the notes',
   _ => 'Working',
+};
+
+/// The tools that change the notes folder.
+const writingTools = {
+  'create_note',
+  'add_note_entry',
+  'add_todo',
+  'complete_todo',
+  'record_decision',
+  'archive',
 };
 
 const _kept = {'text', 'tool_use'}; // the only block types the API accepts back as history
@@ -76,6 +81,11 @@ class Agent {
   final Duration deadline;
   final messages = <Message>[];
 
+  /// Whether the last [ask] called a tool that writes the notes. A failed turn
+  /// is taken back out of [messages] but its writes stay, so asking the same
+  /// again may write them twice.
+  var wroteNotes = false;
+
   /// Completes with [TurnStopped] to end the running turn.
   Completer<AgentResponse>? _stop;
 
@@ -99,6 +109,7 @@ class Agent {
     List<String> Function()? takeLater,
   }) async {
     final start = messages.length;
+    wroteNotes = false;
     final stop = _stop = Completer()..future.ignore();
     final timer = Timer(deadline, () => this.stop(const TurnStopped(_late)));
     try {
@@ -138,6 +149,7 @@ class Agent {
         return blocks.map((b) => b['text']).join('\n');
       }
       onStep(describeTool('${uses.first['name']}'));
+      if (uses.any((u) => writingTools.contains(u['name']))) wroteNotes = true;
       messages.add({
         'role': 'user',
         'content': [

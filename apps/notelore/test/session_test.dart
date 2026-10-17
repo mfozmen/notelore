@@ -322,20 +322,19 @@ void main() {
     expect(busyFlips, 1); // busy the whole time, off once at the end
   });
 
-  test('a turn says what it is doing and can be stopped', () async {
+  test('a running turn can be stopped', () async {
     final harness = Harness(answers: [Completer<AgentResponse>().future]);
     final session = harness.session();
     await session.connect(findProvider('anthropic'), 'k');
     session.stop(); // nothing running: nothing happens
     final turn = session.send('selam');
     await Future<void>.delayed(Duration.zero);
-    expect(session.step, 'Thinking');
+    expect(session.busy, isTrue);
     session.stop();
     await turn;
     expect(session.transcript.last.role, ChatRole.error);
     expect(session.transcript.last.text, 'Stopped.');
     expect(session.busy, isFalse);
-    expect(session.step, isNull);
     // Stopped while still queued (e.g. behind a sync): the model is never asked.
     final queued = session.send('again');
     session.stop();
@@ -353,6 +352,51 @@ void main() {
     expect(session.transcript.last.text, contains('offline'));
     await session.send('two');
     expect(session.transcript.last.text, 'back');
+  });
+
+  test('resend sends the last message again, exactly, also after a failure', () async {
+    final harness = Harness(answers: [const NetworkError('offline'), 'back']);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    expect(session.lastSent, isNull);
+    await session.resend(); // nothing sent yet: nothing happens
+    expect(harness.provider.asked, isEmpty);
+    await session.send('  one  ');
+    expect(session.lastSent, 'one');
+    expect(session.transcript.last.role, ChatRole.error);
+    expect(session.transcript.last.text, isNot(contains(session.strings.notesMayBeSaved)));
+    await session.resend();
+    expect(harness.provider.asked, ['one', 'one']); // once per resend
+    expect(session.transcript.map((l) => l.role), [
+      ChatRole.user,
+      ChatRole.error,
+      ChatRole.user, // the resend shows as a message of its own
+      ChatRole.assistant,
+    ]);
+    expect(session.transcript[2].text, 'one');
+    expect(session.transcript.last.text, 'back');
+  });
+
+  test('a failure after a note was written warns before a resend', () async {
+    final harness = Harness(
+      answers: [
+        const AgentResponse([
+          {
+            'type': 'tool_use',
+            'id': 't1',
+            'name': 'create_note',
+            'input': {'kind': 'project', 'title': 'Mopsos'},
+          },
+        ], 'tool_use'),
+        const NetworkError('offline'), // the note is written, the answer fails
+      ],
+    );
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    await session.send('note Mopsos');
+    expect(session.transcript.last.role, ChatRole.error);
+    expect(session.transcript.last.text, contains('offline'));
+    expect(session.transcript.last.text, contains(session.strings.notesMayBeSaved));
   });
 
   test('the agent really writes notes, and the notes list sees them', () async {

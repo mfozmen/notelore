@@ -63,16 +63,24 @@ class _ChatScreenState extends State<ChatScreen> {
     final session = widget.session;
     final s = session.strings;
     final lines = session.transcript.reversed.toList(); // newest at the bottom
+    // One tap sends the last message again; not while a turn runs.
+    final resendable = session.busy ? -1 : lines.indexWhere((l) => l.role == ChatRole.user);
     // On a wide window the conversation is a readable column, like a page.
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: Layout.chat),
-        child: _conversation(context, session, s, lines),
+        child: _conversation(context, session, s, lines, resendable),
       ),
     );
   }
 
-  Widget _conversation(BuildContext context, Session session, Strings s, List<ChatLine> lines) {
+  Widget _conversation(
+    BuildContext context,
+    Session session,
+    Strings s,
+    List<ChatLine> lines,
+    int resendable,
+  ) {
     return Column(
       children: [
         Expanded(
@@ -102,9 +110,13 @@ class _ChatScreenState extends State<ChatScreen> {
                   reverse: true,
                   padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
                   itemCount: lines.length + (session.busy ? 1 : 0),
-                  itemBuilder: (context, index) => session.busy
-                      ? (index == 0 ? _Thinking(s) : _Bubble(lines[index - 1]))
-                      : _Bubble(lines[index]),
+                  itemBuilder: (context, index) {
+                    if (!session.busy) {
+                      final bubble = _Bubble(lines[index]);
+                      return index == resendable ? _Resendable(bubble, s, session.resend) : bubble;
+                    }
+                    return index == 0 ? _Thinking(s) : _Bubble(lines[index - 1]);
+                  },
                 ),
         ),
         if (session.modelGone)
@@ -264,10 +276,13 @@ Widget _status(BuildContext context, IconData icon, Widget text) => Padding(
   ),
 );
 
-/// The assistant's turn while it runs: a playful line that changes every few
-/// seconds (its steps, a search or a write, pass too fast to read).
+/// The assistant's turn while it runs: a playful line that changes every
+/// [_rotation] (its steps, a search or a write, pass too fast to read).
 class _Thinking extends StatefulWidget {
   const _Thinking(this.strings);
+
+  /// How long each waiting line stays before the next one.
+  static const _rotation = Duration(seconds: 4);
 
   final Strings strings;
 
@@ -296,7 +311,7 @@ class _ThinkingState extends State<_Thinking> {
 
   String get _waiting {
     final lines = widget.strings.waitingLines;
-    return lines[(_first + _seconds ~/ 4) % lines.length];
+    return lines[(_first + _seconds ~/ _Thinking._rotation.inSeconds) % lines.length];
   }
 
   @override
@@ -322,6 +337,29 @@ class _ThinkingState extends State<_Thinking> {
       ),
     );
   }
+}
+
+/// The last message, with a button under it that sends it again.
+class _Resendable extends StatelessWidget {
+  const _Resendable(this.bubble, this.strings, this.resend);
+
+  final Widget bubble;
+  final Strings strings;
+  final VoidCallback resend;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.end,
+    children: [
+      bubble,
+      IconButton(
+        tooltip: strings.resend,
+        icon: const Icon(Icons.replay, size: 18),
+        visualDensity: VisualDensity.compact,
+        onPressed: resend,
+      ),
+    ],
+  );
 }
 
 class _Bubble extends StatelessWidget {

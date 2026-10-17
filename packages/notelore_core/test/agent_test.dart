@@ -315,7 +315,44 @@ class FlakyProvider extends ScriptedProvider {
   }
 }
 
+/// Fails on call number [failing] (from 0), answers the rest in order.
+class FailsOnCall extends ScriptedProvider {
+  FailsOnCall(this.failing, super.responses);
+
+  final int failing;
+  var calls = 0;
+
+  @override
+  Future<AgentResponse> turn(String system, List<Message> messages, List<Tool> tools) {
+    if (calls++ == failing) throw const NetworkError('offline');
+    return super.turn(system, messages, tools);
+  }
+}
+
 void failureTests() {
+  test('a turn that fails after writing a note says so; the next turn starts clean', () async {
+    final box = newBox();
+    final provider = FailsOnCall(1, [
+      toolUse('create_note', 't1', {'kind': 'project', 'title': 'Mopsos'}),
+      text('ok'),
+    ]);
+    final agent = Agent(provider, box, today: today);
+    expect(agent.wroteNotes, isFalse);
+    await expectLater(agent.ask('note this'), throwsA(isA<NetworkError>()));
+    expect(agent.wroteNotes, isTrue); // the note is on disk, the turn is not in history
+    expect(agent.messages, isEmpty);
+    expect(await agent.ask('thanks'), 'ok');
+    expect(agent.wroteNotes, isFalse);
+  });
+
+  test('reading the notes before a failure is not a write', () async {
+    final box = newBox();
+    final provider = FailsOnCall(1, [toolUse('list_notes')]);
+    final agent = Agent(provider, box, today: today);
+    await expectLater(agent.ask('what do I have?'), throwsA(isA<NetworkError>()));
+    expect(agent.wroteNotes, isFalse);
+  });
+
   test('a provider failure rolls the turn back so roles keep alternating', () async {
     final box = newBox();
     final provider = FlakyProvider([text('back online')]);

@@ -311,9 +311,6 @@ class Session extends ChangeNotifier {
   final transcript = <ChatLine>[];
   bool busy = false;
 
-  /// What the running chat turn is doing ("Thinking", "Searching the notes").
-  String? step;
-
   bool get ready => _agent != null;
 
   String get _settings => p.join(paths.state.path, 'settings.json');
@@ -515,6 +512,14 @@ class Session extends ChangeNotifier {
   /// What the user wrote while a turn ran, not yet handed to the model.
   final _later = <String>[];
 
+  /// The user's last message as it was sent; null before the first.
+  String? get lastSent => transcript.where((l) => l.role == ChatRole.user).lastOrNull?.text;
+
+  /// Sends [lastSent] again, as a message of its own; nothing before the first.
+  Future<void> resend() async {
+    if (lastSent case final message?) await send(message);
+  }
+
   /// One chat turn, then a sync. A provider failure becomes an error line; the
   /// agent has already taken the turn back, so the user can simply send again.
   /// Sent while a turn runs, a message joins that turn instead (see [_later]).
@@ -538,14 +543,11 @@ class Session extends ChangeNotifier {
       _stopped = false;
       final taken = <String>[];
       await _exclusive(() async {
+        Agent? asked; // the one that ran the turn, even if a logout replaced it since
         try {
           if (_stopped) throw const TurnStopped(); // stopped while queued behind a sync
-          final answer = await _agent!.ask(
+          final answer = await (asked = _agent!).ask(
             message!,
-            onStep: (now) {
-              step = now;
-              notifyListeners();
-            },
             takeLater: () {
               taken.addAll(_later);
               _later.clear();
@@ -556,9 +558,13 @@ class Session extends ChangeNotifier {
         } on Exception catch (error) {
           // The failed turn was taken back: what it had taken goes out again.
           _later.insertAll(0, taken);
-          transcript.add((role: ChatRole.error, text: strings.core('$error')));
+          final failed = strings.core('$error');
+          transcript.add((
+            role: ChatRole.error,
+            // Its writes stay: a resend could write them twice.
+            text: asked?.wroteNotes ?? false ? '$failed\n\n${strings.notesMayBeSaved}' : failed,
+          ));
         } finally {
-          step = null;
           notifyListeners();
         }
       });

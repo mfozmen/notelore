@@ -35,7 +35,8 @@ void main() {
     final session = await pumpApp(tester, harness); // opening the app starts the download
     await connect(tester, key: 'k');
     await openVoice(tester);
-    expect(find.textContaining('about 375 MB'), findsOneWidget);
+    expect(find.text('Whisper speech recognition'), findsOneWidget);
+    expect(find.textContaining('375 MB'), findsNothing); // no explanation, just the setting
     await settle(tester, session);
     expect(session.whisper.ready, isTrue);
     expect(find.text('Download Whisper'), findsNothing);

@@ -47,12 +47,16 @@ abstract class Strings {
   String get askSomething;
   String get message;
   String get send;
+  String get resend;
+
+  /// After an error, when the failed turn had already changed the notes.
+  String get notesMayBeSaved;
   String get stop;
   String get changeTheModel;
   String get changeModel;
   String modelGone(String provider, String model);
 
-  /// Shown in turn while the model only thinks, instead of a plain "Thinking".
+  /// Shown in rotation while a chat turn runs, instead of a plain "Thinking".
   List<String> get waitingLines;
   String get talk;
   String get stopReading;
@@ -104,7 +108,6 @@ abstract class Strings {
   String get webSearchBilled;
   String get webSearchUnavailable;
   String get whisper;
-  String get whisperExplained;
   String get tryAgain;
   String whisperDownloading(int percent);
   String whisperFailed(String why);
@@ -198,6 +201,12 @@ class EnglishStrings extends Strings {
   String get message => 'Message';
   @override
   String get send => 'Send';
+  @override
+  String get resend => 'Resend';
+  @override
+  String get notesMayBeSaved =>
+      'Some notes may already have been saved before this failed. Check them before you '
+      'resend, so nothing is saved twice.';
   @override
   String get stop => 'Stop';
   @override
@@ -323,10 +332,6 @@ class EnglishStrings extends Strings {
   String get webSearchUnavailable => 'Not available with this provider.';
   @override
   String get whisper => 'Whisper speech recognition';
-  @override
-  String get whisperExplained =>
-      'Hears you on this device, offline, in any language. Notelore downloads it once by '
-      "itself (about 375 MB); until then voice mode uses the device's recognizer.";
   @override
   String get tryAgain => 'Try again';
   @override
@@ -520,6 +525,12 @@ class TurkishStrings extends Strings {
   @override
   String get send => 'Gönder';
   @override
+  String get resend => 'Yeniden gönder';
+  @override
+  String get notesMayBeSaved =>
+      'Bu hatadan önce bazı notlar kaydedilmiş olabilir. Bir şey iki kez kaydedilmesin diye '
+      'yeniden göndermeden önce onlara bak.';
+  @override
   String get stop => 'Durdur';
   @override
   String get changeTheModel => 'Modeli değiştir';
@@ -649,10 +660,6 @@ class TurkishStrings extends Strings {
   String get webSearchUnavailable => 'Bu sağlayıcıda kullanılamıyor.';
   @override
   String get whisper => 'Whisper ses tanıma';
-  @override
-  String get whisperExplained =>
-      'Seni bu cihazda, internetsiz ve her dilde duyar. Notelore onu bir kez kendisi indirir '
-      '(yaklaşık 375 MB); o zamana kadar sesli mod cihazın ses tanımasını kullanır.';
   @override
   String get tryAgain => 'Tekrar dene';
   @override
