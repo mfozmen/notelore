@@ -1,6 +1,12 @@
 name: Issue
 description: A bug, a request or a task. Every issue needs a priority.
 body:
+  - type: markdown
+    attributes:
+      value: >-
+        Set the **Milestone** in the sidebar: the epic this issue serves. Every
+        issue has one. If no open epic fits, ask for a new one; a closed epic is
+        never reopened.
   - type: textarea
     id: what
     attributes:

@@ -1,6 +1,6 @@
 # Plan
 
-Single roadmap. Tick items as PRs land; delete finished milestones once they are stable.
+The roadmap is the [open milestones, by due date](https://github.com/mfozmen/notelore/milestones?direction=asc&sort=due_date): each milestone is an epic, the earliest due date is worked on first, and every issue belongs to one (see CLAUDE.md, *Epics are milestones*). This file keeps the history of what was planned here before.
 
 The first version was a Python command line (store, agent, Drive sync design). It was ported to one Flutter codebase for every device ([#60](https://github.com/mfozmen/notelore/issues/60)) and retired in [#69](https://github.com/mfozmen/notelore/issues/69); its behaviour lives on in the Dart tests and the `spec/fixtures` contract.
 

@@ -18,7 +18,7 @@ Tell it things; it writes tidy notes. Ask later, *"Which database did we pick fo
 - **English and Turkish**
 
 > [!NOTE]
-> Notelore is early and under active development. See the [roadmap](docs/PLAN.md).
+> Notelore is early and under active development. See the [roadmap](https://github.com/mfozmen/notelore/milestones?direction=asc&sort=due_date).
 
 ## Install
 
