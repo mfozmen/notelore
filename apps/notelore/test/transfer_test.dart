@@ -30,6 +30,12 @@ void main() {
       expect(utf8.decode(files[1].bytes), turkish.$2);
     });
 
+    test('a project and a topic with one name do not overwrite each other', () async {
+      final topic = ('mopsos', fixture('mopsos.md').replaceFirst('kind: project', 'kind: topic'));
+      final files = await exportFiles([mopsos, topic, mopsos], ExportFormat.markdown, fonts: fonts);
+      expect(files.map((f) => f.name), ['mopsos.md', 'mopsos (2).md', 'mopsos (3).md']);
+    });
+
     test('a PDF in Noto Sans, so Turkish letters show; one file for many notes', () async {
       final one = await exportFiles([turkish], ExportFormat.pdf, fonts: fonts);
       expect(one.single.name, 'sirket-kurulusu.pdf');

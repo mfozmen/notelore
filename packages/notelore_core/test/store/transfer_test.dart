@@ -124,6 +124,30 @@ void main() {
       expect('<article'.allMatches(page), hasLength(2));
     });
 
+    test('only web and mail links stay links; a script link goes nowhere', () {
+      final note = fixture('mopsos.md').replaceFirst(
+        'Set up CI',
+        '[a](javascript:alert(1)) [b](data:text/html,x) [c](https://example.com) '
+            '[d](mailto:a@b.c) [e](JAVASCRIPT:alert(2))',
+      );
+      final page = notesHtml('x', [note]);
+      expect(page.toLowerCase(), isNot(contains('javascript:')));
+      expect(page, isNot(contains('data:text')));
+      expect(page, contains('href="https://example.com"'));
+      expect(page, contains('href="mailto:a@b.c"'));
+    });
+
+    test('a quote stays a quote; the body starts after the title, not a YAML comment', () {
+      final note = fixture('mopsos.md')
+          .replaceFirst('kind: project\n', 'kind: project\n# a comment in the front matter\n')
+          .replaceFirst('## Decisions', '> Quoted first line.\n\n## Decisions');
+      final page = notesHtml('x', [note]);
+      expect(page, contains('<blockquote>'));
+      expect(page, contains('Quoted first line.'));
+      expect(page, isNot(contains('a comment in the front matter')));
+      expect('<h1>'.allMatches(page), hasLength(1)); // the title once, from the meta
+    });
+
     test('markup inside a note is shown, never run', () {
       final note = fixture('mopsos.md')
           .replaceFirst('Set up CI', '<script>alert(1)</script> <img src=x onerror=alert(2)>');

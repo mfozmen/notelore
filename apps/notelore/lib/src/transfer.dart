@@ -59,9 +59,19 @@ Future<List<ExportFile>> exportFiles(
 }) async {
   final name = '${notes.length == 1 ? notes.single.$1 : _many}.${format.extension}';
   final texts = [for (final (_, text) in notes) text];
+  // A project and a topic may share a slug: number the second, never lose it.
+  final taken = <String>{};
+  String unique(String slug) {
+    var name = '$slug.md';
+    for (var n = 2; !taken.add(name); n++) {
+      name = '$slug ($n).md';
+    }
+    return name;
+  }
+
   return switch (format) {
     ExportFormat.markdown => [
-      for (final (slug, text) in notes) (name: '$slug.md', bytes: utf8.encode(text)),
+      for (final (slug, text) in notes) (name: unique(slug), bytes: utf8.encode(text)),
     ],
     ExportFormat.pdf => [(name: name, bytes: await notesPdf(texts, fonts))],
     ExportFormat.html => [(name: name, bytes: utf8.encode(notesHtml('Notelore', texts)))],

@@ -135,6 +135,14 @@ String metaLine(Note note) {
 
 const _escape = HtmlEscape(HtmlEscapeMode.element);
 
+/// Links and images keep only web and mail targets: a `javascript:` or `data:`
+/// link in a note must not run when someone clicks it in the page.
+String _safeLinks(String html) => html.replaceAllMapped(
+  RegExp(r'(href|src)="([^"]*)"'),
+  (m) =>
+      RegExp(r'^(https?:|mailto:)', caseSensitive: false).hasMatch(m[2]!) ? m[0]! : '${m[1]}="#"',
+);
+
 /// The notes in [texts] as one HTML page called [title], each an `<article>`
 /// with its meta line. Markup inside a note is shown as text, never run.
 String notesHtml(String title, List<String> texts) {
@@ -143,11 +151,17 @@ String notesHtml(String title, List<String> texts) {
       () {
         final source = unorm.nfc(text.replaceAll('\r\n', '\n'));
         final note = parse(source);
-        // The body after the "# title" line, its own markup escaped first.
-        final body = source.substring(source.indexOf('\n# ') + 1).split('\n').skip(1).join('\n');
-        final html = md.markdownToHtml(
-          _escape.convert(body),
-          extensionSet: md.ExtensionSet.gitHubFlavored,
+        // The body after the "# title" line that follows the front matter, its
+        // own tags escaped first (only < and &: a lone > still makes a quote).
+        final body = source
+            .substring(source.indexOf('\n---\n', 4) + 5)
+            .split('\n')
+            .skip(1)
+            .join('\n')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;');
+        final html = _safeLinks(
+          md.markdownToHtml(body, extensionSet: md.ExtensionSet.gitHubFlavored),
         );
         return '<article>\n<h1>${_escape.convert(note.title)}</h1>\n'
             '<p class="meta">${_escape.convert(metaLine(note))}</p>\n$html</article>';
