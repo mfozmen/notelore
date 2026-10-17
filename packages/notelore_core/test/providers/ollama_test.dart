@@ -96,6 +96,9 @@ void main() {
     final body = call['body']! as Map<String, Object?>;
     expect(body['stream'], isFalse);
     expect(body['model'], 'llama-x');
+    // Small enough to stay on a laptop GPU, and no long hidden thinking (#326).
+    expect(body['options'], {'num_ctx': 16384});
+    expect(body['think'], isFalse);
     expect((body['messages']! as List).first, {'role': 'system', 'content': 'be brief'});
     expect(((body['tools']! as List).first as Map)['function'], containsPair('name', 'read_note'));
     expect(call['timeout'], const Duration(seconds: 180));
