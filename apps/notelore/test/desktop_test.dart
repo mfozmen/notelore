@@ -42,6 +42,22 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
   });
 
+  testWidgets('a draft survives the side rail and a resize to the phone layout', (tester) async {
+    desktop(tester, 1600);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    String draft() => tester.widget<TextField>(find.byKey(const Key('message'))).controller!.text;
+    await tester.enterText(find.byKey(const Key('message')), 'half a thought');
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Chat'));
+    await tester.pumpAndSettle();
+    expect(draft(), 'half a thought');
+    phone(tester); // the layout changes under the chat
+    await tester.pumpAndSettle();
+    expect(draft(), 'half a thought');
+  });
+
   testWidgets('chat on a wide window is a readable column, not the full width', (tester) async {
     desktop(tester, 1920);
     await pumpApp(tester, Harness());

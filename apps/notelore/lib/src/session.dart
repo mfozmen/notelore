@@ -309,6 +309,10 @@ class Session extends ChangeNotifier {
 
   bool get driveAvailable => driveAuth != null;
   final transcript = <ChatLine>[];
+
+  /// What is written in the message box and not sent yet; it outlives the chat
+  /// screen, so a trip to another tab (or a new window layout) keeps it.
+  var draft = '';
   bool busy = false;
 
   bool get ready => _agent != null;
@@ -478,6 +482,7 @@ class Session extends ChangeNotifier {
     _agent = null;
     _provider = null;
     transcript.clear();
+    draft = '';
     notifyListeners();
   }
 

@@ -143,6 +143,38 @@ void main() {
     expect(find.textContaining('offline'), findsOneWidget);
   });
 
+  testWidgets('chat: an unsent draft survives a trip to another tab; sending clears it', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness(answers: ['Tamam.']);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    String draft() => tester.widget<TextField>(find.byKey(const Key('message'))).controller!.text;
+    await tester.enterText(find.byKey(const Key('message')), 'yarım kalan');
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Chat'));
+    await tester.pumpAndSettle();
+    expect(draft(), 'yarım kalan');
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    expect(draft(), isEmpty);
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Chat'));
+    await tester.pumpAndSettle();
+    expect(draft(), isEmpty); // the sent text does not come back
+    // Clearing it by hand is a draft too: an empty one.
+    await tester.enterText(find.byKey(const Key('message')), 'x');
+    await tester.enterText(find.byKey(const Key('message')), '');
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Chat'));
+    await tester.pumpAndSettle();
+    expect(draft(), isEmpty);
+  });
+
   testWidgets('chat: one tap resends the last message, also after a failure', (tester) async {
     phone(tester);
     final harness = Harness(answers: [const NetworkError('offline'), 'Merhaba!']);

@@ -20,7 +20,8 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final _message = TextEditingController();
+  late final TextEditingController _message = TextEditingController(text: widget.session.draft)
+    ..addListener(() => widget.session.draft = _message.text);
   final _modelMenu = GlobalKey<PopupMenuButtonState<String>>();
 
   /// Push to talk, beside the message box.
