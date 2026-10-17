@@ -62,12 +62,21 @@ List<Map<String, Object?>> toGemini(List<Message> messages) {
   final names = toolUseNames(messages);
   return [
     for (final message in messages)
-      if (splitBlocks(message['content']) case (:final texts, :final uses, :final results))
+      if (splitBlocks(message['content']) case (
+        :final texts,
+        :final uses,
+        :final results,
+        :final images,
+      ))
         {
           // Function responses go under role "user", like plain user text.
           'role': message['role'] == 'user' ? 'user' : 'model',
           'parts': [
             for (final t in texts) {'text': t},
+            for (final (mimeType, data) in images.map(imageData))
+              {
+                'inlineData': {'mimeType': mimeType, 'data': data},
+              },
             for (final u in uses)
               {
                 'functionCall': {

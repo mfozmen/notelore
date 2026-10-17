@@ -253,6 +253,27 @@ void main() {
       },
       {'type': 'function_call_output', 'call_id': 't1', 'output': 'ok'},
     ]);
+    // A user turn with an image: one message of text and image parts (#278).
+    expect(
+      toResponsesInput([
+        {
+          'role': 'user',
+          'content': [
+            {'type': 'text', 'text': 'look'},
+            imageBlock('image/png', [1, 2, 3]),
+          ],
+        },
+      ]),
+      [
+        {
+          'role': 'user',
+          'content': [
+            {'type': 'input_text', 'text': 'look'},
+            {'type': 'input_image', 'image_url': 'data:image/png;base64,AQID'},
+          ],
+        },
+      ],
+    );
     // An assistant turn with only tool calls has no empty text message.
     expect(
       toResponsesInput([

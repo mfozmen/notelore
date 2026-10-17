@@ -212,11 +212,16 @@ List<Map<String, Object?>> toResponsesInput(
   String? namespace = planNamespace,
 }) => [
   for (final message in messages)
-    if (splitBlocks(message['content']) case (:final texts, :final uses, :final results))
+    if (splitBlocks(message['content']) case (
+      :final texts,
+      :final uses,
+      :final results,
+      :final images,
+    ))
       if (message['role'] == 'assistant')
         ..._assistantItems(texts, uses, namespace)
       else
-        ..._userItems(texts, results),
+        ..._userItems(texts, results, images),
 ];
 
 /// An assistant turn: its text, then one `function_call` per tool use.
@@ -236,15 +241,30 @@ List<Map<String, Object?>> _assistantItems(
     },
 ];
 
-/// A user turn: the tool results it carries, then what the user wrote.
-List<Map<String, Object?>> _userItems(List<String> texts, List<Block> results) => [
+/// A user turn: the tool results it carries, then what the user wrote; with
+/// [images], one message of text and image parts.
+List<Map<String, Object?>> _userItems(
+  List<String> texts,
+  List<Block> results,
+  List<Block> images,
+) => [
   for (final r in results)
     {
       'type': 'function_call_output',
       'call_id': r['tool_use_id'] ?? '',
       'output': r['content'] ?? '',
     },
-  for (final text in texts) {'role': 'user', 'content': text},
+  if (images.isEmpty)
+    for (final text in texts) {'role': 'user', 'content': text}
+  else
+    {
+      'role': 'user',
+      'content': [
+        for (final text in texts) {'type': 'input_text', 'text': text},
+        for (final (mediaType, data) in images.map(imageData))
+          {'type': 'input_image', 'image_url': 'data:$mediaType;base64,$data'},
+      ],
+    },
 ];
 
 /// A final Responses object as Anthropic-style blocks.

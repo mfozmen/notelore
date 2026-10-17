@@ -58,6 +58,20 @@ void main() {
   late Toolbox box;
   setUp(() => box = newBox());
 
+  test('images go with the message as image blocks after its text (#278)', () async {
+    final provider = ScriptedProvider([text('A receipt.')]);
+    final agent = Agent(provider, box, today: today);
+    final image = imageBlock('image/png', [1, 2, 3]);
+    expect(await agent.ask('what is this', images: [image]), 'A receipt.');
+    expect(provider.turns.single.$2.first, {
+      'role': 'user',
+      'content': [
+        {'type': 'text', 'text': 'what is this'},
+        image,
+      ],
+    });
+  });
+
   test('a plain answer keeps the history', () async {
     final provider = ScriptedProvider([text('Merhaba!')]);
     final agent = Agent(provider, box, today: today);
@@ -281,6 +295,23 @@ void main() {
       expect(parsed.files, ["a' b.txt"]);
     },
   );
+
+  test('an attached image is named in the message; its picture goes as a block (#278)', () {
+    expect(systemPrompt(today), contains('<attached image='));
+    final message = withAttachments(
+      'what is it',
+      [(name: 'a.txt', text: 'x')],
+      images: ['receipt "1".png'],
+    );
+    expect(
+      message,
+      'what is it\n\n<attached file="a.txt">\nx\n</attached>\n\n'
+      '<attached image="receipt \'1\'.png"/>',
+    );
+    final shown = attachedFiles(message);
+    expect(shown.text, 'what is it');
+    expect(shown.files, ['a.txt', "receipt '1'.png"]);
+  });
 
   test('a question ends with its likely answers in double brackets (#210)', () {
     expect(systemPrompt(today), contains('[[Yes]] [[No]]'));

@@ -450,6 +450,43 @@ void main() {
     expect(harness.provider.asked, ['kitabı kaydet']);
   });
 
+  group('images (#278)', () {
+    final png = imageBlock('image/png', [1, 2, 3]);
+    const message = 'what is it\n\n<attached image="r.png"/>';
+
+    test('go to the model with the message; the transcript keeps only their name', () async {
+      final harness = Harness(answers: ['A receipt.', 'Again.']);
+      final session = harness.session();
+      await session.connect(findProvider('anthropic'), 'k');
+      expect(session.acceptsImages, isTrue);
+      await session.send(message, images: [png]);
+      expect(harness.provider.asked.single, allOf(contains('image/png'), contains('AQID')));
+      expect(session.transcript.first, (role: ChatRole.user, text: message));
+      // Resend sends the picture again, too.
+      await session.resend();
+      expect(harness.provider.asked.last, contains('AQID'));
+    });
+
+    test('never wait offline: an error says to send them again; nothing is kept', () async {
+      final harness = Harness(answers: [const NetworkError('offline')]);
+      final session = harness.session();
+      await session.connect(findProvider('anthropic'), 'k');
+      await session.send(message, images: [png]);
+      expect(session.transcript.map((l) => l.role), [ChatRole.user, ChatRole.error]);
+      expect(session.transcript.last.text, contains('Images cannot wait'));
+      expect(File(p.join(harness.paths.state.path, 'pending.json')).existsSync(), isFalse);
+      final again = harness.session();
+      await again.load();
+      expect(again.transcript, isEmpty);
+    });
+
+    test('Ollama is not sent any', () async {
+      final session = Harness().session();
+      await session.connect(findProvider('ollama'), '');
+      expect(session.acceptsImages, isFalse);
+    });
+  });
+
   test('send runs the agent and keeps the transcript', () async {
     final harness = Harness(answers: ['Merhaba!']);
     final session = harness.session();

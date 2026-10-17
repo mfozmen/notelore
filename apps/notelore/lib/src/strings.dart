@@ -61,6 +61,9 @@ abstract class Strings {
   String notText(String name);
   String tooLarge(String name);
   String noPdfText(String name);
+  String noImages(String provider);
+  String get imagesNotNow;
+  String get imagesCannotWait;
 
   /// The app lock (#224): Settings, its dialogs and the screen at start.
   String get appLock;
@@ -302,12 +305,20 @@ class EnglishStrings extends Strings {
   String get attachFile => 'Attach a file';
   @override
   String notText(String name) =>
-      'Notelore reads text files and PDFs for now (txt, md, csv, pdf and the like); $name is not one.';
+      'Notelore reads text files, PDFs (txt, md, csv, pdf and the like) and images (PNG, '
+      'JPEG, GIF, WebP) for now; $name is none of them.';
   @override
   String noPdfText(String name) =>
-      '$name has no text to read (a scan, or a damaged file); Notelore cannot read images yet.';
+      '$name has no text to read (a scan, or a damaged file); Notelore reads only a PDF's text.';
   @override
   String tooLarge(String name) => '$name is too large to send; split it into smaller files.';
+  @override
+  String noImages(String provider) => '$provider cannot look at images; text files still work.';
+  @override
+  String get imagesNotNow => 'Images go when nothing else is on its way; try again in a moment.';
+  @override
+  String get imagesCannotWait =>
+      'Images cannot wait to be sent later: send the message again when you are back online.';
   @override
   String get appLock => 'App lock';
   @override
@@ -744,12 +755,20 @@ class TurkishStrings extends Strings {
   String get attachFile => 'Dosya ekle';
   @override
   String notText(String name) =>
-      "Notelore şimdilik metin dosyalarını ve PDF'leri okuyor (txt, md, csv, pdf gibi); $name bunlardan değil.";
+      'Notelore şimdilik metin dosyalarını, PDF'leri (txt, md, csv, pdf gibi) ve görselleri '
+      '(PNG, JPEG, GIF, WebP) okuyor; $name bunlardan değil.';
   @override
   String noPdfText(String name) =>
-      '$name içinde okunacak yazı yok (taranmış ya da bozuk bir dosya); Notelore henüz resim okuyamıyor.';
+      '$name içinde okunacak yazı yok (taranmış ya da bozuk bir dosya); Notelore bir PDF'nin yalnızca yazısını okur.';
   @override
   String tooLarge(String name) => '$name gönderilemeyecek kadar büyük; daha küçük dosyalara böl.';
+  @override
+  String noImages(String provider) => '$provider görsellere bakamıyor; metin dosyaları yine olur.';
+  @override
+  String get imagesNotNow => 'Görseller, yolda başka bir şey yokken gider; birazdan yeniden dene.';
+  @override
+  String get imagesCannotWait =>
+      'Görseller sonra gönderilmek üzere bekleyemez: tekrar çevrimiçi olunca mesajı yeniden gönder.';
   @override
   String get appLock => 'Uygulama kilidi';
   @override

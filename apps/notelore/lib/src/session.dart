@@ -614,15 +614,24 @@ class Session extends ChangeNotifier {
 
   /// Sends [lastSent] again, as a message of its own; nothing before the first.
   Future<void> resend() async {
-    if (lastSent case final message?) await send(message);
+    if (lastSent case final message?) await send(message, images: _lastImages);
   }
+
+  /// The model takes images with a message (#278): the provider's do.
+  bool get acceptsImages => spec?.images ?? false;
+
+  /// The images of the last message, for [resend]; only ever in memory.
+  var _lastImages = const <Block>[];
 
   /// One chat turn, then a sync. A provider failure becomes an error line; the
   /// agent has already taken the turn back, so the user can simply send again.
   /// Sent while a turn runs, a message joins that turn instead (see [_later]).
-  Future<void> send(String text) async {
+  /// [images] go with this turn only, never into the queue or a saved file:
+  /// the chat sends them only when nothing runs or waits ([acceptsImages]).
+  Future<void> send(String text, {List<Block> images = const []}) async {
     final message = text.trim();
     if (message.isEmpty) return;
+    _lastImages = images;
     // Behind a waiting message, a new one waits too (kept, in order), even while
     // the waiting ones are being tried.
     if (_outbox.isNotEmpty) {
@@ -635,25 +644,28 @@ class Session extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    await _turns(message);
+    await _turns(message, images: images);
   }
 
-  /// Turns until nothing written meanwhile is left; busy throughout.
-  Future<void> _turns(String first, {bool queued = false}) async {
+  /// Turns until nothing written meanwhile is left; busy throughout. [images]
+  /// go with the first.
+  Future<void> _turns(String first, {bool queued = false, List<Block> images = const []}) async {
     busy = true;
     _halted = false;
     notifyListeners();
     String? message = first;
     var fromQueue = queued;
+    var pictures = images;
     while (message != null) {
       _stopped = false; // before the queue: a Stop while it waits behind a sync still counts
-      final (current, wasQueued) = (message, fromQueue);
+      final (current, wasQueued, withImages) = (message, fromQueue, pictures);
       final waiting = Stopwatch()..start();
       await _exclusive(() {
         timing?.call('queue ${waiting.elapsedMilliseconds} ms');
-        return _turn(current, queued: wasQueued);
+        return _turn(current, queued: wasQueued, images: withImages);
       });
       (message, fromQueue) = _next();
+      pictures = const [];
     }
     busy = false;
     notifyListeners();
@@ -669,7 +681,7 @@ class Session extends ChangeNotifier {
   }
 
   /// One chat turn: the answer, or what its failure means.
-  Future<void> _turn(String message, {required bool queued}) async {
+  Future<void> _turn(String message, {required bool queued, required List<Block> images}) async {
     final taken = <String>[];
     Agent? asked; // the one that ran the turn, even if a logout replaced it since
     try {
@@ -678,6 +690,7 @@ class Session extends ChangeNotifier {
       if (_stopped) throw const TurnStopped(); // stopped while the pages loaded
       final answer = await (asked = _agent!).ask(
         _withArchived(withPages),
+        images: images,
         takeLater: () {
           taken.addAll(_later);
           _later.clear();
@@ -691,7 +704,13 @@ class Session extends ChangeNotifier {
     } on Exception catch (error) {
       // The failed turn was taken back: what it had taken goes out again.
       _later.insertAll(0, taken);
-      _failed(error, message, wrote: asked?.wroteNotes ?? false, queued: queued);
+      _failed(
+        error,
+        message,
+        wrote: asked?.wroteNotes ?? false,
+        queued: queued,
+        images: images.isNotEmpty,
+      );
     } finally {
       notifyListeners();
     }
@@ -701,14 +720,25 @@ class Session extends ChangeNotifier {
   /// waits and goes out later by itself; anything else is an error line. Not
   /// when the turn wrote notes: a rerun could write them twice, so the error
   /// line says so instead.
-  void _failed(Exception error, String message, {required bool wrote, required bool queued}) {
+  /// A message with [images] never waits (no picture is kept): it is an error
+  /// line that says to send it again (#278).
+  void _failed(
+    Exception error,
+    String message, {
+    required bool wrote,
+    required bool queued,
+    required bool images,
+  }) {
     final later = error is NetworkError || (error is HttpError && error.status == 429);
-    if (later && !wrote) return _hold(message, fresh: !queued);
+    if (later && !wrote && !images) return _hold(message, fresh: !queued);
     if (queued) _sent(message); // it reached the model: no longer waiting
-    final failed = strings.core('$error');
     transcript.add((
       role: ChatRole.error,
-      text: wrote ? '$failed\n\n${strings.notesMayBeSaved}' : failed,
+      text: [
+        strings.core('$error'),
+        if (wrote) strings.notesMayBeSaved,
+        if (later && images) strings.imagesCannotWait,
+      ].join('\n\n'),
     ));
   }
 

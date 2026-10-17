@@ -465,6 +465,58 @@ void main() {
     expect(find.byKey(const Key('message')), findsOneWidget); // typing stays
   });
 
+  testWidgets('chat: attach an image; the model sees it; not while a turn runs (#278)', (
+    tester,
+  ) async {
+    phone(tester);
+    final answer = Completer<AgentResponse>();
+    final harness = Harness(answers: [answer.future]);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    // GIF's first bytes are plain ASCII: an image all the same, not text.
+    final gif = [...'GIF89a'.codeUnits, 1, 0, 1, 0];
+    harness.files.picked = [XFile.fromData(Uint8List.fromList(gif), path: 'r.gif')];
+    await tester.enterText(find.byKey(const Key('message')), 'what is it');
+    await tester.tap(find.byTooltip('Attach a file'));
+    await tester.pump();
+    expect(harness.provider.asked.single, allOf(contains('what is it'), contains('image/gif')));
+    expect(find.text('r.gif'), findsOneWidget); // its name in the bubble, not its bytes
+    // While that turn runs, another image cannot join it.
+    await tester.tap(find.byTooltip('Attach a file'));
+    await tester.pump();
+    expect(find.textContaining('Images go when nothing else'), findsOneWidget);
+    expect(harness.provider.asked, hasLength(1));
+    answer.complete(
+      const AgentResponse([
+        {'type': 'text', 'text': 'A chart.'},
+      ], 'end_turn'),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('A chart.'), findsOneWidget);
+  });
+
+  testWidgets('chat: a provider that cannot see images says so (#278)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, provider: 'Ollama (local)');
+    // Over the providers' 5 MB: too large, whoever would look at it.
+    final big = Uint8List(5 * 1024 * 1024 + 1)..setAll(0, [0xff, 0xd8, 0xff]);
+    harness.files.picked = [XFile.fromData(big, path: 'big.jpg')];
+    await tester.tap(find.byTooltip('Attach a file'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('big.jpg is too large'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5)); // the notice goes
+    await tester.pumpAndSettle();
+    harness.files.picked = [
+      XFile.fromData(Uint8List.fromList([0x89, 0x50, 0x4e, 0x47, 0, 0]), path: 'r.png'),
+    ];
+    await tester.tap(find.byTooltip('Attach a file'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('cannot look at images'), findsOneWidget);
+    expect(harness.provider.asked, isEmpty);
+  });
+
   testWidgets('chat: attach a text file; the model files it; other files are refused (#222)', (
     tester,
   ) async {
@@ -489,7 +541,7 @@ void main() {
     ];
     await tester.tap(find.byTooltip('Attach a file'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('x.bin is not one'), findsOneWidget);
+    expect(find.textContaining('x.bin is neither'), findsOneWidget);
     expect(harness.provider.asked, isEmpty);
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();

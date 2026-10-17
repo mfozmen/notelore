@@ -186,11 +186,46 @@ void main() {
         isEmpty,
       ],
     );
-    final (:texts, :uses, :results) = splitBlocks(conversation[1]['content']);
+    final (:texts, :uses, :results, images: _) = splitBlocks(conversation[1]['content']);
     expect(texts, ['checking']);
     expect(uses.map((u) => u['name']), ['read_note', 'no-id-is-skipped']);
     expect(results, isEmpty);
     expect(splitBlocks(conversation[2]['content']).results.single['tool_use_id'], 't1');
+  });
+
+  test('images: told by their first bytes, sent as blocks, and who can see them (#278)', () {
+    expect(imageType([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]), 'image/png');
+    expect(imageType([0xff, 0xd8, 0xff, 0xe0]), 'image/jpeg');
+    expect(imageType('GIF89a'.codeUnits), 'image/gif');
+    expect(imageType([...'RIFF'.codeUnits, 0, 0, 0, 0, ...'WEBP'.codeUnits]), 'image/webp');
+    for (final other in [
+      'hello'.codeUnits,
+      [0x89],
+      [...'RIFF'.codeUnits, 0, 0, 0, 0, ...'WAVE'.codeUnits],
+    ]) {
+      expect(imageType(other), isNull, reason: '$other');
+    }
+    final block = imageBlock('image/png', [1, 2, 3]);
+    expect(block, {
+      'type': 'image',
+      'source': {'type': 'base64', 'media_type': 'image/png', 'data': 'AQID'},
+    });
+    expect(
+      splitBlocks([
+        {'type': 'text', 'text': 'look'},
+        block,
+      ]).images,
+      [block],
+    );
+    expect(splitBlocks('plain').images, isEmpty);
+    // Ollama cannot tell whether a local model sees images: not offered there.
+    expect(
+      {
+        for (final s in providerSpecs)
+          if (s.images) s.name,
+      },
+      {'chatgpt', 'anthropic', 'openai', 'gemini'},
+    );
   });
 
   final arguments = <Object?, Map<String, Object?>>{
