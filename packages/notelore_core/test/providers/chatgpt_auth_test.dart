@@ -71,13 +71,19 @@ void main() {
         }());
       };
 
-  ChatGptAuth auth({Future<void> Function(Uri)? openBrowser, http.Client? client}) => ChatGptAuth(
+  ChatGptAuth auth({
+    Future<void> Function(Uri)? openBrowser,
+    http.Client? client,
+    Duration exchangeFor = const Duration(seconds: 1),
+  }) => ChatGptAuth(
     openBrowser: openBrowser ?? browser(),
     read: (name) async => store[name],
     write: (name, value) async => value == null ? store.remove(name) : store[name] = value,
     client: client ?? openai.client,
     clock: () => now,
     wait: const Duration(seconds: 5),
+    exchangeFor: exchangeFor,
+    retryEvery: const Duration(milliseconds: 5),
   );
 
   test('first sign-in registers Notelore and keeps the issued client id', () async {
@@ -105,6 +111,30 @@ void main() {
     expect(store['refresh_token'], 'refresh-2');
     expect(await a.signedIn(), isTrue);
     expect(await a.token(), 'access-1');
+  });
+
+  test('a phone offline right after the redirect keeps trying the exchange (#204)', () async {
+    // Android holds back the network of an app behind the sign-in tab: the
+    // exchange fails until the user is back in Notelore.
+    var refused = 2;
+    final flaky = MockClient((request) async {
+      if (refused-- > 0) throw http.ClientException("Failed host lookup: 'auth.openai.com'");
+      return openai.client
+          .send(http.Request('POST', request.url)..bodyFields = request.bodyFields)
+          .then(http.Response.fromStream);
+    });
+    final a = auth(client: flaky);
+    await a.signIn();
+    expect(await a.signedIn(), isTrue);
+    expect(refused, -1); // two failures, then the one that went through
+
+    // Offline for good: it gives up with the network error.
+    store.clear();
+    final offline = MockClient((_) async => throw http.ClientException('no network'));
+    await expectLater(
+      auth(client: offline, exchangeFor: const Duration(milliseconds: 30)).signIn(),
+      throwsA(isA<NetworkError>()),
+    );
   });
 
   test('a later sign-in reuses the client id, host id and id token', () async {
@@ -203,6 +233,8 @@ void main() {
       write: (_, _) async {},
     );
     expect(a.wait, const Duration(minutes: 5));
+    expect(a.exchangeFor, const Duration(minutes: 2));
+    expect(a.retryEvery, const Duration(seconds: 2));
     expect(a.clock().isUtc, isTrue);
   });
 }

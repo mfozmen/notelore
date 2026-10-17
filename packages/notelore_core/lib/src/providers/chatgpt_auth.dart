@@ -40,6 +40,8 @@ class ChatGptAuth implements OAuthSignIn {
     DateTime Function()? clock,
     this.wait = const Duration(minutes: 5),
     this.timeout = const Duration(seconds: 30),
+    this.exchangeFor = const Duration(minutes: 2),
+    this.retryEvery = const Duration(seconds: 2),
   }) : _client = client ?? http.Client(),
        clock = clock ?? DateTime.timestamp;
 
@@ -53,6 +55,12 @@ class ChatGptAuth implements OAuthSignIn {
   final DateTime Function() clock;
   final Duration wait;
   final Duration timeout;
+
+  /// How long the code exchange keeps trying while OpenAI cannot be reached,
+  /// and how often: a phone holds back the network of an app behind the
+  /// sign-in tab until the user is back in it.
+  final Duration exchangeFor;
+  final Duration retryEvery;
   final http.Client _client;
 
   String? _access;
@@ -96,7 +104,7 @@ class ChatGptAuth implements OAuthSignIn {
     if (clientId == null) {
       throw const SignInFailed('ChatGPT did not register Notelore', service: 'ChatGPT');
     }
-    final tokens = await _post({
+    final tokens = await _exchange({
       'grant_type': 'authorization_code',
       'client_id': clientId,
       'code': query['code']!,
@@ -150,6 +158,19 @@ class ChatGptAuth implements OAuthSignIn {
     _expires = clock().add(Duration(seconds: tokens['expires_in']! as int));
     await write('refresh_token', tokens['refresh_token']! as String);
     if (tokens['id_token'] case final String id) await write('id_token', id);
+  }
+
+  /// The code exchange, tried again while the network is held back.
+  Future<Map<String, Object?>> _exchange(Map<String, String> form) async {
+    final trying = Stopwatch()..start();
+    while (true) {
+      try {
+        return await _post(form);
+      } on NetworkError {
+        if (trying.elapsed >= exchangeFor) rethrow;
+        await Future<void>.delayed(retryEvery);
+      }
+    }
   }
 
   Future<Map<String, Object?>> _post(Map<String, String> form) =>
