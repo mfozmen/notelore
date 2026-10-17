@@ -1,0 +1,495 @@
+{
+ "notes": {
+  "projects/mopsos.md": "---\ntitle: Mopsos\nkind: project\ncreated: 2026-09-12\nupdated: 2026-09-30\ntags: [investing, side-project]\n---\n# Mopsos\n\n## Decisions\n- ~~2026-09-12 — **database**: PostgreSQL.~~ _(superseded 2026-09-28)_\n- 2026-09-28 — **database**: SQLite. Single user, zero setup.\n- 2026-09-20 — **frontend**: React + Vite.\n\n## Notes\n- 2026-09-15: Prediction hit rate is calculated weekly, on Sundays.\n\n## Todo\n- [ ] 2026-10-15: Add Drive backup\n- [x] 2026-09-25: Set up CI\n",
+  "topics/sirket-kurulusu.md": "---\ntitle: Şirket Kuruluşu\nkind: topic\ncreated: 2026-08-01\nupdated: 2026-09-29\ntags: [şirket]\n---\n# Şirket Kuruluşu\n\n## Kararlar\n- 2026-09-10 — **şirket-türü**: Limited şirket. Yatırımcı görüşmeleri için gerekli.\n\n## Notlar\n- 2026-08-05: Muhasebeci ile ilk görüşme yapıldı, aylık ücret 2.500 TL.\n\n## Yapılacaklar\n- [ ] 2026-10-01: Vergi levhasını e-Devlet'ten indir\n",
+  "topics/okumakta-oldugum-kitaplar.md": "---\ntitle: Okumakta Olduğum Kitaplar\nkind: topic\ncreated: 2026-10-01\nupdated: 2026-10-01\ntags: [kitap]\n---\n# Okumakta Olduğum Kitaplar\n\n## Notlar\n- 2026-10-01: Sapiens — Yuval Noah Harari\n",
+  "topics/books-to-read.md": "---\ntitle: Books to Read\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-09-01\ntags: [books]\n---\n# Books to Read\n\n## Notes\n- 2026-09-01: The Left Hand of Darkness — Ursula K. Le Guin\n",
+  "projects/ev-tadilati.md": "---\ntitle: Ev Tadilatı\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-05\ntags: [ev]\n---\n# Ev Tadilatı\n\n## Kararlar\n- 2026-09-20 — **mutfak-tezgahı**: Granit. Dayanıklı.\n\n## Yapılacaklar\n- [ ] 2026-10-10: Elektrikçiyi ara, prizleri yenilesin\n"
+ },
+ "cases": [
+  {
+   "id": "file-en-1",
+   "kind": "filing",
+   "lang": "en",
+   "message": "For Mopsos: the hit rate is now computed daily instead of weekly.",
+   "expect": {
+    "tools": [
+     "add_note_entry"
+    ],
+    "notes": {
+     "^projects/mopsos\\.md$": [
+      "daily"
+     ]
+    }
+   }
+  },
+  {
+   "id": "file-en-2",
+   "kind": "filing",
+   "lang": "en",
+   "message": "Mopsos needs an email alert when a prediction fails.",
+   "expect": {
+    "notes": {
+     "^projects/mopsos\\.md$": [
+      "email"
+     ]
+    }
+   }
+  },
+  {
+   "id": "file-tr-1",
+   "kind": "filing",
+   "lang": "tr",
+   "message": "Ev tadilatı: boyacı salı günü geliyor.",
+   "expect": {
+    "notes": {
+     "^projects/ev-tadilati\\.md$": [
+      "boyacı"
+     ]
+    }
+   }
+  },
+  {
+   "id": "file-tr-2",
+   "kind": "filing",
+   "lang": "tr",
+   "message": "Şirket kuruluşu için banka hesabı açıldı.",
+   "expect": {
+    "notes": {
+     "^topics/sirket-kurulusu\\.md$": [
+      "banka"
+     ]
+    }
+   }
+  },
+  {
+   "id": "coll-tr-1",
+   "kind": "collection",
+   "lang": "tr",
+   "message": "Gülünün Solduğu Akşam kitabını okuyorum.",
+   "expect": {
+    "notes": {
+     "^topics/okumakta-oldugum-kitaplar\\.md$": [
+      "Gülünün Solduğu Akşam"
+     ]
+    }
+   }
+  },
+  {
+   "id": "coll-tr-2",
+   "kind": "collection",
+   "lang": "tr",
+   "message": "Şu an Kürk Mantolu Madonna'yı okuyorum.",
+   "expect": {
+    "notes": {
+     "^topics/okumakta-oldugum-kitaplar\\.md$": [
+      "Kürk Mantolu Madonna"
+     ]
+    }
+   }
+  },
+  {
+   "id": "coll-en-1",
+   "kind": "collection",
+   "lang": "en",
+   "message": "I'm reading Project Hail Mary.",
+   "expect": {
+    "notes": {
+     "^topics/(?!project-hail-mary)[^/]+\\.md$": [
+      "Project Hail Mary"
+     ]
+    }
+   }
+  },
+  {
+   "id": "coll-en-2",
+   "kind": "collection",
+   "lang": "en",
+   "message": "I want to read Dune someday.",
+   "expect": {
+    "notes": {
+     "^topics/books-to-read\\.md$": [
+      "Dune"
+     ]
+    }
+   }
+  },
+  {
+   "id": "coll-tr-3",
+   "kind": "collection",
+   "lang": "tr",
+   "message": "İzlemek istediğim film: Yedinci Mühür.",
+   "expect": {
+    "notes": {
+     "^topics/[^/]*film[^/]*\\.md$": [
+      "Yedinci Mühür"
+     ]
+    }
+   }
+  },
+  {
+   "id": "coll-en-3",
+   "kind": "collection",
+   "lang": "en",
+   "message": "Movie to watch: Perfect Days.",
+   "expect": {
+    "notes": {
+     "^topics/[^/]*(movie|film)[^/]*\\.md$": [
+      "Perfect Days"
+     ]
+    }
+   }
+  },
+  {
+   "id": "coll-en-4",
+   "kind": "collection",
+   "lang": "en",
+   "message": "Recipe idea: lentil soup with lemon.",
+   "expect": {
+    "notes": {
+     "^topics/[^/]*recipe[^/]*\\.md$": [
+      "lentil"
+     ]
+    }
+   }
+  },
+  {
+   "id": "coll-tr-4",
+   "kind": "collection",
+   "lang": "tr",
+   "message": "Gezilecek yerler listeme Kapadokya'yı ekle.",
+   "expect": {
+    "notes": {
+     "^topics/[^/]*(gez|yer)[^/]*\\.md$": [
+      "Kapadokya"
+     ]
+    }
+   }
+  },
+  {
+   "id": "coll-en-5",
+   "kind": "collection",
+   "lang": "en",
+   "message": "Gift idea for mom: a ceramic teapot.",
+   "expect": {
+    "notes": {
+     "^topics/[^/]*gift[^/]*\\.md$": [
+      "teapot"
+     ]
+    }
+   }
+  },
+  {
+   "id": "new-en-1",
+   "kind": "new-note",
+   "lang": "en",
+   "message": "New project: a birdhouse for the garden, cedar wood.",
+   "expect": {
+    "tools": [
+     "create_note"
+    ],
+    "notes": {
+     "^projects/[^/]*bird[^/]*\\.md$": [
+      "cedar"
+     ]
+    }
+   }
+  },
+  {
+   "id": "new-tr-1",
+   "kind": "new-note",
+   "lang": "tr",
+   "message": "Yeni proje: balkona küçük bir sera kuracağım.",
+   "expect": {
+    "tools": [
+     "create_note"
+    ],
+    "notes": {
+     "^projects/[^/]*sera[^/]*\\.md$": []
+    }
+   }
+  },
+  {
+   "id": "dec-en-1",
+   "kind": "decision",
+   "lang": "en",
+   "message": "Mopsos: we decided to host on Fly.io because it is cheap.",
+   "expect": {
+    "tools": [
+     "record_decision"
+    ],
+    "notes": {
+     "^projects/mopsos\\.md$": [
+      "Fly.io"
+     ]
+    }
+   }
+  },
+  {
+   "id": "dec-en-2",
+   "kind": "decision",
+   "lang": "en",
+   "message": "Mopsos switches the frontend to Svelte.",
+   "expect": {
+    "tools": [
+     "record_decision"
+    ],
+    "notes": {
+     "^projects/mopsos\\.md$": [
+      "Svelte"
+     ]
+    }
+   }
+  },
+  {
+   "id": "dec-tr-1",
+   "kind": "decision",
+   "lang": "tr",
+   "message": "Ev tadilatı: mutfak tezgahı için granit yerine kuvars seçtik.",
+   "expect": {
+    "tools": [
+     "record_decision"
+    ],
+    "notes": {
+     "^projects/ev-tadilati\\.md$": [
+      "kuvars"
+     ]
+    }
+   }
+  },
+  {
+   "id": "dec-tr-2",
+   "kind": "decision",
+   "lang": "tr",
+   "message": "Şirket kuruluşu: muhasebeciyi değiştirdik, yeni aylık ücret 3.000 TL.",
+   "expect": {
+    "notes": {
+     "^topics/sirket-kurulusu\\.md$": [
+      "3.000"
+     ]
+    }
+   }
+  },
+  {
+   "id": "todo-en-1",
+   "kind": "todo",
+   "lang": "en",
+   "message": "Add a todo to Mopsos: write the README by Friday.",
+   "expect": {
+    "tools": [
+     "add_todo"
+    ],
+    "notes": {
+     "^projects/mopsos\\.md$": [
+      "README"
+     ]
+    }
+   }
+  },
+  {
+   "id": "todo-tr-1",
+   "kind": "todo",
+   "lang": "tr",
+   "message": "Ev tadilatı için yapılacak: banyo fayanslarını seç.",
+   "expect": {
+    "tools": [
+     "add_todo"
+    ],
+    "notes": {
+     "^projects/ev-tadilati\\.md$": [
+      "fayans"
+     ]
+    }
+   }
+  },
+  {
+   "id": "done-en-1",
+   "kind": "todo-done",
+   "lang": "en",
+   "message": "Mopsos: I set up the Drive backup.",
+   "expect": {
+    "tools": [
+     "complete_todo"
+    ],
+    "notes": {
+     "^projects/mopsos\\.md$": []
+    }
+   }
+  },
+  {
+   "id": "done-tr-1",
+   "kind": "todo-done",
+   "lang": "tr",
+   "message": "Elektrikçiyi aradım, ev tadilatındaki o iş tamam.",
+   "expect": {
+    "tools": [
+     "complete_todo"
+    ],
+    "notes": {
+     "^projects/ev-tadilati\\.md$": []
+    }
+   }
+  },
+  {
+   "id": "q-en-1",
+   "kind": "question",
+   "lang": "en",
+   "message": "Which database does Mopsos use?",
+   "expect": {
+    "answer": [
+     "SQLite"
+    ]
+   }
+  },
+  {
+   "id": "q-en-2",
+   "kind": "question",
+   "lang": "en",
+   "message": "What frontend did we pick for Mopsos?",
+   "expect": {
+    "answer": [
+     "React"
+    ]
+   }
+  },
+  {
+   "id": "q-en-3",
+   "kind": "question",
+   "lang": "en",
+   "message": "How often is the Mopsos hit rate calculated?",
+   "expect": {
+    "answer": [
+     "weekly"
+    ]
+   }
+  },
+  {
+   "id": "q-en-4",
+   "kind": "question",
+   "lang": "en",
+   "message": "What do I still have to do for Mopsos?",
+   "expect": {
+    "answer": [
+     "Drive"
+    ]
+   }
+  },
+  {
+   "id": "q-en-5",
+   "kind": "question",
+   "lang": "en",
+   "message": "Did we ever consider PostgreSQL for Mopsos?",
+   "expect": {
+    "answer": [
+     "PostgreSQL"
+    ]
+   }
+  },
+  {
+   "id": "q-tr-1",
+   "kind": "question",
+   "lang": "tr",
+   "message": "Şirket türü olarak ne seçtik?",
+   "expect": {
+    "answer": [
+     "Limited"
+    ]
+   }
+  },
+  {
+   "id": "q-tr-2",
+   "kind": "question",
+   "lang": "tr",
+   "message": "Muhasebecinin aylık ücreti ne kadardı?",
+   "expect": {
+    "answer": [
+     "2.500"
+    ]
+   }
+  },
+  {
+   "id": "q-tr-3",
+   "kind": "question",
+   "lang": "tr",
+   "message": "Hangi kitapları okuyorum?",
+   "expect": {
+    "answer": [
+     "Sapiens"
+    ]
+   }
+  },
+  {
+   "id": "q-tr-4",
+   "kind": "question",
+   "lang": "tr",
+   "message": "Ev tadilatında yapılacaklar neler?",
+   "expect": {
+    "answer": [
+     "lektrik"
+    ]
+   }
+  },
+  {
+   "id": "q-tr-5",
+   "kind": "question",
+   "lang": "tr",
+   "message": "Mutfak tezgahı için ne karar vermiştik?",
+   "expect": {
+    "answer": [
+     "Granit"
+    ]
+   }
+  },
+  {
+   "id": "chat-en-1",
+   "kind": "chat",
+   "lang": "en",
+   "message": "thanks!",
+   "expect": {}
+  },
+  {
+   "id": "chat-tr-1",
+   "kind": "chat",
+   "lang": "tr",
+   "message": "teşekkürler",
+   "expect": {}
+  },
+  {
+   "id": "unclear-en-1",
+   "kind": "unclear",
+   "lang": "en",
+   "message": "Add that to the project.",
+   "expect": {
+    "answer": [
+     "?"
+    ]
+   }
+  },
+  {
+   "id": "unclear-tr-1",
+   "kind": "unclear",
+   "lang": "tr",
+   "message": "Bunu not al.",
+   "expect": {
+    "answer": [
+     "?"
+    ]
+   }
+  },
+  {
+   "id": "archive-en-1",
+   "kind": "archive",
+   "lang": "en",
+   "message": "Archive the Mopsos note, the project is over.",
+   "expect": {
+    "tools": [
+     "archive"
+    ],
+    "notes": {
+     "^projects/mopsos\\.md$": [],
+     "^_archive/": []
+    }
+   }
+  }
+ ]
+}
