@@ -343,16 +343,25 @@ class Session extends ChangeNotifier {
   /// it first, until this device has signed in once. After that it opens even
   /// offline or with the grant expired (Settings connects again); signing out
   /// (disconnecting Drive) asks again.
-  bool get needsGoogle => driveAvailable && !_googleMark.existsSync();
+  bool get needsGoogle => driveAvailable && !_google;
+  var _google = false;
 
-  /// This device signed in with Google; deleted by signing out.
+  /// `in` once this device signed in with Google, `out` once it signed out.
   File get _googleMark => File(p.join(paths.state.path, 'google-signed-in'));
 
   void _markGoogle({required bool signedIn}) {
-    if (signedIn) {
-      (_googleMark..parent.createSync(recursive: true)).writeAsStringSync('');
-    } else if (_googleMark.existsSync()) {
-      _googleMark.deleteSync();
+    _google = signedIn;
+    (_googleMark..parent.createSync(recursive: true)).writeAsStringSync(signedIn ? 'in' : 'out');
+  }
+
+  /// From the mark; a device without one (set up before #208) counts as signed
+  /// in when it is connected now or has synced before, which holds offline too.
+  void _loadGoogle() {
+    final mark = _googleMark.existsSync() ? _googleMark.readAsStringSync() : null;
+    if (mark == null && (driveConnected || manifest.paths().isNotEmpty)) {
+      _markGoogle(signedIn: true);
+    } else {
+      _google = mark == 'in';
     }
   }
 
@@ -395,7 +404,7 @@ class Session extends ChangeNotifier {
       unawaited(retryNow());
     }
     driveConnected = await driveAuth?.signedIn() ?? false;
-    if (driveConnected) _markGoogle(signedIn: true); // connected before #208
+    _loadGoogle();
     notifyListeners();
     if (driveConnected) unawaited(syncNow());
   }

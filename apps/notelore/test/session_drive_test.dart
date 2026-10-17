@@ -175,6 +175,21 @@ void main() {
       expect(later.needsGoogle, isFalse);
     });
 
+    test('a device that synced before this, opened offline, needs no new sign-in', () async {
+      final auth = FakeAuth()..granted = true;
+      final harness = Harness(auth: auth);
+      createNote(harness.paths.notes.path, 'topic', 'Mopsos', today: today);
+      final before = harness.session();
+      await before.load();
+      await before.syncDone;
+      // As an older version left it: synced, but no sign-in mark.
+      File(p.join(harness.paths.state.path, 'google-signed-in')).deleteSync();
+      auth.granted = false; // offline, or the grant expired
+      final later = harness.session();
+      await later.load();
+      expect(later.needsGoogle, isFalse);
+    });
+
     test('disconnecting is signing out: the next start asks again', () async {
       final harness = Harness(auth: FakeAuth()..granted = true);
       final session = harness.session();
