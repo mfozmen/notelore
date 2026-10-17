@@ -41,6 +41,11 @@ class OllamaProvider implements LlmProvider {
           ...toOllama(messages),
         ],
         'stream': false,
+        // Ollama may load a model with a huge default context that spills off
+        // the GPU, and Qwen3 thinks at length unless told not to: both made a
+        // 4B model take minutes per turn on a laptop (#326).
+        'options': {'num_ctx': 16384},
+        'think': false,
         if (tools.isNotEmpty) 'tools': functionTools(tools),
       },
       timeout: _timeout,
