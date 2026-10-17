@@ -129,10 +129,13 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemCount: lines.length + (session.busy ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (!session.busy) {
-                      final bubble = _Bubble(lines[index]);
-                      return index == resendable ? _Resendable(bubble, s, session.resend) : bubble;
+                      return _Bubble(
+                        lines[index],
+                        s,
+                        resend: index == resendable ? session.resend : null,
+                      );
                     }
-                    return index == 0 ? _Thinking(s) : _Bubble(lines[index - 1]);
+                    return index == 0 ? _Thinking(s) : _Bubble(lines[index - 1], s);
                   },
                 ),
         ),
@@ -402,33 +405,22 @@ class _ThinkingState extends State<_Thinking> {
   }
 }
 
-/// The last message, with a button under it that sends it again.
-class _Resendable extends StatelessWidget {
-  const _Resendable(this.bubble, this.strings, this.resend);
-
-  final Widget bubble;
-  final Strings strings;
-  final VoidCallback resend;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.end,
-    children: [
-      bubble,
-      IconButton(
-        tooltip: strings.resend,
-        icon: const Icon(Icons.replay, size: 18),
-        visualDensity: VisualDensity.compact,
-        onPressed: resend,
-      ),
-    ],
-  );
-}
-
+/// One line of the conversation. Messages and answers have a Copy button under
+/// them; the last message also one that sends it again ([resend]).
 class _Bubble extends StatelessWidget {
-  const _Bubble(this.line);
+  const _Bubble(this.line, this.strings, {this.resend});
 
   final ChatLine line;
+  final Strings strings;
+  final VoidCallback? resend;
+
+  Future<void> _copy(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    await Clipboard.setData(ClipboardData(text: line.text));
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(strings.copied), duration: const Duration(seconds: 2)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -439,6 +431,30 @@ class _Bubble extends StatelessWidget {
       ChatRole.assistant => (colors.surfaceContainerHigh, colors.onSurface),
       ChatRole.error => (colors.errorContainer, colors.onErrorContainer),
     };
+    final bubble = _bubble(mine, background, foreground);
+    if (line.role == ChatRole.error) return bubble;
+    Widget button(String tooltip, IconData icon, VoidCallback onPressed) => IconButton(
+      tooltip: tooltip,
+      icon: Icon(icon, size: 18),
+      visualDensity: VisualDensity.compact,
+      onPressed: onPressed,
+    );
+    return Column(
+      crossAxisAlignment: mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        bubble,
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            button(strings.copy, Icons.copy, () => _copy(context)),
+            if (resend case final resend?) button(strings.resend, Icons.replay, resend),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _bubble(bool mine, Color background, Color foreground) {
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(

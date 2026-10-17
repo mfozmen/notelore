@@ -101,6 +101,8 @@ void main() {
       'message': s.message,
       'send': s.send,
       'resend': s.resend,
+      'copy': s.copy,
+      'copied': s.copied,
       'appLock': s.appLock,
       'appLockOn': s.appLockOn,
       'appLockOff': s.appLockOff,
