@@ -692,45 +692,8 @@ class Session extends ChangeNotifier {
   Future<void> _turns(String first) async {
     busy = true;
     notifyListeners();
-    for (String? message = first; message != null; message = _waiting == null ? _rest() : null) {
-      _stopped = false;
-      _awayInTurn = _away;
-      final taken = <String>[];
-      await _exclusive(() async {
-        Agent? asked; // the one that ran the turn, even if a logout replaced it since
-        try {
-          if (_stopped) throw const TurnStopped(); // stopped while queued behind a sync
-          final answer = await (asked = _agent!).ask(
-            _withArchived(message!),
-            takeLater: () {
-              taken.addAll(_later);
-              _later.clear();
-              return [...taken];
-            },
-          );
-          transcript.add((role: ChatRole.assistant, text: strings.core(answer)));
-          // Seen only once answered: a failed turn's notice goes out again.
-          _lastNotes = _noteTitles(); // the agent's own changes included
-        } on Exception catch (error) {
-          // The failed turn was taken back: what it had taken goes out again.
-          _later.insertAll(0, taken);
-          // A phone holds back the network of an app in the background: such a
-          // failure waits for the return instead, unless the turn wrote notes
-          // (a rerun could write them twice).
-          if (error is NetworkError && _awayInTurn && !(asked?.wroteNotes ?? false)) {
-            _waiting = message;
-            return;
-          }
-          final failed = strings.core('$error');
-          transcript.add((
-            role: ChatRole.error,
-            // Its writes stay: a resend could write them twice.
-            text: asked?.wroteNotes ?? false ? '$failed\n\n${strings.notesMayBeSaved}' : failed,
-          ));
-        } finally {
-          notifyListeners();
-        }
-      });
+    for (String? message = first; message != null; message = _next()) {
+      await _exclusive(() => _turn(message!));
     }
     busy = false;
     notifyListeners();
@@ -740,6 +703,52 @@ class Session extends ChangeNotifier {
       unawaited(_turns(message));
     }
     if (driveConnected) unawaited(syncNow());
+  }
+
+  /// The next message to run: none while one waits for the return.
+  String? _next() => _waiting == null ? _rest() : null;
+
+  /// One chat turn: the answer, or what its failure means.
+  Future<void> _turn(String message) async {
+    _stopped = false;
+    _awayInTurn = _away;
+    final taken = <String>[];
+    Agent? asked; // the one that ran the turn, even if a logout replaced it since
+    try {
+      if (_stopped) throw const TurnStopped(); // stopped while queued behind a sync
+      final answer = await (asked = _agent!).ask(
+        _withArchived(message),
+        takeLater: () {
+          taken.addAll(_later);
+          _later.clear();
+          return [...taken];
+        },
+      );
+      transcript.add((role: ChatRole.assistant, text: strings.core(answer)));
+      // Seen only once answered: a failed turn's notice goes out again.
+      _lastNotes = _noteTitles(); // the agent's own changes included
+    } on Exception catch (error) {
+      // The failed turn was taken back: what it had taken goes out again.
+      _later.insertAll(0, taken);
+      _failed(error, message, wrote: asked?.wroteNotes ?? false);
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  /// A failed turn: an error line, or, when a phone held back the network of
+  /// Notelore in the background, a wait for the return. Not when the turn wrote
+  /// notes: a rerun could write them twice, so the line says so instead.
+  void _failed(Exception error, String message, {required bool wrote}) {
+    if (error is NetworkError && _awayInTurn && !wrote) {
+      _waiting = message;
+      return;
+    }
+    final failed = strings.core('$error');
+    transcript.add((
+      role: ChatRole.error,
+      text: wrote ? '$failed\n\n${strings.notesMayBeSaved}' : failed,
+    ));
   }
 
   /// Notelore is in the background (a phone), as the app's lifecycle reports.
