@@ -500,9 +500,13 @@ void main() {
     final harness = Harness();
     await pumpApp(tester, harness);
     await connect(tester, provider: 'Ollama (local)');
-    // Over the providers' 5 MB: too large, whoever would look at it.
-    final big = Uint8List(5 * 1024 * 1024 + 1)..setAll(0, [0xff, 0xd8, 0xff]);
-    harness.files.picked = [XFile.fromData(big, path: 'big.jpg')];
+    // Over the providers' 5 MB, counted over every image of the message: too
+    // large, whoever would look at it.
+    Uint8List jpeg() => Uint8List(3 * 1024 * 1024)..setAll(0, [0xff, 0xd8, 0xff]);
+    harness.files.picked = [
+      XFile.fromData(jpeg(), path: 'one.jpg'),
+      XFile.fromData(jpeg(), path: 'big.jpg'),
+    ];
     await tester.tap(find.byTooltip('Attach a file'));
     await tester.pumpAndSettle();
     expect(find.textContaining('big.jpg is too large'), findsOneWidget);

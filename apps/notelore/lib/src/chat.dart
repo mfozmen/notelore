@@ -50,7 +50,8 @@ class _ChatScreenState extends State<ChatScreen> {
   /// images; audio is #285.
   static const maxAttachment = 200000;
 
-  /// An image larger than this is refused: the providers' own limit (5 MB).
+  /// Images adding up to more than this are refused: the providers' own limit
+  /// for one (5 MB), over every image of a message.
   static const maxImage = 5 * 1024 * 1024;
 
   /// Sends the files picked, with what is typed as their explanation: text
@@ -83,6 +84,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final images = <Block>[];
     final names = <String>[];
     var sent = 0; // characters, over every text file of the message
+    var pictured = 0; // bytes, over every image of it
     for (final file in picked) {
       // An image first: a GIF begins as plain ASCII.
       final type = imageType(file.bytes);
@@ -92,13 +94,14 @@ class _ChatScreenState extends State<ChatScreen> {
       final refused = switch ((type, text)) {
         (null, null) when pdf => s.noPdfText(file.name),
         (null, null) => s.notText(file.name),
-        (_?, _) when file.bytes.length > maxImage => s.tooLarge(file.name),
+        (_?, _) when pictured + file.bytes.length > maxImage => s.tooLarge(file.name),
         (_, final text?) when sent + text.length > maxAttachment => s.tooLarge(file.name),
         _ => null,
       };
       if (refused != null) return (files: files, images: images, names: names, refused: refused);
       if (type != null) {
         images.add(imageBlock(type, file.bytes));
+        pictured += file.bytes.length;
         names.add(file.name);
       } else {
         files.add((name: file.name, text: text!));
