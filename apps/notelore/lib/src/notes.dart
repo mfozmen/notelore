@@ -4,7 +4,9 @@ import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'session.dart';
+import 'strings.dart';
 import 'theme.dart';
+import 'transfer.dart';
 
 Widget _noteMarkdown(String text) => Markdown(
   data: text,
@@ -79,6 +81,74 @@ class _NotesScreenState extends State<NotesScreen> {
     return true;
   }
 
+  /// Asks for a format, exports [notes] and says how it went (#215).
+  Future<void> _export(List<NoteInfo> notes) async {
+    final s = widget.session.strings;
+    final format = await showDialog<ExportFormat>(
+      context: context,
+      builder: (dialog) => SimpleDialog(
+        title: Text(s.exportAs),
+        children: [
+          for (final format in ExportFormat.values)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(dialog, format),
+              child: Text(s.formatName(format)),
+            ),
+        ],
+      ),
+    );
+    if (format == null || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    String said;
+    try {
+      if (!await widget.session.exportNotes(notes, format)) return; // called off
+      said = s.exported(notes.length);
+    } on Exception catch (error) {
+      said = s.exportFailed('$error');
+    }
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(said)));
+  }
+
+  /// Several notes at once: which ones, then the format.
+  Future<void> _exportSeveral(List<NoteInfo> notes) async {
+    final chosen = await showDialog<List<NoteInfo>>(
+      context: context,
+      builder: (_) => _ChooseNotes(notes, widget.session.strings),
+    );
+    if (chosen != null && mounted) await _export(chosen);
+  }
+
+  /// Imports the files the person picks and says what happened to each.
+  Future<void> _import() async {
+    final s = widget.session.strings;
+    final messenger = ScaffoldMessenger.of(context);
+    final reports = await widget.session.importNotes();
+    if (reports.isEmpty || !mounted) return; // called off
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          showCloseIcon: true,
+          duration: const Duration(seconds: 8),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [for (final report in reports) Text(_reported(s, report))],
+          ),
+        ),
+      );
+    setState(() {});
+  }
+
+  static String _reported(Strings s, ImportReport report) => switch (report.imported) {
+    null => s.importRefused(report.file),
+    Imported(outcome: ImportOutcome.added, :final title) => s.importedAdded(title),
+    Imported(outcome: ImportOutcome.renamed, :final title) => s.importedRenamed(title),
+    Imported(:final title) => s.importedSame(title),
+  };
+
   // Listed on every build: the session rebuilds the screen after a sync, and the
   // index only rereads files that changed.
   @override
@@ -95,6 +165,16 @@ class _NotesScreenState extends State<NotesScreen> {
       appBar: AppBar(
         title: Text(s.notes),
         actions: [
+          IconButton(
+            tooltip: s.importNotes,
+            icon: const Icon(Icons.file_open_outlined),
+            onPressed: _import,
+          ),
+          IconButton(
+            tooltip: s.exportNotes,
+            icon: const Icon(Icons.ios_share),
+            onPressed: notes.isEmpty ? null : () => _exportSeveral(notes),
+          ),
           IconButton(
             tooltip: s.archive,
             icon: const Icon(Icons.inventory_2_outlined),
@@ -196,16 +276,23 @@ class _NotesScreenState extends State<NotesScreen> {
       content = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // The note's own heading is its title; above it only its action.
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(0, Gap.s, Gap.s, 0),
-              child: IconButton(
-                tooltip: s.delete,
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () => _delete(note),
-              ),
+          // The note's own heading is its title; above it only its actions.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, Gap.s, Gap.s, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  tooltip: s.export,
+                  icon: const Icon(Icons.ios_share),
+                  onPressed: () => _export([note]),
+                ),
+                IconButton(
+                  tooltip: s.delete,
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => _delete(note),
+                ),
+              ],
             ),
           ),
           Expanded(child: _noteMarkdown(text)),
@@ -231,6 +318,11 @@ class _NotesScreenState extends State<NotesScreen> {
           title: Text(note.title),
           actions: [
             IconButton(
+              tooltip: widget.session.strings.export,
+              icon: const Icon(Icons.ios_share),
+              onPressed: () => _export([note]),
+            ),
+            IconButton(
               tooltip: widget.session.strings.delete,
               icon: const Icon(Icons.delete_outline),
               onPressed: () async {
@@ -249,6 +341,55 @@ class _NotesScreenState extends State<NotesScreen> {
       ),
     ),
   );
+}
+
+/// Picks the notes to export together.
+class _ChooseNotes extends StatefulWidget {
+  const _ChooseNotes(this.notes, this.strings);
+
+  final List<NoteInfo> notes;
+  final Strings strings;
+
+  @override
+  State<_ChooseNotes> createState() => _ChooseNotesState();
+}
+
+class _ChooseNotesState extends State<_ChooseNotes> {
+  final _chosen = <NoteInfo>{};
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.strings;
+    return AlertDialog(
+      title: Text(s.chooseNotes),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            for (final note in widget.notes)
+              CheckboxListTile(
+                title: Text(note.title),
+                value: _chosen.contains(note),
+                onChanged: (on) => setState(() => on! ? _chosen.add(note) : _chosen.remove(note)),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(s.cancel)),
+        FilledButton(
+          onPressed: _chosen.isEmpty
+              ? null
+              : () => Navigator.pop(context, [
+                  for (final note in widget.notes)
+                    if (_chosen.contains(note)) note,
+                ]),
+          child: Text(s.next),
+        ),
+      ],
+    );
+  }
 }
 
 /// What was deleted, newest first; each opens read-only with Restore.

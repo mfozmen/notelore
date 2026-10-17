@@ -3,16 +3,20 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:file_selector_platform_interface/file_selector_platform_interface.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:notelore/src/session.dart';
+import 'package:notelore/src/transfer.dart';
 import 'package:notelore/src/voice.dart';
 import 'package:notelore/src/whisper_model.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:share_plus_platform_interface/share_plus_platform_interface.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -66,7 +70,16 @@ class Harness {
     );
     provider = ScriptedProvider([...answers]);
     FlutterSecureStorage.setMockInitialValues({});
+    FileSelectorPlatform.instance = files;
+    scratch = Directory(p.join(dir.path, 'scratch'))..createSync();
   }
+
+  /// Where exports go: the share sheet on a phone (the default here), save and
+  /// open dialogs on the desktop.
+  var mobile = true;
+  final share = FakeShare();
+  final files = FakeFileSelector();
+  late final Directory scratch;
 
   late final NotelorePaths paths;
   late final ScriptedProvider provider;
@@ -155,6 +168,11 @@ class Harness {
         return provider;
       },
       today: today,
+      exchange: Exchange(
+        mobile: mobile,
+        share: SharePlus.custom(share),
+        scratch: () async => scratch.createTempSync('export'),
+      ),
       // A light app-lock hash, worked out right here: tests need no isolates.
       lockIterations: 10,
       offThread: <R>(work) async => work(),
@@ -306,4 +324,55 @@ class FakeVoice implements Voice {
 
   @override
   Future<void> stop() async => stops++;
+}
+
+/// The share sheet: records what it was handed, answers as told.
+class FakeShare extends SharePlatform with MockPlatformInterfaceMixin {
+  final shared = <ShareParams>[];
+
+  /// What each shared file held when it was handed over, by name.
+  final contents = <String, List<int>>{};
+  var status = ShareResultStatus.success;
+
+  @override
+  Future<ShareResult> share(ShareParams params) async {
+    shared.add(params);
+    for (final file in params.files ?? const <XFile>[]) {
+      contents[file.name] = await file.readAsBytes();
+    }
+    return ShareResult('', status);
+  }
+}
+
+/// Open and save dialogs: answer with what a test sets, record what was asked.
+class FakeFileSelector extends FileSelectorPlatform with MockPlatformInterfaceMixin {
+  /// Picked by the open dialog; none means it was called off.
+  var picked = <XFile>[];
+  String? saveAt;
+  String? folder;
+  final suggested = <String?>[];
+  final groups = <List<XTypeGroup>?>[];
+
+  @override
+  Future<List<XFile>> openFiles({
+    List<XTypeGroup>? acceptedTypeGroups,
+    String? initialDirectory,
+    String? confirmButtonText,
+  }) async {
+    groups.add(acceptedTypeGroups);
+    return picked;
+  }
+
+  @override
+  Future<FileSaveLocation?> getSaveLocation({
+    List<XTypeGroup>? acceptedTypeGroups,
+    SaveDialogOptions options = const SaveDialogOptions(),
+  }) async {
+    suggested.add(options.suggestedName);
+    return saveAt == null ? null : FileSaveLocation(saveAt!);
+  }
+
+  @override
+  Future<String?> getDirectoryPath({String? initialDirectory, String? confirmButtonText}) async =>
+      folder;
 }

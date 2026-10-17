@@ -20,6 +20,10 @@ class FakeFolders extends PathProviderPlatform with MockPlatformInterfaceMixin {
 
   @override
   Future<String?> getApplicationDocumentsPath() async => p.join(root, 'documents');
+
+  @override
+  Future<String?> getTemporaryPath() async =>
+      (Directory(p.join(root, 'temp'))..createSync(recursive: true)).path;
 }
 
 void main() {

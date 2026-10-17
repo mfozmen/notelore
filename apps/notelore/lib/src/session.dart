@@ -16,6 +16,7 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:notelore_core/notelore_core.dart';
@@ -24,6 +25,7 @@ import 'package:path/path.dart' as p;
 
 import 'strings.dart';
 import 'theme.dart';
+import 'transfer.dart';
 import 'voice.dart';
 import 'whisper_model.dart';
 import 'whisper_native.dart';
@@ -53,6 +55,9 @@ Remote _driveRemote(DriveAuth auth) => DriveRemote(http.Client(), auth.token);
 enum ChatRole { user, assistant, error }
 
 typedef ChatLine = ({ChatRole role, String text});
+
+/// What happened to one imported file: null when it was not a note.
+typedef ImportReport = ({String file, Imported? imported});
 
 /// The value of [values] named [name], or null.
 T? _named<T extends Enum>(List<T> values, Object? name) =>
@@ -85,12 +90,19 @@ class Session extends ChangeNotifier {
     this.localModels = true,
     this.lockIterations = defaultIterations,
     this.offThread = Isolate.run,
+    this._exchange,
   }) : clock = clock ?? DateTime.timestamp,
        index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path),
        manifest = Manifest(paths.state.path);
 
   final NotelorePaths paths;
   final Validate validate;
+
+  /// Where exports go and imports come from (#215): the share sheet on a phone,
+  /// save and open dialogs on the desktop.
+  late final Exchange exchange =
+      _exchange ?? Exchange(mobile: Platform.isAndroid || Platform.isIOS);
+  final Exchange? _exchange;
 
   /// The app lock's hash strength, and where its slow hashing runs (off the
   /// UI thread, so a phone does not stutter while it checks a PIN).
@@ -917,6 +929,50 @@ class Session extends ChangeNotifier {
   static List<String>? _unresolved(Conflict conflict) => null;
 
   List<NoteInfo> listNotes() => (index..rebuild()).listNotes();
+
+  /// The note file as it is on disk: what a Markdown export sends.
+  String noteFile(NoteInfo note) =>
+      File(notePath(paths.notes.path, note.kind, note.slug)).readAsStringSync();
+
+  /// The PDF fonts, loaded on the first PDF export.
+  late final Future<PdfFonts> _fonts = PdfFonts.load(rootBundle);
+
+  /// [notes] as files in [format], handed to [exchange]; false when the
+  /// person called it off.
+  Future<bool> exportNotes(List<NoteInfo> notes, ExportFormat format) async {
+    final files = await exportFiles(
+      [for (final note in notes) (note.slug, noteFile(note))],
+      format,
+      fonts: await _fonts,
+    );
+    return exchange.send(files, subject: notes.length == 1 ? notes.single.title : 'Notelore');
+  }
+
+  /// Imports the files the person picks, each on its own: a note that is not
+  /// one (or not text at all) is refused, the rest come in without
+  /// overwriting anything. What happened to each, in order.
+  Future<List<ImportReport>> importNotes() async {
+    final picked = await exchange.pick();
+    if (picked.isEmpty) return const [];
+    final reports = await _exclusive(
+      () async => [for (final file in picked) (file: file.name, imported: _import(file.bytes))],
+    );
+    const news = {ImportOutcome.added, ImportOutcome.renamed};
+    final changed = reports.any((r) => news.contains(r.imported?.outcome));
+    if (changed) {
+      notifyListeners();
+      if (driveConnected) unawaited(syncNow());
+    }
+    return reports;
+  }
+
+  Imported? _import(List<int> bytes) {
+    try {
+      return importNote(paths.notes.path, utf8.decode(bytes));
+    } on FormatException {
+      return null; // not UTF-8, or not a Notelore note
+    }
+  }
 
   /// Moves [note] under `_archive/<date>/`: nothing is ever hard-deleted. Returns
   /// where it went, for [restoreNote]; null when a sync or a chat turn already

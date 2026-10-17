@@ -7,6 +7,7 @@ library;
 import 'package:notelore_core/notelore_core.dart';
 
 import 'theme.dart';
+import 'transfer.dart' show ExportFormat;
 
 /// The language the app speaks: the device's, or a fixed one.
 enum AppLanguage { system, en, tr }
@@ -91,6 +92,21 @@ abstract class Strings {
   String get deleteExplained;
   String alreadyGone(String title);
   String movedToArchive(String title);
+
+  /// Export, share and import (#215).
+  String get export;
+  String get exportNotes;
+  String get importNotes;
+  String get exportAs;
+  String formatName(ExportFormat format);
+  String get chooseNotes;
+  String get next;
+  String exported(int count);
+  String exportFailed(String why);
+  String importedAdded(String title);
+  String importedRenamed(String title);
+  String importedSame(String title);
+  String importRefused(String file);
   String get undo;
   String noteSubtitle(String kind, String updated);
 
@@ -320,6 +336,37 @@ class EnglishStrings extends Strings {
   String alreadyGone(String title) => '"$title" was already gone.';
   @override
   String movedToArchive(String title) => 'Moved "$title" to the archive.';
+  @override
+  String get export => 'Export';
+  @override
+  String get exportNotes => 'Export notes';
+  @override
+  String get importNotes => 'Import notes';
+  @override
+  String get exportAs => 'Export as';
+  @override
+  String formatName(ExportFormat format) => switch (format) {
+    ExportFormat.markdown => 'Markdown (can be imported again)',
+    ExportFormat.pdf => 'PDF',
+    ExportFormat.html => 'Web page (HTML)',
+  };
+  @override
+  String get chooseNotes => 'Which notes?';
+  @override
+  String get next => 'Next';
+  @override
+  String exported(int count) => 'Exported $count ${count == 1 ? 'note' : 'notes'}.';
+  @override
+  String exportFailed(String why) => 'The export failed: $why';
+  @override
+  String importedAdded(String title) => 'Imported "$title".';
+  @override
+  String importedRenamed(String title) =>
+      'Imported as "$title": a different note already had the name.';
+  @override
+  String importedSame(String title) => '"$title" is already here, unchanged.';
+  @override
+  String importRefused(String file) => '"$file" is not a Notelore note.';
   @override
   String get undo => 'Undo';
   @override
@@ -675,6 +722,37 @@ class TurkishStrings extends Strings {
   String alreadyGone(String title) => '"$title" zaten silinmiş.';
   @override
   String movedToArchive(String title) => '"$title" arşive taşındı.';
+  @override
+  String get export => 'Dışa aktar';
+  @override
+  String get exportNotes => 'Notları dışa aktar';
+  @override
+  String get importNotes => 'Not içe aktar';
+  @override
+  String get exportAs => 'Şu biçimde dışa aktar';
+  @override
+  String formatName(ExportFormat format) => switch (format) {
+    ExportFormat.markdown => 'Markdown (yeniden içe aktarılabilir)',
+    ExportFormat.pdf => 'PDF',
+    ExportFormat.html => 'Web sayfası (HTML)',
+  };
+  @override
+  String get chooseNotes => 'Hangi notlar?';
+  @override
+  String get next => 'İleri';
+  @override
+  String exported(int count) => '$count not dışa aktarıldı.';
+  @override
+  String exportFailed(String why) => 'Dışa aktarma başarısız oldu: $why';
+  @override
+  String importedAdded(String title) => '"$title" içe aktarıldı.';
+  @override
+  String importedRenamed(String title) =>
+      '"$title" olarak içe aktarıldı: bu adda başka bir not zaten vardı.';
+  @override
+  String importedSame(String title) => '"$title" zaten var, değişmedi.';
+  @override
+  String importRefused(String file) => '"$file" bir Notelore notu değil.';
   @override
   String get undo => 'Geri al';
   @override
