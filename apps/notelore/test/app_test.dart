@@ -267,6 +267,34 @@ void main() {
     expect(find.byKey(const Key('message')), findsOneWidget);
   });
 
+  testWidgets('chat: a hold that starts while an answer is read aloud still sends', (tester) async {
+    phone(tester);
+    final harness = Harness(answers: ['Birinci.', 'İkinci.']);
+    harness.speech.phrases.addAll(['bir', 'iki']);
+    harness.voice.holding = Completer<void>(); // reads the first answer aloud until stopped
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    Future<void> talk(int at) async {
+      final hold = await tester.createGesture();
+      await hold.down(
+        tester.getCenter(find.byTooltip('Hold to talk')),
+        timeStamp: Duration(seconds: at),
+      );
+      await tester.pump();
+      await hold.up(timeStamp: Duration(seconds: at + 2));
+      await tester.pump();
+      await tester.pump();
+    }
+
+    await talk(10);
+    expect(find.byTooltip('Stop reading aloud'), findsOneWidget); // speaking
+    // Pressed while it speaks: the Stop button goes and the row shifts mid-hold.
+    harness.voice.holding = null;
+    await talk(20);
+    await tester.pumpAndSettle();
+    expect(harness.provider.asked, ['bir', 'iki']);
+  });
+
   testWidgets('chat: hold to talk, let go to send; the answer is read aloud', (tester) async {
     phone(tester);
     final harness = Harness(answers: ['Cevap.', 'Yazdın.']);
