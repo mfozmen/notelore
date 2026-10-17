@@ -44,6 +44,7 @@ export 'src/store/format.dart'
         serialize;
 export 'src/store/front_matter.dart' show dumpFrontMatter, loadFrontMatter;
 export 'src/store/index.dart' show Hit, NoteIndex, NoteInfo, fts5Available;
+export 'src/store/move.dart' show moveNotes;
 export 'src/store/notes.dart'
     show
         Pause,

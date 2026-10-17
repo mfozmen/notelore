@@ -117,7 +117,6 @@ abstract class Strings {
   String get model;
   String get refreshModels;
   String get modelSaved;
-  String get notesFolder;
   String get checkForUpdates;
   String get logOut;
   String get logOutExplained;
@@ -429,8 +428,6 @@ class EnglishStrings extends Strings {
   @override
   String get modelSaved => 'Model saved.';
   @override
-  String get notesFolder => 'Notes folder';
-  @override
   String get checkForUpdates => 'Check for updates';
   @override
   String get logOut => 'Log out';
@@ -535,7 +532,7 @@ class EnglishStrings extends Strings {
   @override
   String get voiceSection => 'Voice';
   @override
-  String get syncSection => 'Sync and files';
+  String get syncSection => 'Sync';
   @override
   String get aboutSection => 'About';
   @override
@@ -864,8 +861,6 @@ class TurkishStrings extends Strings {
   @override
   String get modelSaved => 'Model kaydedildi.';
   @override
-  String get notesFolder => 'Notlar klasörü';
-  @override
   String get checkForUpdates => 'Güncellemeleri denetle';
   @override
   String get logOut => 'Çıkış yap';
@@ -969,7 +964,7 @@ class TurkishStrings extends Strings {
   @override
   String get voiceSection => 'Ses';
   @override
-  String get syncSection => 'Eşitleme ve dosyalar';
+  String get syncSection => 'Eşitleme';
   @override
   String get aboutSection => 'Hakkında';
   @override

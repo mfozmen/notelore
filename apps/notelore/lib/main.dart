@@ -22,22 +22,28 @@ void main() => runApp(
   ),
 );
 
-/// The session on this device's folders. On the desktop the notes are a visible
-/// `~/Notelore` (people open it in other tools); on a phone they live in the
-/// app's documents. Derived state goes to the app support folder.
+/// The session on this device's folders: the notes and the derived state both
+/// in the app's own support folder, which the user never has to see (#207).
+/// Notes from earlier versions (a visible `~/Notelore` on the desktop, the
+/// app's documents on a phone) move there, so there is one copy.
 /// `NOTELORE_HOME` overrides both, for development.
 Future<Session> openSession({Map<String, String>? environment, bool? mobile}) async {
   final env = environment ?? Platform.environment;
   final phone = mobile ?? (Platform.isAndroid || Platform.isIOS);
-  final home = phone
-      ? (await getApplicationDocumentsDirectory()).path
-      : env['USERPROFILE'] ?? env['HOME'] ?? Directory.current.path;
+  final support = await getApplicationSupportDirectory();
   final paths = NotelorePaths.resolve(
     environment: env,
     currentDirectory: Directory.current,
-    defaultNotes: Directory(p.join(home, 'Notelore')),
-    defaultState: await getApplicationSupportDirectory(),
+    defaultNotes: Directory(p.join(support.path, 'notes')),
+    defaultState: support,
   );
+  if ((env['NOTELORE_HOME'] ?? '').isEmpty) {
+    final home = phone
+        ? (await getApplicationDocumentsDirectory()).path
+        : env['USERPROFILE'] ?? env['HOME'] ?? Directory.current.path;
+    final stamp = DateTime.now().toUtc().toIso8601String().replaceAll(RegExp('[:.]'), '-');
+    moveNotes(Directory(p.join(home, 'Notelore')), paths.notes, stamp: stamp);
+  }
   final keySpace = (env['NOTELORE_HOME'] ?? '').isNotEmpty ? 'notelore-dev' : 'notelore';
   final session = Session(
     paths,

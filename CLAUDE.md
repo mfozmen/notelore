@@ -81,7 +81,7 @@ All paths are resolved in `NotelorePaths` (`paths.dart`). Nothing else may build
 
 - `NOTELORE_HOME` overrides the root for **everything** (notes folder, state dir, index). If it is relative, resolve it against the current working directory. A run with it also uses its own keystore entries (`notelore-dev.*`), so it never reads or overwrites the real app's keys.
 - `.claude/settings.json` sets `NOTELORE_HOME=.dev-home` for Claude Code sessions, so manual runs during development write into the gitignored `.dev-home/`, never into the maintainer's real notes.
-- Without the override: on the desktop the notes go to a visible `~/Notelore/` (the user opens it in other tools); on a phone to the app's documents. State (index, manifest, sync base copies, settings) goes to the app support folder.
+- Without the override: the notes go to `notes/` in the app support folder on every platform, so the user never has to see a path (#207); notes from the old visible `~/Notelore/` (desktop) or the app's documents (phone) are moved there once at start (`moveNotes`). State (index, manifest, sync base copies, settings) is in the app support folder too.
 - Tests always use temp folders.
 - For response latency profiling, use the repeatable scripts and Android emulator steps in `docs/latency-investigation.md`. The Android probe creates only temp notes; it does not measure a live provider or use the user's app state.
 
