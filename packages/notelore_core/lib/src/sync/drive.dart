@@ -22,6 +22,7 @@ const _folderType = 'application/vnd.google-apps.folder';
 const _fields = 'id,name,parents,mimeType,md5Checksum,modifiedTime,appProperties';
 const _rootName = 'Notelore';
 const _rootMark = {'notelore': 'root'};
+const _contentType = 'Content-Type';
 
 /// A valid access token; [refresh] asks for a new one after the old one was refused.
 typedef AccessToken = Future<String> Function({bool refresh});
@@ -76,7 +77,7 @@ class DriveRemote implements Remote {
       method,
       url,
       query: {'fields': _fields, ...query},
-      headers: {if (body != null) 'Content-Type': 'application/json; charset=UTF-8'},
+      headers: {if (body != null) _contentType: 'application/json; charset=UTF-8'},
       body: body == null ? null : utf8.encode(jsonEncode(body)),
     );
     return (jsonDecode(utf8.decode(response.bodyBytes)) as Map).cast<String, Object?>();
@@ -158,7 +159,7 @@ class DriveRemote implements Remote {
         'PATCH',
         '$_uploads/$fileId',
         query: {'uploadType': 'media', 'fields': _fields},
-        headers: {'Content-Type': 'text/markdown'},
+        headers: {_contentType: 'text/markdown'},
         body: data,
       );
       return _remoteFile((jsonDecode(utf8.decode(response.bodyBytes)) as Map).cast());
@@ -183,7 +184,7 @@ class DriveRemote implements Remote {
       'POST',
       _uploads,
       query: {'uploadType': 'multipart', 'fields': _fields},
-      headers: {'Content-Type': 'multipart/related; boundary=$boundary'},
+      headers: {_contentType: 'multipart/related; boundary=$boundary'},
       body: body,
     );
     return _remoteFile((jsonDecode(utf8.decode(response.bodyBytes)) as Map).cast());
