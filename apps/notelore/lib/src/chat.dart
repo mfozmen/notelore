@@ -170,96 +170,127 @@ class _ChatScreenState extends State<ChatScreen> {
           listenable: _voice,
           builder: (context, _) => Column(
             children: [
-              if (_voice.state case VoiceState.listening || VoiceState.speaking)
-                _status(
-                  context,
-                  _voice.state == VoiceState.listening ? Icons.mic : Icons.volume_up,
-                  Text(
-                    _voice.state == VoiceState.listening ? s.listening : s.speaking,
-                    key: const Key('voice-state'),
-                  ),
-                )
+              if (_voice.state == VoiceState.speaking)
+                _status(context, Icons.volume_up, Text(s.speaking, key: const Key('voice-state')))
               // Above the button, not over it: a plain click learns to hold.
               else if (_holdHint)
                 _status(context, Icons.touch_app_outlined, Text(s.holdHint)),
               Padding(
                 padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.s, Gap.s),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        key: const Key('message'),
-                        controller: _message,
-                        // Open while the model works: what is written meanwhile joins its turn.
-                        minLines: 1,
-                        maxLines: 5,
-                        textInputAction: TextInputAction.send,
-                        // Typing quiets an answer read aloud.
-                        onChanged: (text) {
-                          if (_voice.state == VoiceState.speaking && text.isNotEmpty) {
-                            _voice.hush();
-                          }
-                        },
-                        onSubmitted: (_) => _send(),
-                        decoration: InputDecoration(hintText: s.message),
+                // One button, like a messenger's: Send with text, the microphone without.
+                child: ValueListenableBuilder(
+                  valueListenable: _message,
+                  builder: (context, typed, _) => Row(
+                    children: [
+                      Expanded(
+                        // While recording, the recording takes the field's place;
+                        // the field's text stays in its controller.
+                        child: _voice.state == VoiceState.listening
+                            ? _Recording(s.listening)
+                            : TextField(
+                                key: const Key('message'),
+                                controller: _message,
+                                // Open while the model works: what is written meanwhile joins its turn.
+                                minLines: 1,
+                                maxLines: 5,
+                                textInputAction: TextInputAction.send,
+                                // Typing quiets an answer read aloud.
+                                onChanged: (text) {
+                                  if (_voice.state == VoiceState.speaking && text.isNotEmpty) {
+                                    _voice.hush();
+                                  }
+                                },
+                                onSubmitted: (_) => _send(),
+                                decoration: InputDecoration(hintText: s.message),
+                              ),
                       ),
-                    ),
-                    if (_voice.state == VoiceState.speaking)
-                      IconButton(
-                        tooltip: s.stopReading,
-                        icon: const Icon(Icons.volume_off_outlined),
-                        onPressed: _voice.end,
-                      ),
-                    // Push to talk: held, it listens; let go, what was said is sent.
-                    Listener(
-                      onPointerDown: session.busy
-                          ? null
-                          : (down) {
-                              _down = down.timeStamp;
-                              setState(() => _holdHint = false);
-                              _hold();
-                            },
-                      onPointerUp: (up) {
-                        _voice.release();
-                        // A plain click records nothing: say how it works.
-                        if (up.timeStamp - _down < const Duration(milliseconds: 300)) {
-                          setState(() => _holdHint = true);
-                        }
-                      },
-                      onPointerCancel: (_) => _voice.release(),
-                      child: IconButton(
-                        tooltip: s.talk,
-                        isSelected: _voice.state == VoiceState.listening,
-                        icon: const Icon(Icons.mic_none),
-                        selectedIcon: const Icon(Icons.mic),
-                        // Filled while held; the Listener does the work.
-                        style: _voice.state == VoiceState.listening
-                            ? IconButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.primary,
-                                foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                              )
-                            : null,
-                        onPressed: session.busy ? null : () {},
-                      ),
-                    ),
-                    if (session.busy)
-                      IconButton(
-                        tooltip: s.stop,
-                        icon: const Icon(Icons.stop),
-                        onPressed: session.stop,
-                      ),
-                    IconButton.filled(
-                      tooltip: s.send,
-                      icon: const Icon(Icons.arrow_upward),
-                      onPressed: _send,
-                    ),
-                  ],
+                      if (_voice.state == VoiceState.speaking)
+                        IconButton(
+                          tooltip: s.stopReading,
+                          icon: const Icon(Icons.volume_off_outlined),
+                          onPressed: _voice.end,
+                        ),
+                      if (session.busy)
+                        IconButton(
+                          tooltip: s.stop,
+                          icon: const Icon(Icons.stop),
+                          onPressed: session.stop,
+                        ),
+                      if (typed.text.trim().isNotEmpty)
+                        IconButton.filled(
+                          tooltip: s.send,
+                          icon: const Icon(Icons.arrow_upward),
+                          onPressed: _send,
+                        )
+                      else
+                        // Push to talk: held, it listens; let go, what was said is
+                        // sent. The press stays with this Listener wherever the
+                        // finger goes, even when the keyboard closing moves it (#212).
+                        Listener(
+                          onPointerDown: session.busy
+                              ? null
+                              : (down) {
+                                  _down = down.timeStamp;
+                                  setState(() => _holdHint = false);
+                                  _hold();
+                                },
+                          onPointerUp: (up) {
+                            _voice.release();
+                            // A plain click records nothing: say how it works.
+                            if (up.timeStamp - _down < const Duration(milliseconds: 300)) {
+                              setState(() => _holdHint = true);
+                            }
+                          },
+                          onPointerCancel: (_) => _voice.release(),
+                          child: IconButton.filled(
+                            tooltip: s.talk,
+                            icon: Icon(
+                              _voice.state == VoiceState.listening ? Icons.mic : Icons.mic_none,
+                            ),
+                            onPressed: session.busy ? null : () {},
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+/// In the message box's place while recording: it listens.
+class _Recording extends StatelessWidget {
+  const _Recording(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+      decoration: BoxDecoration(
+        color: colors.primaryContainer,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.mic, color: colors.onPrimaryContainer),
+          const SizedBox(width: Gap.s),
+          Flexible(
+            child: Text(
+              label,
+              key: const Key('voice-state'),
+              style: TextStyle(color: colors.onPrimaryContainer),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
