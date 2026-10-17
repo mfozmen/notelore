@@ -314,7 +314,8 @@ class NoteIndex {
   /// Hits for [query], best first: any search term is enough, and a line
   /// matching more terms ranks higher, so a whole question still finds the
   /// note ("which book was I going to buy" finds the todo about the book).
-  /// A question that names notes (every word of a title, any ending) searches
+  /// A question that names notes (every word of a title; an ending only after
+  /// an apostrophe, "Notelore'daki") searches
   /// only those, so "notes about Notelore" stays out of other notes (#219).
   List<Hit> search(String query, {String? kind}) {
     final terms = _terms(query);
