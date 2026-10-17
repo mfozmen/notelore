@@ -178,6 +178,11 @@ void main() {
           expect(idx.search(query).map((h) => h.slug), containsAll(['notelore', 'work-notes']));
         }
         expect(idx.search('work notes').map((h) => h.slug).toSet(), {'work-notes'});
+        // Whole words only: a note titled "Plan" does not capture "planning".
+        final plan = createNote(root, 'topic', 'Plan', today: today);
+        addEntry(plan, 'Draft the roadmap.', today: today);
+        idx.rebuild();
+        expect(idx.search('planning work notes').map((h) => h.slug).toSet(), {'work-notes'});
       });
 
       test('a Turkish question finds a note in another inflection (#92)', () {

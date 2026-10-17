@@ -356,15 +356,15 @@ class NoteIndex {
     ];
   }
 
-  /// The paths of the notes whose every title word is in [query]; a word may
-  /// carry an ending ("Notelore'daki", "kuruluşuyla"), a short one may not.
+  /// The paths of the notes whose every title word is a whole word of [query].
+  /// A name's Turkish ending follows an apostrophe ("Notelore'daki"), so it
+  /// splits off; prefixes would let a note titled "Plan" capture "planning".
   List<String> _named(String query) {
-    final words = _fold(query).split(_nonWord);
-    bool said(String w) => words.any((q) => q == w || (w.length >= 4 && q.startsWith(w)));
+    final words = _fold(query).split(_nonWord).toSet();
     return [
       for (final row in _db.select('SELECT path, title FROM files WHERE title IS NOT NULL'))
         if (_fold(row.columnAt(1) as String).split(_nonWord).where((w) => w.length >= 3).toList()
-            case final title when title.isNotEmpty && title.every(said))
+            case final title when title.isNotEmpty && words.containsAll(title))
           row.columnAt(0) as String,
     ];
   }
