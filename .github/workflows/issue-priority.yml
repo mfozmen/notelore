@@ -1,0 +1,39 @@
+name: Issue priority
+
+# Every issue carries a priority/* label (#244). An issue opened without one
+# takes the priority picked in the issue form; otherwise it is closed with a
+# note, and reopened as soon as a priority label is added. The decision is in
+# .github/scripts/issue_priority.py (tested in ci.yml).
+
+on:
+  issues:
+    types: [opened, reopened, edited, labeled, unlabeled]
+
+concurrency:
+  group: issue-priority-${{ github.event.issue.number }}
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Apply the gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+        run: |
+          comments=$(gh api "repos/$REPO/issues/$NUMBER/comments" --paginate --jq '[.[].body] | join("\u001e")')
+          action=$(printf '%s' "$comments" | python3 .github/scripts/issue_priority.py "$GITHUB_EVENT_PATH")
+          echo "decision: $action"
+          case "$action" in
+            "label "*) gh issue edit "$NUMBER" --repo "$REPO" --add-label "${action#label }" ;;
+            close)
+              gh issue close "$NUMBER" --repo "$REPO" --reason "not planned" --comment "<!-- priority-gate -->
+          Every issue in this repo needs a priority label: \`priority/critical\`, \`priority/high\`, \`priority/medium\` or \`priority/low\`. This one was closed because it has none. Add one and it reopens by itself (or open issues through the form, which asks for the priority)." ;;
+            reopen) gh issue reopen "$NUMBER" --repo "$REPO" ;;
+          esac

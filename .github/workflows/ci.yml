@@ -24,6 +24,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - run: python3 .github/scripts/test_review_verdict_gate.py
       - run: python3 .github/scripts/test_review_range.py
+      - run: python3 .github/scripts/test_issue_priority.py
 
   # Dart coverage for Sonar, built in a job that holds no secrets (#72): tests
   # and builds run package code and build hooks, so they never run next to
