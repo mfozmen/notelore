@@ -92,55 +92,80 @@ class WhisperModel {
         continue;
       }
       final part = File('${path(file.name)}.part');
-      var kept = part.existsSync() ? part.lengthSync() : 0;
-      if (kept >= file.size) kept = 0; // not a beginning of this file: start over
-      var answer = await client.send(_get(file.url, from: kept));
-      var resumed = false;
-      if (kept > 0) {
-        // Appended only when the server sends the rest from exactly there; any
-        // other answer to the range (a refusal, another range) fetches it whole.
-        resumed =
-            answer.statusCode == 206 &&
-            '${answer.headers['content-range']}'.startsWith('bytes $kept-');
-        if (!resumed && answer.statusCode != 200) {
-          await answer.stream.drain<void>();
-          answer = await client.send(_get(file.url));
-        }
-      }
-      if (answer.statusCode != 200 && !resumed) {
-        throw ModelDownloadFailed('${file.name}: HTTP ${answer.statusCode}');
-      }
-      final hash = _Digest();
-      final hashing = sha256.startChunkedConversion(hash);
-      if (resumed) {
-        await part.openRead().forEach(hashing.add); // what is kept counts toward the checksum
-        done += kept;
-        onProgress(done / bytes);
-      }
-      // Opened only once the server answers: a refused download leaves no file.
-      final sink = part.openWrite(mode: resumed ? FileMode.append : FileMode.write);
-      try {
-        await for (final chunk in answer.stream) {
-          sink.add(chunk);
-          hashing.add(chunk);
-          done += chunk.length;
-          onProgress(done / bytes);
-        }
-      } on Object catch (error) {
-        // What arrived stays, for the next try to go on from; the download's
-        // error says more than one from closing the file.
-        await sink.close().then<void>((_) {}, onError: (Object _) {});
-        throw ModelDownloadFailed('${file.name}: $error');
-      }
-      hashing.close();
-      await sink.close();
-      if ('${hash.value}' != file.sha256) {
-        part.deleteSync();
-        throw ModelDownloadFailed('${file.name}: the download does not match its checksum');
-      }
-      part.renameSync(path(file.name));
+      final (answer, kept) = await _request(client, file, part);
+      done = await _save(file, part, answer, kept: kept, done: done, onProgress: onProgress);
     }
     onProgress(1);
+  }
+
+  /// The server's answer for [file], and how much of [part] it goes on from:
+  /// the rest when the server sends exactly that, else the whole file (0).
+  Future<(http.StreamedResponse, int)> _request(
+    http.Client client,
+    ModelFile file,
+    File part,
+  ) async {
+    var kept = part.existsSync() ? part.lengthSync() : 0;
+    if (kept >= file.size) kept = 0; // not a beginning of this file: start over
+    var answer = await client.send(_get(file.url, from: kept));
+    if (kept > 0) {
+      // Appended only when the server sends the rest from exactly there; any
+      // other answer to the range (a refusal, another range) fetches it whole.
+      if (answer.statusCode == 206 &&
+          '${answer.headers['content-range']}'.startsWith('bytes $kept-')) {
+        return (answer, kept);
+      }
+      if (answer.statusCode != 200) {
+        await answer.stream.drain<void>();
+        answer = await client.send(_get(file.url));
+      }
+    }
+    if (answer.statusCode != 200) {
+      throw ModelDownloadFailed('${file.name}: HTTP ${answer.statusCode}');
+    }
+    return (answer, 0);
+  }
+
+  /// Writes [answer] to [part] after its first [kept] bytes, checks the whole
+  /// against [file]'s checksum and puts it in place. Returns the bytes [done].
+  Future<int> _save(
+    ModelFile file,
+    File part,
+    http.StreamedResponse answer, {
+    required int kept,
+    required int done,
+    required void Function(double done) onProgress,
+  }) async {
+    final hash = _Digest();
+    final hashing = sha256.startChunkedConversion(hash);
+    if (kept > 0) {
+      await part.openRead().forEach(hashing.add); // what is kept counts toward the checksum
+      done += kept;
+      onProgress(done / bytes);
+    }
+    // Opened only once the server answers: a refused download leaves no file.
+    final sink = part.openWrite(mode: kept > 0 ? FileMode.append : FileMode.write);
+    try {
+      await for (final chunk in answer.stream) {
+        sink.add(chunk);
+        hashing.add(chunk);
+        done += chunk.length;
+        onProgress(done / bytes);
+      }
+    } on Object catch (error) {
+      // What arrived stays, for the next try to go on from; the download's
+      // error says more than one from closing the file.
+      await sink.close().then<void>((_) {}, onError: (Object _) {});
+      throw ModelDownloadFailed('${file.name}: $error');
+    }
+    hashing.close();
+    await sink.close();
+    if ('${hash.value}' != file.sha256) {
+      part.deleteSync();
+      throw ModelDownloadFailed('${file.name}: the download does not match its checksum');
+    }
+    part.renameSync(path(file.name));
+    return done;
   }
 }
 
