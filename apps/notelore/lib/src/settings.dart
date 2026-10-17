@@ -456,11 +456,11 @@ class _LockCard extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.lock_outline),
               title: Text(s.appLock),
-              subtitle: Text(session.lockEnabled ? s.appLockOn : s.appLockOff),
+              subtitle: Text(session.lock.enabled ? s.appLockOn : s.appLockOff),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-              child: session.lockEnabled
+              child: session.lock.enabled
                   ? OutlinedButton.icon(
                       icon: const Icon(Icons.lock_open_outlined),
                       onPressed: () => turnLockOff(context, session),

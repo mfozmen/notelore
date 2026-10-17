@@ -793,11 +793,11 @@ void main() {
     final harness = Harness();
     final session = harness.session();
     await session.load();
-    expect(session.lockEnabled, isFalse);
-    expect(session.locked, isFalse);
-    await session.setLock('2468');
-    expect(session.lockEnabled, isTrue);
-    expect(session.locked, isFalse); // whoever just set it is in
+    expect(session.lock.enabled, isFalse);
+    expect(session.lock.locked, isFalse);
+    await session.lock.set('2468');
+    expect(session.lock.enabled, isTrue);
+    expect(session.lock.locked, isFalse); // whoever just set it is in
     // In the keystore as a salted hash only; nowhere in the notes or state folders.
     final stored = await const FlutterSecureStorage().read(key: 'notelore.lock');
     expect(stored, allOf(isNotNull, isNot(contains('2468'))));
@@ -809,48 +809,48 @@ void main() {
     }
     final again = harness.session();
     await again.load();
-    expect(again.lockEnabled, isTrue);
-    expect(again.locked, isTrue);
-    expect(await again.unlock('1357'), isFalse);
-    expect(again.locked, isTrue);
-    expect(await again.unlock('2468'), isTrue);
-    expect(again.locked, isFalse);
+    expect(again.lock.enabled, isTrue);
+    expect(again.lock.locked, isTrue);
+    expect(await again.lock.unlock('1357'), isFalse);
+    expect(again.lock.locked, isTrue);
+    expect(await again.lock.unlock('2468'), isTrue);
+    expect(again.lock.locked, isFalse);
   });
 
   test('the real app hashes the lock in another isolate, and it still checks out', () async {
     final harness = Harness();
     final session = Session(harness.paths, lockIterations: 10); // the default offThread
     addTearDown(session.dispose);
-    await session.setLock('2468');
+    await session.lock.set('2468');
     final again = Session(harness.paths, lockIterations: 10);
     addTearDown(again.dispose);
-    expect(await again.unlock('1357'), isFalse); // load() is left out: it would go online
-    expect(await again.unlock('2468'), isTrue);
+    expect(await again.lock.unlock('1357'), isFalse); // load() is left out: it would go online
+    expect(await again.lock.unlock('2468'), isTrue);
   });
 
   test('a minute or more in the background locks again; a shorter trip does not', () async {
     var now = DateTime.utc(2026, 10, 17, 12);
     final session = Harness().session(clock: () => now);
-    await session.setLock('2468');
-    session.backgrounded();
+    await session.lock.set('2468');
+    session.lock.backgrounded();
     now = now.add(const Duration(seconds: 59)); // a quick look at another app
-    session.foregrounded();
-    expect(session.locked, isFalse);
-    session.backgrounded(); // hidden...
+    session.lock.foregrounded();
+    expect(session.lock.locked, isFalse);
+    session.lock.backgrounded(); // hidden...
     now = now.add(const Duration(seconds: 40));
-    session.backgrounded(); // ...then paused: the trip started at the first
+    session.lock.backgrounded(); // ...then paused: the trip started at the first
     now = now.add(const Duration(seconds: 20));
-    session.foregrounded();
-    expect(session.locked, isTrue);
-    expect(await session.unlock('2468'), isTrue);
-    session.foregrounded(); // back without having been away: nothing
-    expect(session.locked, isFalse);
+    session.lock.foregrounded();
+    expect(session.lock.locked, isTrue);
+    expect(await session.lock.unlock('2468'), isTrue);
+    session.lock.foregrounded(); // back without having been away: nothing
+    expect(session.lock.locked, isFalse);
     // Without a lock, nothing locks.
-    expect(await session.removeLock('2468'), isTrue);
-    session.backgrounded();
+    expect(await session.lock.remove('2468'), isTrue);
+    session.lock.backgrounded();
     now = now.add(const Duration(minutes: 5));
-    session.foregrounded();
-    expect(session.locked, isFalse);
+    session.lock.foregrounded();
+    expect(session.lock.locked, isFalse);
   });
 
   test(
@@ -859,32 +859,32 @@ void main() {
       var now = DateTime.utc(2026, 10, 17, 12);
       final harness = Harness();
       final session = harness.session(clock: () => now);
-      await session.setLock('2468');
+      await session.lock.set('2468');
       for (var i = 0; i < 4; i++) {
-        expect(await session.unlock('0000'), isFalse);
-        expect(session.lockWait, Duration.zero);
+        expect(await session.lock.unlock('0000'), isFalse);
+        expect(session.lock.wait, Duration.zero);
       }
-      expect(await session.unlock('0000'), isFalse); // the fifth
-      expect(session.lockWait, const Duration(seconds: 30));
-      expect(await session.unlock('2468'), isFalse); // even the right one waits
+      expect(await session.lock.unlock('0000'), isFalse); // the fifth
+      expect(session.lock.wait, const Duration(seconds: 30));
+      expect(await session.lock.unlock('2468'), isFalse); // even the right one waits
       now = now.add(const Duration(seconds: 10));
-      expect(session.lockWait, const Duration(seconds: 20));
+      expect(session.lock.wait, const Duration(seconds: 20));
       // A restart does not wipe the count: it lives in the keystore.
       final again = harness.session(clock: () => now);
       await again.load();
-      expect(again.lockWait, const Duration(seconds: 20));
+      expect(again.lock.wait, const Duration(seconds: 20));
       now = now.add(const Duration(seconds: 20));
-      expect(await again.unlock('0000'), isFalse); // sixth
-      expect(again.lockWait, const Duration(minutes: 1));
+      expect(await again.lock.unlock('0000'), isFalse); // sixth
+      expect(again.lock.wait, const Duration(minutes: 1));
       now = now.add(const Duration(minutes: 1));
-      expect(await again.unlock('0000'), isFalse); // seventh
-      expect(again.lockWait, const Duration(minutes: 5));
+      expect(await again.lock.unlock('0000'), isFalse); // seventh
+      expect(again.lock.wait, const Duration(minutes: 5));
       now = now.add(const Duration(minutes: 5));
-      expect(await again.unlock('0000'), isFalse); // eighth: no longer than five minutes
-      expect(again.lockWait, const Duration(minutes: 5));
+      expect(await again.lock.unlock('0000'), isFalse); // eighth: no longer than five minutes
+      expect(again.lock.wait, const Duration(minutes: 5));
       now = now.add(const Duration(minutes: 5));
-      expect(await again.unlock('2468'), isTrue);
-      expect(again.lockWait, Duration.zero);
+      expect(await again.lock.unlock('2468'), isTrue);
+      expect(again.lock.wait, Duration.zero);
       expect(await const FlutterSecureStorage().read(key: 'notelore.lock.failures'), isNull);
     },
   );
@@ -892,45 +892,45 @@ void main() {
   test('a new or removed lock starts with no failures; a damaged count is none', () async {
     final harness = Harness();
     final session = harness.session();
-    await session.setLock('2468');
+    await session.lock.set('2468');
     for (var i = 0; i < 5; i++) {
-      await session.unlock('0000');
+      await session.lock.unlock('0000');
     }
-    expect(session.lockWait, isNot(Duration.zero));
-    await session.setLock('1357'); // a new PIN, a clean slate
-    expect(session.lockWait, Duration.zero);
+    expect(session.lock.wait, isNot(Duration.zero));
+    await session.lock.set('1357'); // a new PIN, a clean slate
+    expect(session.lock.wait, Duration.zero);
     expect(await const FlutterSecureStorage().read(key: 'notelore.lock.failures'), isNull);
-    await session.unlock('0000');
-    expect(await session.removeLock('1357'), isTrue);
+    await session.lock.unlock('0000');
+    expect(await session.lock.remove('1357'), isTrue);
     expect(await const FlutterSecureStorage().read(key: 'notelore.lock.failures'), isNull);
     await const FlutterSecureStorage().write(key: 'notelore.lock.failures', value: 'garbage');
     final again = harness.session();
     await again.load();
-    expect(again.lockWait, Duration.zero);
+    expect(again.lock.wait, Duration.zero);
   });
 
   test('turning the lock off needs the current PIN; nothing else is touched', () async {
     final harness = Harness();
     final session = harness.session();
     await session.connect(findProvider('anthropic'), 'k');
-    await session.setLock('2468');
-    expect(await session.removeLock('0000'), isFalse);
-    expect(session.lockEnabled, isTrue);
-    expect(await session.removeLock('2468'), isTrue);
-    expect(session.lockEnabled, isFalse);
+    await session.lock.set('2468');
+    expect(await session.lock.remove('0000'), isFalse);
+    expect(session.lock.enabled, isTrue);
+    expect(await session.lock.remove('2468'), isTrue);
+    expect(session.lock.enabled, isFalse);
     expect(await const FlutterSecureStorage().read(key: 'notelore.lock'), isNull);
     expect(await const FlutterSecureStorage().read(key: 'notelore.anthropic.api_key'), 'k');
     final again = harness.session();
     await again.load();
-    expect(again.locked, isFalse);
+    expect(again.lock.locked, isFalse);
     expect(again.ready, isTrue);
-    expect(await again.unlock('anything'), isTrue); // no lock: nothing to open
+    expect(await again.lock.unlock('anything'), isTrue); // no lock: nothing to open
   });
 
   test('a development run keeps its own lock, apart from the real app', () async {
     final harness = Harness();
     final dev = harness.session(keySpace: 'notelore-dev');
-    await dev.setLock('2468');
+    await dev.lock.set('2468');
     expect(await const FlutterSecureStorage().read(key: 'notelore-dev.lock'), isNotNull);
     expect(await const FlutterSecureStorage().read(key: 'notelore.lock'), isNull);
   });

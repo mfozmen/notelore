@@ -40,10 +40,10 @@ class _LockScreenState extends State<LockScreen> {
   }
 
   void _waitIfNeeded() {
-    if (widget.session.lockWait == Duration.zero) return;
+    if (widget.session.lock.wait == Duration.zero) return;
     _tick ??= Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() {});
-      if (widget.session.lockWait > Duration.zero) return;
+      if (widget.session.lock.wait > Duration.zero) return;
       _tick?.cancel();
       _tick = null;
     });
@@ -61,7 +61,7 @@ class _LockScreenState extends State<LockScreen> {
       _checking = true;
       _wrong = false;
     });
-    final opened = await widget.session.unlock(_secret.text);
+    final opened = await widget.session.lock.unlock(_secret.text);
     if (opened || !mounted) return; // the app shows its screens now
     _secret.clear();
     setState(() {
@@ -75,7 +75,7 @@ class _LockScreenState extends State<LockScreen> {
   Widget build(BuildContext context) {
     final s = widget.session.strings;
     final theme = Theme.of(context);
-    final wait = widget.session.lockWait;
+    final wait = widget.session.lock.wait;
     final waiting = wait > Duration.zero;
     return Scaffold(
       body: SafeArea(
@@ -167,7 +167,7 @@ class _NewLockState extends State<_NewLock> {
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    await widget.session.setLock(_first.text);
+    await widget.session.lock.set(_first.text);
     if (mounted) Navigator.pop(context);
   }
 
@@ -225,7 +225,7 @@ class _CurrentLockState extends State<_CurrentLock> {
   }
 
   Future<void> _check() async {
-    final removed = await widget.session.removeLock(_secret.text);
+    final removed = await widget.session.lock.remove(_secret.text);
     if (!mounted) return;
     if (removed) {
       Navigator.pop(context);
