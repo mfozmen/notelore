@@ -314,25 +314,34 @@ class NoteIndex {
   /// Hits for [query], best first: any search term is enough, and a line
   /// matching more terms ranks higher, so a whole question still finds the
   /// note ("which book was I going to buy" finds the todo about the book).
+  /// A question that names notes (every word of a title; an ending only after
+  /// an apostrophe, "Notelore'daki") searches
+  /// only those, so "notes about Notelore" stays out of other notes (#219).
   List<Hit> search(String query, {String? kind}) {
     final terms = _terms(query);
     if (terms.isEmpty) return [];
+    final named = _named(query);
+    final scope = named.isEmpty ? null : jsonEncode(named);
     const columns = 'SELECT slug, kind, title, section, text, superseded FROM content WHERE ';
+    const filter =
+        '(? IS NULL OR kind = ?) AND (? IS NULL OR path IN (SELECT value FROM json_each(?)))';
     const limit = 30; // enough to answer from; keeps a broad question's tool result small
     final ResultSet rows;
     if (fts) {
       // Terms are letters and digits only, so they never form FTS5 query syntax.
       final match = terms.map((t) => '"$t"*').join(' OR ');
-      rows = _db.select(
-        '${columns}content MATCH ?1 AND (?2 IS NULL OR kind = ?2) ORDER BY rank LIMIT $limit',
-        [match, kind],
-      );
+      rows = _db.select('${columns}content MATCH ? AND $filter ORDER BY rank LIMIT $limit', [
+        match,
+        kind,
+        kind,
+        scope,
+        scope,
+      ]);
     } else {
       final score = terms.map((_) => '(folded LIKE ?)').join(' + ');
       rows = _db.select(
-        '$columns($score) > 0 AND (? IS NULL OR kind = ?) '
-        'ORDER BY ($score) DESC, path, rowid LIMIT $limit',
-        [for (final t in terms) '%$t%', kind, kind, for (final t in terms) '%$t%'],
+        '$columns($score) > 0 AND $filter ORDER BY ($score) DESC, path, rowid LIMIT $limit',
+        [for (final t in terms) '%$t%', kind, kind, scope, scope, for (final t in terms) '%$t%'],
       );
     }
     return [
@@ -345,6 +354,19 @@ class NoteIndex {
           row.columnAt(4) as String,
           superseded: row.columnAt(5) == 1,
         ),
+    ];
+  }
+
+  /// The paths of the notes whose every title word is a whole word of [query].
+  /// A name's Turkish ending follows an apostrophe ("Notelore'daki"), so it
+  /// splits off; prefixes would let a note titled "Plan" capture "planning".
+  List<String> _named(String query) {
+    final words = _fold(query).split(_nonWord).toSet();
+    return [
+      for (final row in _db.select('SELECT path, title FROM files WHERE title IS NOT NULL'))
+        if (_fold(row.columnAt(1) as String).split(_nonWord).where((w) => w.length >= 3).toList()
+            case final title when title.isNotEmpty && words.containsAll(title))
+          row.columnAt(0) as String,
     ];
   }
 }

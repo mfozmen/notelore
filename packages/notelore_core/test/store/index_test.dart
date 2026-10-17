@@ -161,6 +161,30 @@ void main() {
         expect(hits.map((h) => h.section), containsAll(['notes', 'decisions']));
       });
 
+      test('a question that names a note searches only that note (#219)', () {
+        final notelore = createNote(root, 'project', 'Notelore', today: today);
+        addEntry(notelore, 'Sync goes through Google Drive.', today: today);
+        final work = createNote(root, 'project', 'Work Notes', today: today);
+        addEntry(work, 'Meeting notes go to Confluence.', today: today);
+        final school = createNote(root, 'topic', 'Okul', lang: 'tr', today: today);
+        addEntry(school, 'Notlar Pazartesi paylaşılacak.', today: today);
+        idx.rebuild();
+        // "notelore" shares the prefix "note" with "notes" and "Notlar".
+        for (final query in ['Notelore', "Notelore'daki notlar", 'my notes about notelore']) {
+          expect(idx.search(query).map((h) => h.slug).toSet(), {'notelore'}, reason: query);
+        }
+        // Every word of a title must be there: "notes" alone names no note.
+        for (final query in ['notes', 'meeting notes']) {
+          expect(idx.search(query).map((h) => h.slug), containsAll(['notelore', 'work-notes']));
+        }
+        expect(idx.search('work notes').map((h) => h.slug).toSet(), {'work-notes'});
+        // Whole words only: a note titled "Plan" does not capture "planning".
+        final plan = createNote(root, 'topic', 'Plan', today: today);
+        addEntry(plan, 'Draft the roadmap.', today: today);
+        idx.rebuild();
+        expect(idx.search('planning work notes').map((h) => h.slug).toSet(), {'work-notes'});
+      });
+
       test('a Turkish question finds a note in another inflection (#92)', () {
         final path = createNote(
           root,

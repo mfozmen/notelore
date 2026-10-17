@@ -365,6 +365,52 @@ void main() {
     expect(draft(), isEmpty);
   });
 
+  testWidgets('chat: copy a message or an answer, with a short confirmation (#225)', (
+    tester,
+  ) async {
+    phone(tester);
+    final copied = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (
+      call,
+    ) async {
+      if (call.method == 'Clipboard.setData') copied.add((call.arguments as Map)['text'] as String);
+      return null;
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    await pumpApp(tester, Harness(answers: ['**Merhaba!**\nİkinci satır.']));
+    await connect(tester, key: 'k');
+    expect(find.byTooltip('Copy'), findsNothing); // nothing to copy yet
+    await tester.enterText(find.byKey(const Key('message')), 'selam');
+    await tester.pump(); // the Send button appears with the text
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Copy'), findsNWidgets(2)); // the message and the answer
+    await tester.tap(find.byTooltip('Copy').first); // newest at the bottom: the answer
+    await tester.pump();
+    expect(copied, ['**Merhaba!**\nİkinci satır.']); // the text as it came
+    expect(find.text('Copied'), findsOneWidget);
+    await tester.tap(find.byTooltip('Copy').last);
+    await tester.pump();
+    expect(copied.last, 'selam');
+    expect(
+      tester.getSemantics(find.byTooltip('Copy').last),
+      matchesSemantics(
+        tooltip: 'Copy',
+        isButton: true,
+        hasTapAction: true,
+        isEnabled: true,
+        hasEnabledState: true,
+        isFocusable: true,
+        hasFocusAction: true,
+      ),
+    );
+  });
+
   testWidgets('chat: one tap resends the last message, also after a failure', (tester) async {
     phone(tester);
     final harness = Harness(answers: [const NetworkError('offline'), 'Merhaba!']);

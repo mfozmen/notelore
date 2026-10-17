@@ -49,6 +49,8 @@ abstract class Strings {
   String get message;
   String get send;
   String get resend;
+  String get copy;
+  String get copied;
 
   /// The app lock (#224): Settings, its dialogs and the screen at start.
   String get appLock;
@@ -235,6 +237,10 @@ class EnglishStrings extends Strings {
   String get send => 'Send';
   @override
   String get resend => 'Resend';
+  @override
+  String get copy => 'Copy';
+  @override
+  String get copied => 'Copied';
   @override
   String get appLock => 'App lock';
   @override
@@ -617,6 +623,10 @@ class TurkishStrings extends Strings {
   String get send => 'Gönder';
   @override
   String get resend => 'Yeniden gönder';
+  @override
+  String get copy => 'Kopyala';
+  @override
+  String get copied => 'Kopyalandı';
   @override
   String get appLock => 'Uygulama kilidi';
   @override
