@@ -34,7 +34,7 @@ void main() {
     expect(from.existsSync(), isFalse); // one copy only
   });
 
-  test('nothing there, or nothing left: nothing happens', () {
+  test('no old folder: nothing happens', () {
     moveNotes(from, to, stamp: 'T');
     expect(to.existsSync(), isFalse);
   });

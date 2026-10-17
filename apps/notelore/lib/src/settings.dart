@@ -96,16 +96,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: Layout.column),
-                      child: _cards([
-                        model,
-                        language,
-                        look,
-                        drive,
-                        voice,
-                        lock,
-                        usage,
-                        about,
-                      ]),
+                      child: _cards([model, language, look, drive, voice, lock, usage, about]),
                     ),
                   ),
                 ],
