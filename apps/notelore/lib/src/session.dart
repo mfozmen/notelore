@@ -788,6 +788,9 @@ class Session extends ChangeNotifier {
   void _hold(String message, {required bool fresh}) {
     _halted = true;
     if (fresh) _enqueue(message);
+    // What was written meanwhile waits behind it, kept too.
+    _later.forEach(_enqueue);
+    _later.clear();
     _startRetrying();
     notifyListeners();
   }
