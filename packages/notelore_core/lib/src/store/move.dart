@@ -57,7 +57,11 @@ void moveNotes(
       // held by another program: it stays, and moves on a later start
     }
   }
-  _removeEmpty(from);
+  try {
+    _removeEmpty(from);
+  } on FileSystemException {
+    // a folder held by another program: removed on a later start
+  }
 }
 
 /// Deletes [dir] and its subfolders that hold no files, deepest first.

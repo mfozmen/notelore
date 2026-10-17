@@ -86,6 +86,20 @@ void main() {
     expect(File(b).existsSync(), isTrue); // tried again on the next start
   });
 
+  test('a folder that cannot be listed or removed does not stop the start', () {
+    write(from, 'projects/a.md', 'A');
+    moveNotes(
+      from,
+      to,
+      stamp: 'T',
+      move: (source, target) {
+        File(source).renameSync(target);
+        from.deleteSync(recursive: true); // gone or held by another program
+      },
+    );
+    expect(read(to, 'projects/a.md'), 'A');
+  });
+
   test('a file on another disk is copied, then the original removed', () {
     write(from, 'projects/a.md', 'A');
     final target = p.join(root.path, 'a.md');
