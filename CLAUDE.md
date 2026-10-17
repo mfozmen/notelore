@@ -53,6 +53,7 @@ Core (`packages/notelore_core/lib/src/`):
 - `store/notes.dart`: file operations on the notes folder: atomic writes, archive, slugging.
 - `store/index.dart`: SQLite index (FTS5, `LIKE` fallback) rebuilt from the files; decision lookups.
 - `store/stale.dart`: deterministic cleanup candidates.
+- `store/transfer.dart`: importing a shared note without overwriting (a taken name gets "(2)"), and the HTML page and plain outline exports are built from.
 - `providers/`: one `LlmProvider` interface over Anthropic, OpenAI, Gemini and Ollama, plain HTTPS through an injectable `Transport`, and key validation by listing models.
 - `agent.dart`: the tool-use loop; `tools.dart`: the narrow tools the agent may call (contracts in the library doc).
 - `sync/merge.dart`: decision table and three-way merge (a port of difflib); `sync/resolve.dart`: the model as last resort for same-line conflicts; `sync/manifest.dart`: per-device record of the last synced state; `sync/engine.dart`: one sync pass against a `Remote`.
@@ -65,6 +66,7 @@ App (`apps/notelore/lib/`):
 - `src/drive_auth.dart`: google_sign_in on phones, the loopback flow on the desktop.
 - `src/voice.dart`: voice mode and the device recognizer; `src/whisper_speech.dart`, `whisper_model.dart`, `whisper_native.dart`: on-device Whisper (sherpa-onnx), its download, and the native glue.
 - `src/update.dart`: update check at every start and checksum-verified self-update of the desktop app.
+- `src/transfer.dart`: export formats (Markdown, PDF in the bundled Noto Sans, HTML) and the share sheet or save and open dialogs they go through.
 - `src/lock.dart`: the app lock's screen at start and its Settings dialogs; the hash lives in the keystore.
 - `src/app.dart`, `setup.dart`, `chat.dart`, `notes.dart`, `settings.dart`: the screens.
 

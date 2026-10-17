@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/strings.dart';
 import 'package:notelore/src/theme.dart';
+import 'package:notelore/src/transfer.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 void main() {
@@ -116,6 +117,20 @@ void main() {
       'lockedHint': s.lockedHint,
       'unlock': s.unlock,
       'wrongSecret': s.wrongSecret,
+      'export': s.export,
+      'exportNotes': s.exportNotes,
+      'importNotes': s.importNotes,
+      'exportAs': s.exportAs,
+      for (final f in ExportFormat.values)
+        if (f != ExportFormat.pdf) 'format-${f.name}': s.formatName(f),
+      'chooseNotes': s.chooseNotes,
+      'next': s.next,
+      'exported': s.exported(2),
+      'exportFailed': s.exportFailed('x'),
+      'importedAdded': s.importedAdded('T'),
+      'importedRenamed': s.importedRenamed('T'),
+      'importedSame': s.importedSame('T'),
+      'importRefused': s.importRefused('f'),
       'lockWaiting': s.lockWaiting(const Duration(minutes: 1, seconds: 5)),
       'notesMayBeSaved': s.notesMayBeSaved,
       'stop': s.stop,

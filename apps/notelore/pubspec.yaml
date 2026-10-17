@@ -9,6 +9,7 @@ environment:
 
 dependencies:
   crypto: ^3.0.7
+  file_selector: ^1.1.0
   flutter:
     sdk: flutter
   flutter_localizations:
@@ -22,20 +23,29 @@ dependencies:
     path: ../../packages/notelore_core
   path: ^1.9.1
   path_provider: ^2.1.6
+  pdf: ^3.13.1
   record: ^7.1.2
+  share_plus: ^13.3.1
   sherpa_onnx: ^1.13.8
   speech_to_text: ^7.5.0
   url_launcher: ^6.3.3
 
 dev_dependencies:
+  file_selector_platform_interface: ^2.7.0
   flutter_test:
     sdk: flutter
   google_sign_in_platform_interface: ^3.1.0
   lints: ^6.0.0
   path_provider_platform_interface: ^2.1.3
   plugin_platform_interface: ^2.1.8
+  share_plus_platform_interface: ^7.2.0
   speech_to_text_platform_interface: ^2.5.0
   url_launcher_platform_interface: ^2.3.2
 
 flutter:
   uses-material-design: true
+  assets:
+    # Noto Sans (SIL Open Font License, OFL.txt): PDF exports need every Turkish
+    # letter, which the PDF standard fonts lack.
+    - assets/fonts/NotoSans-Regular.ttf
+    - assets/fonts/NotoSans-Bold.ttf
