@@ -165,6 +165,7 @@ class _Pass {
         _record(rel, uploaded, localText);
         report.pushed.add(rel);
       case SyncAction.pull:
+        if (!_unchanged(path, localText)) return report.skipped.add(rel);
         atomicWrite(path, remoteText!);
         _record(rel, meta!, remoteText);
         report.pulled.add(rel);
@@ -183,6 +184,14 @@ class _Pass {
         manifest.forget(rel);
         report.removedRemote.add(rel);
     }
+  }
+
+  /// The file still holds what this pass read before downloading (seconds
+  /// earlier): a note saved meanwhile in another editor is never written over.
+  bool _unchanged(String path, String? read) {
+    final now = File(path);
+    return (now.existsSync() ? utf8.decode(now.readAsBytesSync(), allowMalformed: true) : null) ==
+        read;
   }
 
   ManifestEntry _entry(RemoteFile meta, String text) => ManifestEntry(
@@ -232,6 +241,8 @@ class _Pass {
         report.history.add(_rel(kept));
       }
     }
+    // Drive has the merge; the next sync merges it with what was saved here meanwhile.
+    if (!_unchanged(path, localText)) return report.skipped.add(rel);
     atomicWrite(path, text);
     _record(rel, uploaded, text);
     report.merged.add(rel);
