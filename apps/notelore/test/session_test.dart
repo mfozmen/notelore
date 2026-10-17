@@ -245,6 +245,18 @@ void main() {
     expect(harness.provider.asked.last, 've sonra'); // said once
   });
 
+  test('a turn that failed keeps the archive notice for the next one (#205)', () async {
+    final harness = Harness(answers: ['Okudum.', const NetworkError('offline'), 'Tamam.']);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    await session.send('kitaplarım ne');
+    await session.deleteNote(session.listNotes().single);
+    await session.send('peki'); // fails: the model never answered it
+    await session.send('şimdi');
+    expect(harness.provider.asked.last, allOf(contains('şimdi'), contains('Kitaplar')));
+  });
+
   test('send runs the agent and keeps the transcript', () async {
     final harness = Harness(answers: ['Merhaba!']);
     final session = harness.session();
