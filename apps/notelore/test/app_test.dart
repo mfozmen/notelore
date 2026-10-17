@@ -476,7 +476,7 @@ void main() {
     harness.files.picked = [
       XFile.fromData(Uint8List.fromList([0xff, 0xfe, 0x00, 0x89]), path: 'photo.jpg'),
     ];
-    await tester.tap(find.byTooltip('Attach a text file'));
+    await tester.tap(find.byTooltip('Attach a file'));
     await tester.pumpAndSettle();
     expect(find.textContaining('photo.jpg'), findsOneWidget);
     expect(find.textContaining('text files'), findsOneWidget);
@@ -487,7 +487,7 @@ void main() {
     harness.files.picked = [
       XFile.fromData(Uint8List.fromList([0x61, 0x00, 0x62]), path: 'x.bin'),
     ];
-    await tester.tap(find.byTooltip('Attach a text file'));
+    await tester.tap(find.byTooltip('Attach a file'));
     await tester.pumpAndSettle();
     expect(find.textContaining('x.bin is not one'), findsOneWidget);
     expect(harness.provider.asked, isEmpty);
@@ -498,7 +498,7 @@ void main() {
       XFile.fromData(Uint8List.fromList(utf8.encode('a' * 120000)), path: 'one.log'),
       XFile.fromData(Uint8List.fromList(utf8.encode('b' * 120000)), path: 'two.log'),
     ];
-    await tester.tap(find.byTooltip('Attach a text file'));
+    await tester.tap(find.byTooltip('Attach a file'));
     await tester.pumpAndSettle();
     expect(find.textContaining('two.log is too large'), findsOneWidget);
     expect(harness.provider.asked, isEmpty);
@@ -509,7 +509,7 @@ void main() {
     harness.files.picked = [
       XFile.fromData(Uint8List.fromList(utf8.encode('Ship in May.\n')), path: 'plan.txt'),
     ];
-    await tester.tap(find.byTooltip('Attach a text file'));
+    await tester.tap(find.byTooltip('Attach a file'));
     await tester.pumpAndSettle();
     expect(harness.provider.asked, [
       'for Mopsos\n\n<attached file="plan.txt">\nShip in May.\n</attached>',
@@ -521,9 +521,41 @@ void main() {
     expect(tester.widget<TextField>(find.byKey(const Key('message'))).controller!.text, isEmpty);
     // Called off: nothing happens.
     harness.files.picked = [];
-    await tester.tap(find.byTooltip('Attach a text file'));
+    await tester.tap(find.byTooltip('Attach a file'));
     await tester.pumpAndSettle();
     expect(harness.provider.asked, hasLength(1));
+  });
+
+  testWidgets('chat: a PDF goes as its text; one with no text layer is refused (#284)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness(answers: ['Filed.']);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final pdf = Uint8List.fromList(utf8.encode('%PDF-1.7 ...'));
+    Future<void> attach(String name) async {
+      harness.files.picked = [XFile.fromData(pdf, path: name)];
+      await tester.tap(find.byTooltip('Attach a file'));
+      await tester.pumpAndSettle();
+    }
+
+    // Scanned (no text layer) or damaged: refused with a reason, nothing sent.
+    harness.pdfText = (_) async => '  \n';
+    await attach('scan.pdf');
+    expect(find.textContaining('scan.pdf has no text'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    harness.pdfText = (_) async => throw Exception('bad xref');
+    await attach('broken.pdf');
+    expect(find.textContaining('broken.pdf has no text'), findsOneWidget);
+    expect(harness.provider.asked, isEmpty);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    // Text inside: sent like a text file.
+    harness.pdfText = (_) async => 'Budget: 40k';
+    await attach('report.pdf');
+    expect(harness.provider.asked, ['<attached file="report.pdf">\nBudget: 40k\n</attached>']);
   });
 
   testWidgets('chat: copy a message or an answer, with a short confirmation (#225)', (

@@ -60,6 +60,7 @@ abstract class Strings {
   String get attachFile;
   String notText(String name);
   String tooLarge(String name);
+  String noPdfText(String name);
 
   /// The app lock (#224): Settings, its dialogs and the screen at start.
   String get appLock;
@@ -298,10 +299,13 @@ class EnglishStrings extends Strings {
   @override
   String get copied => 'Copied';
   @override
-  String get attachFile => 'Attach a text file';
+  String get attachFile => 'Attach a file';
   @override
   String notText(String name) =>
-      'Notelore reads text files for now (txt, md, csv and the like); $name is not one.';
+      'Notelore reads text files and PDFs for now (txt, md, csv, pdf and the like); $name is not one.';
+  @override
+  String noPdfText(String name) =>
+      '$name has no text to read (a scan, or a damaged file); Notelore cannot read images yet.';
   @override
   String tooLarge(String name) => '$name is too large to send; split it into smaller files.';
   @override
@@ -737,10 +741,13 @@ class TurkishStrings extends Strings {
   @override
   String get copied => 'Kopyalandı';
   @override
-  String get attachFile => 'Metin dosyası ekle';
+  String get attachFile => 'Dosya ekle';
   @override
   String notText(String name) =>
-      'Notelore şimdilik metin dosyalarını okuyor (txt, md, csv gibi); $name metin değil.';
+      "Notelore şimdilik metin dosyalarını ve PDF'leri okuyor (txt, md, csv, pdf gibi); $name bunlardan değil.";
+  @override
+  String noPdfText(String name) =>
+      '$name içinde okunacak yazı yok (taranmış ya da bozuk bir dosya); Notelore henüz resim okuyamıyor.';
   @override
   String tooLarge(String name) => '$name gönderilemeyecek kadar büyük; daha küçük dosyalara böl.';
   @override
