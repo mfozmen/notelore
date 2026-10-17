@@ -356,6 +356,19 @@ void main() {
     expect(systemPrompt(today), contains('related_notes'));
   });
 
+  test('the prompt keeps to taking notes: a short confirmation, then stop (#291)', () {
+    final prompt = systemPrompt(today);
+    expect(
+      prompt,
+      contains('say in one short sentence what you saved and in which note, then stop'),
+    );
+    expect(prompt, contains('no questions about feelings or opinions'));
+    expect(prompt, contains('no small talk'));
+    // Still asks when filing is unclear, still answers about the notes in full.
+    expect(prompt, contains('only when filing is genuinely unclear'));
+    expect(prompt, contains('answer questions about the notes fully'));
+  });
+
   test('the system prompt states the rules', () {
     final prompt = systemPrompt(today);
     for (final rule in ['get_decision', 'language', 'ask', 'archive', '2026-09-30']) {
