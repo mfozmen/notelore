@@ -230,6 +230,7 @@ abstract class Strings {
   String get welcomeDrive;
   String get welcomePrivate;
   String get welcomeAccount;
+  String get signingIn;
   String get googleRequired;
   String get syncing;
   String get connected;
@@ -640,6 +641,8 @@ class EnglishStrings extends Strings {
   String get welcomePrivate => 'Notelore can only see the files it creates there.';
   @override
   String get welcomeAccount => 'Sign in with your Google (Gmail) account to start.';
+  @override
+  String get signingIn => 'Signing in…';
   @override
   String get googleRequired => 'Notelore needs a Google account to continue. Sign in to go on.';
   @override
@@ -1122,6 +1125,8 @@ class TurkishStrings extends Strings {
   String get welcomePrivate => 'Notelore orada yalnızca kendi oluşturduğu dosyaları görebilir.';
   @override
   String get welcomeAccount => 'Başlamak için Google (Gmail) hesabınla giriş yap.';
+  @override
+  String get signingIn => 'Giriş yapılıyor…';
   @override
   String get googleRequired =>
       'Notelore’u kullanmak için bir Google hesabı gerekir. Devam etmek için giriş yap.';
