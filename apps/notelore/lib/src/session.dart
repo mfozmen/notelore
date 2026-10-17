@@ -52,7 +52,9 @@ const appKeys = FlutterSecureStorage(mOptions: MacOsOptions(usesDataProtectionKe
 
 Remote _driveRemote(DriveAuth auth) => DriveRemote(http.Client(), auth.token);
 
-enum ChatRole { user, assistant, error }
+/// [pending]: the user's message, still waiting to reach the model (offline,
+/// or the provider's usage limit).
+enum ChatRole { user, assistant, error, pending }
 
 typedef ChatLine = ({ChatRole role, String text});
 
@@ -88,6 +90,7 @@ class Session extends ChangeNotifier {
     this.makeWhisper = nativeWhisper,
     this.listMicrophones = nativeMicrophones,
     this.localModels = true,
+    this.retryEvery = const Duration(minutes: 1),
     this.lockIterations = defaultIterations,
     this.offThread = Isolate.run,
     this._exchange,
@@ -289,6 +292,9 @@ class Session extends ChangeNotifier {
   /// Models running on this machine (Ollama) are offered: not on a phone.
   final bool localModels;
 
+  /// How often messages that wait are tried again by themselves.
+  final Duration retryEvery;
+
   /// Tests pin it; the app uses the local date.
   final DateTime? today;
 
@@ -476,7 +482,11 @@ class Session extends ChangeNotifier {
     // updates stay small.
     if (!whisper.ready) unawaited(downloadWhisper());
     await _loadProvider();
-    if (ready) unawaited(_refreshQuietly());
+    _loadQueue();
+    if (ready) {
+      unawaited(_refreshQuietly());
+      unawaited(retryNow());
+    }
     driveConnected = await driveAuth?.signedIn() ?? false;
     notifyListeners();
     if (driveConnected) unawaited(syncNow());
@@ -617,7 +627,9 @@ class Session extends ChangeNotifier {
   /// Forgets every provider's key on this device and the chosen provider; the
   /// notes stay.
   Future<void> logout() async {
-    _waiting = null; // never run against another login
+    _outbox.clear(); // dropped with the conversation, never run against another login
+    _saveQueue();
+    _stopRetrying();
     for (final spec in providerSpecs.where((s) => s.requiresApiKey)) {
       await keys.delete(key: _keyName(spec));
     }
@@ -679,6 +691,10 @@ class Session extends ChangeNotifier {
   Future<void> send(String text) async {
     final message = text.trim();
     if (message.isEmpty) return;
+    if (_outbox.isNotEmpty && !busy) {
+      _hold(message, fresh: true);
+      return retryNow();
+    }
     transcript.add((role: ChatRole.user, text: message));
     if (busy) {
       _later.add(message); // joins the running turn at its next step
@@ -689,30 +705,33 @@ class Session extends ChangeNotifier {
   }
 
   /// Turns until nothing written meanwhile is left; busy throughout.
-  Future<void> _turns(String first) async {
+  Future<void> _turns(String first, {bool queued = false}) async {
     busy = true;
+    _halted = false;
     notifyListeners();
-    for (String? message = first; message != null; message = _next()) {
-      // Before the queue: a Stop while it waits behind a sync must still count.
-      _stopped = false;
-      _awayInTurn = _away;
-      await _exclusive(() => _turn(message!));
+    String? message = first;
+    var fromQueue = queued;
+    while (message != null) {
+      _stopped = false; // before the queue: a Stop while it waits behind a sync still counts
+      final (current, wasQueued) = (message, fromQueue);
+      await _exclusive(() => _turn(current, queued: wasQueued));
+      (message, fromQueue) = _next();
     }
     busy = false;
     notifyListeners();
-    // Back before the failure surfaced: no return will come, so once more now.
-    if (_waiting case final message? when !_away) {
-      _waiting = null;
-      unawaited(_turns(message));
-    }
     if (driveConnected) unawaited(syncNow());
   }
 
-  /// The next message to run: none while one waits for the return.
-  String? _next() => _waiting == null ? _rest() : null;
+  /// The next message to run and whether it comes from the queue: none once
+  /// one had to wait (the rest waits behind it).
+  (String?, bool) _next() {
+    if (_halted) return (null, false);
+    if (_outbox.isNotEmpty) return (_outbox.first, true);
+    return (_rest(), false);
+  }
 
   /// One chat turn: the answer, or what its failure means.
-  Future<void> _turn(String message) async {
+  Future<void> _turn(String message, {required bool queued}) async {
     final taken = <String>[];
     Agent? asked; // the one that ran the turn, even if a logout replaced it since
     try {
@@ -725,26 +744,27 @@ class Session extends ChangeNotifier {
           return [...taken];
         },
       );
+      if (queued) _sent(message);
       transcript.add((role: ChatRole.assistant, text: strings.core(answer)));
       // Seen only once answered: a failed turn's notice goes out again.
       _lastNotes = _noteTitles(); // the agent's own changes included
     } on Exception catch (error) {
       // The failed turn was taken back: what it had taken goes out again.
       _later.insertAll(0, taken);
-      _failed(error, message, wrote: asked?.wroteNotes ?? false);
+      _failed(error, message, wrote: asked?.wroteNotes ?? false, queued: queued);
     } finally {
       notifyListeners();
     }
   }
 
-  /// A failed turn: an error line, or, when a phone held back the network of
-  /// Notelore in the background, a wait for the return. Not when the turn wrote
-  /// notes: a rerun could write them twice, so the line says so instead.
-  void _failed(Exception error, String message, {required bool wrote}) {
-    if (error is NetworkError && _awayInTurn && !wrote) {
-      _waiting = message;
-      return;
-    }
+  /// A failed turn: offline or over the provider's usage limit, the message
+  /// waits and goes out later by itself; anything else is an error line. Not
+  /// when the turn wrote notes: a rerun could write them twice, so the error
+  /// line says so instead.
+  void _failed(Exception error, String message, {required bool wrote, required bool queued}) {
+    final later = error is NetworkError || (error is HttpError && error.status == 429);
+    if (later && !wrote) return _hold(message, fresh: !queued);
+    if (queued) _sent(message); // it reached the model: no longer waiting
     final failed = strings.core('$error');
     transcript.add((
       role: ChatRole.error,
@@ -752,25 +772,75 @@ class Session extends ChangeNotifier {
     ));
   }
 
-  /// Notelore is in the background (a phone), as the app's lifecycle reports.
-  var _away = false;
+  /// Messages waiting to go out, oldest first; kept in the state folder, so a
+  /// restart loses none.
+  final _outbox = <String>[];
 
-  /// The running turn met the background at some point.
-  var _awayInTurn = false;
+  /// The running turns stopped at a message that has to wait.
+  var _halted = false;
+  Timer? _retry;
 
-  /// A message whose reply the network lost while Notelore was away: it runs
-  /// again when Notelore is back.
-  String? _waiting;
+  String get _pending => p.join(paths.state.path, 'pending.json');
 
-  /// The app went to the background ([foreground] false) or came back.
-  void setForeground(bool foreground) {
-    _away = !foreground;
-    if (!foreground) {
-      _awayInTurn = true;
-    } else if (_waiting case final message?) {
-      _waiting = null;
-      unawaited(_turns(message));
+  /// [message] waits: a [fresh] one joins the end of the queue, shown as waiting.
+  void _hold(String message, {required bool fresh}) {
+    _halted = true;
+    if (fresh) {
+      _outbox.add(message);
+      final at = transcript.lastIndexWhere((l) => l.role == ChatRole.user && l.text == message);
+      final line = (role: ChatRole.pending, text: message);
+      at < 0 ? transcript.add(line) : transcript[at] = line;
+      _saveQueue();
     }
+    _retry ??= Timer.periodic(retryEvery, (_) => unawaited(retryNow()));
+    notifyListeners();
+  }
+
+  /// The first waiting [message] reached the model.
+  void _sent(String message) {
+    _outbox.removeAt(0);
+    final at = transcript.indexWhere((l) => l.role == ChatRole.pending && l.text == message);
+    if (at >= 0) transcript[at] = (role: ChatRole.user, text: message);
+    _saveQueue();
+    if (_outbox.isEmpty) _stopRetrying();
+  }
+
+  void _stopRetrying() {
+    _retry?.cancel();
+    _retry = null;
+  }
+
+  /// Sends what waits, oldest first; nothing while a turn runs.
+  Future<void> retryNow() async {
+    if (busy || !ready || _outbox.isEmpty) return;
+    await _turns(_outbox.first, queued: true);
+  }
+
+  void _saveQueue() {
+    try {
+      atomicWrite(_pending, jsonEncode(_outbox));
+    } on FileSystemException {
+      // not kept this time (a locked folder); it still waits while the app runs
+    }
+  }
+
+  void _loadQueue() {
+    try {
+      final saved = jsonDecode(File(_pending).readAsStringSync());
+      for (final message in saved is List ? saved.whereType<String>() : const <String>[]) {
+        _outbox.add(message);
+        transcript.add((role: ChatRole.pending, text: message));
+      }
+    } on Exception {
+      // none yet, or damaged: nothing waits
+    }
+    if (_outbox.isNotEmpty) _retry ??= Timer.periodic(retryEvery, (_) => unawaited(retryNow()));
+  }
+
+  /// The app went to the background ([foreground] false) or came back: back,
+  /// what waits is tried at once (a phone holds back the network meanwhile).
+  void setForeground(bool foreground) {
+    if (foreground) unawaited(retryNow());
   }
 
   /// The notes there were after the last turn, by kind and slug.
@@ -1075,6 +1145,7 @@ class Session extends ChangeNotifier {
   @override
   void dispose() {
     stopAutoSync();
+    _stopRetrying();
     _disposed = true;
     index.close();
     super.dispose();

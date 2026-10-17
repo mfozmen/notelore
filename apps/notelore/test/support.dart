@@ -142,9 +142,11 @@ class Harness {
     String systemLanguage = 'en',
     String keySpace = 'notelore',
     DateTime Function()? clock,
+    Duration retryEvery = const Duration(hours: 1), // tests try again by hand
   }) {
     final session = Session(
       paths,
+      retryEvery: retryEvery,
       systemLanguage: systemLanguage,
       keySpace: keySpace,
       clock: clock,

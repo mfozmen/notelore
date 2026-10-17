@@ -139,6 +139,8 @@ void main() {
       'modelGone': s.modelGone('P', 'm'),
       'talk': s.talk,
       'stopReading': s.stopReading,
+      'waitingToSend': s.waitingToSend,
+      'tryNow': s.tryNow,
       'holdHint': s.holdHint,
       'listening': s.listening,
       'speaking': s.speaking,

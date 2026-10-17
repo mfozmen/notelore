@@ -146,9 +146,29 @@ void main() {
     expect(find.textContaining('offline'), findsNothing); // never shown as an error
   });
 
+  testWidgets('chat: offline, a message waits in sight and goes out with Try now (#214)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness(answers: [const NetworkError('offline'), 'Kaydettim.']);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'kitabı kaydet');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    expect(find.text('kitabı kaydet'), findsOneWidget);
+    expect(find.text('Waiting to send'), findsOneWidget);
+    expect(find.textContaining('offline'), findsNothing); // not an error
+    await tester.tap(find.text('Try now'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kaydettim.'), findsOneWidget);
+    expect(find.text('Waiting to send'), findsNothing);
+  });
+
   testWidgets('chat: send a message, see the answer and errors', (tester) async {
     phone(tester);
-    final harness = Harness(answers: ['Merhaba!', const NetworkError('offline')]);
+    final harness = Harness(answers: ['Merhaba!', const HttpError(500, 'offline')]);
     await pumpApp(tester, harness);
     await connect(tester, key: 'sk-ant');
     expect(find.text('Ask or tell me something.'), findsOneWidget);
@@ -466,7 +486,7 @@ void main() {
 
   testWidgets('chat: one tap resends the last message, also after a failure', (tester) async {
     phone(tester);
-    final harness = Harness(answers: [const NetworkError('offline'), 'Merhaba!']);
+    final harness = Harness(answers: [const HttpError(500, 'offline'), 'Merhaba!']);
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     expect(find.byTooltip('Resend'), findsNothing); // nothing sent yet

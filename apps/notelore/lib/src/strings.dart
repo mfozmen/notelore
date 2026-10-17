@@ -79,6 +79,8 @@ abstract class Strings {
   List<String> get waitingLines;
   String get talk;
   String get stopReading;
+  String get waitingToSend;
+  String get tryNow;
   String get holdHint;
   String get listening;
   String get speaking;
@@ -310,6 +312,10 @@ class EnglishStrings extends Strings {
   String get talk => 'Hold to talk';
   @override
   String get stopReading => 'Stop reading aloud';
+  @override
+  String get waitingToSend => 'Waiting to send';
+  @override
+  String get tryNow => 'Try now';
   @override
   String get holdHint => 'Hold the button while you talk.';
   @override
@@ -696,6 +702,10 @@ class TurkishStrings extends Strings {
   String get talk => 'Basılı tut, konuş';
   @override
   String get stopReading => 'Sesli okumayı durdur';
+  @override
+  String get waitingToSend => 'Gönderilmeyi bekliyor';
+  @override
+  String get tryNow => 'Şimdi dene';
   @override
   String get holdHint => 'Konuşurken düğmeyi basılı tut.';
   @override
