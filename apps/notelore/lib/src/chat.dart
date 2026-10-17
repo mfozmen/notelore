@@ -134,7 +134,8 @@ class _ChatScreenState extends State<ChatScreen> {
                         s,
                         resend: index == resendable ? session.resend : null,
                         // Only the newest question, and only once: a later tap finds the
-                        // conversation moved on, even before the screen redraws.
+                        // conversation moved on (longer than [lines], taken at build), even
+                        // before the screen redraws.
                         answer: index == 0
                             ? (a) =>
                                   session.transcript.length == lines.length ? session.send(a) : null

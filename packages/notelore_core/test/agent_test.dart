@@ -237,7 +237,14 @@ void main() {
     expect(asked.text, 'Which project?');
     expect(asked.answers, ['Mopsos', 'Atlas']);
     // Only a last line made of nothing else counts; a wiki link in a sentence stays.
-    for (final reply in ['Saved.', 'See\n[[Mopsos]] for that.', '[[Yes]]\nMaybe.', 'Hm?\n[[ ]]']) {
+    // A closing line of wiki links is not a question's answers ("?" must come before).
+    for (final reply in [
+      'Saved.',
+      'See\n[[Mopsos]] for that.',
+      '[[Yes]]\nMaybe.',
+      'Hm?\n[[ ]]',
+      'See also:\n[[Mopsos]] [[Atlas]]',
+    ]) {
       final plain = suggestedAnswers(reply);
       expect(plain.text, reply, reason: reply);
       expect(plain.answers, isEmpty, reason: reply);

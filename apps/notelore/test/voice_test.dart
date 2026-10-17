@@ -95,7 +95,7 @@ void main() {
       ['ne var', 've sonra'],
       [
         '**Kitap:** _Gülünün Solduğu Akşam_, [link](https://x.y)\n- `madde`\n# Başlık\n'
-            '[[Evet]] [[Hayır]]',
+            'Kaydedeyim mi?\n[[Evet]] [[Hayır]]',
         const NetworkError('offline'),
       ],
     );
@@ -106,7 +106,9 @@ void main() {
       await talk;
     }
     // The failed second turn (an error line) is not read aloud.
-    expect(voice.spoken, [('Kitap: Gülünün Solduğu Akşam, link\nmadde\nBaşlık', 'en')]);
+    expect(voice.spoken, [
+      ('Kitap: Gülünün Solduğu Akşam, link\nmadde\nBaşlık\nKaydedeyim mi?', 'en'),
+    ]);
   });
 
   test('a closed chat ends voice without touching the disposed mode', () async {
