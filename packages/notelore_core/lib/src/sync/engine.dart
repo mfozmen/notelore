@@ -134,18 +134,10 @@ class _Pass {
     final path = found?.path ?? _path(rel);
     final entry = manifest.get(rel);
     final baseHash = entry?.localHash;
-    final String? localText;
-    final String? remoteText;
-    try {
-      localText = found == null ? null : utf8.decode(found.readAsBytesSync());
-      // Untouched since the last sync: no download needed.
-      remoteText = meta == null || (entry != null && meta.md5 == entry.md5)
-          ? null
-          : utf8.decode(await remote.download(meta.id));
-    } on FormatException {
-      report.skipped.add(rel); // not a UTF-8 note; one bad file never stops the rest
-      return;
-    }
+    final texts = await _texts(found, meta, entry);
+    if (texts == null)
+      return report.skipped.add(rel); // not UTF-8: one bad file never stops the rest
+    final (localText, remoteText) = texts;
     final remoteHash = _remoteHash(meta, remoteText, baseHash);
     final localHash = localText == null ? null : contentHash(localText);
 
@@ -179,6 +171,18 @@ class _Pass {
         await remote.trash(meta!.id);
         manifest.forget(rel);
         report.removedRemote.add(rel);
+    }
+  }
+
+  /// The local text and the remote one, downloaded only when Drive changed it
+  /// since the last sync; null when either is not UTF-8.
+  Future<(String?, String?)?> _texts(File? found, RemoteFile? meta, ManifestEntry? entry) async {
+    try {
+      final local = found == null ? null : utf8.decode(found.readAsBytesSync());
+      final untouched = meta == null || (entry != null && meta.md5 == entry.md5);
+      return (local, untouched ? null : utf8.decode(await remote.download(meta.id)));
+    } on FormatException {
+      return null;
     }
   }
 
