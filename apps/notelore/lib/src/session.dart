@@ -614,7 +614,9 @@ class Session extends ChangeNotifier {
 
   /// Sends [lastSent] again, as a message of its own; nothing before the first.
   Future<void> resend() async {
-    if (lastSent case final message?) await send(message, images: _lastImages);
+    // A provider switched to since cannot take the images: the words only.
+    final images = acceptsImages ? _lastImages : const <Block>[];
+    if (lastSent case final message?) await send(message, images: images);
   }
 
   /// The model takes images with a message (#278): the provider's do.
@@ -720,6 +722,7 @@ class Session extends ChangeNotifier {
   /// waits and goes out later by itself; anything else is an error line. Not
   /// when the turn wrote notes: a rerun could write them twice, so the error
   /// line says so instead.
+  ///
   /// A message with [images] never waits (no picture is kept): it is an error
   /// line that says to send it again (#278).
   void _failed(

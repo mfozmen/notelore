@@ -58,11 +58,12 @@ final _attached = RegExp(
   r'<attached file="([^"]*)">\n[\s\S]*?\n</attached>|<attached image="([^"]*)"/>',
 );
 
-/// What [message] says besides its files and images, and their names: what a
-/// chat shows of it.
-({String text, List<String> files}) attachedFiles(String message) => (
+/// What [message] says besides its files and images, and their names apart:
+/// what a chat shows of it.
+({String text, List<String> files, List<String> images}) attachedFiles(String message) => (
   text: message.replaceAll(_attached, '').trim(),
-  files: [for (final m in _attached.allMatches(message)) m[1] ?? m[2]!],
+  files: [for (final m in _attached.allMatches(message)) ?m[1]],
+  images: [for (final m in _attached.allMatches(message)) ?m[2]],
 );
 
 final _answerLine = RegExp(r'^\s*(\[\[[^\[\]\n]*\S[^\[\]\n]*\]\]\s*)+$');

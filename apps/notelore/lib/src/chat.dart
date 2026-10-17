@@ -109,15 +109,19 @@ class _ChatScreenState extends State<ChatScreen> {
         sent += text.length;
       }
     }
-    // An image joins no running turn and never waits offline (#278).
-    final waiting = session.busy || session.transcript.any((l) => l.role == ChatRole.pending);
-    final refused = switch (images) {
-      [] => null,
-      _ when !session.acceptsImages => s.noImages(s.providerName(session.spec!)),
-      _ when waiting => s.imagesNotNow,
-      _ => null,
-    };
+    final refused = images.isEmpty ? null : _imagesRefused();
     return (files: files, images: images, names: names, refused: refused);
+  }
+
+  /// Why images cannot go now, or null: the model cannot look at them, or
+  /// something else is on its way (an image joins no running turn and never
+  /// waits offline, #278).
+  String? _imagesRefused() {
+    final session = widget.session;
+    final s = session.strings;
+    if (!session.acceptsImages) return s.noImages(s.providerName(session.spec!));
+    final waiting = session.busy || session.transcript.any((l) => l.role == ChatRole.pending);
+    return waiting ? s.imagesNotNow : null;
   }
 
   static bool _isPdf(List<int> bytes) =>
@@ -694,8 +698,12 @@ class _Bubble extends StatelessWidget {
       ChatRole.assistant => (colors.surfaceContainerHigh, colors.onSurface),
       ChatRole.error => (colors.errorContainer, colors.onErrorContainer),
     };
-    final (:text, :answers, :files) = _shown(line);
-    final bubble = _bubble(text, files, mine, background, foreground);
+    final (:text, :answers, :files, :images) = _shown(line);
+    final bubble = _bubble(
+      _BubbleText(text, files: files, images: images, color: foreground, strings: strings),
+      mine,
+      background,
+    );
     if (line.role == ChatRole.error) return bubble;
     if (line.role == ChatRole.pending) {
       return Column(
@@ -744,7 +752,7 @@ class _Bubble extends StatelessWidget {
     );
   }
 
-  Widget _bubble(String text, List<String> files, bool mine, Color background, Color foreground) {
+  Widget _bubble(Widget content, bool mine, Color background) {
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -756,7 +764,7 @@ class _Bubble extends StatelessWidget {
           color: background,
           borderRadius: _bubbleRadius(mine: mine),
         ),
-        child: _BubbleText(text, files: files, color: foreground),
+        child: content,
       ),
     );
   }
@@ -764,44 +772,82 @@ class _Bubble extends StatelessWidget {
 
 /// What [line] shows: an answer without its suggested answers' line, a
 /// message without the text of the files attached to it, only their names.
-({String text, List<String> answers, List<String> files}) _shown(ChatLine line) {
+({String text, List<String> answers, List<String> files, List<String> images}) _shown(
+  ChatLine line,
+) {
   if (line.role == ChatRole.assistant) {
     final (:text, :answers) = suggestedAnswers(line.text);
-    return (text: text, answers: answers, files: const []);
+    return (text: text, answers: answers, files: const [], images: const []);
   }
-  final (:text, :files) = attachedFiles(line.text);
-  return (text: text, answers: const [], files: files);
+  final (:text, :files, :images) = attachedFiles(line.text);
+  return (text: text, answers: const [], files: files, images: images);
 }
 
-/// A bubble's words, and under them the names of the files sent with them.
+/// A bubble's words, and under them a line for each file and image sent with
+/// them, a little apart: related, but not part of the words.
 class _BubbleText extends StatelessWidget {
-  const _BubbleText(this.text, {required this.files, required this.color});
+  const _BubbleText(
+    this.text, {
+    required this.files,
+    required this.images,
+    required this.color,
+    required this.strings,
+  });
 
   final String text;
   final List<String> files;
+  final List<String> images;
   final Color color;
+  final Strings strings;
 
   @override
   Widget build(BuildContext context) {
     final style = TextStyle(color: color, height: 1.4);
-    if (files.isEmpty) return SelectableText(text, style: style);
+    if (files.isEmpty && images.isEmpty) return SelectableText(text, style: style);
+    final s = strings;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
+      spacing: Gap.xs,
       children: [
         if (text.isNotEmpty) SelectableText(text, style: style),
-        for (final file in files)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.attach_file, size: 16, color: color),
-              const SizedBox(width: Gap.xs),
-              Flexible(child: Text(file, style: style)),
-            ],
-          ),
+        for (final name in files)
+          _AttachmentLine(name, Icons.description_outlined, s.attachedFile(name), style),
+        for (final name in images)
+          _AttachmentLine(name, Icons.image_outlined, s.attachedImage(name), style),
       ],
     );
   }
+}
+
+/// One file sent with a message: a kind's icon and its name on one line; the
+/// whole name in the tooltip (a long press) and for screen readers ([label]).
+class _AttachmentLine extends StatelessWidget {
+  const _AttachmentLine(this.name, this.icon, this.label, this.style);
+
+  final String name;
+  final IconData icon;
+  final String label;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: label,
+    excludeSemantics: true,
+    child: Tooltip(
+      message: name,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        spacing: Gap.xs,
+        children: [
+          Icon(icon, size: 18, color: style.color),
+          Flexible(
+            child: Text(name, style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// Rounded, with a smaller corner on the speaker's side, like a speech bubble.

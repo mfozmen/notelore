@@ -113,6 +113,8 @@ void main() {
       'noImages': s.noImages('x'),
       'imagesNotNow': s.imagesNotNow,
       'imagesCannotWait': s.imagesCannotWait,
+      'attachedFile': s.attachedFile('x'),
+      'attachedImage': s.attachedImage('x'),
       'appLock': s.appLock,
       'appLockOn': s.appLockOn,
       'appLockOff': s.appLockOff,
