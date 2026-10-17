@@ -319,6 +319,7 @@ void main() {
     final talk = find.byWidgetPredicate(
       (w) => w is Semantics && w.properties.label == 'Hold to talk',
     );
+    expect(tester.widget<Semantics>(talk).properties.enabled, isTrue);
     tester.widget<Semantics>(talk).properties.onTap!();
     await tester.pump();
     expect(find.text('Listening…'), findsOneWidget);
