@@ -571,9 +571,11 @@ void main() {
     final session = harness.session();
     await session.connect(findProvider('anthropic'), 'k');
     await session.send('x');
+    session.draft = 'not sent';
     await session.logout();
     expect(session.ready, isFalse);
     expect(session.transcript, isEmpty);
+    expect(session.draft, isEmpty); // the unsent text goes with the conversation
     expect(session.models, isEmpty);
     expect(await const FlutterSecureStorage().read(key: 'notelore.anthropic.api_key'), isNull);
     final again = harness.session();
