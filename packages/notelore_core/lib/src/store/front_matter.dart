@@ -77,15 +77,14 @@ int _parseInt(String text) {
     sign = digits.startsWith('-') ? -1 : 1;
     digits = digits.substring(1);
   }
-  final value = digits.contains(':')
-      ? digits.split(':').fold(0, (total, part) => total * 60 + int.parse(part))
-      : digits.startsWith('0b')
-      ? int.parse(digits.substring(2), radix: 2)
-      : digits.startsWith('0x')
-      ? int.parse(digits.substring(2), radix: 16)
-      : digits.length > 1 && digits.startsWith('0')
-      ? int.parse(digits.substring(1), radix: 8)
-      : int.parse(digits);
+  final value = switch (digits) {
+    _ when digits.contains(':') =>
+      digits.split(':').fold(0, (total, part) => total * 60 + int.parse(part)),
+    _ when digits.startsWith('0b') => int.parse(digits.substring(2), radix: 2),
+    _ when digits.startsWith('0x') => int.parse(digits.substring(2), radix: 16),
+    _ when digits.length > 1 && digits.startsWith('0') => int.parse(digits.substring(1), radix: 8),
+    _ => int.parse(digits),
+  };
   return sign * value;
 }
 

@@ -118,6 +118,14 @@ void main() {
     expect(platform.cancels, 1);
   });
 
+  test('a timeout after some words keeps the words heard so far', () async {
+    final partial = speech.listen('tr');
+    await pumpEventQueue();
+    platform.hear('yarım kalan', type: 0); // not final yet
+    platform.onError!(jsonEncode({'errorMsg': 'error_speech_timeout', 'permanent': false}));
+    expect(await partial, 'yarım kalan');
+  });
+
   test('a real recognizer error ends the listening with that error', () async {
     final broken = speech.listen('en');
     await pumpEventQueue();

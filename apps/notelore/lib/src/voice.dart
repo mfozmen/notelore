@@ -173,9 +173,13 @@ class DeviceSpeech implements Speech {
             onStatus: _status,
             onError: (error) {
               _trace('error ${error.errorMsg} (permanent: ${error.permanent})');
-              _silence.contains(error.errorMsg)
-                  ? _end(_latest.isEmpty ? null : _latest)
-                  : _fail(ListenFailed(error.errorMsg));
+              if (!_silence.contains(error.errorMsg)) {
+                _fail(ListenFailed(error.errorMsg));
+              } else if (_latest.isEmpty) {
+                _end(null);
+              } else {
+                _end(_latest);
+              }
             },
             // Only the microphone: the headset setup would ask for Bluetooth too.
             options: [SpeechToText.androidNoBluetooth],
