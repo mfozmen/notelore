@@ -5,7 +5,7 @@ This is the contract between the LLM, the code and the human reader. The goal is
 ## Folder layout
 
 ```
-Notelore/                         # notes root (default ~/Notelore, or $NOTELORE_HOME/notes)
+notes/                            # notes root (the app support folder's notes/, or $NOTELORE_HOME/notes)
 ├── projects/<slug>.md            # one file per project
 ├── topics/<slug>.md              # everything that is not a project (people, ideas, how-tos...)
 ├── _archive/<YYYY-MM-DD>/<relative path>   # notes removed by cleanup, never deleted

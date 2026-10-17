@@ -2,8 +2,8 @@
 ///
 /// `NOTELORE_HOME` overrides the root for everything (a relative value resolves
 /// against the current directory). Without it the app supplies the platform
-/// defaults: on the desktop a visible `~/Notelore` for notes and the per-user data
-/// folder for derived state; on a phone the app's own storage.
+/// defaults: the notes and the derived state in the app's own support folder,
+/// which the user never has to see.
 library;
 
 import 'dart:io';
