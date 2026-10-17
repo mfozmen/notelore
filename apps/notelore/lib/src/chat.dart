@@ -962,13 +962,24 @@ Widget _markdown(BuildContext context, String text, TextStyle style) {
     data: text,
     selectable: true,
     onTapLink: (_, href, _) => openWebLink(href),
+    // Never fetched: an image address could carry the notes off to whoever
+    // the model was steered by. Its words show instead.
+    imageBuilder: (_, _, alt) => Text(alt ?? '', style: body),
     styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
       p: body,
       listBullet: body,
       strong: const TextStyle(fontWeight: FontWeight.bold).copyWith(color: color),
       em: const TextStyle(fontStyle: FontStyle.italic).copyWith(color: color),
-      a: TextStyle(color: color, decoration: TextDecoration.underline, decorationColor: color),
-      code: body.copyWith(fontFamily: 'monospace', backgroundColor: color.withValues(alpha: 0.08)),
+      a: TextStyle(
+        color: theme.colorScheme.primary,
+        decoration: TextDecoration.underline,
+        decorationColor: theme.colorScheme.primary,
+      ),
+      code: body.copyWith(
+        fontFamily: 'monospace',
+        fontFamilyFallback: const ['Menlo', 'Consolas', 'Courier New'],
+        backgroundColor: color.withValues(alpha: 0.08),
+      ),
       codeblockDecoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(Gap.s),

