@@ -377,6 +377,26 @@ void main() {
     expect(again.transcript.map((l) => l.text), ['bir', 'iki']); // both kept
   });
 
+  test('a message that joined a turn which then has to wait is kept in the queue too', () async {
+    final first = Completer<AgentResponse>();
+    const offline = NetworkError('offline');
+    final harness = Harness(answers: [first.future, offline]); // the last: after a restart
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    final sending = session.send('bir');
+    await pumpEventQueue();
+    await session.send('iki'); // joins the running turn
+    first.completeError(offline);
+    await sending;
+    expect(session.transcript.map((l) => (l.role, l.text)), [
+      (ChatRole.pending, 'bir'),
+      (ChatRole.pending, 'iki'),
+    ]);
+    final again = harness.session();
+    await again.load();
+    expect(again.transcript.map((l) => l.text), ['bir', 'iki']); // both kept
+  });
+
   test('logging out while a waiting message is retried leaves nothing stuck', () async {
     final retry = Completer<AgentResponse>();
     final harness = Harness(answers: [const NetworkError('offline'), retry.future]);
