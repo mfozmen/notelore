@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
@@ -635,6 +636,48 @@ void main() {
     await tester.tap(find.byTooltip('Refresh'));
     await tester.pumpAndSettle();
     expect(find.text('Mopsos'), findsOneWidget);
+  });
+
+  /// Taps the middle of [part] inside the one selectable line that shows it.
+  Future<void> tapOnPart(WidgetTester tester, String part) async {
+    final line = tester.allRenderObjects.whereType<RenderEditable>().singleWhere(
+      (r) => r.text!.toPlainText().contains(part),
+    );
+    final start = line.text!.toPlainText().indexOf(part);
+    final box = line
+        .getBoxesForSelection(TextSelection(baseOffset: start, extentOffset: start + part.length))
+        .first;
+    await tester.tapAt(line.localToGlobal(box.toRect().center));
+  }
+
+  testWidgets('notes: saved links open in the browser', (tester) async {
+    phone(tester);
+    final launcher = FakeLauncher();
+    UrlLauncherPlatform.instance = launcher;
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final path = createNote(harness.paths.notes.path, 'topic', 'Links', today: today);
+    addEntry(path, '[Example](https://example.com/page)', today: today);
+    addEntry(path, 'https://example.com/bare', today: today); // a bare URL is a link too
+
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Links'));
+    await tester.pumpAndSettle();
+    final markdown = tester.widget<Markdown>(find.byType(Markdown));
+    expect(markdown.selectable, isTrue); // and still selectable
+    // Tapped where they are drawn, like a user would.
+    await tapOnPart(tester, 'Example');
+    await tapOnPart(tester, 'https://example.com/bare');
+    await tester.pump();
+    expect(launcher.opened, ['https://example.com/page', 'https://example.com/bare']);
+    expect(launcher.modes.toSet(), {PreferredLaunchMode.externalApplication});
+    // Other schemes and empty links open nothing.
+    markdown.onTapLink!('Unsafe', 'javascript:alert(1)', '');
+    markdown.onTapLink!('Missing', null, '');
+    await tester.pump();
+    expect(launcher.opened, ['https://example.com/page', 'https://example.com/bare']);
   });
 
   testWidgets('settings: pick a model from the list, refresh the list', (tester) async {

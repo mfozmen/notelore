@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:notelore_core/notelore_core.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'session.dart';
 import 'theme.dart';
+
+Widget _noteMarkdown(String text) => Markdown(
+  data: text,
+  selectable: true,
+  padding: const EdgeInsets.all(Gap.m),
+  onTapLink: (_, href, _) {
+    final uri = Uri.tryParse(href ?? '');
+    if (uri != null && uri.hasAuthority && (uri.scheme == 'http' || uri.scheme == 'https')) {
+      launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  },
+);
 
 /// Every project and topic, newest first; a tap opens the note read-only, beside
 /// the list on a wide window. The entry's trash button (or a long press, or the
@@ -195,9 +208,7 @@ class _NotesScreenState extends State<NotesScreen> {
               ),
             ),
           ),
-          Expanded(
-            child: Markdown(data: text, selectable: true, padding: const EdgeInsets.all(Gap.m)),
-          ),
+          Expanded(child: _noteMarkdown(text)),
         ],
       );
     } else {
@@ -232,7 +243,7 @@ class _NotesScreenState extends State<NotesScreen> {
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: Layout.column),
-            child: Markdown(data: text, selectable: true, padding: const EdgeInsets.all(Gap.m)),
+            child: _noteMarkdown(text),
           ),
         ),
       ),
@@ -274,7 +285,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: Layout.column),
-            child: Markdown(data: text, selectable: true, padding: const EdgeInsets.all(Gap.m)),
+            child: _noteMarkdown(text),
           ),
         ),
         floatingActionButton: FloatingActionButton.extended(
