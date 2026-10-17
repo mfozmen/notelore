@@ -231,6 +231,19 @@ void main() {
     }
   });
 
+  test('a question ends with its likely answers in double brackets (#210)', () {
+    expect(systemPrompt(today), contains('[[Yes]] [[No]]'));
+    final asked = suggestedAnswers('Which project?\n[[Mopsos]] [[ Atlas ]]');
+    expect(asked.text, 'Which project?');
+    expect(asked.answers, ['Mopsos', 'Atlas']);
+    // Only a last line made of nothing else counts; a wiki link in a sentence stays.
+    for (final reply in ['Saved.', 'See\n[[Mopsos]] for that.', '[[Yes]]\nMaybe.', 'Hm?\n[[ ]]']) {
+      final plain = suggestedAnswers(reply);
+      expect(plain.text, reply, reason: reply);
+      expect(plain.answers, isEmpty, reason: reply);
+    }
+  });
+
   test('the prompt restores English terms that speech recognition spelled out (#209)', () {
     final prompt = systemPrompt(today);
     expect(prompt, contains('dictated'));
