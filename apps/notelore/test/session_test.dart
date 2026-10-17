@@ -280,6 +280,37 @@ void main() {
     expect(harness.provider.asked, hasLength(2));
   });
 
+  test('away and back before the failure surfaces: it runs again at once', () async {
+    final first = Completer<AgentResponse>();
+    final harness = Harness(answers: [first.future, 'Geldi.']);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    final sent = session.send('kitabı kaydet');
+    await pumpEventQueue();
+    session
+      ..setForeground(false)
+      ..setForeground(true); // back before the network failed
+    first.completeError(const NetworkError('offline'));
+    await sent;
+    while (session.busy) {
+      await pumpEventQueue();
+    }
+    expect(session.transcript.last.text, 'Geldi.');
+    expect(harness.provider.asked, ['kitabı kaydet', 'kitabı kaydet']);
+  });
+
+  test('logging out drops a message held for the return', () async {
+    final harness = Harness(answers: [const NetworkError('offline'), 'Geldi.']);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    session.setForeground(false);
+    await session.send('kitabı kaydet');
+    await session.logout();
+    session.setForeground(true);
+    await pumpEventQueue();
+    expect(harness.provider.asked, ['kitabı kaydet']); // not run against another login
+  });
+
   test('in the foreground, or after it wrote notes, a network failure shows as before', () async {
     final harness = Harness(
       answers: [

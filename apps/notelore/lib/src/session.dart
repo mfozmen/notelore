@@ -617,6 +617,7 @@ class Session extends ChangeNotifier {
   /// Forgets every provider's key on this device and the chosen provider; the
   /// notes stay.
   Future<void> logout() async {
+    _waiting = null; // never run against another login
     for (final spec in providerSpecs.where((s) => s.requiresApiKey)) {
       await keys.delete(key: _keyName(spec));
     }
@@ -733,6 +734,11 @@ class Session extends ChangeNotifier {
     }
     busy = false;
     notifyListeners();
+    // Back before the failure surfaced: no return will come, so once more now.
+    if (_waiting case final message? when !_away) {
+      _waiting = null;
+      unawaited(_turns(message));
+    }
     if (driveConnected) unawaited(syncNow());
   }
 
