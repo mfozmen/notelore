@@ -48,6 +48,8 @@ the same Windows machine, its initial index build took **2,140 ms**; the median
 of five unchanged index refreshes took **275 ms**; a `search_notes` tool call
 including that refresh took **304 ms**. This is substantial enough to profile
 on a phone before ruling out local search as a bottleneck for large libraries.
+Unlike the table above, this large-corpus result is from one run; the initial
+build also includes cold file-system cache effects.
 No Android device was connected for this investigation, so these numbers must
 not be presented as phone timings.
 
