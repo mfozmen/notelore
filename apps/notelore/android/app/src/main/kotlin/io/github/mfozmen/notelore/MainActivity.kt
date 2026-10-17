@@ -26,7 +26,10 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun keep(intent: Intent?) {
-        if (intent?.action != Intent.ACTION_SEND || intent?.type?.startsWith("text/") != true) return
+        if (intent == null || intent.action != Intent.ACTION_SEND) return
+        if (intent.type?.startsWith("text/") != true) return
+        // Reopened from Recents (after the process was gone): the same share again, not a new one.
+        if ((intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0) return
         shared = mapOf(
             "text" to intent.getStringExtra(Intent.EXTRA_TEXT),
             "subject" to intent.getStringExtra(Intent.EXTRA_SUBJECT),
