@@ -85,7 +85,7 @@ const providerSpecs = [
     keyUrl: 'https://console.anthropic.com/settings/keys',
     keySteps: [
       'Sign in to the Anthropic Console (a free account is enough).',
-      'Click Create Key, give it a name such as notelore, and copy it.',
+      'Choose Create Key, give it a name such as notelore, and copy it.',
       'Paste the key below (it starts with sk-ant-).',
     ],
   ),
@@ -103,7 +103,7 @@ const providerSpecs = [
     keyUrl: 'https://platform.openai.com/api-keys',
     keySteps: [
       'Sign in to the OpenAI Platform.',
-      'Click Create new secret key, give it a name, and copy it.',
+      'Choose Create new secret key, give it a name, and copy it.',
       'Paste the key below (it starts with sk-).',
     ],
   ),
@@ -120,7 +120,7 @@ const providerSpecs = [
     keyUrl: 'https://aistudio.google.com/apikey',
     keySteps: [
       'Sign in to Google AI Studio.',
-      'Click Create API key and copy it.',
+      'Choose Create API key and copy it.',
       'Paste the key below.',
     ],
   ),

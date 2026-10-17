@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
 import 'package:notelore/src/session.dart';
+import 'package:notelore/src/strings.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -37,6 +38,8 @@ void main() {
     // under Advanced, closed (#206).
     expect(find.text('Use your plan'), findsOneWidget);
     expect(find.text('Advanced'), findsOneWidget);
+    // The desktop runs local models: Advanced says so (#304).
+    expect(find.text('Your own API key, or a model on this computer.'), findsOneWidget);
     for (final heading in ['API key', 'On this computer']) {
       expect(find.text(heading), findsNothing);
     }
@@ -57,6 +60,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(launcher.opened, [chatGptUsageUrl]);
   });
+
+  for (final language in [AppLanguage.en, AppLanguage.tr]) {
+    testWidgets('setup on a phone never speaks of a computer or of clicking (#304, $language)', (
+      tester,
+    ) async {
+      final harness = Harness(chatGpt: FakeAuth(), localModels: false);
+      final session = await pumpPlanApp(tester, harness);
+      session.setLanguage(language);
+      await tester.pumpAndSettle();
+      final advanced = language == AppLanguage.en ? 'Advanced' : 'Gelişmiş';
+      expect(
+        find.text(
+          language == AppLanguage.en ? 'Use your own API key.' : 'Kendi API anahtarını kullan.',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.text(advanced));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Claude (Anthropic)')); // its key steps show
+      await tester.pumpAndSettle();
+      final shown = [
+        for (final text in tester.widgetList<Text>(find.byType(Text)))
+          text.data ?? text.textSpan?.toPlainText() ?? '',
+      ].join('\n');
+      for (final desktop in ['computer', 'bilgisayar', 'Click', 'tıkla']) {
+        expect(shown, isNot(contains(desktop)), reason: desktop);
+      }
+    });
+  }
 
   testWidgets('ChatGPT plan: a failed sign-in is shown on the setup screen', (tester) async {
     final harness = Harness(

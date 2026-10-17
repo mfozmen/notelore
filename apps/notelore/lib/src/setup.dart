@@ -87,7 +87,9 @@ class _SetupScreenState extends State<SetupScreen> {
                       if (widget.session.providers.any((p) => p.group == ProviderGroup.plan))
                         ExpansionTile(
                           title: Text(s.advanced),
-                          subtitle: Text(s.advancedExplained),
+                          subtitle: Text(
+                            s.advancedExplained(localModels: widget.session.localModels),
+                          ),
                           tilePadding: const EdgeInsets.symmetric(horizontal: Gap.xs),
                           childrenPadding: EdgeInsets.zero,
                           expandedCrossAxisAlignment: CrossAxisAlignment.start,

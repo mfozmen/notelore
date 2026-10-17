@@ -64,6 +64,7 @@ class Harness {
     this.rejected,
     this.auth,
     this.chatGpt,
+    this.localModels = true,
     MemoryRemote? remote,
   }) : remote = remote ?? MemoryRemote() {
     final dir = Directory.systemTemp.createTempSync('notelore_app_');
@@ -107,6 +108,9 @@ class Harness {
 
   /// The ChatGPT sign-in; none on phones.
   final FakeAuth? chatGpt;
+
+  /// Whether Ollama is offered: the desktop's; false is a phone.
+  final bool localModels;
 
   /// Voice mode's ears and mouth: nothing heard unless a test scripts it.
   final speech = FakeSpeech([]);
@@ -192,6 +196,7 @@ class Harness {
       lockIterations: 10,
       offThread: <R>(work) async => work(),
       driveAuth: auth,
+      localModels: localModels,
       remoteFor: (_) => remote,
       chatGpt: chatGpt,
       listPlanModels: (token) async {
