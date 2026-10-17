@@ -36,18 +36,27 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({});
   });
 
-  test('desktop: notes in a visible ~/Notelore, state in the support folder', () async {
+  test("desktop: notes in the app's own folder; an old ~/Notelore moves there (#207)", () async {
+    File(p.join(root, 'Notelore', 'projects', 'a.md'))
+      ..createSync(recursive: true)
+      ..writeAsStringSync('A');
     final session = await app.openSession(environment: {'HOME': root}, mobile: false);
     addTearDown(session.dispose);
-    expect(session.paths.notes.path, p.join(root, 'Notelore'));
+    expect(session.paths.notes.path, p.join(root, 'support', 'notes'));
     expect(session.paths.state.path, p.join(root, 'support'));
+    expect(File(p.join(root, 'support', 'notes', 'projects', 'a.md')).readAsStringSync(), 'A');
+    expect(Directory(p.join(root, 'Notelore')).existsSync(), isFalse); // one copy
     expect(session.ready, isFalse);
   });
 
-  test('phone: notes in the app documents', () async {
+  test("phone: notes in the app's own folder; the old documents folder moves there", () async {
+    File(p.join(root, 'documents', 'Notelore', 'topics', 'b.md'))
+      ..createSync(recursive: true)
+      ..writeAsStringSync('B');
     final session = await app.openSession(environment: {}, mobile: true);
     addTearDown(session.dispose);
-    expect(session.paths.notes.path, p.join(root, 'documents', 'Notelore'));
+    expect(session.paths.notes.path, p.join(root, 'support', 'notes'));
+    expect(File(p.join(root, 'support', 'notes', 'topics', 'b.md')).readAsStringSync(), 'B');
     // The ChatGPT plan is offered; a model "on this computer" is not.
     final names = session.providers.map((p) => p.name);
     expect(names, contains('chatgpt'));
