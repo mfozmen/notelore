@@ -93,6 +93,8 @@ void main() {
       'connect': s.connect,
       'openFailed': s.openFailed('x'),
       'chooseProvider': s.chooseProvider,
+      'advanced': s.advanced,
+      'advancedExplained': s.advancedExplained,
       'apiKey': s.apiKey,
       'pasteKeyFirst': s.pasteKeyFirst,
       'checkConnection': s.checkConnection,
