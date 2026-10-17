@@ -12,7 +12,7 @@
 ///   decision for `topic` in the same write.
 /// - `get_decision(slug, topic, kind?)`: the current decision, deterministic.
 /// - `decision_history(slug, topic?, kind?)`: every decision incl. superseded.
-/// - `search_notes(query, kind?)`: full-text hits, best first; any word may match.
+/// - `search_notes(query, kind?)`: full-text hits, best first; any word may match; a query that names a note (every word of its title) searches only that note.
 /// - `find_stale_notes()`: cleanup candidates with 1-based entry numbers.
 /// - `archive(slug, entries?, kind?)`: moves numbered entries per section, or the
 ///   whole file when `entries` is omitted, under `_archive/`.
@@ -113,6 +113,7 @@ final noteTools = List<Tool>.unmodifiable([
   Tool(
     'search_notes',
     'Full-text search over every note: any word may match, best matches first; '
+        'a query that names a note by its whole title searches only that note; '
         'word endings do not matter; words under three letters are ignored.',
     _schema(['query'], {'query': _string, 'kind': _kind}),
   ),
