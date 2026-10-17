@@ -97,10 +97,13 @@ $sdk = "$env:LOCALAPPDATA\Android\Sdk"
 Start-Process -FilePath "$sdk\emulator\emulator.exe" -ArgumentList @('-avd','notelore_latency_api35','-no-window','-no-audio','-no-boot-anim','-gpu','swiftshader_indirect') -WindowStyle Hidden
 & "$sdk\platform-tools\adb.exe" -e wait-for-device
 & "$sdk\platform-tools\adb.exe" -e shell getprop sys.boot_completed # wait until 1
-$env:NOTELORE_HOME = '.dev-home'
+$env:NOTELORE_HOME = Join-Path (Get-Location) '.dev-home'
 Set-Location apps/notelore
 & "$env:USERPROFILE\flutter\bin\flutter.bat" run -d emulator-5554 -t tool/android_latency_probe.dart --profile
 ```
+
+On macOS or Linux with a configured Android emulator, run from the repository
+root: `cd apps/notelore && NOTELORE_HOME="$(cd ../.. && pwd)/.dev-home" flutter run -d <device-id> -t tool/android_latency_probe.dart --profile`.
 
 `NOTELORE_HOME` protects manual host runs. The Android runner itself only uses
 explicit temp paths. The JSON lines appear in the Flutter log. Use `q` to stop
