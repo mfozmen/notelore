@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'session.dart';
 import 'strings.dart';
 import 'theme.dart';
+import 'transfer.dart' show PickedFile;
 import 'voice.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -44,43 +45,77 @@ class _ChatScreenState extends State<ChatScreen> {
     await widget.session.send(text);
   }
 
-  /// Files adding up to more than this are refused rather than sent: they
-  /// would fill the model's context. shortcut: text and PDF text only, whole;
-  /// images and audio are #278 and #285.
+  /// Text (and PDF text) adding up to more than this is refused rather than
+  /// sent: it would fill the model's context. shortcut: text, PDF text and
+  /// images; audio is #285.
   static const maxAttachment = 200000;
 
-  /// Sends the text files and PDFs picked, with what is typed as their
-  /// explanation. A file that is not text, a PDF with no text in it (scanned,
-  /// or damaged), or too much is refused and nothing is sent.
+  /// An image larger than this is refused: the providers' own limit (5 MB).
+  static const maxImage = 5 * 1024 * 1024;
+
+  /// Sends the files picked, with what is typed as their explanation: text
+  /// files and PDFs' text in the message, images beside it. A file that is none
+  /// of these, a PDF with no text in it (scanned, or damaged), too much, or an
+  /// image the model cannot take now, is refused and nothing is sent.
   Future<void> _attach() async {
     final messenger = ScaffoldMessenger.of(context);
-    final s = widget.session.strings;
     final picked = await widget.session.exchange.pick(any: true);
-    final files = <Attachment>[];
-    var sent = 0; // characters, over every file of the message
-    for (final file in picked) {
-      final pdf = _isPdf(file.bytes);
-      final text = pdf ? await _pdfText(file.bytes) : _text(file.bytes);
-      final refused = switch (text) {
-        null when pdf => s.noPdfText(file.name),
-        null => s.notText(file.name),
-        _ when sent + text.length > maxAttachment => s.tooLarge(file.name),
-        _ => null,
-      };
-      if (refused != null) {
-        messenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(refused)));
-        return;
-      }
-      files.add((name: file.name, text: text!));
-      sent += text.length;
+    if (picked.isEmpty) return; // called off
+    final (:files, :images, :names, :refused) = await _read(picked);
+    if (refused != null) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(refused)));
+      return;
     }
-    if (files.isEmpty) return; // called off
     final typed = _message.text.trim();
     _message.clear();
-    await widget.session.send(withAttachments(typed, files));
+    await widget.session.send(withAttachments(typed, files, images: names), images: images);
   }
+
+  /// [picked] as text attachments and images (with their names), or why they
+  /// cannot go: the first file refused, else images the model cannot take now.
+  Future<({List<Attachment> files, List<Block> images, List<String> names, String? refused})>
+  _read(List<PickedFile> picked) async {
+    final session = widget.session;
+    final s = session.strings;
+    final files = <Attachment>[];
+    final images = <Block>[];
+    final names = <String>[];
+    var sent = 0; // characters, over every text file of the message
+    for (final file in picked) {
+      // An image first: a GIF begins as plain ASCII.
+      final type = imageType(file.bytes);
+      final pdf = type == null && _isPdf(file.bytes);
+      String? text;
+      if (type == null) text = pdf ? await _pdfText(file.bytes) : _text(file.bytes);
+      final refused = switch ((type, text)) {
+        (null, null) when pdf => s.noPdfText(file.name),
+        (null, null) => s.notText(file.name),
+        (_?, _) when file.bytes.length > maxImage => s.tooLarge(file.name),
+        (_, final text?) when sent + text.length > maxAttachment => s.tooLarge(file.name),
+        _ => null,
+      };
+      if (refused != null) return (files: files, images: images, names: names, refused: refused);
+      if (type != null) {
+        images.add(imageBlock(type, file.bytes));
+        names.add(file.name);
+      } else {
+        files.add((name: file.name, text: text!));
+        sent += text.length;
+      }
+    }
+    // An image joins no running turn and never waits offline (#278).
+    final waiting = session.busy || session.transcript.any((l) => l.role == ChatRole.pending);
+    final refused = switch (images) {
+      [] => null,
+      _ when !session.acceptsImages => s.noImages(s.providerName(session.spec!)),
+      _ when waiting => s.imagesNotNow,
+      _ => null,
+    };
+    return (files: files, images: images, names: names, refused: refused);
+  }
+
 
   static bool _isPdf(List<int> bytes) =>
       bytes.length >= 5 && ascii.decode(bytes.sublist(0, 5), allowInvalid: true) == '%PDF-';

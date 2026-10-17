@@ -1,3 +1,4 @@
+import 'package:notelore_core/src/providers/base.dart' show imageBlock;
 import 'package:notelore_core/src/providers/gemini.dart';
 import 'package:test/test.dart';
 
@@ -14,6 +15,31 @@ Map<String, Object?> candidate(List<Object?> parts, [String finish = 'STOP']) =>
 };
 
 void main() {
+  test('toGemini sends an image as inline data (#278)', () {
+    expect(
+      toGemini([
+        {
+          'role': 'user',
+          'content': [
+            {'type': 'text', 'text': 'look'},
+            imageBlock('image/png', [1, 2, 3]),
+          ],
+        },
+      ]),
+      [
+        {
+          'role': 'user',
+          'parts': [
+            {'text': 'look'},
+            {
+              'inlineData': {'mimeType': 'image/png', 'data': 'AQID'},
+            },
+          ],
+        },
+      ],
+    );
+  });
+
   test('toGemini roles and function parts', () {
     expect(toGemini(conversation), [
       {

@@ -38,6 +38,7 @@ final class ProviderSpec {
     this.keySteps = const [],
     required this.cost,
     this.webSearch = false,
+    this.images = false,
   });
 
   final String name;
@@ -53,6 +54,10 @@ final class ProviderSpec {
 
   /// The model can look things up on the web through the provider's own tool.
   final bool webSearch;
+
+  /// The models take images with a message (#278). Ollama's may or may not,
+  /// depending on the local model, so it is not offered there.
+  final bool images;
 }
 
 const providerSpecs = [
@@ -61,6 +66,7 @@ const providerSpecs = [
     'ChatGPT plan (OpenAI)',
     group: ProviderGroup.plan,
     webSearch: true,
+    images: true,
     requiresApiKey: false,
     defaultModel: '', // the first model the plan lists
     cost: "Uses your ChatGPT Plus or Pro plan: no separate charges, within your plan's limits.",
@@ -70,6 +76,7 @@ const providerSpecs = [
     'Claude (Anthropic)',
     group: ProviderGroup.apiKey,
     webSearch: true,
+    images: true,
     requiresApiKey: true,
     defaultModel: 'claude-sonnet-5-5',
     cost:
@@ -87,6 +94,7 @@ const providerSpecs = [
     'GPT (OpenAI)',
     group: ProviderGroup.apiKey,
     webSearch: true,
+    images: true,
     requiresApiKey: true,
     defaultModel: 'gpt-4o-mini',
     cost:
@@ -103,6 +111,7 @@ const providerSpecs = [
     'gemini',
     'Gemini (Google)',
     group: ProviderGroup.apiKey,
+    images: true,
     requiresApiKey: true,
     defaultModel: 'gemini-2.5-flash',
     cost:
@@ -183,16 +192,44 @@ Map<String, String> toolUseNames(List<Message> messages) => {
           '${block['id']}': '${block['name'] ?? ''}',
 };
 
-/// The texts, tool_use blocks and tool_result blocks of a message's content.
-({List<String> texts, List<Block> uses, List<Block> results}) splitBlocks(Object? content) {
-  if (content is String) return (texts: [content], uses: [], results: []);
+/// The texts, tool_use, tool_result and image blocks of a message's content.
+({List<String> texts, List<Block> uses, List<Block> results, List<Block> images}) splitBlocks(
+  Object? content,
+) {
+  if (content is String) return (texts: [content], uses: [], results: [], images: []);
   final blocks = (content! as List).cast<Block>();
   List<Block> ofType(String type) => blocks.where((b) => b['type'] == type).toList();
   return (
     texts: [for (final b in ofType('text')) '${b['text'] ?? ''}'],
     uses: ofType('tool_use'),
     results: ofType('tool_result'),
+    images: ofType('image'),
   );
+}
+
+/// The image type [bytes] start with (PNG, JPEG, GIF, WebP: what every
+/// provider here takes), or null for anything else.
+String? imageType(List<int> bytes) {
+  bool starts(List<int> magic, [int at = 0]) =>
+      bytes.length >= at + magic.length &&
+      [for (var i = 0; i < magic.length; i++) bytes[at + i] == magic[i]].every((same) => same);
+  if (starts(const [0x89, 0x50, 0x4e, 0x47])) return 'image/png';
+  if (starts(const [0xff, 0xd8, 0xff])) return 'image/jpeg';
+  if (starts('GIF8'.codeUnits)) return 'image/gif';
+  if (starts('RIFF'.codeUnits) && starts('WEBP'.codeUnits, 8)) return 'image/webp';
+  return null;
+}
+
+/// An image as a content block, in Anthropic's shape like every block here.
+Block imageBlock(String mediaType, List<int> bytes) => {
+  'type': 'image',
+  'source': {'type': 'base64', 'media_type': mediaType, 'data': base64Encode(bytes)},
+};
+
+/// [image]'s type and its bytes as base64, for the providers' own shapes.
+(String mediaType, String data) imageData(Block image) {
+  final source = image['source']! as Map<String, Object?>;
+  return ('${source['media_type']}', '${source['data']}');
 }
 
 /// Tool arguments as a map: JSON text is parsed, a map copied, anything odd kept raw.

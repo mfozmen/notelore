@@ -28,6 +28,8 @@ export 'src/providers/base.dart'
         TokenUsage,
         Tool,
         findProvider,
+        imageBlock,
+        imageType,
         providerSpecs;
 export 'src/providers/chatgpt.dart'
     show BearerToken, ChatGptProvider, PlanLimitReached, chatGptUsageUrl, listChatGptModels;

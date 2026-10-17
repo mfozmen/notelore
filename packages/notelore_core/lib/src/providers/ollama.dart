@@ -55,7 +55,7 @@ List<Map<String, Object?>> toOllama(List<Message> messages) {
 }
 
 List<Map<String, Object?>> _toOllama(Message message, Map<String, String> names) {
-  final (:texts, :uses, :results) = splitBlocks(message['content']);
+  final (:texts, :uses, :results, images: _) = splitBlocks(message['content']);
   if (message['role'] == 'assistant') {
     return [
       {

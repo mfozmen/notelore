@@ -31,29 +31,38 @@ Rules:
 - Keep replies short. Say what you saved or found; do not narrate tool calls.
 - When you ask the user a question that has a few likely answers, end the reply with the question, then one line of up to four short answers, each in double brackets, in the user's language: [[Yes]] [[No]]. The app shows them as buttons; never use that line otherwise.
 - A message may carry text files, each between <attached file="name"> and </attached>. File what they say with the tools: read them, find the project or topic they belong to (the user's words beside them count), and add their points as entries, decisions or todos. Ask which note when it is unclear. Never claim a file says something it does not.
+- An image comes with the message as a picture, named by <attached image="name"/>. File what it shows the same way, and say plainly what you cannot make out.
 
 Today is {today}.''';
 
 /// A text file sent along with a message.
 typedef Attachment = ({String name, String text});
 
-/// [message] with [files] after it, each marked the way the prompt describes.
+/// [message] with [files] after it, each marked the way the prompt describes,
+/// then the names of the [images] sent with it (their pictures go as blocks).
 /// A file cannot end its own marker (its closing tag is escaped), nor its name
 /// leave the quotes: what a file holds stays inside it.
-String withAttachments(String message, List<Attachment> files) => [
-  if (message.isNotEmpty) message,
-  for (final f in files)
-    '<attached file="${f.name.replaceAll('"', "'").replaceAll(RegExp(r'[\r\n]+'), ' ')}">\n'
-        '${f.text.trimRight().replaceAll('</attached>', r'<\/attached>')}\n</attached>',
-].join('\n\n');
+String withAttachments(String message, List<Attachment> files, {List<String> images = const []}) =>
+    [
+      if (message.isNotEmpty) message,
+      for (final f in files)
+        '<attached file="${_quoted(f.name)}">\n'
+            '${f.text.trimRight().replaceAll('</attached>', r'<\/attached>')}\n</attached>',
+      for (final name in images) '<attached image="${_quoted(name)}"/>',
+    ].join('\n\n');
 
-final _attached = RegExp(r'<attached file="([^"]*)">\n[\s\S]*?\n</attached>');
+/// [name] safe inside the marker's quotes, on one line.
+String _quoted(String name) => name.replaceAll('"', "'").replaceAll(RegExp(r'[\r\n]+'), ' ');
 
-/// What [message] says besides its files, and the files' names: what a chat
-/// shows of it.
+final _attached = RegExp(
+  r'<attached file="([^"]*)">\n[\s\S]*?\n</attached>|<attached image="([^"]*)"/>',
+);
+
+/// What [message] says besides its files and images, and their names: what a
+/// chat shows of it.
 ({String text, List<String> files}) attachedFiles(String message) => (
   text: message.replaceAll(_attached, '').trim(),
-  files: [for (final m in _attached.allMatches(message)) m[1]!],
+  files: [for (final m in _attached.allMatches(message)) m[1] ?? m[2]!],
 );
 
 final _answerLine = RegExp(r'^\s*(\[\[[^\[\]\n]*\S[^\[\]\n]*\]\]\s*)+$');
@@ -152,18 +161,27 @@ class Agent {
   /// The same holds when the turn is stopped ([stop], or past [deadline]).
   /// [onStep] hears what the turn is doing ("Thinking", [describeTool]).
   /// [takeLater] hands over what the user wrote while the turn ran; it joins
-  /// the next step, so the one final answer covers it.
+  /// the next step, so the one final answer covers it. [images] go with the
+  /// message, for providers that take them ([ProviderSpec.images]).
   Future<String> ask(
     String text, {
     void Function(String step)? onStep,
     List<String> Function()? takeLater,
+    List<Block> images = const [],
   }) async {
     final start = messages.length;
     wroteNotes = false;
     final stop = _stop = Completer()..future.ignore();
     final timer = Timer(deadline, () => this.stop(const TurnStopped(_late)));
     try {
-      return await _ask(text, onStep ?? (_) {}, takeLater ?? () => const [], stop.future);
+      // Images go after the words, as their own blocks ([imageBlock]).
+      final content = images.isEmpty
+          ? text
+          : [
+              {'type': 'text', 'text': text},
+              ...images,
+            ];
+      return await _ask(content, onStep ?? (_) {}, takeLater ?? () => const [], stop.future);
     } catch (_) {
       messages.removeRange(start, messages.length);
       rethrow;
@@ -175,12 +193,12 @@ class Agent {
   static const _late = 'No answer in time, so I stopped. Please try again.';
 
   Future<String> _ask(
-    String text,
+    Object content,
     void Function(String step) onStep,
     List<String> Function() takeLater,
     Future<AgentResponse> stopped,
   ) async {
-    messages.add({'role': 'user', 'content': text});
+    messages.add({'role': 'user', 'content': content});
     for (var turn = 0; turn < maxTurns; turn++) {
       onStep('Thinking');
       final watch = Stopwatch()..start();
