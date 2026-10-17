@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -47,6 +48,21 @@ class _ChatScreenState extends State<ChatScreen> {
 
   /// The last press was a plain click: show how talking works.
   var _holdHint = false;
+
+  /// A screen reader's tap: starts listening, or sends what was said.
+  void _toggleTalk() =>
+      _voice.state == VoiceState.listening ? _voice.release() : unawaited(_hold());
+
+  /// Space or Enter held on the focused talk button: push to talk by keyboard.
+  KeyEventResult _talkKey(KeyEvent event, {required bool busy}) {
+    if (event.logicalKey != LogicalKeyboardKey.space &&
+        event.logicalKey != LogicalKeyboardKey.enter) {
+      return KeyEventResult.ignored;
+    }
+    if (event is KeyDownEvent && !busy) unawaited(_hold());
+    if (event is KeyUpEvent) _voice.release();
+    return KeyEventResult.handled; // and its repeats, so the button's own press does not fire
+  }
 
   /// The talk button went down: one push-to-talk turn.
   Future<void> _hold() async {
@@ -242,12 +258,25 @@ class _ChatScreenState extends State<ChatScreen> {
                             }
                           },
                           onPointerCancel: (_) => _voice.release(),
-                          child: IconButton.filled(
-                            tooltip: s.talk,
-                            icon: Icon(
-                              _voice.state == VoiceState.listening ? Icons.mic : Icons.mic_none,
+                          // A screen reader cannot hold: one tap starts, the next sends.
+                          child: Semantics(
+                            label: s.talk,
+                            button: true,
+                            excludeSemantics: true,
+                            onTap: session.busy ? null : _toggleTalk,
+                            // The keyboard holds Space or Enter instead.
+                            child: Focus(
+                              canRequestFocus: false,
+                              skipTraversal: true,
+                              onKeyEvent: (_, event) => _talkKey(event, busy: session.busy),
+                              child: IconButton.filled(
+                                tooltip: s.talk,
+                                icon: Icon(
+                                  _voice.state == VoiceState.listening ? Icons.mic : Icons.mic_none,
+                                ),
+                                onPressed: session.busy ? null : () {},
+                              ),
                             ),
-                            onPressed: session.busy ? null : () {},
                           ),
                         ),
                     ],

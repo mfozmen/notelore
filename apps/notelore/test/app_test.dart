@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
@@ -293,6 +294,37 @@ void main() {
     await talk(20);
     await tester.pumpAndSettle();
     expect(harness.provider.asked, ['bir', 'iki']);
+  });
+
+  testWidgets('chat: push to talk by keyboard (hold Space) and by screen reader (#201)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness(answers: ['Bir.', 'İki.']);
+    harness.speech.phrases.addAll(['klavyeden', 'okuyucudan']);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    // Keyboard: from the message box, Tab reaches the button; Space held talks.
+    await tester.tap(find.byKey(const Key('message')));
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+    await tester.pump();
+    expect(find.text('Listening…'), findsOneWidget);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+    await tester.pumpAndSettle();
+    expect(harness.provider.asked, ['klavyeden']);
+
+    // A screen reader taps: once to start, once to send.
+    final talk = find.byWidgetPredicate(
+      (w) => w is Semantics && w.properties.label == 'Hold to talk',
+    );
+    tester.widget<Semantics>(talk).properties.onTap!();
+    await tester.pump();
+    expect(find.text('Listening…'), findsOneWidget);
+    tester.widget<Semantics>(talk).properties.onTap!();
+    await tester.pumpAndSettle();
+    expect(harness.provider.asked, ['klavyeden', 'okuyucudan']);
   });
 
   testWidgets('chat: hold to talk, let go to send; the answer is read aloud', (tester) async {
