@@ -80,6 +80,8 @@ class _NoteloreAppState extends State<NoteloreApp> with WidgetsBindingObserver {
           home: switch (snapshot) {
             // With the app lock on, nothing else shows until it is opened (#224).
             AsyncSnapshot(:final Session data) when data.lock.locked => LockScreen(data),
+            // A Google account first, then the provider (#208).
+            AsyncSnapshot(:final Session data) when data.needsGoogle => GoogleScreen(data),
             AsyncSnapshot(:final Session data) =>
               data.ready
                   ? Home(data, updater: widget.updater, exitApp: widget.exitApp)

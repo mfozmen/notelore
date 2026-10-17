@@ -159,3 +159,76 @@ class _SetupScreenState extends State<SetupScreen> {
     );
   }
 }
+
+/// The first step of setup (#208): sign in with a Google account, which also
+/// connects Drive. Without one (refused, cancelled, no account) there is no
+/// way on, and the screen says why.
+class GoogleScreen extends StatefulWidget {
+  const GoogleScreen(this.session, {super.key});
+
+  final Session session;
+
+  @override
+  State<GoogleScreen> createState() => _GoogleScreenState();
+}
+
+class _GoogleScreenState extends State<GoogleScreen> {
+  String? _problem;
+  var _signingIn = false;
+
+  Future<void> _signIn() async {
+    setState(() {
+      _signingIn = true;
+      _problem = null;
+    });
+    try {
+      await widget.session.connectDrive();
+    } on Exception catch (error) {
+      final why = error is SignInFailed ? error.message : '$error';
+      if (mounted) setState(() => _problem = widget.session.strings.googleRequired(why));
+    } finally {
+      if (mounted) setState(() => _signingIn = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final s = widget.session.strings;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Notelore')),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.all(Gap.l),
+              children: [
+                Icon(Icons.cloud_outlined, size: 56, color: theme.colorScheme.primary),
+                const SizedBox(height: Gap.m),
+                Text(s.googleExplained, textAlign: TextAlign.center),
+                const SizedBox(height: Gap.l),
+                Center(
+                  child: FilledButton.icon(
+                    icon: const Icon(Icons.login),
+                    onPressed: _signingIn ? null : _signIn,
+                    label: Text(s.signInWithGoogle),
+                  ),
+                ),
+                if (_problem case final problem?) ...[
+                  const SizedBox(height: Gap.m),
+                  Text(
+                    problem,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

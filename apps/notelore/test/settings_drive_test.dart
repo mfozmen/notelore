@@ -21,17 +21,14 @@ void main() {
     expect(find.text('Sync is not set up in this build.'), findsOneWidget);
   });
 
-  testWidgets('connect, sync now, disconnect', (tester) async {
+  testWidgets('Google first (Drive with it), sync now; disconnecting signs out', (tester) async {
     phone(tester);
     final harness = Harness(auth: FakeAuth());
     await pumpApp(tester, harness);
+    await tester.tap(find.text('Sign in with Google'));
+    await tester.pumpAndSettle();
     await connect(tester, key: 'k');
     await openSettings(tester);
-    expect(find.text('Back up and sync your notes across your devices.'), findsOneWidget);
-    await tester.ensureVisible(find.widgetWithText(FilledButton, 'Connect'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Connect'));
-    await tester.pumpAndSettle();
     expect(find.text('Synced; nothing changed.'), findsOneWidget);
     harness.remote.texts['topics/t.md'] = '---\ntitle: T\n---\n# T\n';
     await tester.ensureVisible(find.byTooltip('Sync now'));
@@ -47,7 +44,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Disconnect Google Drive'));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(FilledButton, 'Connect'), findsOneWidget);
+    expect(find.text('Sign in with Google'), findsOneWidget); // back to the first step
   });
 
   testWidgets('coming back to the app syncs', (tester) async {
@@ -64,17 +61,32 @@ void main() {
     expect(find.text('T'), findsOneWidget);
   });
 
-  testWidgets('a refused sign-in shows why', (tester) async {
+  testWidgets('an expired grant keeps the app and its notes; Settings connects again (#208)', (
+    tester,
+  ) async {
     phone(tester);
-    final harness = Harness(auth: FakeAuth()..failSignIn = const SignInFailed('access_denied'));
-    await pumpApp(tester, harness);
+    final auth = FakeAuth()..granted = true; // signed in on an earlier run
+    final harness = Harness(auth: auth);
+    final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Mopsos', today: today);
+    harness.remote.failure = const NotSignedIn('Google Drive access was revoked or expired');
+    await session.syncNow();
+    await tester.pumpAndSettle();
+    expect(find.text('Sign in with Google'), findsNothing); // still in the app
     await openSettings(tester);
+    expect(find.text('Google Drive access was revoked or expired; connect again.'), findsOneWidget);
+    auth.failSignIn = const SignInFailed('access_denied');
     await tester.ensureVisible(find.widgetWithText(FilledButton, 'Connect'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Connect'));
     await tester.pumpAndSettle();
     expect(find.text('Google sign-in failed: access_denied'), findsOneWidget);
+    auth.failSignIn = null;
+    harness.remote.failure = null;
+    await tester.tap(find.widgetWithText(FilledButton, 'Connect'));
+    await tester.pumpAndSettle();
+    expect(find.text('Synced: 1 sent.'), findsOneWidget); // the note made meanwhile goes up
   });
 
   testWidgets('while syncing the button waits', (tester) async {

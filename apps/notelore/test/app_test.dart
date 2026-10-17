@@ -116,6 +116,25 @@ void main() {
     expect(find.textContaining('OpenAI is not reachable'), findsOneWidget);
   });
 
+  testWidgets('setup: Google sign-in comes first, and without an account it stops (#208)', (
+    tester,
+  ) async {
+    phone(tester);
+    final auth = FakeAuth()..failSignIn = const SignInFailed('access_denied');
+    await pumpApp(tester, Harness(auth: auth));
+    expect(find.textContaining('Google (Gmail) account'), findsOneWidget);
+    expect(find.text('Claude (Anthropic)'), findsNothing); // no provider before Google
+    await tester.tap(find.text('Sign in with Google'));
+    await tester.pumpAndSettle();
+    expect(find.text('Notelore needs a Google account to continue: access_denied'), findsOneWidget);
+    expect(find.text('Claude (Anthropic)'), findsNothing);
+    auth.failSignIn = null;
+    await tester.tap(find.text('Sign in with Google'));
+    await tester.pumpAndSettle();
+    expect(auth.granted, isTrue);
+    expect(find.text('Claude (Anthropic)'), findsOneWidget); // on to the provider
+  });
+
   testWidgets('setup: Ollama has no key field', (tester) async {
     phone(tester);
     await pumpApp(tester, Harness());
