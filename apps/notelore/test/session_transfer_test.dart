@@ -40,6 +40,7 @@ void main() {
     final root = harness.paths.notes.path;
     final mine = createNote(root, 'project', 'Mopsos', today: today);
     final mineText = File(mine).readAsStringSync();
+    expect(session.listNotes(), hasLength(1)); // warm the index before importing
     var changes = 0;
     session.addListener(() => changes++);
 

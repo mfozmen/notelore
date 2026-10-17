@@ -184,11 +184,20 @@ void main() {
       'already_there': 1,
     });
     expect(call('read_note', {'slug': 'home-server'}), contains('Needs a 27 W power supply.'));
+    expect((call('search_notes', {'query': 'power supply'})! as List), hasLength(1));
+    expect((call('list_notes')! as List), hasLength(1));
     expect(
       call('merge_notes', {'from': 'home-server', 'into': 'home-server'}),
       startsWith('Error:'),
     );
     expect(call('merge_notes', {'from': 'gone', 'into': 'home-server'}), startsWith('Error:'));
+  });
+
+  test('a write after an indexed query is visible to the next tool call', () {
+    call('create_note', {'kind': 'project', 'title': 'Mopsos'});
+    expect(call('list_notes'), hasLength(1));
+    expect(call('add_note_entry', {'slug': 'mopsos', 'text': 'Fresh marker.'}), 'ok');
+    expect((call('search_notes', {'query': 'fresh'})! as List), hasLength(1));
   });
 
   test('archive entries and the whole file', () {

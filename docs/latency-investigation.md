@@ -151,3 +151,30 @@ tasks while preserving answer correctness and the existing note-format and
 sync tests. Include a 10,000-note physical-device test before deciding whether to
 change index refresh frequency. Until that live baseline exists, changing the
 prompt, store, or provider defaults would be guesswork.
+
+## Index refresh follow-up (#251)
+
+On 2026-10-18, before changing the index, three runs of
+`dart run tool/latency_probe.dart --large` on the same Windows host used a fresh
+10,000-note temp folder per run. Two runs after the change used the same command
+and corpus size. Each unchanged-refresh result is the median of five refreshes;
+the probe reports whole milliseconds.
+
+| Version | Initial index build | Unchanged refresh | `search_notes` tool call |
+| --- | ---: | ---: | ---: |
+| Before, run 1 | 4,838 ms | 825 ms | 908 ms |
+| Before, run 2 | 4,517 ms | 711 ms | 816 ms |
+| Before, run 3 | 4,306 ms | 824 ms | 848 ms |
+| After, run 1 | 4,804 ms | 0 ms | 82 ms |
+| After, run 2 | 4,584 ms | 0 ms | 70 ms |
+
+The new index watches the notes folders, refreshes changed Markdown files, and
+audits all file metadata every five seconds or whenever a watcher fails. Store,
+import, and sync writes explicitly mark changed paths so the next query does
+not wait for a filesystem event. A reported 0 ms is below the probe's 1 ms
+resolution, not zero work. `search_notes` still queries and ranks index rows;
+its time is not solely index refresh. The initial build is essentially
+unchanged. These are host measurements with synthetic notes, not phone or live
+provider timings. An external edit can remain stale until its watcher event
+arrives or the next audit; a missed event combined with an unchanged file stamp
+cannot be detected by a metadata audit.

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:notelore_core/src/store/format.dart';
@@ -79,6 +80,11 @@ void main() {
 
       List<String> slugs() => [for (final n in idx.listNotes()) n.slug];
 
+      void refresh(String path) {
+        idx.markChanged(path);
+        idx.rebuild();
+      }
+
       test('listNotes skips the archive and non-notes', () {
         expect(idx.listNotes(), [
           NoteInfo('mopsos', 'project', 'Mopsos', today),
@@ -127,12 +133,9 @@ void main() {
 
       test('the same slug in both kinds needs the kind', () {
         for (final (kind, value) in [('project', 'Postgres'), ('topic', 'Redis')]) {
-          recordDecision(
-            createNote(root, kind, 'Dup', today: today),
-            'database',
-            value,
-            today: today,
-          );
+          final path = createNote(root, kind, 'Dup', today: today);
+          recordDecision(path, 'database', value, today: today);
+          idx.markChanged(path);
         }
         idx.rebuild();
         final ambiguous = throwsA(
@@ -189,6 +192,9 @@ void main() {
         addEntry(work, 'Meeting notes go to Confluence.', today: today);
         final school = createNote(root, 'topic', 'Okul', lang: 'tr', today: today);
         addEntry(school, 'Notlar Pazartesi paylaşılacak.', today: today);
+        for (final path in [notelore, work, school]) {
+          idx.markChanged(path);
+        }
         idx.rebuild();
         // "notelore" shares the prefix "note" with "notes" and "Notlar".
         for (final query in ['Notelore', "Notelore'daki notlar", 'my notes about notelore']) {
@@ -202,7 +208,7 @@ void main() {
         // Whole words only: a note titled "Plan" does not capture "planning".
         final plan = createNote(root, 'topic', 'Plan', today: today);
         addEntry(plan, 'Draft the roadmap.', today: today);
-        idx.rebuild();
+        refresh(plan);
         expect(idx.search('planning work notes').map((h) => h.slug).toSet(), {'work-notes'});
       });
 
@@ -215,7 +221,7 @@ void main() {
           today: today,
         );
         addTodo(path, 'Deniz kitabını satın al', today: today);
-        idx.rebuild();
+        refresh(path);
         // "kitap", "kitabı", "kitabını": one stem; the question words match nothing.
         for (final query in ['hangi kitabı alacaktım', 'kitap', 'Kitabını']) {
           expect(
@@ -230,7 +236,7 @@ void main() {
       test('a long inflection finds a note that only has the bare root', () {
         final path = createNote(root, 'topic', 'Okuma', lang: 'tr', today: today);
         addEntry(path, 'Yeni bir kitap aldım.', today: today);
-        idx.rebuild();
+        refresh(path);
         for (final query in ['kitabını', 'kitabımızı']) {
           expect(idx.search(query).map((h) => h.slug), contains('okuma'), reason: query);
         }
@@ -274,14 +280,14 @@ void main() {
         // A new mtime with the old content: read, hashed, not reparsed.
         file.writeAsStringSync(read(mopsos).replaceAll('cryptx', 'crypto'));
         file.setLastModifiedSync(stamp.add(const Duration(seconds: 1)));
-        idx.rebuild();
+        refresh(mopsos);
         expect(idx.search('crypto'), hasLength(1));
         addEntry(mopsos, 'Now with kubernetes.', today: d(2026, 10, 1));
-        idx.rebuild();
+        refresh(mopsos);
         expect(idx.search('kubernetes').map((h) => h.slug), ['mopsos']);
         expect(idx.listNotes().first.updated, d(2026, 10, 1));
         archiveNote(root, mopsos, today: d(2026, 10, 1));
-        idx.rebuild();
+        refresh(mopsos);
         expect(slugs(), ['sirket-kurulusu', 'odd-date']);
         expect(idx.getDecision('mopsos', 'database'), isNull);
         expect(idx.search('kubernetes'), isEmpty);
@@ -305,15 +311,17 @@ void main() {
 
       test('unreadable files are skipped, not fatal', () {
         expect(slugs(), isNot(contains('latin1')));
-        File(p.join(root, 'projects', 'mopsos.md')).writeAsBytesSync([0xFF, 0xFE, 0x20, 0x78]);
-        idx.rebuild();
+        final path = p.join(root, 'projects', 'mopsos.md');
+        File(path).writeAsBytesSync([0xFF, 0xFE, 0x20, 0x78]);
+        refresh(path);
         expect(slugs(), isNot(contains('mopsos')));
         expect(idx.search('crypto'), isEmpty);
       });
 
       test('a file that stops being a note is forgotten', () {
-        File(p.join(root, 'projects', 'mopsos.md')).writeAsStringSync('# broken now\n');
-        idx.rebuild();
+        final path = p.join(root, 'projects', 'mopsos.md');
+        File(path).writeAsStringSync('# broken now\n');
+        refresh(path);
         expect(slugs(), ['sirket-kurulusu', 'odd-date']);
         expect(idx.search('crypto'), isEmpty);
       });
@@ -323,7 +331,7 @@ void main() {
         final stamp = file.lastModifiedSync();
         file.writeAsStringSync('${file.readAsStringSync()}\n## Links\nkubernetes\n');
         file.setLastModifiedSync(stamp); // rewritten within the filesystem's mtime granularity
-        idx.rebuild();
+        refresh(file.path);
         expect(idx.search('kubernetes').map((h) => h.slug), ['mopsos']);
       });
 
@@ -362,12 +370,180 @@ void main() {
     expect(index.listNotes(), hasLength(3));
   });
 
+  test('a failed changed-file refresh rolls back and can be retried', () {
+    final index = NoteIndex(db, root, fts5: false)..rebuild();
+    addTearDown(index.close);
+    final other = sqlite3.open(db);
+    addTearDown(other.close);
+    other.execute(
+      'CREATE TRIGGER fail_refresh BEFORE INSERT ON content '
+      "BEGIN SELECT RAISE(ABORT, 'blocked'); END",
+    );
+    final path = p.join(root, 'projects', 'mopsos.md');
+    addEntry(path, 'Retry this refresh.', today: today);
+    index.markChanged(path);
+    expect(index.rebuild, throwsA(isA<SqliteException>()));
+    expect(index.search('crypto'), hasLength(1)); // the old index survived rollback
+    other.execute('DROP TRIGGER fail_refresh');
+    index.rebuild();
+    expect(index.search('retry').map((hit) => hit.slug), ['mopsos']);
+  });
+
   test('a failed setup closes the connection', () {
     File(db)
       ..parent.createSync(recursive: true)
       ..writeAsStringSync('x' * 4096);
     expect(() => NoteIndex(db, root), throwsA(isA<SqliteException>()));
     File(db).deleteSync(); // Windows refuses this while a handle is open
+  });
+
+  test('an unchanged refresh does not stat every note again', () {
+    var noteStats = 0;
+    final watches = <String, StreamController<FileSystemEvent>>{};
+    addTearDown(() async {
+      for (final watch in watches.values) {
+        await watch.close();
+      }
+    });
+    IOOverrides.runZoned(
+      () {
+        final index = NoteIndex(db, root);
+        addTearDown(index.close);
+        index.rebuild();
+        noteStats = 0;
+        index.rebuild();
+        expect(noteStats, 0);
+        final changed = File(p.join(root, 'projects', 'mopsos.md'));
+        addEntry(changed.path, 'Incremental refresh marker.', today: today);
+        watches[p.join(root, 'projects')]!.add(FileSystemModifyEvent(changed.path, false, true));
+        noteStats = 0;
+        index.rebuild();
+        expect(noteStats, 1);
+        expect(index.search('incremental').map((hit) => hit.slug), ['mopsos']);
+        final stamp = changed.lastModifiedSync();
+        changed.writeAsStringSync(changed.readAsStringSync().replaceAll('marker', 'foobar'));
+        changed.setLastModifiedSync(stamp);
+        watches[p.join(root, 'projects')]!.add(FileSystemModifyEvent(changed.path, false, true));
+        index.rebuild();
+        expect(index.search('foobar').map((hit) => hit.slug), ['mopsos']);
+        changed.deleteSync();
+        watches[p.join(root, 'projects')]!.add(FileSystemDeleteEvent(changed.path, false));
+        index.rebuild();
+        expect(index.listNotes().map((note) => note.slug), isNot(contains('mopsos')));
+        final oldPath = p.join(root, 'topics', 'odd-date.md');
+        final newPath = p.join(root, 'topics', 'renamed.md');
+        File(oldPath).renameSync(newPath);
+        watches[p.join(root, 'topics')]!.add(FileSystemMoveEvent(oldPath, false, newPath));
+        index.rebuild();
+        expect(index.listNotes().map((note) => note.slug), contains('renamed'));
+        expect(index.listNotes().map((note) => note.slug), isNot(contains('odd-date')));
+        watches[p.join(root, 'projects')]!.addError(const FileSystemException('watch overflow'));
+        noteStats = 0;
+        index.rebuild();
+        expect(noteStats, greaterThan(1)); // a failed watcher falls back to the full scan
+      },
+      statSync: (path) {
+        if (path.endsWith('.md')) noteStats++;
+        return Zone.root.run(() => FileStat.statSync(path));
+      },
+      fsWatch: (path, _, _) => watches
+          .putIfAbsent(path, () => StreamController<FileSystemEvent>.broadcast(sync: true))
+          .stream,
+    );
+  });
+
+  test('a known write is indexed before the watcher delivers its event', () {
+    final index = NoteIndex(db, root)..rebuild();
+    addTearDown(index.close);
+    final changed = p.join(root, 'projects', 'mopsos.md');
+    addEntry(changed, 'Immediate refresh marker.', today: today);
+    index.markChanged(changed);
+    index.rebuild();
+    expect(index.search('immediate').map((hit) => hit.slug), ['mopsos']);
+  });
+
+  test('an explicit full scan finds a change whose event was missed', () {
+    final index = NoteIndex(db, root)..rebuild();
+    addTearDown(index.close);
+    final path = p.join(root, 'projects', 'mopsos.md');
+    addEntry(path, 'Missed notification marker.', today: today);
+    index.invalidateAll();
+    index.rebuild();
+    expect(index.search('notification').map((hit) => hit.slug), ['mopsos']);
+  });
+
+  test('a new kind folder is watched and indexed', () {
+    final dir = tempDir();
+    final notes = p.join(dir, 'notes');
+    createNote(notes, 'project', 'First', today: today);
+    final watches = <String, StreamController<FileSystemEvent>>{};
+    addTearDown(() async {
+      for (final watch in watches.values) {
+        await watch.close();
+      }
+    });
+    IOOverrides.runZoned(
+      () {
+        final index = NoteIndex(p.join(dir, 'index.sqlite'), notes)..rebuild();
+        addTearDown(index.close);
+        expect(watches.containsKey(p.join(notes, 'topics')), isFalse);
+        final second = createNote(notes, 'topic', 'Second', today: today);
+        watches[notes]!.add(FileSystemCreateEvent(p.dirname(second), true));
+        index.rebuild();
+        expect(index.listNotes().map((note) => note.slug), contains('second'));
+        expect(watches.containsKey(p.join(notes, 'topics')), isTrue);
+      },
+      fsWatch: (path, _, _) => watches
+          .putIfAbsent(path, () => StreamController<FileSystemEvent>.broadcast(sync: true))
+          .stream,
+    );
+  });
+
+  test('an unavailable file watcher falls back to scanning', () {
+    IOOverrides.runZoned(() {
+      final index = NoteIndex(db, root);
+      addTearDown(index.close);
+      index.rebuild();
+      final path = p.join(root, 'projects', 'mopsos.md');
+      addEntry(path, 'Watcher fallback marker.', today: today);
+      index.rebuild();
+      expect(index.search('fallback').map((hit) => hit.slug), ['mopsos']);
+    }, fsWatch: (_, _, _) => throw UnsupportedError('watch unavailable'));
+  });
+
+  test('a watcher that cannot start falls back to scanning', () {
+    IOOverrides.runZoned(() {
+      final index = NoteIndex(db, root);
+      addTearDown(index.close);
+      index.rebuild();
+      final path = p.join(root, 'projects', 'mopsos.md');
+      addEntry(path, 'Start failure marker.', today: today);
+      index.rebuild();
+      expect(index.search('failure').map((hit) => hit.slug), ['mopsos']);
+    }, fsWatch: (_, _, _) => throw const FileSystemException('cannot watch'));
+  });
+
+  test('a watcher that closes falls back to scanning', () async {
+    final watches = <String, StreamController<FileSystemEvent>>{};
+    addTearDown(() async {
+      for (final watch in watches.values) {
+        await watch.close();
+      }
+    });
+    await IOOverrides.runZoned(
+      () async {
+        final index = NoteIndex(db, root)..rebuild();
+        addTearDown(index.close);
+        await watches[p.join(root, 'projects')]!.close();
+        final path = p.join(root, 'projects', 'mopsos.md');
+        addEntry(path, 'Closed watcher marker.', today: today);
+        index.rebuild();
+        expect(index.search('closed').map((hit) => hit.slug), ['mopsos']);
+      },
+      fsWatch: (path, _, _) => watches
+          .putIfAbsent(path, () => StreamController<FileSystemEvent>.broadcast(sync: true))
+          .stream,
+    );
   });
 
   test('values compare by value', () {

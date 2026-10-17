@@ -6,6 +6,7 @@
 /// Ported from the Python reference.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -169,8 +170,72 @@ class NoteIndex {
   final String root;
   late final Database _db;
   late final bool fts;
+  final _watchers = <String, StreamSubscription<FileSystemEvent>>{};
+  final _audit = Stopwatch();
+  final _changed = <String>{};
+  var _watchFailed = false;
+  var _needsScan = true;
 
-  void close() => _db.close();
+  void close() {
+    for (final watcher in _watchers.values) {
+      unawaited(watcher.cancel());
+    }
+    _db.close();
+  }
+
+  void _watch() {
+    if (_watchFailed || !FileSystemEntity.isWatchSupported) return;
+    for (final folder in [root, for (final name in kinds.values) p.join(root, name)]) {
+      if (_watchers.containsKey(folder) || !Directory(folder).existsSync()) continue;
+      try {
+        _watchers[folder] = Directory(folder).watch().listen(
+          (event) => _event(folder, event),
+          onError: (Object _) => _watchFailed = true,
+          onDone: () => _watchFailed = true,
+        );
+      } on FileSystemException {
+        _watchFailed = true;
+      } on UnsupportedError {
+        _watchFailed = true;
+      }
+    }
+  }
+
+  void _event(String folder, FileSystemEvent event) {
+    if (folder == root || event.isDirectory) {
+      _needsScan = true;
+      return;
+    }
+    void changed(String path) {
+      final absolute = p.isAbsolute(path) ? path : p.join(folder, p.basename(path));
+      final rel = p.posix.joinAll(p.split(p.relative(absolute, from: root)));
+      if (_kind(rel) != null) _changed.add(rel);
+    }
+
+    changed(event.path);
+    if (event is FileSystemMoveEvent && event.destination != null) {
+      changed(event.destination!);
+    }
+  }
+
+  String? _kind(String rel) {
+    final parts = p.posix.split(rel);
+    if (parts.length != 2 || !parts.last.endsWith('.md')) return null;
+    for (final entry in kinds.entries) {
+      if (entry.value == parts.first) return entry.key;
+    }
+    return null;
+  }
+
+  /// Makes a store or sync write visible on the next refresh, even before its
+  /// filesystem notification reaches the event loop.
+  void markChanged(String path) {
+    final rel = p.posix.joinAll(p.split(p.relative(p.absolute(path), from: p.absolute(root))));
+    if (_kind(rel) != null) _changed.add(rel);
+  }
+
+  /// Rescans after an interrupted sync that may have changed unknown paths.
+  void invalidateAll() => _needsScan = true;
 
   // ------------------------------------------------------------ building
 
@@ -179,6 +244,42 @@ class NoteIndex {
   /// The stamp is mtime plus size: a rewrite inside the filesystem's mtime
   /// granularity usually changes the size, so it is not missed.
   void rebuild() {
+    _watch();
+    final full =
+        _watchers.isEmpty ||
+        _watchFailed ||
+        _needsScan ||
+        !_audit.isRunning ||
+        _audit.elapsed >= const Duration(seconds: 5);
+    if (!full && _changed.isEmpty) return;
+    if (!full) {
+      final changed = _changed.toList()..sort();
+      final seen = <String>{};
+      _db.execute('BEGIN');
+      try {
+        for (final rel in changed) {
+          final rows = _db.select('SELECT stamp, hash FROM files WHERE path = ?', [rel]);
+          final known = {
+            if (rows.isNotEmpty)
+              rel: (rows.single.columnAt(0) as String, rows.single.columnAt(1) as String),
+          };
+          _refresh(
+            File(p.joinAll([root, ...p.posix.split(rel)])),
+            _kind(rel)!,
+            known,
+            seen,
+            force: true,
+          );
+          if (!seen.contains(rel)) _forget(rel);
+        }
+        _db.execute('COMMIT');
+        _changed.removeAll(changed);
+      } catch (_) {
+        _db.execute('ROLLBACK');
+        rethrow;
+      }
+      return;
+    }
     final known = {
       for (final row in _db.select('SELECT path, stamp, hash FROM files'))
         row.columnAt(0) as String: (row.columnAt(1) as String, row.columnAt(2) as String),
@@ -193,6 +294,11 @@ class NoteIndex {
       }
       known.keys.where((rel) => !seen.contains(rel)).forEach(_forget);
       _db.execute('COMMIT');
+      _changed.clear();
+      _needsScan = false;
+      _audit
+        ..reset()
+        ..start();
     } catch (_) {
       _db.execute('ROLLBACK'); // a failed rebuild must not leave the database locked
       rethrow;
@@ -200,14 +306,20 @@ class NoteIndex {
   }
 
   /// Reindexes [file] when it changed; adds it to [seen] when it is readable.
-  void _refresh(File file, String kind, Map<String, (String, String)> known, Set<String> seen) {
+  void _refresh(
+    File file,
+    String kind,
+    Map<String, (String, String)> known,
+    Set<String> seen, {
+    bool force = false,
+  }) {
     final rel = p.posix.joinAll(p.split(p.relative(file.path, from: root)));
     final String stamp;
     final String text;
     try {
       final stat = file.statSync();
       stamp = '${stat.modified.microsecondsSinceEpoch}:${stat.size}';
-      if (known[rel]?.$1 == stamp) {
+      if (!force && known[rel]?.$1 == stamp) {
         seen.add(rel);
         return;
       }
