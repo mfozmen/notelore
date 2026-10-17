@@ -29,7 +29,9 @@ abstract class Strings {
 
   /// Setup's API-key and local providers, under the one-tap plan (#206).
   String get advanced;
-  String get advancedExplained;
+
+  /// A phone has no local models: no word of a computer there (#304).
+  String advancedExplained({required bool localModels});
   String get apiKey;
   String get pasteKeyFirst;
   String get checkConnection;
@@ -268,7 +270,8 @@ class EnglishStrings extends Strings {
   @override
   String get advanced => 'Advanced';
   @override
-  String get advancedExplained => 'Your own API key, or a model on this computer.';
+  String advancedExplained({required bool localModels}) =>
+      localModels ? 'Your own API key, or a model on this computer.' : 'Use your own API key.';
   @override
   String get apiKey => 'API key';
   @override
@@ -678,7 +681,9 @@ class TurkishStrings extends Strings {
   @override
   String get advanced => 'Gelişmiş';
   @override
-  String get advancedExplained => 'Kendi API anahtarın ya da bu bilgisayardaki bir model.';
+  String advancedExplained({required bool localModels}) => localModels
+      ? 'Kendi API anahtarın ya da bu bilgisayardaki bir model.'
+      : 'Kendi API anahtarını kullan.';
   @override
   String get apiKey => 'API anahtarı';
   @override
@@ -726,17 +731,17 @@ class TurkishStrings extends Strings {
   List<String> keySteps(ProviderSpec spec) => switch (spec.name) {
     'anthropic' => [
       'Anthropic Console’a giriş yap (ücretsiz bir hesap yeterli).',
-      'Create Key’e tıkla, notelore gibi bir ad ver ve anahtarı kopyala.',
+      'Create Key’i seç, notelore gibi bir ad ver ve anahtarı kopyala.',
       'Anahtarı aşağıya yapıştır (sk-ant- ile başlar).',
     ],
     'openai' => [
       'OpenAI Platform’a giriş yap.',
-      'Create new secret key’e tıkla, bir ad ver ve anahtarı kopyala.',
+      'Create new secret key’i seç, bir ad ver ve anahtarı kopyala.',
       'Anahtarı aşağıya yapıştır (sk- ile başlar).',
     ],
     'gemini' => [
       'Google AI Studio’ya giriş yap.',
-      'Create API key’e tıkla ve anahtarı kopyala.',
+      'Create API key’i seç ve anahtarı kopyala.',
       'Anahtarı aşağıya yapıştır.',
     ],
     _ => const [],
