@@ -55,20 +55,27 @@ List<String> chatModels(String provider, Object? answer) {
   if (items is! List) return [];
   final listed = items.whereType<Map<Object?, Object?>>();
   return switch (provider) {
-    'gemini' => [
-      for (final m in listed)
-        if ((m['supportedGenerationMethods'] as List?)?.contains('generateContent') ?? false)
-          '${m['name']}'.replaceFirst('models/', ''),
-    ],
+    'gemini' => _geminiChat(listed),
     'ollama' => [for (final m in listed) '${m['name']}'],
-    'openai' => [
-      for (final m in listed)
-        if (RegExp(r'^(gpt-|o\d)').hasMatch('${m['id']}') && !_notChat.hasMatch('${m['id']}'))
-          '${m['id']}',
-    ]..sort((a, b) => b.compareTo(a)),
+    'openai' => _openAIChat(listed),
     _ => [for (final m in listed) '${m['id']}'],
   };
 }
+
+/// Gemini models that can chat (generateContent), without the `models/` prefix.
+List<String> _geminiChat(Iterable<Map<Object?, Object?>> listed) => [
+  for (final m in listed)
+    if ((m['supportedGenerationMethods'] as List?)?.contains('generateContent') ?? false)
+      '${m['name']}'.replaceFirst('models/', ''),
+];
+
+/// OpenAI's GPT and o-series chat models, newest name first; the key also
+/// lists audio, image and search models.
+List<String> _openAIChat(Iterable<Map<Object?, Object?>> listed) => [
+  for (final m in listed)
+    if (RegExp(r'^(gpt-|o\d)').hasMatch('${m['id']}') && !_notChat.hasMatch('${m['id']}'))
+      '${m['id']}',
+]..sort((a, b) => b.compareTo(a));
 
 /// Cheapest first. Listings carry no prices, so the family name decides.
 final _tiers = [

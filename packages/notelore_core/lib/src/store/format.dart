@@ -245,27 +245,41 @@ List<NoteEntry> _parseEntries(String? key, List<String> lines) {
   return entries;
 }
 
-NoteEntry _parseBlock(String key, String block) {
-  switch (key) {
-    case 'decisions':
-      if (_superseded.firstMatch(block) case final m?) {
-        final (date, superseded) = (parseIsoDate(m[1]!), parseIsoDate(m[4]!));
-        if (date != null && superseded != null) {
-          return Decision(date, m[2]!, m[3]!, superseded: superseded);
-        }
-      } else if (_decision.firstMatch(block) case final m?) {
-        if (parseIsoDate(m[1]!) case final date?) return Decision(date, m[2]!, m[3]!);
-      }
-    case 'notes':
-      if (_entry.firstMatch(block) case final m?) {
-        if (parseIsoDate(m[1]!) case final date?) return Entry(date, m[2]!);
-      }
-    case 'todo':
-      if (_todo.firstMatch(block) case final m?) {
-        if (parseIsoDate(m[2]!) case final date?) return Todo(date, m[3]!, done: m[1] == 'x');
-      }
+/// One bullet block of a known section as its entry; anything that does not
+/// fit the section's entry form stays [Raw], verbatim.
+NoteEntry _parseBlock(String key, String block) =>
+    switch (key) {
+      'decisions' => _decisionOf(block),
+      'notes' => _entryOf(block),
+      'todo' => _todoOf(block),
+      _ => null,
+    } ??
+    Raw(block);
+
+Decision? _decisionOf(String block) {
+  if (_superseded.firstMatch(block) case final m?) {
+    final (date, superseded) = (parseIsoDate(m[1]!), parseIsoDate(m[4]!));
+    if (date == null || superseded == null) return null;
+    return Decision(date, m[2]!, m[3]!, superseded: superseded);
   }
-  return Raw(block);
+  if (_decision.firstMatch(block) case final m?) {
+    if (parseIsoDate(m[1]!) case final date?) return Decision(date, m[2]!, m[3]!);
+  }
+  return null;
+}
+
+Entry? _entryOf(String block) {
+  if (_entry.firstMatch(block) case final m?) {
+    if (parseIsoDate(m[1]!) case final date?) return Entry(date, m[2]!);
+  }
+  return null;
+}
+
+Todo? _todoOf(String block) {
+  if (_todo.firstMatch(block) case final m?) {
+    if (parseIsoDate(m[2]!) case final date?) return Todo(date, m[3]!, done: m[1] == 'x');
+  }
+  return null;
 }
 
 String serialize(Note note) {

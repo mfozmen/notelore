@@ -103,34 +103,7 @@ Future<int> runDev(
       case 'models':
         out.writeln((await listChatGptModels(auth.token, client: traced)).join('\n'));
       default:
-        final spec = findProvider(options['provider'] ?? 'chatgpt');
-        final keyName = 'NOTELORE_${spec.name.toUpperCase()}_API_KEY';
-        final key = environment[keyName];
-        if (spec.requiresApiKey && key == null) throw StateError('set $keyName');
-        final model =
-            options['model'] ??
-            (spec.name == 'chatgpt'
-                ? (await listChatGptModels(auth.token, client: traced)).first
-                : spec.defaultModel);
-        out.writeln('[${spec.name} · $model]');
-        final index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path);
-        try {
-          final provider = createProvider(
-            spec,
-            key,
-            model: model,
-            planToken: auth.token,
-            client: traced,
-            transport: (method, url, {headers = const {}, body, required timeout}) =>
-                request(traced, method, url, headers: headers, body: body, timeout: timeout),
-          );
-          final agent = Agent(provider, Toolbox(paths.notes.path, index));
-          final answer = await agent.ask(message);
-          _printTools(agent.messages, out);
-          out.writeln(answer);
-        } finally {
-          index.close();
-        }
+        await _chat(message, options, environment, paths, auth, traced, out);
     }
     return 0;
   } on Object catch (error) {
@@ -139,6 +112,47 @@ Future<int> runDev(
   } finally {
     out.writeln('Trace: ${traceFile.path}');
     traced.close();
+  }
+}
+
+/// One agent turn on [message] with the provider and model [options] name
+/// (the ChatGPT plan by default), printing the tools it called and its answer.
+Future<void> _chat(
+  String message,
+  Map<String, String> options,
+  Map<String, String> environment,
+  NotelorePaths paths,
+  ChatGptAuth auth,
+  http.Client traced,
+  StringSink out,
+) async {
+  final spec = findProvider(options['provider'] ?? 'chatgpt');
+  final keyName = 'NOTELORE_${spec.name.toUpperCase()}_API_KEY';
+  final key = environment[keyName];
+  if (spec.requiresApiKey && key == null) throw StateError('set $keyName');
+  final model =
+      options['model'] ??
+      (spec.name == 'chatgpt'
+          ? (await listChatGptModels(auth.token, client: traced)).first
+          : spec.defaultModel);
+  out.writeln('[${spec.name} · $model]');
+  final index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path);
+  try {
+    final provider = createProvider(
+      spec,
+      key,
+      model: model,
+      planToken: auth.token,
+      client: traced,
+      transport: (method, url, {headers = const {}, body, required timeout}) =>
+          request(traced, method, url, headers: headers, body: body, timeout: timeout),
+    );
+    final agent = Agent(provider, Toolbox(paths.notes.path, index));
+    final answer = await agent.ask(message);
+    _printTools(agent.messages, out);
+    out.writeln(answer);
+  } finally {
+    index.close();
   }
 }
 

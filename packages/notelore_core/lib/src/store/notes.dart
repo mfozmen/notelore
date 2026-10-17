@@ -319,26 +319,22 @@ final class ArchivedNote {
 List<ArchivedNote> listArchived(String root) => [
   if (Directory(p.join(root, archiveFolder)) case final archive when archive.existsSync())
     for (final file in archive.listSync(recursive: true).whereType<File>())
-      if (file.path.endsWith('.md'))
-        if (p.split(p.relative(file.path, from: p.join(root, archiveFolder))) case [
-          final day,
-          ...final rest,
-        ])
-          rest.first == _entries && rest.length > 1
-              ? ArchivedNote(
-                  file.path,
-                  rest.skip(1).join('/'),
-                  day.substring(0, day.length.clamp(0, 10)),
-                  _titleOf(file),
-                  entries: true,
-                )
-              : ArchivedNote(
-                  file.path,
-                  rest.join('/'),
-                  day.substring(0, day.length.clamp(0, 10)), // `<date>-2` is that day too
-                  _titleOf(file),
-                ),
+      if (file.path.endsWith('.md')) _archived(archive.path, file),
 ]..sort((a, b) => b.archivedOn.compareTo(a.archivedOn));
+
+/// What [file] under the [archive] folder is: a whole note archived on
+/// `<date>/<original path>`, or entries of one under `<date>/entries/`.
+ArchivedNote _archived(String archive, File file) {
+  final [day, ...rest] = p.split(p.relative(file.path, from: archive));
+  final entries = rest.first == _entries && rest.length > 1;
+  return ArchivedNote(
+    file.path,
+    (entries ? rest.skip(1) : rest).join('/'),
+    day.substring(0, day.length.clamp(0, 10)), // `<date>-2` is that day too
+    _titleOf(file),
+    entries: entries,
+  );
+}
 
 String _titleOf(File file) {
   try {

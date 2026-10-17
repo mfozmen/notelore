@@ -213,25 +213,38 @@ List<Map<String, Object?>> toResponsesInput(
 }) => [
   for (final message in messages)
     if (splitBlocks(message['content']) case (:final texts, :final uses, :final results))
-      if (message['role'] == 'assistant') ...[
-        if (texts.join().isNotEmpty) {'role': 'assistant', 'content': texts.join()},
-        for (final u in uses)
-          {
-            'type': 'function_call',
-            'call_id': u['id'] ?? '',
-            'namespace': ?namespace,
-            'name': u['name'] ?? '',
-            'arguments': jsonEncode(u['input'] ?? const <String, Object?>{}),
-          },
-      ] else ...[
-        for (final r in results)
-          {
-            'type': 'function_call_output',
-            'call_id': r['tool_use_id'] ?? '',
-            'output': r['content'] ?? '',
-          },
-        for (final text in texts) {'role': 'user', 'content': text},
-      ],
+      if (message['role'] == 'assistant')
+        ..._assistantItems(texts, uses, namespace)
+      else
+        ..._userItems(texts, results),
+];
+
+/// An assistant turn: its text, then one `function_call` per tool use.
+List<Map<String, Object?>> _assistantItems(
+  List<String> texts,
+  List<Block> uses,
+  String? namespace,
+) => [
+  if (texts.join().isNotEmpty) {'role': 'assistant', 'content': texts.join()},
+  for (final u in uses)
+    {
+      'type': 'function_call',
+      'call_id': u['id'] ?? '',
+      'namespace': ?namespace,
+      'name': u['name'] ?? '',
+      'arguments': jsonEncode(u['input'] ?? const <String, Object?>{}),
+    },
+];
+
+/// A user turn: the tool results it carries, then what the user wrote.
+List<Map<String, Object?>> _userItems(List<String> texts, List<Block> results) => [
+  for (final r in results)
+    {
+      'type': 'function_call_output',
+      'call_id': r['tool_use_id'] ?? '',
+      'output': r['content'] ?? '',
+    },
+  for (final text in texts) {'role': 'user', 'content': text},
 ];
 
 /// A final Responses object as Anthropic-style blocks.
