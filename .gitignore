@@ -18,3 +18,6 @@ Thumbs.db
 .dart_tool/
 coverage/
 *.iml
+
+# Scratch renders of the ui-reviewer agent (.claude/agents/ui-reviewer.md).
+zz_ui_review*

@@ -8,7 +8,7 @@ You review the security of Notelore. It is a Flutter app (Android, Windows, macO
 
 ## Rules for you
 
-- Read code and config only. Do not run the app against real services, do not read `.env`, `~/notelore-release/` or any keystore, and never print a secret you come across: name the file and line instead.
+- Read code and config only. Use Bash for `git diff`, `git log`, `git show` and `grep` and nothing else: never `cat`, `type` or any command on `.env*`, keystores or files outside the repository. Do not run the app against real services, do not read `.env`, `~/notelore-release/` or any keystore, and never print a secret you come across: name the file and line instead.
 - A finding needs a concrete attack or failure: who does what, and what they get. Drop vague worries.
 - Severity: **Critical**: a secret or user data exposed, auth bypassed, code execution, or a store-review blocker. **Warning**: a real weakness that needs one more condition. **Suggestion**: hardening.
 

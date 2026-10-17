@@ -11,7 +11,7 @@ You review the user interface of Notelore, a Flutter note-taking app for Android
 Invoke these skills with the Skill tool before you look at anything:
 - `mobile-app-ui-design`: the main checklist. It may be missing in a cloud session; then say so and go on.
 - `ui-ux-pro-max`: accessibility, touch targets, typography, colour and palette data.
-- `flutter-build-responsive-layout`: phone versus desktop window layouts.
+- `flutter-build-responsive-layout`: phone versus desktop window layouts (in `.claude/skills/`; if a session cannot load it, say so and judge layout by `Layout` and `Gap`).
 
 Read `CLAUDE.md` and `apps/notelore/lib/src/theme.dart`: spacing comes from `Gap`, widths from `Layout`, and there are six nature palettes in light and dark.
 
@@ -28,7 +28,7 @@ Never capture or click the user's real desktop. Render off-screen with a scratch
 2. Load real fonts, or text renders as boxes. Use `FontLoader('Roboto')` and `FontLoader('MaterialIcons')`, with the files from `<flutter sdk>/bin/cache/artifacts/material_fonts/` (`roboto-regular.ttf`, `materialicons-regular.otf`). Find the SDK from `which flutter`.
 3. For each state that matters (empty, typical content, long text, error, busy), capture `matchesGoldenFile('zz_ui_review/<screen>_<state>_<phone|desktop>_<light|dark>.png')`. Light and dark come from `tester.platformDispatcher.platformBrightnessTestValue`. Desktop width is 1280.
 4. Run `flutter test test/zz_ui_review_test.dart --update-goldens` from `apps/notelore`, then open every PNG with Read.
-5. Afterwards, delete the scratch test and the `zz_ui_review/` folder. They are never committed.
+5. Afterwards, delete the scratch test and the `zz_ui_review/` folder, even when a step failed. They are never committed (`.gitignore` also keeps them out).
 
 When asked for a before/after, render on the base commit too (`git stash`, or a worktree) and compare.
 
