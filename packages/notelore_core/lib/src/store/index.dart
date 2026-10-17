@@ -253,31 +253,7 @@ class NoteIndex {
         _audit.elapsed >= const Duration(seconds: 5);
     if (!full && _changed.isEmpty) return;
     if (!full) {
-      final changed = _changed.toList()..sort();
-      final seen = <String>{};
-      _db.execute('BEGIN');
-      try {
-        for (final rel in changed) {
-          final rows = _db.select('SELECT stamp, hash FROM files WHERE path = ?', [rel]);
-          final known = {
-            if (rows.isNotEmpty)
-              rel: (rows.single.columnAt(0) as String, rows.single.columnAt(1) as String),
-          };
-          _refresh(
-            File(p.joinAll([root, ...p.posix.split(rel)])),
-            _kind(rel)!,
-            known,
-            seen,
-            force: true,
-          );
-          if (!seen.contains(rel)) _forget(rel);
-        }
-        _db.execute('COMMIT');
-        _changed.removeAll(changed);
-      } catch (_) {
-        _db.execute('ROLLBACK');
-        rethrow;
-      }
+      _refreshChanged();
       return;
     }
     final known = {
@@ -302,6 +278,34 @@ class NoteIndex {
         ..start();
     } catch (_) {
       _db.execute('ROLLBACK'); // a failed rebuild must not leave the database locked
+      rethrow;
+    }
+  }
+
+  void _refreshChanged() {
+    final changed = _changed.toList()..sort();
+    final seen = <String>{};
+    _db.execute('BEGIN');
+    try {
+      for (final rel in changed) {
+        final rows = _db.select('SELECT stamp, hash FROM files WHERE path = ?', [rel]);
+        final known = {
+          if (rows.isNotEmpty)
+            rel: (rows.single.columnAt(0) as String, rows.single.columnAt(1) as String),
+        };
+        _refresh(
+          File(p.joinAll([root, ...p.posix.split(rel)])),
+          _kind(rel)!,
+          known,
+          seen,
+          force: true,
+        );
+        if (!seen.contains(rel)) _forget(rel);
+      }
+      _db.execute('COMMIT');
+      _changed.removeAll(changed);
+    } catch (_) {
+      _db.execute('ROLLBACK');
       rethrow;
     }
   }

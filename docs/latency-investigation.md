@@ -178,3 +178,7 @@ unchanged. These are host measurements with synthetic notes, not phone or live
 provider timings. An external edit can remain stale until its watcher event
 arrives or the next audit; a missed event combined with an unchanged file stamp
 cannot be detected by a metadata audit.
+
+The query that triggers a five-second audit pays for that full metadata scan;
+on this Windows corpus it can still incur the earlier 711–825 ms refresh cost.
+If a watcher fails, every query uses the full scan until the index is reopened.

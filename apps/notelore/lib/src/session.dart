@@ -1010,9 +1010,7 @@ class Session extends ChangeNotifier {
           _remote ??= remoteFor(driveAuth!),
           resolver?.call ?? _unresolved, // no model connected: conflicts wait
         );
-        for (final rel in [...report.pulled, ...report.merged, ...report.removedLocal]) {
-          index.markChanged(p.joinAll([paths.notes.path, ...rel.split('/')]));
-        }
+        _markSyncedNotes(report);
         completed = true;
         await _syncSettings(_remote!);
         final counts = (
@@ -1043,6 +1041,12 @@ class Session extends ChangeNotifier {
         notifyListeners();
       }
     });
+  }
+
+  void _markSyncedNotes(SyncReport report) {
+    for (final rel in [...report.pulled, ...report.merged, ...report.removedLocal]) {
+      index.markChanged(p.joinAll([paths.notes.path, ...rel.split('/')]));
+    }
   }
 
   static List<String>? _unresolved(Conflict conflict) => null;
