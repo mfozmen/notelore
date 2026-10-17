@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:file_selector/file_selector.dart' show XFile;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -461,6 +463,56 @@ void main() {
     expect(find.text('Kaydedildi.'), findsOneWidget);
     expect(find.byType(OutlinedButton), findsNothing); // answered: gone
     expect(find.byKey(const Key('message')), findsOneWidget); // typing stays
+  });
+
+  testWidgets('chat: attach a text file; the model files it; other files are refused (#222)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness(answers: ['Filed under Mopsos.']);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    // Not text: refused with a reason, nothing sent.
+    harness.files.picked = [
+      XFile.fromData(Uint8List.fromList([0xff, 0xfe, 0x00, 0x89]), path: 'photo.jpg'),
+    ];
+    await tester.tap(find.byTooltip('Attach a text file'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('photo.jpg'), findsOneWidget);
+    expect(find.textContaining('text files'), findsOneWidget);
+    expect(harness.provider.asked, isEmpty);
+    await tester.pump(const Duration(seconds: 5)); // the notice goes
+    await tester.pumpAndSettle();
+    // Text, but too much to send whole.
+    harness.files.picked = [
+      XFile.fromData(Uint8List.fromList(utf8.encode('a' * 200001)), path: 'huge.log'),
+    ];
+    await tester.tap(find.byTooltip('Attach a text file'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('huge.log is too large'), findsOneWidget);
+    expect(harness.provider.asked, isEmpty);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    // Text: sent with what is typed as its explanation.
+    await tester.enterText(find.byKey(const Key('message')), 'for Mopsos');
+    harness.files.picked = [
+      XFile.fromData(Uint8List.fromList(utf8.encode('Ship in May.\n')), path: 'plan.txt'),
+    ];
+    await tester.tap(find.byTooltip('Attach a text file'));
+    await tester.pumpAndSettle();
+    expect(harness.provider.asked, [
+      'for Mopsos\n\n<attached file="plan.txt">\nShip in May.\n</attached>',
+    ]);
+    expect(find.text('for Mopsos'), findsOneWidget); // the bubble: words and the file's name
+    expect(find.text('plan.txt'), findsOneWidget);
+    expect(find.textContaining('Ship in May'), findsNothing); // not the whole file
+    expect(find.text('Filed under Mopsos.'), findsOneWidget);
+    expect(tester.widget<TextField>(find.byKey(const Key('message'))).controller!.text, isEmpty);
+    // Called off: nothing happens.
+    harness.files.picked = [];
+    await tester.tap(find.byTooltip('Attach a text file'));
+    await tester.pumpAndSettle();
+    expect(harness.provider.asked, hasLength(1));
   });
 
   testWidgets('chat: copy a message or an answer, with a short confirmation (#225)', (

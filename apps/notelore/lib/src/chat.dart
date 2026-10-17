@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -43,6 +44,48 @@ class _ChatScreenState extends State<ChatScreen> {
     await widget.session.send(text);
   }
 
+  /// A file larger than this is refused rather than sent: it would fill the
+  /// model's context. shortcut: text only, whole; PDFs, images and audio are #278.
+  static const maxAttachment = 200000;
+
+  /// Sends the text files picked, with what is typed as their explanation. A
+  /// file that is not text, or too large, is refused and nothing is sent.
+  Future<void> _attach() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final s = widget.session.strings;
+    final picked = await widget.session.exchange.pick(any: true);
+    final files = <Attachment>[];
+    for (final file in picked) {
+      final text = _text(file.bytes);
+      final refused = switch (text) {
+        null => s.notText(file.name),
+        _ when text.length > maxAttachment => s.tooLarge(file.name),
+        _ => null,
+      };
+      if (refused != null) {
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(refused)));
+        return;
+      }
+      files.add((name: file.name, text: text!));
+    }
+    if (files.isEmpty) return; // called off
+    final typed = _message.text.trim();
+    _message.clear();
+    await widget.session.send(withAttachments(typed, files));
+  }
+
+  /// [bytes] as text, or null for a file that is not (not UTF-8, or binary).
+  static String? _text(List<int> bytes) {
+    try {
+      final text = utf8.decode(bytes);
+      return text.contains('\u0000') ? null : text;
+    } on FormatException {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = widget.session;
@@ -66,7 +109,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 ],
               ),
             _ModelBar(session, menu: _modelMenu),
-            _Composer(session, voice: _voice, message: _message, send: _send),
+            _Composer(session, voice: _voice, message: _message, send: _send, attach: _attach),
           ],
         ),
       ),
@@ -185,12 +228,19 @@ class _ModelBar extends StatelessWidget {
 /// The message box and its one button, like a messenger's: Send with text,
 /// push to talk without; above them, what voice is doing or how to use it.
 class _Composer extends StatefulWidget {
-  const _Composer(this.session, {required this.voice, required this.message, required this.send});
+  const _Composer(
+    this.session, {
+    required this.voice,
+    required this.message,
+    required this.send,
+    required this.attach,
+  });
 
   final Session session;
   final VoiceMode voice;
   final TextEditingController message;
   final Future<void> Function() send;
+  final Future<void> Function() attach;
 
   @override
   State<_Composer> createState() => _ComposerState();
@@ -260,6 +310,7 @@ class _ComposerState extends State<_Composer> {
             voice: _voice,
             message: widget.message,
             send: widget.send,
+            attach: widget.attach,
             talk: _TalkButton(
               label: s.talk,
               listening: _voice.state == VoiceState.listening,
@@ -286,6 +337,7 @@ class _ComposerRow extends StatelessWidget {
     required this.voice,
     required this.message,
     required this.send,
+    required this.attach,
     required this.talk,
   });
 
@@ -293,6 +345,7 @@ class _ComposerRow extends StatelessWidget {
   final VoiceMode voice;
   final TextEditingController message;
   final Future<void> Function() send;
+  final Future<void> Function() attach;
   final Widget talk;
 
   @override
@@ -304,6 +357,11 @@ class _ComposerRow extends StatelessWidget {
         valueListenable: message,
         builder: (context, typed, _) => Row(
           children: [
+            IconButton(
+              tooltip: s.attachFile,
+              icon: const Icon(Icons.attach_file),
+              onPressed: attach,
+            ),
             Expanded(
               // While recording, the recording takes the field's place;
               // the field's text stays in its controller.
@@ -576,10 +634,8 @@ class _Bubble extends StatelessWidget {
       ChatRole.assistant => (colors.surfaceContainerHigh, colors.onSurface),
       ChatRole.error => (colors.errorContainer, colors.onErrorContainer),
     };
-    final (:text, :answers) = line.role == ChatRole.assistant
-        ? suggestedAnswers(line.text)
-        : (text: line.text, answers: const <String>[]);
-    final bubble = _bubble(text, mine, background, foreground);
+    final (:text, :answers, :files) = _shown(line);
+    final bubble = _bubble(text, files, mine, background, foreground);
     if (line.role == ChatRole.error) return bubble;
     if (line.role == ChatRole.pending) {
       return Column(
@@ -628,7 +684,7 @@ class _Bubble extends StatelessWidget {
     );
   }
 
-  Widget _bubble(String text, bool mine, Color background, Color foreground) {
+  Widget _bubble(String text, List<String> files, bool mine, Color background, Color foreground) {
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -640,8 +696,50 @@ class _Bubble extends StatelessWidget {
           color: background,
           borderRadius: _bubbleRadius(mine: mine),
         ),
-        child: SelectableText(text, style: TextStyle(color: foreground, height: 1.4)),
+        child: _BubbleText(text, files: files, color: foreground),
       ),
+    );
+  }
+}
+
+/// What [line] shows: an answer without its suggested answers' line, a
+/// message without the text of the files attached to it, only their names.
+({String text, List<String> answers, List<String> files}) _shown(ChatLine line) {
+  if (line.role == ChatRole.assistant) {
+    final (:text, :answers) = suggestedAnswers(line.text);
+    return (text: text, answers: answers, files: const []);
+  }
+  final (:text, :files) = attachedFiles(line.text);
+  return (text: text, answers: const [], files: files);
+}
+
+/// A bubble's words, and under them the names of the files sent with them.
+class _BubbleText extends StatelessWidget {
+  const _BubbleText(this.text, {required this.files, required this.color});
+
+  final String text;
+  final List<String> files;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(color: color, height: 1.4);
+    if (files.isEmpty) return SelectableText(text, style: style);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (text.isNotEmpty) SelectableText(text, style: style),
+        for (final file in files)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.attach_file, size: 16, color: color),
+              const SizedBox(width: Gap.xs),
+              Flexible(child: Text(file, style: style)),
+            ],
+          ),
+      ],
     );
   }
 }

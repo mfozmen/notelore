@@ -3,7 +3,16 @@
 library;
 
 export 'src/agent.dart'
-    show Agent, TurnStopped, defaultMaxTurns, describeTool, suggestedAnswers, systemPrompt;
+    show
+        Agent,
+        TurnStopped,
+        defaultMaxTurns,
+        describeTool,
+        suggestedAnswers,
+        systemPrompt,
+        Attachment,
+        attachedFiles,
+        withAttachments;
 export 'src/i18n.dart' show sectionHeading, sectionHeadings, sectionKey;
 export 'src/links.dart' show LinkUnreadable, WebPage, linksIn, readPage, withLinkedPages;
 export 'src/oauth.dart' show NotSignedIn, OAuthSignIn, SignInFailed;
