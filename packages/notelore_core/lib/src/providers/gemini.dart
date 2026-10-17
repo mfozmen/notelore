@@ -113,11 +113,11 @@ AgentResponse fromGemini(Map<String, Object?> answer) {
   return AgentResponse(blocks, toolUse ? 'tool_use' : 'end_turn', usage: usage);
 }
 
-/// Thinking tokens are billed as output.
+/// Thinking tokens are billed as output; a blocked answer has no answer tokens.
 TokenUsage? _usage(Object? metadata) => switch (metadata) {
-  {'promptTokenCount': final int input, 'candidatesTokenCount': final int output} => TokenUsage(
+  {'promptTokenCount': final int input} => TokenUsage(
     input,
-    output + (metadata['thoughtsTokenCount'] as int? ?? 0),
+    (metadata['candidatesTokenCount'] as int? ?? 0) + (metadata['thoughtsTokenCount'] as int? ?? 0),
   ),
   _ => null,
 };

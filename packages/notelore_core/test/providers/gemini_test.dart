@@ -180,11 +180,10 @@ void main() {
     }).usage!;
     expect((noThoughts.input, noThoughts.output), (7, 3));
     expect(fromGemini(candidate([])).usage, isNull);
-    expect(
-      fromGemini({
-        'usageMetadata': {'promptTokenCount': 7},
-      }).usage,
-      isNull,
-    );
+    // A blocked answer reports its prompt but no answer tokens: none came out.
+    final blocked = fromGemini({
+      'usageMetadata': {'promptTokenCount': 7, 'thoughtsTokenCount': 2},
+    }).usage!;
+    expect((blocked.input, blocked.output), (7, 2));
   });
 }
