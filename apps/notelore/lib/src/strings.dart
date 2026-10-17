@@ -309,7 +309,7 @@ class EnglishStrings extends Strings {
       'JPEG, GIF, WebP) for now; $name is none of them.';
   @override
   String noPdfText(String name) =>
-      '$name has no text to read (a scan, or a damaged file); Notelore reads only a PDF's text.';
+      "$name has no text to read (a scan, or a damaged file); Notelore reads only a PDF's text.";
   @override
   String tooLarge(String name) => '$name is too large to send; split it into smaller files.';
   @override
@@ -755,11 +755,12 @@ class TurkishStrings extends Strings {
   String get attachFile => 'Dosya ekle';
   @override
   String notText(String name) =>
-      'Notelore şimdilik metin dosyalarını, PDF'leri (txt, md, csv, pdf gibi) ve görselleri '
+      "Notelore şimdilik metin dosyalarını, PDF'leri (txt, md, csv, pdf gibi) ve görselleri "
       '(PNG, JPEG, GIF, WebP) okuyor; $name bunlardan değil.';
   @override
   String noPdfText(String name) =>
-      '$name içinde okunacak yazı yok (taranmış ya da bozuk bir dosya); Notelore bir PDF'nin yalnızca yazısını okur.';
+      '$name içinde okunacak yazı yok (taranmış ya da bozuk bir dosya); '
+      "Notelore bir PDF'nin yalnızca yazısını okur.";
   @override
   String tooLarge(String name) => '$name gönderilemeyecek kadar büyük; daha küçük dosyalara böl.';
   @override

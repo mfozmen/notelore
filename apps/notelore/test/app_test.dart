@@ -545,7 +545,7 @@ void main() {
     ];
     await tester.tap(find.byTooltip('Attach a file'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('x.bin is neither'), findsOneWidget);
+    expect(find.textContaining('x.bin is none of them'), findsOneWidget);
     expect(harness.provider.asked, isEmpty);
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();

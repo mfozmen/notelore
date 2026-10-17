@@ -76,8 +76,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   /// [picked] as text attachments and images (with their names), or why they
   /// cannot go: the first file refused, else images the model cannot take now.
-  Future<({List<Attachment> files, List<Block> images, List<String> names, String? refused})>
-  _read(List<PickedFile> picked) async {
+  Future<({List<Attachment> files, List<Block> images, List<String> names, String? refused})> _read(
+    List<PickedFile> picked,
+  ) async {
     final session = widget.session;
     final s = session.strings;
     final files = <Attachment>[];
@@ -118,7 +119,6 @@ class _ChatScreenState extends State<ChatScreen> {
     };
     return (files: files, images: images, names: names, refused: refused);
   }
-
 
   static bool _isPdf(List<int> bytes) =>
       bytes.length >= 5 && ascii.decode(bytes.sublist(0, 5), allowInvalid: true) == '%PDF-';
