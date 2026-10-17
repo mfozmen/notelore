@@ -1,0 +1,32 @@
+name: Close finished epics
+
+# An epic (milestone) closes as soon as its last issue closes (#318). Merges
+# come from many sessions and tools, so this runs on every closed issue and
+# every milestone change, not from one session's hooks. The decision is in
+# .github/scripts/close_finished_epics.py (tested in ci.yml).
+
+on:
+  issues:
+    types: [closed, milestoned, demilestoned]
+  workflow_dispatch:
+
+concurrency:
+  group: close-finished-epics
+  cancel-in-progress: false
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+      - name: Close every epic with no open issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: python3 .github/scripts/close_finished_epics.py

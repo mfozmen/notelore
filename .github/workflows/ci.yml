@@ -25,6 +25,7 @@ jobs:
       - run: python3 .github/scripts/test_review_verdict_gate.py
       - run: python3 .github/scripts/test_review_range.py
       - run: python3 .github/scripts/test_issue_priority.py
+      - run: python3 .github/scripts/test_close_finished_epics.py
 
   # Dart coverage for Sonar, built in a job that holds no secrets (#72): tests
   # and builds run package code and build hooks, so they never run next to
