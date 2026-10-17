@@ -369,6 +369,16 @@ void main() {
     expect(prompt, contains('answer questions about the notes fully'));
   });
 
+  test('the prompt files a book or film in passing under a collection note (#293)', () {
+    final prompt = systemPrompt(today);
+    expect(prompt, contains('File by kind'));
+    expect(prompt, contains("an entry in a collection note for its kind (\"Books I'm reading\""));
+    expect(prompt, contains('not a note named after it'));
+    // An existing collection first; a note of its own only on request.
+    expect(prompt, contains('search_notes and list_notes for a fitting collection first'));
+    expect(prompt, contains('only when the user asks for one'));
+  });
+
   test('the system prompt states the rules', () {
     final prompt = systemPrompt(today);
     for (final rule in ['get_decision', 'language', 'ask', 'archive', '2026-09-30']) {
