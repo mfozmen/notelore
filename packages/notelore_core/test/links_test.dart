@@ -76,6 +76,33 @@ void main() {
       expect(page.cut, isTrue);
     });
 
+    test('a page cut inside a script or style keeps none of it', () async {
+      final page = await readPage(
+        Uri.parse('https://example.com'),
+        client: serving('<p>Intro</p><script>var secret = 1; // cut here'),
+      );
+      expect(page.text, 'Intro');
+    });
+
+    test('a download that stalls is cancelled, not left running', () async {
+      var cancelled = false;
+      final body = StreamController<List<int>>(onCancel: () => cancelled = true)
+        ..add(utf8.encode('<p>start'));
+      final client = MockClient.streaming(
+        (request, _) async =>
+            http.StreamedResponse(body.stream, 200, headers: {'content-type': 'text/html'}),
+      );
+      await expectLater(
+        readPage(
+          Uri.parse('https://e.com'),
+          client: client,
+          timeout: const Duration(milliseconds: 20),
+        ),
+        throwsA(isA<LinkUnreadable>()),
+      );
+      expect(cancelled, isTrue);
+    });
+
     test('a huge download stops at the byte limit', () async {
       var sent = 0;
       final client = MockClient.streaming((request, _) async {

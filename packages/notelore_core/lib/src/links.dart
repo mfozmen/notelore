@@ -57,10 +57,7 @@ Future<WebPage> readPage(
   if (url.scheme != 'http' && url.scheme != 'https') {
     throw const LinkUnreadable('only web links (http or https) are read');
   }
-  final (:bytes, :type, :cut) = await _download(url, client, maxBytes).timeout(
-    timeout,
-    onTimeout: () => throw const LinkUnreadable('the site did not answer in time'),
-  );
+  final (:bytes, :type, :cut) = await _download(url, client, maxBytes, timeout);
   final charset = RegExp(r'charset=([\w-]+)', caseSensitive: false).firstMatch(type)?[1];
   final body = const {'iso-8859-1', 'latin1', 'windows-1252'}.contains(charset?.toLowerCase())
       ? latin1.decode(bytes)
@@ -83,9 +80,11 @@ Future<({List<int> bytes, String type, bool cut})> _download(
   Uri url,
   http.Client client,
   int maxBytes,
+  Duration timeout,
 ) async {
+  final deadline = DateTime.now().add(timeout);
   try {
-    final response = await client.send(http.Request('GET', url));
+    final response = await client.send(http.Request('GET', url)).timeout(timeout);
     if (response.statusCode >= 400) {
       throw LinkUnreadable('the site answered ${response.statusCode}');
     }
@@ -94,7 +93,8 @@ Future<({List<int> bytes, String type, bool cut})> _download(
       throw LinkUnreadable('not a web page (${type.split(';').first})');
     }
     final bytes = <int>[];
-    await for (final chunk in response.stream) {
+    // A stalled body ends the loop with a TimeoutException, which cancels it.
+    await for (final chunk in response.stream.timeout(deadline.difference(DateTime.now()))) {
       bytes.addAll(chunk);
       // Leaving the loop cancels the download: the rest is never fetched.
       if (bytes.length >= maxBytes) return (bytes: bytes, type: type, cut: true);
@@ -102,11 +102,13 @@ Future<({List<int> bytes, String type, bool cut})> _download(
     return (bytes: bytes, type: type, cut: false);
   } on http.ClientException catch (error) {
     throw LinkUnreadable(error.message);
+  } on TimeoutException {
+    throw const LinkUnreadable('the site did not answer in time');
   }
 }
 
 final _hidden = RegExp(
-  r'<(script|style|noscript|template|svg)\b.*?</\1\s*>',
+  r'<(script|style|noscript|template|svg)\b.*?(</\1\s*>|$)', // a cut page may not close it
   caseSensitive: false,
   dotAll: true,
 );
@@ -114,7 +116,7 @@ final _hidden = RegExp(
 String _textOf(String html) => _squeeze(
   _unescape(
     html
-        .replaceAll(RegExp(r'<!--.*?-->', dotAll: true), ' ')
+        .replaceAll(RegExp(r'<!--.*?(-->|$)', dotAll: true), ' ')
         .replaceAll(_hidden, ' ')
         .replaceAll(RegExp(r'<[^>]*>'), ' '),
   ),
