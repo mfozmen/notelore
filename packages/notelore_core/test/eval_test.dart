@@ -145,5 +145,6 @@ void main() {
     expect(report, contains('filing: 1/2 (50%)'));
     expect(report, contains('all: 1/2 (50%)'));
     expect(report, contains('FAIL file-1: did not call add_note_entry'));
+    expect(summarize([]), 'all: 0/0'); // an empty file reports, it does not crash
   });
 }

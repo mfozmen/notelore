@@ -108,16 +108,7 @@ Future<int> runDev(
         out.writeln((await listChatGptModels(auth.token, client: traced)).join('\n'));
       case 'eval':
         final cases = File(p.join(currentDirectory.path, options['cases'] ?? 'eval/cases.json'));
-        if (!cases.existsSync()) throw StateError('no cases file at ${cases.path}');
-        final provider = await _provider(options, environment, auth, traced, out);
-        final results = <EvalResult>[];
-        for (final evalCase in loadCases(cases.readAsStringSync())) {
-          final result = await runCase(evalCase, provider);
-          results.add(result);
-          final verdict = result.passed ? 'ok  ' : 'FAIL';
-          out.writeln('$verdict ${evalCase.id} (${result.took.inMilliseconds} ms) ${result.tools}');
-        }
-        out.writeln(summarize(results));
+        await _eval(cases, () => _provider(options, environment, auth, traced, out), out);
       default:
         await _chat(message, options, environment, paths, auth, traced, out);
     }
@@ -156,6 +147,21 @@ Future<void> _chat(
   } finally {
     index.close();
   }
+}
+
+/// Every case in [cases] against the provider [open] makes once the file is
+/// there, each said as it ends, then the report.
+Future<void> _eval(File cases, Future<LlmProvider> Function() open, StringSink out) async {
+  if (!cases.existsSync()) throw StateError('no cases file at ${cases.path}');
+  final provider = await open();
+  final results = <EvalResult>[];
+  for (final evalCase in loadCases(cases.readAsStringSync())) {
+    final result = await runCase(evalCase, provider);
+    results.add(result);
+    final verdict = result.passed ? 'ok  ' : 'FAIL';
+    out.writeln('$verdict ${evalCase.id} (${result.took.inMilliseconds} ms) ${result.tools}');
+  }
+  out.writeln(summarize(results));
 }
 
 /// The provider and model [options] name (the ChatGPT plan by default), said on [out].
