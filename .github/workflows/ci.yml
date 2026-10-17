@@ -90,3 +90,19 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: -Dsonar.qualitygate.wait=true
+      # The quality gate checks ratings only, and code smells keep the rating:
+      # a PR must also bring no new Sonar issue (#253). Public project, no token.
+      - name: No new Sonar issues
+        if: github.event_name == 'pull_request'
+        env:
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          url="https://sonarcloud.io/api/issues/search?componentKeys=mfozmen_notelore&pullRequest=$PR&resolved=false&ps=100"
+          curl -sf "$url" | python3 -c '
+          import json, sys
+          issues = json.load(sys.stdin)["issues"]
+          for i in issues:
+              where = i["component"].split(":", 1)[1] + ":" + str(i.get("line", ""))
+              print(i["severity"], where, i["message"])
+          sys.exit(str(len(issues)) + " new SonarCloud issue(s) in this PR: fix them before merging." if issues else 0)
+          '
