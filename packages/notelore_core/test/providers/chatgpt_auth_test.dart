@@ -193,11 +193,11 @@ void main() {
     expect(params.containsKey('agent_name_hint'), isFalse);
   });
 
-  test('a sign-in that did not share the plan is refused', () async {
+  test('a sign-in that did not share the plan is refused as no plan (#321)', () async {
     openai.scope = 'openid profile email';
     await expectLater(
       auth().signIn(),
-      throwsA(isA<SignInFailed>().having((e) => '$e', 'message', contains('ChatGPT plan'))),
+      throwsA(isA<NoChatGptPlan>().having((e) => '$e', 'message', contains('ChatGPT plan'))),
     );
     expect(store.containsKey('refresh_token'), isFalse);
   });

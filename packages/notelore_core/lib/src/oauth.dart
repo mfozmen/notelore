@@ -48,6 +48,13 @@ class SignInFailed implements Exception {
   String toString() => '$service sign-in failed: $message';
 }
 
+/// The ChatGPT account signed in, but has no plan it may share with other
+/// apps (only Plus and Pro can, #321): no retry helps, another way in does.
+class NoChatGptPlan extends SignInFailed {
+  const NoChatGptPlan()
+    : super('the ChatGPT plan was not shared with Notelore', service: 'ChatGPT');
+}
+
 final _random = Random.secure();
 
 /// [bytes] random bytes, base64url without padding: PKCE verifiers, state, nonce.

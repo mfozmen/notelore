@@ -49,6 +49,14 @@ abstract class Strings {
   String signInProblem(Object error) =>
       error is NetworkError ? '$cannotReach $checkConnection' : signInUnfinished;
   String get signInUnfinished;
+
+  /// A ChatGPT account with no Plus or Pro plan, and the free way on (#321).
+  String get noChatGptPlan;
+  String get noChatGptPlanWhy;
+  String get freeGemini;
+  String get freeGeminiPrivacy;
+  String get getFreeGeminiKey;
+  String get keyFromClipboard;
   String get cannotReach;
   String get usingPlan => "You're using your ChatGPT plan";
   String get planWelcome;
@@ -310,6 +318,22 @@ class EnglishStrings extends Strings {
   String get checkConnection => 'Check the connection and try again.';
   @override
   String get signInUnfinished => 'Sign-in did not finish. Please try again.';
+  @override
+  String get noChatGptPlan => 'Your ChatGPT account has no Plus or Pro plan';
+  @override
+  String get noChatGptPlanWhy =>
+      'Only Plus and Pro plans can be used in other apps, so Notelore cannot use this account.';
+  @override
+  String get freeGemini =>
+      'You can start for free with Gemini: get a key from Google AI Studio with the Google '
+      'account you just signed in with, copy it, and come back here.';
+  @override
+  String get freeGeminiPrivacy =>
+      'On the free tier, Google may use your requests to improve its products.';
+  @override
+  String get getFreeGeminiKey => 'Get a free Gemini key';
+  @override
+  String get keyFromClipboard => 'Key pasted from the clipboard. Tap Connect.';
   @override
   String get cannotReach => 'Could not reach the service.';
   @override
@@ -745,6 +769,23 @@ class TurkishStrings extends Strings {
   String get checkConnection => 'Bağlantını kontrol edip yeniden dene.';
   @override
   String get signInUnfinished => 'Giriş tamamlanmadı. Lütfen yeniden dene.';
+  @override
+  String get noChatGptPlan => 'ChatGPT hesabında Plus ya da Pro planı yok';
+  @override
+  String get noChatGptPlanWhy =>
+      'Başka uygulamalarda yalnızca Plus ve Pro planları kullanılabilir; Notelore bu hesabı '
+      'kullanamaz.';
+  @override
+  String get freeGemini =>
+      'Gemini ile ücretsiz başlayabilirsin: az önce giriş yaptığın Google hesabıyla Google AI '
+      'Studio’dan bir anahtar al, kopyala ve buraya dön.';
+  @override
+  String get freeGeminiPrivacy =>
+      'Ücretsiz katmanda Google, isteklerini ürünlerini geliştirmek için kullanabilir.';
+  @override
+  String get getFreeGeminiKey => 'Ücretsiz Gemini anahtarı al';
+  @override
+  String get keyFromClipboard => 'Anahtar panodan yapıştırıldı. Bağlan’a dokun.';
   @override
   String get cannotReach => 'Hizmete ulaşılamadı.';
   @override
