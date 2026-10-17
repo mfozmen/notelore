@@ -647,22 +647,37 @@ class _ThinkingState extends State<_Thinking> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: Gap.xs),
-        padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: 10),
-        decoration: BoxDecoration(
-          color: colors.surfaceContainerHigh,
-          borderRadius: _bubbleRadius(mine: false),
-        ),
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    // A passing status where the answer will appear, not an answer (#290): no
+    // bubble, small muted italic words. A screen reader hears one steady line;
+    // the playful ones change too often to read out.
+    return Semantics(
+      key: const Key('working'),
+      liveRegion: true,
+      label: widget.strings.working,
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.s),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          spacing: Gap.s,
           children: [
-            const SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 2)),
-            const SizedBox(width: 8),
-            Flexible(child: Text(_waiting)),
+            SizedBox.square(
+              dimension: 14,
+              // Less motion asked for: a still mark instead of a spinner.
+              child: MediaQuery.disableAnimationsOf(context)
+                  ? Icon(Icons.more_horiz, size: 14, color: muted)
+                  : CircularProgressIndicator(strokeWidth: 1.5, color: muted),
+            ),
+            Flexible(
+              child: Text(
+                _waiting,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: muted,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
           ],
         ),
       ),

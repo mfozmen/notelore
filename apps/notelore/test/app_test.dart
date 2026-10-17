@@ -770,6 +770,30 @@ void main() {
     expect(find.byTooltip('Resend'), findsOneWidget); // only under the last message
   });
 
+  testWidgets('chat: with less motion asked for, the working status does not spin (#290)', (
+    tester,
+  ) async {
+    phone(tester);
+    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+      disableAnimations: true,
+    );
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await pumpApp(tester, Harness(answers: [Completer<AgentResponse>().future]));
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'selam');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pump();
+    final status = find.byKey(const Key('working'));
+    expect(
+      find.descendant(of: status, matching: find.byType(CircularProgressIndicator)),
+      findsNothing,
+    );
+    expect(find.descendant(of: status, matching: find.byIcon(Icons.more_horiz)), findsOneWidget);
+    await tester.tap(find.byTooltip('Stop')); // end the turn and its deadline
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('chat: while the model works it says so, and Stop ends the turn', (tester) async {
     phone(tester);
     final harness = Harness(answers: [Completer<AgentResponse>().future]);
@@ -789,6 +813,23 @@ void main() {
     final first = waiting();
     expect(first, isNotNull);
     expect(find.textContaining('Thinking'), findsNothing);
+    // A passing status, not an answer (#290): no bubble, muted italic text,
+    // and one steady announcement for screen readers (not each playful line).
+    final status = find.byKey(const Key('working'));
+    expect(status, findsOneWidget);
+    expect(
+      find.descendant(
+        of: status,
+        matching: find.byWidgetPredicate((w) => w is Container && w.decoration != null),
+      ),
+      findsNothing,
+    );
+    final line = tester.widget<Text>(find.text(first!));
+    expect(line.style?.fontStyle, FontStyle.italic);
+    expect(
+      tester.getSemantics(status),
+      matchesSemantics(isLiveRegion: true, label: 'Working on it…'),
+    );
     expect(find.byTooltip('Resend'), findsNothing); // not while a turn runs
     expect(
       tester.widget<TextField>(find.byKey(const Key('message'))).enabled,

@@ -207,6 +207,7 @@ void main() {
       'signingIn': s.signingIn,
       'googleRequired': s.googleRequired,
       'signInUnfinished': s.signInUnfinished,
+      'working': s.working,
       'noChatGptPlan': s.noChatGptPlan,
       'noChatGptPlanWhy': s.noChatGptPlanWhy,
       'freeGemini': s.freeGemini,

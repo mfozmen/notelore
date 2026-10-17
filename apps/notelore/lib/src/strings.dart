@@ -110,6 +110,9 @@ abstract class Strings {
 
   /// Shown in rotation while a chat turn runs, instead of a plain "Thinking".
   List<String> get waitingLines;
+
+  /// What a screen reader hears while the assistant works (#290).
+  String get working;
   String get talk;
   String get stopReading;
   String get waitingToSend;
@@ -430,6 +433,8 @@ class EnglishStrings extends Strings {
   @override
   String modelGone(String provider, String model) =>
       '$provider no longer offers $model. Pick another model.';
+  @override
+  String get working => 'Working on it…';
   @override
   List<String> get waitingLines => const [
     'Went to make coffee, back in a sec.',
@@ -927,6 +932,8 @@ class TurkishStrings extends Strings {
   @override
   String modelGone(String provider, String model) =>
       '$provider artık $model modelini sunmuyor. Başka bir model seç.';
+  @override
+  String get working => 'Üzerinde çalışıyor…';
   @override
   List<String> get waitingLines => const [
     'Kahve koymaya gitti, birazdan döner.',
