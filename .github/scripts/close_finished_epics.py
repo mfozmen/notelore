@@ -24,17 +24,22 @@ def finished(milestones):
     ]
 
 
+def parse_lines(raw):
+    """The milestones `gh api --paginate --jq '.[]'` printed, one JSON object a line."""
+    return [json.loads(line) for line in raw.splitlines() if line.strip()]
+
+
 def gh(*args):
+    """Runs gh; a failure stops the run (a red job), never reads as \"nothing to do\"."""
     run = subprocess.run(["gh", *args], capture_output=True, text=True, encoding="utf-8")
     if run.returncode:
-        print(run.stderr.strip(), file=sys.stderr)
+        sys.exit(f"gh {' '.join(args)}: {run.stderr.strip()}")
     return run.stdout
 
 
 def main():
-    raw = gh("api", "--paginate", "repos/{owner}/{repo}/milestones?state=open&per_page=100")
-    milestones = json.loads(raw.replace("][", ",")) if raw.strip() else []  # pages joined
-    for m in finished(milestones):
+    raw = gh("api", "--paginate", "--jq", ".[]", "repos/{owner}/{repo}/milestones?state=open&per_page=100")
+    for m in finished(parse_lines(raw)):
         gh("api", "-X", "PATCH", f"repos/{{owner}}/{{repo}}/milestones/{m['number']}", "-f", "state=closed")
         print(f"closed epic #{m['number']} {m['title']}")
     return 0
