@@ -43,6 +43,161 @@ class _ChatScreenState extends State<ChatScreen> {
     await widget.session.send(text);
   }
 
+  @override
+  Widget build(BuildContext context) {
+    final session = widget.session;
+    final s = session.strings;
+    // On a wide window the conversation is a readable column, like a page.
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: Layout.chat),
+        child: Column(
+          children: [
+            Expanded(child: session.transcript.isEmpty ? _Empty(s.askSomething) : _Lines(session)),
+            if (session.modelGone)
+              MaterialBanner(
+                leading: const Icon(Icons.warning_amber),
+                content: Text(s.modelGone(s.providerName(session.spec!), session.model!)),
+                actions: [
+                  TextButton(
+                    onPressed: () => _modelMenu.currentState!.showButtonMenu(),
+                    child: Text(s.changeModel),
+                  ),
+                ],
+              ),
+            _ModelBar(session, menu: _modelMenu),
+            _Composer(session, voice: _voice, message: _message, send: _send),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// No conversation yet: what to do.
+class _Empty extends StatelessWidget {
+  const _Empty(this.prompt);
+
+  final String prompt;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(Gap.l),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.edit_note, size: 56, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(height: Gap.m),
+          Text(prompt, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
+        ],
+      ),
+    ),
+  );
+}
+
+/// The conversation, newest at the bottom; while a turn runs, its waiting line.
+class _Lines extends StatelessWidget {
+  const _Lines(this.session);
+
+  final Session session;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = session.strings;
+    final lines = session.transcript.reversed.toList();
+    // One tap sends the last message again; not while a turn runs.
+    final resendable = session.busy ? -1 : lines.indexWhere((l) => l.role == ChatRole.user);
+    return ListView.builder(
+      reverse: true,
+      padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
+      itemCount: lines.length + (session.busy ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (session.busy) return index == 0 ? _Thinking(s) : _Bubble(lines[index - 1], s);
+        return _Bubble(
+          lines[index],
+          s,
+          resend: index == resendable ? session.resend : null,
+          answer: index == 0 ? (a) => _answer(lines.length, a) : null,
+        );
+      },
+    );
+  }
+
+  /// Only the newest question, and only once: a later tap finds the
+  /// conversation moved on (longer than [shown], taken at build), even before
+  /// the screen redraws.
+  void _answer(int shown, String answer) {
+    if (session.transcript.length == shown) unawaited(session.send(answer));
+  }
+}
+
+/// Above the message box: the model, switchable at any time but not while it
+/// works, and the ChatGPT plan notice.
+class _ModelBar extends StatelessWidget {
+  const _ModelBar(this.session, {required this.menu});
+
+  final Session session;
+  final GlobalKey<PopupMenuButtonState<String>> menu;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = session.strings;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, 0),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: Gap.s,
+        children: [
+          // The models the connected provider listed; switching keeps the conversation.
+          PopupMenuButton<String>(
+            key: menu,
+            tooltip: s.changeTheModel,
+            enabled: !session.busy,
+            initialValue: session.model,
+            onSelected: session.setModel,
+            itemBuilder: (_) => [
+              for (final m in {...session.models, ?session.model})
+                PopupMenuItem(value: m, child: Text(m)),
+            ],
+            child: Chip(
+              avatar: const Icon(Icons.auto_awesome_outlined, size: 16),
+              label: Text(session.model ?? ''),
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+          if (session.spec?.name == 'chatgpt') ...[
+            // OpenAI asks plan-usage apps to show this near the composer.
+            Text(s.usingChatGptPlan),
+            TextButton(
+              onPressed: () =>
+                  launchUrl(Uri.parse(chatGptUsageUrl), mode: LaunchMode.externalApplication),
+              child: Text(s.manageUsage),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The message box and its one button, like a messenger's: Send with text,
+/// push to talk without; above them, what voice is doing or how to use it.
+class _Composer extends StatefulWidget {
+  const _Composer(this.session, {required this.voice, required this.message, required this.send});
+
+  final Session session;
+  final VoiceMode voice;
+  final TextEditingController message;
+  final Future<void> Function() send;
+
+  @override
+  State<_Composer> createState() => _ComposerState();
+}
+
+class _ComposerState extends State<_Composer> {
+  VoiceMode get _voice => widget.voice;
+
   /// When the talk button last went down (the pointer's own clock).
   var _down = Duration.zero;
 
@@ -75,232 +230,170 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  void _pressed(PointerDownEvent down) {
+    _down = down.timeStamp;
+    setState(() => _holdHint = false);
+    _hold();
+  }
+
+  void _released(PointerUpEvent up) {
+    _voice.release();
+    // A plain click records nothing: say how it works.
+    if (up.timeStamp - _down < const Duration(milliseconds: 300)) {
+      setState(() => _holdHint = true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = widget.session;
     final s = session.strings;
-    final lines = session.transcript.reversed.toList(); // newest at the bottom
-    // One tap sends the last message again; not while a turn runs.
-    final resendable = session.busy ? -1 : lines.indexWhere((l) => l.role == ChatRole.user);
-    // On a wide window the conversation is a readable column, like a page.
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: Layout.chat),
-        child: _conversation(context, session, s, lines, resendable),
+    return ListenableBuilder(
+      listenable: _voice,
+      builder: (context, _) => Column(
+        children: [
+          if (_voice.state == VoiceState.speaking)
+            _status(context, Icons.volume_up, Text(s.speaking, key: const Key('voice-state')))
+          // Above the button, not over it: a plain click learns to hold.
+          else if (_holdHint)
+            _status(context, Icons.touch_app_outlined, Text(s.holdHint)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.s, Gap.s),
+            child: ValueListenableBuilder(
+              valueListenable: widget.message,
+              builder: (context, typed, _) => Row(
+                children: [
+                  Expanded(
+                    // While recording, the recording takes the field's place;
+                    // the field's text stays in its controller.
+                    child: _voice.state == VoiceState.listening
+                        ? _Recording(s.listening)
+                        : _MessageField(
+                            widget.message,
+                            voice: _voice,
+                            hint: s.message,
+                            send: widget.send,
+                          ),
+                  ),
+                  if (_voice.state == VoiceState.speaking)
+                    IconButton(
+                      tooltip: s.stopReading,
+                      icon: const Icon(Icons.volume_off_outlined),
+                      onPressed: _voice.end,
+                    ),
+                  if (session.busy)
+                    IconButton(
+                      tooltip: s.stop,
+                      icon: const Icon(Icons.stop),
+                      onPressed: session.stop,
+                    ),
+                  if (typed.text.trim().isNotEmpty)
+                    IconButton.filled(
+                      tooltip: s.send,
+                      icon: const Icon(Icons.arrow_upward),
+                      onPressed: widget.send,
+                    )
+                  else
+                    _TalkButton(
+                      label: s.talk,
+                      listening: _voice.state == VoiceState.listening,
+                      busy: session.busy,
+                      pressed: _pressed,
+                      released: _released,
+                      cancelled: _voice.release,
+                      toggle: _toggleTalk,
+                      onKey: (event) => _talkKey(event, busy: session.busy),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
+}
 
-  Widget _conversation(
-    BuildContext context,
-    Session session,
-    Strings s,
-    List<ChatLine> lines,
-    int resendable,
-  ) {
-    return Column(
-      children: [
-        Expanded(
-          child: lines.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(Gap.l),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.edit_note,
-                          size: 56,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(height: Gap.m),
-                        Text(
-                          s.askSomething,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : ListView.builder(
-                  reverse: true,
-                  padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
-                  itemCount: lines.length + (session.busy ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (!session.busy) {
-                      return _Bubble(
-                        lines[index],
-                        s,
-                        resend: index == resendable ? session.resend : null,
-                        // Only the newest question, and only once: a later tap finds the
-                        // conversation moved on (longer than [lines], taken at build), even
-                        // before the screen redraws.
-                        answer: index == 0
-                            ? (a) =>
-                                  session.transcript.length == lines.length ? session.send(a) : null
-                            : null,
-                      );
-                    }
-                    return index == 0 ? _Thinking(s) : _Bubble(lines[index - 1], s);
-                  },
-                ),
+/// The message box. Open while the model works: what is written meanwhile
+/// joins its turn.
+class _MessageField extends StatelessWidget {
+  const _MessageField(
+    this.controller, {
+    required this.voice,
+    required this.hint,
+    required this.send,
+  });
+
+  final TextEditingController controller;
+  final VoiceMode voice;
+  final String hint;
+  final Future<void> Function() send;
+
+  @override
+  Widget build(BuildContext context) => TextField(
+    key: const Key('message'),
+    controller: controller,
+    minLines: 1,
+    maxLines: 5,
+    textInputAction: TextInputAction.send,
+    // Typing quiets an answer read aloud.
+    onChanged: (text) {
+      if (voice.state == VoiceState.speaking && text.isNotEmpty) voice.hush();
+    },
+    onSubmitted: (_) => send(),
+    decoration: InputDecoration(hintText: hint),
+  );
+}
+
+/// Push to talk: held, it listens; let go, what was said is sent. The press
+/// stays with this Listener wherever the finger goes, even when the keyboard
+/// closing moves it (#212). A screen reader cannot hold: one tap starts, the
+/// next sends ([toggle]); the keyboard holds Space or Enter ([onKey]).
+class _TalkButton extends StatelessWidget {
+  const _TalkButton({
+    required this.label,
+    required this.listening,
+    required this.busy,
+    required this.pressed,
+    required this.released,
+    required this.cancelled,
+    required this.toggle,
+    required this.onKey,
+  });
+
+  final String label;
+  final bool listening;
+  final bool busy;
+  final ValueChanged<PointerDownEvent> pressed;
+  final ValueChanged<PointerUpEvent> released;
+  final VoidCallback cancelled;
+  final VoidCallback toggle;
+  final KeyEventResult Function(KeyEvent event) onKey;
+
+  @override
+  Widget build(BuildContext context) => Listener(
+    onPointerDown: busy ? null : pressed,
+    onPointerUp: released,
+    onPointerCancel: (_) => cancelled(),
+    child: Semantics(
+      label: label,
+      button: true,
+      enabled: !busy,
+      focusable: true,
+      excludeSemantics: true,
+      onTap: busy ? null : toggle,
+      child: Focus(
+        canRequestFocus: false,
+        skipTraversal: true,
+        onKeyEvent: (_, event) => onKey(event),
+        child: IconButton.filled(
+          tooltip: label,
+          icon: Icon(listening ? Icons.mic : Icons.mic_none),
+          onPressed: busy ? null : () {},
         ),
-        if (session.modelGone)
-          MaterialBanner(
-            leading: const Icon(Icons.warning_amber),
-            content: Text(s.modelGone(s.providerName(session.spec!), session.model!)),
-            actions: [
-              TextButton(
-                onPressed: () => _modelMenu.currentState!.showButtonMenu(),
-                child: Text(s.changeModel),
-              ),
-            ],
-          ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, 0),
-          child: Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: Gap.s,
-            children: [
-              // The models the connected provider listed; switching keeps the conversation.
-              PopupMenuButton<String>(
-                key: _modelMenu,
-                tooltip: s.changeTheModel,
-                enabled: !session.busy,
-                initialValue: session.model,
-                onSelected: session.setModel,
-                itemBuilder: (_) => [
-                  for (final m in {...session.models, ?session.model})
-                    PopupMenuItem(value: m, child: Text(m)),
-                ],
-                child: Chip(
-                  avatar: const Icon(Icons.auto_awesome_outlined, size: 16),
-                  label: Text(session.model ?? ''),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-              if (session.spec?.name == 'chatgpt') ...[
-                // OpenAI asks plan-usage apps to show this near the composer.
-                Text(s.usingChatGptPlan),
-                TextButton(
-                  onPressed: () =>
-                      launchUrl(Uri.parse(chatGptUsageUrl), mode: LaunchMode.externalApplication),
-                  child: Text(s.manageUsage),
-                ),
-              ],
-            ],
-          ),
-        ),
-        ListenableBuilder(
-          listenable: _voice,
-          builder: (context, _) => Column(
-            children: [
-              if (_voice.state == VoiceState.speaking)
-                _status(context, Icons.volume_up, Text(s.speaking, key: const Key('voice-state')))
-              // Above the button, not over it: a plain click learns to hold.
-              else if (_holdHint)
-                _status(context, Icons.touch_app_outlined, Text(s.holdHint)),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.s, Gap.s),
-                // One button, like a messenger's: Send with text, the microphone without.
-                child: ValueListenableBuilder(
-                  valueListenable: _message,
-                  builder: (context, typed, _) => Row(
-                    children: [
-                      Expanded(
-                        // While recording, the recording takes the field's place;
-                        // the field's text stays in its controller.
-                        child: _voice.state == VoiceState.listening
-                            ? _Recording(s.listening)
-                            : TextField(
-                                key: const Key('message'),
-                                controller: _message,
-                                // Open while the model works: what is written meanwhile joins its turn.
-                                minLines: 1,
-                                maxLines: 5,
-                                textInputAction: TextInputAction.send,
-                                // Typing quiets an answer read aloud.
-                                onChanged: (text) {
-                                  if (_voice.state == VoiceState.speaking && text.isNotEmpty) {
-                                    _voice.hush();
-                                  }
-                                },
-                                onSubmitted: (_) => _send(),
-                                decoration: InputDecoration(hintText: s.message),
-                              ),
-                      ),
-                      if (_voice.state == VoiceState.speaking)
-                        IconButton(
-                          tooltip: s.stopReading,
-                          icon: const Icon(Icons.volume_off_outlined),
-                          onPressed: _voice.end,
-                        ),
-                      if (session.busy)
-                        IconButton(
-                          tooltip: s.stop,
-                          icon: const Icon(Icons.stop),
-                          onPressed: session.stop,
-                        ),
-                      if (typed.text.trim().isNotEmpty)
-                        IconButton.filled(
-                          tooltip: s.send,
-                          icon: const Icon(Icons.arrow_upward),
-                          onPressed: _send,
-                        )
-                      else
-                        // Push to talk: held, it listens; let go, what was said is
-                        // sent. The press stays with this Listener wherever the
-                        // finger goes, even when the keyboard closing moves it (#212).
-                        Listener(
-                          onPointerDown: session.busy
-                              ? null
-                              : (down) {
-                                  _down = down.timeStamp;
-                                  setState(() => _holdHint = false);
-                                  _hold();
-                                },
-                          onPointerUp: (up) {
-                            _voice.release();
-                            // A plain click records nothing: say how it works.
-                            if (up.timeStamp - _down < const Duration(milliseconds: 300)) {
-                              setState(() => _holdHint = true);
-                            }
-                          },
-                          onPointerCancel: (_) => _voice.release(),
-                          // A screen reader cannot hold: one tap starts, the next sends.
-                          child: Semantics(
-                            label: s.talk,
-                            button: true,
-                            enabled: !session.busy,
-                            focusable: true,
-                            excludeSemantics: true,
-                            onTap: session.busy ? null : _toggleTalk,
-                            // The keyboard holds Space or Enter instead.
-                            child: Focus(
-                              canRequestFocus: false,
-                              skipTraversal: true,
-                              onKeyEvent: (_, event) => _talkKey(event, busy: session.busy),
-                              child: IconButton.filled(
-                                tooltip: s.talk,
-                                icon: Icon(
-                                  _voice.state == VoiceState.listening ? Icons.mic : Icons.mic_none,
-                                ),
-                                onPressed: session.busy ? null : () {},
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+      ),
+    ),
+  );
 }
 
 /// In the message box's place while recording: it listens.
