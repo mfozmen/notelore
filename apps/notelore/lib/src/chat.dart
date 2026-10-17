@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -13,6 +14,7 @@ import 'strings.dart';
 import 'theme.dart';
 import 'transfer.dart' show PickedFile;
 import 'voice.dart';
+import 'web_link.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen(this.session, {super.key});
@@ -766,7 +768,14 @@ class _Bubble extends StatelessWidget {
     };
     final (:text, :answers, :files, :images) = _shown(line);
     final bubble = _bubble(
-      _BubbleText(text, files: files, images: images, color: foreground, strings: strings),
+      _BubbleText(
+        text,
+        files: files,
+        images: images,
+        color: foreground,
+        strings: strings,
+        markdown: line.role == ChatRole.assistant,
+      ),
       mine,
       background,
     );
@@ -909,6 +918,7 @@ class _BubbleText extends StatelessWidget {
     required this.images,
     required this.color,
     required this.strings,
+    required this.markdown,
   });
 
   final String text;
@@ -917,17 +927,21 @@ class _BubbleText extends StatelessWidget {
   final Color color;
   final Strings strings;
 
+  /// An answer is Markdown (#305): shown formatted. The user's words are shown as typed.
+  final bool markdown;
+
   @override
   Widget build(BuildContext context) {
     final style = TextStyle(color: color, height: 1.4);
-    if (files.isEmpty && images.isEmpty) return SelectableText(text, style: style);
+    final words = markdown ? _markdown(context, text, style) : SelectableText(text, style: style);
+    if (files.isEmpty && images.isEmpty) return words;
     final s = strings;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       spacing: Gap.xs,
       children: [
-        if (text.isNotEmpty) SelectableText(text, style: style),
+        if (text.isNotEmpty) words,
         for (final name in files)
           _AttachmentLine(name, Icons.description_outlined, s.attachedFile(name), style),
         for (final name in images)
@@ -935,6 +949,39 @@ class _BubbleText extends StatelessWidget {
       ],
     );
   }
+}
+
+/// [text] formatted, every part in the bubble's own colour [style] so it reads
+/// on the bubble in every palette, light and dark; links open in the browser.
+Widget _markdown(BuildContext context, String text, TextStyle style) {
+  final theme = Theme.of(context);
+  final body = theme.textTheme.bodyMedium!.merge(style);
+  final color = style.color!;
+  TextStyle heading(TextStyle? size) => size!.copyWith(color: color, fontWeight: FontWeight.w600);
+  return MarkdownBody(
+    data: text,
+    selectable: true,
+    onTapLink: (_, href, _) => openWebLink(href),
+    styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+      p: body,
+      listBullet: body,
+      strong: const TextStyle(fontWeight: FontWeight.bold).copyWith(color: color),
+      em: const TextStyle(fontStyle: FontStyle.italic).copyWith(color: color),
+      a: TextStyle(color: color, decoration: TextDecoration.underline, decorationColor: color),
+      code: body.copyWith(fontFamily: 'monospace', backgroundColor: color.withValues(alpha: 0.08)),
+      codeblockDecoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(Gap.s),
+      ),
+      blockquote: body,
+      blockquoteDecoration: BoxDecoration(
+        border: Border(left: BorderSide(color: color.withValues(alpha: 0.4), width: 3)),
+      ),
+      h1: heading(theme.textTheme.titleLarge),
+      h2: heading(theme.textTheme.titleMedium),
+      h3: heading(theme.textTheme.titleSmall),
+    ),
+  );
 }
 
 /// One file sent with a message: a kind's icon and its name on one line; the

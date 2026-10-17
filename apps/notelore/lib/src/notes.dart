@@ -1,23 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:notelore_core/notelore_core.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'session.dart';
 import 'strings.dart';
 import 'theme.dart';
 import 'transfer.dart';
+import 'web_link.dart';
 
 Widget _noteMarkdown(String text) => Markdown(
   data: text,
   selectable: true,
   padding: const EdgeInsets.all(Gap.m),
-  onTapLink: (_, href, _) {
-    final uri = Uri.tryParse(href ?? '');
-    if (uri != null && uri.hasAuthority && (uri.scheme == 'http' || uri.scheme == 'https')) {
-      launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  },
+  onTapLink: (_, href, _) => openWebLink(href),
 );
 
 /// Every project and topic, newest first; a tap opens the note read-only, beside
