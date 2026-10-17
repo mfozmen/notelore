@@ -136,6 +136,58 @@ void main() {
     });
   });
 
+  group('Google sign-in comes first (#208)', () {
+    test('a build without sign-in never asks for it', () async {
+      final session = Harness().session();
+      await session.load();
+      expect(session.needsGoogle, isFalse);
+    });
+
+    test('until this device signs in once; then never again, even signed out', () async {
+      final auth = FakeAuth();
+      final harness = Harness(auth: auth);
+      final first = harness.session();
+      await first.load();
+      expect(first.needsGoogle, isTrue);
+      auth.failSignIn = const SignInFailed('access_denied');
+      await expectLater(first.connectDrive(), throwsA(isA<SignInFailed>()));
+      expect(first.needsGoogle, isTrue); // no account, no way in
+      auth.failSignIn = null;
+      await first.connectDrive();
+      expect(first.needsGoogle, isFalse);
+      // Later, offline or with the grant expired: the app still opens, and its
+      // notes with it; Settings connects again.
+      auth.granted = false;
+      final later = harness.session();
+      await later.load();
+      expect(later.needsGoogle, isFalse);
+      expect(later.driveConnected, isFalse);
+    });
+
+    test('a device already connected before this needs no new sign-in', () async {
+      final harness = Harness(auth: FakeAuth()..granted = true);
+      final session = harness.session();
+      await session.load();
+      expect(session.needsGoogle, isFalse);
+      harness.auth!.granted = false;
+      final later = harness.session();
+      await later.load();
+      expect(later.needsGoogle, isFalse);
+    });
+
+    test('disconnecting is signing out: the next start asks again', () async {
+      final harness = Harness(auth: FakeAuth()..granted = true);
+      final session = harness.session();
+      await session.load();
+      await session.syncDone;
+      await session.disconnectDrive();
+      expect(session.needsGoogle, isTrue);
+      final later = harness.session();
+      await later.load();
+      expect(later.needsGoogle, isTrue);
+    });
+  });
+
   test('a failed sign-in leaves Drive disconnected', () async {
     final harness = Harness(auth: FakeAuth()..failSignIn = const SignInFailed('access_denied'));
     final session = harness.session();

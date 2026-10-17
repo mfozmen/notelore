@@ -34,12 +34,13 @@ The app checks for a new release every time it opens (and every few hours while 
 
 ## Get started
 
-1. Open Notelore and pick a model:
+1. Open Notelore and *Sign in with Google* with your Google (Gmail) account: this also connects Google Drive, where your notes are backed up and synced.
+2. Pick a model:
    - **ChatGPT plan** (desktop and phone): *Continue with ChatGPT* and sign in. No extra charges, within your plan's limits.
    - **Claude, GPT or Gemini:** paste an API key; the app shows where to get one. Keys stay in your device's keystore.
    - **Ollama** (desktop): start Ollama on this computer; no key needed.
-2. Talk to it: *"Mopsos için not al: veritabanı olarak SQLite seçtik."*
-3. Ask it later: *"Mopsos'ta hangi veritabanını seçmiştik?"*
+3. Talk to it: *"Mopsos için not al: veritabanı olarak SQLite seçtik."*
+4. Ask it later: *"Mopsos'ta hangi veritabanını seçmiştik?"*
 
 Notelore starts on the cheapest model your provider offers; switch any time with the model chip above the message box.
 
@@ -55,7 +56,7 @@ Notelore starts on the cheapest model your provider offers; switch any time with
 - **Export, share and import:** an open note's share button exports it as Markdown (the note file itself, which Notelore can import again), PDF (set in Noto Sans, so every Turkish letter shows) or a web page (HTML). *Export notes* above the list does the same for several notes at once: one PDF or page for all, or one Markdown file each. On a phone the files go to the share sheet (WhatsApp, mail, Drive...); on the desktop to a file or folder you pick, never over a file already there. *Import notes* brings Markdown notes in, for example ones someone shared with you: a note whose name is taken comes in beside it as "<title> (2)", the same note again changes nothing, and anything that is not a Notelore note is refused. Import never overwrites a note.
 - **Settings:** language (System, English or Türkçe), a theme from six nature palettes (lagoon, pine forest, open sea, sunset, lavender field, northern lights) in light or dark, model, Google Drive, an optional app lock, and an About card with the version, updates and log out. On a wide window the sections (model, voice, sync and files, appearance, app lock, about) are listed on the left, one shown at a time.
 - **App lock:** *Settings → App lock → Turn on* sets a PIN or password (at least 4 characters, typed twice) that Notelore asks for every time it opens, before any note or chat shows, and again when it comes back after a minute or more in the background (a quick switch to another app does not lock). After five wrong tries it makes you wait before the next one: 30 seconds, then a minute, then five minutes; the count survives a restart and resets on the right entry. Only a salted hash of it is kept, in the device's keystore; it is never stored as plain text and never synced. Turning it off asks for it first. The lock never touches your notes: if you forget it, they are still files in the notes folder and on Drive.
-- **Google Drive:** *Settings → Google Drive → Connect* backs your notes up to a `Notelore` folder and keeps every device in sync, settings too (language, theme, provider and model; never your keys). Notelore only sees the files it creates.
+- **Google Drive:** setup starts with *Sign in with Google*: Notelore needs a Google (Gmail) account, any account Google lets you sign in with, Workspace included, and without one it goes no further. Signing in connects Drive, which backs your notes up to a `Notelore` folder and keeps every device in sync, settings too (language, theme, provider and model; never your keys). Notelore only sees the files it creates. After that the device opens without asking again, even offline; if access expires, the notes stay and *Settings → Google Drive → Connect* signs in again. Disconnecting signs out, and the next start asks for Google again. A build without Google sign-in (a development run without the client ids) skips this step and has no sync.
 
 Your notes live in `~/Notelore/` on the desktop and in the app's storage on a phone. Nothing is ever deleted for good: archived notes and both sides of a sync conflict are kept.
 

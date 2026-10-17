@@ -159,6 +159,11 @@ abstract class Strings {
   String get drive;
   String get driveNotSetUp;
   String get driveExplained;
+
+  /// Google sign-in, the first step of setup (#208).
+  String get signInWithGoogle;
+  String get googleExplained;
+  String googleRequired(String why);
   String get syncing;
   String get connected;
   String get syncNow;
@@ -477,6 +482,15 @@ class EnglishStrings extends Strings {
   String get driveNotSetUp => 'Sync is not set up in this build.';
   @override
   String get driveExplained => 'Back up and sync your notes across your devices.';
+  @override
+  String get signInWithGoogle => 'Sign in with Google';
+  @override
+  String get googleExplained =>
+      'Notelore keeps your notes in your own Google Drive, so all your devices have them. '
+      'Sign in with your Google (Gmail) account to start. Notelore can only see the files it '
+      'creates there.';
+  @override
+  String googleRequired(String why) => 'Notelore needs a Google account to continue: $why';
   @override
   String get syncing => 'Syncing...';
   @override
@@ -872,6 +886,15 @@ class TurkishStrings extends Strings {
   String get driveNotSetUp => 'Bu sürümde eşitleme ayarlı değil.';
   @override
   String get driveExplained => 'Notlarını yedekle ve cihazların arasında eşitle.';
+  @override
+  String get signInWithGoogle => 'Google ile giriş yap';
+  @override
+  String get googleExplained =>
+      'Notelore notlarını kendi Google Drive’ında tutar, böylece tüm cihazlarında olurlar. '
+      'Başlamak için Google (Gmail) hesabınla giriş yap. Notelore orada yalnızca kendi '
+      'oluşturduğu dosyaları görebilir.';
+  @override
+  String googleRequired(String why) => 'Notelore’u kullanmak için bir Google hesabı gerekir: $why';
   @override
   String get syncing => 'Eşitleniyor...';
   @override

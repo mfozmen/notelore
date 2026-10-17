@@ -335,6 +335,24 @@ class Session extends ChangeNotifier {
   Future<void> get syncDone => _queue;
 
   bool get driveAvailable => driveAuth != null;
+
+  /// Notelore is for Google accounts (#208): a build that can sign in asks for
+  /// it first, until this device has signed in once. After that it opens even
+  /// offline or with the grant expired (Settings connects again); signing out
+  /// (disconnecting Drive) asks again.
+  bool get needsGoogle => driveAvailable && !_googleMark.existsSync();
+
+  /// This device signed in with Google; deleted by signing out.
+  File get _googleMark => File(p.join(paths.state.path, 'google-signed-in'));
+
+  void _markGoogle({required bool signedIn}) {
+    if (signedIn) {
+      (_googleMark..parent.createSync(recursive: true)).writeAsStringSync('');
+    } else if (_googleMark.existsSync()) {
+      _googleMark.deleteSync();
+    }
+  }
+
   final transcript = <ChatLine>[];
 
   /// What is written in the message box and not sent yet; it outlives the chat
@@ -374,6 +392,7 @@ class Session extends ChangeNotifier {
       unawaited(retryNow());
     }
     driveConnected = await driveAuth?.signedIn() ?? false;
+    if (driveConnected) _markGoogle(signedIn: true); // connected before #208
     notifyListeners();
     if (driveConnected) unawaited(syncNow());
   }
@@ -784,6 +803,7 @@ class Session extends ChangeNotifier {
   Future<void> connectDrive() async {
     await driveAuth!.signIn();
     driveConnected = true;
+    _markGoogle(signedIn: true);
     notifyListeners();
     await syncNow();
   }
@@ -791,6 +811,7 @@ class Session extends ChangeNotifier {
   Future<void> disconnectDrive() async {
     await driveAuth!.signOut();
     driveConnected = false;
+    _markGoogle(signedIn: false);
     syncStatus = null;
     notifyListeners();
   }
