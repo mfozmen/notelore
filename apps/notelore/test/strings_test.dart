@@ -50,6 +50,29 @@ void main() {
     }
   });
 
+  test('a failed turn is said kindly, never as raw HTTP (#306)', () {
+    for (final s in [EnglishStrings(), TurkishStrings()]) {
+      final said = {
+        for (final error in <Exception>[
+          const NetworkError('socket closed'),
+          const HttpError(401, 'invalid x-api-key'),
+          const HttpError(403, 'forbidden'),
+          const HttpError(429, 'rate_limit_error'),
+          const HttpError(503, 'overloaded'),
+        ])
+          s.chatError(error),
+      };
+      expect(said, hasLength(4), reason: s.languageCode); // 401 and 403 share one: the key
+      for (final text in said) {
+        expect(text, isNot(matches(RegExp('HTTP|socket|x-api-key|rate_limit|overloaded'))));
+      }
+      // Other refusals keep their detail, kindly framed; the core's own messages
+      // (a Stop, the plan's limit) stay as they are.
+      expect(s.chatError(const HttpError(400, 'image too large')), contains('image too large'));
+      expect(s.chatError(const TurnStopped()), s.core('Stopped.'));
+    }
+  });
+
   test('plenty of waiting lines in both languages, each its own', () {
     for (final s in [en, tr]) {
       expect(s.waitingLines.length, greaterThanOrEqualTo(15));

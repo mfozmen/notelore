@@ -624,7 +624,7 @@ void main() {
     await session.connect(findProvider('anthropic'), 'k');
     await session.send('one');
     expect(session.transcript.last.role, ChatRole.error);
-    expect(session.transcript.last.text, contains('offline'));
+    expect(session.transcript.last.text, contains('having trouble')); // kindly, not raw (#306)
     await session.send('two');
     expect(session.transcript.last.text, 'back');
   });
