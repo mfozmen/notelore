@@ -118,6 +118,7 @@ class _Lines extends StatelessWidget {
           lines[index],
           s,
           resend: index == resendable ? session.resend : null,
+          retry: session.retryNow,
           answer: index == 0 ? (a) => _answer(lines.length, a) : null,
         );
       },
@@ -546,11 +547,14 @@ class _ThinkingState extends State<_Thinking> {
 /// them; the last message also one that sends it again ([resend]). The answers
 /// the newest question suggests are buttons that send one of them ([answer]).
 class _Bubble extends StatelessWidget {
-  const _Bubble(this.line, this.strings, {this.resend, this.answer});
+  const _Bubble(this.line, this.strings, {this.resend, this.answer, this.retry});
 
   final ChatLine line;
   final Strings strings;
   final VoidCallback? resend;
+
+  /// For a message that waits (offline, or the usage limit): send what waits now.
+  final VoidCallback? retry;
   final ValueChanged<String>? answer;
 
   Future<void> _copy(BuildContext context, String text) async {
@@ -564,9 +568,11 @@ class _Bubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final mine = line.role == ChatRole.user;
+    final mine = line.role == ChatRole.user || line.role == ChatRole.pending;
     final (background, foreground) = switch (line.role) {
       ChatRole.user => (colors.primary, colors.onPrimary),
+      // Not sent yet: the user's, in a quieter tone.
+      ChatRole.pending => (colors.primaryContainer, colors.onPrimaryContainer),
       ChatRole.assistant => (colors.surfaceContainerHigh, colors.onSurface),
       ChatRole.error => (colors.errorContainer, colors.onErrorContainer),
     };
@@ -575,6 +581,24 @@ class _Bubble extends StatelessWidget {
         : (text: line.text, answers: const <String>[]);
     final bubble = _bubble(text, mine, background, foreground);
     if (line.role == ChatRole.error) return bubble;
+    if (line.role == ChatRole.pending) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          bubble,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.schedule, size: 16, color: colors.onSurfaceVariant),
+              const SizedBox(width: Gap.xs),
+              Text(strings.waitingToSend, style: TextStyle(color: colors.onSurfaceVariant)),
+              if (retry case final retry?)
+                TextButton(onPressed: retry, child: Text(strings.tryNow)),
+            ],
+          ),
+        ],
+      );
+    }
     Widget button(String tooltip, IconData icon, VoidCallback onPressed) => IconButton(
       tooltip: tooltip,
       icon: Icon(icon, size: 18),

@@ -247,7 +247,7 @@ void main() {
   });
 
   test('a turn that failed keeps the archive notice for the next one (#205)', () async {
-    final harness = Harness(answers: ['Okudum.', const NetworkError('offline'), 'Tamam.']);
+    final harness = Harness(answers: ['Okudum.', const HttpError(500, 'offline'), 'Tamam.']);
     final session = harness.session();
     await session.connect(findProvider('anthropic'), 'k');
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
@@ -258,63 +258,106 @@ void main() {
     expect(harness.provider.asked.last, allOf(contains('şimdi'), contains('Kitaplar')));
   });
 
-  test('a reply lost to the network while the app was away runs again on return (#226)', () async {
-    final harness = Harness(answers: [const NetworkError('offline'), 'Geldi.']);
+  /// Until the queue has run, or nothing more can go out.
+  Future<void> settled(Session session) async {
+    for (var i = 0; i < 50; i++) {
+      await pumpEventQueue();
+      if (!session.busy) return;
+    }
+  }
+
+  test(
+    'offline: a message waits, survives a restart and goes out once when it can (#214)',
+    () async {
+      final harness = Harness(answers: [const NetworkError('offline'), 'Kaydettim.']);
+      final session = harness.session();
+      await session.connect(findProvider('anthropic'), 'k');
+      await session.send('kitabı kaydet');
+      expect(session.transcript.map((l) => (l.role, l.text)), [
+        (ChatRole.pending, 'kitabı kaydet'),
+      ]);
+      expect(session.lastSent, isNull); // nothing to resend: it is still on its way
+
+      // The app is closed and opened again: the message is still there, and goes out.
+      final again = harness.session();
+      await again.load();
+      await settled(again);
+      expect(harness.provider.asked, ['kitabı kaydet', 'kitabı kaydet']);
+      expect(again.transcript.map((l) => (l.role, l.text)), [
+        (ChatRole.user, 'kitabı kaydet'),
+        (ChatRole.assistant, 'Kaydettim.'),
+      ]);
+      final third = harness.session();
+      await third.load();
+      expect(third.transcript, isEmpty); // gone once it went out
+    },
+  );
+
+  test('a usage limit waits too, and later messages keep their order (#214)', () async {
+    const limit = HttpError(429, 'usage limit reached');
+    final harness = Harness(answers: [limit, limit, 'Bir.', 'İki.']);
     final session = harness.session();
     await session.connect(findProvider('anthropic'), 'k');
-    session.setForeground(false); // the phone put Notelore in the background
-    await session.send('kitabı kaydet');
-    expect(session.transcript.map((l) => l.role), [ChatRole.user]); // no error line
-    expect(harness.provider.asked, ['kitabı kaydet']);
-    session.setForeground(true); // back: the same message goes out once more
-    await pumpEventQueue();
-    while (session.busy) {
-      await pumpEventQueue();
-    }
-    expect(harness.provider.asked, ['kitabı kaydet', 'kitabı kaydet']);
+    await session.send('bir');
+    // A new message tries what waits first (still over the limit), then waits behind it.
+    await session.send('iki');
+    await settled(session);
+    expect(harness.provider.asked, ['bir', 'bir']);
+    expect(session.transcript.map((l) => l.role), [ChatRole.pending, ChatRole.pending]);
+    await session.retryNow();
+    await settled(session);
+    expect(harness.provider.asked, ['bir', 'bir', 'bir', 'iki']);
+    // Both were written before either answer, so they stay first.
     expect(session.transcript.map((l) => (l.role, l.text)), [
-      (ChatRole.user, 'kitabı kaydet'),
-      (ChatRole.assistant, 'Geldi.'),
+      (ChatRole.user, 'bir'),
+      (ChatRole.user, 'iki'),
+      (ChatRole.assistant, 'Bir.'),
+      (ChatRole.assistant, 'İki.'),
     ]);
-    session.setForeground(true); // nothing waiting: nothing happens
-    expect(harness.provider.asked, hasLength(2));
+    await session.retryNow(); // nothing waiting: nothing happens
+    expect(harness.provider.asked, hasLength(4));
   });
 
-  test('away and back before the failure surfaces: it runs again at once', () async {
-    final first = Completer<AgentResponse>();
-    final harness = Harness(answers: [first.future, 'Geldi.']);
-    final session = harness.session();
+  test('it tries again by itself: on return to the app and every little while', () async {
+    final harness = Harness(
+      answers: [const NetworkError('offline'), const NetworkError('offline'), 'Geldi.'],
+    );
+    final session = harness.session(retryEvery: const Duration(milliseconds: 20));
     await session.connect(findProvider('anthropic'), 'k');
-    final sent = session.send('kitabı kaydet');
-    await pumpEventQueue();
-    session
-      ..setForeground(false)
-      ..setForeground(true); // back before the network failed
-    first.completeError(const NetworkError('offline'));
-    await sent;
-    while (session.busy) {
-      await pumpEventQueue();
-    }
+    session.setForeground(false); // the phone put Notelore away mid-reply
+    await session.send('selam');
+    session.setForeground(true); // back: tried again, still offline
+    await settled(session);
+    expect(harness.provider.asked, ['selam', 'selam']);
+    await Future<void>.delayed(const Duration(milliseconds: 60)); // the timer tries once more
+    await settled(session);
     expect(session.transcript.last.text, 'Geldi.');
-    expect(harness.provider.asked, ['kitabı kaydet', 'kitabı kaydet']);
+    expect(harness.provider.asked, ['selam', 'selam', 'selam']);
   });
 
-  test('logging out drops a message held for the return', () async {
-    final harness = Harness(answers: [const NetworkError('offline'), 'Geldi.']);
-    final session = harness.session();
-    await session.connect(findProvider('anthropic'), 'k');
-    session.setForeground(false);
-    await session.send('kitabı kaydet');
-    await session.logout();
-    session.setForeground(true);
-    await pumpEventQueue();
-    expect(harness.provider.asked, ['kitabı kaydet']); // not run against another login
-  });
+  test(
+    'a waiting message that then fails for another reason is an error and waits no more',
+    () async {
+      final harness = Harness(
+        answers: [const NetworkError('offline'), const HttpError(500, 'down')],
+      );
+      final session = harness.session();
+      await session.connect(findProvider('anthropic'), 'k');
+      // A folder where the queue's file goes: it cannot be kept, but it still waits.
+      Directory(p.join(harness.paths.state.path, 'pending.json')).createSync(recursive: true);
+      await session.send('selam');
+      expect(session.transcript.single.role, ChatRole.pending);
+      await session.retryNow();
+      await settled(session);
+      expect(session.transcript.map((l) => l.role), [ChatRole.user, ChatRole.error]);
+      await session.retryNow();
+      expect(harness.provider.asked, hasLength(2)); // not tried again
+    },
+  );
 
-  test('in the foreground, or after it wrote notes, a network failure shows as before', () async {
+  test('a turn that wrote notes and then failed is an error, never queued', () async {
     final harness = Harness(
       answers: [
-        const NetworkError('offline'),
         const AgentResponse([
           {
             'type': 'tool_use',
@@ -328,14 +371,23 @@ void main() {
     );
     final session = harness.session();
     await session.connect(findProvider('anthropic'), 'k');
-    await session.send('bir'); // in the foreground
+    await session.send('iki');
     expect(session.transcript.last.role, ChatRole.error);
-    session.setForeground(false);
-    await session.send('iki'); // away, but it already wrote a note: no silent retry
-    expect(session.transcript.last.role, ChatRole.error);
-    session.setForeground(true);
-    await pumpEventQueue();
-    expect(harness.provider.asked, hasLength(3));
+    expect(session.transcript.last.text, contains(session.strings.notesMayBeSaved));
+    await session.retryNow();
+    expect(harness.provider.asked, hasLength(2)); // not sent again
+  });
+
+  test('logging out drops what waits, like the rest of the conversation', () async {
+    final harness = Harness(answers: [const NetworkError('offline'), 'Geldi.']);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    await session.send('kitabı kaydet');
+    await session.logout();
+    final again = harness.session();
+    await again.load();
+    expect(again.transcript, isEmpty);
+    expect(harness.provider.asked, ['kitabı kaydet']);
   });
 
   test('send runs the agent and keeps the transcript', () async {
@@ -404,7 +456,7 @@ void main() {
   test('a turn that fails after taking a message: that message still goes out', () async {
     final first = Completer<AgentResponse>();
     final harness = Harness(
-      answers: [first.future, const NetworkError('offline'), 'Yazarı Can Dündar.'],
+      answers: [first.future, const HttpError(500, 'offline'), 'Yazarı Can Dündar.'],
     );
     final session = harness.session();
     await session.connect(findProvider('anthropic'), 'k');
@@ -455,7 +507,7 @@ void main() {
   });
 
   test('a failed turn shows an error line and the next one works', () async {
-    final harness = Harness(answers: [const NetworkError('offline'), 'back']);
+    final harness = Harness(answers: [const HttpError(500, 'offline'), 'back']);
     final session = harness.session();
     await session.connect(findProvider('anthropic'), 'k');
     await session.send('one');
@@ -466,7 +518,7 @@ void main() {
   });
 
   test('resend sends the last message again, exactly, also after a failure', () async {
-    final harness = Harness(answers: [const NetworkError('offline'), 'back']);
+    final harness = Harness(answers: [const HttpError(500, 'offline'), 'back']);
     final session = harness.session();
     await session.connect(findProvider('anthropic'), 'k');
     expect(session.lastSent, isNull);
