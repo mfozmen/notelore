@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:notelore_core/notelore_core.dart';
 
+import 'lock.dart';
 import 'session.dart';
 import 'strings.dart';
 import 'theme.dart';
@@ -197,6 +198,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           );
+          final lock = Card(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: Gap.m),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.lock_outline),
+                    title: Text(s.appLock),
+                    subtitle: Text(session.lockEnabled ? s.appLockOn : s.appLockOff),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                    child: session.lockEnabled
+                        ? OutlinedButton.icon(
+                            icon: const Icon(Icons.lock_open_outlined),
+                            onPressed: () => turnLockOff(context, session),
+                            label: Text(s.turnOff),
+                          )
+                        : FilledButton.tonalIcon(
+                            icon: const Icon(Icons.lock_outline),
+                            onPressed: () => turnLockOn(context, session),
+                            label: Text(s.turnOn),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          );
           final about = Card(
             child: Padding(
               padding: const EdgeInsets.only(bottom: Gap.m),
@@ -331,7 +361,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: Layout.column),
-                    child: _cards([model, language, look, drive, folder, voice, about]),
+                    child: _cards([model, language, look, drive, folder, voice, lock, about]),
                   ),
                 ),
               ],
@@ -344,6 +374,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             (Icons.record_voice_over_outlined, s.voiceSection, [voice]),
             (Icons.cloud_outlined, s.syncSection, [drive, folder]),
             (Icons.palette_outlined, s.appearance, [language, look]),
+            (Icons.lock_outline, s.appLock, [lock]),
             (Icons.info_outline, s.aboutSection, [about]),
           ];
           return Row(

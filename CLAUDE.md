@@ -46,6 +46,7 @@ tool/                     the coverage gate
 Core (`packages/notelore_core/lib/src/`):
 
 - `paths.dart`: every filesystem location comes from here (see Development environment).
+- `secret.dart`: the app lock's PIN or password as a salted PBKDF2-SHA256 hash, and its constant-time check.
 - `i18n.dart`: structural strings (section headings) in English and Turkish; English fallback.
 - `text.dart`: Python-compatible line splitting, so notes split the same everywhere.
 - `store/front_matter.dart`, `store/format.dart`: parse/serialize the note format. Pure functions, no I/O. The YAML front matter is written byte for byte like the original reference (PyYAML).
@@ -64,6 +65,7 @@ App (`apps/notelore/lib/`):
 - `src/drive_auth.dart`: google_sign_in on phones, the loopback flow on the desktop.
 - `src/voice.dart`: voice mode and the device recognizer; `src/whisper_speech.dart`, `whisper_model.dart`, `whisper_native.dart`: on-device Whisper (sherpa-onnx), its download, and the native glue.
 - `src/update.dart`: update check at every start and checksum-verified self-update of the desktop app.
+- `src/lock.dart`: the app lock's screen at start and its Settings dialogs; the hash lives in the keystore.
 - `src/app.dart`, `setup.dart`, `chat.dart`, `notes.dart`, `settings.dart`: the screens.
 
 Dependencies point one way: the app imports the core, the core never imports Flutter or the app.

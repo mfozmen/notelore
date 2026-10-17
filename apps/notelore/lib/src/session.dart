@@ -13,6 +13,7 @@ library;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -82,12 +83,19 @@ class Session extends ChangeNotifier {
     this.makeWhisper = nativeWhisper,
     this.listMicrophones = nativeMicrophones,
     this.localModels = true,
+    this.lockIterations = defaultIterations,
+    this.offThread = Isolate.run,
   }) : clock = clock ?? DateTime.timestamp,
        index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path),
        manifest = Manifest(paths.state.path);
 
   final NotelorePaths paths;
   final Validate validate;
+
+  /// The app lock's hash strength, and where its slow hashing runs (off the
+  /// UI thread, so a phone does not stutter while it checks a PIN).
+  final int lockIterations;
+  final Future<R> Function<R>(FutureOr<R> Function() work) offThread;
 
   final Speech? _speech;
   final Voice? _voice;
@@ -321,9 +329,52 @@ class Session extends ChangeNotifier {
 
   String _keyName(ProviderSpec spec) => '$keySpace.${spec.name}.api_key';
 
+  /// Where the app lock's hash lives: the keystore, never the notes or Drive.
+  String get _lockKey => '$keySpace.lock';
+
+  /// Whether opening the app asks for a PIN or password (#224).
+  var lockEnabled = false;
+
+  /// Closed until [unlock] gets the right PIN or password; only when [lockEnabled].
+  var locked = false;
+
+  /// Opens the app when [secret] is the lock's PIN or password.
+  Future<bool> unlock(String secret) async {
+    if (!await _matches(secret)) return false;
+    locked = false;
+    notifyListeners();
+    return true;
+  }
+
+  /// Turns the lock on (or changes it) with [secret]; only its hash is kept.
+  Future<void> setLock(String secret) async {
+    final iterations = lockIterations;
+    final hash = await offThread(() => hashSecret(secret, iterations: iterations));
+    await keys.write(key: _lockKey, value: hash);
+    lockEnabled = true;
+    notifyListeners();
+  }
+
+  /// Turns the lock off when [current] is its PIN or password. Nothing else
+  /// goes: notes, keys and settings stay.
+  Future<bool> removeLock(String current) async {
+    if (!await _matches(current)) return false;
+    await keys.delete(key: _lockKey);
+    lockEnabled = locked = false;
+    notifyListeners();
+    return true;
+  }
+
+  /// Whether [secret] opens the lock; with no lock set, anything does.
+  Future<bool> _matches(String secret) async {
+    final stored = await keys.read(key: _lockKey);
+    return stored == null || await offThread(() => verifySecret(secret, stored));
+  }
+
   /// Picks up the provider chosen on an earlier run, and syncs when Drive is
   /// connected (in the background: an offline start is fine).
   Future<void> load() async {
+    lockEnabled = locked = await keys.read(key: _lockKey) != null;
     _loadLanguage();
     // Whisper comes by itself, in the background: not with the app, so that
     // updates stay small.

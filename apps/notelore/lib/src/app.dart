@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'chat.dart';
+import 'lock.dart';
 import 'notes.dart';
 import 'session.dart';
 import 'settings.dart';
@@ -61,6 +62,8 @@ class _NoteloreAppState extends State<NoteloreApp> {
           supportedLocales: const [Locale('en'), Locale('tr')],
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
           home: switch (snapshot) {
+            // With the app lock on, nothing else shows until it is opened (#224).
+            AsyncSnapshot(:final Session data) when data.locked => LockScreen(data),
             AsyncSnapshot(:final Session data) =>
               data.ready
                   ? Home(data, updater: widget.updater, exitApp: widget.exitApp)

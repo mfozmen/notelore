@@ -155,6 +155,9 @@ class Harness {
         return provider;
       },
       today: today,
+      // A light app-lock hash, worked out right here: tests need no isolates.
+      lockIterations: 10,
+      offThread: <R>(work) async => work(),
       driveAuth: auth,
       remoteFor: (_) => remote,
       chatGpt: chatGpt,

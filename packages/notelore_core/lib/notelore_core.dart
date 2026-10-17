@@ -25,6 +25,7 @@ export 'src/providers/ollama.dart' show ollamaHost;
 export 'src/providers/providers.dart' show createProvider;
 export 'src/providers/validator.dart'
     show KeyValidationError, TransientValidationError, cheapestModel, currentModels, validateKey;
+export 'src/secret.dart' show defaultIterations, hashSecret, verifySecret;
 export 'src/store/format.dart'
     show
         Decision,

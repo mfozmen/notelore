@@ -49,6 +49,21 @@ abstract class Strings {
   String get send;
   String get resend;
 
+  /// The app lock (#224): Settings, its dialogs and the screen at start.
+  String get appLock;
+  String get appLockOn;
+  String get appLockOff;
+  String get turnOn;
+  String get turnOff;
+  String get lockSecret;
+  String get lockRepeat;
+  String get lockTooShort;
+  String get lockMismatch;
+  String get lockedTitle;
+  String get lockedHint;
+  String get unlock;
+  String get wrongSecret;
+
   /// After an error, when the failed turn had already changed the notes.
   String get notesMayBeSaved;
   String get stop;
@@ -203,6 +218,33 @@ class EnglishStrings extends Strings {
   String get send => 'Send';
   @override
   String get resend => 'Resend';
+  @override
+  String get appLock => 'App lock';
+  @override
+  String get appLockOn => 'On: Notelore asks for your PIN or password when it opens.';
+  @override
+  String get appLockOff => 'Off: Notelore opens without asking.';
+  @override
+  String get turnOn => 'Turn on';
+  @override
+  String get turnOff => 'Turn off';
+  @override
+  String get lockSecret => 'PIN or password';
+  @override
+  String get lockRepeat => 'Repeat it';
+  @override
+  String get lockTooShort => 'At least 4 characters.';
+  @override
+  String get lockMismatch => "They don't match.";
+  @override
+  String get lockedTitle => 'Notelore is locked';
+  @override
+  String get lockedHint =>
+      'Forgot it? Your notes are safe: they stay as files in the notes folder and on Drive.';
+  @override
+  String get unlock => 'Unlock';
+  @override
+  String get wrongSecret => "That's not it. Try again.";
   @override
   String get notesMayBeSaved =>
       'Some notes may already have been saved before this failed. Check them before you '
@@ -526,6 +568,33 @@ class TurkishStrings extends Strings {
   String get send => 'Gönder';
   @override
   String get resend => 'Yeniden gönder';
+  @override
+  String get appLock => 'Uygulama kilidi';
+  @override
+  String get appLockOn => 'Açık: Notelore açılırken PIN veya parolanı sorar.';
+  @override
+  String get appLockOff => 'Kapalı: Notelore sormadan açılır.';
+  @override
+  String get turnOn => 'Aç';
+  @override
+  String get turnOff => 'Kapat';
+  @override
+  String get lockSecret => 'PIN veya parola';
+  @override
+  String get lockRepeat => 'Tekrar yaz';
+  @override
+  String get lockTooShort => 'En az 4 karakter.';
+  @override
+  String get lockMismatch => 'Aynı değil.';
+  @override
+  String get lockedTitle => 'Notelore kilitli';
+  @override
+  String get lockedHint =>
+      'Unuttun mu? Notların güvende: not klasöründe ve Drive’da dosya olarak duruyorlar.';
+  @override
+  String get unlock => 'Kilidi aç';
+  @override
+  String get wrongSecret => 'Bu değil. Tekrar dene.';
   @override
   String get notesMayBeSaved =>
       'Bu hatadan önce bazı notlar kaydedilmiş olabilir. Bir şey iki kez kaydedilmesin diye '

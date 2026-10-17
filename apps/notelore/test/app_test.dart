@@ -143,6 +143,107 @@ void main() {
     expect(find.textContaining('offline'), findsOneWidget);
   });
 
+  /// Opens Settings and brings the app lock card into view.
+  Future<void> openLock(WidgetTester tester) async {
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('App lock'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+  }
+
+  /// Closes the app and opens it again on the same folders and keystore.
+  Future<void> restart(WidgetTester tester, Harness harness) async {
+    await tester.pumpWidget(const SizedBox());
+    await pumpApp(tester, harness);
+  }
+
+  testWidgets('lock: set a PIN in Settings; the next start asks for it first', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await openLock(tester);
+    expect(find.textContaining('opens without asking'), findsOneWidget);
+    await tester.tap(find.text('Turn on'));
+    await tester.pumpAndSettle();
+    FilledButton confirm() => tester.widget<FilledButton>(
+      find.descendant(of: find.byType(AlertDialog), matching: find.byType(FilledButton)),
+    );
+    await tester.enterText(find.byKey(const Key('lock-new')), '24');
+    await tester.pump();
+    expect(find.text('At least 4 characters.'), findsOneWidget);
+    expect(confirm().onPressed, isNull);
+    await tester.enterText(find.byKey(const Key('lock-new')), '2468');
+    await tester.enterText(find.byKey(const Key('lock-repeat')), '2469');
+    await tester.pump();
+    expect(find.text("They don't match."), findsOneWidget);
+    expect(confirm().onPressed, isNull);
+    await tester.enterText(find.byKey(const Key('lock-repeat')), '2468');
+    await tester.pump();
+    await tester.tap(find.descendant(of: find.byType(AlertDialog), matching: find.text('Turn on')));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.textContaining('asks for your PIN or password'), findsOneWidget);
+
+    // The next start: locked, nothing of the notes or the chat shows.
+    await restart(tester, harness);
+    expect(find.text('Notelore is locked'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byKey(const Key('message')), findsNothing);
+    await tester.enterText(find.byKey(const Key('unlock')), '1357');
+    await tester.tap(find.text('Unlock'));
+    await tester.pumpAndSettle();
+    expect(find.text("That's not it. Try again."), findsOneWidget);
+    expect(find.byKey(const Key('message')), findsNothing);
+    await tester.enterText(find.byKey(const Key('unlock')), '2468');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.text('Notelore is locked'), findsNothing);
+    expect(find.byKey(const Key('message')), findsOneWidget);
+  });
+
+  testWidgets('lock: turning it off asks for the PIN; Cancel keeps it', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final first = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await first.setLock('2468');
+    await tester.pumpAndSettle();
+    await openLock(tester);
+    await tester.tap(find.text('Turn off'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(first.lockEnabled, isTrue);
+    await tester.tap(find.text('Turn off'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('lock-current')), '0000');
+    await tester.tap(
+      find.descendant(of: find.byType(AlertDialog), matching: find.text('Turn off')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text("That's not it. Try again."), findsOneWidget);
+    expect(first.lockEnabled, isTrue);
+    await tester.enterText(find.byKey(const Key('lock-current')), '2468');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(first.lockEnabled, isFalse);
+    expect(find.textContaining('opens without asking'), findsOneWidget);
+    // Setting it up can be called off too.
+    await tester.tap(find.text('Turn on'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(first.lockEnabled, isFalse);
+    await restart(tester, harness);
+    expect(find.text('Notelore is locked'), findsNothing);
+  });
+
   testWidgets('chat: an unsent draft survives a trip to another tab; sending clears it', (
     tester,
   ) async {

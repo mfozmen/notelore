@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -564,6 +565,71 @@ void main() {
     // The second turn, on the new model, still carries the first one.
     expect(harness.provider.lengths, [1, 3]);
     expect(harness.created.last, ('anthropic', 'k', 'model-b'));
+  });
+
+  test('the app lock: off at first; with a PIN the next start asks for it', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.load();
+    expect(session.lockEnabled, isFalse);
+    expect(session.locked, isFalse);
+    await session.setLock('2468');
+    expect(session.lockEnabled, isTrue);
+    expect(session.locked, isFalse); // whoever just set it is in
+    // In the keystore as a salted hash only; nowhere in the notes or state folders.
+    final stored = await const FlutterSecureStorage().read(key: 'notelore.lock');
+    expect(stored, allOf(isNotNull, isNot(contains('2468'))));
+    for (final dir in [harness.paths.notes, harness.paths.state]) {
+      if (!dir.existsSync()) continue;
+      for (final file in dir.listSync(recursive: true).whereType<File>()) {
+        expect(file.readAsBytesSync().toString(), isNot(contains(utf8.encode('2468').toString())));
+      }
+    }
+    final again = harness.session();
+    await again.load();
+    expect(again.lockEnabled, isTrue);
+    expect(again.locked, isTrue);
+    expect(await again.unlock('1357'), isFalse);
+    expect(again.locked, isTrue);
+    expect(await again.unlock('2468'), isTrue);
+    expect(again.locked, isFalse);
+  });
+
+  test('the real app hashes the lock in another isolate, and it still checks out', () async {
+    final harness = Harness();
+    final session = Session(harness.paths, lockIterations: 10); // the default offThread
+    addTearDown(session.dispose);
+    await session.setLock('2468');
+    final again = Session(harness.paths, lockIterations: 10);
+    addTearDown(again.dispose);
+    expect(await again.unlock('1357'), isFalse); // load() is left out: it would go online
+    expect(await again.unlock('2468'), isTrue);
+  });
+
+  test('turning the lock off needs the current PIN; nothing else is touched', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    await session.setLock('2468');
+    expect(await session.removeLock('0000'), isFalse);
+    expect(session.lockEnabled, isTrue);
+    expect(await session.removeLock('2468'), isTrue);
+    expect(session.lockEnabled, isFalse);
+    expect(await const FlutterSecureStorage().read(key: 'notelore.lock'), isNull);
+    expect(await const FlutterSecureStorage().read(key: 'notelore.anthropic.api_key'), 'k');
+    final again = harness.session();
+    await again.load();
+    expect(again.locked, isFalse);
+    expect(again.ready, isTrue);
+    expect(await again.unlock('anything'), isTrue); // no lock: nothing to open
+  });
+
+  test('a development run keeps its own lock, apart from the real app', () async {
+    final harness = Harness();
+    final dev = harness.session(keySpace: 'notelore-dev');
+    await dev.setLock('2468');
+    expect(await const FlutterSecureStorage().read(key: 'notelore-dev.lock'), isNotNull);
+    expect(await const FlutterSecureStorage().read(key: 'notelore.lock'), isNull);
   });
 
   test('logout forgets the key, the provider and the conversation', () async {
