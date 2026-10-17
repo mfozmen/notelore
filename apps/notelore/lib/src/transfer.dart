@@ -99,7 +99,10 @@ Future<Uint8List> notesPdf(List<String> texts, PdfFonts fonts) {
 pw.Widget _pdfLine(OutlineLine line) => switch (line.style) {
   LineStyle.title => pw.Padding(
     padding: const pw.EdgeInsets.only(bottom: 4),
-    child: pw.Text(line.text, style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
+    child: pw.Text(
+      line.text,
+      style: const pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
+    ),
   ),
   LineStyle.meta => pw.Padding(
     padding: const pw.EdgeInsets.only(bottom: 12),
@@ -107,7 +110,10 @@ pw.Widget _pdfLine(OutlineLine line) => switch (line.style) {
   ),
   LineStyle.heading => pw.Padding(
     padding: const pw.EdgeInsets.only(top: 12, bottom: 4),
-    child: pw.Text(line.text, style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
+    child: pw.Text(
+      line.text,
+      style: const pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+    ),
   ),
   LineStyle.item => pw.Bullet(
     text: line.text,
