@@ -670,7 +670,7 @@ void main() {
     await session.connect(findProvider('anthropic'), 'k');
     await session.send('note Mopsos');
     expect(session.transcript.last.role, ChatRole.error);
-    expect(session.transcript.last.text, contains('offline'));
+    expect(session.transcript.last.text, contains(session.strings.errorOffline));
     expect(session.transcript.last.text, contains(session.strings.notesMayBeSaved));
   });
 
