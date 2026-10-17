@@ -5,6 +5,8 @@
 ///     notelore_dev signin              ChatGPT plan sign-in (opens the browser)
 ///     notelore_dev models              the plan's models
 ///     notelore_dev chat [--provider=chatgpt] [--model=<id>] <message...>
+///     notelore_dev eval [--provider=…] [--model=…] [--cases=eval/cases.json]
+///                                      the model eval (#325), on temp notes
 ///
 /// It refuses to run without `NOTELORE_HOME`, so the real notes are never
 /// touched. Secrets live in `<state>/dev-secrets.json`, never the app's
@@ -19,6 +21,7 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
 import 'agent.dart';
+import 'eval.dart';
 import 'paths.dart';
 import 'providers/base.dart';
 import 'providers/chatgpt.dart';
@@ -29,7 +32,8 @@ import 'store/index.dart';
 import 'tools.dart';
 
 const _usage =
-    'usage: notelore_dev signin | models | chat [--provider=<name>] [--model=<id>] <message>';
+    'usage: notelore_dev signin | models | chat [--provider=<name>] [--model=<id>] <message>'
+    ' | eval [--provider=<name>] [--model=<id>] [--cases=<file>]';
 
 /// A trace file's name for a run started at [time]: UTC to the microsecond,
 /// always six digits, so names sort in time order (`toIso8601String()` drops
@@ -64,7 +68,7 @@ Future<int> runDev(
   final command = words.firstOrNull;
   final message = words.skip(1).join(' ');
   if (command == null ||
-      !const {'signin', 'models', 'chat'}.contains(command) ||
+      !const {'signin', 'models', 'chat', 'eval'}.contains(command) ||
       (command == 'chat' && message.isEmpty)) {
     out.writeln(_usage);
     return 64;
@@ -102,6 +106,18 @@ Future<int> runDev(
         out.writeln('Signed in with ChatGPT.');
       case 'models':
         out.writeln((await listChatGptModels(auth.token, client: traced)).join('\n'));
+      case 'eval':
+        final cases = File(p.join(currentDirectory.path, options['cases'] ?? 'eval/cases.json'));
+        if (!cases.existsSync()) throw StateError('no cases file at ${cases.path}');
+        final provider = await _provider(options, environment, auth, traced, out);
+        final results = <EvalResult>[];
+        for (final evalCase in loadCases(cases.readAsStringSync())) {
+          final result = await runCase(evalCase, provider);
+          results.add(result);
+          final verdict = result.passed ? 'ok  ' : 'FAIL';
+          out.writeln('$verdict ${evalCase.id} (${result.took.inMilliseconds} ms) ${result.tools}');
+        }
+        out.writeln(summarize(results));
       default:
         await _chat(message, options, environment, paths, auth, traced, out);
     }
@@ -126,27 +142,9 @@ Future<void> _chat(
   http.Client traced,
   StringSink out,
 ) async {
-  final spec = findProvider(options['provider'] ?? 'chatgpt');
-  final keyName = 'NOTELORE_${spec.name.toUpperCase()}_API_KEY';
-  final key = environment[keyName];
-  if (spec.requiresApiKey && key == null) throw StateError('set $keyName');
-  final model =
-      options['model'] ??
-      (spec.name == 'chatgpt'
-          ? (await listChatGptModels(auth.token, client: traced)).first
-          : spec.defaultModel);
-  out.writeln('[${spec.name} · $model]');
+  final provider = await _provider(options, environment, auth, traced, out);
   final index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path);
   try {
-    final provider = createProvider(
-      spec,
-      key,
-      model: model,
-      planToken: auth.token,
-      client: traced,
-      transport: (method, url, {headers = const {}, body, required timeout}) =>
-          request(traced, method, url, headers: headers, body: body, timeout: timeout),
-    );
     final agent = Agent(
       provider,
       Toolbox(paths.notes.path, index),
@@ -158,6 +156,35 @@ Future<void> _chat(
   } finally {
     index.close();
   }
+}
+
+/// The provider and model [options] name (the ChatGPT plan by default), said on [out].
+Future<LlmProvider> _provider(
+  Map<String, String> options,
+  Map<String, String> environment,
+  ChatGptAuth auth,
+  http.Client traced,
+  StringSink out,
+) async {
+  final spec = findProvider(options['provider'] ?? 'chatgpt');
+  final keyName = 'NOTELORE_${spec.name.toUpperCase()}_API_KEY';
+  final key = environment[keyName];
+  if (spec.requiresApiKey && key == null) throw StateError('set $keyName');
+  final model =
+      options['model'] ??
+      (spec.name == 'chatgpt'
+          ? (await listChatGptModels(auth.token, client: traced)).first
+          : spec.defaultModel);
+  out.writeln('[${spec.name} · $model]');
+  return createProvider(
+    spec,
+    key,
+    model: model,
+    planToken: auth.token,
+    client: traced,
+    transport: (method, url, {headers = const {}, body, required timeout}) =>
+        request(traced, method, url, headers: headers, body: body, timeout: timeout),
+  );
 }
 
 void _printTools(List<Map<String, Object?>> messages, StringSink out) {

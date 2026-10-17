@@ -211,6 +211,58 @@ void main() {
     expect(await run(['chat', '--provider=nope', 'hi']), 1);
   });
 
+  test('eval: every case of a file against one model, with a report (#325)', () async {
+    File(p.join(temp.path, 'cases.json')).writeAsStringSync(
+      jsonEncode([
+        {
+          'id': 'greet',
+          'kind': 'chat',
+          'lang': 'en',
+          'message': 'hi',
+          'expect': {
+            'answer': ['hello'],
+          },
+        },
+        {
+          'id': 'save',
+          'kind': 'filing',
+          'lang': 'en',
+          'message': 'Remember: milk',
+          'expect': {
+            'tools': ['create_note'],
+          },
+        },
+      ]),
+    );
+    final anthropic = MockClient(
+      (request) async => http.Response(
+        jsonEncode({
+          'content': [
+            {'type': 'text', 'text': 'Hello there'},
+          ],
+          'stop_reason': 'end_turn',
+        }),
+        200,
+      ),
+    );
+    expect(
+      await run(
+        ['eval', '--provider=anthropic', '--cases=cases.json'],
+        client: anthropic,
+        environment: {'NOTELORE_HOME': 'home', 'NOTELORE_ANTHROPIC_API_KEY': 'k'},
+      ),
+      0,
+    );
+    expect('$out', contains('[anthropic · claude-'));
+    expect('$out', contains('ok   greet'));
+    expect('$out', contains('FAIL save'));
+    expect('$out', contains('chat: 1/1 (100%)'));
+    expect('$out', contains('all: 1/2 (50%)'));
+    // No cases file: said plainly.
+    expect(await run(['eval', '--cases=missing.json']), 1);
+    expect('$out', contains('missing.json'));
+  });
+
   test('a failing turn reports the error and where the trace is', () async {
     expect(await run(['chat', '--model=gpt=x', 'hi']), 1);
     expect('$out', contains('[chatgpt · gpt=x]')); // a value may hold '='
