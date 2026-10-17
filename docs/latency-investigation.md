@@ -50,12 +50,69 @@ including that refresh took **304 ms**. This is substantial enough to profile
 on a phone before ruling out local search as a bottleneck for large libraries.
 Unlike the table above, this large-corpus result is from one run; the initial
 build also includes cold file-system cache effects.
-No Android device was connected for this investigation, so these numbers must
-not be presented as phone timings.
+The Windows numbers above are host timings and must not be presented as phone
+timings. The emulator run below is separate.
+
+## Android emulator reproduction
+
+The app's `tool/android_latency_probe.dart` runs the same core probe on Android.
+It creates and removes notes and an index under the app's system temp directory;
+it never opens the normal Notelore session, provider keys, or user notes. It
+prints the 10,000-note index result first, then the 1- and 100-note scripted
+turn results. The checked-in runner makes the setup reusable by Claude and
+Codex sessions without a real provider account.
+
+One profile-mode run on an Android 15 x86_64 Pixel 6 emulator with WHPX,
+Flutter 3.47.6 / Dart 3.13.5, and the same Intel i9-13950HX host produced:
+
+| Notes | Turn | Scripted wait per model call | Model calls | Median total | Median provider | Median local tools |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | Note-taking | 0 ms | 3 | 4 ms | 0 ms | 4 ms |
+| 1 | Note-taking | 200 ms | 3 | 618 ms | 607 ms | 12 ms |
+| 1 | Retrieval | 0 ms | 2 | 3 ms | 0 ms | 3 ms |
+| 1 | Retrieval | 200 ms | 2 | 431 ms | 418 ms | 11 ms |
+| 100 | Note-taking | 0 ms | 3 | 68 ms | 23 ms | 45 ms |
+| 100 | Note-taking | 200 ms | 3 | 628 ms | 606 ms | 21 ms |
+| 100 | Retrieval | 0 ms | 2 | 18 ms | 1 ms | 17 ms |
+| 100 | Retrieval | 200 ms | 2 | 425 ms | 405 ms | 20 ms |
+
+Each row is the median of 20 fresh temp-note samples. The one 10,000-note
+corpus took **888 ms** for initial indexing, **89 ms** for the median of five
+unchanged refreshes, and **113 ms** for a search tool call including refresh.
+The preceding debug-mode run measured 1,400 ms, 113 ms, and 145 ms for those
+three operations, respectively. That difference shows why profile mode and
+repeated device runs matter. The runner executes on Flutter's main isolate and
+its bulk corpus creation caused skipped frames; it is a storage/agent probe,
+not a measurement of the normal chat UI's frame timing. None of these timings
+come from a physical phone or a live provider/network connection.
+
+On Windows, with Flutter and Android SDK command-line tools already installed:
+
+```powershell
+$sdk = "$env:LOCALAPPDATA\Android\Sdk"
+& "$sdk\cmdline-tools\latest\bin\android.exe" sdk install emulator
+& "$sdk\cmdline-tools\latest\bin\android.exe" sdk install 'system-images/android-35/google_apis/x86_64'
+& "$sdk\emulator\emulator.exe" -accel-check
+& "$sdk\cmdline-tools\latest\bin\avdmanager.bat" create avd -n notelore_latency_api35 -k 'system-images;android-35;google_apis;x86_64' -d pixel_6
+Start-Process -FilePath "$sdk\emulator\emulator.exe" -ArgumentList @('-avd','notelore_latency_api35','-no-window','-no-audio','-no-boot-anim','-gpu','swiftshader_indirect') -WindowStyle Hidden
+& "$sdk\platform-tools\adb.exe" -e wait-for-device
+& "$sdk\platform-tools\adb.exe" -e shell getprop sys.boot_completed # wait until 1
+$env:NOTELORE_HOME = '.dev-home'
+Set-Location apps/notelore
+& "$env:USERPROFILE\flutter\bin\flutter.bat" run -d emulator-5554 -t tool/android_latency_probe.dart --profile
+```
+
+`NOTELORE_HOME` protects manual host runs. The Android runner itself only uses
+explicit temp paths. The JSON lines appear in the Flutter log. Use `q` to stop
+`flutter run` after `Latency probe complete.`. The emulator can later be stopped
+with `adb -e emu kill`. Keep the host CPU, emulator API/ABI, Flutter mode, and
+sample count alongside any result. An emulator is useful for spotting Android
+path or SQLite regressions, but its timings do not represent a physical phone.
+The scripted provider's 200 ms wait is also not a live network measurement.
 
 The probe does **not** measure a live provider's inference time, internet
 round trips, token volume, model choice, a queued Drive sync, Flutter frame
-time, or an Android device. Thus it cannot establish a production end-to-end
+time on a physical Android device. Thus it cannot establish a production end-to-end
 baseline or claim an actual speedup. In the app, `Session.send` puts the turn
 through `_exclusive`; any sync already in that queue may add waiting time.
 `syncNow()` after a turn is launched without waiting for it, so it does not
@@ -79,6 +136,6 @@ at least 20 note-taking and 20 retrieval turns per chosen provider/model on a
 real device. Then compare median and p95 total time and the phase shares. A
 candidate optimization should target at least a 20% lower median on the same
 tasks while preserving answer correctness and the existing note-format and
-sync tests. Include a 10,000-note Android test before deciding whether to
+sync tests. Include a 10,000-note physical-device test before deciding whether to
 change index refresh frequency. Until that live baseline exists, changing the
 prompt, store, or provider defaults would be guesswork.
