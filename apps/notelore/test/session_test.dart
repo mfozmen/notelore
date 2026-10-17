@@ -355,6 +355,46 @@ void main() {
     },
   );
 
+  test('written while a waiting message is retried: it waits behind it, kept too', () async {
+    final retry = Completer<AgentResponse>();
+    const offline = NetworkError('offline');
+    final harness = Harness(answers: [offline, retry.future, offline]); // the last: after a restart
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    await session.send('bir');
+    final retrying = session.retryNow(); // in flight
+    await pumpEventQueue();
+    await session.send('iki'); // while it runs
+    retry.completeError(const NetworkError('offline')); // still offline
+    await retrying;
+    await settled(session);
+    expect(session.transcript.map((l) => (l.role, l.text)), [
+      (ChatRole.pending, 'bir'),
+      (ChatRole.pending, 'iki'),
+    ]);
+    final again = harness.session();
+    await again.load();
+    expect(again.transcript.map((l) => l.text), ['bir', 'iki']); // both kept
+  });
+
+  test('logging out while a waiting message is retried leaves nothing stuck', () async {
+    final retry = Completer<AgentResponse>();
+    final harness = Harness(answers: [const NetworkError('offline'), retry.future]);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    await session.send('bir');
+    final retrying = session.retryNow();
+    await pumpEventQueue();
+    await session.logout();
+    retry.complete(
+      const AgentResponse([
+        {'type': 'text', 'text': 'Geldi.'},
+      ], 'end_turn'),
+    );
+    await retrying;
+    expect(session.busy, isFalse);
+  });
+
   test('a turn that wrote notes and then failed is an error, never queued', () async {
     final harness = Harness(
       answers: [

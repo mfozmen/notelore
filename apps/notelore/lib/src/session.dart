@@ -691,8 +691,10 @@ class Session extends ChangeNotifier {
   Future<void> send(String text) async {
     final message = text.trim();
     if (message.isEmpty) return;
-    if (_outbox.isNotEmpty && !busy) {
-      _hold(message, fresh: true);
+    // Behind a waiting message, a new one waits too (kept, in order), even while
+    // the waiting ones are being tried.
+    if (_outbox.isNotEmpty) {
+      _enqueue(message);
       return retryNow();
     }
     transcript.add((role: ChatRole.user, text: message));
@@ -785,19 +787,28 @@ class Session extends ChangeNotifier {
   /// [message] waits: a [fresh] one joins the end of the queue, shown as waiting.
   void _hold(String message, {required bool fresh}) {
     _halted = true;
-    if (fresh) {
-      _outbox.add(message);
-      final at = transcript.lastIndexWhere((l) => l.role == ChatRole.user && l.text == message);
-      final line = (role: ChatRole.pending, text: message);
-      at < 0 ? transcript.add(line) : transcript[at] = line;
-      _saveQueue();
-    }
-    _retry ??= Timer.periodic(retryEvery, (_) => unawaited(retryNow()));
+    if (fresh) _enqueue(message);
+    _startRetrying();
     notifyListeners();
   }
 
+  /// [message] joins the end of the queue, shown as waiting and kept.
+  void _enqueue(String message) {
+    _outbox.add(message);
+    final at = transcript.lastIndexWhere((l) => l.role == ChatRole.user && l.text == message);
+    final line = (role: ChatRole.pending, text: message);
+    at < 0 ? transcript.add(line) : transcript[at] = line;
+    _saveQueue();
+    _startRetrying();
+    notifyListeners();
+  }
+
+  void _startRetrying() => _retry ??= Timer.periodic(retryEvery, (_) => unawaited(retryNow()));
+
   /// The first waiting [message] reached the model.
   void _sent(String message) {
+    // Logged out meanwhile: the queue went with the conversation.
+    if (_outbox.firstOrNull != message) return;
     _outbox.removeAt(0);
     final at = transcript.indexWhere((l) => l.role == ChatRole.pending && l.text == message);
     if (at >= 0) transcript[at] = (role: ChatRole.user, text: message);
@@ -834,7 +845,7 @@ class Session extends ChangeNotifier {
     } on Exception {
       // none yet, or damaged: nothing waits
     }
-    if (_outbox.isNotEmpty) _retry ??= Timer.periodic(retryEvery, (_) => unawaited(retryNow()));
+    if (_outbox.isNotEmpty) _startRetrying();
   }
 
   /// The app went to the background ([foreground] false) or came back: back,
