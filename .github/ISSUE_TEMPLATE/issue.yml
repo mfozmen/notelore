@@ -1,0 +1,22 @@
+name: Issue
+description: A bug, a request or a task. Every issue needs a priority.
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What is it about?
+      description: What happens or what you want, and how to tell it is done.
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: Becomes the issue's priority/* label.
+      options:
+        - critical
+        - high
+        - medium
+        - low
+    validations:
+      required: true

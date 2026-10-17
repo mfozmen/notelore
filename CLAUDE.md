@@ -116,6 +116,7 @@ At runtime, the agent answers in the language the user writes in, and writes not
 ## Workflow
 
 - **Commits:** Conventional Commits (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`). CI config changes are `ci:`.
+- **Issues:** every issue carries exactly one `priority/*` label (`critical`, `high`, `medium`, `low`); open them with `gh issue create --label priority/<level>` or the issue form. `issue-priority.yml` closes an issue without one until it is labelled.
 - **Branches:** one branch per feature/fix, `<type>/<slug>` (e.g. `feat/note-format-parser`), merged via PR with summary, context and test plan. `main` is protected by a repository ruleset: every change goes through a PR (docs too), the Flutter, CI script, SonarCloud and claude-review checks must pass, and force-push and deletion are blocked. The only bypass is the release deploy key (`RELEASE_DEPLOY_KEY`), which the manual release workflow uses to push its version commit and tag.
 - **Releases:** manual (`gh workflow run release.yml`). Python Semantic Release (configured in `releaserc.toml`) bumps both pubspec versions from the Conventional Commits; the workflow builds and attaches the app for Windows, macOS and Android with SHA-256 files.
 - **README stays current:** any user-visible change updates `README.md` in the same PR.
