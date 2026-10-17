@@ -3,6 +3,7 @@ package io.github.mfozmen.notelore
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
@@ -11,8 +12,39 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
 class MainActivity : FlutterActivity() {
+    /** What another app shared ("Share → Notelore"), until the Dart side takes it. */
+    private var shared: Map<String, String?>? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) keep(intent) // not again after a restore
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        keep(intent)
+    }
+
+    private fun keep(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_SEND || intent?.type?.startsWith("text/") != true) return
+        shared = mapOf(
+            "text" to intent.getStringExtra(Intent.EXTRA_TEXT),
+            "subject" to intent.getStringExtra(Intent.EXTRA_SUBJECT),
+        )
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        // Shares (share_in.dart): asked for at start and on each return to the front.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "io.github.mfozmen.notelore/share")
+            .setMethodCallHandler { call, result ->
+                if (call.method == "take") {
+                    result.success(shared)
+                    shared = null
+                } else {
+                    result.notImplemented()
+                }
+            }
         // The in-app updater (update.dart): hands a downloaded APK to the installer.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "io.github.mfozmen.notelore/install")
             .setMethodCallHandler { call, result ->

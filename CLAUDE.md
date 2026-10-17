@@ -56,6 +56,7 @@ Core (`packages/notelore_core/lib/src/`):
 - `store/transfer.dart`: importing a shared note without overwriting (a taken name gets "(2)"), and the HTML page and plain outline exports are built from.
 - `providers/`: one `LlmProvider` interface over Anthropic, OpenAI, Gemini and Ollama, plain HTTPS through an injectable `Transport`, and key validation by listing models.
 - `agent.dart`: the tool-use loop; `tools.dart`: the narrow tools the agent may call (contracts in the library doc).
+- `links.dart`: reading the web pages a message links to (http(s) only, size and time limits) and handing their text to the model as data.
 - `usage.dart`: the tokens each model call reported, per conversation and on this device, and the dated price table cost estimates come from.
 - `sync/merge.dart`: decision table and three-way merge (a port of difflib); `sync/resolve.dart`: the model as last resort for same-line conflicts; `sync/manifest.dart`: per-device record of the last synced state; `sync/engine.dart`: one sync pass against a `Remote`.
 - `sync/drive.dart`: Google Drive as the `Remote` (scope `drive.file` only); `sync/google_auth.dart`: `DriveAuth` and the desktop loopback sign-in.
@@ -68,6 +69,7 @@ App (`apps/notelore/lib/`):
 - `src/voice.dart`: voice mode and the device recognizer; `src/whisper_speech.dart`, `whisper_model.dart`, `whisper_native.dart`: on-device Whisper (sherpa-onnx), its download, and the native glue.
 - `src/update.dart`: update check at every start and checksum-verified self-update of the desktop app.
 - `src/transfer.dart`: export formats (Markdown, PDF in the bundled Noto Sans, HTML) and the share sheet or save and open dialogs they go through.
+- `src/share_in.dart`, `share_native.dart`: Android's "Share → Notelore" into the chat, sent once the app is set up and unlocked; the method channel glue.
 - `src/lock.dart`: the app lock's screen at start and its Settings dialogs; `src/lock_state.dart`: its state (`AppLock`: on/off, wrong tries and their wait, re-lock after a while away); the hash lives in the keystore.
 - `src/app.dart`, `setup.dart`, `chat.dart`, `notes.dart`, `settings.dart`: the screens.
 

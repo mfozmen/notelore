@@ -257,6 +257,12 @@ void main() {
     expect(prompt, contains('"deyta beys"'));
   });
 
+  test('the prompt files a shared link by its page, never a guess (#211)', () {
+    final prompt = systemPrompt(today);
+    expect(prompt, contains('Notelore read the linked pages'));
+    expect(prompt, contains('could not be read'));
+  });
+
   test('the system prompt states the rules', () {
     final prompt = systemPrompt(today);
     for (final rule in ['get_decision', 'language', 'ask', 'archive', '2026-09-30']) {
