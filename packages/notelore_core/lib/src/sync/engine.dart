@@ -135,8 +135,8 @@ class _Pass {
     final entry = manifest.get(rel);
     final baseHash = entry?.localHash;
     final texts = await _texts(found, meta, entry);
-    if (texts == null)
-      return report.skipped.add(rel); // not UTF-8: one bad file never stops the rest
+    // Not UTF-8: one bad file never stops the rest.
+    if (texts == null) return report.skipped.add(rel);
     final (localText, remoteText) = texts;
     final remoteHash = _remoteHash(meta, remoteText, baseHash);
     final localHash = localText == null ? null : contentHash(localText);
