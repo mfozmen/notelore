@@ -5,6 +5,7 @@ library;
 export 'src/agent.dart'
     show Agent, TurnStopped, defaultMaxTurns, describeTool, suggestedAnswers, systemPrompt;
 export 'src/i18n.dart' show sectionHeading, sectionHeadings, sectionKey;
+export 'src/links.dart' show LinkUnreadable, WebPage, linksIn, readPage, withLinkedPages;
 export 'src/oauth.dart' show NotSignedIn, OAuthSignIn, SignInFailed;
 export 'src/paths.dart' show NotelorePaths;
 export 'src/providers/base.dart'

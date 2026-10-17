@@ -660,8 +660,10 @@ class Session extends ChangeNotifier {
     Agent? asked; // the one that ran the turn, even if a logout replaced it since
     try {
       if (_stopped) throw const TurnStopped(); // stopped while queued behind a sync
+      final withPages = await _withPages(message);
+      if (_stopped) throw const TurnStopped(); // stopped while the pages loaded
       final answer = await (asked = _agent!).ask(
-        _withArchived(message),
+        _withArchived(withPages),
         takeLater: () {
           taken.addAll(_later);
           _later.clear();
@@ -785,6 +787,17 @@ class Session extends ChangeNotifier {
   Map<String, String> _noteTitles() => {
     for (final note in listNotes()) '${note.kind}/${note.slug}': note.title,
   };
+
+  /// [message] with the text of the web pages it links to (#211), so a shared
+  /// link is filed by what it says.
+  Future<String> _withPages(String message) async {
+    final client = httpClient();
+    try {
+      return await withLinkedPages(message, client: client);
+    } finally {
+      client.close();
+    }
+  }
 
   /// [message], and the notes archived since the last turn (here, on another
   /// device, anywhere): the model may have read them before and must not use them.

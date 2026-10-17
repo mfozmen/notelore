@@ -127,7 +127,13 @@ class Harness {
   /// Thrown by the model download instead of an answer (an Error, say).
   Object? modelFailure;
 
+  /// Web pages by URL, for links in a message (#211); a Future answers later.
+  final pages = <String, FutureOr<String>>{};
+
   http.Client _models() => MockClient((request) async {
+    if (pages[request.url.toString()] case final page?) {
+      return http.Response(await page, 200, headers: {'content-type': 'text/html'});
+    }
     if (modelFailure case final failure?) throw failure;
     if (modelPage case final page?) return http.Response(page, 200);
     return http.Response('', 404);

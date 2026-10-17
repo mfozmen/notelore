@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'src/app.dart';
 import 'src/drive_auth.dart';
 import 'src/session.dart';
+import 'src/share_native.dart';
 import 'src/update.dart';
 
 void main() => runApp(
@@ -54,5 +55,6 @@ Future<Session> openSession({Map<String, String>? environment, bool? mobile}) as
     systemLanguage: PlatformDispatcher.instance.locale.languageCode,
   );
   await session.load();
+  if (phone && Platform.isAndroid) listenForShares(session); // "Share → Notelore" (#211)
   return session;
 }

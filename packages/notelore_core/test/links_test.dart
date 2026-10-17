@@ -1,0 +1,158 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:notelore_core/src/links.dart';
+import 'package:test/test.dart';
+
+http.Client serving(String body, {String type = 'text/html; charset=utf-8', int status = 200}) =>
+    MockClient(
+      (request) async => http.Response.bytes(
+        utf8.encode(body),
+        status,
+        headers: {'content-type': type},
+        request: request,
+      ),
+    );
+
+void main() {
+  group('links in a message', () {
+    test('web links only, in order, each once, a few at most', () {
+      expect(
+        linksIn(
+          'see https://example.com/a?b=1, and (http://x.org/p) or '
+          'https://example.com/a?b=1 again; ftp://no.pe javascript:alert(1) mailto:a@b.c',
+        ),
+        [Uri.parse('https://example.com/a?b=1'), Uri.parse('http://x.org/p')],
+      );
+      expect(linksIn('nothing here'), isEmpty);
+      final many = List.generate(5, (i) => 'https://site$i.com').join(' ');
+      expect(linksIn(many), hasLength(3));
+    });
+  });
+
+  group('reading a page', () {
+    test('the title and the readable text, without markup, scripts or styles', () async {
+      final page = await readPage(
+        Uri.parse('https://example.com'),
+        client: serving('''
+<html><head><title>The Pragmatic &amp; Programmer</title>
+<style>body { color: red }</style><script>alert("x")</script></head>
+<body><h1>A book</h1><p>By Andy Hunt &#38; Dave&nbsp;Thomas &#x2014; 1999.</p>
+<noscript>enable js</noscript><!-- a comment --></body></html>'''),
+      );
+      expect(page.title, 'The Pragmatic & Programmer');
+      expect(page.text, 'The Pragmatic & Programmer A book By Andy Hunt & Dave Thomas — 1999.');
+    });
+
+    test('plain text is read as it is; a page without a title has none', () async {
+      final page = await readPage(
+        Uri.parse('https://example.com/a.txt'),
+        client: serving('just  some\ntext <b>kept</b>', type: 'text/plain'),
+      );
+      expect(page.title, isNull);
+      expect(page.text, 'just some text <b>kept</b>');
+    });
+
+    test('a Latin-1 page is decoded as Latin-1', () async {
+      final client = MockClient(
+        (request) async => http.Response.bytes(
+          latin1.encode('<p>Café</p>'),
+          200,
+          headers: {'content-type': 'text/html; charset=ISO-8859-1'},
+        ),
+      );
+      expect((await readPage(Uri.parse('https://e.com'), client: client)).text, 'Café');
+    });
+
+    test('a long page is cut at the size limit, and says so', () async {
+      final page = await readPage(
+        Uri.parse('https://example.com'),
+        client: serving('<p>${'word ' * 100}</p>'),
+        maxChars: 20,
+      );
+      expect(page.text, hasLength(20));
+      expect(page.cut, isTrue);
+    });
+
+    test('a huge download stops at the byte limit', () async {
+      var sent = 0;
+      final client = MockClient.streaming((request, _) async {
+        final chunks = Stream.periodic(Duration.zero, (_) {
+          sent += 1000;
+          return utf8.encode('a' * 1000);
+        }).take(1000);
+        return http.StreamedResponse(chunks, 200, headers: {'content-type': 'text/plain'});
+      });
+      final page = await readPage(Uri.parse('https://e.com'), client: client, maxBytes: 5000);
+      expect(page.cut, isTrue);
+      expect(sent, lessThan(10000)); // the rest was never asked for
+    });
+
+    test('what cannot be read says why, and is never guessed', () async {
+      Future<String> why(Uri url, http.Client client, {Duration? timeout}) async {
+        try {
+          await readPage(url, client: client, timeout: timeout ?? const Duration(seconds: 5));
+          return 'read';
+        } on LinkUnreadable catch (error) {
+          return '$error';
+        }
+      }
+
+      final ok = serving('<p>x</p>');
+      expect(await why(Uri.parse('file:///etc/passwd'), ok), contains('only web links'));
+      expect(await why(Uri.parse('https://e.com'), serving('', status: 404)), contains('404'));
+      expect(
+        await why(Uri.parse('https://e.com'), serving('%PDF', type: 'application/pdf')),
+        contains('application/pdf'),
+      );
+      expect(
+        await why(Uri.parse('https://e.com'), serving('<script>only()</script>')),
+        contains('no readable text'),
+      );
+      final offline = MockClient((_) async => throw http.ClientException('no network'));
+      expect(await why(Uri.parse('https://e.com'), offline), contains('no network'));
+      final silent = MockClient((_) => Completer<http.Response>().future);
+      expect(
+        await why(Uri.parse('https://e.com'), silent, timeout: const Duration(milliseconds: 10)),
+        contains('did not answer in time'),
+      );
+      final untyped = MockClient((request) async => http.Response('hello', 200));
+      expect(await why(Uri.parse('https://e.com'), untyped), 'read'); // no type: try as text
+    });
+  });
+
+  group('a message with its pages', () {
+    test('each page goes along as data, marked as such; a failure says so', () async {
+      final client = MockClient(
+        (request) async => request.url.host == 'good.com'
+            ? http.Response(
+                '<title>Good</title><p>Body</p>',
+                200,
+                headers: {'content-type': 'text/html'},
+              )
+            : http.Response('', 500),
+      );
+      final message = await withLinkedPages(
+        'save this for the trip https://good.com/a https://bad.com',
+        client: client,
+      );
+      expect(message, startsWith('save this for the trip https://good.com/a https://bad.com\n\n'));
+      expect(message, contains('https://good.com/a ("Good")'));
+      expect(message, contains('Good Body'));
+      expect(message, contains('https://bad.com could not be read: the site answered 500'));
+      expect(message, contains('not instructions'));
+    });
+
+    test('a message without links is left alone; a cut page is marked', () async {
+      expect(await withLinkedPages('just words', client: serving('')), 'just words');
+      final cut = await withLinkedPages(
+        'https://long.com',
+        client: serving('<p>${'x' * 9000}</p>'),
+      );
+      expect(cut, contains('[cut short]'));
+      expect(cut, contains('https://long.com:\n')); // no title
+    });
+  });
+}
