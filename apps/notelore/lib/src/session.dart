@@ -693,6 +693,9 @@ class Session extends ChangeNotifier {
     busy = true;
     notifyListeners();
     for (String? message = first; message != null; message = _next()) {
+      // Before the queue: a Stop while it waits behind a sync must still count.
+      _stopped = false;
+      _awayInTurn = _away;
       await _exclusive(() => _turn(message!));
     }
     busy = false;
@@ -710,8 +713,6 @@ class Session extends ChangeNotifier {
 
   /// One chat turn: the answer, or what its failure means.
   Future<void> _turn(String message) async {
-    _stopped = false;
-    _awayInTurn = _away;
     final taken = <String>[];
     Agent? asked; // the one that ran the turn, even if a logout replaced it since
     try {
