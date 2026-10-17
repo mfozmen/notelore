@@ -47,6 +47,8 @@ void main() {
       'search_notes',
       'find_stale_notes',
       'archive',
+      'related_notes',
+      'merge_notes',
     ]);
     for (final tool in box.tools) {
       expect(tool.description, isNotEmpty);
@@ -149,6 +151,44 @@ void main() {
         'date': '2026-01-01',
       },
     ]);
+  });
+
+  test('related notes across categories, then a merge that archives the source (#229)', () {
+    call('create_note', {'kind': 'project', 'title': 'Home Server'});
+    call('add_note_entry', {'slug': 'home-server', 'text': 'Runs on a Raspberry Pi.'});
+    call('add_note_entry', {'slug': 'home-server', 'text': 'Backups go to an external disk.'});
+    call('create_note', {'kind': 'topic', 'title': 'Raspberry Pi'});
+    call('add_note_entry', {'slug': 'raspberry-pi', 'text': 'Needs a 27 W power supply.'});
+    call('add_note_entry', {'slug': 'raspberry-pi', 'text': 'Runs on a Raspberry Pi.'});
+    expect(call('related_notes', {'title': 'Raspberry Pi case', 'about': 'home server power'}), [
+      {
+        'slug': 'raspberry-pi',
+        'kind': 'topic',
+        'title': 'Raspberry Pi',
+        'shares_title_words': ['raspberry'],
+        'matching_lines': 1,
+      },
+      {
+        'slug': 'home-server',
+        'kind': 'project',
+        'title': 'Home Server',
+        'shares_title_words': <Object?>[],
+        'matching_lines': 2,
+      },
+    ]);
+    expect(call('related_notes', {'title': 'Gardening'}), <Object?>[]);
+    expect(call('merge_notes', {'from': 'raspberry-pi', 'into': 'home-server'}), {
+      'merged_into': 'projects/home-server.md',
+      'archived_to': '_archive/2026-09-30/topics/raspberry-pi.md',
+      'added': 1,
+      'already_there': 1,
+    });
+    expect(call('read_note', {'slug': 'home-server'}), contains('Needs a 27 W power supply.'));
+    expect(
+      call('merge_notes', {'from': 'home-server', 'into': 'home-server'}),
+      startsWith('Error:'),
+    );
+    expect(call('merge_notes', {'from': 'gone', 'into': 'home-server'}), startsWith('Error:'));
   });
 
   test('archive entries and the whole file', () {

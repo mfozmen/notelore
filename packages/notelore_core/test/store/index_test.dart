@@ -88,6 +88,27 @@ void main() {
         expect(idx.listNotes(kind: 'topic').map((n) => n.slug), ['sirket-kurulusu', 'odd-date']);
       });
 
+      test('related notes (#229): a shared title word, or several matching lines', () {
+        final mopsos = idx.related('Mopsos backend').single;
+        expect((mopsos.slug, mopsos.kind, mopsos.title), ('mopsos', 'project', 'Mopsos'));
+        expect(mopsos.titleWords, ['mopsos']);
+        expect(mopsos.lines, 0);
+        // Across categories and languages: a topic for a project's question.
+        final sirket = idx.related('Şirket vergisi', about: 'muhasebeci');
+        expect(sirket.single.slug, 'sirket-kurulusu');
+        expect(sirket.single.titleWords, ['sirket']);
+        expect(sirket.single.lines, greaterThan(0));
+        // No title word in common, but what it is about is already written down.
+        final crypto = idx.related('Crypto', about: 'crypto postponed, maybe SQLite');
+        expect(crypto.single.slug, 'mopsos');
+        expect(crypto.single.titleWords, isEmpty);
+        expect(crypto.single.lines, greaterThanOrEqualTo(2));
+        // One loose line is not enough; common words do not count.
+        expect(idx.related('Gardening', about: 'zettelkasten'), isEmpty);
+        expect(idx.related('The notes for my project'), isEmpty);
+        expect(idx.related('Odd Mopsos').map((r) => r.slug), ['mopsos', 'odd-date']);
+      });
+
       test('getDecision is the newest active one', () {
         expect(
           idx.getDecision('mopsos', 'database'),

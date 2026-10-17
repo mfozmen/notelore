@@ -148,16 +148,18 @@ String _lang(Note note) {
 bool _isBlank(NoteEntry entry) => entry is Raw && entry.text.trim().isEmpty;
 
 /// The known section [key], created at the end of the file if missing.
-Section _section(Note note, String key, [String? lang]) {
-  final existing = note.section(key);
-  if (existing != null) return existing;
+Section _section(Note note, String key, [String? lang]) =>
+    note.section(key) ?? _addSection(note, sectionHeading(key, lang ?? _lang(note)));
+
+/// A new section called [heading] at the end of the file.
+Section _addSection(Note note, String heading) {
   if (note.sections.isNotEmpty) {
     final previous = note.sections.last.entries;
     if (previous.isEmpty || !_isBlank(previous.last)) {
       previous.add(const Raw('')); // one blank line between sections
     }
   }
-  final section = Section(sectionHeading(key, lang ?? _lang(note)));
+  final section = Section(heading);
   note.sections.add(section);
   return section;
 }
@@ -410,4 +412,96 @@ String archiveEntries(
   writeNote(target, archive, today: day); // archive first: a failure here loses nothing
   writeNote(path, note, today: day);
   return target;
+}
+
+/// What [mergeNotes] did: where the source went, and how many of its entries
+/// were added or already there.
+typedef MergeResult = ({String archivedTo, int added, int duplicates});
+
+/// Merges the note at [fromPath] into the one at [intoPath] (#229): every
+/// entry, loose line, preamble line and unknown section of the source is
+/// appended unless the target already has it; tags are joined; per decision
+/// topic only the newest stays active. Then the source moves to the archive,
+/// never deleted. The target is written first, so a failure loses nothing.
+MergeResult mergeNotes(
+  String root,
+  String fromPath,
+  String intoPath, {
+  DateTime? today,
+  Rename rename = _rename,
+}) {
+  if (p.equals(fromPath, intoPath)) {
+    throw ArgumentError.value(fromPath, 'from', 'a note cannot be merged into itself');
+  }
+  final from = readNote(fromPath);
+  final into = readNote(intoPath);
+  final day = today ?? localToday();
+  var (added, duplicates) = (0, 0);
+  void take(List<NoteEntry> target, NoteEntry entry) {
+    if (_isBlank(entry)) return;
+    if (target.contains(entry)) {
+      duplicates++;
+    } else {
+      added++;
+      target.add(entry);
+    }
+  }
+
+  final lines = <NoteEntry>[];
+  for (final line in from.preamble) {
+    if (!into.preamble.contains(line)) take(lines, Raw(line));
+  }
+  if (lines.isNotEmpty) {
+    var end = into.preamble.length;
+    while (end > 0 && into.preamble[end - 1].trim().isEmpty) {
+      end--;
+    }
+    into.preamble.insertAll(end, [
+      if (end == 0) '',
+      for (final Raw(:text) in lines.cast<Raw>()) text,
+    ]);
+  }
+  for (final section in from.sections) {
+    final target = section.key == null
+        ? into.section(section.heading) ?? _addSection(into, section.heading)
+        : _section(into, section.key!, _lang(into));
+    final fresh = <NoteEntry>[...target.entries];
+    for (final entry in section.entries) {
+      take(fresh, entry);
+    }
+    for (final entry in fresh.skip(target.entries.length).toList()) {
+      _append(target, entry);
+    }
+  }
+  if (into.section('decisions') case final decisions?) _oneActivePerTopic(decisions);
+  final tags = [
+    for (final tags in [into.meta['tags'], from.meta['tags']])
+      if (tags is List) ...tags,
+  ];
+  if (tags.isNotEmpty) into.meta['tags'] = tags.toSet().toList();
+  into.meta['updated'] = day;
+  atomicWrite(intoPath, unorm.nfc(serialize(into)), rename: rename);
+  return (
+    archivedTo: archiveNote(root, fromPath, today: day),
+    added: added,
+    duplicates: duplicates,
+  );
+}
+
+/// Two notes may each have an active decision for a topic: the newest stays,
+/// the others are superseded on its date.
+void _oneActivePerTopic(Section section) {
+  final newest = <String, Decision>{};
+  for (final entry in section.entries) {
+    if (entry case Decision(superseded: null) && final d
+        when !(newest[d.topic]?.date.isAfter(d.date) ?? false)) {
+      newest[d.topic] = d;
+    }
+  }
+  for (var i = 0; i < section.entries.length; i++) {
+    if (section.entries[i] case Decision(superseded: null) && final d
+        when !identical(newest[d.topic], d)) {
+      section.entries[i] = Decision(d.date, d.topic, d.text, superseded: newest[d.topic]!.date);
+    }
+  }
 }

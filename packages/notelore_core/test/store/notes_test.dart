@@ -537,4 +537,97 @@ void main() {
       expect(entries(path, 'notes').whereType<Entry>().map((e) => e.text), ['Solaris']);
     });
   });
+
+  group('merge (#229)', () {
+    late String from;
+    late String into;
+
+    setUp(() {
+      into = createNote(root, 'project', 'Home Server', tags: ['home'], today: d(2026, 9, 1));
+      addEntry(into, 'The server runs on a Raspberry Pi.', today: d(2026, 9, 2));
+      recordDecision(into, 'backup', 'Restic', today: d(2026, 9, 3));
+      addTodo(into, 'Buy a UPS', today: d(2026, 9, 4));
+      from = createNote(
+        root,
+        'topic',
+        'Raspberry Pi',
+        tags: ['hardware', 'home'],
+        today: d(2026, 9, 5),
+      );
+      addEntry(from, 'The server runs on a Raspberry Pi.', today: d(2026, 9, 2)); // the same entry
+      addEntry(from, 'It needs a 27 W power supply.', today: d(2026, 9, 6));
+      recordDecision(from, 'backup', 'Borg', reason: 'Deduplicates better.', today: d(2026, 9, 7));
+      recordDecision(from, 'os', 'Debian', today: d(2026, 9, 8));
+      addTodo(from, 'Order a case', today: d(2026, 9, 9));
+    });
+
+    test('keeps every entry once, the newest decision active, and archives the source', () {
+      final result = mergeNotes(root, from, into, today: today);
+      expect(result.added, 4);
+      expect(result.duplicates, 1);
+      expect(File(from).existsSync(), isFalse);
+      expect(
+        result.archivedTo,
+        p.join(root, archiveFolder, '2026-09-30', 'topics', 'raspberry-pi.md'),
+      );
+      expect(File(result.archivedTo).existsSync(), isTrue); // nothing lost, only moved
+      expect(entries(into, 'notes').where((e) => e is! Raw), [
+        Entry(d(2026, 9, 2), 'The server runs on a Raspberry Pi.'),
+        Entry(d(2026, 9, 6), 'It needs a 27 W power supply.'),
+      ]);
+      expect(entries(into, 'todo').whereType<Todo>().map((t) => t.text), [
+        'Buy a UPS',
+        'Order a case',
+      ]);
+      final decisions = entries(into, 'decisions').whereType<Decision>().toList();
+      expect(decisions.map((d) => (d.topic, d.text, d.superseded)), [
+        ('backup', 'Restic.', d(2026, 9, 7)), // the newer one from the source wins
+        ('backup', 'Borg. Deduplicates better.', null),
+        ('os', 'Debian.', null),
+      ]);
+      final note = readNote(into);
+      expect(note.meta['tags'], ['home', 'hardware']);
+      expect(note.meta['updated'], today);
+      expect(note.meta['title'], 'Home Server');
+    });
+
+    test('loose lines, the preamble and unknown sections come along', () {
+      File(from).writeAsStringSync(
+        '---\ntitle: Raspberry Pi\nkind: topic\n---\n# Raspberry Pi\n\nA small computer.\n\n'
+        '## Notes\n\n- 2026-09-06: It needs a 27 W power supply.\nA loose line.\n\n'
+        '## Links\n\n- https://www.raspberrypi.com\n',
+      );
+      mergeNotes(root, from, into); // today by default
+      final note = readNote(into);
+      expect(note.preamble.where((l) => l.trim().isNotEmpty), ['A small computer.']);
+      expect(entries(into, 'notes'), contains(const Raw('A loose line.')));
+      expect(entries(into, 'Links'), contains(const Raw('- https://www.raspberrypi.com')));
+      expect(note.meta.containsKey('tags'), isTrue); // the target's own tags stay
+    });
+
+    test('a note never merges into itself; a missing note fails before anything moves', () {
+      expect(() => mergeNotes(root, into, into, today: today), throwsArgumentError);
+      expect(
+        () => mergeNotes(root, p.join(root, 'topics', 'gone.md'), into, today: today),
+        throwsA(isA<FileSystemException>()),
+      );
+      expect(File(into).existsSync(), isTrue);
+    });
+
+    test('a target that cannot be written leaves the source where it was', () {
+      final before = File(into).readAsStringSync();
+      expect(
+        () => mergeNotes(
+          root,
+          from,
+          into,
+          today: today,
+          rename: (_, _) => throw const FileSystemException('disk full'),
+        ),
+        throwsA(isA<FileSystemException>()),
+      );
+      expect(File(from).existsSync(), isTrue);
+      expect(File(into).readAsStringSync(), before);
+    });
+  });
 }

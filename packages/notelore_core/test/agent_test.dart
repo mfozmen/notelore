@@ -164,6 +164,8 @@ void main() {
       'Thinking',
     ]);
     expect(describeTool('some_new_tool'), 'Working'); // never mislabelled as a write
+    expect(describeTool('related_notes'), 'Searching the notes');
+    expect(describeTool('merge_notes'), 'Writing the notes'); // a merge writes (#229)
   });
 
   test('messages written meanwhile join the next step, so one answer covers them', () async {
@@ -261,6 +263,10 @@ void main() {
     final prompt = systemPrompt(today);
     expect(prompt, contains('Notelore read the linked pages'));
     expect(prompt, contains('could not be read'));
+  });
+
+  test('the prompt looks for related notes before creating one (#229)', () {
+    expect(systemPrompt(today), contains('related_notes'));
   });
 
   test('the system prompt states the rules', () {

@@ -17,6 +17,11 @@
 /// - `find_stale_notes()`: cleanup candidates with 1-based entry numbers.
 /// - `archive(slug, entries?, kind?)`: moves numbered entries per section, or the
 ///   whole file when `entries` is omitted, under `_archive/`.
+/// - `related_notes(title, about?)`: notes in either category a new note may belong
+///   with: `[{slug, kind, title, shares_title_words, matching_lines}]`, best first.
+/// - `merge_notes(from, into, from_kind?, into_kind?)`: appends what `into` lacks of
+///   `from`, then moves `from` under `_archive/`:
+///   `{merged_into, archived_to, added, already_there}`.
 ///
 /// `kind` (`project` | `topic`) is only needed when the same slug exists as
 /// both. No tool overwrites a file or deletes anything. Ported from the Python
@@ -139,6 +144,27 @@ final noteTools = List<Tool>.unmodifiable([
       },
     ),
   ),
+  Tool(
+    'related_notes',
+    'Existing projects and topics a new note may belong with, by title words and content. '
+        'Call before create_note.',
+    _schema(
+      ['title'],
+      {
+        'title': _string,
+        'about': {'type': 'string', 'description': 'what the new note would say'},
+      },
+    ),
+  ),
+  Tool(
+    'merge_notes',
+    'Move everything of note "from" that "into" lacks into "into", then archive "from". '
+        'Only after the user confirmed which note goes into which.',
+    _schema(
+      ['from', 'into'],
+      {'from': _slug, 'into': _slug, 'from_kind': _kind, 'into_kind': _kind},
+    ),
+  ),
 ]);
 
 final _isoDate = RegExp(r'^\d{4}-\d{2}-\d{2}$');
@@ -216,6 +242,13 @@ class Toolbox {
       'decision_history' => _decisionHistory(arg('slug'), optional('topic'), kind),
       'search_notes' => [for (final h in _fresh().search(arg('query'), kind: kind)) _hit(h)],
       'find_stale_notes' => [for (final s in findStaleNotes(root, today: today)) _stale(s)],
+      'related_notes' => [
+        for (final r in _fresh().related(arg('title'), about: optional('about'))) _related(r),
+      ],
+      'merge_notes' => _merge(
+        _path(arg('from'), optional('from_kind')),
+        _path(arg('into'), optional('into_kind')),
+      ),
       _ => _archive(arg('slug'), args['entries'] as Map?, kind), // 'archive'
     };
   }
@@ -265,6 +298,16 @@ class Toolbox {
     return [for (final d in _fresh().decisionHistory(slug, topic: topic, kind: kind)) _decision(d)];
   }
 
+  Map<String, Object?> _merge(String from, String into) {
+    final (:archivedTo, :added, :duplicates) = notes.mergeNotes(root, from, into, today: today);
+    return {
+      'merged_into': _rel(into),
+      'archived_to': _rel(archivedTo),
+      'added': added,
+      'already_there': duplicates,
+    };
+  }
+
   Map<String, Object?> _archive(String slug, Map<Object?, Object?>? entries, String? kind) {
     final path = _path(slug, kind);
     final target = entries == null || entries.isEmpty
@@ -293,6 +336,14 @@ Map<String, Object?> _hit(Hit h) => {
   'section': h.section,
   'text': h.text,
   'superseded': h.superseded,
+};
+
+Map<String, Object?> _related(Related r) => {
+  'slug': r.slug,
+  'kind': r.kind,
+  'title': r.title,
+  'shares_title_words': r.titleWords,
+  'matching_lines': r.lines,
 };
 
 Map<String, Object?> _stale(Stale s) => {
