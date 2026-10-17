@@ -436,7 +436,28 @@ MergeResult mergeNotes(
   final from = readNote(fromPath);
   final into = readNote(intoPath);
   final day = today ?? localToday();
-  var (added, duplicates) = (0, 0);
+  final tally = _Tally();
+  _mergePreamble(into, from, tally);
+  for (final section in from.sections) {
+    _mergeSection(into, section, tally);
+  }
+  if (into.section('decisions') case final decisions?) _oneActivePerTopic(decisions);
+  _joinTags(into, from);
+  into.meta['updated'] = day;
+  atomicWrite(intoPath, unorm.nfc(serialize(into)), rename: rename);
+  return (
+    archivedTo: archiveNote(root, fromPath, today: day),
+    added: tally.added,
+    duplicates: tally.duplicates,
+  );
+}
+
+/// What a merge added, and what the target had already.
+final class _Tally {
+  var added = 0;
+  var duplicates = 0;
+
+  /// Adds [entry] to [target] unless it is blank or already there.
   void take(List<NoteEntry> target, NoteEntry entry) {
     if (_isBlank(entry)) return;
     if (target.contains(entry)) {
@@ -446,46 +467,46 @@ MergeResult mergeNotes(
       target.add(entry);
     }
   }
+}
 
+/// The source's text above its first section, after the target's own.
+void _mergePreamble(Note into, Note from, _Tally tally) {
   final lines = <NoteEntry>[];
   for (final line in from.preamble) {
-    if (!into.preamble.contains(line)) take(lines, Raw(line));
+    if (!into.preamble.contains(line)) tally.take(lines, Raw(line));
   }
-  if (lines.isNotEmpty) {
-    var end = into.preamble.length;
-    while (end > 0 && into.preamble[end - 1].trim().isEmpty) {
-      end--;
-    }
-    into.preamble.insertAll(end, [
-      if (end == 0) '',
-      for (final Raw(:text) in lines.cast<Raw>()) text,
-    ]);
+  if (lines.isEmpty) return;
+  var end = into.preamble.length;
+  while (end > 0 && into.preamble[end - 1].trim().isEmpty) {
+    end--;
   }
-  for (final section in from.sections) {
-    final target = section.key == null
-        ? into.section(section.heading) ?? _addSection(into, section.heading)
-        : _section(into, section.key!, _lang(into));
-    final fresh = <NoteEntry>[...target.entries];
-    for (final entry in section.entries) {
-      take(fresh, entry);
-    }
-    for (final entry in fresh.skip(target.entries.length).toList()) {
-      _append(target, entry);
-    }
+  into.preamble.insertAll(end, [
+    if (end == 0) '',
+    for (final Raw(:text) in lines.cast<Raw>()) text,
+  ]);
+}
+
+/// The entries of [section] the target lacks, under the same section there.
+void _mergeSection(Note into, Section section, _Tally tally) {
+  final target = section.key == null
+      ? into.section(section.heading) ?? _addSection(into, section.heading)
+      : _section(into, section.key!, _lang(into));
+  final merged = <NoteEntry>[...target.entries];
+  for (final entry in section.entries) {
+    tally.take(merged, entry);
   }
-  if (into.section('decisions') case final decisions?) _oneActivePerTopic(decisions);
+  for (final entry in merged.skip(target.entries.length).toList()) {
+    _append(target, entry);
+  }
+}
+
+/// Both notes' tags, each once, the target's first.
+void _joinTags(Note into, Note from) {
   final tags = [
     for (final tags in [into.meta['tags'], from.meta['tags']])
       if (tags is List) ...tags,
   ];
   if (tags.isNotEmpty) into.meta['tags'] = tags.toSet().toList();
-  into.meta['updated'] = day;
-  atomicWrite(intoPath, unorm.nfc(serialize(into)), rename: rename);
-  return (
-    archivedTo: archiveNote(root, fromPath, today: day),
-    added: added,
-    duplicates: duplicates,
-  );
 }
 
 /// Two notes may each have an active decision for a topic: the newest stays,
