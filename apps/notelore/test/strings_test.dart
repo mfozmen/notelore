@@ -204,6 +204,7 @@ void main() {
       'welcomeDrive': s.welcomeDrive,
       'welcomePrivate': s.welcomePrivate,
       'welcomeAccount': s.welcomeAccount,
+      'signingIn': s.signingIn,
       'googleRequired': s.googleRequired,
       'signInUnfinished': s.signInUnfinished,
       'cannotReach': s.cannotReach,

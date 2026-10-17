@@ -189,6 +189,35 @@ void main() {
     expect(find.text('Claude (Anthropic)'), findsOneWidget); // on to the provider
   });
 
+  testWidgets('setup: a short window (a phone on its side) scrolls the sign-in, never overflows', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(800, 280)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.textScaleFactorTestValue = 2; // and large text
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final auth = FakeAuth()..failSignIn = const SignInFailed('access_denied');
+    await pumpApp(tester, Harness(auth: auth));
+    // Too short for it all: the button is further down, reached by scrolling.
+    await tester.scrollUntilVisible(find.byKey(const Key('google-sign-in')), 100);
+    await tester.tap(find.text('Sign in with Google'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull); // no overflow with the error card shown
+    expect(find.byKey(const Key('google-problem')), findsOneWidget);
+    await tester.scrollUntilVisible(find.byKey(const Key('google-sign-in')), 100);
+    // Busy, a screen reader hears that it is signing in.
+    auth
+      ..failSignIn = null
+      ..hold = Completer<void>();
+    await tester.tap(find.text('Sign in with Google'));
+    await tester.pump();
+    expect(find.bySemanticsLabel(RegExp('Signing in…')), findsOneWidget); // the button reads it
+    auth.hold!.complete();
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('setup: Ollama has no key field', (tester) async {
     phone(tester);
     await pumpApp(tester, Harness());

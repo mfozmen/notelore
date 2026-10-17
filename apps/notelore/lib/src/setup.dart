@@ -247,7 +247,12 @@ class _GoogleScreenState extends State<GoogleScreen> {
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
-        _GoogleButton(s.signInWithGoogle, busy: _signingIn, onPressed: _signingIn ? null : _signIn),
+        _GoogleButton(
+          s.signInWithGoogle,
+          busy: _signingIn,
+          busyLabel: s.signingIn,
+          onPressed: _signingIn ? null : _signIn,
+        ),
       ],
     );
     return Scaffold(
@@ -274,16 +279,21 @@ class _GoogleScreenState extends State<GoogleScreen> {
                     ),
                   ),
                 )
-              // A phone: the welcome above, the button where the thumb is.
-              : Padding(
+              // A phone: the welcome above, the button where the thumb is. With
+              // too little height (on its side, large text) it all scrolls.
+              : SingleChildScrollView(
                   padding: const EdgeInsets.all(Gap.l),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Center(child: SingleChildScrollView(child: _Welcome(s))),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: size.maxHeight - 2 * Gap.l),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        spacing: Gap.l,
+                        children: [
+                          Expanded(child: Center(child: _Welcome(s))),
+                          action,
+                        ],
                       ),
-                      action,
-                    ],
+                    ),
                   ),
                 ),
         ),
@@ -394,10 +404,18 @@ class _SignInProblem extends StatelessWidget {
 /// fills, outline and label colours, whatever the app's palette. While it
 /// works, a spinner takes the G's place.
 class _GoogleButton extends StatelessWidget {
-  const _GoogleButton(this.label, {required this.busy, required this.onPressed});
+  const _GoogleButton(
+    this.label, {
+    required this.busy,
+    required this.busyLabel,
+    required this.onPressed,
+  });
 
   final String label;
   final bool busy;
+
+  /// What a screen reader hears while it works.
+  final String busyLabel;
   final VoidCallback? onPressed;
 
   @override
@@ -429,7 +447,7 @@ class _GoogleButton extends StatelessWidget {
           SizedBox.square(
             dimension: 20,
             child: busy
-                ? CircularProgressIndicator(strokeWidth: 2, color: text)
+                ? CircularProgressIndicator(strokeWidth: 2, color: text, semanticsLabel: busyLabel)
                 : Image.asset('assets/google/g_${dark ? 'dark' : 'light'}.png'),
           ),
           Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
