@@ -691,8 +691,9 @@ class Session extends ChangeNotifier {
   Future<void> _turns(String first) async {
     busy = true;
     notifyListeners();
-    for (String? message = first; message != null; message = _rest()) {
+    for (String? message = first; message != null; message = _waiting == null ? _rest() : null) {
       _stopped = false;
+      _awayInTurn = _away;
       final taken = <String>[];
       await _exclusive(() async {
         Agent? asked; // the one that ran the turn, even if a logout replaced it since
@@ -712,6 +713,13 @@ class Session extends ChangeNotifier {
         } on Exception catch (error) {
           // The failed turn was taken back: what it had taken goes out again.
           _later.insertAll(0, taken);
+          // A phone holds back the network of an app in the background: such a
+          // failure waits for the return instead, unless the turn wrote notes
+          // (a rerun could write them twice).
+          if (error is NetworkError && _awayInTurn && !(asked?.wroteNotes ?? false)) {
+            _waiting = message;
+            return;
+          }
           final failed = strings.core('$error');
           transcript.add((
             role: ChatRole.error,
@@ -726,6 +734,27 @@ class Session extends ChangeNotifier {
     busy = false;
     notifyListeners();
     if (driveConnected) unawaited(syncNow());
+  }
+
+  /// Notelore is in the background (a phone), as the app's lifecycle reports.
+  var _away = false;
+
+  /// The running turn met the background at some point.
+  var _awayInTurn = false;
+
+  /// A message whose reply the network lost while Notelore was away: it runs
+  /// again when Notelore is back.
+  String? _waiting;
+
+  /// The app went to the background ([foreground] false) or came back.
+  void setForeground(bool foreground) {
+    _away = !foreground;
+    if (!foreground) {
+      _awayInTurn = true;
+    } else if (_waiting case final message?) {
+      _waiting = null;
+      unawaited(_turns(message));
+    }
   }
 
   /// The notes there were after the last turn, by kind and slug.
