@@ -259,6 +259,7 @@ class Session extends ChangeNotifier {
           'appearance': appearance.name,
           'webSearch': webSearch,
           'microphone': ?microphone,
+          if (setUpBefore) 'setUp': true,
         }),
       );
     } on FileSystemException {
@@ -274,6 +275,7 @@ class Session extends ChangeNotifier {
       palette = _named(Palette.values, saved['palette']) ?? Palette.lagoon;
       appearance = _named(Appearance.values, saved['appearance']) ?? Appearance.system;
       webSearch = saved['webSearch'] != false;
+      setUpBefore = saved['setUp'] == true;
       microphone = switch (saved['microphone']) {
         final String id => id,
         _ => null,
@@ -400,6 +402,11 @@ class Session extends ChangeNotifier {
     ], const []);
     return answer.content.map((b) => b['text'] ?? '').join().trim();
   }
+
+  /// A model was in use on this device once (#363): with none now, the app
+  /// still opens, and the chat asks for one; only a fresh device starts with
+  /// the wizard. Logout forgets it.
+  var setUpBefore = false;
 
   /// The first-run wizard has connected a model and is showing its last step:
   /// the app stays on it until [finishSetup] (#357).
@@ -652,6 +659,8 @@ class Session extends ChangeNotifier {
     }
     await chatGpt?.signOut();
     _forgetProvider();
+    setUpBefore = false;
+    _saveUi();
     transcript.clear();
     usage.newConversation();
     draft = '';
@@ -659,6 +668,10 @@ class Session extends ChangeNotifier {
   }
 
   void _use(ProviderSpec chosen, String key, String chosenModel) {
+    if (!setUpBefore) {
+      setUpBefore = true;
+      _saveUi();
+    }
     spec = chosen;
     model = chosenModel;
     final toolbox = Toolbox(paths.notes.path, index, today: today);

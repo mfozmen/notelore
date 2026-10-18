@@ -59,10 +59,10 @@ void main() {
   });
 
   testWidgets(
-    'settings: removing the model in use leaves none, and the wizard asks for one (#362)',
+    'settings: removing the model in use leaves none; the app stays, the chat asks for one (#363)',
     (tester) async {
       phone(tester);
-      final session = await pumpApp(tester, Harness());
+      final session = await pumpApp(tester, Harness(answers: ['Saved.']));
       await connect(tester, key: 'sk-ant');
       await openSettings(tester);
       await tester.tap(find.descendant(of: row('anthropic'), matching: find.byTooltip('Remove')));
@@ -70,7 +70,29 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
       await tester.pumpAndSettle();
       expect(session.ready, isFalse);
-      expect(find.text('Step 1 of 3'), findsOneWidget);
+      // Still the app: Settings shows no model, only the way to connect one.
+      expect(find.text('Connect another model'), findsOneWidget);
+      expect(find.byKey(const Key('model')), findsNothing);
+      // The chat asks for a model where the message box was; notes still open.
+      await tester.tap(find.text('Chat'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('message')), findsNothing);
+      expect(find.text('Connect a model to start'), findsOneWidget);
+      await tester.tap(find.text('Notes'));
+      await tester.pumpAndSettle();
+      expect(find.text('Notes'), findsWidgets);
+      await tester.tap(find.text('Chat'));
+      await tester.pumpAndSettle();
+      // Connect from the chat: the wizard, then back with the message box.
+      await tester.tap(find.widgetWithText(FilledButton, 'Connect a model'));
+      await tester.pumpAndSettle();
+      await choose(tester, 'GPT (OpenAI)');
+      await tester.enterText(find.byKey(const Key('api-key')), 'sk-oa');
+      await tester.tap(find.text('Connect'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('message')), findsOneWidget);
     },
   );
 

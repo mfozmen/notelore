@@ -8,6 +8,7 @@ import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'session.dart';
+import 'setup.dart' show ProviderWizard;
 import 'strings.dart';
 import 'theme.dart';
 import 'transfer.dart' show PickedFile;
@@ -169,8 +170,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ],
               ),
-            _ModelBar(session, menu: _modelMenu),
-            _Composer(session, voice: _voice, message: _message, send: _send, attach: _attach),
+            if (session.ready) ...[
+              _ModelBar(session, menu: _modelMenu),
+              _Composer(session, voice: _voice, message: _message, send: _send, attach: _attach),
+            ] else
+              _NoModel(session),
           ],
         ),
       ),
@@ -244,6 +248,47 @@ class _Lines extends StatelessWidget {
 
 /// Above the message box: the model, switchable at any time but not while it
 /// works, and the ChatGPT plan notice.
+/// In the composer's place when no model is connected (#363): what is missing
+/// and one button to the wizard; the conversation and the notes stay.
+class _NoModel extends StatelessWidget {
+  const _NoModel(this.session);
+
+  final Session session;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = session.strings;
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.m),
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(Gap.m),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: Gap.s,
+            children: [
+              Text(s.noModel, style: theme.textTheme.titleMedium),
+              Text(
+                s.noModelWhy,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: Gap.xs),
+              FilledButton(
+                onPressed: () => ProviderWizard.open(context, session),
+                child: Text(s.connectModel),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ModelBar extends StatelessWidget {
   const _ModelBar(this.session, {required this.menu});
 
