@@ -97,6 +97,8 @@ void main() {
     final example = trainingExample(result);
     final messages = (example['messages']! as List).cast<Map<String, Object?>>();
     expect(messages.map((m) => m['role']), ['system', 'user', 'assistant', 'tool', 'assistant']);
+    // The minute the model is told, so a relative reminder time has one answer (#434).
+    expect(messages.first['content'], endsWith('It is now 2026-10-18 14:00, local time.'));
     expect(messages.first['content'], contains('Notelore'));
     expect(messages[1]['content'], filing.message);
     final call = ((messages[2]['tool_calls']! as List).single as Map)['function'] as Map;
