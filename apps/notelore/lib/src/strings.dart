@@ -284,7 +284,10 @@ abstract class Strings {
   String get pickNote;
 
   /// Under a remote image in a note, before it is fetched (#339).
-  String tapToShow(String host);
+  String get tapToShow;
+
+  /// Under an image in a note that could not be shown.
+  String get imageFailed;
 
   /// An archived note's name; archived entries say whose they are.
   String archivedTitle(ArchivedNote archived) =>
@@ -892,7 +895,9 @@ class EnglishStrings extends Strings {
   @override
   String get pickNote => 'Pick a note to read it here.';
   @override
-  String tapToShow(String host) => '$host · Tap to show';
+  String get tapToShow => 'Tap to show';
+  @override
+  String get imageFailed => "Couldn't load";
   @override
   String entriesFrom(String title) => 'Entries from $title';
   @override
@@ -1612,7 +1617,9 @@ class TurkishStrings extends Strings {
   @override
   String get pickNote => 'Okumak için bir not seç.';
   @override
-  String tapToShow(String host) => '$host · Göstermek için dokun';
+  String get tapToShow => 'Göstermek için dokun';
+  @override
+  String get imageFailed => 'Yüklenemedi';
   @override
   String entriesFrom(String title) => '$title notundan girdiler';
   @override
