@@ -57,14 +57,21 @@ def texts(tokenizer, data):
     ]
 
 
+def precision(bf16):
+    """The trainer's mixed-precision flags and the compute dtype: bf16 where the
+    GPU has it, fp16 on older ones such as Kaggle's T4."""
+    return {"bf16": bf16, "fp16": not bf16}, (torch.bfloat16 if bf16 else torch.float16)
+
+
 def train(base, data, out, epochs):
     tokenizer = AutoTokenizer.from_pretrained(base)
     dataset = Dataset.from_dict({"text": texts(tokenizer, data)})
     print(f"{len(dataset)} training turns")
+    flags, dtype = precision(torch.cuda.is_bf16_supported())
     model = AutoModelForCausalLM.from_pretrained(
         base,
         quantization_config=BitsAndBytesConfig(
-            load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
+            load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=dtype
         ),
         device_map="auto",
     )
@@ -85,7 +92,7 @@ def train(base, data, out, epochs):
             warmup_ratio=0.05,
             logging_steps=5,
             save_strategy="no",
-            bf16=True,
+            **flags,
             gradient_checkpointing=True,
             max_length=6144,
             dataset_text_field="text",
