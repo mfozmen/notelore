@@ -32,28 +32,30 @@ bool _isList(md.Node node) => node is md.Element && (node.tag == 'ul' || node.ta
 
 String _block(md.Node node, String indent) {
   if (node is! md.Element) return _inline(node);
-  switch (node.tag) {
-    case 'ul' || 'ol':
-      final start = int.tryParse(node.attributes['start'] ?? '') ?? 1;
-      return [
-        for (final (index, item) in node.children!.indexed)
-          '$indent${node.tag == 'ol' ? '${start + index}.' : '-'} ${_item(item as md.Element, indent)}',
-      ].join('\n');
-    case 'blockquote':
-      return _blocks(node.children!, indent);
-    case 'pre':
-      return _inline(node).trimRight();
-    case 'table':
-      // A row a line, its cells " | " apart; the header is the first row.
-      return [
-        for (final part in node.children!)
-          for (final row in (part as md.Element).children!)
-            [for (final cell in (row as md.Element).children!) _inline(cell).trim()].join(' | '),
-      ].join('\n');
-    default:
-      return _inline(node).trim(); // a paragraph, a heading
-  }
+  return switch (node.tag) {
+    'ul' || 'ol' => _list(node, indent),
+    'blockquote' => _blocks(node.children!, indent),
+    'pre' => _inline(node).trimRight(),
+    'table' => _table(node),
+    _ => _inline(node).trim(), // a paragraph, a heading
+  };
 }
+
+/// One item a line, after "- " or its number.
+String _list(md.Element list, String indent) {
+  final start = int.tryParse(list.attributes['start'] ?? '') ?? 1;
+  return [
+    for (final (index, item) in list.children!.indexed)
+      '$indent${list.tag == 'ol' ? '${start + index}.' : '-'} ${_item(item as md.Element, indent)}',
+  ].join('\n');
+}
+
+/// A row a line, its cells " | " apart; the header is the first row.
+String _table(md.Element table) => [
+  for (final part in table.children!)
+    for (final row in (part as md.Element).children!)
+      [for (final cell in (row as md.Element).children!) _inline(cell).trim()].join(' | '),
+].join('\n');
 
 /// A list item's words, and a list inside it indented under them.
 String _item(md.Element item, String indent) {
