@@ -28,6 +28,7 @@ String buildTree(String root) {
   );
   addEntry(mopsos, 'Considered adding crypto, postponed.', today: d(2026, 9, 22));
   addTodo(mopsos, 'Add Drive backup', due: d(2026, 10, 15), today: today);
+  addReminder(mopsos, 'Renew the domain', d(2026, 11, 1), time: '09:00', today: today);
   File(mopsos)
       .writeAsStringSync('\n## Links\nhand-written zettelkasten link\n', mode: FileMode.append);
   final sirket = createNote(root, 'topic', 'Şirket Kuruluşu', lang: 'tr', today: d(2026, 8, 1));
@@ -171,6 +172,7 @@ void main() {
         expect(hits.single.title, 'Mopsos');
         expect(idx.search('sqlite').map((h) => h.section), ['decisions']);
         expect(idx.search('drive backup').map((h) => h.section), ['todo']);
+        expect(idx.search('domain').map((h) => h.section), ['reminders']);
         expect(idx.search('zettelkasten').map((h) => h.section), ['Links']);
         expect(idx.search('crypto', kind: 'topic'), isEmpty);
         expect(idx.search('nothing-like-this'), isEmpty);

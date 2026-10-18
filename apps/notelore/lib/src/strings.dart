@@ -67,8 +67,8 @@ abstract class Strings {
   String cost(ProviderSpec spec);
   List<String> keySteps(ProviderSpec spec);
 
-  // ChatGPT plan (OpenAI's wording where it asks for it).
-  String get continueWithChatGpt => 'Continue with ChatGPT';
+  // ChatGPT plan.
+  String get continueWithChatGpt;
 
   /// A sign-in that failed, in plain words: never a raw code or HTTP body (#302).
   String signInProblem(Object error) =>
@@ -83,11 +83,11 @@ abstract class Strings {
   String get getFreeGeminiKey;
   String get keyFromClipboard;
   String get cannotReach;
-  String get usingPlan => "You're using your ChatGPT plan";
+  String get usingPlan;
   String get planWelcome;
-  String get gotIt => 'Got it';
-  String get usingChatGptPlan => 'Using ChatGPT plan';
-  String get manageUsage => 'Manage usage';
+  String get gotIt;
+  String get usingChatGptPlan;
+  String get manageUsage;
 
   // Chat.
   String get askSomething;
@@ -295,6 +295,7 @@ abstract class Strings {
   String earlierDecisions(int count);
   String supersededOn(String date);
   String overdue(String date);
+  String reminderPassed(String date);
 
   /// The months, short, January first.
   List<String> get months;
@@ -319,6 +320,7 @@ abstract class Strings {
   String deletedForever(String title);
   String get emptyArchive;
   String emptyArchiveBody(int count);
+  String archiveEmptied(int count);
   String restoreTaken(String title);
   String get webSearch;
   String get webSearchExplained;
@@ -402,6 +404,16 @@ abstract class Strings {
 }
 
 class EnglishStrings extends Strings {
+  @override
+  String get continueWithChatGpt => 'Continue with ChatGPT';
+  @override
+  String get usingPlan => "You're using your ChatGPT plan";
+  @override
+  String get gotIt => 'Got it';
+  @override
+  String get usingChatGptPlan => 'Using ChatGPT plan';
+  @override
+  String get manageUsage => 'Manage usage';
   @override
   String get languageCode => 'en';
   @override
@@ -935,6 +947,8 @@ class EnglishStrings extends Strings {
   @override
   String overdue(String date) => 'Overdue, $date';
   @override
+  String reminderPassed(String date) => 'Passed, $date';
+  @override
   List<String> get months => const [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', //
   ];
@@ -960,6 +974,9 @@ class EnglishStrings extends Strings {
   String deletedForever(String title) => 'Deleted "$title" for good.';
   @override
   String get emptyArchive => 'Empty the archive';
+  @override
+  String archiveEmptied(int count) =>
+      'Deleted $count ${count == 1 ? 'note' : 'notes'} from the archive for good.';
   @override
   String emptyArchiveBody(int count) =>
       'All $count ${count == 1 ? 'note' : 'notes'} in the archive will be deleted for good. '
@@ -1111,6 +1128,16 @@ class EnglishStrings extends Strings {
 }
 
 class TurkishStrings extends Strings {
+  @override
+  String get continueWithChatGpt => 'ChatGPT ile devam et';
+  @override
+  String get usingPlan => 'ChatGPT planını kullanıyorsun';
+  @override
+  String get gotIt => 'Anladım';
+  @override
+  String get usingChatGptPlan => 'ChatGPT planı kullanılıyor';
+  @override
+  String get manageUsage => 'Kullanımı yönet';
   @override
   String get languageCode => 'tr';
   @override
@@ -1687,6 +1714,8 @@ class TurkishStrings extends Strings {
   @override
   String overdue(String date) => 'Gecikti, $date';
   @override
+  String reminderPassed(String date) => 'Geçti, $date';
+  @override
   List<String> get months => const [
     'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara', //
   ];
@@ -1711,6 +1740,8 @@ class TurkishStrings extends Strings {
   String deletedForever(String title) => '"$title" kalıcı olarak silindi.';
   @override
   String get emptyArchive => 'Arşivi boşalt';
+  @override
+  String archiveEmptied(int count) => 'Arşivden $count not kalıcı olarak silindi.';
   @override
   String emptyArchiveBody(int count) =>
       'Arşivdeki $count not kalıcı olarak silinecek. Bu cihazda geri alınamaz; Google Drive '

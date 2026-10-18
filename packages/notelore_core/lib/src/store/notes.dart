@@ -240,7 +240,10 @@ String createNote(
     'updated': day,
     if (tags != null && tags.isNotEmpty) 'tags': tags,
   };
-  final sections = [for (final key in sectionHeadings.keys) Section(sectionHeading(key, lang))];
+  // Reminders get their section with the first one (#430), so most notes never show it.
+  final sections = [
+    for (final key in const ['decisions', 'notes', 'todo']) Section(sectionHeading(key, lang)),
+  ];
   for (final section in sections.take(sections.length - 1)) {
     section.entries.add(const Raw(''));
   }
@@ -263,6 +266,17 @@ void addTodo(String path, String text, {DateTime? due, DateTime? today}) {
   final note = readNote(path);
   final day = today ?? localToday();
   _append(_section(note, 'todo'), Todo(due ?? day, _text(text)));
+  writeNote(path, note, today: day);
+}
+
+/// Adds a reminder for [date], at [time] (`HH:MM`, local) if given (#430).
+void addReminder(String path, String text, DateTime date, {String? time, DateTime? today}) {
+  if (time != null && !isReminderTime(time)) {
+    throw ArgumentError.value(time, 'time', 'a reminder time is HH:MM, 00:00 to 23:59');
+  }
+  final note = readNote(path);
+  final day = today ?? localToday();
+  _append(_section(note, 'reminders'), Reminder(date, _text(text), time: time));
   writeNote(path, note, today: day);
 }
 

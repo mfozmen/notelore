@@ -1341,7 +1341,8 @@ class Session extends ChangeNotifier {
   });
 
   void _deleteArchived(ArchivedNote archived) {
-    File(archived.path).deleteSync();
+    // Already gone (a sync, or by hand, since the list was drawn): nothing to do.
+    if (File(archived.path).existsSync()) File(archived.path).deleteSync();
     final archive = p.join(paths.notes.path, '_archive');
     for (var dir = p.dirname(archived.path); p.isWithin(archive, dir); dir = p.dirname(dir)) {
       if (Directory(dir).listSync().isNotEmpty) break;

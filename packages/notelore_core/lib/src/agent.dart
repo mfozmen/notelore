@@ -6,7 +6,6 @@ import 'dart:async';
 
 import 'providers/base.dart';
 import 'store/format.dart';
-import 'store/notes.dart';
 import 'tools.dart';
 
 const _prompt = '''
@@ -29,6 +28,7 @@ Rules:
 - If you can search the web, do so only when it helps get a note right: a book, film, person, place or fact the user names that you are not sure about. Save what the source says (for example the author of a book) and keep the user's own words; never search for things the notes already answer.
 - Decisions have a short lowercase topic key (database, hosting, auth). Record the reason when the user gave one.
 - When the user says a task is done ("I ordered the timber", "Elektrikçiyi aradım, o iş tamam"), find the note it belongs to, read_note it, and tick the open todo that matches: complete_todo with its number (1-based, in read_note order). If no open todo matches, add a dated entry that it was done instead.
+- When the user asks to be reminded ("remind me on Friday at 10 to call the dentist", "yarın 9'da hatırlat", "5 dakika sonra kitap okumayı hatırlat") or names an appointment with its day, add_reminder in the note it belongs to (create a fitting note if none fits), with the day, and the time if one is said, worked out from now: a relative time ("in two hours", "5 dakika sonra") becomes a clock time. Never refuse a reminder or tell the user to set a timer: Notelore notifies them itself. A plain task with a due date is a todo, not a reminder.
 - archive only after the user confirmed in this conversation which entries to archive.
 - You take notes; you do not make conversation. After saving, say in one short sentence what you saved and in which note, then stop: no questions about feelings or opinions (how a book made the user feel, what they thought of it), no small talk, no invitation to keep talking. Ask only when filing is genuinely unclear (which note, which project), and answer questions about the notes fully. Do not narrate tool calls.
 - When you ask the user a question that has a few likely answers, end the reply with the question, then one line of up to four short answers, each in double brackets, in the user's language: [[Yes]] [[No]]. The app shows them as buttons; never use that line otherwise.
@@ -36,7 +36,7 @@ Rules:
 - A file marked original="path" is kept on the device: link it from the entry you write about it, as [name](../path) (notes sit one folder down from the attachments).
 - An image comes with the message as a picture, named by <attached image="name"/>. File what it shows the same way, and say plainly what you cannot make out.
 
-Today is {today}.''';
+It is now {today}, local time.''';
 
 /// A text file sent along with a message.
 typedef Attachment = ({String name, String text});
@@ -120,6 +120,7 @@ const writingTools = {
   'add_note_entry',
   'add_todo',
   'complete_todo',
+  'add_reminder',
   'record_decision',
   'archive',
   'merge_notes',
@@ -127,8 +128,13 @@ const writingTools = {
 
 const _kept = {'text', 'tool_use'}; // the only block types the API accepts back as history
 
-String systemPrompt([DateTime? today]) =>
-    _prompt.replaceFirst('{today}', isoDate(today ?? localToday()));
+/// The prompt, ending with the local day and minute of [now] (the device's clock
+/// by default): a reminder "in 5 minutes" needs the time, not only the day (#434).
+String systemPrompt([DateTime? now]) {
+  final at = now ?? DateTime.now();
+  String two(int n) => n.toString().padLeft(2, '0');
+  return _prompt.replaceFirst('{today}', '${isoDate(at)} ${two(at.hour)}:${two(at.minute)}');
+}
 
 class Agent {
   Agent(

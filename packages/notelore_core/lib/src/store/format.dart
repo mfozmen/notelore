@@ -20,6 +20,14 @@ final _superseded = RegExp(
   dotAll: true,
 );
 final _entry = RegExp('^- $_date: (.*)\$', dotAll: true);
+// A reminder's time of day, 00:00 to 23:59: the parser and the writer go by this one pattern.
+const _time = '([01][0-9]|2[0-3]):([0-5][0-9])';
+// The time is optional; an hour or minute that cannot be one keeps the line Raw.
+final _reminder = RegExp('^- $_date(?: $_time)?: (.*)\$', dotAll: true);
+
+/// Whether [time] is a reminder's time of day as the format writes it (`HH:MM`).
+bool isReminderTime(String time) => RegExp('^$_time\$').hasMatch(time);
+
 final _todo = RegExp('^- \\[([ x])\\] $_date: (.*)\$', dotAll: true);
 
 /// `YYYY-MM-DD` of a date.
@@ -126,6 +134,25 @@ final class Todo extends NoteEntry {
 
   @override
   int get hashCode => Object.hash(date, text, done);
+}
+
+/// Something to be reminded of on [date], at [time] (`HH:MM`, local) if it has one.
+final class Reminder extends NoteEntry {
+  const Reminder(this.date, this.text, {this.time});
+
+  final DateTime date;
+  final String text;
+  final String? time;
+
+  @override
+  String render() => '- ${isoDate(date)}${time == null ? '' : ' $time'}: $text';
+
+  @override
+  bool operator ==(Object other) =>
+      other is Reminder && other.date == date && other.text == text && other.time == time;
+
+  @override
+  int get hashCode => Object.hash(date, text, time);
 }
 
 /// A line (or bullet block) that is not a recognized entry. Preserved verbatim.
@@ -252,6 +279,7 @@ NoteEntry _parseBlock(String key, String block) =>
       'decisions' => _decisionOf(block),
       'notes' => _entryOf(block),
       'todo' => _todoOf(block),
+      'reminders' => _reminderOf(block),
       _ => null,
     } ??
     Raw(block);
@@ -278,6 +306,14 @@ Entry? _entryOf(String block) {
 Todo? _todoOf(String block) {
   if (_todo.firstMatch(block) case final m?) {
     if (parseIsoDate(m[2]!) case final date?) return Todo(date, m[3]!, done: m[1] == 'x');
+  }
+  return null;
+}
+
+Reminder? _reminderOf(String block) {
+  if (_reminder.firstMatch(block) case final m?) {
+    final time = m[2] == null ? null : '${m[2]}:${m[3]}';
+    if (parseIsoDate(m[1]!) case final date?) return Reminder(date, m[4]!, time: time);
   }
   return null;
 }

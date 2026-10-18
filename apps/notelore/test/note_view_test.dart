@@ -98,6 +98,59 @@ void main() {
     expect(find.text('2 Nov'), findsOneWidget);
   });
 
+  testWidgets('reminders: with the todos above the notes, coming ones first (#430)', (
+    tester,
+  ) async {
+    await show(tester, '''---
+title: Passport
+kind: topic
+---
+# Passport
+
+## Notes
+- 2026-10-01: The old one expires in December.
+
+## Todo
+- [ ] 2026-10-25: Fill in the form
+
+## Reminders
+- 2026-10-02: Find the old passport
+- 2026-10-15 18:00: Ask Ali about the studio
+- 2026-11-03 09:30: Passport office
+- 2026-10-21: Book the photos
+- not a reminder, as written
+''');
+    double top(String text) => tester.getTopLeft(find.text(text)).dy;
+    // What is coming (reminders, then todos) before what happened.
+    expect([
+      top('Reminders'),
+      top('Todo'),
+      top('Notes'),
+    ], orderedEquals([top('Reminders'), top('Todo'), top('Notes')]..sort()));
+    // Coming ones by day and time, then past ones, the latest first.
+    final rows = [
+      'Book the photos',
+      'Passport office',
+      'Ask Ali about the studio',
+      'Find the old passport',
+    ];
+    final tops = [for (final row in rows) top(row)];
+    expect(tops, orderedEquals([...tops]..sort()));
+    // Every date in one column, at the right edge.
+    expect(
+      tester.getTopRight(find.text('21 Oct')).dx,
+      tester.getTopRight(find.text('3 Nov · 09:30')).dx,
+    );
+    expect(tester.getTopRight(find.text('25 Oct')).dx, tester.getTopRight(find.text('21 Oct')).dx);
+    expect(find.text('21 Oct'), findsOneWidget);
+    expect(find.text('3 Nov · 09:30'), findsOneWidget);
+    // A past one says so in words and with its own icon, not by colour alone.
+    expect(find.text('Passed, 15 Oct · 18:00'), findsOneWidget);
+    expect(find.byIcon(Icons.notifications_outlined), findsNWidgets(2));
+    expect(find.byIcon(Icons.history), findsNWidgets(2));
+    expect(find.text('not a reminder, as written'), findsOneWidget);
+  });
+
   testWidgets('notes: a timeline, newest first, its words formatted (#426)', (tester) async {
     await show(tester, _mopsos);
     final crypto = tester.getTopLeft(find.textContaining('Considered adding crypto')).dy;

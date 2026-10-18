@@ -8,6 +8,7 @@ const sectionHeadings = <String, Map<String, String>>{
   'decisions': {'en': 'Decisions', 'tr': 'Kararlar'},
   'notes': {'en': 'Notes', 'tr': 'Notlar'},
   'todo': {'en': 'Todo', 'tr': 'Yapılacaklar'},
+  'reminders': {'en': 'Reminders', 'tr': 'Hatırlatıcılar'},
 };
 
 final _headingToKey = {

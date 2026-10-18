@@ -108,6 +108,10 @@ OutlineLine? _line(NoteEntry entry) => switch (entry) {
     LineStyle.item,
     '[${done ? 'x' : ' '}] ${isoDate(date)}: ${_flat(text)}',
   ),
+  Reminder(:final date, :final time, :final text) => OutlineLine(
+    LineStyle.item,
+    '${isoDate(date)}${time == null ? '' : ' $time'}: ${_flat(text)}',
+  ),
   Raw(:final text) when text.trim().isEmpty => null,
   Raw(:final text) =>
     text.startsWith('- ')

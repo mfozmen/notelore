@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:notelore_core/src/agent.dart';
 import 'package:notelore_core/src/providers/base.dart';
 import 'package:notelore_core/src/providers/http.dart';
+import 'package:notelore_core/src/store/format.dart' show isoDate;
 import 'package:notelore_core/src/tools.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
@@ -186,6 +187,8 @@ void main() {
     expect(describeTool('some_new_tool'), 'Working'); // never mislabelled as a write
     expect(describeTool('related_notes'), 'Searching the notes');
     expect(describeTool('merge_notes'), 'Writing the notes'); // a merge writes (#229)
+    expect(describeTool('add_reminder'), 'Writing the notes');
+    expect(systemPrompt(), contains('add_reminder')); // the model knows when to use it
   });
 
   test('timing: each model call and tool call, names and milliseconds only', () async {
@@ -415,6 +418,18 @@ void main() {
       expect(prompt, contains(rule));
     }
     expect(systemPrompt(), isNot(contains('{today}')));
+  });
+
+  test('a reminder request is always saved, at a clock time worked out from now (#434)', () {
+    // "5 dakika sonra bana kitap okumayı hatırlat" was refused: the model said
+    // it cannot notify, and knew only the day, not the time.
+    final prompt = systemPrompt(DateTime(2026, 10, 19, 14, 5));
+    expect(prompt, contains('It is now 2026-10-19 14:05, local time.'));
+    expect(prompt, contains('Never refuse a reminder'));
+    expect(prompt, contains('"5 dakika sonra"'));
+    expect(prompt, contains('a clock time'));
+    // Without one, the device's clock: the minute, not only the day.
+    expect(systemPrompt(), contains('It is now ${isoDate(DateTime.now())} '));
   });
 
   test('the prompt keeps details, asks about names and looks before giving up (#92)', () {

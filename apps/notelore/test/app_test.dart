@@ -1547,6 +1547,7 @@ void main() {
     expect(find.textContaining('1 note'), findsOneWidget);
     await tester.tap(find.widgetWithText(FilledButton, 'Empty the archive'));
     await tester.pumpAndSettle();
+    expect(find.text('Deleted 1 note from the archive for good.'), findsOneWidget);
     expect(find.text('The archive is empty. Deleted notes go here.'), findsOneWidget);
     expect(find.byTooltip('Empty the archive'), findsNothing);
   });

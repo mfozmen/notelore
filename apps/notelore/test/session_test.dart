@@ -1388,6 +1388,12 @@ void main() {
     await session.deleteArchived(first);
     expect(File(first.path).existsSync(), isFalse);
     expect(session.listArchived(), hasLength(1));
+    // One already gone (a sync, or by hand) is no error.
+    final second = session.listArchived().single;
+    File(second.path).copySync('${second.path}.kept');
+    File(second.path).deleteSync();
+    await session.deleteArchived(second);
+    File('${second.path}.kept').renameSync(second.path);
     expect(await session.emptyArchive(), 1);
     expect(session.listArchived(), isEmpty);
     // No empty dated folders are left behind.

@@ -23,6 +23,9 @@ import 'tools.dart';
 /// The day every case runs on, so dates in notes and answers are stable.
 final evalToday = DateTime(2026, 10, 18);
 
+/// The minute the model is told it is, so "in 5 minutes" has one answer (#434).
+final evalNow = DateTime(2026, 10, 18, 14);
+
 class Expectation {
   Expectation.fromJson(Map<String, Object?> json)
     : tools = [...?(json['tools'] as List?)?.cast<String>()],
@@ -109,7 +112,7 @@ Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider) async {
   try {
     _write(root, evalCase.notes);
     final before = _files(root);
-    final agent = Agent(provider, Toolbox(root, index, today: evalToday), today: evalToday);
+    final agent = Agent(provider, Toolbox(root, index, today: evalToday), today: evalNow);
     var answer = '';
     final problems = <String>[];
     try {
@@ -196,7 +199,7 @@ Iterable<String> _missingFacts(
 /// and most open models' chat templates train on (#327).
 Map<String, Object?> trainingExample(EvalResult result) => {
   'messages': [
-    {'role': 'system', 'content': systemPrompt(evalToday)},
+    {'role': 'system', 'content': systemPrompt(evalNow)},
     ...toOllama(result.messages),
   ],
   'tools': functionTools(noteTools),
