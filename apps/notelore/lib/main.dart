@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'src/app.dart';
 import 'src/drive_auth.dart';
+import 'src/reminder_native.dart';
 import 'src/reminder_notifier.dart';
 import 'src/session.dart';
 import 'src/share_native.dart';
@@ -29,7 +30,11 @@ void main() => runApp(
 /// Notes from earlier versions (a visible `~/Notelore` on the desktop, the
 /// app's documents on a phone) move there, so there is one copy.
 /// `NOTELORE_HOME` overrides both, for development.
-Future<Session> openSession({Map<String, String>? environment, bool? mobile}) async {
+Future<Session> openSession({
+  Map<String, String>? environment,
+  bool? mobile,
+  ReminderNotifier? Function() reminders = platformNotifier,
+}) async {
   final env = environment ?? Platform.environment;
   final phone = mobile ?? (Platform.isAndroid || Platform.isIOS);
   final support = await getApplicationSupportDirectory();
@@ -55,10 +60,7 @@ Future<Session> openSession({Map<String, String>? environment, bool? mobile}) as
     localModels: !phone,
     systemLanguage: PlatformDispatcher.instance.locale.languageCode,
     timing: keySpace == 'notelore-dev' ? debugPrint : null, // #232: development runs only
-    // The reminders in the notes, as this device's notifications (#431).
-    reminders: Platform.isAndroid || Platform.isWindows || Platform.isMacOS
-        ? PluginNotifier()
-        : null,
+    reminders: reminders(), // the notes' reminders as this device's notifications (#431)
   );
   await session.load();
   if (phone && Platform.isAndroid) listenForShares(session); // "Share → Notelore" (#211)

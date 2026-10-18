@@ -41,7 +41,8 @@ List<DueReminder> upcomingReminders(String root, {required DateTime now}) {
         continue;
       }
       final rel = p.posix.joinAll(p.split(p.relative(file.path, from: root)));
-      for (final reminder in note.section('reminders')?.entries.whereType<Reminder>() ?? []) {
+      for (final reminder
+          in note.section('reminders')?.entries.whereType<Reminder>() ?? const <Reminder>[]) {
         final at = _at(reminder);
         if (at.isAfter(now)) {
           due.add(
