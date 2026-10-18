@@ -46,6 +46,19 @@ abstract final class Gap {
   static const double l = 24;
 }
 
+/// How an answer's Markdown is drawn on its bubble (#335). The tints are of the
+/// bubble's own text colour, so they read in every palette, light and dark.
+abstract final class AnswerStyle {
+  static const headingWeight = FontWeight.w600;
+
+  /// Behind code, inline and in a block.
+  static const double tint = 0.12;
+
+  /// A quote's bar at its left.
+  static const double quoteBar = 0.4;
+  static const double quoteBarWidth = 3;
+}
+
 /// The sizes the screens lay out by.
 abstract final class Layout {
   /// From this window width the app is laid out for a desk: a side rail, and
