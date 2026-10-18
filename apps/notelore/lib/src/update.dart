@@ -116,15 +116,45 @@ Future<String?> checkForUpdate({
   required String current,
   required Fetch fetch,
   bool force = false,
+}) async => (await checkRelease(current: current, fetch: fetch, force: force))?.version;
+
+/// A newer release than [current], with what it brings and its page (#288);
+/// null when there is none. Offline or garbled is silent unless [force].
+Future<({String version, List<String> highlights, String page})?> checkRelease({
+  required String current,
+  required Fetch fetch,
+  bool force = false,
 }) async {
-  final String version;
+  final Map<String, Object?> data;
   try {
-    version = (await latestRelease(fetch)).version;
+    data = jsonDecode(utf8.decode(await fetch(latestReleaseUrl))) as Map<String, Object?>;
   } on Object {
     if (force) rethrow;
     return null; // offline or a garbled answer: try again next start
   }
-  return isNewer(version, current) ? version : null;
+  final version = '${data['tag_name']}'.replaceFirst(RegExp('^v'), '');
+  if (!isNewer(version, current)) return null;
+  return (
+    version: version,
+    highlights: releaseHighlights(data['body'] as String?),
+    page: '${data['html_url'] ?? 'https://github.com/mfozmen/notelore/releases'}',
+  );
+}
+
+/// What a release brings, from its notes: the first features, then fixes, two
+/// at most, each without its links.
+List<String> releaseHighlights(String? notes) {
+  final sections = <String, List<String>>{};
+  String? heading;
+  for (final line in (notes ?? '').split('\n')) {
+    if (line.startsWith('### ')) {
+      heading = line.substring(4).trim();
+    } else if (line.startsWith('- ') && heading != null) {
+      final text = line.substring(2).replaceFirst(RegExp(r'\s*\(\[.*$'), '').trim();
+      if (text.isNotEmpty) (sections[heading] ??= []).add(text);
+    }
+  }
+  return [...?sections['Features'], ...?sections['Bug Fixes']].take(2).toList();
 }
 
 /// The updater for a release build of the desktop app, or null.

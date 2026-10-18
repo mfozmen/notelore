@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'chat.dart';
 import 'lock.dart';
@@ -136,6 +137,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   var _tab = 0;
   late int _seenSharedDraft;
   String? _available; // a newer version
+
+  /// What [_available] brings, and its release page (#288).
+  var _highlights = const <String>[];
+  String? _page;
   String? _updateProblem;
   var _updating = false;
   var _installed = false; // installed, waiting for a manual restart
@@ -211,14 +216,19 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   /// Shows the banner for a newer release; [force] lets a failure through.
   Future<String?> _check(Updater updater, {bool force = false}) async {
-    final newer = await checkForUpdate(
+    final release = await checkRelease(
       current: updater.current,
       fetch: updater.fetch,
       force: force,
     );
+    final newer = release?.version;
     // An install in progress keeps its banner; a version put off stays put off.
     if (mounted && !_updating && !_installed) {
-      setState(() => _available = newer == _dismissed ? null : newer);
+      setState(() {
+        _available = newer == _dismissed ? null : newer;
+        _highlights = release?.highlights ?? const [];
+        _page = release?.page;
+      });
     }
     return newer;
   }
@@ -288,6 +298,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           _UpdateBanner(
             s,
             version: version,
+            highlights: _highlights,
+            page: _page,
             installed: _installed,
             updating: _updating,
             problem: _updateProblem,
@@ -347,6 +359,8 @@ class _UpdateBanner extends StatelessWidget {
   const _UpdateBanner(
     this.strings, {
     required this.version,
+    required this.highlights,
+    required this.page,
     required this.installed,
     required this.updating,
     required this.problem,
@@ -357,6 +371,8 @@ class _UpdateBanner extends StatelessWidget {
 
   final Strings strings;
   final String version;
+  final List<String> highlights;
+  final String? page;
   final bool installed;
   final bool updating;
   final String? problem;
@@ -373,9 +389,31 @@ class _UpdateBanner extends StatelessWidget {
       _ when updating => s.installing(version),
       _ => s.updateAvailable(version),
     };
+    final brings = highlights.isEmpty || installed || problem != null
+        ? null
+        : highlights.join(' · ');
     return MaterialBanner(
-      content: Text(message),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: Gap.xs,
+        children: [
+          Text(message),
+          if (brings != null)
+            Text(
+              brings,
+              maxLines: 2, // the rest is one tap away, under What's new
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+        ],
+      ),
       actions: [
+        if (page case final page? when !installed)
+          TextButton(
+            onPressed: () => launchUrl(Uri.parse(page), mode: LaunchMode.externalApplication),
+            child: Text(s.whatsNew),
+          ),
         TextButton(onPressed: updating ? null : later, child: Text(s.later)),
         if (!installed)
           TextButton(

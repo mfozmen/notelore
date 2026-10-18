@@ -9,6 +9,7 @@ import 'setup.dart' show ProviderWizard;
 import 'strings.dart';
 import 'theme.dart';
 import 'update.dart' show appVersion;
+import 'usage_page.dart';
 import 'whisper_speech.dart' show MicrophoneChoice;
 
 class SettingsScreen extends StatefulWidget {
@@ -52,7 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final session = widget.session;
     final s = session.strings;
     final model = _ModelCard(session);
-    final usage = _UsageCard(session);
+    final advanced = _AdvancedCard(session);
     final language = _LanguageCard(session);
     final look = _LookCard(session);
     final drive = Card(child: _DriveSection(session));
@@ -82,7 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // a desktop's own settings.
             ? _Sections(
                 [
-                  (Icons.auto_awesome_outlined, s.model, [model, usage]),
+                  (Icons.auto_awesome_outlined, s.model, [model, advanced]),
                   (Icons.record_voice_over_outlined, s.voiceSection, [voice]),
                   (Icons.cloud_outlined, s.syncSection, [drive]),
                   (Icons.palette_outlined, s.appearance, [language, look]),
@@ -98,7 +99,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: Layout.column),
-                      child: _cards([model, language, look, drive, voice, lock, usage, about]),
+                      child: _cards([model, language, look, drive, voice, lock, advanced, about]),
                     ),
                   ),
                 ],
@@ -385,49 +386,37 @@ class _ConnectionsState extends State<_Connections> {
 }
 
 /// What the model calls used (#217): this conversation and this device.
-class _UsageCard extends StatelessWidget {
-  const _UsageCard(this.session);
+/// What only advanced users want, behind one switch (#294): usage, on its own page.
+class _AdvancedCard extends StatelessWidget {
+  const _AdvancedCard(this.session);
 
   final Session session;
 
   @override
   Widget build(BuildContext context) {
     final s = session.strings;
-    final small = Theme.of(context).textTheme.bodySmall;
-    final device = session.usage.device;
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: Gap.m),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ListTile(leading: const Icon(Icons.data_usage), title: Text(s.usage)),
-            for (final (title, summary) in [
-              (s.usageConversation, session.usage.conversation),
-              (s.usageDevice, device),
-            ])
-              ListTile(
-                title: Text(title),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [for (final line in s.usageLines(summary)) Text(line)],
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: Gap.s,
-                children: [
-                  if (device.plan || session.spec?.name == 'chatgpt')
-                    Text(s.usagePlan, style: small),
-                  if (session.spec?.name == 'ollama') Text(s.usageLocal, style: small),
-                  Text(s.usageEstimate(pricesTaken), style: small),
-                ],
-              ),
+      child: Column(
+        children: [
+          SwitchListTile(
+            secondary: const Icon(Icons.tune),
+            title: Text(s.showAdvanced),
+            subtitle: Text(s.showAdvancedWhy),
+            value: session.advanced,
+            onChanged: session.setAdvanced,
+          ),
+          if (session.advanced)
+            ListTile(
+              key: const Key('open-usage'),
+              leading: const Icon(Icons.bar_chart),
+              title: Text(s.usage),
+              subtitle: Text(s.usageWhat),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () =>
+                  Navigator.of(context)
+                      .push(MaterialPageRoute<void>(builder: (_) => UsagePage(session))),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

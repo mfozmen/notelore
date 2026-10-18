@@ -279,6 +279,7 @@ class Session extends ChangeNotifier {
           'webSearch': webSearch,
           'microphone': ?microphone,
           if (setUpBefore) 'setUp': true,
+          if (advanced) 'advanced': true,
         }),
       );
     } on FileSystemException {
@@ -295,6 +296,7 @@ class Session extends ChangeNotifier {
       appearance = _named(Appearance.values, saved['appearance']) ?? Appearance.system;
       webSearch = saved['webSearch'] != false;
       setUpBefore = saved['setUp'] == true;
+      advanced = saved['advanced'] == true;
       microphone = switch (saved['microphone']) {
         final String id => id,
         _ => null,
@@ -351,7 +353,19 @@ class Session extends ChangeNotifier {
   LlmProvider? _provider;
 
   /// The tokens the model calls used, this conversation and on this device (#217).
-  late final usage = UsageMeter(p.join(paths.state.path, 'usage.json'));
+  late final usage = UsageMeter(
+    p.join(paths.state.path, 'usage.json'),
+    today: () => today ?? clock().toLocal(),
+  );
+
+  /// Settings shows what only advanced users want, such as usage (#294).
+  var advanced = false;
+
+  void setAdvanced(bool on) {
+    advanced = on;
+    _saveUi();
+  }
+
   Remote? _remote;
   var driveConnected = false;
   var _pendingSyncs = 0;
