@@ -121,34 +121,40 @@ class _PatternPadState extends State<PatternPad> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        RawGestureDetector(
-          key: const Key('pattern-pad'),
-          gestures: {
-            ImmediateMultiDragGestureRecognizer:
-                GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
-                  ImmediateMultiDragGestureRecognizer.new,
-                  (recognizer) => recognizer.onStart = widget.enabled ? _startDrawing : null,
-                ),
-          },
-          child: SizedBox.square(
-            key: _box,
-            dimension: _side,
-            child: CustomPaint(
-              painter: _Lines([for (final dot in _dots) _center(dot)], _finger, colors.primary),
-              child: Stack(
-                children: [
-                  for (var dot = 0; dot < 9; dot++)
-                    Positioned(
-                      left: _center(dot).dx - _target / 2,
-                      top: _center(dot).dy - _target / 2,
-                      child: _Dot(
-                        label: s.patternDot(dot + 1),
-                        size: _target,
-                        selected: _dots.contains(dot),
-                        onTap: widget.enabled ? () => _add(dot) : null,
+        // How many dots are chosen, for a screen reader (each dot says its own).
+        Semantics(
+          container: true,
+          liveRegion: true,
+          label: _dots.isEmpty ? null : s.patternDotsChosen(_dots.length),
+          child: RawGestureDetector(
+            key: const Key('pattern-pad'),
+            gestures: {
+              ImmediateMultiDragGestureRecognizer:
+                  GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
+                    ImmediateMultiDragGestureRecognizer.new,
+                    (recognizer) => recognizer.onStart = widget.enabled ? _startDrawing : null,
+                  ),
+            },
+            child: SizedBox.square(
+              key: _box,
+              dimension: _side,
+              child: CustomPaint(
+                painter: _Lines([for (final dot in _dots) _center(dot)], _finger, colors.primary),
+                child: Stack(
+                  children: [
+                    for (var dot = 0; dot < 9; dot++)
+                      Positioned(
+                        left: _center(dot).dx - _target / 2,
+                        top: _center(dot).dy - _target / 2,
+                        child: _Dot(
+                          label: s.patternDot(dot + 1),
+                          size: _target,
+                          selected: _dots.contains(dot),
+                          onTap: widget.enabled ? () => _add(dot) : null,
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -160,9 +166,17 @@ class _PatternPadState extends State<PatternPad> {
           spacing: Gap.s,
           runSpacing: Gap.xs,
           children: [
-            TextButton(
-              onPressed: widget.enabled && _dots.isNotEmpty ? _clear : null,
-              child: Text(s.clearPattern),
+            // Only once there is something to clear; its room is kept, so nothing moves.
+            Visibility(
+              key: const Key('pattern-clear'),
+              visible: _dots.isNotEmpty,
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: TextButton(
+                onPressed: widget.enabled && _dots.isNotEmpty ? _clear : null,
+                child: Text(s.clearPattern),
+              ),
             ),
             FilledButton.tonal(
               onPressed: widget.enabled && _dots.length >= minPatternDots ? _finish : null,

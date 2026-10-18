@@ -1048,11 +1048,13 @@ void main() {
       expect(await session.lock.unlock('2468'), isFalse); // even the right one waits
       now = now.add(const Duration(seconds: 10));
       expect(session.lock.wait, const Duration(seconds: 20));
-      // A restart does not wipe the count: it lives in the keystore.
+      // A restart does not wipe the count: it lives in the keystore. The wait
+      // starts again in full, since after a restart only the clock knows how
+      // long it ran, and the clock can be moved (#412).
       final again = harness.session(clock: () => now);
       await again.load();
-      expect(again.lock.wait, const Duration(seconds: 20));
-      now = now.add(const Duration(seconds: 20));
+      expect(again.lock.wait, const Duration(seconds: 30));
+      now = now.add(const Duration(seconds: 30));
       expect(await again.lock.unlock('0000'), isFalse); // sixth
       expect(again.lock.wait, const Duration(minutes: 1));
       now = now.add(const Duration(minutes: 1));
@@ -1067,6 +1069,27 @@ void main() {
       expect(await const FlutterSecureStorage().read(key: 'notelore.lock.failures'), isNull);
     },
   );
+
+  test('moving the clock ahead and restarting does not end a wait (#412)', () async {
+    var now = DateTime.utc(2026, 10, 18, 12);
+    var started = DateTime.utc(2026, 10, 18, 12); // this run's own time
+    final harness = Harness();
+    final session = harness.session(clock: () => now, uptime: () => now.difference(started));
+    await session.lock.set('2468');
+    for (var i = 0; i < 5; i++) {
+      await session.lock.unlock('0000');
+    }
+    expect(session.lock.wait, const Duration(seconds: 30));
+    // The app is killed, the phone's clock set a day ahead, the app opened.
+    now = now.add(const Duration(days: 1));
+    started = now;
+    final again = harness.session(clock: () => now, uptime: () => now.difference(started));
+    await again.load();
+    expect(again.lock.wait, const Duration(seconds: 30));
+    expect(await again.lock.unlock('2468'), isFalse); // the right one waits too
+    now = now.add(const Duration(seconds: 30));
+    expect(await again.lock.unlock('2468'), isTrue);
+  });
 
   test('a new or removed lock starts with no failures; a damaged count is none', () async {
     final harness = Harness();

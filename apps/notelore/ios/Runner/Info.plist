@@ -2,6 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- The app lock with the device's own lock (#295, #412): Face ID asks why. -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>Notelore uses Face ID to unlock the app when the app lock is on.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

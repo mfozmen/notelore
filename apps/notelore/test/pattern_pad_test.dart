@@ -63,6 +63,18 @@ void main() {
     expect(done, ['6-7-8-5']);
   });
 
+  testWidgets('Clear shows once a dot is chosen; the pad says how many are (#412)', (tester) async {
+    await pad(tester);
+    bool clearShown() => tester.widget<Visibility>(find.byKey(const Key('pattern-clear'))).visible;
+    expect(clearShown(), isFalse);
+    for (final number in [1, 2, 3]) {
+      await tester.tap(dot(number));
+      await tester.pump();
+    }
+    expect(clearShown(), isTrue);
+    expect(find.bySemanticsLabel('3 dots chosen'), findsOneWidget);
+  });
+
   testWidgets('a drag the system calls off draws nothing', (tester) async {
     final done = await pad(tester);
     final gesture = await tester.startGesture(tester.getCenter(dot(1)));

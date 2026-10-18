@@ -144,6 +144,10 @@ abstract class Strings {
   String get drawYourPattern;
   String get deviceNotUnlocked;
   String get deviceLockGone;
+  String get pinTooEasy;
+  String get patternTooEasy;
+  String patternDotsChosen(int count);
+  String get lockNotTurnedOn;
   String get turnOn;
   String get turnOff;
   String get lockSecret;
@@ -607,6 +611,14 @@ class EnglishStrings extends Strings {
   @override
   String get deviceLockGone =>
       "This device has no screen lock any more. Set one up in the device's settings to open Notelore.";
+  @override
+  String get pinTooEasy => 'Too easy to guess: not one digit repeated, nor a run like 1234.';
+  @override
+  String get patternTooEasy => 'That pattern is one of the first people try. Draw another.';
+  @override
+  String patternDotsChosen(int count) => count == 1 ? '1 dot chosen' : '$count dots chosen';
+  @override
+  String get lockNotTurnedOn => 'The app lock is still off.';
   @override
   String get lockMismatch => "They don't match.";
   @override
@@ -1284,6 +1296,15 @@ class TurkishStrings extends Strings {
   @override
   String get deviceLockGone =>
       'Bu cihazda artık ekran kilidi yok. Notelore’u açmak için cihaz ayarlarından bir tane kur.';
+  @override
+  String get pinTooEasy =>
+      'Tahmini çok kolay: tek bir rakamın tekrarı ya da 1234 gibi bir sıra olmasın.';
+  @override
+  String get patternTooEasy => 'Bu desen ilk denenenlerden biri. Başka bir desen çiz.';
+  @override
+  String patternDotsChosen(int count) => '$count nokta seçildi';
+  @override
+  String get lockNotTurnedOn => 'Uygulama kilidi hâlâ kapalı.';
   @override
   String get lockMismatch => 'Aynı değil.';
   @override

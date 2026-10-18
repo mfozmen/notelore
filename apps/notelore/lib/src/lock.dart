@@ -253,7 +253,11 @@ Future<void> turnLockOn(BuildContext context, Session session) async {
   if (kind == null || !context.mounted) return;
   switch (kind) {
     case LockKind.device:
-      await session.lock.useDevice(session.strings.lockOnReason);
+      // Called off in the device's prompt: nothing changed, and it says so.
+      if (!await session.lock.useDevice(session.strings.lockOnReason) && context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(session.strings.lockNotTurnedOn)));
+      }
     case LockKind.pattern:
       await showDialog<void>(context: context, builder: (_) => _NewPattern(session));
     default:
@@ -363,10 +367,17 @@ class _NewPattern extends StatefulWidget {
 class _NewPatternState extends State<_NewPattern> {
   String? _first;
   var _mismatch = false;
+  var _tooEasy = false;
 
   Future<void> _drawn(String pattern) async {
     final first = _first;
-    if (first == null) return setState(() => _first = pattern);
+    if (first == null) {
+      return setState(() {
+        _tooEasy = weakPattern(pattern);
+        _mismatch = false;
+        if (!_tooEasy) _first = pattern;
+      });
+    }
     if (first != pattern) {
       return setState(() {
         _first = null;
@@ -383,6 +394,8 @@ class _NewPatternState extends State<_NewPattern> {
     final String step;
     if (_first != null) {
       step = s.drawPatternAgain;
+    } else if (_tooEasy) {
+      step = s.patternTooEasy;
     } else if (_mismatch) {
       step = s.patternMismatch;
     } else {
@@ -472,8 +485,16 @@ class _NewLockState extends State<_NewLock> {
   }
 
   bool get _tooShort => _first.text.isNotEmpty && _first.text.length < minLockLength;
+  bool get _tooEasy => _first.text.length >= minLockLength && weakPin(_first.text);
   bool get _mismatch => _repeat.text.isNotEmpty && _repeat.text != _first.text;
-  bool get _ready => !_saving && _first.text.length >= minLockLength && _repeat.text == _first.text;
+  bool get _ready =>
+      !_saving && _first.text.length >= minLockLength && !_tooEasy && _repeat.text == _first.text;
+
+  String? get _firstError {
+    if (_tooShort) return widget.session.strings.lockTooShort;
+    if (_tooEasy) return widget.session.strings.pinTooEasy;
+    return null;
+  }
 
   Future<void> _save() async {
     setState(() => _saving = true);
@@ -493,7 +514,7 @@ class _NewLockState extends State<_NewLock> {
             fieldKey: const Key('lock-new'),
             controller: _first,
             label: s.lockPin,
-            error: _tooShort ? s.lockTooShort : null,
+            error: _firstError,
             autofocus: true,
           ),
           _PinField(

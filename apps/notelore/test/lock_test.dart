@@ -58,6 +58,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('How should Notelore lock?'), findsOneWidget);
     expect(find.text('Recommended'), findsOneWidget);
+    // Called off in the device's prompt: still off, and it says so.
+    harness.deviceAuth.answers.add(false);
+    await tester.tap(find.text("Your device's lock"));
+    await tester.pumpAndSettle();
+    expect(find.text('The app lock is still off.'), findsOneWidget);
+    await tester.tap(find.text('Turn on'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text("Your device's lock"));
     await tester.pumpAndSettle();
     expect(find.text("On: your device's lock opens Notelore."), findsOneWidget);
@@ -72,6 +79,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Notelore is locked'), findsNothing);
     expect(harness.deviceAuth.reasons, [
+      'Turn on the app lock', // called off
       'Turn on the app lock',
       'Unlock Notelore',
       'Unlock Notelore',
@@ -99,6 +107,64 @@ void main() {
     expect(find.text('Recommended'), findsNothing);
     expect(tester.widget<ListTile>(find.byKey(const Key('lock-device'))).enabled, isFalse);
     expect(tester.widget<ListTile>(find.byKey(const Key('lock-pattern'))).enabled, isTrue);
+  });
+
+  test('the PINs and patterns people try first are too easy (#412)', () {
+    for (final pin in ['0000', '1111', '1234', '4321', '9876', '0123', '56789']) {
+      expect(weakPin(pin), isTrue, reason: pin);
+    }
+    for (final pin in ['2468', '1357', '1235', '0012', '9087']) {
+      expect(weakPin(pin), isFalse, reason: pin);
+    }
+    // An L, a Z, a U, a C, a 7 and the ring, either way round.
+    for (final pattern in [
+      '0-3-6-7-8',
+      '8-7-6-3-0',
+      '0-1-2-4-6-7-8',
+      '0-3-6-7-8-5-2',
+      '2-1-0-3-6-7-8',
+      '0-1-2-5-8',
+      '0-1-2-5-8-7-6-3',
+    ]) {
+      expect(weakPattern(pattern), isTrue, reason: pattern);
+    }
+    for (final pattern in ['0-4-8-5', '1-5-9-6', '3-0-4-8-7']) {
+      expect(weakPattern(pattern), isFalse, reason: pattern);
+    }
+  });
+
+  testWidgets('lock: a PIN or pattern that is too easy is refused, and why (#412)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await openLock(tester);
+    await tester.tap(find.text('Turn on'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('A PIN for Notelore'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('lock-new')), '1234');
+    await tester.enterText(find.byKey(const Key('lock-repeat')), '1234');
+    await tester.pump();
+    expect(find.textContaining('Too easy to guess'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.descendant(of: find.byType(AlertDialog), matching: find.byType(FilledButton)),
+          )
+          .onPressed,
+      isNull,
+    );
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Turn on'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('A pattern for Notelore'));
+    await tester.pumpAndSettle();
+    await tapPattern(tester, [1, 4, 7, 8, 9]); // an L
+    expect(find.textContaining('one of the first people try'), findsOneWidget);
+    expect(find.text('Draw the same pattern again.'), findsNothing);
+    expect(session.lock.enabled, isFalse);
   });
 
   testWidgets('lock: a pattern, set by tapping the dots, opened by drawing them (#295)', (

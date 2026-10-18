@@ -17,6 +17,30 @@ import 'device_auth.dart';
 /// or PIN. A password is a lock set before #295: it keeps working until changed.
 enum LockKind { none, device, pattern, pin, password }
 
+/// A PIN anyone tries first: one digit repeated, or a run up or down such as
+/// 1234 or 9876 (#412).
+bool weakPin(String pin) {
+  final digits = [for (final unit in pin.codeUnits) unit - 0x30];
+  final steps = {for (var i = 1; i < digits.length; i++) digits[i] - digits[i - 1]};
+  return steps.length == 1 && steps.single.abs() <= 1;
+}
+
+/// The shapes people draw most, as dots 0 to 8: an L, a Z, a U, a C, a 7 and
+/// the ring round the edge; drawn either way round (#412).
+const _commonShapes = {
+  '0-3-6-7-8',
+  '0-1-2-4-6-7-8',
+  '0-3-6-7-8-5-2',
+  '2-1-0-3-6-7-8',
+  '0-1-2-5-8',
+  '0-1-2-5-8-7-6-3',
+};
+
+/// Whether [pattern] is one of the shapes people draw most.
+bool weakPattern(String pattern) =>
+    _commonShapes.contains(pattern) ||
+    _commonShapes.contains(pattern.split('-').reversed.join('-'));
+
 class AppLock {
   AppLock({
     required this.keys,
@@ -137,6 +161,10 @@ class AppLock {
     final decoded = saved == null ? null : _decodeFailures(saved);
     _failures = decoded?.$1 ?? 0;
     _lastFailure = decoded?.$2;
+    // A run of wrong tries that earned a wait starts it again in full: after a
+    // restart only the clock knows how long it ran, and the clock can be set
+    // ahead (#412). The right PIN or pattern, after the wait, clears it all.
+    if (delay(_failures) > Duration.zero) _failedAt = uptime();
   }
 
   static (int, DateTime)? _decodeFailures(String saved) {
