@@ -26,7 +26,7 @@ The wizard is one full-screen route with four steps. It replaces `SetupScreen` a
    - Ollama (desktop only).
 
    Each card has the same five lines:
-   - **Cost:** for example "Free", "Your ChatGPT Plus or Pro plan, no extra charge", "Pay per use, about $X per month for typical use".
+   - **Cost:** for example "Free", "Your ChatGPT Plus or Pro plan, no extra charge", "Pay per use, about $X per month for typical use". Pay-per-use figures come from the dated price table in `usage.dart` (#272), never from fixed text.
    - **Privacy:** where the notes go, for example "Sent to OpenAI", "Google may use free-tier data", "Stays on this computer".
    - **Quality** and **Setup effort.**
    - **Best for:** for example "You have ChatGPT Plus or Pro".
@@ -42,7 +42,7 @@ The wizard is one full-screen route with four steps. It replaces `SetupScreen` a
      - It is checked at once (`Session.connect` validates by listing models).
      - Errors say what to do next, never a raw code (#302, `Strings.chatError`).
    - **Ollama:** checks that the server answers and lists the models it has; otherwise, says how to install and start it.
-3. **Try.** One real turn with the connected model, using a fixed short prompt and no tools, is shown as it arrives. A failure goes back to Connect with the reason.
+3. **Try.** One real turn with the connected model, using a fixed short prompt and no tools, is shown as it arrives. A failure goes back to Connect with the reason. The step says that this one message goes to the provider and counts against the plan or key, a few tokens.
 4. **Done.** One line on what is connected and where the notes go, then into the chat.
 
 ## Settings → Model
@@ -68,7 +68,10 @@ There is no new store.
   - `switchTo(spec)`: the stored key, the last model and `_use`;
   - `disconnect(spec)`: delete that key or sign out. If it was active, there is no model until another is chosen.
 - `logout()` keeps its meaning: Google sign-out plus everything.
-- **Migration:** none needed. A user's existing key or sign-in simply shows as connected.
+- **Migration:** none needed. A user's existing key or sign-in simply shows as connected. An Ollama set up before this gets its mark on the next start.
+- **Synced devices:**
+  - The active provider and model sync through Drive; keys never do. A device that receives a provider it has no key or sign-in for keeps its own active model, which is today's behaviour.
+  - Disconnecting is device-local: with no active model, nothing is uploaded for `provider`, so other devices keep theirs.
 
 ## Errors
 
@@ -82,9 +85,11 @@ There is no new store.
 - Widget tests: each step on phone and desktop, EN/TR; first run, the Settings entry and the chat call to action; the back paths; a no-plan ChatGPT account; a bad key.
 - Design: the design skills (`mobile-app-ui-design`, `ui-ux-pro-max`, flutter layout skills) before building each step, and the ui-reviewer after. Before/after off-screen renders go in each PR.
 - README: the setup and switching sections are rewritten.
+- Security: the security-reviewer agent runs on the PRs that touch the ChatGPT plan sign-in, key storage and the clipboard offer.
 
 ## Out of scope
 
 - The on-device model card (it comes with #227).
+- iOS: deferred, since there is no Mac. Android, Windows and macOS are the targets, and Ollama is offered on desktops only.
 - New providers.
 - Usage and cost pages (#294).
