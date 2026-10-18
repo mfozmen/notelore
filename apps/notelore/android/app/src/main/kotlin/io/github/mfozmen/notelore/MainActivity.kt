@@ -48,6 +48,24 @@ class MainActivity : FlutterActivity() {
                     result.notImplemented()
                 }
             }
+        // An attached audio file's sound (audio_native.dart, #285), decoded off the UI thread.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "io.github.mfozmen.notelore/audio")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "decode") return@setMethodCallHandler result.notImplemented()
+                val bytes = call.arguments as ByteArray
+                Thread {
+                    val file = File.createTempFile("attached", ".audio", cacheDir)
+                    try {
+                        file.writeBytes(bytes)
+                        val (pcm, rate) = AudioDecoder.decode(file)
+                        runOnUiThread { result.success(mapOf("pcm" to pcm, "rate" to rate)) }
+                    } catch (e: Exception) {
+                        runOnUiThread { result.error("decode", e.message, null) }
+                    } finally {
+                        file.delete()
+                    }
+                }.start()
+            }
         // A sign-in waiting in the browser (awake_native.dart, #409): held out of the freezer.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "io.github.mfozmen.notelore/awake")
             .setMethodCallHandler { call, result ->
