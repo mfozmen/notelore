@@ -1049,6 +1049,11 @@ class TurkishStrings extends Strings {
       'Create API key’i seç ve anahtarı kopyala.',
       'Anahtarı aşağıya yapıştır.',
     ],
+    'ollama' => [
+      'Ollama’yı ollama.com’dan kur ve başlat.',
+      'Bir model indir: terminalde şunu çalıştır: ollama pull qwen3:4b',
+      'Geri dön ve bağlan.',
+    ],
     _ => const [],
   };
 

@@ -79,6 +79,9 @@ void main() {
     expect(findProvider('gemini').cost, contains('without billing'));
     expect(findProvider('ollama').cost, startsWith('Free'));
     expect(findProvider('ollama').requiresApiKey, isFalse);
+    // No key, but steps: install it and pull a model (#360).
+    expect(findProvider('ollama').keyUrl, 'https://ollama.com/download');
+    expect(findProvider('ollama').keySteps.join(), contains('ollama pull'));
     expect(
       () => findProvider('bard'),
       throwsA(isA<ArgumentError>().having((e) => '$e', 'message', contains('unknown provider'))),

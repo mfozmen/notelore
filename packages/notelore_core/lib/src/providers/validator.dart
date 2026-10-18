@@ -176,11 +176,18 @@ Future<List<String>> validateKey(
 /// Key-less: the check only asks whether the local daemon answers, and which
 /// models it has pulled.
 Future<List<String>> _checkOllama(Transport transport, String host) async {
+  final List<String> models;
   try {
-    return chatModels('ollama', await transport('GET', '$host/api/tags', timeout: _timeout));
+    models = chatModels('ollama', await transport('GET', '$host/api/tags', timeout: _timeout));
   } on Exception catch (error) {
     throw TransientValidationError(
       'Ollama is not reachable on $host; start the daemon and retry. ($error)',
     );
   }
+  if (models.isEmpty) {
+    throw const TransientValidationError(
+      'Ollama has no model yet; pull one first, for example: ollama pull qwen3:4b',
+    );
+  }
+  return models;
 }

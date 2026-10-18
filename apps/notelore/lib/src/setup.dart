@@ -244,7 +244,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
         onSubmitted: (_) => _connect(),
       ),
     ] else if (_spec.name == 'ollama') ...[
-      const SizedBox(height: Gap.s),
+      const SizedBox(height: Gap.l),
       Text(s.ollamaNoKey, style: theme.textTheme.bodyMedium),
     ],
   ];

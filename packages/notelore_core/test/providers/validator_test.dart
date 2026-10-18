@@ -137,10 +137,26 @@ void main() {
     );
   });
 
-  test('Ollama only needs a reachable daemon', () async {
-    api.answers.add({'models': <Object?>[]});
+  test('Ollama only needs a reachable daemon with a model pulled', () async {
+    api.answers.add({
+      'models': [
+        {'name': 'qwen3:4b'},
+      ],
+    });
     await validateKey(findProvider('ollama'), '', transport: api.call, ollamaHost: 'http://box:1');
     expect(api.last['url'], 'http://box:1/api/tags');
+    // It answers, but there is nothing to talk to yet: said, with the command (#360).
+    api.answers.add({'models': <Object?>[]});
+    await expectLater(
+      validateKey(findProvider('ollama'), '', transport: api.call, ollamaHost: 'http://box:1'),
+      throwsA(
+        isA<TransientValidationError>().having(
+          (e) => e.message,
+          'message',
+          contains('ollama pull'),
+        ),
+      ),
+    );
     api.answers.add(const NetworkError('connection refused'));
     await expectLater(
       validateKey(findProvider('ollama'), '', transport: api.call, ollamaHost: 'http://box:1'),
