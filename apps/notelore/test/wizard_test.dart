@@ -268,7 +268,7 @@ void main() {
     final harness = Harness();
     final hello = Completer<String>();
     harness.provider.tryAnswer = hello.future;
-    await pumpApp(tester, harness);
+    final session = await pumpApp(tester, harness);
     await tester.tap(find.text('Claude (Anthropic)'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Next'));
@@ -286,6 +286,7 @@ void main() {
     hello.complete('Hello, ready to take notes.');
     await tester.pumpAndSettle();
     expect(find.text('Hello, ready to take notes.'), findsOneWidget);
+    expect(session.usage.device.calls, 0); // a hello is not the conversation's use
     expect(find.textContaining('This one message went to the provider'), findsOneWidget);
     expect(harness.provider.asked, isEmpty); // the test turn is not a chat turn
     expect(find.text('Start'), findsOneWidget);
@@ -307,5 +308,23 @@ void main() {
     expect(find.byKey(const Key('setup-problem')), findsOneWidget);
     expect(find.textContaining('quota'), findsNothing); // said kindly, not raw
     expect(session.ready, isTrue); // the key itself was fine: it stays connected
+  });
+
+  testWidgets('an unexpected error in the test turn never leaves Done spinning (#361)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    harness.provider.tryAnswer = TypeError();
+    await pumpApp(tester, harness);
+    await tester.tap(find.text('Claude (Anthropic)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('api-key')), 'sk-ant');
+    await tester.tap(find.text('Connect'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('setup-problem')), findsOneWidget); // back on Connect, said
+    expect(find.text('Saying hello to the model…'), findsNothing);
   });
 }
