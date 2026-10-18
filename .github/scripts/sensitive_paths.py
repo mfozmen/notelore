@@ -46,17 +46,24 @@ def sensitive(files):
     return [f for f in files if any(fnmatchcase(f, pattern) for pattern in PATTERNS)]
 
 
-def main():
-    base = os.environ.get("BASE_REF", "origin/main")
-    # NUL-separated, so a name with spaces stays one name.
-    changed = subprocess.run(
-        ["git", "diff", "-z", "--name-only", f"{base}...HEAD"],
+def changed_files(base, cwd=None):
+    """Every file the branch changed since [base]. NUL-separated, so a name with
+    spaces stays one name; with --no-renames a rename lists both the old and
+    the new path, so a sensitive file moved somewhere ordinary still counts."""
+    out = subprocess.run(
+        ["git", "diff", "-z", "--no-renames", "--name-only", f"{base}...HEAD"],
         capture_output=True,
         text=True,
         check=True,
-    ).stdout.split("\0")
-    found = sensitive([f for f in changed if f])
-    print(f"{len(found)} of {len(changed) - 1} changed file(s) are sensitive")
+        cwd=cwd,
+    ).stdout
+    return [f for f in out.split("\0") if f]
+
+
+def main():
+    changed = changed_files(os.environ.get("BASE_REF", "origin/main"))
+    found = sensitive(changed)
+    print(f"{len(found)} of {len(changed)} changed file(s) are sensitive")
     # review_range's writer: a random heredoc delimiter no file name can close.
     write_outputs(
         os.environ["GITHUB_OUTPUT"],
