@@ -86,6 +86,30 @@ void main() {
     expect(result.changed, ['projects/mopsos.md']);
   });
 
+  test('a passing turn becomes a training example: system, tools and the whole exchange', () async {
+    final result = await runCase(
+      filing,
+      ScriptedProvider([
+        toolUse('add_note_entry', 't1', {'slug': 'mopsos', 'text': 'Hit rate is now daily.'}),
+        text('Saved to Mopsos.'),
+      ]),
+    );
+    final example = trainingExample(result);
+    final messages = (example['messages']! as List).cast<Map<String, Object?>>();
+    expect(messages.map((m) => m['role']), ['system', 'user', 'assistant', 'tool', 'assistant']);
+    expect(messages.first['content'], contains('Notelore'));
+    expect(messages[1]['content'], filing.message);
+    final call = ((messages[2]['tool_calls']! as List).single as Map)['function'] as Map;
+    expect(call['name'], 'add_note_entry');
+    expect(messages[3]['tool_name'], 'add_note_entry');
+    expect(messages.last['content'], 'Saved to Mopsos.');
+    expect(
+      (example['tools']! as List).map((t) => ((t as Map)['function'] as Map)['name']),
+      contains('add_note_entry'),
+    );
+    jsonEncode(example); // one JSONL line
+  });
+
   test('a missing tool, a write elsewhere or a missing fact fails, saying why', () async {
     final provider = ScriptedProvider([
       toolUse('create_note', 't1', {'kind': 'topic', 'title': 'Hit rate'}),
