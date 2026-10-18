@@ -32,6 +32,9 @@ class ProviderWizard extends StatefulWidget {
 
 enum _Step { choose, connect, done }
 
+/// How far below the window's top the desktop card sits, the same on every step.
+const _cardTop = 96.0;
+
 class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObserver {
   late ProviderSpec _spec = widget.session.providers.first;
   var _step = _Step.choose;
@@ -123,10 +126,12 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       _keyRefused = null;
       _noPlan = false;
     });
+    var connected = false;
     // The first run's app would switch to the chat on connecting: it waits for Done.
     if (!widget.closable) widget.session.finishingSetup = true;
     try {
       await widget.session.connect(_spec, _key.text);
+      connected = true;
       if (mounted) setState(() => _step = _Step.done);
     } on NoChatGptPlan {
       setState(() => _noPlan = true); // no retry helps: another way in does
@@ -138,7 +143,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       debugPrint('sign-in failed: $error'); // the detail, for the log only
       setState(() => _problem = widget.session.strings.signInProblem(error));
     } finally {
-      if (widget.session.spec != _spec) widget.session.finishingSetup = false;
+      if (!connected) widget.session.finishingSetup = false;
       // The plan signs in from Choose; what went wrong is said on Connect.
       if (mounted) {
         setState(() {
@@ -148,6 +153,9 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       }
     }
   }
+
+  // OpenAI's wording for its sign-in button.
+  String _connectLabel(Strings s) => _spec.name == 'chatgpt' ? s.continueWithChatGpt : s.connect;
 
   /// One step back; the choice made is kept.
   void _back() => setState(() => _step = _Step.values[_step.index - 1]);
@@ -216,7 +224,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       of: _Step.values.length,
       label: s.stepOf(_step.index + 1, _Step.values.length),
       leading: switch (_step) {
-        _Step.connect => BackButton(onPressed: _back),
+        _Step.connect => BackButton(onPressed: _checking ? null : _back),
         _Step.choose when widget.closable => CloseButton(
           onPressed: () => Navigator.of(context).pop(false),
         ),
@@ -229,7 +237,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       canPop: _step == _Step.choose && widget.closable,
       onPopInvokedWithResult: (popped, _) {
         if (popped) return;
-        if (_step == _Step.connect) _back();
+        if (_step == _Step.connect && !_checking) _back();
         if (_step == _Step.done && widget.closable) _finish();
       },
       child: Scaffold(
@@ -272,6 +280,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
         _problem = null;
         _keyMissing = false;
         _noPlan = false; // about ChatGPT: gone with another choice
+        _keyRefused = null;
       }),
       // Grouped by how they are paid for. The plan, one tap, leads;
       // keys and local models wait under Advanced (#206). Without a
@@ -328,8 +337,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
                 dimension: 18,
                 child: CircularProgressIndicator(strokeWidth: 2, semanticsLabel: s.signingIn),
               )
-            // OpenAI's wording for its sign-in button.
-            : Text(_spec.name == 'chatgpt' ? s.continueWithChatGpt : s.connect),
+            : Text(_connectLabel(s)),
       ),
     ],
   );
@@ -351,7 +359,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       return Align(
         alignment: Alignment.topCenter,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(Gap.l, 96, Gap.l, Gap.l),
+          padding: const EdgeInsets.fromLTRB(Gap.l, _cardTop, Gap.l, Gap.l),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
             child: Card(
