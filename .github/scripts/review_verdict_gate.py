@@ -35,18 +35,30 @@ REVIEWER_LOGIN = "github-actions[bot]"
 FINISHED_SIGNATURE = "**Claude finished"
 
 
-def latest_verdict(comments):
+# Both passes post as the same bot with the same signature; these lines tell
+# them apart. A body carrying the other pass's line is read by neither side,
+# so a quote, a slip or an injection fails closed instead of crossing over.
+SECURITY_MARKERS = re.compile(r"^SECURITY-VERDICT:", re.MULTILINE)
+REVIEW_MARKERS = re.compile(r"^(REVIEW-VERDICT|REVIEWED-HEAD):", re.MULTILINE)
+
+
+def latest_verdict(comments, marker=VERDICT, foreign=SECURITY_MARKERS):
     """The verdict of the newest finished review comment, else None.
 
     `comments` is a list of (author login, body) pairs, oldest first. Anything
     not written by the review action's own completed comment is ignored.
+    `marker` picks whose verdict: the code review's, or the security pass's
+    (security_verdict_gate.py); a body matching `foreign`, the other pass's
+    markers, is skipped.
     """
     found = None
     for login, body in comments:
         body = body or ""
         if login != REVIEWER_LOGIN or not body.startswith(FINISHED_SIGNATURE):
             continue
-        matches = VERDICT.findall(body)
+        if foreign.search(body):
+            continue
+        matches = marker.findall(body)
         if matches:
             found = matches[-1]
     return found

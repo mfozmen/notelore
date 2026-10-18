@@ -30,7 +30,7 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from review_verdict_gate import FINISHED_SIGNATURE, REVIEWER_LOGIN, fetch_bodies
+from review_verdict_gate import FINISHED_SIGNATURE, REVIEWER_LOGIN, SECURITY_MARKERS, fetch_bodies
 
 REVIEWED_HEAD = re.compile(r"^REVIEWED-HEAD: ([0-9a-f]{7,40})$", re.MULTILINE)
 
@@ -45,6 +45,8 @@ def last_review(comments):
     for login, body in comments:
         body = body or ""
         if login != REVIEWER_LOGIN or not body.startswith(FINISHED_SIGNATURE):
+            continue
+        if SECURITY_MARKERS.search(body):  # the security pass's, never a code review's head
             continue
         matches = REVIEWED_HEAD.findall(body)
         if matches:
