@@ -968,7 +968,8 @@ void main() {
     expect(find.byTooltip('Copy'), findsNWidgets(2)); // the message and the answer
     await tester.tap(find.byTooltip('Copy').first); // newest at the bottom: the answer
     await tester.pump();
-    expect(copied, ['**Merhaba!**\nİkinci satır.']); // the text as it came
+    // An answer copies as words a messenger shows as they are (#335), not its Markdown.
+    expect(copied, ['Merhaba!\nİkinci satır.']);
     expect(find.text('Copied'), findsOneWidget);
     await tester.tap(find.byTooltip('Copy').last);
     await tester.pump();
@@ -1824,16 +1825,27 @@ void main() {
     expect(find.text('Mopsos'), findsOneWidget);
   });
 
-  /// Taps the middle of [part] inside the one selectable line that shows it.
+  /// The words of a line of text on screen: an answer's (in its SelectionArea)
+  /// or a selectable one's.
+  String? shownText(RenderObject r) => switch (r) {
+    RenderParagraph() => r.text.toPlainText(),
+    RenderEditable() => r.text!.toPlainText(),
+    _ => null,
+  };
+
+  /// Taps the middle of [part] inside the one line that shows it.
   Future<void> tapOnPart(WidgetTester tester, String part) async {
-    final line = tester.allRenderObjects.whereType<RenderEditable>().singleWhere(
-      (r) => r.text!.toPlainText().contains(part),
+    // Every element over a line reports its render object: once each.
+    final line = tester.allRenderObjects.toSet().singleWhere(
+      (r) => shownText(r)?.contains(part) ?? false,
     );
-    final start = line.text!.toPlainText().indexOf(part);
-    final box = line
-        .getBoxesForSelection(TextSelection(baseOffset: start, extentOffset: start + part.length))
-        .first;
-    await tester.tapAt(line.localToGlobal(box.toRect().center));
+    final start = shownText(line)!.indexOf(part);
+    final selection = TextSelection(baseOffset: start, extentOffset: start + part.length);
+    final box = switch (line) {
+      RenderParagraph() => line.getBoxesForSelection(selection),
+      _ => (line as RenderEditable).getBoxesForSelection(selection),
+    }.first;
+    await tester.tapAt((line as RenderBox).localToGlobal(box.toRect().center));
   }
 
   testWidgets('chat: the Markdown of an answer is formatted, not shown raw; links open (#305)', (
@@ -1850,14 +1862,18 @@ void main() {
     await tester.pump();
     await tester.tap(find.byTooltip('Send'));
     await tester.pumpAndSettle();
-    String shown(RenderEditable r) => r.text!.toPlainText();
-    final lines = tester.allRenderObjects.whereType<RenderEditable>().map(shown).toList();
+    final lines = tester.allRenderObjects.map(shownText).nonNulls.toList();
     // No Markdown marks left in the answer; the user's words stay exactly as typed.
     expect(lines, containsAll(['Saved to Mopsos.', 'Reason: single user', 'See the docs.']));
     expect(lines.where((l) => l.contains('**') && l != '**not** markdown'), isEmpty);
     expect(lines, contains('**not** markdown'));
     final body = tester.widget<MarkdownBody>(find.byType(MarkdownBody));
-    expect(body.selectable, isTrue);
+    // One selection across the whole answer (#335), not one per paragraph.
+    expect(body.selectable, isFalse);
+    expect(
+      find.ancestor(of: find.byType(MarkdownBody), matching: find.byType(SelectionArea)),
+      findsOneWidget,
+    );
     // The bubble's own colour for every part, so it reads in both themes.
     final ink = Theme.of(tester.element(find.byType(MarkdownBody))).colorScheme.onSurface;
     final sheet = body.styleSheet!;
@@ -1877,8 +1893,32 @@ void main() {
     final theme = Theme.of(tester.element(find.byType(MarkdownBody)));
     expect(sheet.a!.color, theme.colorScheme.primary);
     expect(sheet.a!.decoration, TextDecoration.underline);
-    // Code in a monospace face on every platform, not only where "monospace" exists.
+    // Code in a monospace face on every platform, not only where "monospace" exists,
+    // on a tint that still shows in dark mode (#335).
     expect(sheet.code!.fontFamilyFallback, containsAll(['Menlo', 'Consolas']));
+    expect(sheet.code!.backgroundColor, ink.withValues(alpha: AnswerStyle.tint));
+    // List items sit closer than paragraphs, and a list stays under its lead-in (#335).
+    expect(sheet.blockSpacing, Gap.xs);
+    expect(sheet.pPadding, const EdgeInsets.only(top: Gap.xs));
+    // No heading outgrows the bubble's few type sizes (#335).
+    expect(sheet.h1!.fontSize, theme.textTheme.titleMedium!.fontSize);
+    expect(sheet.h3!.fontWeight, AnswerStyle.headingWeight);
+    // A heading stands as far from the words above it as a paragraph does.
+    expect([
+      sheet.h1Padding,
+      sheet.h2Padding,
+      sheet.h3Padding,
+    ], everyElement(const EdgeInsets.only(top: Gap.xs)));
+    // A code block is tinted once, by its box, not again behind its letters.
+    final block = body.syntaxHighlighter!.format('cache.ttl = 24h');
+    expect(block.text, 'cache.ttl = 24h');
+    expect(block.style!.backgroundColor, isNull);
+    expect(block.style!.fontFamily, 'monospace');
+    // The paragraph's own step makes up the top of the bubble, so it is even.
+    final bubble = tester.widget<Container>(
+      find.ancestor(of: find.byType(MarkdownBody), matching: find.byType(Container)).first,
+    );
+    expect(bubble.padding!.vertical, (Gap.m - Gap.xs) * 2 - Gap.xs);
     await tapOnPart(tester, 'the docs');
     await tester.pump();
     expect(launcher.opened, ['https://example.com/d']);

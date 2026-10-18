@@ -9,6 +9,7 @@ import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'audio_file.dart';
+import 'plain_text.dart';
 import 'session.dart';
 import 'setup.dart' show ProviderWizard;
 import 'strings.dart';
@@ -954,7 +955,12 @@ class _Bubble extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              button(strings.copy, Icons.copy, () => _copy(context, text)),
+              // An answer as plain words (#335); the user's message as typed.
+              button(
+                strings.copy,
+                Icons.copy,
+                () => _copy(context, line.role == ChatRole.assistant ? plainText(text) : text),
+              ),
               if (resend case final resend?) button(strings.resend, Icons.replay, resend),
             ],
           ),
@@ -969,7 +975,8 @@ class _Bubble extends StatelessWidget {
         alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: Gap.xs),
-          padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.m - Gap.xs),
+          // An answer's first paragraph brings its own small step at the top (#335).
+          padding: EdgeInsets.fromLTRB(Gap.m, mine ? Gap.m - Gap.xs : Gap.s, Gap.m, Gap.m - Gap.xs),
           // A gutter on the other side on a phone; a readable line on wide windows.
           constraints: BoxConstraints(maxWidth: min(560, size.maxWidth * 0.85)),
           decoration: BoxDecoration(
@@ -1092,46 +1099,72 @@ class _BubbleText extends StatelessWidget {
 
 /// [text] formatted, every part in the bubble's own colour [style] so it reads
 /// on the bubble in every palette, light and dark; links open in the browser.
+/// One selection runs across the whole answer (#335).
 Widget _markdown(BuildContext context, String text, TextStyle style) {
   final theme = Theme.of(context);
   final body = theme.textTheme.bodyMedium!.merge(style);
   final color = style.color!;
-  TextStyle heading(TextStyle? size) => size!.copyWith(color: color, fontWeight: FontWeight.w600);
-  return MarkdownBody(
-    data: text,
-    selectable: true,
-    onTapLink: (_, href, _) => openWebLink(href),
-    // Never fetched: an image address could carry the notes off to whoever
-    // the model was steered by. Its words show instead.
-    imageBuilder: (_, _, alt) => Text(alt ?? '', style: body),
-    styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-      p: body,
-      listBullet: body,
-      strong: const TextStyle(fontWeight: FontWeight.bold).copyWith(color: color),
-      em: const TextStyle(fontStyle: FontStyle.italic).copyWith(color: color),
-      a: TextStyle(
-        color: theme.colorScheme.primary,
-        decoration: TextDecoration.underline,
-        decorationColor: theme.colorScheme.primary,
+  final tint = color.withValues(alpha: AnswerStyle.tint);
+  final code = body.copyWith(
+    fontFamily: 'monospace',
+    fontFamilyFallback: const ['Menlo', 'Consolas', 'Courier New'],
+  );
+  TextStyle heading(TextStyle? size) =>
+      size!.copyWith(color: color, fontWeight: AnswerStyle.headingWeight);
+  return SelectionArea(
+    child: MarkdownBody(
+      data: text,
+      onTapLink: (_, href, _) => openWebLink(href),
+      // A code block's box carries the tint; its letters are not tinted again.
+      syntaxHighlighter: _PlainCode(code),
+      // Never fetched: an image address could carry the notes off to whoever
+      // the model was steered by. Its words show instead.
+      imageBuilder: (_, _, alt) => Text(alt ?? '', style: body),
+      styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+        // Every block a small step apart, and a paragraph one more: list items
+        // sit close, and a list stays under the line that leads into it.
+        blockSpacing: Gap.xs,
+        pPadding: const EdgeInsets.only(top: Gap.xs),
+        h1Padding: const EdgeInsets.only(top: Gap.xs),
+        h2Padding: const EdgeInsets.only(top: Gap.xs),
+        h3Padding: const EdgeInsets.only(top: Gap.xs),
+        p: body,
+        listBullet: body,
+        strong: const TextStyle(fontWeight: FontWeight.bold).copyWith(color: color),
+        em: const TextStyle(fontStyle: FontStyle.italic).copyWith(color: color),
+        a: TextStyle(
+          color: theme.colorScheme.primary,
+          decoration: TextDecoration.underline,
+          decorationColor: theme.colorScheme.primary,
+        ),
+        code: code.copyWith(backgroundColor: tint),
+        codeblockDecoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(Gap.s)),
+        blockquote: body,
+        blockquoteDecoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(
+              color: color.withValues(alpha: AnswerStyle.quoteBar),
+              width: AnswerStyle.quoteBarWidth,
+            ),
+          ),
+        ),
+        // At most a title's size: the bubble keeps to a few type sizes.
+        h1: heading(theme.textTheme.titleMedium),
+        h2: heading(theme.textTheme.titleSmall),
+        h3: heading(theme.textTheme.titleSmall),
       ),
-      code: body.copyWith(
-        fontFamily: 'monospace',
-        fontFamilyFallback: const ['Menlo', 'Consolas', 'Courier New'],
-        backgroundColor: color.withValues(alpha: 0.08),
-      ),
-      codeblockDecoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(Gap.s),
-      ),
-      blockquote: body,
-      blockquoteDecoration: BoxDecoration(
-        border: Border(left: BorderSide(color: color.withValues(alpha: 0.4), width: 3)),
-      ),
-      h1: heading(theme.textTheme.titleLarge),
-      h2: heading(theme.textTheme.titleMedium),
-      h3: heading(theme.textTheme.titleSmall),
     ),
   );
+}
+
+/// A code block's letters in [style], with no colouring of their own.
+class _PlainCode extends SyntaxHighlighter {
+  _PlainCode(this.style);
+
+  final TextStyle style;
+
+  @override
+  TextSpan format(String source) => TextSpan(style: style, text: source);
 }
 
 /// One file sent with a message: a kind's icon and its name on one line; the
