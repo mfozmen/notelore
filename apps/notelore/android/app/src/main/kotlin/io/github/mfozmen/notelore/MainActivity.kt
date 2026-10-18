@@ -48,6 +48,30 @@ class MainActivity : FlutterActivity() {
                     result.notImplemented()
                 }
             }
+        // A sign-in waiting in the browser (awake_native.dart, #409): held out of the freezer.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "io.github.mfozmen.notelore/awake")
+            .setMethodCallHandler { call, result ->
+                val service = Intent(this, SignInService::class.java)
+                when (call.method) {
+                    "hold" -> {
+                        try {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                startForegroundService(service)
+                            } else {
+                                startService(service)
+                            }
+                            result.success(null)
+                        } catch (e: Exception) {
+                            result.error("hold", e.message, null) // the sign-in goes on regardless
+                        }
+                    }
+                    "release" -> {
+                        stopService(service)
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
         // The in-app updater (update.dart): hands a downloaded APK to the installer.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "io.github.mfozmen.notelore/install")
             .setMethodCallHandler { call, result ->

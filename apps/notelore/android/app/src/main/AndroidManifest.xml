@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <!-- The in-app updater hands the downloaded APK to the system installer. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+    <!-- While a sign-in waits in the browser, a short foreground service keeps
+         the app from being frozen, so it hears the answer (SignInService.kt, #409). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <application
         android:label="Notelore"
         android:name="${applicationName}"
@@ -54,6 +57,10 @@
                 <data android:scheme="notelore" android:host="signed-in"/>
             </intent-filter>
         </activity>
+        <service
+            android:name=".SignInService"
+            android:exported="false"
+            android:foregroundServiceType="shortService"/>
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.updates"

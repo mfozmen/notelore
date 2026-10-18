@@ -9,6 +9,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:notelore/src/drive_auth.dart' show Awake;
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/transfer.dart';
 import 'package:notelore/src/voice.dart';
@@ -451,4 +452,15 @@ class FakeFileSelector extends FileSelectorPlatform with MockPlatformInterfaceMi
   @override
   Future<String?> getDirectoryPath({String? initialDirectory, String? confirmButtonText}) async =>
       folder;
+}
+
+/// The app kept out of the system's freezer (#409): what was asked, in order.
+class FakeAwake implements Awake {
+  final calls = <String>[];
+
+  @override
+  Future<void> hold() async => calls.add('hold');
+
+  @override
+  Future<void> release() async => calls.add('release');
 }
