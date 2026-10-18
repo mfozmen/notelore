@@ -122,6 +122,34 @@ class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// Where the key goes, or why none is needed.
+  List<Widget> _keyEntry(Strings s, ThemeData theme) => [
+    if (_spec.requiresApiKey) ...[
+      const SizedBox(height: Gap.l),
+      TextField(
+        key: const Key('api-key'),
+        controller: _key,
+        focusNode: _keyFocus,
+        obscureText: true,
+        autocorrect: false,
+        enableSuggestions: false,
+        decoration: InputDecoration(
+          labelText: s.apiKey,
+          prefixIcon: const Icon(Icons.key_outlined),
+          helperText: _pasted ? s.keyFromClipboard : null,
+          errorText: _keyMissing ? s.pasteKeyFirst : null,
+        ),
+        onChanged: (_) {
+          if (_keyMissing) setState(() => _keyMissing = false);
+        },
+        onSubmitted: (_) => _connect(),
+      ),
+    ] else if (_spec.name == 'ollama') ...[
+      const SizedBox(height: Gap.s),
+      Text(s.ollamaNoKey, style: theme.textTheme.bodyMedium),
+    ],
+  ];
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -170,30 +198,7 @@ class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
           const SizedBox(height: Gap.l),
           _Steps(steps, link: _spec.keyUrl, openLabel: s.openKeyPage),
         ],
-        if (_spec.requiresApiKey) ...[
-          const SizedBox(height: Gap.l),
-          TextField(
-            key: const Key('api-key'),
-            controller: _key,
-            focusNode: _keyFocus,
-            obscureText: true,
-            autocorrect: false,
-            enableSuggestions: false,
-            decoration: InputDecoration(
-              labelText: s.apiKey,
-              prefixIcon: const Icon(Icons.key_outlined),
-              helperText: _pasted ? s.keyFromClipboard : null,
-              errorText: _keyMissing ? s.pasteKeyFirst : null,
-            ),
-            onChanged: (_) {
-              if (_keyMissing) setState(() => _keyMissing = false);
-            },
-            onSubmitted: (_) => _connect(),
-          ),
-        ] else if (_spec.name == 'ollama') ...[
-          const SizedBox(height: Gap.s),
-          Text(s.ollamaNoKey, style: theme.textTheme.bodyMedium),
-        ],
+        ..._keyEntry(s, theme),
         if (_noPlan) _NoPlan(s, getKey: _freeGemini),
       ],
     );

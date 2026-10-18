@@ -146,6 +146,25 @@ void main() {
     );
   });
 
+  testWidgets('setup: a small phone keeps the action pinned over the keyboard (#337)', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(360, 640)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final harness = Harness(rejected: const TransientValidationError('OpenAI is not reachable'));
+    await pumpApp(tester, harness);
+    await connect(tester, provider: 'GPT (OpenAI)', key: 'sk'); // a two-line problem
+    tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull); // no overflow
+    final button = find.widgetWithText(FilledButton, 'Connect');
+    expect(find.descendant(of: find.byType(SingleChildScrollView), matching: button), findsNothing);
+    expect(tester.getRect(button).bottom, lessThanOrEqualTo(640 - 260));
+  });
+
   testWidgets('setup: a screen reader hears the key being checked (#337)', (tester) async {
     phone(tester);
     final harness = Harness()..connectHold = Completer<void>();
