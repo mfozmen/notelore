@@ -92,6 +92,15 @@ void main() {
       ]);
     });
 
+    test('reminders show their day and time (#430)', () {
+      final lines = outline(fixture('reminders.md')).map((l) => l.text).toList();
+      expect(lines, containsAllInOrder(['Reminders', '2026-10-21: Book the photo appointment']));
+      expect(
+        lines,
+        contains('2026-11-03 09:30: Passport office, bring the old passport\nand two photos.'),
+      );
+    });
+
     test('loose lines, multi-line entries and empty sections keep their text', () {
       final lines = outline(fixture('multiline-and-loose-lines.md'));
       expect(lines.first.style, LineStyle.title);

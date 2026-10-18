@@ -186,6 +186,8 @@ void main() {
     expect(describeTool('some_new_tool'), 'Working'); // never mislabelled as a write
     expect(describeTool('related_notes'), 'Searching the notes');
     expect(describeTool('merge_notes'), 'Writing the notes'); // a merge writes (#229)
+    expect(describeTool('add_reminder'), 'Writing the notes');
+    expect(systemPrompt(), contains('add_reminder')); // the model knows when to use it
   });
 
   test('timing: each model call and tool call, names and milliseconds only', () async {

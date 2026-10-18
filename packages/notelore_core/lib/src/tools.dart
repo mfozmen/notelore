@@ -8,6 +8,8 @@
 /// - `create_note(kind, title, tags?, lang?)`: `{slug, kind, path}`; fails if it exists.
 /// - `add_note_entry(slug, text, kind?)`: appends a dated entry under Notes.
 /// - `add_todo(slug, text, due?, kind?)` / `complete_todo(slug, number, kind?)`.
+/// - `add_reminder(slug, at, text, kind?)`: `at` is `YYYY-MM-DD` or `YYYY-MM-DD HH:MM`;
+///   appended under Reminders, which the app turns into notifications.
 /// - `record_decision(slug, topic, value, reason?, kind?)`: supersedes the active
 ///   decision for `topic` in the same write.
 /// - `get_decision(slug, topic, kind?)`: the current decision, deterministic.
@@ -94,6 +96,20 @@ final noteTools = List<Tool>.unmodifiable([
       {
         'slug': _slug,
         'number': {'type': 'integer'},
+        'kind': _kind,
+      },
+    ),
+  ),
+  Tool(
+    'add_reminder',
+    'Add a reminder for a day, or a day and a time of day, in the note it belongs to. '
+        'Only when the user asks to be reminded or names an appointment.',
+    _schema(
+      ['slug', 'at', 'text'],
+      {
+        'slug': _slug,
+        'at': {'type': 'string', 'description': 'YYYY-MM-DD, or YYYY-MM-DD HH:MM (24-hour)'},
+        'text': _string,
         'kind': _kind,
       },
     ),
@@ -266,6 +282,10 @@ class Toolbox {
         _path(arg('slug'), kind),
         (path) => notes.completeTodo(path, args['number']! as int, today: today),
       ),
+      'add_reminder' => _write(_path(arg('slug'), kind), (path) {
+        final (date, time) = _at(arg('at'));
+        notes.addReminder(path, arg('text'), date, time: time, today: today);
+      }),
       'record_decision' => _write(
         _path(arg('slug'), kind),
         (path) => notes.recordDecision(
@@ -326,6 +346,16 @@ class Toolbox {
     write(path);
     index.markChanged(path);
     return 'ok';
+  }
+
+  /// A reminder's day and its time if it has one; the store checks the time.
+  static (DateTime, String?) _at(String at) {
+    final match = RegExp(r'^(\d{4}-\d{2}-\d{2})(?: (\d{1,2}:\d{2}))?$').firstMatch(at);
+    final date = match == null ? null : parseIsoDate(match[1]!);
+    if (date == null) {
+      throw FormatException("at must be YYYY-MM-DD or YYYY-MM-DD HH:MM, got '$at'.");
+    }
+    return (date, match![2]);
   }
 
   static DateTime? _due(String? due) {

@@ -9,6 +9,8 @@ void main() {
     expect(sectionKey('Notlar'), 'notes');
     expect(sectionKey('Todo'), 'todo');
     expect(sectionKey('Yapılacaklar'), 'todo');
+    expect(sectionKey('Reminders'), 'reminders');
+    expect(sectionKey('Hatırlatıcılar'), 'reminders');
     expect(sectionKey('Links'), isNull);
   });
 

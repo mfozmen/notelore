@@ -160,6 +160,31 @@ void main() {
     expect(note.section('notes')!.entries, [const Raw('- $arabicIndic: x')]);
   });
 
+  test('reminders: a date, an optional time, the words (#430)', () {
+    final note = parse(fixture('reminders.md'));
+    final reminders = note.section('reminders')!.entries;
+    expect(reminders[0], Reminder(d(2026, 10, 21), 'Book the photo appointment'));
+    expect(
+      reminders[1],
+      Reminder(
+        d(2026, 11, 3),
+        'Passport office, bring the old passport\n  and two photos.',
+        time: '09:30',
+      ),
+    );
+    // No such hour: kept as written, like an impossible date.
+    expect(reminders[2], isA<Raw>());
+    expect(parse(fixture('hatirlaticilar.md')).section('Hatırlatıcılar')!.key, 'reminders');
+    expect(Reminder(d(2026, 1, 2), 'a', time: '07:05').render(), '- 2026-01-02 07:05: a');
+    expect(Reminder(d(2026, 1, 2), 'a').render(), '- 2026-01-02: a');
+    expect(Reminder(d(2026, 1, 2), 'a').hashCode, Reminder(d(2026, 1, 2), 'a').hashCode);
+    expect(Reminder(d(2026, 1, 2), 'a'), isNot(Reminder(d(2026, 1, 2), 'a', time: '07:05')));
+    for (final time in ['24:00', '12:60', '7:05']) {
+      final text = '---\ntitle: T\n---\n# T\n## Reminders\n- 2026-01-02 $time: x\n';
+      expect(parse(text).section('reminders')!.entries.single, isA<Raw>(), reason: time);
+    }
+  });
+
   test('entries compare by value and render their line', () {
     expect(Entry(d(2026, 1, 2), 'a'), Entry(d(2026, 1, 2), 'a'));
     expect(Entry(d(2026, 1, 2), 'a').hashCode, Entry(d(2026, 1, 2), 'a').hashCode);

@@ -98,6 +98,42 @@ void main() {
     expect(find.text('2 Nov'), findsOneWidget);
   });
 
+  testWidgets('reminders: above the notes, coming ones by time, past ones last (#430)', (
+    tester,
+  ) async {
+    await show(tester, '''---
+title: Passport
+kind: topic
+---
+# Passport
+
+## Notes
+- 2026-10-01: The old one expires in December.
+
+## Reminders
+- 2026-10-15 18:00: Ask Ali about the studio
+- 2026-11-03 09:30: Passport office
+- 2026-10-21: Book the photos
+- not a reminder, as written
+''');
+    double top(String text) => tester.getTopLeft(find.text(text)).dy;
+    expect(top('Reminders'), lessThan(top('Notes')));
+    expect(
+      [top('Book the photos'), top('Passport office'), top('Ask Ali about the studio')],
+      orderedEquals(
+        [top('Book the photos'), top('Passport office'), top('Ask Ali about the studio')]..sort(),
+      ),
+    );
+    expect(top('Book the photos'), lessThan(top('Ask Ali about the studio')));
+    expect(find.text('21 Oct'), findsOneWidget);
+    expect(find.text('3 Nov · 09:30'), findsOneWidget);
+    // A past one says so in words and with its own icon, not by colour alone.
+    expect(find.text('Passed, 15 Oct · 18:00'), findsOneWidget);
+    expect(find.byIcon(Icons.notifications_outlined), findsNWidgets(2));
+    expect(find.byIcon(Icons.history), findsOneWidget);
+    expect(find.text('not a reminder, as written'), findsOneWidget);
+  });
+
   testWidgets('notes: a timeline, newest first, its words formatted (#426)', (tester) async {
     await show(tester, _mopsos);
     final crypto = tester.getTopLeft(find.textContaining('Considered adding crypto')).dy;
