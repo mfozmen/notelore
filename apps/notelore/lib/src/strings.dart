@@ -310,6 +310,8 @@ abstract class Strings {
   String chatError(Exception error) => switch (error) {
     NetworkError() => errorOffline,
     HttpError(status: 401 || 403) => errorKey,
+    // Gemini's free tier answers a model it gives no quota with 429 "limit: 0" (#400).
+    HttpError(status: 429, :final message) when message.contains('limit: 0') => errorNoQuota,
     HttpError(status: 429) => errorBusy,
     HttpError(:final status) when status >= 500 => errorProvider,
     HttpError(:final message) => errorOther(message),
@@ -318,6 +320,7 @@ abstract class Strings {
   String get errorOffline;
   String get errorKey;
   String get errorBusy;
+  String get errorNoQuota;
   String get errorProvider;
   String errorOther(String detail);
 }
@@ -868,6 +871,9 @@ class EnglishStrings extends Strings {
   String get errorKey => 'The provider turned the key or sign-in down. Check it in Settings.';
   @override
   String get errorBusy => 'The provider is getting too many requests just now. Wait a moment.';
+  @override
+  String get errorNoQuota =>
+      'Your key has no quota for this model, so waiting will not help. Choose another model in Settings.';
   @override
   String get errorProvider => "The model's service is having trouble right now. Try again soon.";
   @override
@@ -1483,6 +1489,9 @@ class TurkishStrings extends Strings {
   String get errorKey => 'Sağlayıcı anahtarı ya da girişi kabul etmedi. Ayarlar’dan kontrol et.';
   @override
   String get errorBusy => 'Sağlayıcı şu an çok fazla istek alıyor. Biraz bekle.';
+  @override
+  String get errorNoQuota =>
+      'Anahtarının bu model için kotası yok, beklemek işe yaramaz. Ayarlar’dan başka bir model seç.';
   @override
   String get errorProvider => 'Modelin hizmetinde şu an bir sorun var; birazdan yeniden dene.';
   @override

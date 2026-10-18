@@ -722,6 +722,25 @@ void main() {
     expect(session.model, 'gpt-4o-mini'); // nothing listed: the fixed default
   });
 
+  test('Gemini starts on its free-tier model, not the cheapest preview (#400)', () async {
+    // A free AI Studio key lists previews and lite models whose free quota is 0.
+    final harness = Harness()
+      ..models = [
+        'gemini-2.5-flash-lite',
+        'gemini-3-flash-preview',
+        'gemini-2.5-flash',
+        'gemma-3-4b-it',
+        'gemini-2.5-pro',
+      ];
+    final session = harness.session();
+    await session.connect(findProvider('gemini'), 'AIza');
+    expect(session.model, 'gemini-2.5-flash');
+    expect(session.defaultModel, 'gemini-2.5-flash');
+    harness.models = ['gemini-2.5-flash-lite', 'gemini-2.5-pro']; // no flash listed: cheapest
+    await session.connect(findProvider('gemini'), 'AIza');
+    expect(session.model, 'gemini-2.5-flash-lite');
+  });
+
   test('every start refreshes the model list and keeps the chosen model', () async {
     final harness = Harness();
     final first = harness.session();
