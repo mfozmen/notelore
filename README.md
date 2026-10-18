@@ -45,7 +45,7 @@ The app checks for a new release every time it opens (and every few hours while 
 3. Talk to it: *"Mopsos için not al: veritabanı olarak SQLite seçtik."*
 4. Ask it later: *"Mopsos'ta hangi veritabanını seçmiştik?"*
 
-Notelore starts on the cheapest model your provider offers; switch any time with the model chip above the message box.
+Notelore starts on the cheapest model your provider offers (with Gemini, on gemini-2.5-flash, which a free key has quota for); switch any time with the model chip above the message box.
 
 > [!TIP]
 > Gemini is free with a key from a Google AI Studio project that has no billing, and Ollama is free too. Claude and GPT through their APIs are billed per use; a Claude Pro or Max subscription cannot be used in other apps.
