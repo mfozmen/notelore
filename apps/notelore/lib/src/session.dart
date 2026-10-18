@@ -419,15 +419,19 @@ class Session extends ChangeNotifier {
     if (driveConnected) unawaited(syncNow());
   }
 
-  Future<void> _loadProvider() async {
-    final Object? saved;
+  /// The saved provider settings; null on a first run or when damaged.
+  Object? _readSettings() {
     try {
-      saved = jsonDecode(File(_settings).readAsStringSync());
+      return jsonDecode(File(_settings).readAsStringSync());
     } on FileSystemException {
-      return; // first run
+      return null; // first run
     } on FormatException {
-      return; // damaged: set up again
+      return null; // damaged: set up again
     }
+  }
+
+  Future<void> _loadProvider() async {
+    final saved = _readSettings();
     if (saved case {'provider': final String name, 'model': final String chosen}) {
       final found = providerSpecs.where((s) => s.name == name).firstOrNull;
       if (found == null) return;
