@@ -76,15 +76,7 @@ Future<SyncReport> sync(
   final t = (now ?? DateTime.now()).toUtc();
   final stamp =
       '${t.year}-${_two(t.month)}-${_two(t.day)}T${_two(t.hour)}${_two(t.minute)}${_two(t.second)}Z';
-  // Keys are NFC: macOS hands back NFD names for the same note Drive stores as NFC.
-  final local = <String, File>{
-    if (Directory(root).existsSync())
-      // A link is not followed: nothing outside the notes folder is ever uploaded.
-      for (final file in Directory(
-        root,
-      ).listSync(recursive: true, followLinks: false).whereType<File>())
-        if (_synced(_relOf(root, file.path))) _relOf(root, file.path): file,
-  };
+  final local = _localFiles(root);
   // Only notes: anything else in the remote folder (the shared app settings) is
   // not ours to pull, and pulling it would later read as deleted here and trash it.
   final remoteFiles = {
@@ -109,6 +101,17 @@ Future<SyncReport> sync(
   }
   return report;
 }
+
+/// The synced files under [root], by their relative path. Keys are NFC: macOS
+/// hands back NFD names for the same note Drive stores as NFC.
+Map<String, File> _localFiles(String root) => {
+  if (Directory(root).existsSync())
+    // A link is not followed: nothing outside the notes folder is ever uploaded.
+    for (final file in Directory(
+      root,
+    ).listSync(recursive: true, followLinks: false).whereType<File>())
+      if (_synced(_relOf(root, file.path))) _relOf(root, file.path): file,
+};
 
 bool _safe(String rel) {
   try {
