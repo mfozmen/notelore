@@ -1,5 +1,6 @@
 package io.github.mfozmen.notelore
 
+import android.media.AudioFormat
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
@@ -39,6 +40,7 @@ object AudioDecoder {
     private fun drain(extractor: MediaExtractor, codec: MediaCodec, format: MediaFormat): Pair<ByteArray, Int> {
         var rate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
         var channels = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+        var float = false
         val out = ByteArrayOutputStream()
         val info = MediaCodec.BufferInfo()
         var inputDone = false
@@ -60,21 +62,41 @@ object AudioDecoder {
             if (index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                 rate = codec.outputFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
                 channels = codec.outputFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+                // Some codecs hand back float samples rather than 16-bit ones.
+                float = codec.outputFormat.containsKey(MediaFormat.KEY_PCM_ENCODING) &&
+                    codec.outputFormat.getInteger(MediaFormat.KEY_PCM_ENCODING) == AudioFormat.ENCODING_PCM_FLOAT
             } else if (index >= 0) {
                 val buffer = codec.getOutputBuffer(index)!!.order(ByteOrder.LITTLE_ENDIAN)
-                val shorts = buffer.asShortBuffer()
-                // Mixed down to mono, frame by frame.
-                while (shorts.remaining() >= channels) {
-                    var sum = 0
-                    repeat(channels) { sum += shorts.get() }
-                    val sample = sum / channels
-                    out.write(sample and 0xFF)
-                    out.write((sample shr 8) and 0xFF)
+                // Mixed down to mono, frame by frame, as 16-bit.
+                if (float) {
+                    val floats = buffer.asFloatBuffer()
+                    while (floats.remaining() >= channels) {
+                        var sum = 0f
+                        repeat(channels) { sum += floats.get() }
+                        write(out, ((sum / channels).coerceIn(-1f, 1f) * 32767).toInt())
+                    }
+                } else {
+                    val shorts = buffer.asShortBuffer()
+                    while (shorts.remaining() >= channels) {
+                        var sum = 0
+                        repeat(channels) { sum += shorts.get() }
+                        write(out, sum / channels)
+                    }
                 }
                 codec.releaseOutputBuffer(index, false)
+                // Longer than Whisper should sit through on a phone: refused, not decoded on.
+                if (out.size() > MAX_SECONDS * rate * 2) throw IllegalArgumentException("too long")
                 if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) break
             }
         }
         return Pair(out.toByteArray(), rate)
     }
+
+    private fun write(out: ByteArrayOutputStream, sample: Int) {
+        out.write(sample and 0xFF)
+        out.write((sample shr 8) and 0xFF)
+    }
+
+    /** Half an hour at most. */
+    private const val MAX_SECONDS = 30 * 60
 }

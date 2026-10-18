@@ -479,9 +479,13 @@ class FakeTranscriber implements Transcriber {
   final answers = <String>[];
   final heard = <int>[];
 
+  /// When set, hearing waits for it: a long recording.
+  Completer<void>? hold;
+
   @override
   Future<String> transcribe(Float32List samples, String language) async {
     heard.add(samples.length);
+    await hold?.future;
     return answers.isEmpty ? '' : answers.removeAt(0);
   }
 }

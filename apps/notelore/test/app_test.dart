@@ -1587,6 +1587,38 @@ void main() {
     harness.provider.answers.add('Saved.');
     await attach('call.m4a', [0, 0, 0, 0x20, ...'ftypM4A '.codeUnits, 0, 0]);
     expect(harness.provider.asked.last, contains('Call the bank.'));
+    await tester.pumpAndSettle();
+    // A recording whose words run past the limit for one message: refused like a long text.
+    harness.fileTranscriber.answers.add('word ' * 50000);
+    await attach('lecture.wav', memo);
+    expect(find.textContaining('lecture.wav is too large'), findsOneWidget);
+    expect(harness.provider.asked, hasLength(2));
+  });
+
+  testWidgets('chat: audio heard while the app locked is not sent (#285, #387)', (tester) async {
+    phone(tester);
+    var now = DateTime.utc(2026, 10, 17, 12);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness, clock: () => now);
+    await connect(tester, key: 'k');
+    File(p.join(harness.paths.state.path, 'models', 'whisper-small', 'w.onnx'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('whisper bytes');
+    await session.lock.set('2468');
+    harness.fileTranscriber
+      ..hold = Completer<void>()
+      ..answers.add('Private words.');
+    harness.files.picked = [XFile.fromData(wav(List.filled(16000, 0.1)), path: 'memo.wav')];
+    await tester.tap(find.byTooltip('Attach a file'));
+    await tester.pump();
+    toBackground(tester);
+    now = now.add(const Duration(minutes: 1));
+    toForeground(tester);
+    await tester.pumpAndSettle();
+    harness.fileTranscriber.hold!.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Notelore is locked'), findsOneWidget);
+    expect(harness.provider.asked, isEmpty);
   });
 
   testWidgets('chat: a file too big to attach is refused, and nothing is sent (#315)', (

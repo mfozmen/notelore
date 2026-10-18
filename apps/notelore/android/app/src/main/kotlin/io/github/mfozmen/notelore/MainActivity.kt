@@ -59,7 +59,8 @@ class MainActivity : FlutterActivity() {
                         file.writeBytes(bytes)
                         val (pcm, rate) = AudioDecoder.decode(file)
                         runOnUiThread { result.success(mapOf("pcm" to pcm, "rate" to rate)) }
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
+                        // Anything at all (out of memory too) answers, so the chat never waits forever.
                         runOnUiThread { result.error("decode", e.message, null) }
                     } finally {
                         file.delete()
