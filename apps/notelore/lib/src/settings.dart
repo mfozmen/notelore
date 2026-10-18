@@ -308,7 +308,7 @@ class _ConnectionsState extends State<_Connections> {
     try {
       await session.disconnect(spec);
     } on Object catch (error) {
-      debugPrint('removal failed: $error'); // the detail, for the log only
+      debugPrint('removal failed: ${error.runtimeType}'); // never the detail: it may hold a token
       messenger.showSnackBar(SnackBar(content: Text(s.removeFailed)));
     }
     if (mounted) _reload();

@@ -112,6 +112,11 @@ void main() {
       ),
       findsOneWidget,
     );
+    // The real next step holds the thumb: the free key is the pinned action;
+    // the plan stays, quietly, for after an upgrade (#352).
+    expect(find.widgetWithText(FilledButton, 'Get a free Gemini key'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, 'Continue with ChatGPT'), findsOneWidget);
+    expect(find.descendant(of: card, matching: find.byType(FilledButton)), findsNothing);
     expect(
       find.descendant(of: card, matching: find.textContaining('improve its products')),
       findsOneWidget,

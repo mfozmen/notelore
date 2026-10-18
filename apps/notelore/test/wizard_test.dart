@@ -408,4 +408,29 @@ void main() {
     expect(tester.widget<TextField>(key).controller!.text, 'sk-ant-api03-${'a' * 80}');
     expect(find.textContaining('pasted from the clipboard'), findsOneWidget);
   });
+
+  testWidgets('Connect on a phone: an edge over the pinned action while more is below (#352)', (
+    tester,
+  ) async {
+    phone(tester);
+    await pumpApp(tester, Harness());
+    // Choose is a long list: more below, so the edge shows.
+    expect(find.byKey(const Key('action-edge')), findsOneWidget);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -5000));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('action-edge')), findsNothing); // at the end: none
+  });
+
+  testWidgets('step numbers grow with the text size (#352)', (tester) async {
+    phone(tester);
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await pumpApp(tester, Harness());
+    await tester.tap(find.text('Claude (Anthropic)'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<CircleAvatar>(find.byType(CircleAvatar).first).radius, 24);
+  });
 }
