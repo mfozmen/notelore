@@ -2,8 +2,11 @@
 ///
 /// Port of the CLI's updater: a check at every start (silent when offline),
 /// and an update is installed only when its SHA-256 matches the `.sha256`
-/// published with the release (this catches corrupt or partial downloads; it is
-/// not a signature). On Windows the release's setup runs silently into this
+/// published with the release (corrupt or partial downloads) and its `.sig` is
+/// an ed25519 signature by the release key built into this app (#312): whoever
+/// can only upload release assets cannot make the app install their file. The
+/// Google Play build (`NOTELORE_STORE=play`) has no updater on Android: Play
+/// updates it (#307). On Windows the release's setup runs silently into this
 /// app's folder once the app has exited, and starts it again. On macOS the
 /// `.app` comes out of the release's dmg (`hdiutil`, then `ditto`, which keeps
 /// the bundle's symlinks) and replaces the old bundle, which stays as `.old`
@@ -16,6 +19,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -25,6 +29,29 @@ const latestReleaseUrl = 'https://api.github.com/repos/mfozmen/notelore/releases
 /// Set by the release build (`--dart-define=NOTELORE_VERSION=x.y.z`); empty in
 /// development builds, which never update themselves.
 const appVersion = String.fromEnvironment('NOTELORE_VERSION');
+
+/// The release key's ed25519 public key, base64 of its 32 bytes: the release
+/// build gets it (`--dart-define=NOTELORE_UPDATE_PUBLIC_KEY=…`, a public value);
+/// the private half signs the assets in the release workflow only (#312).
+const updatePublicKey = String.fromEnvironment('NOTELORE_UPDATE_PUBLIC_KEY');
+
+/// 'play' in the Google Play build (#307), empty in the GitHub one.
+const appStore = String.fromEnvironment('NOTELORE_STORE');
+
+/// Whether [signature] is the ed25519 signature of [data] by [publicKey].
+Future<bool> signedBy(List<int> data, List<int> signature, List<int> publicKey) async {
+  try {
+    return await Ed25519().verify(
+      data,
+      signature: Signature(
+        signature,
+        publicKey: SimplePublicKey(publicKey, type: KeyPairType.ed25519),
+      ),
+    );
+  } on Object {
+    return false; // a malformed signature or key is no signature
+  }
+}
 
 typedef Fetch = Future<List<int>> Function(String url);
 typedef Run = Future<ProcessResult> Function(String command, List<String> args);
@@ -127,14 +154,31 @@ Future<String?> checkForUpdate({
   return isNewer(version, current) ? version : null;
 }
 
-/// The updater for a release build of the desktop app, or null.
-Updater? updaterFor({required String system, required String version, required String executable}) {
+/// The updater for a release build of the app, or null: in development builds,
+/// on Android in the Play build (#307), and without a usable release key to
+/// check downloads against (#312).
+Updater? updaterFor({
+  required String system,
+  required String version,
+  required String executable,
+  String store = appStore,
+  String publicKey = updatePublicKey,
+}) {
   if (version.isEmpty || !const {'windows', 'macos', 'android'}.contains(system)) return null;
+  if (system == 'android' && store == 'play') return null;
+  final List<int> key;
+  try {
+    key = base64.decode(publicKey);
+  } on FormatException {
+    return null;
+  }
+  if (key.length != 32) return null;
   return Updater(
     system: system,
     executable: executable,
     current: version,
     temp: Directory.systemTemp,
+    publicKey: key,
     fetch: httpFetch,
     run: Process.run,
     spawn: startDetached,
@@ -147,6 +191,7 @@ class Updater {
     required this.executable,
     required this.current,
     required this.temp,
+    required this.publicKey,
     required this.fetch,
     required this.run,
     required this.spawn,
@@ -166,6 +211,10 @@ class Updater {
   /// the system's temp folder in the app, a folder of its own in each test,
   /// so a test's cleanup never deletes another test's download (#330).
   final Directory temp;
+
+  /// The release key's ed25519 public key: a download installs only with its
+  /// signature (#312).
+  final List<int> publicKey;
   final Fetch fetch;
   final Run run;
   final Spawn spawn;
@@ -202,6 +251,16 @@ class Updater {
     final data = await fetch(url);
     if (sha256.convert(data).toString() != fields.first.toLowerCase()) {
       throw UpdateFailed('checksum mismatch for $name; the download was not installed');
+    }
+    // The checksum comes from the same release, so it proves nothing about who
+    // made the file; the signature does, by a key that never leaves the
+    // release workflow (#312).
+    final signatureUrl = assets['$name.sig'];
+    if (signatureUrl == null) {
+      throw UpdateFailed('release $version publishes no signature for $name; not installing it');
+    }
+    if (!await signedBy(data, await fetch(signatureUrl), publicKey)) {
+      throw UpdateFailed('the signature does not match for $name; the download was not installed');
     }
     if (system == 'windows' || system == 'android') {
       // The setup replaces the files once this app has exited; the APK goes to

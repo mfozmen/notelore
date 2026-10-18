@@ -122,6 +122,9 @@ jobs:
       # The OAuth client ids go into the binary at build time; they are never in the repo.
       NOTELORE_GOOGLE_CLIENT_ID: ${{ secrets.NOTELORE_GOOGLE_CLIENT_ID }}
       NOTELORE_GOOGLE_CLIENT_SECRET: ${{ secrets.NOTELORE_GOOGLE_CLIENT_SECRET }}
+      # The release key's public half (a repository variable, not a secret): the
+      # app installs an update only with its signature (#312).
+      NOTELORE_UPDATE_PUBLIC_KEY: ${{ vars.NOTELORE_UPDATE_PUBLIC_KEY }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -131,12 +134,18 @@ jobs:
           flutter-version-file: pubspec.yaml
           cache: true
       - run: flutter pub get
+      # Without the key the app would never update itself again: no key, no release.
+      - name: Update key
+        shell: bash
+        run: |
+          if [ -z "$NOTELORE_UPDATE_PUBLIC_KEY" ]; then echo "::error::the NOTELORE_UPDATE_PUBLIC_KEY variable is not set"; exit 1; fi
       - name: Build
         working-directory: apps/notelore
         shell: bash
         run: >-
           flutter build ${{ matrix.target }} --release
           --dart-define=NOTELORE_VERSION="$VERSION"
+          --dart-define=NOTELORE_UPDATE_PUBLIC_KEY="$NOTELORE_UPDATE_PUBLIC_KEY"
           --dart-define=NOTELORE_GOOGLE_CLIENT_ID="$NOTELORE_GOOGLE_CLIENT_ID"
           --dart-define=NOTELORE_GOOGLE_CLIENT_SECRET="$NOTELORE_GOOGLE_CLIENT_SECRET"
       - name: Install Inno Setup
@@ -168,6 +177,7 @@ jobs:
       NOTELORE_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.NOTELORE_ANDROID_KEYSTORE_PASSWORD }}
       NOTELORE_ANDROID_KEY_PASSWORD: ${{ secrets.NOTELORE_ANDROID_KEY_PASSWORD }}
       NOTELORE_ANDROID_KEY_ALIAS: ${{ secrets.NOTELORE_ANDROID_KEY_ALIAS }}
+      NOTELORE_UPDATE_PUBLIC_KEY: ${{ vars.NOTELORE_UPDATE_PUBLIC_KEY }}  # as app-desktop
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -185,9 +195,10 @@ jobs:
       - name: Release key
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then echo "::error::NOTELORE_ANDROID_KEYSTORE_BASE64 is not set"; exit 1; fi
+          if [ -z "$NOTELORE_UPDATE_PUBLIC_KEY" ]; then echo "::error::the NOTELORE_UPDATE_PUBLIC_KEY variable is not set"; exit 1; fi
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
           echo "NOTELORE_ANDROID_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
-      - name: Build the signed APK
+      - name: Build the signed APK, and the Play bundle
         working-directory: apps/notelore
         # versionCode from the version: 1.2.3 -> 1002003, always increasing.
         run: |
@@ -196,9 +207,19 @@ jobs:
             --build-name="$VERSION"
             --build-number=$((major * 1000000 + minor * 1000 + patch))
             --dart-define=NOTELORE_VERSION="$VERSION"
+            --dart-define=NOTELORE_UPDATE_PUBLIC_KEY="$NOTELORE_UPDATE_PUBLIC_KEY"
             --dart-define=NOTELORE_GOOGLE_WEB_CLIENT_ID="$NOTELORE_GOOGLE_WEB_CLIENT_ID"
           )
           flutter build apk --release "${args[@]}"
+          # For Google Play (#307): no self-updater, no install permission.
+          flutter build appbundle --release "${args[@]}" --dart-define=NOTELORE_STORE=play
+      # Not a release asset: the maintainer uploads it to Play by hand.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: play-bundle
+          path: apps/notelore/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 30
       - name: Package
         id: pkg
         run: |
@@ -217,8 +238,9 @@ jobs:
           retention-days: 1
 
   # The only job that writes to the release: no checkout, no build, nothing of
-  # the repository runs here. It attaches what the builds uploaded, and runs
-  # even when one platform failed, so the others still ship (#315).
+  # the repository runs here. It signs and attaches what the builds uploaded,
+  # and runs even when one platform failed, so the others still ship (#315).
+  # The update signing key lives in this job alone (#312).
   attach:
     name: Attach to the release
     needs: [release, app-desktop, app-android]
@@ -233,6 +255,28 @@ jobs:
           pattern: app-*
           path: dist
           merge-multiple: true
+      # Each app file gets an ed25519 signature (`<file>.sig`) that the app
+      # checks before it installs anything (#312). The key must match the
+      # public one built into the apps, or no update would ever install.
+      - name: Sign
+        env:
+          SIGNING_KEY: ${{ secrets.NOTELORE_UPDATE_SIGNING_KEY }}
+          PUBLIC_KEY: ${{ vars.NOTELORE_UPDATE_PUBLIC_KEY }}
+        run: |
+          if [ -z "$SIGNING_KEY" ]; then echo "::error::the NOTELORE_UPDATE_SIGNING_KEY secret is not set"; exit 1; fi
+          key="$RUNNER_TEMP/update-key.pem"
+          trap 'rm -f "$key"' EXIT
+          (umask 077; printf '%s\n' "$SIGNING_KEY" > "$key")
+          public=$(openssl pkey -in "$key" -pubout -outform DER | tail -c 32 | base64 -w0)
+          if [ "$public" != "$PUBLIC_KEY" ]; then
+            echo "::error::NOTELORE_UPDATE_SIGNING_KEY is not the key of NOTELORE_UPDATE_PUBLIC_KEY"
+            exit 1
+          fi
+          for file in dist/*; do
+            case "$file" in *.sha256|*.sig) continue ;; esac
+            openssl pkeyutl -sign -inkey "$key" -rawin -in "$file" -out "$file.sig"
+          done
+          ls dist
       - name: Upload
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

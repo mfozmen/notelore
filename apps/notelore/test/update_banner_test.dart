@@ -11,7 +11,7 @@ import 'package:path/path.dart' as p;
 
 import 'app_test.dart' show connect, phone;
 import 'support.dart';
-import 'update_test.dart' show Pages, download, release;
+import 'update_test.dart' show Pages, download, release, testPublicKey;
 
 const v = '9.9.9';
 
@@ -37,6 +37,7 @@ void main() {
     executable: p.join(install, 'notelore.exe'),
     current: '0.2.0',
     temp: temp,
+    publicKey: base64Decode(testPublicKey),
     fetch: Pages(pages).call,
     run: (command, args) async => ProcessResult(0, 0, '', ''),
     spawn: (exe, args) async => spawned.add(exe),
@@ -79,6 +80,7 @@ void main() {
       executable: p.join(install, 'notelore.exe'),
       current: '0.2.0',
       temp: temp,
+      publicKey: base64Decode(testPublicKey),
       fetch: Pages({
         latestReleaseUrl: release(v),
         ...download('notelore-app-$v-windows-x64-setup.exe', setup),
@@ -105,6 +107,7 @@ void main() {
       executable: p.join(bundle, 'Contents', 'MacOS', 'notelore'),
       current: '0.2.0',
       temp: temp,
+      publicKey: base64Decode(testPublicKey),
       fetch: Pages({latestReleaseUrl: release(v), ...download('notelore-app-$v-macos.dmg', setup)})
           .call,
       run: (command, args) async {
@@ -160,6 +163,7 @@ void main() {
       executable: p.join(install, 'notelore.exe'),
       current: '0.2.0',
       temp: temp,
+      publicKey: base64Decode(testPublicKey),
       fetch: (url) async {
         if (url != latestReleaseUrl) await Completer<void>().future; // never arrives
         return release(v);
@@ -183,6 +187,7 @@ void main() {
         executable: p.join(install, 'notelore.exe'),
         current: '0.2.0',
         temp: temp,
+        publicKey: base64Decode(testPublicKey),
         fetch: pages.call,
         run: (command, args) async => ProcessResult(0, 0, '', ''),
         spawn: (exe, args) async => spawned.add(exe),
@@ -226,6 +231,7 @@ void main() {
         executable: p.join(install, 'notelore.exe'),
         current: '0.2.0',
         temp: temp,
+        publicKey: base64Decode(testPublicKey),
         fetch: pages.call,
         run: (command, args) async => ProcessResult(0, 0, '', ''),
         spawn: (exe, args) async => spawned.add(exe),
@@ -266,6 +272,7 @@ void main() {
         executable: p.join(install, 'notelore.exe'),
         current: '0.2.0',
         temp: temp,
+        publicKey: base64Decode(testPublicKey),
         fetch: (url) async {
           if (url.endsWith('setup.exe')) await hold.future; // the download is slow
           return pages.call(url);
@@ -295,6 +302,7 @@ void main() {
         executable: '/system/bin/app_process',
         current: '0.2.0',
         temp: temp,
+        publicKey: base64Decode(testPublicKey),
         fetch: Pages({
           latestReleaseUrl: release(v),
           ...download('notelore-app-$v-android.apk', utf8.encode('apk')),

@@ -83,6 +83,23 @@ jobs:
           name: notelore-flutter-android-debug
           path: apps/notelore/build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
+      # The GitHub APK may install updates; the Play build must not even ask (#307).
+      - name: Only the Play build drops the install permission
+        working-directory: apps/notelore
+        run: |
+          aapt2="$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)"
+          manifest() { "$aapt2" dump xmltree --file AndroidManifest.xml build/app/outputs/flutter-apk/app-debug.apk; }
+          manifest | grep -q REQUEST_INSTALL_PACKAGES
+          manifest | grep -q '\.updates'
+          flutter build apk --debug --dart-define=NOTELORE_STORE=play
+          if manifest | grep -q REQUEST_INSTALL_PACKAGES; then
+            echo "::error::the Play build still asks for REQUEST_INSTALL_PACKAGES"
+            exit 1
+          fi
+          if manifest | grep -q '\.updates'; then
+            echo "::error::the Play build still has the updater's FileProvider"
+            exit 1
+          fi
 
   desktop:
     name: Flutter desktop build (${{ matrix.target }})

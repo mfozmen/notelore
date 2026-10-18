@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- The Google Play build (#307), merged over the main manifest only when the
+         app is built with NOTELORE_STORE=play (build.gradle.kts): Play updates the
+         app, and its policy forbids self-updates, so this build neither asks to
+         install packages nor offers the updater's FileProvider. -->
+    <uses-permission
+        android:name="android.permission.REQUEST_INSTALL_PACKAGES"
+        tools:node="remove"/>
+    <application>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            tools:node="remove"/>
+    </application>
+</manifest>

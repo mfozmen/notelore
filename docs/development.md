@@ -26,7 +26,18 @@ A build without them works, just without sync. On Windows, Flutter needs Develop
 
 Releases are cut on demand from the Conventional Commit history on `main`: a `feat` commit bumps the minor version, `fix` or `perf` the patch version; other types (`docs`, `chore`, `ci`...) do not.
 
-The app checks for a newer release when it starts (at most once a day), every 6 hours while it stays open, and on *Settings → Check for updates*. An update is installed only when its SHA-256 matches the one published with the release; this catches corrupted or partial downloads, it is not a signature. On Windows the setup runs silently and restarts Notelore; on macOS the new app replaces the old one, which is put back if that fails halfway; on Android the system installer opens and the user taps Install.
+The app checks for a newer release when it starts (at most once a day), every 6 hours while it stays open, and on *Settings → Check for updates*. An update is installed only when its SHA-256 matches the one published with the release (corrupted or partial downloads) and its `.sig` is an ed25519 signature by the release key built into the app (#312): someone who can only upload release assets cannot make the app install their file. On Windows the setup runs silently and restarts Notelore; on macOS the new app replaces the old one, which is put back if that fails halfway; on Android the system installer opens and the user taps Install.
+
+**The release key (once).** The release workflow signs every app file with an ed25519 key, and the apps check those signatures against its public half:
+
+```bash
+openssl genpkey -algorithm ed25519 -out notelore-update.pem          # keep it safe, outside the repo
+openssl pkey -in notelore-update.pem -pubout -outform DER | tail -c 32 | base64   # its public half
+```
+
+Store the whole PEM file as the repository **secret** `NOTELORE_UPDATE_SIGNING_KEY`, and the base64 line as the repository **variable** `NOTELORE_UPDATE_PUBLIC_KEY` (it is public). A release fails without them, and it fails if they do not belong together, so an app that could never update again is never shipped. Losing the private key means the next app has to be installed by hand once.
+
+**Google Play.** Play forbids self-updates, so its build has no updater on Android and no `REQUEST_INSTALL_PACKAGES` permission or FileProvider (#307): `flutter build appbundle --release --dart-define=NOTELORE_STORE=play`. The one define switches both the Dart updater and the manifest (`android/app/src/play/AndroidManifest.xml`, merged by `build.gradle.kts`). The release workflow builds this bundle as the `play-bundle` artifact, for upload to Play by hand; the GitHub APK keeps updating itself.
 
 The old command line (`notelore-<version>-*.zip`, v0.2.0 and earlier) is retired; the app reads the same `~/Notelore` folder.
 

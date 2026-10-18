@@ -46,6 +46,21 @@ android {
             signingConfig = signingConfigs.getByName(if (releaseKeystore != null) "release" else "debug")
         }
     }
+
+    // The Google Play build (#307): `--dart-define=NOTELORE_STORE=play`, the same
+    // switch that turns the Dart updater off (update.dart), merges
+    // src/play/AndroidManifest.xml over the main one, which removes the install
+    // permission and the updater's FileProvider. Flutter hands the dart-defines to
+    // Gradle base64-encoded; every other build is the GitHub one, unchanged.
+    val dartDefines = (project.findProperty("dart-defines") as String?)
+        ?.split(",")
+        ?.map { String(java.util.Base64.getDecoder().decode(it)) }
+        .orEmpty()
+    if ("NOTELORE_STORE=play" in dartDefines) {
+        sourceSets.configureEach {
+            if (name in setOf("debug", "profile", "release")) manifest.srcFile("src/play/AndroidManifest.xml")
+        }
+    }
 }
 
 kotlin {
