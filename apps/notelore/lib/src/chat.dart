@@ -246,8 +246,6 @@ class _Lines extends StatelessWidget {
   }
 }
 
-/// Above the message box: the model, switchable at any time but not while it
-/// works, and the ChatGPT plan notice.
 /// In the composer's place when no model is connected (#363): what is missing
 /// and one button to the wizard; the conversation and the notes stay.
 class _NoModel extends StatelessWidget {
@@ -289,6 +287,8 @@ class _NoModel extends StatelessWidget {
   }
 }
 
+/// Above the message box: the model, switchable at any time but not while it
+/// works, and the ChatGPT plan notice.
 class _ModelBar extends StatelessWidget {
   const _ModelBar(this.session, {required this.menu});
 
