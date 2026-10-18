@@ -64,6 +64,38 @@ void main() {
     expect(mic.stopped, 1);
   });
 
+  test("Whisper's notes on sounds are no words: noise alone is no phrase (#163)", () async {
+    // What Whisper writes for a held button with no speech, as on an Android
+    // emulator: it would go to the assistant as a message.
+    Future<String?> hear(String text) async {
+      final mic = FakeMicrophone();
+      final speech = WhisperSpeech(microphone: mic, transcriber: FakeTranscriber(text));
+      final heard = speech.listen('en');
+      await pumpEventQueue();
+      mic.chunks.add(pcm([100, -100]));
+      await pumpEventQueue();
+      await speech.finish();
+      return heard;
+    }
+
+    for (final noise in [
+      ' [MUSIC PLAYING]',
+      '[BLANK_AUDIO]',
+      '(music)',
+      ' ♪ ♪ ',
+      '*sighs*',
+      '[Music] (applause).',
+    ]) {
+      expect(await hear(noise), isNull, reason: noise);
+    }
+    // Words around a note stay; the note goes.
+    expect(await hear(' (laughs) Buy milk [BLANK_AUDIO] for tomorrow.'), 'Buy milk for tomorrow.');
+    expect(await hear('Süt al ♪'), 'Süt al');
+    // An asterisk in what was said is no note: only a short run of letters is.
+    expect(await hear('Two * three * four is 24.'), 'Two * three * four is 24.');
+    expect(await hear('2 * 3 * 4 = 24'), '2 * 3 * 4 = 24');
+  });
+
   test('a cancel, nothing recorded, or nothing understood is no phrase', () async {
     final mic = FakeMicrophone();
     final transcriber = FakeTranscriber('  ');
