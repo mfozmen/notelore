@@ -384,6 +384,23 @@ class Session extends ChangeNotifier {
 
   bool get ready => _agent != null;
 
+  /// The system prompt of the wizard's one test turn (#361).
+  static const trySystem = 'You are Notelore. Reply in one short sentence, in the language asked.';
+
+  /// One real turn with the connected model, no tools and no notes: the answer
+  /// shows the user it works. It costs a few tokens, as the wizard says.
+  Future<String> tryModel() async {
+    // Not metered: a few tokens to say hello are not the conversation's use.
+    final provider = switch (_provider!) {
+      MeteredProvider(:final provider) => provider,
+      final other => other,
+    };
+    final answer = await provider.turn(trySystem, [
+      {'role': 'user', 'content': strings.tryPrompt},
+    ], const []);
+    return answer.content.map((b) => b['text'] ?? '').join().trim();
+  }
+
   /// The first-run wizard has connected a model and is showing its last step:
   /// the app stays on it until [finishSetup] (#357).
   var finishingSetup = false;

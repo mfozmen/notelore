@@ -29,6 +29,10 @@ class ScriptedProvider implements LlmProvider {
 
   // AgentResponse, String (a text answer), an Exception, or a Future (e.g. one never answered)
   final List<Object> answers;
+
+  /// The answer to the wizard's test turn (#361): a String, an Exception, or
+  /// a Future of a String (one on its way).
+  Object tryAnswer = 'Ready.';
   final asked = <String>[];
 
   /// How many messages of history each turn carried.
@@ -39,6 +43,16 @@ class ScriptedProvider implements LlmProvider {
 
   @override
   Future<AgentResponse> turn(String system, List<Message> messages, List<Tool> tools) async {
+    if (system == Session.trySystem) {
+      final text = switch (tryAnswer) {
+        final Exception error => throw error,
+        final Future<String> later => await later,
+        final other => '$other',
+      };
+      return AgentResponse([
+        {'type': 'text', 'text': text},
+      ], 'end_turn');
+    }
     asked.add('${messages.last['content']}');
     lengths.add(messages.length);
     final answer = answers.removeAt(0);
