@@ -9,6 +9,7 @@ Setup: 38 cases (EN and TR) through the Ollama provider, with `num_ctx` 16384 an
 | Model | All | Questions | Collection notes | Filing | Decisions | Todos (add / done) | Median time per case |
 |---|---|---|---|---|---|---|---|
 | qwen3:4b | **26/38 (68%)** | 10/10 | 4/9 | 2/4 | 2/4 | 1/2 · 0/2 | 52 s |
+| qwen3:4b-instruct-2507 (non-thinking) | 10/38 (26%) | 4/10 | 1/9 | 0/4 | 0/4 | 0/2 · 0/2 | 1.3 s |
 | llama3.1:8b | 11/38 (29%) | 6/10 | 1/9 | 0/4 | 0/4 | 0/2 · 0/2 | 2.6 s |
 | qwen3:1.7b | 10/38 (26%) | 5/10 | 0/9 | 2/4 | 0/4 | 0/2 · 0/2 | 0.7 s |
 | phi4-mini | 4/38 (11%) | 1/10 | 0/9 | 0/4 | 0/4 | 0/2 · 0/2 | — |
@@ -24,6 +25,7 @@ Findings:
     - it does not complete todos;
     - it writes notes in the wrong language.
   - It is slow (52 s median). Ollama's `qwen3:4b` is the thinking variant, and with `think: false` it still writes long reasoning into the answer. A non-thinking instruct build is the next run.
+- **Thinking buys the quality.** The non-thinking instruct build of the same 4B is 40 times faster (1.3 s) but drops to 26%. It skips writes, puts facts into new notes and answers questions without reading. This is the gap a fine-tune closes: teach the fast non-thinking model the right tool calls from a stronger teacher's correct turns (distillation, #327).
 - **Below 4B, tool use falls apart:** the models skip the write, loop on `create_note`, or answer without tools.
 - **Next:**
   - run `qwen3:4b-instruct-2507` (non-thinking), FunctionGemma 270M and Gemma 3n through a runtime that supports their tool format;
