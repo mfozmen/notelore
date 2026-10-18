@@ -379,6 +379,14 @@ void main() {
     expect(prompt, contains('only when the user asks for one'));
   });
 
+  test('the prompt ticks the open todo the user says is done (#349)', () {
+    final prompt = systemPrompt(today);
+    expect(prompt, contains('says a task is done'));
+    expect(prompt, contains('read_note'));
+    expect(prompt, contains('complete_todo with its number (1-based, in read_note order)'));
+    expect(prompt, contains('If no open todo matches, add a dated entry'));
+  });
+
   test('the system prompt states the rules', () {
     final prompt = systemPrompt(today);
     for (final rule in ['get_decision', 'language', 'ask', 'archive', '2026-09-30']) {
