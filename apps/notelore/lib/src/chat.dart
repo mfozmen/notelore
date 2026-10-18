@@ -150,6 +150,12 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  /// An example from the empty chat: in the box, ready to edit or send.
+  void _example(String text) => _message.value = TextEditingValue(
+    text: text,
+    selection: TextSelection.collapsed(offset: text.length),
+  );
+
   @override
   Widget build(BuildContext context) {
     final session = widget.session;
@@ -160,7 +166,11 @@ class _ChatScreenState extends State<ChatScreen> {
         constraints: const BoxConstraints(maxWidth: Layout.chat),
         child: Column(
           children: [
-            Expanded(child: session.transcript.isEmpty ? _Empty(s.askSomething) : _Lines(session)),
+            Expanded(
+              child: session.transcript.isEmpty
+                  ? _Empty(s, example: session.ready ? _example : null)
+                  : _Lines(session),
+            ),
             if (session.modelGone)
               MaterialBanner(
                 leading: const Icon(Icons.warning_amber),
@@ -184,22 +194,40 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-/// No conversation yet: what to do.
+/// No conversation yet: what to do, and a few examples that put themselves
+/// in the box to edit or send ([example]; none without a model).
 class _Empty extends StatelessWidget {
-  const _Empty(this.prompt);
+  const _Empty(this.strings, {this.example});
 
-  final String prompt;
+  final Strings strings;
+  final ValueChanged<String>? example;
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Padding(
+    child: SingleChildScrollView(
       padding: const EdgeInsets.all(Gap.l),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.edit_note, size: 56, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: Gap.m),
-          Text(prompt, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            strings.askSomething,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          if (example case final example?) ...[
+            const SizedBox(height: Gap.l),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: Gap.s,
+              runSpacing: Gap.s,
+              children: [
+                for (final e in strings.examples)
+                  ActionChip(label: Text(e), onPressed: () => example(e)),
+              ],
+            ),
+          ],
         ],
       ),
     ),
@@ -300,7 +328,9 @@ class _ModelBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = session.strings;
-    return Padding(
+    // At the composer's start, so it reads as a setting, not as a line of the chat.
+    return Container(
+      alignment: AlignmentDirectional.centerStart,
       padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, 0),
       child: Wrap(
         crossAxisAlignment: WrapCrossAlignment.center,
@@ -797,12 +827,8 @@ class _Bubble extends StatelessWidget {
         ],
       );
     }
-    Widget button(String tooltip, IconData icon, VoidCallback onPressed) => IconButton(
-      tooltip: tooltip,
-      icon: Icon(icon, size: 18),
-      visualDensity: VisualDensity.compact,
-      onPressed: onPressed,
-    );
+    Widget button(String tooltip, IconData icon, VoidCallback onPressed) =>
+        IconButton(tooltip: tooltip, icon: Icon(icon, size: 20), onPressed: onPressed);
     return Column(
       crossAxisAlignment: mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
@@ -827,18 +853,20 @@ class _Bubble extends StatelessWidget {
   }
 
   Widget _bubble(Widget content, bool mine, Color background) {
-    return Align(
-      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: Gap.xs),
-        padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: 10),
-        // Readable line length on wide windows.
-        constraints: const BoxConstraints(maxWidth: 560),
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: _bubbleRadius(mine: mine),
+    return LayoutBuilder(
+      builder: (context, size) => Align(
+        alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: Gap.xs),
+          padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.m - Gap.xs),
+          // A gutter on the other side on a phone; a readable line on wide windows.
+          constraints: BoxConstraints(maxWidth: min(560, size.maxWidth * 0.85)),
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: _bubbleRadius(mine: mine),
+          ),
+          child: content,
         ),
-        child: content,
       ),
     );
   }

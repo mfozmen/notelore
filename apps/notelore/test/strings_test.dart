@@ -83,6 +83,13 @@ void main() {
     }
   });
 
+  test('a few examples for an empty chat, in each language', () {
+    for (final s in [en, tr]) {
+      expect(s.examples, hasLength(3));
+    }
+    expect(tr.examples.first, isNot(en.examples.first));
+  });
+
   test('plenty of waiting lines in both languages, each its own', () {
     for (final s in [en, tr]) {
       expect(s.waitingLines.length, greaterThanOrEqualTo(15));
