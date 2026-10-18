@@ -32,6 +32,11 @@ PrivilegesRequiredOverridesAllowed=dialog commandline
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayIcon={app}\notelore.exe
+; The setup wears the app's mark, not Inno Setup's.
+SetupIconFile=..\runner\resources\app_icon.ico
+; An update lands in the same folder: tell Windows the icons changed, or the
+; taskbar and Start keep the old one from the icon cache (#403).
+ChangesAssociations=yes
 ; Installed apps shows the version in its own column: the name is just the name.
 UninstallDisplayName=Notelore
 ; An update runs while the old app may still be closing: close it, never ask.
