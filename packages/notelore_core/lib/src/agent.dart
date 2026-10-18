@@ -262,7 +262,6 @@ class Agent {
         return blocks.map((b) => b['text']).join('\n');
       }
       onStep(describeTool('${uses.first['name']}'));
-      // A new note counts once the turn keeps it ([Toolbox.takeBackEmpty]).
       if (uses.any((u) => u['name'] != 'create_note' && writingTools.contains(u['name']))) {
         wroteNotes = true;
       }
