@@ -95,6 +95,47 @@ void main() {
       expect(page.text, 'Intro');
     });
 
+    test('a link keeps its parentheses; only an unbalanced closing one goes (#275)', () {
+      expect(linksIn('see https://en.wikipedia.org/wiki/Foo_(bar).'), [
+        Uri.parse('https://en.wikipedia.org/wiki/Foo_(bar)'),
+      ]);
+      expect(linksIn('(https://e.com/x)'), [Uri.parse('https://e.com/x')]);
+    });
+
+    test('a page that names its charset only in <meta> is read in it (#275)', () async {
+      final client = MockClient(
+        (request) async => http.Response.bytes(
+          latin1.encode('<meta charset="ISO-8859-1"><title>Café</title><p>Crème brûlée</p>'),
+          200,
+          headers: {'content-type': 'text/html'},
+        ),
+      );
+      final page = await readPage(Uri.parse('https://e.com'), client: client, resolve: publicDns);
+      expect(page.title, 'Café');
+      expect(page.text, contains('Crème brûlée'));
+    });
+
+    test('a page that trickles in still stops at the total time limit (#275)', () async {
+      // A chunk every 10 ms never stalls, but never ends either.
+      final body = Stream<List<int>>.periodic(
+        const Duration(milliseconds: 10),
+        (_) => utf8.encode('<p>more '),
+      );
+      final client = MockClient.streaming(
+        (request, _) async =>
+            http.StreamedResponse(body, 200, headers: {'content-type': 'text/html'}),
+      );
+      await expectLater(
+        readPage(
+          Uri.parse('https://e.com'),
+          client: client,
+          resolve: publicDns,
+          timeout: const Duration(milliseconds: 100),
+        ),
+        throwsA(isA<LinkUnreadable>()),
+      );
+    });
+
     test('a download that stalls is cancelled, not left running', () async {
       var cancelled = false;
       final body = StreamController<List<int>>(onCancel: () => cancelled = true)
