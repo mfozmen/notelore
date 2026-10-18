@@ -528,6 +528,26 @@ void main() {
     expect(find.byKey(const Key('message')), findsOneWidget);
   });
 
+  testWidgets('lock: a note left open is not shown over the lock (#309)', (tester) async {
+    phone(tester);
+    var now = DateTime.utc(2026, 10, 17, 12);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness, clock: () => now);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Secret plans', today: today);
+    await session.lock.set('2468');
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Secret plans'));
+    await tester.pumpAndSettle();
+    toBackground(tester);
+    now = now.add(const Duration(minutes: 1));
+    toForeground(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Notelore is locked'), findsOneWidget);
+    expect(find.text('Secret plans'), findsNothing); // nothing of the note, above or below
+  });
+
   testWidgets('lock: after five wrong tries the screen waits, then lets one try again', (
     tester,
   ) async {
