@@ -1,6 +1,27 @@
 # CHANGELOG
 
 
+## v0.13.1 (2026-10-18)
+
+### Bug Fixes
+
+- An asterisk note must hug its letters; a spoken "2 * 3" stays ([#402](https://github.com/mfozmen/notelore/pull/402), [`f5fa81d`](https://github.com/mfozmen/notelore/commit/f5fa81dd608db65e569c064aefcc1f5886953d97))
+
+- Android keeps the app out of the freezer while a ChatGPT sign-in waits, so the sign-in completes ([`2bbb7e7`](https://github.com/mfozmen/notelore/commit/2bbb7e733de0bd78e1853f757e5fdc14086313ba))
+
+- Every waiting line ends with an ellipsis, so it reads as thinking ([`6bfd123`](https://github.com/mfozmen/notelore/commit/6bfd1235beef6c6037a178f165863c3e38e3e583))
+
+- Fifty waiting lines in each language, so a long wait seldom repeats one ([`6665396`](https://github.com/mfozmen/notelore/commit/6665396a3f4c392d8fa4937eea51cfab6cee9c05))
+
+- Gemini starts on gemini-2.5-flash, and a 429 with no quota says to choose another model ([`7d139de`](https://github.com/mfozmen/notelore/commit/7d139de5b08eea50f8001de831ebfdbdf01d8d93))
+
+- Require Send for shared text ([#383](https://github.com/mfozmen/notelore/pull/383), [`4598f5f`](https://github.com/mfozmen/notelore/commit/4598f5f77ab38b4572916fcfc5b3b7d70be265be))
+
+- The empty chat invites a note, not a chat ([`3848eeb`](https://github.com/mfozmen/notelore/commit/3848eebcee301612a23e043a9b298ead17a95f99))
+
+- Voice mode on Android: Whisper's notes on sounds are not sent as words ([#402](https://github.com/mfozmen/notelore/pull/402), [`f5fa81d`](https://github.com/mfozmen/notelore/commit/f5fa81dd608db65e569c064aefcc1f5886953d97))
+
+
 ## v0.13.0 (2026-10-18)
 
 ### Bug Fixes
@@ -61,9 +82,6 @@
 - Keep Ollama models on the GPU and skip hidden thinking
   ([`60a8715`](https://github.com/mfozmen/notelore/commit/60a871541ae7104ebdcda9dddc5455024c89b8e0))
 
-- Load the whole training model in the precision's dtype
-  ([`f4aab5e`](https://github.com/mfozmen/notelore/commit/f4aab5e634352e87edd23e41584c45728297625a))
-
 - Locking also clears a notice from before, which could name a note
   ([`73500cf`](https://github.com/mfozmen/notelore/commit/73500cfeba01aa3a7a046dac5636d0125d283ffd))
 
@@ -117,10 +135,6 @@
 - Tick the open todo when the user says a task is done
   ([`4f9aed4`](https://github.com/mfozmen/notelore/commit/4f9aed47a5032f27668370705cbe028e26963466))
 
-- Training scenarios check a content word for todos, avoid broken Turkish suffixes, run from
-  anywhere
-  ([`1750ac1`](https://github.com/mfozmen/notelore/commit/1750ac134246884e703f8a32daf1a2a59db2770e))
-
 - When the app locks, a note or dialog left open closes, so only the lock shows
   ([`a0baa7e`](https://github.com/mfozmen/notelore/commit/a0baa7e96422d5a1530759a14e455402e6b8555f))
 
@@ -129,17 +143,8 @@
 
 ### Features
 
-- A model eval of real note-taking turns, run with notelore_dev eval
-  ([`cf45a91`](https://github.com/mfozmen/notelore/commit/cf45a91aa775e7f13fe5ebf9cd3e0736ca734dab))
-
-- A QLoRA fine-tune script for the on-device model
-  ([`f163033`](https://github.com/mfozmen/notelore/commit/f163033250e9f2755d3c5dc463c42498f5bc3702))
-
 - A welcoming Google sign-in screen with Google's own button
   ([`a55df95`](https://github.com/mfozmen/notelore/commit/a55df951f3e7b37944cc2951048e81c371c78a8e))
-
-- An assistant-only loss for the fine-tune, and its small fixes
-  ([`6251a7b`](https://github.com/mfozmen/notelore/commit/6251a7ba9b58e752275a4330b456f084b15d21bd))
 
 - Attach images in the chat; the model sees them
   ([`e19e25f`](https://github.com/mfozmen/notelore/commit/e19e25f68bd0d8981b315b592210911b8eb559c4))
@@ -150,17 +155,11 @@
 - Back from any key page, a copied key of that provider goes into the box
   ([`3a0e0d3`](https://github.com/mfozmen/notelore/commit/3a0e0d3335bdcb7488d7f510818bd8b32f097479))
 
-- Generate training scenarios apart from the eval set
-  ([`ce9b484`](https://github.com/mfozmen/notelore/commit/ce9b484c087d6ec9a2ea83d5894c5871b04d748d))
-
 - List connected models, switch back with one tap, remove one
   ([`9e229ab`](https://github.com/mfozmen/notelore/commit/9e229ab9e114ccfa3a4b4835b7af063eb4ff734b))
 
 - Notelore's own mark and app icons, instead of Flutter's
   ([`c528c34`](https://github.com/mfozmen/notelore/commit/c528c3419bc517d0a446aed82a9a2290f3f7ad13))
-
-- Notelore_dev distill keeps a teacher's passing turns as training data
-  ([`9d51655`](https://github.com/mfozmen/notelore/commit/9d5165525aaf09288f183b1f7d70bc07f402eff9))
 
 - Ollama's Connect step says how to install it and pull a model, and needs one
   ([`91e663b`](https://github.com/mfozmen/notelore/commit/91e663bf1c5f285abeab1395044c69470a9c7f55))
@@ -182,12 +181,6 @@
 
 - The wizard's Done step says hello through the new model, so you see it works
   ([`e5c0902`](https://github.com/mfozmen/notelore/commit/e5c0902facd647b870037d88bc3342f087d72674))
-
-- Train the on-device model's LoRA on Kaggle's free T4
-  ([`fe3b90a`](https://github.com/mfozmen/notelore/commit/fe3b90ab640d06bf727b6d8b16ff5bfd4245bfc7))
-
-- V2 training scenarios with other notes in every workspace
-  ([`01740fa`](https://github.com/mfozmen/notelore/commit/01740faa99dbcdb2e3cfea9e04aba5d343bc9027))
 
 - With no model in use, the app stays open and the chat asks for one
   ([`2dbca93`](https://github.com/mfozmen/notelore/commit/2dbca937e35d1a7e665a3f830fb0aa7f871a97ad))
@@ -524,9 +517,6 @@
 
 ### Bug Fixes
 
-- Keep API-key headers out of the dev trace; option values may hold '='
-  ([`4968242`](https://github.com/mfozmen/notelore/commit/4968242a1aaaf1b6715b719ff851b54a74241c5f))
-
 - Read the ChatGPT plan's answer from its streamed items
   ([`7f1e0df`](https://github.com/mfozmen/notelore/commit/7f1e0df452b452a711dfebf9112200c91a074030))
 
@@ -587,9 +577,6 @@
 - A Turkish question finds its note; the agent keeps details
   ([`8b7a52f`](https://github.com/mfozmen/notelore/commit/8b7a52fadc8d880dbd09ee6cc9076fb31f735059))
 
-- Give iscc the absolute build folder
-  ([`3b42968`](https://github.com/mfozmen/notelore/commit/3b42968bb539490a1ee10f42f1bd5d68a7aaec89))
-
 - Never swap in a half-copied app; clean leftover setups
   ([`21b1786`](https://github.com/mfozmen/notelore/commit/21b17863c8ca0ec09cae76434283d1995b6d4c4c))
 
@@ -630,32 +617,17 @@
 - Close a session that finishes opening after the app is gone
   ([`b9609fb`](https://github.com/mfozmen/notelore/commit/b9609fbcb276614d9e028f4a1bc0e264ec5c1e65))
 
-- Close the review follow-ups from merged PRs
-  ([`ad54d38`](https://github.com/mfozmen/notelore/commit/ad54d38277b1a1c7d35e50ef4b8d3df8f62fa419))
-
 - Drop half-built tool_use blocks and reject non-object tool input
   ([`1f060d1`](https://github.com/mfozmen/notelore/commit/1f060d1c18c47f58e0a88e64101543cd6fdb6b67))
 
 - Drop unsafe manifest entries on load, treat damaged base copies as missing
   ([`6d5aab6`](https://github.com/mfozmen/notelore/commit/6d5aab646b1303bcd4d376453d6927a1bf5968e9))
 
-- Index review findings
-  ([`87eab56`](https://github.com/mfozmen/notelore/commit/87eab56e53608e566e4f90865ef2ed81d65c089b))
-
 - Keep notelore-core out of the mobile app's pip requirements
   ([`975d11b`](https://github.com/mfozmen/notelore/commit/975d11b170b605050a190a68623a63e753d2015f))
 
-- Keep the spike check out of the user's notes, pin Briefcase
-  ([`ad42d3d`](https://github.com/mfozmen/notelore/commit/ad42d3ddaf2f5d43ef9638ef859d422dd081d20e))
-
 - Keep user and assistant turns alternating after an empty answer or max_turns
   ([`49f438f`](https://github.com/mfozmen/notelore/commit/49f438f1c23c3aee6455f243a565d82e2fdc3ce2))
-
-- Key coverage gaps by report, map Dart lcov paths for Sonar, pin Flutter once
-  ([`83d03aa`](https://github.com/mfozmen/notelore/commit/83d03aa46f40ee15b6d472de65b9ce8f40580fc9))
-
-- Name the Briefcase app notelore-mobile so it does not shadow the core
-  ([`7db0885`](https://github.com/mfozmen/notelore/commit/7db0885fca47bd7ea6e11a920f170327afcdec66))
 
 - Never keep a key whose provider settings could not be saved
   ([`32ee2b2`](https://github.com/mfozmen/notelore/commit/32ee2b273db6bb1eb80578ce71efd5a85dc68282))
@@ -693,9 +665,6 @@
 - Roll back a failed macOS bundle swap; clearer update failures
   ([`a032fbb`](https://github.com/mfozmen/notelore/commit/a032fbb6e093988d8eb2156e91cedcd3442fac97))
 
-- The app owns and closes its session; review findings
-  ([`816cb3b`](https://github.com/mfozmen/notelore/commit/816cb3bbd9d3a50f201a8a95fef60dcd780203e0))
-
 - Treat a non-JSON success page as an HTTPError
   ([`e45f14c`](https://github.com/mfozmen/notelore/commit/e45f14c0a1b08f842837a48afec6b876fa1d0ad4))
 
@@ -704,11 +673,6 @@
 
 - Validate nested tool arguments, create temp notes without chmod
   ([`f10d642`](https://github.com/mfozmen/notelore/commit/f10d642a4e275fe3e4b58aa425fce99f12bcd3ae))
-
-### Chores
-
-- Retire the Python packages
-  ([`a7f08b6`](https://github.com/mfozmen/notelore/commit/a7f08b6698935dbf0f4ec1f3d59660efb016d42e))
 
 ### Features
 
@@ -774,11 +738,6 @@
 
 - Verify self-updates against a published SHA-256
   ([`d9b6d4d`](https://github.com/mfozmen/notelore/commit/d9b6d4d647154182281c3e4c13977ef426568d6f))
-
-### Breaking Changes
-
-- The command-line app is gone; releases carry only the app for Windows, macOS and Android. The app
-  reads the same ~/Notelore.
 
 
 ## v0.2.0 (2026-09-30)
