@@ -15,7 +15,8 @@ for name in ("torch", "datasets", "peft", "transformers", "trl"):
 sys.modules["torch"].bfloat16, sys.modules["torch"].float16 = "bfloat16", "float16"
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from finetune import clean, precision
+import finetune
+from finetune import clean, load, precision
 
 failures = 0
 
@@ -29,6 +30,25 @@ def check(name, got, want):
 
 check("bf16 where the GPU has it", precision(True), ({"bf16": True, "fp16": False}, "bfloat16"))
 check("fp16 on a GPU without bf16 (Kaggle's T4)", precision(False), ({"bf16": False, "fp16": True}, "float16"))
+
+
+class Recorder:
+    """Stands in for a transformers class: records what it was built with."""
+
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
+    @classmethod
+    def from_pretrained(cls, *args, **kwargs):
+        return cls(args=args, **kwargs)
+
+
+finetune.AutoModelForCausalLM = finetune.BitsAndBytesConfig = Recorder
+model = load("base", "float16")
+# The parts left unquantized (embeddings, lm_head) take it too: kept in the
+# checkpoint's bf16, a T4 fails in the loss (Kaggle run 1).
+check("the whole model loads in the precision's dtype", model.kwargs.get("dtype"), "float16")
+check("and so does the 4-bit compute", model.kwargs["quantization_config"].kwargs["bnb_4bit_compute_dtype"], "float16")
 
 check(
     "an answer keeps only what follows the leaked reasoning",

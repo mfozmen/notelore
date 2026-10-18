@@ -63,18 +63,25 @@ def precision(bf16):
     return {"bf16": bf16, "fp16": not bf16}, (torch.bfloat16 if bf16 else torch.float16)
 
 
-def train(base, data, out, epochs):
-    tokenizer = AutoTokenizer.from_pretrained(base)
-    dataset = Dataset.from_dict({"text": texts(tokenizer, data)})
-    print(f"{len(dataset)} training turns")
-    flags, dtype = precision(torch.cuda.is_bf16_supported())
-    model = AutoModelForCausalLM.from_pretrained(
+def load(base, dtype):
+    """The base model in 4 bits, its unquantized parts (embeddings, lm_head) in
+    [dtype] too: left in the checkpoint's bf16, a GPU without bf16 fails."""
+    return AutoModelForCausalLM.from_pretrained(
         base,
+        dtype=dtype,
         quantization_config=BitsAndBytesConfig(
             load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=dtype
         ),
         device_map="auto",
     )
+
+
+def train(base, data, out, epochs):
+    tokenizer = AutoTokenizer.from_pretrained(base)
+    dataset = Dataset.from_dict({"text": texts(tokenizer, data)})
+    print(f"{len(dataset)} training turns")
+    flags, dtype = precision(torch.cuda.is_bf16_supported())
+    model = load(base, dtype)
     trainer = SFTTrainer(
         model=model,
         train_dataset=dataset,
@@ -115,7 +122,7 @@ def modelfile(out, ollama_base):
 
 def merge(base, out):
     """Full bf16 weights with the LoRA folded in."""
-    model = AutoModelForCausalLM.from_pretrained(base, torch_dtype=torch.bfloat16, device_map="cpu")
+    model = AutoModelForCausalLM.from_pretrained(base, dtype=torch.bfloat16, device_map="cpu")
     model = PeftModel.from_pretrained(model, str(Path(out) / "lora")).merge_and_unload()
     merged = Path(out) / "merged"
     model.save_pretrained(merged, safe_serialization=True)
