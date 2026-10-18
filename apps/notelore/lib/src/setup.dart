@@ -36,7 +36,7 @@ enum _Step { choose, connect, done }
 const _cardTop = 96.0;
 
 class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObserver {
-  late ProviderSpec _spec = widget.session.providers.first;
+  late ProviderSpec _spec = widget.session.spec ?? widget.session.providers.first;
   var _step = _Step.choose;
 
   /// The options already connected on this device, marked on their cards.
@@ -122,6 +122,14 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       _keyFocus.requestFocus(); // brings the field into view, keyboard up
       return;
     }
+    await _attempt(() => widget.session.connect(_spec, _key.text));
+  }
+
+  /// A model connected before: used again with its stored key, no key asked.
+  Future<void> _useConnected() => _attempt(() => widget.session.switchTo(_spec));
+
+  /// Runs [connect]; on success the wizard says Done, otherwise why not, on Connect.
+  Future<void> _attempt(Future<void> Function() connect) async {
     setState(() {
       _checking = true;
       _problem = null;
@@ -132,7 +140,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     // The first run's app would switch to the chat on connecting: it waits for Done.
     if (!widget.closable) widget.session.finishingSetup = true;
     try {
-      await widget.session.connect(_spec, _key.text);
+      await connect();
       connected = true;
       if (mounted) setState(() => _step = _Step.done);
     } on NoChatGptPlan {
@@ -212,6 +220,11 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       },
     );
     final action = switch (_step) {
+      // Connected before: used again at once, with no key asked.
+      _Step.choose when _connected.contains(_spec.name) => FilledButton(
+        onPressed: _checking ? null : _useConnected,
+        child: Text(s.useThisModel),
+      ),
       // The plan is one tap, as before: it signs in right here.
       _Step.choose when _spec.name == 'chatgpt' => _connectAction(s),
       _Step.choose => FilledButton(
@@ -291,7 +304,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
           _keyRefused = null;
         }),
       ),
-      const SizedBox(height: Gap.s),
+      const SizedBox(height: Gap.m),
     ],
   ];
 
@@ -349,7 +362,11 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(Gap.l, _cardTop, Gap.l, Gap.l),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
+            // Never taller than the window: the list scrolls, the action stays in view.
+            constraints: BoxConstraints(
+              maxWidth: 480,
+              maxHeight: size.maxHeight - _cardTop - Gap.l,
+            ),
             child: Card(
               key: const Key('setup-card'),
               child: Padding(
@@ -358,7 +375,11 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   spacing: Gap.l,
-                  children: [header, content, action],
+                  children: [
+                    header,
+                    Flexible(child: SingleChildScrollView(child: content)),
+                    action,
+                  ],
                 ),
               ),
             ),
@@ -827,9 +848,10 @@ class _GoogleButton extends StatelessWidget {
   }
 }
 
-/// One option on the Choose step: what it costs, where the notes go, how good
-/// it is, the effort to set it up and who it suits, the same five lines on
-/// every card. Chosen is told by an icon and the border, never by colour alone.
+/// One option on the Choose step (#358). Every card says who it suits and a few
+/// short tags; the chosen one opens to cost, where the notes go, quality and
+/// the effort to set it up, so all options fit one screen and stay comparable.
+/// Chosen is told by an icon, the border and a tint, never by colour alone.
 class _OptionCard extends StatelessWidget {
   const _OptionCard({
     required this.spec,
@@ -851,6 +873,22 @@ class _OptionCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final muted = colors.onSurfaceVariant;
+    final local = spec.name == 'ollama';
+    Widget tag(String text, {bool strong = false}) => DecoratedBox(
+      decoration: BoxDecoration(
+        color: strong ? colors.secondaryContainer : colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(Gap.s),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: Gap.s, vertical: Gap.xs),
+        child: Text(
+          text,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: strong ? colors.onSecondaryContainer : muted,
+          ),
+        ),
+      ),
+    );
     Widget line(IconData icon, String text) => Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: Gap.s,
@@ -865,6 +903,7 @@ class _OptionCard extends StatelessWidget {
       checked: chosen,
       child: Card(
         margin: EdgeInsets.zero,
+        color: chosen ? colors.secondaryContainer.withValues(alpha: .4) : null,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
@@ -876,32 +915,57 @@ class _OptionCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(Gap.m),
+            padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s + Gap.xs),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: Gap.s,
               children: [
                 Row(
                   spacing: Gap.s,
                   children: [
                     Expanded(child: Text(s.providerName(spec), style: theme.textTheme.titleMedium)),
-                    if (connected)
-                      Chip(
-                        label: Text(s.connectedBadge),
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                      ),
                     Icon(
                       chosen ? Icons.check_circle : Icons.radio_button_unchecked,
                       color: chosen ? colors.primary : muted,
                     ),
                   ],
                 ),
-                line(Icons.payments_outlined, s.optionCost(spec)),
-                line(Icons.lock_outline, s.optionPrivacy(spec)),
-                line(Icons.auto_awesome_outlined, s.optionQuality(spec)),
-                line(Icons.schedule_outlined, s.optionEffort(spec)),
-                Text(s.optionFit(spec), style: theme.textTheme.bodySmall?.copyWith(color: muted)),
+                // Who it suits: what decides, so it comes first.
+                Text(s.optionFit(spec), style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
+                const SizedBox(height: Gap.s),
+                Wrap(
+                  spacing: Gap.xs,
+                  runSpacing: Gap.xs,
+                  children: [
+                    if (connected) tag(s.connectedBadge, strong: true),
+                    for (final text in s.optionTags(spec)) tag(text),
+                  ],
+                ),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  alignment: Alignment.topCenter,
+                  child: chosen
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: Gap.m),
+                          child: Column(
+                            spacing: Gap.xs,
+                            children: [
+                              line(Icons.payments_outlined, s.optionCost(spec)),
+                              // Where the notes go: a lock only when they stay here.
+                              line(
+                                local ? Icons.lock_outline : Icons.cloud_upload_outlined,
+                                s.optionPrivacy(spec),
+                              ),
+                              line(Icons.auto_awesome_outlined, s.optionQuality(spec)),
+                              line(
+                                spec.name == 'chatgpt' ? Icons.bolt_outlined : Icons.build_outlined,
+                                s.optionEffort(spec),
+                              ),
+                            ],
+                          ),
+                        )
+                      : const SizedBox(width: double.infinity),
+                ),
               ],
             ),
           ),

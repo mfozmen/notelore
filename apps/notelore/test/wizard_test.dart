@@ -6,6 +6,7 @@ import 'package:notelore/src/setup.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'app_test.dart' show phone, pumpApp;
+import 'desktop_test.dart' show desktop;
 import 'support.dart';
 
 void main() {
@@ -117,7 +118,7 @@ void main() {
     expect(find.text('Anthropic rejected the key'), findsNothing);
   });
 
-  testWidgets('Choose: every option on a card, with cost, privacy, quality, effort, fit (#358)', (
+  testWidgets('Choose: every option on one screen; the chosen one opens to its details (#358)', (
     tester,
   ) async {
     phone(tester);
@@ -125,32 +126,87 @@ void main() {
     Finder card(String name) => find.byKey(ValueKey('option-$name'));
     Finder on(String name, String text) =>
         find.descendant(of: card(name), matching: find.textContaining(text));
+    // All five, each with who it suits and short tags; only the chosen one is
+    // tall (pixel fit depends on the font, so the shape is what is checked).
     for (final name in ['chatgpt', 'anthropic', 'openai', 'gemini', 'ollama']) {
-      await tester.scrollUntilVisible(card(name), 200, scrollable: find.byType(Scrollable).first);
       expect(card(name), findsOneWidget, reason: name);
     }
-    expect(find.text('Advanced'), findsNothing); // nothing hidden: all side by side
-    await tester.scrollUntilVisible(
-      card('chatgpt'),
-      -200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(on('chatgpt', 'Plus or Pro plan'), findsWidgets);
-    expect(on('chatgpt', 'Your notes go to OpenAI'), findsOneWidget);
-    await tester.scrollUntilVisible(card('ollama'), 200, scrollable: find.byType(Scrollable).first);
-    expect(on('ollama', 'stay on this computer'), findsOneWidget);
-    expect(on('gemini', 'may use them to improve its products'), findsOneWidget);
-    // The choice is marked by an icon, not by colour alone.
     expect(
-      find.descendant(of: card('ollama'), matching: find.byIcon(Icons.check_circle)),
-      findsNothing,
+      tester.getSize(card('anthropic')).height,
+      lessThan(tester.getSize(card('chatgpt')).height),
     );
+    expect(find.text('Advanced'), findsNothing); // nothing hidden behind a fold
+    expect(on('chatgpt', 'You have ChatGPT Plus or Pro'), findsOneWidget);
+    expect(on('ollama', 'Free'), findsWidgets);
+    // Details only on the chosen card.
+    expect(on('chatgpt', 'Your notes go to OpenAI'), findsOneWidget);
+    expect(on('ollama', 'stay on this computer'), findsNothing);
+    await tester.ensureVisible(card('ollama'));
+    await tester.pumpAndSettle();
     await tester.tap(card('ollama'));
     await tester.pumpAndSettle();
+    expect(on('ollama', 'stay on this computer'), findsOneWidget);
+    expect(on('chatgpt', 'Your notes go to OpenAI'), findsNothing);
+    // The choice is marked by an icon, not by colour alone.
     expect(
       find.descendant(of: card('ollama'), matching: find.byIcon(Icons.check_circle)),
       findsOneWidget,
     );
+  });
+
+  testWidgets('Choose on a desk: the action is in view without scrolling (#358)', (tester) async {
+    desktop(tester, 1280);
+    await pumpApp(tester, Harness(chatGpt: FakeAuth()));
+    final button = find.widgetWithText(FilledButton, 'Continue with ChatGPT');
+    expect(tester.getRect(button).bottom, lessThanOrEqualTo(1000));
+  });
+
+  testWidgets('opened again: the model in use is chosen; a connected one is used at once (#358)', (
+    tester,
+  ) async {
+    phone(tester);
+    final session = await pumpApp(tester, Harness());
+    await tester.tap(find.text('Claude (Anthropic)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('api-key')), 'sk-ant');
+    await tester.tap(find.text('Connect'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start'));
+    await tester.pumpAndSettle();
+    final home = tester.element(find.byKey(const Key('message')));
+    // Another one connected, then the wizard again: GPT, in use, is the choice.
+    unawaited(ProviderWizard.open(home, session));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GPT (OpenAI)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('api-key')), 'sk-oa');
+    await tester.tap(find.text('Connect'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start'));
+    await tester.pumpAndSettle();
+    final done = ProviderWizard.open(home, session);
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('option-openai')),
+        matching: find.byIcon(Icons.check_circle),
+      ),
+      findsOneWidget,
+    );
+    // Claude is connected: used at once, no key asked again.
+    await tester.tap(find.text('Claude (Anthropic)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Use this model'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('api-key')), findsNothing);
+    expect(session.spec!.name, 'anthropic');
+    await tester.tap(find.text('Start'));
+    await tester.pumpAndSettle();
+    expect(await done, isTrue);
   });
 
   testWidgets('Choose: what is already connected says so (#358)', (tester) async {
