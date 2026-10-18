@@ -1437,6 +1437,23 @@ void main() {
     expect(find.text('Moved "Kitaplar" to the archive.'), findsNothing);
   });
 
+  testWidgets('notes: an image in a note is never loaded; its words show instead (#311)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    addEntry(path, 'See ![the chart](https://evil.example/p.png?q=notes)', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Image), findsNothing);
+    expect(find.textContaining('the chart'), findsOneWidget);
+  });
+
   testWidgets('notes: delete from the list or the reader, with undo', (tester) async {
     phone(tester);
     final harness = Harness();

@@ -13,6 +13,8 @@ Widget _noteMarkdown(String text) => Markdown(
   selectable: true,
   padding: const EdgeInsets.all(Gap.m),
   onTapLink: (_, href, _) => openWebLink(href),
+  // Never fetched: a planted image's address could carry the note away (#311).
+  imageBuilder: (_, _, alt) => Text(alt ?? ''),
 );
 
 /// Every project and topic, newest first; a tap opens the note read-only, beside

