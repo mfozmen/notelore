@@ -18,4 +18,11 @@ void main() {
       }
     }
   });
+
+  test('the Windows setup refreshes the icon cache and wears the mark itself (#403)', () {
+    final setup = File('windows/installer/notelore.iss').readAsStringSync();
+    // An update in the same folder: without a refresh the taskbar keeps the old icon.
+    expect(setup, contains('ChangesAssociations=yes'));
+    expect(setup, contains(r'SetupIconFile=..\runner\resources\app_icon.ico'));
+  });
 }

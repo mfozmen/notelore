@@ -9,7 +9,7 @@ import 'package:notelore_core/notelore_core.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
-import 'support.dart' show FakeLauncher;
+import 'support.dart' show FakeAuth, FakeAwake, FakeLauncher;
 
 /// The Google sign-in plugin, in memory: one account that has or has not
 /// granted Drive access.
@@ -145,13 +145,38 @@ void main() {
 }
 
 void planTests() {
+  test('a phone keeps the app awake while a sign-in waits, and lets go after (#409)', () async {
+    final awake = FakeAwake();
+    final inner = FakeAuth();
+    final held = AwakeSignIn(inner, awake);
+    await held.signIn();
+    expect(awake.calls, ['hold', 'release']);
+    expect(await held.signedIn(), isTrue);
+    expect(await held.token(), 'token');
+    // A failed sign-in lets go too, and its error is the one that shows.
+    inner.failSignIn = Exception('refused');
+    await expectLater(held.signIn(), throwsA(isA<Exception>()));
+    expect(awake.calls, ['hold', 'release', 'hold', 'release']);
+    await held.signOut();
+    expect(inner.signedOut, isTrue);
+    // The phone's ChatGPT sign-in is held; the desktop's is not.
+    const keys = FlutterSecureStorage();
+    expect(
+      chatGptAuthFor(mobile: true, keys: keys, keySpace: 'n', awake: awake),
+      isA<AwakeSignIn>(),
+    );
+    expect(chatGptAuthFor(mobile: false, keys: keys, keySpace: 'n'), isA<ChatGptAuth>());
+  });
+
   test('the ChatGPT plan sign-in, on phones too, kept in the keystore', () async {
     const keys = FlutterSecureStorage();
     final launcher = FakeLauncher();
     UrlLauncherPlatform.instance = launcher;
     // A phone opens the page inside the app, which keeps it running for the
     // loopback answer; the desktop uses the browser.
-    final phone = chatGptAuthFor(mobile: true, keys: keys, keySpace: 'n') as ChatGptAuth;
+    final phone =
+        (chatGptAuthFor(mobile: true, keys: keys, keySpace: 'n') as AwakeSignIn).inner
+            as ChatGptAuth;
     await phone.openBrowser(Uri.parse('https://auth.openai.com/p'));
     expect(launcher.modes.single, PreferredLaunchMode.inAppBrowserView);
     final auth = chatGptAuthFor(mobile: false, keys: keys, keySpace: 'notelore-dev') as ChatGptAuth;
@@ -169,7 +194,9 @@ void planTests() {
     tester,
   ) async {
     const keys = FlutterSecureStorage();
-    final phone = chatGptAuthFor(mobile: true, keys: keys, keySpace: 'n') as ChatGptAuth;
+    final phone =
+        (chatGptAuthFor(mobile: true, keys: keys, keySpace: 'n') as AwakeSignIn).inner
+            as ChatGptAuth;
     expect(phone.returnTo, Uri.parse('notelore://signed-in'));
     // Behind the sign-in tab: waits until Notelore is in front again.
     tester.binding

@@ -457,10 +457,17 @@ final class _Tally {
   var added = 0;
   var duplicates = 0;
 
-  /// Adds [entry] to [target] unless it is blank or already there.
+  /// Adds [entry] to [target] unless it is blank or already there. A todo there
+  /// in the other state is the same todo: it is kept once, done if either is (#283).
   void take(List<NoteEntry> target, NoteEntry entry) {
     if (_isBlank(entry)) return;
-    if (target.contains(entry)) {
+    final twin = entry is Todo
+        ? target.indexWhere((t) => t is Todo && t.date == entry.date && t.text == entry.text)
+        : -1;
+    if (twin >= 0) {
+      if ((entry as Todo).done) target[twin] = entry;
+      duplicates++;
+    } else if (target.contains(entry)) {
       duplicates++;
     } else {
       added++;
@@ -494,6 +501,10 @@ void _mergeSection(Note into, Section section, _Tally tally) {
   final merged = <NoteEntry>[...target.entries];
   for (final entry in section.entries) {
     tally.take(merged, entry);
+  }
+  // A todo of the target's own, done in the source, is done now.
+  for (var i = 0; i < target.entries.length; i++) {
+    target.entries[i] = merged[i];
   }
   for (final entry in merged.skip(target.entries.length).toList()) {
     _append(target, entry);

@@ -605,6 +605,15 @@ void main() {
       expect(note.meta.containsKey('tags'), isTrue); // the target's own tags stay
     });
 
+    test('a todo done in one note and open in the other is kept once, done (#283)', () {
+      addTodo(from, 'Buy a UPS', today: d(2026, 9, 4)); // the target's open one, done here
+      completeTodo(from, 2, today: d(2026, 9, 10));
+      mergeNotes(root, from, into, today: today);
+      final todos = entries(into, 'todo').whereType<Todo>().where((t) => t.text == 'Buy a UPS');
+      expect(todos, hasLength(1));
+      expect(todos.single.done, isTrue);
+    });
+
     test('a note never merges into itself; a missing note fails before anything moves', () {
       expect(() => mergeNotes(root, into, into, today: today), throwsArgumentError);
       expect(
