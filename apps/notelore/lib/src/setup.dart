@@ -40,6 +40,9 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
 
   /// Connect was pressed with no key: said on the field.
   var _keyMissing = false;
+
+  /// The provider refused the key: said on the field it is about.
+  String? _keyRefused;
   String? _problem;
   var _checking = false;
 
@@ -117,6 +120,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     setState(() {
       _checking = true;
       _problem = null;
+      _keyRefused = null;
       _noPlan = false;
     });
     // The first run's app would switch to the chat on connecting: it waits for Done.
@@ -127,7 +131,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     } on NoChatGptPlan {
       setState(() => _noPlan = true); // no retry helps: another way in does
     } on KeyValidationError catch (error) {
-      setState(() => _problem = error.message);
+      setState(() => _keyRefused = error.message);
     } on TransientValidationError catch (error) {
       setState(() => _problem = '${error.message}\n${widget.session.strings.checkConnection}');
     } on Exception catch (error) {
@@ -135,7 +139,13 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       setState(() => _problem = widget.session.strings.signInProblem(error));
     } finally {
       if (widget.session.spec != _spec) widget.session.finishingSetup = false;
-      if (mounted) setState(() => _checking = false);
+      // The plan signs in from Choose; what went wrong is said on Connect.
+      if (mounted) {
+        setState(() {
+          _checking = false;
+          if (_step == _Step.choose) _step = _Step.connect;
+        });
+      }
     }
   }
 
@@ -160,10 +170,15 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
           labelText: s.apiKey,
           prefixIcon: const Icon(Icons.key_outlined),
           helperText: _pasted ? s.keyFromClipboard : null,
-          errorText: _keyMissing ? s.pasteKeyFirst : null,
+          errorText: _keyMissing ? s.pasteKeyFirst : _keyRefused,
         ),
         onChanged: (_) {
-          if (_keyMissing) setState(() => _keyMissing = false);
+          if (_keyMissing || _keyRefused != null) {
+            setState(() {
+              _keyMissing = false;
+              _keyRefused = null;
+            });
+          }
         },
         onSubmitted: (_) => _connect(),
       ),
@@ -183,12 +198,12 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       children: switch (_step) {
         _Step.choose => _choose(s, theme, muted),
         _Step.connect => _connectStep(s, theme, muted),
-        _Step.done => [
-          Text(s.connectedTo(s.providerName(_spec)), style: theme.textTheme.headlineSmall),
-        ],
+        _Step.done => _done(s, theme, muted),
       },
     );
     final action = switch (_step) {
+      // The plan is one tap, as before: it signs in right here.
+      _Step.choose when _spec.name == 'chatgpt' => _connectAction(s),
       _Step.choose => FilledButton(
         onPressed: () => setState(() => _step = _Step.connect),
         child: Text(s.next),
@@ -196,33 +211,54 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       _Step.connect => _connectAction(s),
       _Step.done => FilledButton(onPressed: _finish, child: Text(s.start)),
     };
+    final header = _StepHeader(
+      step: _step.index + 1,
+      of: _Step.values.length,
+      label: s.stepOf(_step.index + 1, _Step.values.length),
+      leading: switch (_step) {
+        _Step.connect => BackButton(onPressed: _back),
+        _Step.choose when widget.closable => CloseButton(
+          onPressed: () => Navigator.of(context).pop(false),
+        ),
+        _ => null,
+      },
+    );
     return PopScope(
-      // Back goes a step back; only the first step of an opened wizard leaves.
+      // Back goes a step back; only the first step of an opened wizard leaves,
+      // and Done of an opened one finishes: the model is connected by then.
       canPop: _step == _Step.choose && widget.closable,
       onPopInvokedWithResult: (popped, _) {
-        if (!popped && _step == _Step.connect) _back();
+        if (popped) return;
+        if (_step == _Step.connect) _back();
+        if (_step == _Step.done && widget.closable) _finish();
       },
       child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          leading: switch (_step) {
-            _Step.connect => BackButton(onPressed: _back),
-            _Step.choose when widget.closable => CloseButton(
-              onPressed: () => Navigator.of(context).pop(false),
-            ),
-            _ => null,
-          },
-          title: Text(
-            s.stepOf(_step.index + 1, _Step.values.length),
-            style: theme.textTheme.titleSmall?.copyWith(color: muted),
-          ),
-        ),
         body: SafeArea(
-          child: LayoutBuilder(builder: (context, size) => _layout(context, size, content, action)),
+          child: LayoutBuilder(
+            builder: (context, size) => _layout(context, size, header, content, action),
+          ),
         ),
       ),
     );
   }
+
+  /// The peak of the wizard: what is connected, and that it can change later.
+  List<Widget> _done(Strings s, ThemeData theme, Color muted) => [
+    const SizedBox(height: Gap.l),
+    Icon(Icons.check_circle_rounded, size: 64, color: theme.colorScheme.primary),
+    const SizedBox(height: Gap.l),
+    Text(
+      s.connectedTo(s.providerName(_spec)),
+      style: theme.textTheme.headlineSmall,
+      textAlign: TextAlign.center,
+    ),
+    const SizedBox(height: Gap.s),
+    Text(
+      s.connectedExplained,
+      style: theme.textTheme.bodyLarge?.copyWith(color: muted),
+      textAlign: TextAlign.center,
+    ),
+  ];
 
   /// Which provider: the plan first, keys and local models under Advanced.
   List<Widget> _choose(Strings s, ThemeData theme, Color muted) => [
@@ -303,11 +339,19 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
   /// too, when the window is tall enough; otherwise it all scrolls together.
   /// The window's height decides, not what the keyboard leaves, so the layout
   /// never changes under the field being typed in.
-  Widget _layout(BuildContext context, BoxConstraints size, Widget content, Widget action) {
+  Widget _layout(
+    BuildContext context,
+    BoxConstraints size,
+    Widget header,
+    Widget content,
+    Widget action,
+  ) {
     if (size.maxWidth >= Layout.wide) {
-      return Center(
+      // Held near the top, so the card does not jump between steps.
+      return Align(
+        alignment: Alignment.topCenter,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(Gap.l),
+          padding: const EdgeInsets.fromLTRB(Gap.l, 96, Gap.l, Gap.l),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
             child: Card(
@@ -318,7 +362,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   spacing: Gap.l,
-                  children: [content, action],
+                  children: [header, content, action],
                 ),
               ),
             ),
@@ -332,13 +376,14 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           spacing: Gap.l,
-          children: [content, action],
+          children: [header, content, action],
         ),
       );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Padding(padding: const EdgeInsets.fromLTRB(Gap.s, Gap.s, Gap.l, 0), child: header),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(Gap.l, Gap.l, Gap.l, Gap.m),
@@ -346,6 +391,57 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
           ),
         ),
         Padding(padding: const EdgeInsets.fromLTRB(Gap.l, Gap.s, Gap.l, Gap.m), child: action),
+      ],
+    );
+  }
+}
+
+/// Where the wizard is: back or close, then three segments, the ones done
+/// filled, with the step said for screen readers and in a small label.
+class _StepHeader extends StatelessWidget {
+  const _StepHeader({
+    required this.step,
+    required this.of,
+    required this.label,
+    required this.leading,
+  });
+
+  final int step;
+  final int of;
+  final String label;
+  final Widget? leading;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Row(
+      spacing: Gap.s,
+      children: [
+        // The same room with or without a button, so the bar never shifts.
+        SizedBox.square(dimension: 48, child: leading),
+        Expanded(
+          child: ExcludeSemantics(
+            child: Row(
+              spacing: Gap.xs,
+              children: [
+                for (var i = 1; i <= of; i++)
+                  Expanded(
+                    child: Container(
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: i <= step ? colors.primary : colors.outlineVariant,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(color: colors.onSurfaceVariant),
+        ),
       ],
     );
   }

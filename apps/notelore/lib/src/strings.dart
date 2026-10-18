@@ -28,6 +28,7 @@ abstract class Strings {
   String get chooseProvider;
   String stepOf(int step, int of);
   String connectedTo(String name);
+  String get connectedExplained;
   String get start;
 
   /// Under the setup screen's headline: what the provider is for.
@@ -321,6 +322,10 @@ class EnglishStrings extends Strings {
   String stepOf(int step, int of) => 'Step $step of $of';
   @override
   String connectedTo(String name) => 'Connected to $name';
+  @override
+  String get connectedExplained =>
+      'Notelore will use it to write your notes and answer from them. You can change it in '
+      'Settings.';
   @override
   String get start => 'Start';
   @override
@@ -784,6 +789,10 @@ class TurkishStrings extends Strings {
   String stepOf(int step, int of) => 'Adım $step/$of';
   @override
   String connectedTo(String name) => '$name bağlandı';
+  @override
+  String get connectedExplained =>
+      'Notelore notlarını yazmak ve onlardan cevap vermek için bunu kullanacak. Ayarlar\'dan '
+      'değiştirebilirsin.';
   @override
   String get start => 'Başla';
   @override

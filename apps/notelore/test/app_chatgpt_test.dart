@@ -49,10 +49,7 @@ void main() {
       expect(find.text(heading), findsOneWidget);
     }
     expect(find.byKey(const Key('api-key')), findsNothing); // ChatGPT still the choice
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('no separate charges'), findsOneWidget); // its cost, on Connect
-    await tester.tap(find.text('Continue with ChatGPT'));
+    await tester.tap(find.text('Continue with ChatGPT')); // one tap, right on Choose
     await tester.pumpAndSettle();
     await tester.tap(find.text('Start')); // the wizard's last step (#357)
     await tester.pumpAndSettle();
@@ -117,8 +114,6 @@ void main() {
     );
     final harness = Harness(chatGpt: FakeAuth()..failSignIn = const NoChatGptPlan());
     await pumpPlanApp(tester, harness);
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('Continue with ChatGPT'));
     await tester.pumpAndSettle();
     final card = find.byKey(const Key('no-chatgpt-plan'));
@@ -179,8 +174,6 @@ void main() {
     }
 
     await pumpPlanApp(tester, Harness(chatGpt: FakeAuth()..failSignIn = const NoChatGptPlan()));
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('Continue with ChatGPT'));
     await tester.pumpAndSettle();
     final card = find.byKey(const Key('no-chatgpt-plan'));
@@ -204,9 +197,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('ChatGPT plan (OpenAI)'), -200, scrollable: list);
     await tester.tap(find.text('ChatGPT plan (OpenAI)'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Next'));
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Continue with ChatGPT'));
     await tester.tap(find.text('Continue with ChatGPT'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
@@ -231,8 +222,6 @@ void main() {
       chatGpt: FakeAuth()..failSignIn = const SignInFailed('access_denied', service: 'ChatGPT'),
     );
     await pumpPlanApp(tester, harness);
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('Continue with ChatGPT'));
     await tester.pumpAndSettle();
     expect(find.text('Sign-in did not finish. Please try again.'), findsOneWidget);
