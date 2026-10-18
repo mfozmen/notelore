@@ -133,11 +133,10 @@ void main() {
       meter.record('anthropic', 'claude-sonnet-5-5', const TokenUsage(5, 1));
       meter.record('gemini', 'gemini-2.5-flash', const TokenUsage(3, 3));
       final days = UsageMeter(file(), today: () => day).lastDays(3); // kept on disk
-      expect([for (final d in days) d.day], [
-        DateTime(2026, 10, 16),
-        DateTime(2026, 10, 17),
-        DateTime(2026, 10, 18),
-      ]);
+      expect(
+        [for (final d in days) d.day],
+        [DateTime(2026, 10, 16), DateTime(2026, 10, 17), DateTime(2026, 10, 18)],
+      );
       expect([for (final d in days) d.count.input + d.count.output], [12, 0, 12]);
       // Per model, over the whole device.
       final models = meter.byModel;
