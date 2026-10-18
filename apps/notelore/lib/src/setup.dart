@@ -11,17 +11,30 @@ import 'strings.dart';
 import 'theme.dart';
 
 /// First run (and after logging out): pick a provider, paste its key, connect.
-class SetupScreen extends StatefulWidget {
-  const SetupScreen(this.session, {super.key});
+/// Connecting a model, one step at a time (#357): Choose, Connect, Done. The
+/// first run shows it in the app's place; [open] shows it over the app, to
+/// connect another model, and [closable] lets it be called off.
+class ProviderWizard extends StatefulWidget {
+  const ProviderWizard(this.session, {this.closable = false, super.key});
 
   final Session session;
+  final bool closable;
+
+  /// Over the app; true once a model was connected, false when called off.
+  static Future<bool> open(BuildContext context, Session session) =>
+      Navigator.of(context)
+          .push<bool>(MaterialPageRoute(builder: (_) => ProviderWizard(session, closable: true)))
+          .then((connected) => connected ?? false);
 
   @override
-  State<SetupScreen> createState() => _SetupScreenState();
+  State<ProviderWizard> createState() => _ProviderWizardState();
 }
 
-class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
+enum _Step { choose, connect, done }
+
+class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObserver {
   late ProviderSpec _spec = widget.session.providers.first;
+  var _step = _Step.choose;
   final _key = TextEditingController();
   final _keyFocus = FocusNode();
 
@@ -106,8 +119,11 @@ class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
       _problem = null;
       _noPlan = false;
     });
+    // The first run's app would switch to the chat on connecting: it waits for Done.
+    if (!widget.closable) widget.session.finishingSetup = true;
     try {
       await widget.session.connect(_spec, _key.text);
+      if (mounted) setState(() => _step = _Step.done);
     } on NoChatGptPlan {
       setState(() => _noPlan = true); // no retry helps: another way in does
     } on KeyValidationError catch (error) {
@@ -118,9 +134,16 @@ class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
       debugPrint('sign-in failed: $error'); // the detail, for the log only
       setState(() => _problem = widget.session.strings.signInProblem(error));
     } finally {
+      if (widget.session.spec != _spec) widget.session.finishingSetup = false;
       if (mounted) setState(() => _checking = false);
     }
   }
+
+  /// One step back; the choice made is kept.
+  void _back() => setState(() => _step = _Step.values[_step.index - 1]);
+
+  void _finish() =>
+      widget.closable ? Navigator.of(context).pop(true) : widget.session.finishSetup();
 
   /// Where the key goes, or why none is needed.
   List<Widget> _keyEntry(Strings s, ThemeData theme) => [
@@ -157,79 +180,123 @@ class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
     final muted = theme.colorScheme.onSurfaceVariant;
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(s.chooseProvider, style: theme.textTheme.headlineSmall),
-        const SizedBox(height: Gap.s),
-        Text(s.chooseProviderWhy, style: theme.textTheme.bodyLarge?.copyWith(color: muted)),
-        RadioGroup<ProviderSpec>(
-          groupValue: _spec,
-          onChanged: (spec) => setState(() {
-            _spec = spec!;
-            _problem = null;
-            _keyMissing = false;
-            _noPlan = false; // about ChatGPT: gone with another choice
-          }),
-          // Grouped by how they are paid for. The plan, one tap, leads;
-          // keys and local models wait under Advanced (#206). Without a
-          // plan to offer there is nothing to be advanced from: all show.
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _ProviderGroup(widget.session, ProviderGroup.plan),
-              if (widget.session.providers.any((p) => p.group == ProviderGroup.plan))
-                ExpansionTile(
-                  title: Text(s.advanced),
-                  subtitle: Text(s.advancedExplained(localModels: widget.session.localModels)),
-                  tilePadding: const EdgeInsets.only(right: Gap.xs),
-                  childrenPadding: EdgeInsets.zero,
-                  shape: const Border(), // no rules above and below when open
-                  collapsedShape: const Border(),
-                  expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                  children: _advanced,
-                )
-              else
-                ..._advanced,
-            ],
+      children: switch (_step) {
+        _Step.choose => _choose(s, theme, muted),
+        _Step.connect => _connectStep(s, theme, muted),
+        _Step.done => [
+          Text(s.connectedTo(s.providerName(_spec)), style: theme.textTheme.headlineSmall),
+        ],
+      },
+    );
+    final action = switch (_step) {
+      _Step.choose => FilledButton(
+        onPressed: () => setState(() => _step = _Step.connect),
+        child: Text(s.next),
+      ),
+      _Step.connect => _connectAction(s),
+      _Step.done => FilledButton(onPressed: _finish, child: Text(s.start)),
+    };
+    return PopScope(
+      // Back goes a step back; only the first step of an opened wizard leaves.
+      canPop: _step == _Step.choose && widget.closable,
+      onPopInvokedWithResult: (popped, _) {
+        if (!popped && _step == _Step.connect) _back();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          leading: switch (_step) {
+            _Step.connect => BackButton(onPressed: _back),
+            _Step.choose when widget.closable => CloseButton(
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            _ => null,
+          },
+          title: Text(
+            s.stepOf(_step.index + 1, _Step.values.length),
+            style: theme.textTheme.titleSmall?.copyWith(color: muted),
           ),
         ),
-        const SizedBox(height: Gap.m),
-        Text(s.cost(_spec), style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
-        if (s.keySteps(_spec) case final steps when steps.isNotEmpty) ...[
-          const SizedBox(height: Gap.l),
-          _Steps(steps, link: _spec.keyUrl, openLabel: s.openKeyPage),
-        ],
-        ..._keyEntry(s, theme),
-        if (_noPlan) _NoPlan(s, getKey: _freeGemini),
-      ],
-    );
-    // What went wrong sits on the button, in view on a phone and next to the
-    // key it is usually about.
-    final action = Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      spacing: Gap.m,
-      children: [
-        if (_problem case final problem?) _SignInProblem(problem, key: const Key('setup-problem')),
-        _ConnectButton(
-          // Without a plan, the free way in leads; this stays, for an upgrade.
-          primary: !_noPlan,
-          onPressed: _checking ? null : _connect,
-          child: _checking
-              ? SizedBox.square(
-                  dimension: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, semanticsLabel: s.signingIn),
-                )
-              // OpenAI's wording for its sign-in button.
-              : Text(_spec.name == 'chatgpt' ? s.continueWithChatGpt : s.connect),
+        body: SafeArea(
+          child: LayoutBuilder(builder: (context, size) => _layout(context, size, content, action)),
         ),
-      ],
-    );
-    return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(builder: (context, size) => _layout(context, size, content, action)),
       ),
     );
   }
+
+  /// Which provider: the plan first, keys and local models under Advanced.
+  List<Widget> _choose(Strings s, ThemeData theme, Color muted) => [
+    Text(s.chooseProvider, style: theme.textTheme.headlineSmall),
+    const SizedBox(height: Gap.s),
+    Text(s.chooseProviderWhy, style: theme.textTheme.bodyLarge?.copyWith(color: muted)),
+    RadioGroup<ProviderSpec>(
+      groupValue: _spec,
+      onChanged: (spec) => setState(() {
+        _spec = spec!;
+        _problem = null;
+        _keyMissing = false;
+        _noPlan = false; // about ChatGPT: gone with another choice
+      }),
+      // Grouped by how they are paid for. The plan, one tap, leads;
+      // keys and local models wait under Advanced (#206). Without a
+      // plan to offer there is nothing to be advanced from: all show.
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _ProviderGroup(widget.session, ProviderGroup.plan),
+          if (widget.session.providers.any((p) => p.group == ProviderGroup.plan))
+            ExpansionTile(
+              title: Text(s.advanced),
+              subtitle: Text(s.advancedExplained(localModels: widget.session.localModels)),
+              tilePadding: const EdgeInsets.only(right: Gap.xs),
+              childrenPadding: EdgeInsets.zero,
+              shape: const Border(), // no rules above and below when open
+              collapsedShape: const Border(),
+              expandedCrossAxisAlignment: CrossAxisAlignment.start,
+              children: _advanced,
+            )
+          else
+            ..._advanced,
+        ],
+      ),
+    ),
+  ];
+
+  /// The chosen provider: what it costs, how to get its key, the key itself.
+  List<Widget> _connectStep(Strings s, ThemeData theme, Color muted) => [
+    Text(s.providerName(_spec), style: theme.textTheme.headlineSmall),
+    const SizedBox(height: Gap.s),
+    Text(s.cost(_spec), style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
+    if (s.keySteps(_spec) case final steps when steps.isNotEmpty) ...[
+      const SizedBox(height: Gap.l),
+      _Steps(steps, link: _spec.keyUrl, openLabel: s.openKeyPage),
+    ],
+    ..._keyEntry(s, theme),
+    if (_noPlan) _NoPlan(s, getKey: _freeGemini),
+  ];
+
+  // What went wrong sits on the button, in view on a phone and next to the key
+  // it is usually about.
+  Widget _connectAction(Strings s) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    spacing: Gap.m,
+    children: [
+      if (_problem case final problem?) _SignInProblem(problem, key: const Key('setup-problem')),
+      _ConnectButton(
+        // Without a plan, the free way in leads; this stays, for an upgrade.
+        primary: !_noPlan,
+        onPressed: _checking ? null : _connect,
+        child: _checking
+            ? SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, semanticsLabel: s.signingIn),
+              )
+            // OpenAI's wording for its sign-in button.
+            : Text(_spec.name == 'chatgpt' ? s.continueWithChatGpt : s.connect),
+      ),
+    ],
+  );
 
   /// A desk: one card of a readable width, like the sign-in's. A phone: the
   /// choices scroll and the action stays where the thumb is, above the keyboard

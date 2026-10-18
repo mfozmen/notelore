@@ -37,17 +37,30 @@ Future<Session> pumpApp(WidgetTester tester, Harness harness, {DateTime Function
   return session;
 }
 
+/// The wizard's Choose step (#357): [provider], then Next.
+Future<void> choose(WidgetTester tester, [String provider = 'Claude (Anthropic)']) async {
+  await tester.tap(find.text(provider));
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(find.text('Next'));
+  await tester.tap(find.text('Next'));
+  await tester.pumpAndSettle();
+}
+
 Future<void> connect(
   WidgetTester tester, {
   String provider = 'Claude (Anthropic)',
   String? key,
 }) async {
-  await tester.tap(find.text(provider));
-  await tester.pumpAndSettle();
+  await choose(tester, provider);
   if (key != null) await tester.enterText(find.byKey(const Key('api-key')), key);
   await tester.ensureVisible(find.text('Connect')); // the end of a long card on a desk
   await tester.tap(find.text('Connect'));
   await tester.pumpAndSettle();
+  // Connected: the wizard's last step, then the chat. A refused key stays on Connect.
+  if (find.text('Start').evaluate().isNotEmpty) {
+    await tester.tap(find.text('Start'));
+    await tester.pumpAndSettle();
+  }
 }
 
 /// A phone-sized screen (432 x 960 logical pixels); a tap that misses its widget fails.
@@ -97,8 +110,7 @@ void main() {
     phone(tester);
     final harness = Harness(rejected: const KeyValidationError('Anthropic rejected the key: bad'));
     await pumpApp(tester, harness);
-    await tester.tap(find.text('Claude (Anthropic)'));
-    await tester.pumpAndSettle();
+    await choose(tester);
     expect(find.textContaining('Anthropic Console'), findsOneWidget);
     expect(find.text('Open console.anthropic.com'), findsOneWidget); // the link as a button (#337)
     expect(find.textContaining('Billed per use through the Anthropic API'), findsOneWidget); // #95
@@ -122,7 +134,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Choose a model provider'), findsOneWidget);
+    expect(find.text('Step 2 of 3'), findsOneWidget); // still on Connect
   });
 
   testWidgets('setup: on a short window the action scrolls with the rest (#337)', (tester) async {
@@ -169,8 +181,7 @@ void main() {
     phone(tester);
     final harness = Harness()..connectHold = Completer<void>();
     await pumpApp(tester, harness);
-    await tester.tap(find.text('Claude (Anthropic)'));
-    await tester.pumpAndSettle();
+    await choose(tester);
     await tester.enterText(find.byKey(const Key('api-key')), 'k');
     await tester.tap(find.text('Connect'));
     await tester.pump();
@@ -295,10 +306,11 @@ void main() {
   testWidgets('setup: Ollama has no key field', (tester) async {
     phone(tester);
     await pumpApp(tester, Harness());
-    await tester.tap(find.text('Ollama (local)'));
-    await tester.pumpAndSettle();
+    await choose(tester, 'Ollama (local)');
     expect(find.byKey(const Key('api-key')), findsNothing);
     await tester.tap(find.text('Connect'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start'));
     await tester.pumpAndSettle();
     expect(find.byType(NavigationBar), findsOneWidget);
   });
@@ -1159,12 +1171,7 @@ void main() {
   testWidgets('settings: Ollama cannot search the web', (tester) async {
     phone(tester);
     await pumpApp(tester, Harness());
-    await tester.tap(find.text('Ollama (local)'));
-    await tester.pumpAndSettle();
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Connect'));
-    await tester.pumpAndSettle();
+    await connect(tester, provider: 'Ollama (local)');
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(find.text('Not available with this provider.'), findsOneWidget);
@@ -1553,15 +1560,18 @@ void main() {
     expect(session.models, ['model-c']);
   });
 
-  testWidgets('setup: no app bar, the action pinned at the bottom of a phone (#337)', (
+  testWidgets('setup: only the step in a slim bar, the action pinned at the bottom (#337, #357)', (
     tester,
   ) async {
     phone(tester);
     await pumpApp(tester, Harness());
-    expect(find.byType(AppBar), findsNothing);
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.text('Step 1 of 3')),
+      findsOneWidget,
+    );
     expect(find.text('Choose a model provider'), findsOneWidget);
     final screen = tester.getSize(find.byType(Scaffold).first);
-    final button = tester.getRect(find.widgetWithText(FilledButton, 'Connect'));
+    final button = tester.getRect(find.widgetWithText(FilledButton, 'Next'));
     expect(screen.height - button.bottom, lessThanOrEqualTo(Gap.l));
     expect(find.byKey(const Key('setup-card')), findsNothing);
   });
@@ -1571,8 +1581,7 @@ void main() {
     final launcher = FakeLauncher();
     UrlLauncherPlatform.instance = launcher;
     await pumpApp(tester, Harness());
-    await tester.tap(find.text('Claude (Anthropic)'));
-    await tester.pumpAndSettle();
+    await choose(tester);
     await tester.tap(find.text('Open console.anthropic.com'));
     await tester.pumpAndSettle();
     expect(launcher.opened, ['https://console.anthropic.com/settings/keys']);

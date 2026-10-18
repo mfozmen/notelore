@@ -384,6 +384,15 @@ class Session extends ChangeNotifier {
 
   bool get ready => _agent != null;
 
+  /// The first-run wizard has connected a model and is showing its last step:
+  /// the app stays on it until [finishSetup] (#357).
+  var finishingSetup = false;
+
+  void finishSetup() {
+    finishingSetup = false;
+    notifyListeners();
+  }
+
   String get _settings => p.join(paths.state.path, 'settings.json');
 
   String _keyName(ProviderSpec spec) => '$keySpace.${spec.name}.api_key';
