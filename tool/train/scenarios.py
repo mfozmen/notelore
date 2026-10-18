@@ -74,7 +74,7 @@ COLLECTIONS = [
      ["Denenecek tarif: {x}.", "Tarif fikri: {x}."]),
     ("tr", "Gidilecek Yerler", "Mardin",
      ["Safranbolu", "Ayvalık", "Kaş", "Datça", "Amasra"],
-     ["Bir gün {x}'ya gitmek istiyorum.", "Gidilecek yerlere {x}'yı ekle."]),
+     ["Bir gün gitmek istediğim yer: {x}.", "Gidilecek yerlere ekle: {x}."]),
     ("en", "Places to Visit", "Lisbon",
      ["Kyoto", "Ljubljana", "Porto", "Tbilisi", "Valparaíso"],
      ["One day I want to visit {x}.", "Add {x} to places to visit."]),
@@ -132,7 +132,7 @@ def cases(rng):
             add(f"dec-{slug(title)}", "decision", lang, notes, msg, {"tools": ["record_decision"], "notes": {pat: [value.split()[0]]}})
         for todo in new_todos:
             msg = f"Add a todo to {title}: {todo}." if lang == "en" else f"{title} için yapılacak: {todo}."
-            add(f"todo-{slug(title)}", "todo", lang, notes, msg, {"tools": ["add_todo"], "notes": {pat: [todo.split()[1]]}})
+            add(f"todo-{slug(title)}", "todo", lang, notes, msg, {"tools": ["add_todo"], "notes": {pat: [todo.split()[-1]]}})
         add(f"done-{slug(title)}", "todo-done", lang, notes, done, {"tools": ["complete_todo"], "notes": {pat: []}})
         topic, value = decs[0]
         q = f"What did we decide for the {title} {topic}?" if lang == "en" else f"{title} için {topic} ne seçmiştik?"
@@ -153,15 +153,19 @@ def cases(rng):
     return out
 
 
+ROOT = Path(__file__).resolve().parents[2]
+
+
 def main(argv):
-    out = Path(next((a for a in argv if not a.startswith("--")), ".dev-home/train/scenarios.json"))
+    out = Path(next((a for a in argv if not a.startswith("--")), ROOT / ".dev-home/train/scenarios.json"))
     seed = int(next((a.split("=", 1)[1] for a in argv if a.startswith("--seed=")), "7"))
     generated = cases(random.Random(seed))
-    exam = json.loads(Path("eval/cases.json").read_text(encoding="utf-8"))
-    exam_messages = {c["message"] for c in exam["cases"]}
+    exam = json.loads((ROOT / "eval/cases.json").read_text(encoding="utf-8"))
+    norm = lambda text: unicodedata.normalize("NFC", text).casefold()
+    exam_messages = {norm(c["message"]) for c in exam["cases"]}
     exam_titles = {re.search(r"^title: (.*)$", t, re.M).group(1) for t in exam["notes"].values()}
     for case in generated:
-        assert case["message"] not in exam_messages, case["id"]
+        assert norm(case["message"]) not in exam_messages, case["id"]
         for text in case["notes"].values():
             assert re.search(r"^title: (.*)$", text, re.M).group(1) not in exam_titles, case["id"]
     assert len({c["id"] for c in generated}) == len(generated), "duplicate ids"
