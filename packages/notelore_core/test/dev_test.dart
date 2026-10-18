@@ -275,7 +275,10 @@ void main() {
     expect(lines, hasLength(1));
     expect(jsonDecode(lines.single), containsPair('tools', isNotEmpty));
     expect('$out', contains('kept 1 of 2'));
-    expect('$out', contains('dropped 0 tool errors, 0 repeated calls'));
+    expect(
+      '$out',
+      contains('excluded 0 passing turns (tool errors: 0; repeated calls: 0; counts may overlap)'),
+    );
   });
 
   test('distill excludes passing turns with tool errors or repeated calls', () async {
@@ -302,16 +305,17 @@ void main() {
       ]),
     );
     var call = 0;
-    final anthropic = MockClient(
-      (_) async => http.Response(
-        jsonEncode(switch (call++) {
+    final anthropic = MockClient((_) async {
+      final step = call++;
+      return http.Response(
+        jsonEncode(switch (step) {
           0 || 2 || 3 => {
             'content': [
               {
                 'type': 'tool_use',
-                'id': 't$call',
+                'id': 't$step',
                 'name': 'list_notes',
-                'input': call == 1 ? {'bad': true} : <String, Object?>{},
+                'input': step == 0 ? {'bad': true} : <String, Object?>{},
               },
             ],
             'stop_reason': 'tool_use',
@@ -324,8 +328,8 @@ void main() {
           },
         }),
         200,
-      ),
-    );
+      );
+    });
     expect(
       await run(
         ['distill', '--provider=anthropic', '--cases=cases.json', '--out=train.jsonl'],
@@ -337,7 +341,10 @@ void main() {
     expect('$out', contains('ok   recovered'));
     expect('$out', contains('ok   repeated'));
     expect('$out', contains('kept 0 of 2'));
-    expect('$out', contains('dropped 1 tool errors, 1 repeated calls'));
+    expect(
+      '$out',
+      contains('excluded 2 passing turns (tool errors: 1; repeated calls: 1; counts may overlap)'),
+    );
     expect(File(p.join(temp.path, 'train.jsonl')).readAsStringSync(), isEmpty);
   });
 
