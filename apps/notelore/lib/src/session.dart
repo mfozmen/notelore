@@ -23,6 +23,7 @@ import 'package:notelore_core/notelore_core.dart';
 import 'package:notelore_core/notelore_core.dart' as core show listArchived, restoreArchived;
 import 'package:path/path.dart' as p;
 
+import 'device_auth.dart';
 import 'lock_state.dart';
 import 'pdf_native.dart';
 import 'strings.dart';
@@ -97,10 +98,12 @@ class Session extends ChangeNotifier {
     this.localModels = true,
     this.retryEvery = const Duration(minutes: 1),
     this.lockIterations = defaultIterations,
+    DeviceAuth? deviceAuth,
     this.offThread = Isolate.run,
     this._exchange,
     this.timing,
   }) : clock = clock ?? DateTime.timestamp,
+       deviceAuth = deviceAuth ?? LocalDeviceAuth(),
        // Time that only moves forward; a given clock stands in for it, unless told apart.
        uptime = uptime ?? _uptimeOf(clock),
        index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path),
@@ -122,6 +125,10 @@ class Session extends ChangeNotifier {
   /// The app lock's hash strength, and where its slow hashing runs (off the
   /// UI thread, so a phone does not stutter while it checks a PIN).
   final int lockIterations;
+
+  /// The device's own lock (#295): pattern, PIN, fingerprint, face, Windows
+  /// Hello or Touch ID, through local_auth; tests pass a fake.
+  final DeviceAuth deviceAuth;
   final Future<R> Function<R>(FutureOr<R> Function() work) offThread;
 
   final Speech? _speech;
@@ -459,6 +466,7 @@ class Session extends ChangeNotifier {
     iterations: lockIterations,
     offThread: offThread,
     changed: notifyListeners,
+    device: deviceAuth,
   );
 
   /// Picks up the provider chosen on an earlier run, and syncs when Drive is

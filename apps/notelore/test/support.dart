@@ -9,6 +9,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:notelore/src/device_auth.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/transfer.dart';
 import 'package:notelore/src/voice.dart';
@@ -116,6 +117,9 @@ class Harness {
   /// open dialogs on the desktop.
   var mobile = true;
   final share = FakeShare();
+
+  /// The device's own lock (#295): it answers as a test tells it.
+  final deviceAuth = FakeDeviceAuth();
   final files = FakeFileSelector();
   late final Directory scratch;
 
@@ -221,6 +225,7 @@ class Harness {
       },
       listMicrophones: () async => microphones,
       readPdf: (bytes) => pdfText(bytes),
+      deviceAuth: deviceAuth,
       validate: (spec, key) async {
         await connectHold?.future;
         if (rejected != null) throw rejected!;
@@ -396,6 +401,23 @@ class FakeVoice implements Voice {
 
   @override
   Future<void> stop() async => stops++;
+}
+
+/// The device's lock: there unless [hasLock] is false; each ask takes the
+/// next of [answers] (yes when none is left) and records its reason.
+class FakeDeviceAuth implements DeviceAuth {
+  var hasLock = true;
+  final answers = <bool>[];
+  final reasons = <String>[];
+
+  @override
+  Future<bool> available() async => hasLock;
+
+  @override
+  Future<bool> authenticate(String reason) async {
+    reasons.add(reason);
+    return answers.isEmpty ? true : answers.removeAt(0);
+  }
 }
 
 /// The share sheet: records what it was handed, answers as told.

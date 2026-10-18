@@ -61,4 +61,6 @@ flutter {
 dependencies {
     // FileProvider, for handing a downloaded update to the installer.
     implementation("androidx.core:core-ktx:1.13.1")
+    // The AppCompat launch theme the device lock prompt needs (local_auth, #295).
+    implementation("androidx.appcompat:appcompat:1.7.0")
 }

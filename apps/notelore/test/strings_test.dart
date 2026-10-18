@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/lock_state.dart';
 import 'package:notelore/src/strings.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore/src/transfer.dart';
@@ -177,7 +178,29 @@ void main() {
       'attachedFile': s.attachedFile('x'),
       'attachedImage': s.attachedImage('x'),
       'appLock': s.appLock,
-      'appLockOn': s.appLockOn,
+      'appLockOnDevice': s.appLockOn(LockKind.device),
+      'appLockOnPattern': s.appLockOn(LockKind.pattern),
+      'appLockOnPin': s.appLockOn(LockKind.pin),
+      'appLockOnPassword': s.appLockOn(LockKind.password),
+      'lockChoose': s.lockChoose,
+      'lockWithDevice': s.lockWithDevice,
+      'lockWithDeviceExplained': s.lockWithDeviceExplained,
+      'lockNoDevice': s.lockNoDevice,
+      'lockWithPattern': s.lockWithPattern,
+      'lockWithPin': s.lockWithPin,
+      'recommended': s.recommended,
+      'drawPattern': s.drawPattern,
+      'drawPatternAgain': s.drawPatternAgain,
+      'patternMismatch': s.patternMismatch,
+      'patternDot': s.patternDot(3),
+      'clearPattern': s.clearPattern,
+      'patternDone': s.patternDone,
+      'unlockReason': s.unlockReason,
+      'lockOnReason': s.lockOnReason,
+      'lockOffReason': s.lockOffReason,
+      'drawYourPattern': s.drawYourPattern,
+      'deviceNotUnlocked': s.deviceNotUnlocked,
+      'deviceLockGone': s.deviceLockGone,
       'appLockOff': s.appLockOff,
       'turnOn': s.turnOn,
       'turnOff': s.turnOff,
@@ -305,6 +328,7 @@ void main() {
     // Names stay names.
     for (final s in [en, tr]) {
       expect(s.model, 'Model');
+      expect(s.lockPin, 'PIN');
       expect(s.drive, 'Google Drive');
       expect(s.driveError('x'), 'Google Drive: x');
       expect(s.languageName(AppLanguage.en), 'English');

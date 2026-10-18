@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/lock_state.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/strings.dart';
 import 'package:notelore/src/theme.dart';
@@ -923,6 +924,113 @@ void main() {
     session.lock.foregrounded();
     expect(session.lock.locked, isFalse);
   });
+
+  test(
+    'the device lock: on after the device says yes; it opens the app; no secret kept (#295)',
+    () async {
+      final harness = Harness();
+      final session = harness.session();
+      expect(await session.lock.deviceAvailable(), isTrue);
+      harness.deviceAuth.answers.add(false); // a cancel turns nothing on
+      expect(await session.lock.useDevice('turn on'), isFalse);
+      expect(session.lock.enabled, isFalse);
+      harness.deviceAuth.answers.add(true);
+      expect(await session.lock.useDevice('turn on'), isTrue);
+      expect(session.lock.kind, LockKind.device);
+      expect(session.lock.locked, isFalse); // whoever just set it is in
+      // The keystore holds a marker, never a secret.
+      expect(await const FlutterSecureStorage().read(key: 'notelore.lock'), 'device');
+
+      final again = harness.session();
+      await again.lock.load();
+      expect(again.lock.locked, isTrue);
+      expect(again.lock.kind, LockKind.device);
+      expect(await again.lock.unlock('2468'), isFalse); // no text opens a device lock
+      for (var i = 0; i < 8; i++) {
+        harness.deviceAuth.answers.add(false);
+        expect(await again.lock.unlockWithDevice('open'), isFalse);
+      }
+      // The device counts its own wrong tries; a cancel here starts no wait.
+      expect(again.lock.wait, Duration.zero);
+      harness.deviceAuth.answers.add(true);
+      expect(await again.lock.unlockWithDevice('open'), isTrue);
+      expect(again.lock.locked, isFalse);
+      expect(harness.deviceAuth.reasons, [
+        'turn on',
+        'turn on',
+        'open',
+        'open',
+        'open',
+        'open',
+        'open',
+        'open',
+        'open',
+        'open',
+        'open',
+      ]);
+
+      // Off only when the device says yes, too.
+      harness.deviceAuth.answers.add(false);
+      expect(await again.lock.removeWithDevice('turn off'), isFalse);
+      expect(again.lock.enabled, isTrue);
+      harness.deviceAuth.answers.add(true);
+      expect(await again.lock.removeWithDevice('turn off'), isTrue);
+      expect(again.lock.kind, LockKind.none);
+      expect(await const FlutterSecureStorage().read(key: 'notelore.lock'), isNull);
+    },
+  );
+
+  test('a long time in the device prompt does not lock again once it said yes (#295)', () async {
+    // On Android the PIN or pattern screen is an activity of its own: Notelore
+    // is in the background for as long as the person takes there.
+    var now = DateTime.utc(2026, 10, 18, 12);
+    final harness = Harness();
+    final session = harness.session(clock: () => now);
+    await session.lock.useDevice('turn on');
+    final again = harness.session(clock: () => now);
+    await again.lock.load();
+    again.lock.backgrounded(); // the prompt opens
+    now = now.add(const Duration(minutes: 3));
+    expect(await again.lock.unlockWithDevice('open'), isTrue);
+    again.lock.foregrounded(); // back from the prompt
+    expect(again.lock.locked, isFalse);
+  });
+
+  test('a device without a lock of its own cannot use it (#295)', () async {
+    final harness = Harness()..deviceAuth.hasLock = false;
+    final session = harness.session();
+    expect(await session.lock.deviceAvailable(), isFalse);
+    expect(await session.lock.useDevice('turn on'), isFalse);
+    expect(session.lock.enabled, isFalse);
+    expect(harness.deviceAuth.reasons, isEmpty); // not even asked
+  });
+
+  test(
+    'a Notelore pattern or PIN keeps its kind; an older lock reads as a password (#295)',
+    () async {
+      final harness = Harness();
+      final session = harness.session();
+      await session.lock.set('0-4-8-5', kind: LockKind.pattern);
+      var again = harness.session();
+      await again.lock.load();
+      expect(again.lock.kind, LockKind.pattern);
+      expect(await again.lock.unlock('0-4-8-5'), isTrue);
+
+      await again.lock.set('2468', kind: LockKind.pin);
+      again = harness.session();
+      await again.lock.load();
+      expect(again.lock.kind, LockKind.pin);
+
+      // A lock set before #295 has a hash and no kind: it keeps working as it was.
+      await const FlutterSecureStorage().delete(key: 'notelore.lock.kind');
+      again = harness.session();
+      await again.lock.load();
+      expect(again.lock.kind, LockKind.password);
+      expect(await again.lock.unlock('2468'), isTrue);
+      expect(await again.lock.remove('2468'), isTrue);
+      expect(await const FlutterSecureStorage().read(key: 'notelore.lock.kind'), isNull);
+    },
+  );
 
   test(
     'wrong tries: after five a growing wait, kept over a restart; the right one resets',

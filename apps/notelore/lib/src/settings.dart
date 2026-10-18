@@ -631,7 +631,7 @@ class _LockCard extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.lock_outline),
               title: Text(s.appLock),
-              subtitle: Text(session.lock.enabled ? s.appLockOn : s.appLockOff),
+              subtitle: Text(session.lock.enabled ? s.appLockOn(session.lock.kind) : s.appLockOff),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Gap.m),
