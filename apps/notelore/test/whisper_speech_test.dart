@@ -91,6 +91,9 @@ void main() {
     // Words around a note stay; the note goes.
     expect(await hear(' (laughs) Buy milk [BLANK_AUDIO] for tomorrow.'), 'Buy milk for tomorrow.');
     expect(await hear('Süt al ♪'), 'Süt al');
+    // An asterisk in what was said is no note: only a short run of letters is.
+    expect(await hear('Two * three * four is 24.'), 'Two * three * four is 24.');
+    expect(await hear('2 * 3 * 4 = 24'), '2 * 3 * 4 = 24');
   });
 
   test('a cancel, nothing recorded, or nothing understood is no phrase', () async {

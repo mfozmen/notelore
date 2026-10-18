@@ -13,13 +13,17 @@ import 'voice.dart';
 typedef MicrophoneChoice = ({String id, String label});
 
 /// Whisper's notes on sounds, not words: `[MUSIC PLAYING]`, `[BLANK_AUDIO]`,
-/// `(laughs)`, `*sighs*`, `♪`. It writes them for noise or silence (#163).
-final _soundNotes = RegExp(r'\[[^\]]*\]|\([^)]*\)|\*[^*]*\*|♪');
+/// `(laughs)`, `*sighs*`, `♪`. It writes them for noise or silence (#163). An
+/// asterisk note hugs its letters; a spoken "2 * 3" has spaces and stays.
+final _soundNotes = RegExp(
+  r'\[[^\]]*\]|\([^)]*\)|\*\p{L}(?:[\p{L} ]{0,30}\p{L})?\*|♪',
+  unicode: true,
+);
 final _letter = RegExp(r'[\p{L}\p{N}]', unicode: true);
 
 /// What was said in [text], without Whisper's notes on sounds; null when
 /// nothing was, so noise is never sent as a message.
-String? words(String text) {
+String? withoutSoundNotes(String text) {
   final said = text.replaceAll(_soundNotes, ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
   return _letter.hasMatch(said) ? said : null;
 }
@@ -69,7 +73,7 @@ class WhisperSpeech implements Speech {
       // shortcut: what is still on its way when the button is let go (a few
       // milliseconds) is not waited for; wait for the stream's end if words get cut.
       if (!await done.future || heard.isEmpty) return null;
-      return words(await transcriber.transcribe(Float32List.fromList(heard), language));
+      return withoutSoundNotes(await transcriber.transcribe(Float32List.fromList(heard), language));
     } finally {
       timer.cancel();
       await listening.cancel();
