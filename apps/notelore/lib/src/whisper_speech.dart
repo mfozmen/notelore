@@ -12,6 +12,18 @@ import 'voice.dart';
 /// A microphone the device lists: its platform id and its name.
 typedef MicrophoneChoice = ({String id, String label});
 
+/// Whisper's notes on sounds, not words: `[MUSIC PLAYING]`, `[BLANK_AUDIO]`,
+/// `(laughs)`, `*sighs*`, `♪`. It writes them for noise or silence (#163).
+final _soundNotes = RegExp(r'\[[^\]]*\]|\([^)]*\)|\*[^*]*\*|♪');
+final _letter = RegExp(r'[\p{L}\p{N}]', unicode: true);
+
+/// What was said in [text], without Whisper's notes on sounds; null when
+/// nothing was, so noise is never sent as a message.
+String? words(String text) {
+  final said = text.replaceAll(_soundNotes, ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+  return _letter.hasMatch(said) ? said : null;
+}
+
 /// 16 kHz, mono, 16-bit PCM from the microphone.
 abstract interface class Microphone {
   /// Throws [VoiceUnavailable] without a microphone or its permission.
@@ -57,8 +69,7 @@ class WhisperSpeech implements Speech {
       // shortcut: what is still on its way when the button is let go (a few
       // milliseconds) is not waited for; wait for the stream's end if words get cut.
       if (!await done.future || heard.isEmpty) return null;
-      final text = (await transcriber.transcribe(Float32List.fromList(heard), language)).trim();
-      return text.isEmpty ? null : text;
+      return words(await transcriber.transcribe(Float32List.fromList(heard), language));
     } finally {
       timer.cancel();
       await listening.cancel();
