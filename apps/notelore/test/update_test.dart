@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -10,14 +11,23 @@ import 'package:path/path.dart' as p;
 
 const v = '9.9.9';
 
-/// A GitHub "latest release" answer with the app assets for [version].
-List<int> release(String version, {bool checksums = true}) {
+/// The test release key: a fixed seed, and the public key it gives (#312).
+final testSeed = List.filled(32, 7);
+const testPublicKey = '6kpsY+KcUgq+9VB7Ey7F+ZVHdq6+vnuSQh7qaRRG0iw=';
+
+/// A GitHub "latest release" answer with the app assets for [version], each
+/// with its checksum and its signature unless told otherwise.
+List<int> release(String version, {bool checksums = true, bool signatures = true}) {
   final apps = [
     'notelore-app-$version-windows-x64-setup.exe',
     'notelore-app-$version-macos.dmg',
     'notelore-app-$version-android.apk',
   ];
-  final names = [...apps, if (checksums) ...apps.map((a) => '$a.sha256')];
+  final names = [
+    ...apps,
+    if (checksums) ...apps.map((a) => '$a.sha256'),
+    if (signatures) ...apps.map((a) => '$a.sig'),
+  ];
   return utf8.encode(
     jsonEncode({
       'tag_name': 'v$version',
@@ -28,7 +38,9 @@ List<int> release(String version, {bool checksums = true}) {
   );
 }
 
-/// Fetches from a map of URL -> bytes; anything else is "offline".
+/// Fetches from a map of URL -> bytes; anything else is "offline". A `.sig`
+/// the map does not hold is the test key's signature of the file it names, as
+/// the release workflow makes it (#312).
 class Pages {
   Pages(this.pages);
 
@@ -38,8 +50,11 @@ class Pages {
   Future<List<int>> call(String url) async {
     calls++;
     final page = pages[url];
-    if (page == null) throw UpdateFailed('offline: $url');
-    return page;
+    if (page != null) return page;
+    final signed = url.endsWith('.sig') ? pages[url.substring(0, url.length - 4)] : null;
+    if (signed == null) throw UpdateFailed('offline: $url');
+    final key = await Ed25519().newKeyPairFromSeed(testSeed);
+    return (await Ed25519().sign(signed, keyPair: key)).bytes;
   }
 }
 
@@ -114,6 +129,7 @@ void main() {
       executable: p.join(install, 'notelore.exe'),
       current: '0.2.0',
       temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
+      publicKey: base64Decode(testPublicKey),
       fetch: Pages(pages).call,
       run: (command, args) async => fail('nothing is unpacked on Windows'),
       spawn: spawn ?? (exe, args) async => spawned.add([exe, ...args]),
@@ -146,6 +162,7 @@ void main() {
         executable: p.join(install, 'notelore.exe'),
         current: '0.2.0',
         temp: Directory(p.join(dir, 'other-temp'))..createSync(),
+        publicKey: base64Decode(testPublicKey),
         fetch: Pages(const {}).call,
         run: (command, args) async => fail('nothing runs'),
         spawn: (exe, args) async => fail('nothing starts'),
@@ -168,6 +185,12 @@ void main() {
       final cases = {
         'checksum mismatch': wrong,
         'publishes no checksum': {latestReleaseUrl: release(v, checksums: false)},
+        // #312: a checksum from the same release proves nothing on its own.
+        'publishes no signature': {...good(), latestReleaseUrl: release(v, signatures: false)},
+        'signature does not match': {
+          ...good(),
+          'https://dl/notelore-app-$v-windows-x64-setup.exe.sig': List.filled(64, 1),
+        },
         'has no notelore-app': {
           latestReleaseUrl: utf8.encode(jsonEncode({'tag_name': 'v$v', 'assets': <Object>[]})),
         },
@@ -210,6 +233,7 @@ void main() {
         executable: p.join(dir, 'gone', 'notelore.exe'),
         current: '0.2.0',
         temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
+        publicKey: base64Decode(testPublicKey),
         fetch: Pages({}).call,
         run: (command, args) async => ProcessResult(0, 0, '', ''),
         spawn: (_, _) async {},
@@ -245,6 +269,7 @@ void main() {
       executable: p.join(bundle, 'Contents', 'MacOS', 'notelore'),
       current: '0.2.0',
       temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
+      publicKey: base64Decode(testPublicKey),
       fetch: Pages(pages).call,
       run: run ?? tools,
       spawn: (exe, args) async => spawned.add([exe, ...args]),
@@ -283,6 +308,7 @@ void main() {
         executable: p.join(bundle, 'Contents', 'MacOS', 'notelore'),
         current: '0.2.0',
         temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
+        publicKey: base64Decode(testPublicKey),
         fetch: Pages(good()).call,
         run: tools,
         spawn: (_, _) async {},
@@ -347,11 +373,44 @@ void main() {
   });
 
   test('release builds on Windows, macOS and Android update themselves', () {
-    expect(updaterFor(system: 'windows', version: '', executable: 'x'), isNull);
-    expect(updaterFor(system: 'linux', version: '1.0.0', executable: 'x'), isNull);
-    final updater = updaterFor(system: 'macos', version: '1.0.0', executable: 'x')!;
+    Updater? make(String system, {String version = '1.0.0', String store = ''}) => updaterFor(
+      system: system,
+      version: version,
+      executable: 'x',
+      store: store,
+      publicKey: testPublicKey,
+    );
+    expect(make('windows', version: ''), isNull);
+    expect(make('linux'), isNull);
+    final updater = make('macos')!;
     expect(updater.current, '1.0.0');
-    expect(updaterFor(system: 'android', version: '1.0.0', executable: 'x')!.system, 'android');
+    expect(updater.publicKey, base64Decode(testPublicKey));
+    expect(make('android')!.system, 'android');
+    // Google Play updates the Play build itself: no updater there (#307).
+    expect(make('android', store: 'play'), isNull);
+    expect(make('windows', store: 'play'), isNotNull);
+  });
+
+  test('no updater without a release key to check downloads against (#312)', () {
+    for (final key in ['', 'not base64!', base64Encode(List.filled(16, 1))]) {
+      expect(
+        updaterFor(system: 'windows', version: '1.0.0', executable: 'x', publicKey: key),
+        isNull,
+        reason: key,
+      );
+    }
+  });
+
+  test('a signature made by the release workflow (OpenSSL) verifies (#312)', () async {
+    // `openssl pkeyutl -sign -rawin` with a throwaway key; only its public half is here.
+    final message = utf8.encode('notelore-app-9.9.9-windows-x64-setup.exe from openssl');
+    final key = base64Decode('a+DKKGLnlK7rMkZwviyq0TQ6upXl97ucx5zLPIKsiWI=');
+    final signature = base64Decode(
+      'aTJmNNFuV22+TxNu2faoV12rl5Z+uQ2IqT+wUpc8oNnJHL0Z207tWTHVVHYpVbArkFBjqyTKArukv9U5RVGMAA==',
+    );
+    expect(await signedBy(message, signature, key), isTrue);
+    expect(await signedBy([...message, 0], signature, key), isFalse);
+    expect(await signedBy(message, signature.sublist(1), key), isFalse);
   });
 
   group('Android: the APK, handed to the system installer', () {
@@ -367,6 +426,7 @@ void main() {
       executable: '/system/bin/app_process',
       current: '0.2.0',
       temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
+      publicKey: base64Decode(testPublicKey),
       fetch: Pages(pages).call,
       run: (command, args) async => fail('nothing runs on Android'),
       spawn: (_, _) async => fail('nothing is spawned on Android'),
