@@ -68,6 +68,24 @@ class ScriptedProvider implements LlmProvider {
   }
 }
 
+/// Pumps until [done], letting real work finish between frames: the test clock
+/// is fake, the disk and a real timer are not. It waits as long as a busy
+/// machine needs, never a fixed few milliseconds, and fails after [timeout] of
+/// real time only if the work is truly stuck (#365).
+Future<void> settleUntil(
+  WidgetTester tester,
+  bool Function() done, {
+  Duration timeout = const Duration(seconds: 30),
+}) async {
+  final waited = Stopwatch()..start(); // real time: the fake clock never moves on its own
+  while (!done()) {
+    if (waited.elapsed > timeout) fail('still not done after $timeout of real time');
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+    await tester.pump();
+  }
+  await tester.pumpAndSettle();
+}
+
 /// Everything a session test needs: temp folders, an empty keystore and a
 /// provider that answers from [answers]. Validation passes unless [rejected].
 class Harness {
@@ -153,6 +171,10 @@ class Harness {
   /// Thrown by the model download instead of an answer (an Error, say).
   Object? modelFailure;
 
+  /// When set, the model is served only once it completes: a download that
+  /// takes as long as a busy machine makes it (#365).
+  Future<void>? modelGate;
+
   /// Web pages by URL, for links in a message (#211); a Future answers later.
   final pages = <String, FutureOr<String>>{};
 
@@ -161,6 +183,7 @@ class Harness {
       return http.Response(await page, 200, headers: {'content-type': 'text/html'});
     }
     if (modelFailure case final failure?) throw failure;
+    await modelGate;
     if (modelPage case final page?) return http.Response(page, 200);
     return http.Response('', 404);
   });

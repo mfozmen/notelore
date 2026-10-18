@@ -11,15 +11,10 @@ import 'app_test.dart' show connect, phone, pumpApp;
 import 'desktop_test.dart' show desktop;
 import 'support.dart';
 
-/// Lets real file work (reading, writing, the share sheet's copies) finish
-/// between frames: the test clock is fake, the disk is not.
-Future<void> settle(WidgetTester tester) async {
-  for (var i = 0; i < 20; i++) {
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
-    await tester.pump();
-  }
-  await tester.pumpAndSettle();
-}
+/// Until [text] shows: real file work (reading, writing, the share sheet's
+/// copies) finishes between frames, as long as it takes (#365).
+Future<void> settleUntilText(WidgetTester tester, String text) =>
+    settleUntil(tester, () => find.textContaining(text).evaluate().isNotEmpty);
 
 void main() {
   Future<Harness> notesOpen(WidgetTester tester, {bool mobile = true}) async {
@@ -43,7 +38,7 @@ void main() {
     expect(find.text('Markdown (can be imported again)'), findsOneWidget);
     expect(find.text('Web page (HTML)'), findsOneWidget);
     await tester.tap(find.text('PDF'));
-    await settle(tester);
+    await settleUntilText(tester, 'Exported 1 note.');
     expect(harness.share.contents.keys, ['mopsos.pdf']);
     expect(find.text('Exported 1 note.'), findsOneWidget);
     // Called off at the format: nothing is shared.
@@ -80,7 +75,7 @@ void main() {
     await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Markdown (can be imported again)'));
-    await settle(tester);
+    await settleUntilText(tester, 'Exported 2 notes.');
     expect(harness.share.contents.keys.toSet(), {'mopsos.md', 'kitaplar.md'});
     expect(find.text('Exported 2 notes.'), findsOneWidget);
     // Cancel in the list exports nothing.
@@ -100,14 +95,16 @@ void main() {
     await tester.tap(find.byTooltip('Export'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Web page (HTML)'));
-    await settle(tester);
+    // A dismissed share shows nothing to wait for: wait until the share sheet
+    // has read the file it was handed (real IO, a handle the teardown needs).
+    await settleUntil(tester, () => harness.share.contents.isNotEmpty);
     expect(find.textContaining('Exported'), findsNothing);
     // The note went missing under the open page: the export reports it.
     File(notePath(harness.paths.notes.path, 'project', 'mopsos')).deleteSync();
     await tester.tap(find.byTooltip('Export'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Web page (HTML)'));
-    await settle(tester);
+    await settleUntilText(tester, 'The export failed');
     expect(find.textContaining('The export failed'), findsOneWidget);
   });
 
@@ -126,7 +123,7 @@ void main() {
       XFile(put('notes.txt', 'just text').path),
     ];
     await tester.tap(find.byTooltip('Import notes'));
-    await settle(tester);
+    await settleUntilText(tester, 'Imported "Filmler".');
     expect(find.text('Imported "Filmler".'), findsOneWidget);
     expect(
       find.text('Imported as "Mopsos (2)": a different note already had the name.'),
@@ -156,7 +153,10 @@ void main() {
     await tester.tap(find.byTooltip('Export'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Markdown (can be imported again)'));
-    await settle(tester);
+    await settleUntil(
+      tester,
+      () => File(at).existsSync() && File(at).readAsStringSync().contains('# Mopsos'),
+    );
     expect(harness.files.suggested, ['mopsos.md']);
     expect(
       File(at).readAsStringSync(),
