@@ -34,3 +34,31 @@ Findings:
   - run `qwen3:4b-instruct-2507` (non-thinking), FunctionGemma 270M and Gemma 3n through a runtime that supports their tool format;
   - add a hosted model as the ceiling;
   - fine-tune the best one (#327) on the failing kinds: collection notes, todo completion and note language.
+
+## Fine-tune v1, 2026-10-18 (#327)
+
+**Setup**
+- Student: Qwen3-4B-Instruct-2507, trained with QLoRA (r=16, 3 epochs) by `tool/train/finetune.py`.
+- Data: 120 turns that two teachers played on the generated scenarios (`tool/train/scenarios.py`, none from the eval set), kept only when the eval's scorer passed them. 66 came from qwen3:4b and 54 from qwen3-coder:30b.
+- Served: merged, then converted to a Q4_K_M GGUF (2.5 GB) and run by Ollama.
+- Eval: the same 38 cases, with the prompt that has the todo rule (#349). All three models were rerun on that prompt.
+
+| Model | All | Questions | Collection notes | Filing | Decisions | Todos (add / done) | Median time per case |
+|---|---|---|---|---|---|---|---|
+| **notelore-qwen3-4b-v1** (fine-tuned) | **23/38 (61%)** | 8/10 | 3/9 | 3/4 | 3/4 | 1/2 · 0/2 | **2.1 s** |
+| qwen3:4b-instruct-2507 (the untuned student) | 12/38 (32%) | 5/10 | 1/9 | 1/4 | 0/4 | 1/2 · 0/2 | 1.8 s |
+| qwen3:4b, thinking (the teacher) | 26/38 (68%) | 9/10 | 5/9 | 2/4 | 1/4 | 2/2 · 1/2 | 68 s |
+
+Findings:
+
+- **Fine-tuning nearly doubles the student at the same speed.** v1 is 7 points behind the thinking teacher at about 32 times its speed. The goal is ≥70% at instruct speed.
+- **v1 overfits.**
+  - Training loss fell from 2.0 to 0.06.
+  - It files most collection items into "Okumakta olduğum kitaplar", a note from its training data, whatever the item is.
+  - The next run needs many more, more varied scenarios, fewer epochs and a held-out split.
+- **No todo-done yet:** the training data had almost no completed-todo turns. With the #349 rule the teacher now ticks one of the two cases, so v2's data can have them.
+- **Slug case:** two of v1's failures were the slug `Mopsos` for `mopsos.md`. On Windows that renamed the note; on Android it failed. The tools now find a note whatever the case (#367).
+- **The run is slow because of memory, not length.**
+  - Each training turn is 2.7–3.1k tokens, mostly the system prompt and the tool schemas.
+  - 45 steps took about 5 h 20 min (about 7 min a step) at 7.9 of 8 GB. That points to spilling into shared memory.
+- **Ollama on Windows** cannot import or quantize safetensors: that path needs its MLX runtime. The working route is llama.cpp's `convert_hf_to_gguf.py`, then `llama-quantize` to Q4_K_M, then `ollama create` with the template the base model ships with. `finetune.py`'s docstring has the steps.

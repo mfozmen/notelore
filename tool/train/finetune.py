@@ -2,10 +2,20 @@
 
 Trains a LoRA on the base model (4-bit, so it fits an 8 GB GPU) from the JSONL
 that `notelore_dev distill` writes (only turns the eval scorer passed), then
-merges it into full weights that `ollama create` can load:
+merges it into full weights, then into a Q4_K_M GGUF for Ollama:
 
     python tool/train/finetune.py <base dir> <train.jsonl> <out dir> [--epochs=3]
-    ollama create notelore-qwen3-4b -f <out dir>/Modelfile --quantize q4_K_M
+    python <llama.cpp>/convert_hf_to_gguf.py <out dir>/merged --outtype bf16 \\
+        --outfile <out dir>/model-bf16.gguf
+    llama-quantize <out dir>/model-bf16.gguf <out dir>/model-q4_K_M.gguf Q4_K_M
+    ollama create notelore-qwen3-4b -f <out dir>/Modelfile
+
+Ollama on Windows cannot import or quantize safetensors (that path needs its
+MLX runtime), hence llama.cpp's converter (it needs the `gguf` and
+`sentencepiece` packages) and its prebuilt `llama-quantize`. The Modelfile
+takes its chat template and parameters from the base model as Ollama ships it
+(`--ollama-base`, qwen3:4b-instruct-2507-q4_K_M by default), so tool calls
+are read the same way.
 
 Needs torch with CUDA, transformers, peft, trl, bitsandbytes and datasets (a
 venv under .dev-home/train is fine). Stop running Ollama models first, so the
@@ -13,6 +23,7 @@ GPU is free. Nothing here ships in the app.
 """
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -85,27 +96,33 @@ def train(base, data, out, epochs):
     trainer.save_model(str(Path(out) / "lora"))
 
 
+def modelfile(out, ollama_base):
+    """A Modelfile for the quantized GGUF, with the base model's template and
+    parameters as Ollama ships them (everything after its FROM line)."""
+    shipped = subprocess.run(
+        ["ollama", "show", "--modelfile", ollama_base], capture_output=True, text=True, check=True
+    ).stdout
+    rest = shipped.split("\nFROM ", 1)[1].split("\n", 1)[1]
+    (Path(out) / "Modelfile").write_text("FROM ./model-q4_K_M.gguf\n" + rest, encoding="utf-8")
+
+
 def merge(base, out):
-    """Full bf16 weights with the LoRA folded in, and a Modelfile for Ollama."""
+    """Full bf16 weights with the LoRA folded in."""
     model = AutoModelForCausalLM.from_pretrained(base, torch_dtype=torch.bfloat16, device_map="cpu")
     model = PeftModel.from_pretrained(model, str(Path(out) / "lora")).merge_and_unload()
     merged = Path(out) / "merged"
     model.save_pretrained(merged, safe_serialization=True)
     AutoTokenizer.from_pretrained(base).save_pretrained(merged)
-    # Ollama takes the chat template from the tokenizer files saved above;
-    # check `ollama show --modelfile` after creating it.
-    (Path(out) / "Modelfile").write_text(
-        f"FROM {merged.resolve().as_posix()}\n", encoding="utf-8"
-    )
 
 
 def main(argv):
     base, data, out = (a for a in argv if not a.startswith("--"))
-    epochs = int(next((a.split("=", 1)[1] for a in argv if a.startswith("--epochs=")), "3"))
-    train(base, data, out, epochs)
+    option = lambda name, default: next((a.split("=", 1)[1] for a in argv if a.startswith(f"--{name}=")), default)
+    modelfile(out, option("ollama-base", "qwen3:4b-instruct-2507-q4_K_M"))  # fails early if Ollama lacks it
+    train(base, data, out, int(option("epochs", "3")))
     torch.cuda.empty_cache()
     merge(base, out)
-    print(f"merged -> {Path(out) / 'merged'}; next: ollama create … -f {Path(out) / 'Modelfile'} --quantize q4_K_M")
+    print(f"merged -> {Path(out) / 'merged'}; next: convert and quantize it to {Path(out) / 'model-q4_K_M.gguf'}")
 
 
 if __name__ == "__main__":
