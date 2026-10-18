@@ -230,6 +230,27 @@ void main() {
     expect(call('add_note_entry', {'slug': 'mopsos', 'text': 'x'}), startsWith('Error: '));
   });
 
+  test('a slug in another case finds the note on every OS (#367)', () {
+    call('create_note', {'kind': 'project', 'title': 'Mopsos'});
+    call('record_decision', {'slug': 'mopsos', 'topic': 'hosting', 'value': 'Fly.io'});
+    expect(call('add_note_entry', {'slug': 'Mopsos', 'text': 'Standups are daily.'}), 'ok');
+    expect(call('read_note', {'slug': 'MOPSOS'}), contains('Standups are daily.'));
+    expect(
+      call('get_decision', {'slug': 'Mopsos', 'topic': 'hosting'}),
+      containsPair('value', 'Fly.io'),
+    );
+    expect(call('decision_history', {'slug': 'Mopsos'}), hasLength(1));
+    expect(Directory(p.join(box.root, 'projects')).listSync().map((f) => p.basename(f.path)), [
+      'mopsos.md',
+    ]);
+    // A hand-made name keeps its own case, found either way.
+    File(p.join(box.root, 'topics', 'My Note.md'))
+      ..createSync(recursive: true)
+      ..writeAsStringSync('---\ntitle: My Note\nkind: topic\n---\n\n# My Note\n');
+    expect(call('read_note', {'slug': 'My Note'}), contains('# My Note'));
+    expect(call('read_note', {'slug': 'my note'}), contains('# My Note'));
+  });
+
   test('errors come back as messages, not exceptions', () {
     expect(call('read_note', {'slug': 'nope'}), "Error: no note with slug 'nope'.");
     final outside = File(p.join(p.dirname(box.root), 'secret.md'))..writeAsStringSync('private\n');

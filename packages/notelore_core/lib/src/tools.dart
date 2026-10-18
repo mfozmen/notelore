@@ -32,6 +32,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:unorm_dart/unorm_dart.dart' as unorm;
 
 import 'providers/base.dart';
 import 'store/format.dart';
@@ -254,15 +255,30 @@ class Toolbox {
 
   // ------------------------------------------------------------ helpers
 
+  /// The note [slug] names, as its file is named on disk: a slug in another
+  /// case finds it on every OS (an exact name wins), and a write never takes
+  /// the model's case (Windows would rename the file to it) (#367).
   String _path(String slug, String? kind) {
-    bool exists(String k) => File(notes.notePath(root, k, slug)).existsSync();
-    final found = kind != null ? [kind] : notes.kinds.keys.where(exists).toList();
-    if (found.length > 1) throw StateError("'$slug' exists as both project and topic; pass kind.");
-    if (found.isEmpty || !exists(found.single)) {
-      throw FileSystemException("no note with slug '$slug'.");
+    String? onDisk(String k) {
+      final exact = notes.notePath(root, k, slug); // checks the slug
+      final folder = Directory(p.dirname(exact));
+      if (!folder.existsSync()) return null;
+      String key(String path) => unorm.nfc(p.basename(path)).toLowerCase();
+      final files = [for (final f in folder.listSync().whereType<File>()) f.path];
+      return files.where((f) => p.basename(f) == p.basename(exact)).firstOrNull ??
+          files.where((f) => key(f) == key(exact)).firstOrNull;
     }
-    return notes.notePath(root, found.single, slug);
+
+    final found = {
+      for (final k in kind != null ? [kind] : notes.kinds.keys) k: onDisk(k),
+    }..removeWhere((_, path) => path == null);
+    if (found.length > 1) throw StateError("'$slug' exists as both project and topic; pass kind.");
+    if (found.isEmpty) throw FileSystemException("no note with slug '$slug'.");
+    return found.values.single!;
   }
+
+  /// [slug] as its note's file is named (see [_path]).
+  String _realSlug(String slug, String? kind) => p.basenameWithoutExtension(_path(slug, kind));
 
   String _rel(String path) => p.split(p.relative(path, from: root)).join('/');
 
@@ -289,14 +305,14 @@ class Toolbox {
   }
 
   Object _getDecision(String slug, String topic, String? kind) {
-    _path(slug, kind); // the same "pass kind" message as every other tool
-    final decision = _fresh().getDecision(slug, topic, kind: kind);
+    final real = _realSlug(slug, kind); // and the same "pass kind" message as every other tool
+    final decision = _fresh().getDecision(real, topic, kind: kind);
     return decision == null ? "No active decision for '$topic' in '$slug'." : _decision(decision);
   }
 
   List<Map<String, Object?>> _decisionHistory(String slug, String? topic, String? kind) {
-    _path(slug, kind);
-    return [for (final d in _fresh().decisionHistory(slug, topic: topic, kind: kind)) _decision(d)];
+    final real = _realSlug(slug, kind);
+    return [for (final d in _fresh().decisionHistory(real, topic: topic, kind: kind)) _decision(d)];
   }
 
   Map<String, Object?> _merge(String from, String into) {
