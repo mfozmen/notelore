@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/setup.dart';
+import 'package:notelore_core/notelore_core.dart';
 
 import 'app_test.dart' show phone, pumpApp;
 import 'support.dart';
@@ -82,5 +85,35 @@ void main() {
     expect(await done, isTrue);
     expect(session.spec!.name, 'openai');
     expect(find.byKey(const Key('message')), findsOneWidget);
+  });
+
+  testWidgets('a refused key is not carried to another provider; no back while checking (#357)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness(rejected: const KeyValidationError('Anthropic rejected the key'))
+      ..connectHold = Completer<void>();
+    await pumpApp(tester, harness);
+    await tester.tap(find.text('Claude (Anthropic)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('api-key')), 'bad');
+    await tester.tap(find.text('Connect'));
+    await tester.pump();
+    // Checking: back does nothing, so a late answer cannot move the step on its own.
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.text('Step 2 of 3'), findsOneWidget);
+    harness.connectHold!.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Anthropic rejected the key'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GPT (OpenAI)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    expect(find.text('Anthropic rejected the key'), findsNothing);
   });
 }
