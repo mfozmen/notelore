@@ -130,6 +130,12 @@ const providerSpecs = [
     requiresApiKey: false,
     defaultModel: 'llama3.2',
     cost: 'Free: the model runs on this computer.',
+    keyUrl: 'https://ollama.com/download',
+    keySteps: [
+      'Install Ollama from ollama.com and start it.',
+      'Pull a model: in a terminal, run ollama pull qwen3:4b',
+      'Come back and connect.',
+    ],
   ),
 ];
 
