@@ -72,6 +72,7 @@ export 'src/store/notes.dart'
         atomicWrite,
         completeTodo,
         createNote,
+        keepAttachment,
         kinds,
         listArchived,
         localToday,

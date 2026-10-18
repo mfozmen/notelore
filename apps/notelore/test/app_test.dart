@@ -911,7 +911,15 @@ void main() {
     // Text inside: sent like a text file.
     harness.pdfText = (_) async => 'Budget: 40k';
     await attach('report.pdf');
-    expect(harness.provider.asked, ['<attached file="report.pdf">\nBudget: 40k\n</attached>']);
+    // Its original is kept beside the notes, for the note to link (#279).
+    expect(
+      harness.provider.asked.single,
+      matches(
+        RegExp(
+          r'^<attached file="report.pdf" original="attachments/[\d-]+/report.pdf">\nBudget: 40k\n</attached>$',
+        ),
+      ),
+    );
   });
 
   testWidgets('chat: copy a message or an answer, with a short confirmation (#225)', (
@@ -1574,9 +1582,18 @@ void main() {
     // Words: they go to the model like a text file, its name in the bubble.
     harness.fileTranscriber.answers.add('Buy milk on Friday.');
     await attach('memo.wav', memo);
+    // The original is kept beside the notes, and the model is told where, to link it (#279).
+    final kept = Directory(p.join(harness.paths.notes.path, 'attachments'))
+        .listSync(recursive: true)
+        .whereType<File>()
+        .toList();
+    expect([for (final f in kept) p.basename(f.path)], ['memo.wav']);
+    expect(kept.single.readAsBytesSync(), memo);
     expect(
       harness.provider.asked.single,
-      contains('<attached file="memo.wav">\nBuy milk on Friday.'),
+      matches(
+        RegExp(r'<attached file="memo.wav" original="attachments/[\d-]+/memo.wav">\nBuy milk'),
+      ),
     );
     expect(harness.fileTranscriber.heard.last, 16000);
     expect(find.text('memo.wav'), findsOneWidget);

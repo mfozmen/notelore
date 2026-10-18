@@ -159,6 +159,17 @@ class Session extends ChangeNotifier {
   final Future<Float32List?> Function(Uint8List bytes) decodeAudio;
   Transcriber? _fileTranscriber;
 
+  /// Keeps an attached file's original beside the notes (#279), synced with
+  /// them; its path for the note to link, or null when it cannot be written
+  /// (the words still go).
+  String? keepOriginal(String name, List<int> bytes) {
+    try {
+      return keepAttachment(paths.notes.path, name, bytes, today: today);
+    } on FileSystemException {
+      return null;
+    }
+  }
+
   /// An attached audio file's words, heard on this device (#285); null when no
   /// words are heard. Throws [AudioUnavailable] before Whisper is here, and
   /// [AudioUnreadable] for a format this device cannot open.
