@@ -143,6 +143,13 @@ String _safeLinks(String html) => html.replaceAllMapped(
       RegExp(r'^(https?:|mailto:)', caseSensitive: false).hasMatch(m[2]!) ? m[0]! : '${m[1]}="#"',
 );
 
+/// An image becomes its alt text: opening the page never loads anything from
+/// the network, so a planted image cannot carry note text away (#311).
+String _noImages(String html) => html.replaceAllMapped(
+  RegExp(r'<img\b[^>]*>'),
+  (m) => RegExp(r'alt="([^"]*)"').firstMatch(m[0]!)?.group(1) ?? '',
+);
+
 /// The notes in [texts] as one HTML page called [title], each an `<article>`
 /// with its meta line. Markup inside a note is shown as text, never run.
 String notesHtml(String title, List<String> texts) {
@@ -161,7 +168,7 @@ String notesHtml(String title, List<String> texts) {
             .replaceAll('&', '&amp;')
             .replaceAll('<', '&lt;');
         final html = _safeLinks(
-          md.markdownToHtml(body, extensionSet: md.ExtensionSet.gitHubFlavored),
+          _noImages(md.markdownToHtml(body, extensionSet: md.ExtensionSet.gitHubFlavored)),
         );
         return '<article>\n<h1>${_escape.convert(note.title)}</h1>\n'
             '<p class="meta">${_escape.convert(metaLine(note))}</p>\n$html</article>';
