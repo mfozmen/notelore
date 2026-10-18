@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'src/app.dart';
 import 'src/drive_auth.dart';
+import 'src/reminder_notifier.dart';
 import 'src/session.dart';
 import 'src/share_native.dart';
 import 'src/update.dart';
@@ -54,6 +55,10 @@ Future<Session> openSession({Map<String, String>? environment, bool? mobile}) as
     localModels: !phone,
     systemLanguage: PlatformDispatcher.instance.locale.languageCode,
     timing: keySpace == 'notelore-dev' ? debugPrint : null, // #232: development runs only
+    // The reminders in the notes, as this device's notifications (#431).
+    reminders: Platform.isAndroid || Platform.isWindows || Platform.isMacOS
+        ? PluginNotifier()
+        : null,
   );
   await session.load();
   if (phone && Platform.isAndroid) listenForShares(session); // "Share → Notelore" (#211)
