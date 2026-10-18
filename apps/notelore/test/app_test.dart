@@ -1703,10 +1703,24 @@ void main() {
       isA<FileImage>(),
     ]);
     expect(find.textContaining('Tap to show'), findsNothing);
-    // One that cannot be shown (damaged, unreachable) leaves its words.
+    // One that cannot be shown (damaged, unreachable) says so, with its words.
     final shown = tester.widget<Image>(find.byType(Image).last);
     final fallback = shown.errorBuilder!(tester.element(find.byType(Image).last), 'bad', null);
-    expect((fallback as Text).data, 'a photo');
+    // While a remote one comes, the same box turns.
+    final remote = tester.widget<Image>(find.byType(Image).first);
+    final coming = remote.loadingBuilder!(
+      tester.element(find.byType(Image).first),
+      const SizedBox(),
+      const ImageChunkEvent(cumulativeBytesLoaded: 1, expectedTotalBytes: 2),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Material(child: Column(children: [fallback, coming])),
+      ),
+    );
+    expect(find.text('a photo'), findsOneWidget);
+    expect(find.text("Couldn't load"), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
   testWidgets('notes: delete from the list or the reader, with undo', (tester) async {

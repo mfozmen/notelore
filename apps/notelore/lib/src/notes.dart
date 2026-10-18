@@ -40,41 +40,79 @@ class _NoteImageState extends State<_NoteImage> {
   @override
   Widget build(BuildContext context) {
     final uri = widget.uri;
-    Widget alt(_, _, _) => Text(widget.alt);
+    final s = widget.s;
+    Widget failed(BuildContext context, _, _) =>
+        _card(context, const Icon(Icons.broken_image_outlined), s.imageFailed);
     if (!uri.hasScheme) {
       final file = File(p.normalize(p.join(widget.folder, Uri.decodeComponent(uri.path))));
-      return Image.file(file, semanticLabel: widget.alt, errorBuilder: alt);
+      return Image.file(file, semanticLabel: widget.alt, errorBuilder: failed);
     }
     if (uri.scheme != 'http' && uri.scheme != 'https') return Text(widget.alt);
-    if (_shown) return Image.network('$uri', semanticLabel: widget.alt, errorBuilder: alt);
-    final theme = Theme.of(context);
-    return Card.outlined(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => setState(() => _shown = true),
-        child: Padding(
-          padding: const EdgeInsets.all(Gap.s),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.image_outlined, color: theme.colorScheme.onSurfaceVariant),
-              const SizedBox(width: Gap.s),
-              Flexible(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (widget.alt.isNotEmpty) Text(widget.alt),
-                    Text(
-                      widget.s.tapToShow(uri.host),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+    if (_shown) {
+      return Image.network(
+        '$uri',
+        semanticLabel: widget.alt,
+        errorBuilder: failed,
+        // The same box while it comes, so the tap never seems to do nothing.
+        loadingBuilder: (context, image, progress) => progress == null
+            ? image
+            : _card(
+                context,
+                const SizedBox.square(
+                  dimension: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 ),
+                '',
               ),
-            ],
+      );
+    }
+    return _card(
+      context,
+      Icon(Icons.image_outlined, color: Theme.of(context).colorScheme.primary),
+      s.tapToShow,
+      onTap: () => setState(() => _shown = true),
+    );
+  }
+
+  /// The box an image stands in: its words, where it comes from, and [state].
+  Widget _card(BuildContext context, Widget leading, String state, {VoidCallback? onTap}) {
+    final theme = Theme.of(context);
+    final host = widget.uri.host;
+    final line = [if (host.isNotEmpty) host, if (state.isNotEmpty) state].join(' · ');
+    return Semantics(
+      button: onTap != null,
+      child: Card.outlined(
+        margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  leading,
+                  const SizedBox(width: Gap.s),
+                  Flexible(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (widget.alt.isNotEmpty) Text(widget.alt),
+                        Text(
+                          line,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
