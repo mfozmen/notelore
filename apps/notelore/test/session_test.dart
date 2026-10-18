@@ -987,6 +987,56 @@ void main() {
     expect(await const FlutterSecureStorage().read(key: 'notelore.lock'), isNull);
   });
 
+  test('connections: every model with a key or a sign-in, kept across a switch (#356)', () async {
+    final harness = Harness(chatGpt: FakeAuth());
+    final session = harness.session();
+    await session.load();
+    expect(await session.connections(), isEmpty);
+    await session.connect(findProvider('anthropic'), 'sk-ant');
+    await session.connect(findProvider('ollama'), ''); // a desktop model, no key
+    expect((await session.connections()).map((s) => s.name), ['anthropic', 'ollama']);
+    expect(session.spec!.name, 'ollama');
+    // Back to Claude with one tap: its stored key, checked again, no new entry.
+    await session.switchTo(findProvider('anthropic'));
+    expect(session.spec!.name, 'anthropic');
+    expect(harness.created.last, ('anthropic', 'sk-ant', 'claude-sonnet-5-5'));
+    // The ChatGPT plan counts once signed in.
+    harness.chatGpt!.granted = true;
+    expect((await session.connections()).map((s) => s.name), ['chatgpt', 'anthropic', 'ollama']);
+  });
+
+  test(
+    'disconnect removes one model; the active one leaves no model, the notes stay (#356)',
+    () async {
+      final harness = Harness(chatGpt: FakeAuth()..granted = true, answers: ['hi']);
+      final session = harness.session();
+      await session.connect(findProvider('anthropic'), 'sk-ant');
+      await session.send('x');
+      // Not the active one: only its sign-in goes.
+      await session.disconnect(findProvider('chatgpt'));
+      expect(harness.chatGpt!.signedOut, isTrue);
+      expect(session.spec!.name, 'anthropic');
+      // The active one: its key goes, and no model until another is chosen.
+      await session.disconnect(findProvider('anthropic'));
+      expect(await const FlutterSecureStorage().read(key: 'notelore.anthropic.api_key'), isNull);
+      expect(session.ready, isFalse);
+      expect(session.spec, isNull);
+      expect(session.transcript, isNotEmpty); // the conversation stays
+      expect(await session.connections(), isEmpty);
+      final again = harness.session();
+      await again.load();
+      expect(again.ready, isFalse);
+    },
+  );
+
+  test('switching to a model whose key is gone says so and changes nothing (#356)', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'sk-ant');
+    await expectLater(session.switchTo(findProvider('openai')), throwsA(isA<StateError>()));
+    expect(session.spec!.name, 'anthropic');
+  });
+
   test('logout forgets the key, the provider and the conversation', () async {
     final harness = Harness(answers: ['hi']);
     final session = harness.session();

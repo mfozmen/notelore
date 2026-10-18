@@ -446,9 +446,47 @@ class Session extends ChangeNotifier {
   /// [KeyValidationError] or [TransientValidationError] and changes nothing.
   /// The key and the settings are saved together: if the settings cannot be
   /// written, the key is taken back out of the keystore.
-  Future<void> connect(ProviderSpec spec, String key, {String? model}) async {
+  Future<void> connect(ProviderSpec spec, String key, {String? model}) =>
+      _connect(spec, key, model: model, signIn: true);
+
+  /// Every model this device can switch to without setting it up again (#356):
+  /// a stored key (Ollama keeps an empty one as its mark), or the plan signed in.
+  Future<List<ProviderSpec>> connections() async => [
+    for (final spec in providers)
+      if (spec.name == 'chatgpt'
+          ? await chatGpt!.signedIn()
+          : await keys.read(key: _keyName(spec)) != null)
+        spec,
+  ];
+
+  /// Back to a connected model with its stored key, checked again; never opens
+  /// a browser. Throws [StateError] when it is not connected (any more).
+  Future<void> switchTo(ProviderSpec spec) async {
+    final key = spec.name == 'chatgpt' ? '' : await keys.read(key: _keyName(spec));
+    if (key == null) throw StateError('${spec.displayName} is not connected');
+    await _connect(spec, key, signIn: false);
+  }
+
+  /// Forgets one model's key or sign-in. The active one leaves no model until
+  /// another is chosen; the notes and the conversation stay.
+  Future<void> disconnect(ProviderSpec spec) async {
+    if (spec.name == 'chatgpt') {
+      await chatGpt?.signOut();
+    } else {
+      await keys.delete(key: _keyName(spec));
+    }
+    if (this.spec?.name == spec.name) _forgetProvider();
+    notifyListeners();
+  }
+
+  Future<void> _connect(
+    ProviderSpec spec,
+    String key, {
+    required bool signIn,
+    String? model,
+  }) async {
     final trimmed = key.trim();
-    final listed = await _models(spec, trimmed, signIn: true);
+    final listed = await _models(spec, trimmed, signIn: signIn);
     // A note-taking app needs no big model: start on the cheapest one listed (the
     // fixed default when none is). Ollama keeps its default: its list is local.
     final chosen =
@@ -456,13 +494,16 @@ class Session extends ChangeNotifier {
         (spec.name == 'ollama' ? null : cheapestModel(spec.name, listed)) ??
         (spec.defaultModel.isNotEmpty ? spec.defaultModel : null);
     if (chosen == null) throw TransientValidationError('${spec.displayName} lists no models');
+    // Every provider but the plan keeps its entry, Ollama an empty one: that is
+    // how [connections] knows it.
+    final keyed = spec.name != 'chatgpt';
     final name = _keyName(spec);
-    final previous = spec.requiresApiKey ? await keys.read(key: name) : null;
-    if (spec.requiresApiKey) await keys.write(key: name, value: trimmed);
+    final previous = keyed ? await keys.read(key: name) : null;
+    if (keyed) await keys.write(key: name, value: trimmed);
     try {
       _save(spec, chosen, listed);
     } catch (_) {
-      if (spec.requiresApiKey) await _restoreKey(name, previous);
+      if (keyed) await _restoreKey(name, previous);
       rethrow;
     }
     _touch();
@@ -551,16 +592,8 @@ class Session extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Forgets every provider's key on this device and the chosen provider; the
-  /// notes stay.
-  Future<void> logout() async {
-    _outbox.clear(); // dropped with the conversation, never run against another login
-    _saveQueue();
-    _stopRetrying();
-    for (final spec in providerSpecs.where((s) => s.requiresApiKey)) {
-      await keys.delete(key: _keyName(spec));
-    }
-    await chatGpt?.signOut();
+  /// No model chosen: the settings go, the agent with them.
+  void _forgetProvider() {
     final settings = File(_settings);
     if (settings.existsSync()) settings.deleteSync();
     spec = null;
@@ -568,6 +601,19 @@ class Session extends ChangeNotifier {
     models = const [];
     _agent = null;
     _provider = null;
+  }
+
+  /// Forgets every provider's key on this device and the chosen provider; the
+  /// notes stay.
+  Future<void> logout() async {
+    _outbox.clear(); // dropped with the conversation, never run against another login
+    _saveQueue();
+    _stopRetrying();
+    for (final spec in providerSpecs.where((s) => s.name != 'chatgpt')) {
+      await keys.delete(key: _keyName(spec));
+    }
+    await chatGpt?.signOut();
+    _forgetProvider();
     transcript.clear();
     usage.newConversation();
     draft = '';
