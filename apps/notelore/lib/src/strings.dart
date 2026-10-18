@@ -289,6 +289,20 @@ abstract class Strings {
   /// Under an image in a note that could not be shown.
   String get imageFailed;
 
+  // The note reader (#426).
+  String noteKind(String kind);
+  String updatedOn(String date);
+  String earlierDecisions(int count);
+  String supersededOn(String date);
+  String overdue(String date);
+
+  /// The months, short, January first.
+  List<String> get months;
+
+  /// "18 Oct", with the year when it is not [today]'s.
+  String shortDate(DateTime date, DateTime today) =>
+      '${date.day} ${months[date.month - 1]}${date.year == today.year ? '' : ' ${date.year}'}';
+
   /// An archived note's name; archived entries say whose they are.
   String archivedTitle(ArchivedNote archived) =>
       archived.entries ? entriesFrom(archived.title) : archived.title;
@@ -898,6 +912,24 @@ class EnglishStrings extends Strings {
   String get tapToShow => 'Tap to show';
   @override
   String get imageFailed => "Couldn't load";
+  @override
+  String noteKind(String kind) => switch (kind) {
+    'project' => 'Project',
+    'topic' => 'Topic',
+    _ => kind,
+  };
+  @override
+  String updatedOn(String date) => 'Updated $date';
+  @override
+  String earlierDecisions(int count) => 'Earlier decisions ($count)';
+  @override
+  String supersededOn(String date) => 'superseded $date';
+  @override
+  String overdue(String date) => 'Overdue, $date';
+  @override
+  List<String> get months => const [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', //
+  ];
   @override
   String entriesFrom(String title) => 'Entries from $title';
   @override
@@ -1620,6 +1652,24 @@ class TurkishStrings extends Strings {
   String get tapToShow => 'Göstermek için dokun';
   @override
   String get imageFailed => 'Yüklenemedi';
+  @override
+  String noteKind(String kind) => switch (kind) {
+    'project' => 'Proje',
+    'topic' => 'Konu',
+    _ => kind,
+  };
+  @override
+  String updatedOn(String date) => 'Güncellendi $date';
+  @override
+  String earlierDecisions(int count) => 'Önceki kararlar ($count)';
+  @override
+  String supersededOn(String date) => '$date tarihinde değişti';
+  @override
+  String overdue(String date) => 'Gecikti, $date';
+  @override
+  List<String> get months => const [
+    'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara', //
+  ];
   @override
   String entriesFrom(String title) => '$title notundan girdiler';
   @override
