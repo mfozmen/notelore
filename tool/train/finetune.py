@@ -26,6 +26,7 @@ venv under .dev-home/train is fine). Stop running Ollama models first, so the
 GPU is free. Nothing here ships in the app.
 """
 
+import importlib
 import json
 import subprocess
 import sys
@@ -98,6 +99,19 @@ def precision(bf16):
     return {"bf16": bf16, "fp16": not bf16}, (torch.bfloat16 if bf16 else torch.float16)
 
 
+def fp32_logprobs(bf16):
+    """On a GPU without bf16, TRL's chunked log-prob kernel takes its plain fp32
+    matmul: its dtype-keeping one got a bf16 gradient on fp16 weights and failed
+    (Kaggle v2 runs 1-2; run 3 trained with this)."""
+    if bf16:
+        return
+    try:
+        kernel = importlib.import_module("trl.kernels.chunked_logprob")
+    except ImportError:  # an older TRL, without that kernel
+        return
+    kernel._MM_OUT_DTYPE = False
+
+
 def load(base, dtype):
     """The base model in 4 bits, its unquantized parts (embeddings, lm_head) in
     [dtype] too: left in the checkpoint's bf16, a GPU without bf16 fails."""
@@ -115,7 +129,9 @@ def train(base, data, out, epochs, assistant_only=False):
     tokenizer = AutoTokenizer.from_pretrained(base)
     rows = dataset(tokenizer, data, assistant_only)
     print(f"{len(rows)} training turns")
-    flags, dtype = precision(torch.cuda.is_bf16_supported())
+    bf16 = torch.cuda.is_bf16_supported()
+    flags, dtype = precision(bf16)
+    fp32_logprobs(bf16)
     model = load(base, dtype)
     trainer = SFTTrainer(
         model=model,

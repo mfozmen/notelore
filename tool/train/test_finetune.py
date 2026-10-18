@@ -16,7 +16,7 @@ sys.modules["torch"].bfloat16, sys.modules["torch"].float16 = "bfloat16", "float
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import finetune
-from finetune import assistant_labels, clean, load, main, modelfile, precision
+from finetune import assistant_labels, clean, fp32_logprobs, load, main, modelfile, precision
 
 failures = 0
 
@@ -49,6 +49,18 @@ model = load("base", "float16")
 # checkpoint's bf16, a T4 fails in the loss (Kaggle run 1).
 check("the whole model loads in the precision's dtype", model.kwargs.get("dtype"), "float16")
 check("and so does the 4-bit compute", model.kwargs["quantization_config"].kwargs["bnb_4bit_compute_dtype"], "float16")
+
+kernel = types.ModuleType("trl.kernels.chunked_logprob")
+kernel._MM_OUT_DTYPE = True
+sys.modules["trl.kernels.chunked_logprob"] = kernel
+fp32_logprobs(True)
+check("with bf16 TRL's log-prob kernel is left as it is", kernel._MM_OUT_DTYPE, True)
+# Without it, the kernel's backward got a bf16 gradient on fp16 weights and
+# failed (Kaggle v2 runs 1-2); its plain fp32 path trained (run 3).
+fp32_logprobs(False)
+check("without bf16 it takes its plain fp32 path", kernel._MM_OUT_DTYPE, False)
+del sys.modules["trl.kernels.chunked_logprob"]
+check("a TRL without that kernel needs nothing", fp32_logprobs(False), None)
 
 check(
     "an answer keeps only what follows the leaked reasoning",
