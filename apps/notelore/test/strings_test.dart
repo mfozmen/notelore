@@ -51,6 +51,7 @@ void main() {
         expect(line(en), isNotEmpty, reason: spec.name);
         expect(line(tr), isNot(line(en)), reason: spec.name);
       }
+      expect(tr.optionTags(spec), isNot(en.optionTags(spec)), reason: spec.name);
     }
     expect(tr.providerName(findProvider('ollama')), 'Ollama (yerel)');
     for (final group in ProviderGroup.values) {
@@ -138,6 +139,7 @@ void main() {
       'chooseProviderWhy': s.chooseProviderWhy,
       'openKeyPage': s.openKeyPage('example.com'),
       'connectedBadge': s.connectedBadge,
+      'useThisModel': s.useThisModel,
       'apiKey': s.apiKey,
       'pasteKeyFirst': s.pasteKeyFirst,
       'checkConnection': s.checkConnection,

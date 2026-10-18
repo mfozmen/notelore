@@ -34,6 +34,8 @@ abstract class Strings {
   String optionEffort(ProviderSpec spec);
   String optionFit(ProviderSpec spec);
   String get connectedBadge;
+  List<String> optionTags(ProviderSpec spec);
+  String get useThisModel;
   String get connectedExplained;
   String get start;
 
@@ -374,6 +376,15 @@ class EnglishStrings extends Strings {
   @override
   String get connectedBadge => 'Connected';
   @override
+  List<String> optionTags(ProviderSpec spec) => switch (spec.name) {
+    'chatgpt' => ['Your plan', 'One tap'],
+    'anthropic' || 'openai' => ['Pay per use', 'API key'],
+    'gemini' => ['Free tier', 'API key'],
+    _ => ['Free', 'Stays on this computer'],
+  };
+  @override
+  String get useThisModel => 'Use this model';
+  @override
   String get connectedExplained =>
       'Notelore will use it to write your notes and answer from them. You can change it in '
       'Settings.';
@@ -381,7 +392,8 @@ class EnglishStrings extends Strings {
   String get start => 'Start';
   @override
   String get chooseProviderWhy =>
-      'Notelore uses an AI model to write your notes and answer from them. Pick the one you have.';
+      'Notelore uses an AI model to write your notes and answer from them. Pick one; you can '
+      'change it later in Settings.';
   @override
   String openKeyPage(String host) => 'Open $host';
   @override
@@ -887,6 +899,15 @@ class TurkishStrings extends Strings {
   @override
   String get connectedBadge => 'Bağlı';
   @override
+  List<String> optionTags(ProviderSpec spec) => switch (spec.name) {
+    'chatgpt' => ['Planın', 'Tek dokunuş'],
+    'anthropic' || 'openai' => ['Kullandıkça öde', 'API anahtarı'],
+    'gemini' => ['Ücretsiz katman', 'API anahtarı'],
+    _ => ['Ücretsiz', 'Bu bilgisayarda kalır'],
+  };
+  @override
+  String get useThisModel => 'Bu modeli kullan';
+  @override
   String get connectedExplained =>
       'Notelore notlarını yazmak ve onlardan cevap vermek için bunu kullanacak. Ayarlar\'dan '
       'değiştirebilirsin.';
@@ -894,7 +915,8 @@ class TurkishStrings extends Strings {
   String get start => 'Başla';
   @override
   String get chooseProviderWhy =>
-      'Notelore notlarını yazmak ve onlardan cevap vermek için bir yapay zekâ modeli kullanır. Elinde olanı seç.';
+      'Notelore notlarını yazmak ve onlardan cevap vermek için bir yapay zekâ modeli kullanır. '
+      'Birini seç; sonra Ayarlar\'dan değiştirebilirsin.';
   @override
   String openKeyPage(String host) => '$host adresini aç';
   @override
