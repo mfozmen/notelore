@@ -90,6 +90,17 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git push --atomic origin HEAD:main "refs/tags/$TAG"
 
+      # A stale price table gives a confident but wrong cost estimate (#272):
+      # older than 60 days, the run says so. It never blocks a release.
+      - name: Check the age of the usage price table
+        if: steps.release.outputs.released == 'true'
+        run: |
+          taken=$(grep -oP "pricesTaken = '\K[0-9-]+" packages/notelore_core/lib/src/usage.dart)
+          age=$(( ( $(date +%s) - $(date -d "$taken" +%s) ) / 86400 ))
+          if [ "$age" -gt 60 ]; then
+            echo "::warning::The usage price table is $age days old (pricesTaken $taken): re-check the prices in usage.dart."
+          fi
+
       # Re-runnable: an existing release for the tag is left as it is.
       - name: Create the GitHub Release
         if: steps.release.outputs.released == 'true'

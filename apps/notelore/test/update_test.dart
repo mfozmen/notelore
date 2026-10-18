@@ -21,6 +21,11 @@ List<int> release(String version, {bool checksums = true}) {
   return utf8.encode(
     jsonEncode({
       'tag_name': 'v$version',
+      'html_url': 'https://github.com/mfozmen/notelore/releases/tag/v$version',
+      'body':
+          '## v$version\n\n### Bug Fixes\n\n- The chat scrolls ([`abc`](https://x))\n\n'
+          '### Features\n\n- Notes sync faster ([#1](https://x), [`def`](https://x))\n\n'
+          '- Voice works offline ([`123`](https://x))\n\n- A third one\n',
       'assets': [
         for (final n in names) {'name': n, 'browser_download_url': 'https://dl/$n'},
       ],
@@ -79,7 +84,27 @@ void main() {
     expect(() => assetName('1.2.3', 'linux'), throwsA(isA<UpdateFailed>()));
   });
 
+  test('a release says what it brings: features first, then fixes, two at most (#288)', () {
+    expect(
+      releaseHighlights(
+        '### Bug Fixes\n\n- Fix one ([`a`](u))\n\n### Features\n\n- New one ([#1](u), [`b`](u))\n',
+      ),
+      ['New one', 'Fix one'],
+    );
+    expect(releaseHighlights('### Chores\n\n- tidy\n'), isEmpty);
+    expect(releaseHighlights(null), isEmpty);
+  });
+
   group('the check', () {
+    test('a newer release comes with its highlights and its page (#288)', () async {
+      final pages = Pages({latestReleaseUrl: release(v)});
+      final found = await checkRelease(current: '0.2.0', fetch: pages.call);
+      expect(found!.version, v);
+      expect(found.highlights, ['Notes sync faster', 'Voice works offline']);
+      expect(found.page, 'https://github.com/mfozmen/notelore/releases/tag/v$v');
+      expect(await checkRelease(current: v, fetch: pages.call), isNull);
+    });
+
     test('asks GitHub every time, so each start hears of a new release', () async {
       final pages = Pages({latestReleaseUrl: release('0.2.0')});
       expect(await checkForUpdate(current: '0.2.0', fetch: pages.call), isNull);

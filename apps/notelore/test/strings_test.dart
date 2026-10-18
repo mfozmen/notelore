@@ -230,6 +230,15 @@ void main() {
       'refreshModels': s.refreshModels,
       'modelSaved': s.modelSaved,
       'checkForUpdates': s.checkForUpdates,
+      'whatsNew': s.whatsNew,
+      'showAdvanced': s.showAdvanced,
+      'showAdvancedWhy': s.showAdvancedWhy,
+      'usageWhat': s.usageWhat,
+      'lastDays': s.lastDays,
+      'byModel': s.byModel,
+      'lastDaysSummary': s.lastDaysSummary('1'),
+      'lastDaysNothing': s.lastDaysNothing,
+      'busiestDay': s.busiestDay('1', 2),
       'logOut': s.logOut,
       'logOutExplained': s.logOutExplained,
       'language': s.language,
@@ -323,11 +332,11 @@ void main() {
       plan: false,
     );
     expect(en.usageLines(known), [
-      'Tokens: 1,234,567 in, 8,900 out',
+      '1,234,567 read · 8,900 written',
       'Estimated cost: about \$2.50',
     ]);
     expect(tr.usageLines(known), [
-      'Token: 1.234.567 giriş, 8.900 çıkış',
+      '1.234.567 okundu · 8.900 yazıldı',
       'Tahmini maliyet: yaklaşık \$2,50',
     ]);
     const small = UsageSummary(
@@ -342,7 +351,7 @@ void main() {
       plan: false,
     );
     expect(en.usageLines(gaps), [
-      'Tokens: 5 in, 1 out',
+      '5 read · 1 written',
       '1 model call did not report usage',
       'Estimated cost: not available',
     ]);
