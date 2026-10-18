@@ -8,6 +8,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'audio_file.dart';
 import 'session.dart';
 import 'setup.dart' show ProviderWizard;
 import 'strings.dart';
@@ -65,8 +66,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   /// Text (and PDF text) adding up to more than this is refused rather than
-  /// sent: it would fill the model's context. shortcut: text, PDF text and
-  /// images; audio is #285.
+  /// sent: it would fill the model's context.
   static const maxAttachment = 200000;
 
   /// Images adding up to more than this are refused: the providers' own limit
@@ -100,6 +100,7 @@ class _ChatScreenState extends State<ChatScreen> {
         ..showSnackBar(SnackBar(content: Text(refused)));
       return;
     }
+    if (!mounted) return; // listening to audio takes a while: the screen may be gone (#387)
     final typed = _message.text.trim();
     _message.clear();
     await widget.session.send(withAttachments(typed, files, images: names), images: images);
@@ -118,19 +119,15 @@ class _ChatScreenState extends State<ChatScreen> {
     var sent = 0; // characters, over every text file of the message
     var pictured = 0; // bytes, over every image of it
     for (final file in picked) {
-      // An image first: a GIF begins as plain ASCII.
-      final type = imageType(file.bytes);
-      final pdf = type == null && _isPdf(file.bytes);
-      String? text;
-      if (type == null) text = pdf ? await _pdfText(file.bytes) : _text(file.bytes);
-      final refused = switch ((type, text)) {
-        (null, null) when pdf => s.noPdfText(file.name),
-        (null, null) => s.notText(file.name),
-        (_?, _) when pictured + file.bytes.length > maxImage => s.tooLarge(file.name),
-        (_, final text?) when sent + text.length > maxAttachment => s.tooLarge(file.name),
-        _ => null,
-      };
-      if (refused != null) return (files: files, images: images, names: names, refused: refused);
+      final (:text, :type, :refused) = await _content(file);
+      final over =
+          refused ??
+          switch ((type, text)) {
+            (_?, _) when pictured + file.bytes.length > maxImage => s.tooLarge(file.name),
+            (_, final text?) when sent + text.length > maxAttachment => s.tooLarge(file.name),
+            _ => null,
+          };
+      if (over != null) return (files: files, images: images, names: names, refused: over);
       if (type != null) {
         images.add(imageBlock(type, file.bytes));
         pictured += file.bytes.length;
@@ -157,6 +154,46 @@ class _ChatScreenState extends State<ChatScreen> {
 
   static bool _isPdf(List<int> bytes) =>
       bytes.length >= 5 && ascii.decode(bytes.sublist(0, 5), allowInvalid: true) == '%PDF-';
+
+  /// What [file] holds for the model: its words (audio heard on the device,
+  /// a PDF's or a text file's text) or an image's type; or why it cannot go.
+  Future<({String? text, String? type, String? refused})> _content(PickedFile file) async {
+    final s = widget.session.strings;
+    // Audio first: heard on the device, it goes as its words (#285).
+    if (isAudio(file.bytes)) {
+      final (:text, :refused) = await _audioText(file);
+      return (text: text, type: null, refused: refused);
+    }
+    // An image next: a GIF begins as plain ASCII.
+    if (imageType(file.bytes) case final type?) return (text: null, type: type, refused: null);
+    if (_isPdf(file.bytes)) {
+      final text = await _pdfText(file.bytes);
+      return (text: text, type: null, refused: text == null ? s.noPdfText(file.name) : null);
+    }
+    final text = _text(file.bytes);
+    return (text: text, type: null, refused: text == null ? s.notText(file.name) : null);
+  }
+
+  /// An audio file's words, heard on the device, or why it cannot go: no
+  /// Whisper yet, a format this device cannot open, or no words in it.
+  Future<({String? text, String? refused})> _audioText(PickedFile file) async {
+    final s = widget.session.strings;
+    final messenger = ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(s.transcribing(file.name))));
+    try {
+      final text = await widget.session.audioText(file.bytes);
+      return text == null
+          ? (text: null, refused: s.audioNoWords(file.name))
+          : (text: text, refused: null);
+    } on AudioUnavailable {
+      return (text: null, refused: s.audioNeedsWhisper(file.name));
+    } on AudioUnreadable {
+      return (text: null, refused: s.audioFormat(file.name));
+    } finally {
+      messenger.hideCurrentSnackBar();
+    }
+  }
 
   /// A PDF's text, or null when it has none: scanned, damaged, or still not
   /// read after 30 seconds (a hostile or huge one, #389).

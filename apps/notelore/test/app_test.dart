@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart' show XFile;
 import 'package:flutter/material.dart';
@@ -17,8 +18,10 @@ import 'package:notelore/src/strings.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore/src/voice.dart';
 import 'package:notelore_core/notelore_core.dart';
+import 'package:path/path.dart' as p;
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
+import 'audio_file_test.dart' show wav;
 import 'support.dart';
 
 /// The app on [harness]'s session. The app owns the session, so it is closed by
@@ -1531,6 +1534,91 @@ void main() {
     await tester.pump(const Duration(seconds: 7));
     await tester.pumpAndSettle();
     expect(find.text('Moved "Kitaplar" to the archive.'), findsNothing);
+  });
+
+  testWidgets('chat: an audio file is heard on the device and goes as its words (#285)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness(answers: ['Saved.']);
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final memo = wav(List.filled(16000, 0.1));
+    Future<void> attach(String name, List<int> bytes) async {
+      harness.files.picked = [XFile.fromData(Uint8List.fromList(bytes), path: name)];
+      await tester.tap(find.byTooltip('Attach a file'));
+      await tester.pumpAndSettle();
+    }
+
+    // Before Whisper is on this device: said why, nothing sent.
+    await attach('memo.wav', memo);
+    expect(find.textContaining('memo.wav needs on-device speech recognition'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    File(p.join(harness.paths.state.path, 'models', 'whisper-small', 'w.onnx'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('whisper bytes');
+    expect(session.whisper.ready, isTrue);
+    // A format this device cannot open (an M4A here, no decoder): said so.
+    await attach('call.m4a', [0, 0, 0, 0x20, ...'ftypM4A '.codeUnits, 0, 0]);
+    expect(find.textContaining('call.m4a cannot be opened on this device'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    // Heard, but no words in it: never sent as something.
+    harness.fileTranscriber.answers.add('[BLANK_AUDIO]');
+    await attach('quiet.wav', memo);
+    expect(find.textContaining('No words were heard in quiet.wav'), findsOneWidget);
+    expect(harness.provider.asked, isEmpty);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    // Words: they go to the model like a text file, its name in the bubble.
+    harness.fileTranscriber.answers.add('Buy milk on Friday.');
+    await attach('memo.wav', memo);
+    expect(
+      harness.provider.asked.single,
+      contains('<attached file="memo.wav">\nBuy milk on Friday.'),
+    );
+    expect(harness.fileTranscriber.heard.last, 16000);
+    expect(find.text('memo.wav'), findsOneWidget);
+    // Another format, opened by the platform's decoder.
+    harness
+      ..decodeAudio = ((_) async => Float32List(16000))
+      ..fileTranscriber.answers.add('Call the bank.');
+    harness.provider.answers.add('Saved.');
+    await attach('call.m4a', [0, 0, 0, 0x20, ...'ftypM4A '.codeUnits, 0, 0]);
+    expect(harness.provider.asked.last, contains('Call the bank.'));
+    await tester.pumpAndSettle();
+    // A recording whose words run past the limit for one message: refused like a long text.
+    harness.fileTranscriber.answers.add('word ' * 50000);
+    await attach('lecture.wav', memo);
+    expect(find.textContaining('lecture.wav is too large'), findsOneWidget);
+    expect(harness.provider.asked, hasLength(2));
+  });
+
+  testWidgets('chat: audio heard while the app locked is not sent (#285, #387)', (tester) async {
+    phone(tester);
+    var now = DateTime.utc(2026, 10, 17, 12);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness, clock: () => now);
+    await connect(tester, key: 'k');
+    File(p.join(harness.paths.state.path, 'models', 'whisper-small', 'w.onnx'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('whisper bytes');
+    await session.lock.set('2468');
+    harness.fileTranscriber
+      ..hold = Completer<void>()
+      ..answers.add('Private words.');
+    harness.files.picked = [XFile.fromData(wav(List.filled(16000, 0.1)), path: 'memo.wav')];
+    await tester.tap(find.byTooltip('Attach a file'));
+    await tester.pump();
+    toBackground(tester);
+    now = now.add(const Duration(minutes: 1));
+    toForeground(tester);
+    await tester.pumpAndSettle();
+    harness.fileTranscriber.hold!.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Notelore is locked'), findsOneWidget);
+    expect(harness.provider.asked, isEmpty);
   });
 
   testWidgets('chat: a file too big to attach is refused, and nothing is sent (#315)', (
