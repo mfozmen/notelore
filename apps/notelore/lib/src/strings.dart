@@ -181,6 +181,7 @@ abstract class Strings {
   String get remove;
   String removeModel(String name);
   String get removeModelWhy;
+  String get removeFailed;
   String nowUsing(String name);
   String get model;
   String get refreshModels;
@@ -653,6 +654,8 @@ class EnglishStrings extends Strings {
   String get remove => 'Remove';
   @override
   String removeModel(String name) => 'Remove $name?';
+  @override
+  String get removeFailed => 'Could not remove it. Please try again.';
   @override
   String get removeModelWhy =>
       'Its key or sign-in is removed from this device. Your notes and this conversation stay.';
@@ -1245,6 +1248,8 @@ class TurkishStrings extends Strings {
   String get remove => 'Kaldır';
   @override
   String removeModel(String name) => '$name kaldırılsın mı?';
+  @override
+  String get removeFailed => 'Kaldırılamadı. Lütfen yeniden dene.';
   @override
   String get removeModelWhy =>
       'Anahtarı ya da girişi bu cihazdan silinir. Notların ve bu sohbet yerinde kalır.';
