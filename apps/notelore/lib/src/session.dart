@@ -401,6 +401,15 @@ class Session extends ChangeNotifier {
   /// What is written in the message box and not sent yet; it outlives the chat
   /// screen, so a trip to another tab (or a new window layout) keeps it.
   var draft = '';
+  var sharedDraftVersion = 0;
+
+  /// A share is untrusted input: show it for editing, never send it on receipt.
+  void receiveSharedText(String text) {
+    draft = draft.isEmpty ? text : '$draft\n\n$text';
+    sharedDraftVersion++;
+    notifyListeners();
+  }
+
   bool busy = false;
 
   bool get ready => _agent != null;
@@ -556,7 +565,7 @@ class Session extends ChangeNotifier {
     // fixed default when none is). Ollama keeps its default: its list is local.
     final chosen =
         model ??
-        (spec.name == 'ollama' ? null : cheapestModel(spec.name, listed)) ??
+        _startModel(spec, listed) ??
         (spec.defaultModel.isNotEmpty ? spec.defaultModel : null);
     if (chosen == null) throw TransientValidationError('${spec.displayName} lists no models');
     // Every provider but the plan keeps its entry, Ollama an empty one: that is
@@ -606,9 +615,18 @@ class Session extends ChangeNotifier {
   /// provider's fixed default (always for Ollama, whose list is local).
   String get defaultModel {
     final current = spec!;
-    return (current.name == 'ollama' ? null : cheapestModel(current.name, models)) ??
-        current.defaultModel;
+    return _startModel(current, models) ?? current.defaultModel;
   }
+
+  /// Which of [listed] a provider starts on. Ollama: its own default, the list
+  /// is local. Gemini: its default when listed, the model a free AI Studio key
+  /// has quota for; the cheapest listed is often a lite or preview one with
+  /// none (#400). Any other: the cheapest listed.
+  static String? _startModel(ProviderSpec spec, List<String> listed) => switch (spec.name) {
+    'ollama' => null,
+    'gemini' when listed.contains(spec.defaultModel) => spec.defaultModel,
+    _ => cheapestModel(spec.name, listed),
+  };
 
   /// A blank [chosen] goes back to [defaultModel].
   Future<void> setModel(String chosen) async {

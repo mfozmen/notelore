@@ -367,4 +367,17 @@ void main() {
       expect(s.usageEstimate('2026-10-17'), contains('2026-10-17'));
     }
   });
+
+  test('a 429 with no quota at all says so; a busy one says wait (#400)', () {
+    for (final s in [en, tr]) {
+      const noQuota = HttpError(
+        429,
+        'You exceeded your current quota. Quota exceeded for metric: '
+        'generate_content_free_tier_requests, limit: 0, model: gemini-3.1-flash-lite',
+      );
+      expect(s.chatError(noQuota), s.errorNoQuota);
+      expect(s.chatError(const HttpError(429, 'limit: 10, retry in 30s')), s.errorBusy);
+    }
+    expect(en.errorNoQuota, contains('another model'));
+  });
 }

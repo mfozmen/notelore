@@ -1,6 +1,202 @@
 # CHANGELOG
 
-<!-- version list -->
+
+## v0.13.0 (2026-10-18)
+
+### Bug Fixes
+
+- A book or film in passing goes under a collection note
+  ([`13adba6`](https://github.com/mfozmen/notelore/commit/13adba6ed99c2f0f585c1f7043a560d6ce550198))
+
+- A failed turn is a centred status row with Try again, not an answer
+  ([`c28c18a`](https://github.com/mfozmen/notelore/commit/c28c18aaa0d6476eae5706291625ff0924975fa3))
+
+- A free ChatGPT account is told why, and offered a free Gemini key
+  ([`3ebb6ff`](https://github.com/mfozmen/notelore/commit/3ebb6ffeb56b76a0d1d6fdcf986b154063a6b5e0))
+
+- A note slug in another case finds its note on every OS
+  ([`2553e0e`](https://github.com/mfozmen/notelore/commit/2553e0e621f266c2d51bbd3f3ae356b27efd6960))
+
+- A phone's setup speaks of no computer, and of choosing, not clicking
+  ([`0770ede`](https://github.com/mfozmen/notelore/commit/0770edea43c81c8a1fb57e34ea955f32abbf8cc8))
+
+- A roomier chat: full-size line buttons, a gutter beside bubbles, examples in an empty chat
+  ([`885e8bb`](https://github.com/mfozmen/notelore/commit/885e8bbac2299e0d4e80c58cd6021635ea0e1326))
+
+- An Ollama set up before connections counts as connected; a waiting message outlives a removed
+  model
+  ([`8fce743`](https://github.com/mfozmen/notelore/commit/8fce743157da1bfd1295846b902b293c13b4e741))
+
+- Any error in the test turn returns to Connect; the hello is not metered, pinned by a test
+  ([`a60fbe8`](https://github.com/mfozmen/notelore/commit/a60fbe80c84c33544d66a137afb4b4f46296c31e))
+
+- Attachments: a hung PDF stops at 30 s and reads 200 pages at most; nothing is sent after a lock; a
+  garbled redirect fails only its link
+  ([`dfc3938`](https://github.com/mfozmen/notelore/commit/dfc39385bc4e6ccd23db9ebda9c352e1ab12ba53))
+
+- Drop the reasoning Ollama thinking models leak into the answer
+  ([`3440a52`](https://github.com/mfozmen/notelore/commit/3440a52e3401a7703b5655812ed1c5a8ffb32b97))
+
+- Examples wrap as full-width rows near the composer; a line's buttons sit close under it
+  ([`0be7e11`](https://github.com/mfozmen/notelore/commit/0be7e117961a3e70b2a36d0ee86b358f3a9b26e0))
+
+- Finish the ChatGPT sign-in on Android: back to the app, then one exchange
+  ([`5c4b779`](https://github.com/mfozmen/notelore/commit/5c4b7794e26b7ca237868b7358377c98fed6c630))
+
+- Honor marked writes during index audits ([#332](https://github.com/mfozmen/notelore/pull/332),
+  [`7677d0e`](https://github.com/mfozmen/notelore/commit/7677d0eefb0a17e8b41aaf96f0f80f6fc32644eb))
+
+- Images and files told apart in the bubble; resend checks the provider; _read under Sonar's limit
+  ([`da65c4d`](https://github.com/mfozmen/notelore/commit/da65c4db6876422f1b59e902e057fdb5012ecc60))
+
+- Images and PDFs share one attachment path after the rebase
+  ([`1a73f13`](https://github.com/mfozmen/notelore/commit/1a73f13efbd5e73ef5594727a6ce79eaee4c697e))
+
+- Images in an answer are never fetched; links and code look the part
+  ([`f741481`](https://github.com/mfozmen/notelore/commit/f741481415702a6eec0388ec7be2701623df8acc))
+
+- Images leave the history after their turn; 5 MB over a message's images; Gemini parts split
+  ([`b53e93e`](https://github.com/mfozmen/notelore/commit/b53e93ec7e5d36a56be26e75c2b3dae7c7d36501))
+
+- Keep Ollama models on the GPU and skip hidden thinking
+  ([`60a8715`](https://github.com/mfozmen/notelore/commit/60a871541ae7104ebdcda9dddc5455024c89b8e0))
+
+- Load the whole training model in the precision's dtype
+  ([`f4aab5e`](https://github.com/mfozmen/notelore/commit/f4aab5e634352e87edd23e41584c45728297625a))
+
+- Locking also clears a notice from before, which could name a note
+  ([`73500cf`](https://github.com/mfozmen/notelore/commit/73500cfeba01aa3a7a046dac5636d0125d283ffd))
+
+- No back while a key is checked, a refused key stays with its provider, no nested ternary
+  ([`75781be`](https://github.com/mfozmen/notelore/commit/75781be9628de9b68136aecd7a7319707518e094))
+
+- No image in a note is ever loaded, and Android backs nothing up
+  ([`f71bdb1`](https://github.com/mfozmen/notelore/commit/f71bdb14aace3b1dc6497aae1f748ed9adb59d0f))
+
+- Settings says when removing a model fails, and nothing is removed while switching
+  ([`eca4090`](https://github.com/mfozmen/notelore/commit/eca4090defe6ff4800ecad2277958c34d033456d))
+
+- Setup polish: the free key leads without a plan, an edge over the pinned action, numbers grow with
+  text
+  ([`6a4f58a`](https://github.com/mfozmen/notelore/commit/6a4f58a287fb58f971b83f775b2310f6303bc5ad))
+
+- The chat shows an answer's Markdown formatted, not raw
+  ([`924decf`](https://github.com/mfozmen/notelore/commit/924decf382fdf4f4da83e1940f40a3b2458b196b))
+
+- The desk card never asks a negative height; README without Advanced; simpler build and card; pin
+  the revoked-key way back
+  ([`3043664`](https://github.com/mfozmen/notelore/commit/3043664a393a289eb9bf8cdc4a754ac58c18737e))
+
+- The link reader checks every address a host resolves to, so no form of a private address gets
+  through
+  ([`dac92fb`](https://github.com/mfozmen/notelore/commit/dac92fb30c46af8aff48e4e71a472c0def4ead7a))
+
+- The link reader stays off private hosts, sync follows no links, and a file cannot end its marker
+  in another case
+  ([`1e26441`](https://github.com/mfozmen/notelore/commit/1e26441f015c356d820867fb26680a8caacf764b))
+
+- The lock's wait survives a clock moved ahead and covers turning it off; oversize attachments are
+  refused unread
+  ([`77571cd`](https://github.com/mfozmen/notelore/commit/77571cd8c07b30e765568dd421d9ff71ba51960e))
+
+- The no-plan card goes with another provider; the clipboard is read once, safely
+  ([`3060a4a`](https://github.com/mfozmen/notelore/commit/3060a4ab0066e7909b4728b3558bb820689c5a21))
+
+- The sign-in scrolls as a whole on a short window; the busy button says it is signing in
+  ([`6bd5d62`](https://github.com/mfozmen/notelore/commit/6bd5d62d68e9bedd05d770b489151b3848682ad2))
+
+- The updater downloads into, and cleans up, a temp folder it is given
+  ([`3d66c8f`](https://github.com/mfozmen/notelore/commit/3d66c8fc42db7d38cf3314ef95a5f7d6ef95d57c))
+
+- The wizard's test turn stops at 20 s and a late answer is ignored
+  ([`733322c`](https://github.com/mfozmen/notelore/commit/733322c789d8ce71648fb84b779f6fef833bd962))
+
+- The working line is a passing status, not an answer bubble
+  ([`9b30fe0`](https://github.com/mfozmen/notelore/commit/9b30fe0085fa37efa7dc507c5b86c2e273f286f3))
+
+- Tick the open todo when the user says a task is done
+  ([`4f9aed4`](https://github.com/mfozmen/notelore/commit/4f9aed47a5032f27668370705cbe028e26963466))
+
+- Training scenarios check a content word for todos, avoid broken Turkish suffixes, run from
+  anywhere
+  ([`1750ac1`](https://github.com/mfozmen/notelore/commit/1750ac134246884e703f8a32daf1a2a59db2770e))
+
+- When the app locks, a note or dialog left open closes, so only the lock shows
+  ([`a0baa7e`](https://github.com/mfozmen/notelore/commit/a0baa7e96422d5a1530759a14e455402e6b8555f))
+
+- With no model, nothing sends: no resend or quick answers, and send does nothing
+  ([`0b7e580`](https://github.com/mfozmen/notelore/commit/0b7e5801c58a6c29abc23448e0b38d5f3229745d))
+
+### Features
+
+- A model eval of real note-taking turns, run with notelore_dev eval
+  ([`cf45a91`](https://github.com/mfozmen/notelore/commit/cf45a91aa775e7f13fe5ebf9cd3e0736ca734dab))
+
+- A QLoRA fine-tune script for the on-device model
+  ([`f163033`](https://github.com/mfozmen/notelore/commit/f163033250e9f2755d3c5dc463c42498f5bc3702))
+
+- A welcoming Google sign-in screen with Google's own button
+  ([`a55df95`](https://github.com/mfozmen/notelore/commit/a55df951f3e7b37944cc2951048e81c371c78a8e))
+
+- An assistant-only loss for the fine-tune, and its small fixes
+  ([`6251a7b`](https://github.com/mfozmen/notelore/commit/6251a7ba9b58e752275a4330b456f084b15d21bd))
+
+- Attach images in the chat; the model sees them
+  ([`e19e25f`](https://github.com/mfozmen/notelore/commit/e19e25f68bd0d8981b315b592210911b8eb559c4))
+
+- Attach PDFs in the chat; their text goes to the assistant
+  ([`1e92c05`](https://github.com/mfozmen/notelore/commit/1e92c05a1c110ea22b42209b700b132d6401640e))
+
+- Back from any key page, a copied key of that provider goes into the box
+  ([`3a0e0d3`](https://github.com/mfozmen/notelore/commit/3a0e0d3335bdcb7488d7f510818bd8b32f097479))
+
+- Generate training scenarios apart from the eval set
+  ([`ce9b484`](https://github.com/mfozmen/notelore/commit/ce9b484c087d6ec9a2ea83d5894c5871b04d748d))
+
+- List connected models, switch back with one tap, remove one
+  ([`9e229ab`](https://github.com/mfozmen/notelore/commit/9e229ab9e114ccfa3a4b4835b7af063eb4ff734b))
+
+- Notelore's own mark and app icons, instead of Flutter's
+  ([`c528c34`](https://github.com/mfozmen/notelore/commit/c528c3419bc517d0a446aed82a9a2290f3f7ad13))
+
+- Notelore_dev distill keeps a teacher's passing turns as training data
+  ([`9d51655`](https://github.com/mfozmen/notelore/commit/9d5165525aaf09288f183b1f7d70bc07f402eff9))
+
+- Ollama's Connect step says how to install it and pull a model, and needs one
+  ([`91e663b`](https://github.com/mfozmen/notelore/commit/91e663bf1c5f285abeab1395044c69470a9c7f55))
+
+- Redesign the setup screen in the welcome's visual language
+  ([`7145d40`](https://github.com/mfozmen/notelore/commit/7145d4091fc82397a7b47bf9a8072835550353a6))
+
+- Settings lists connected models: switch with one tap, remove one, connect another
+  ([`7bc507e`](https://github.com/mfozmen/notelore/commit/7bc507efd700dbce99835a658fe119facc6ea3e1))
+
+- The assistant takes notes instead of making conversation
+  ([`8757129`](https://github.com/mfozmen/notelore/commit/87571294307c4b94c11c578b9394551cd7a2882d))
+
+- The provider wizard: Choose, Connect, Done, with back and a step indicator
+  ([`8f12199`](https://github.com/mfozmen/notelore/commit/8f1219983d950f8251bea3f7049dd9ab2e60b1bc))
+
+- The wizard's Choose step compares every option on a card
+  ([`d43fe2a`](https://github.com/mfozmen/notelore/commit/d43fe2a9cd7ed9d20c0c33d9bb6aaf304464ec31))
+
+- The wizard's Done step says hello through the new model, so you see it works
+  ([`e5c0902`](https://github.com/mfozmen/notelore/commit/e5c0902facd647b870037d88bc3342f087d72674))
+
+- Train the on-device model's LoRA on Kaggle's free T4
+  ([`fe3b90a`](https://github.com/mfozmen/notelore/commit/fe3b90ab640d06bf727b6d8b16ff5bfd4245bfc7))
+
+- V2 training scenarios with other notes in every workspace
+  ([`01740fa`](https://github.com/mfozmen/notelore/commit/01740faa99dbcdb2e3cfea9e04aba5d343bc9027))
+
+- With no model in use, the app stays open and the chat asks for one
+  ([`2dbca93`](https://github.com/mfozmen/notelore/commit/2dbca937e35d1a7e665a3f830fb0aa7f871a97ad))
+
+### Performance Improvements
+
+- Refresh only changed note index files ([#332](https://github.com/mfozmen/notelore/pull/332),
+  [`7677d0e`](https://github.com/mfozmen/notelore/commit/7677d0eefb0a17e8b41aaf96f0f80f6fc32644eb))
+
 
 ## v0.12.0 (2026-10-17)
 
@@ -67,40 +263,6 @@
 - Write English terms the way they are spelled, not how they sounded
   ([`ed65f88`](https://github.com/mfozmen/notelore/commit/ed65f88caf9af1831a1654036cc0d2dc1b7c2762))
 
-### Chores
-
-- Share project guidance with Codex ([#230](https://github.com/mfozmen/notelore/pull/230),
-  [`0731a6f`](https://github.com/mfozmen/notelore/commit/0731a6f32cc74f6559f5b940eee2477fcd02846f))
-
-### Continuous Integration
-
-- A PR with new SonarCloud issues fails the SonarCloud check
-  ([`4e8199c`](https://github.com/mfozmen/notelore/commit/4e8199c0123cad36dc5161e33a93a440c53b2afa))
-
-- Every issue carries a priority label
-  ([`e7074ce`](https://github.com/mfozmen/notelore/commit/e7074ce8b7b8ab0a1c7092fd78914b96d2ffbbfb))
-
-### Documentation
-
-- Clarify emulator probe setup ([#267](https://github.com/mfozmen/notelore/pull/267),
-  [`890bb8e`](https://github.com/mfozmen/notelore/commit/890bb8eb055deddc67eae1779aa84bf6015de970))
-
-- Clarify large-corpus timing limits ([#259](https://github.com/mfozmen/notelore/pull/259),
-  [`b907713`](https://github.com/mfozmen/notelore/commit/b90771343a2c8b128e0c5a8c161f878ef774decb))
-
-- Measure assistant response latency ([#259](https://github.com/mfozmen/notelore/pull/259),
-  [`b907713`](https://github.com/mfozmen/notelore/commit/b90771343a2c8b128e0c5a8c161f878ef774decb))
-
-- Measure synthetic assistant response latency
-  ([#259](https://github.com/mfozmen/notelore/pull/259),
-  [`b907713`](https://github.com/mfozmen/notelore/commit/b90771343a2c8b128e0c5a8c161f878ef774decb))
-
-- Name the Sync settings section
-  ([`4644253`](https://github.com/mfozmen/notelore/commit/46442535d36337ac6884772854d68772dfd44c21))
-
-- Say where a named note's ending may go
-  ([`59a3854`](https://github.com/mfozmen/notelore/commit/59a38540f2b009ea92c88e28cc4e7ea8eff3f6bf))
-
 ### Features
 
 - Attach text files in the chat; the assistant files them into notes
@@ -162,59 +324,6 @@
 - Document Android latency probe ([#267](https://github.com/mfozmen/notelore/pull/267),
   [`890bb8e`](https://github.com/mfozmen/notelore/commit/890bb8eb055deddc67eae1779aa84bf6015de970))
 
-### Refactoring
-
-- Const text styles in the PDF layout
-  ([`f71d5dd`](https://github.com/mfozmen/notelore/commit/f71d5dd6a7c154c50609888bf16c87b7fdb94c34))
-
-- No nested ternaries, one Content-Type constant
-  ([`af917b0`](https://github.com/mfozmen/notelore/commit/af917b0b4d0e763c43f8d39d199cc5b52c0231e0))
-
-- One chat turn and its failure in their own methods
-  ([`c656317`](https://github.com/mfozmen/notelore/commit/c6563176be76586faf04997bf66aa92e827ac803))
-
-- One chat turn and its failure in their own methods
-  ([`f766850`](https://github.com/mfozmen/notelore/commit/f7668507090aed1e379172a520e6bc6501ecad26))
-
-- Reading both sides of a note in its own method
-  ([`4852268`](https://github.com/mfozmen/notelore/commit/48522680203098edca452f6c90c38cf0770f53de))
-
-- Reading both sides of a note in its own method
-  ([`bd6e56c`](https://github.com/mfozmen/notelore/commit/bd6e56cd9854de2b4c24ba7b9775ff29acc47d90))
-
-- Split core functions over Sonar's complexity limit by job
-  ([`253c2d0`](https://github.com/mfozmen/notelore/commit/253c2d0a32202975f85f35f0bc9b824277fb85a4))
-
-- Split Home.build and the Whisper download by job
-  ([`51e63b1`](https://github.com/mfozmen/notelore/commit/51e63b1326dd0ae2c8cb0c62e73c678d02610053))
-
-- Split mergeNotes by job, under Sonar's complexity limit
-  ([`978dd31`](https://github.com/mfozmen/notelore/commit/978dd3192224e5bc1ef9678e7d79c8b5b3538996))
-
-- Split the chat and Settings screens into widgets by what they show
-  ([`4d8f95a`](https://github.com/mfozmen/notelore/commit/4d8f95ab6fdbdf6aa8610981ed8b8446cf716aba))
-
-- The app lock's state in its own class
-  ([`e146d30`](https://github.com/mfozmen/notelore/commit/e146d304ebf653240be7ff4f376bcf5ff2cece5e))
-
-- The composer's row is a widget of its own
-  ([`f489b80`](https://github.com/mfozmen/notelore/commit/f489b807abe07a22c9b530d3eda806ee59ffb4e5))
-
-- The remote side's hash in its own function
-  ([`85e0d80`](https://github.com/mfozmen/notelore/commit/85e0d80544e8ccb06e94000286b56c6c3cd79e76))
-
-- The voice status line is a widget of its own
-  ([`7184a80`](https://github.com/mfozmen/notelore/commit/7184a80a2604b33b586fb9fd0349e28b539bf248))
-
-### Testing
-
-- A hold begun while an answer is read aloud still sends
-  ([`90f72f8`](https://github.com/mfozmen/notelore/commit/90f72f8f2356a25a878a7855467571db9e42db05))
-
-- Tap the rendered note links, including a bare URL
-  ([#223](https://github.com/mfozmen/notelore/pull/223),
-  [`4718f81`](https://github.com/mfozmen/notelore/commit/4718f815de193c965fcb05b842dd4ccc919d3b3d))
-
 
 ## v0.11.0 (2026-10-12)
 
@@ -254,11 +363,6 @@
 
 - Settings pickers with one designed look; the model is picked, never typed
   ([`cee79a4`](https://github.com/mfozmen/notelore/commit/cee79a45af4d51d028cca351740bbd52d1144cd4))
-
-### Testing
-
-- The archive tool reports the new archive paths
-  ([`a258801`](https://github.com/mfozmen/notelore/commit/a258801b09338e0256522a9c409d056a5a9fe6ae))
 
 
 ## v0.10.0 (2026-10-12)
@@ -307,11 +411,6 @@
 
 - Voice mode uses the words it heard even when the recognizer never marks them final
   ([`1206ad1`](https://github.com/mfozmen/notelore/commit/1206ad1e46cfdd71c63f6f5a125a5fec1d51f066))
-
-### Documentation
-
-- The README describes the Settings layout; a precise test title
-  ([`a4e5ab3`](https://github.com/mfozmen/notelore/commit/a4e5ab378e0cdeb7d927bd3b18f0d2c48d859704))
 
 ### Features
 
@@ -397,27 +496,6 @@
 - Voice mode survives a closed chat, stops on real recognizer errors, speaks answers only
   ([`27ff4e8`](https://github.com/mfozmen/notelore/commit/27ff4e8eddd7cd4225f754d113846906e753747b))
 
-### Chores
-
-- Install the ui-ux-pro-max skill for the redesign
-  ([`4a08b43`](https://github.com/mfozmen/notelore/commit/4a08b43d18bac35c7f3b9380fb5f102d6994219d))
-
-### Continuous Integration
-
-- Bump the actions group across 1 directory with 3 updates
-  ([`0d4e936`](https://github.com/mfozmen/notelore/commit/0d4e93657d2d2ff373d1f6b6f7845480b59f5095))
-
-- Skip the AI review on Dependabot's pull requests
-  ([`81ccf3c`](https://github.com/mfozmen/notelore/commit/81ccf3cbf74872a07138e94e859a976eb824037c))
-
-### Documentation
-
-- A simpler README, with the SonarCloud badges
-  ([`f233004`](https://github.com/mfozmen/notelore/commit/f233004132c434c82388b8a8132fb6e30c0985b2))
-
-- Full file names, the Claude subscription note, precise Android update wording
-  ([`a604af0`](https://github.com/mfozmen/notelore/commit/a604af0a7480fb623dff4ad154a262793231c8c5))
-
 ### Features
 
 - A calmer, more polished look
@@ -440,11 +518,6 @@
 
 - Voice mode, talk to the assistant and hear its answers
   ([`d50e991`](https://github.com/mfozmen/notelore/commit/d50e9914a738f6450f8eae9691f0a5214fb63062))
-
-### Testing
-
-- Pin the theme's contract; one radius constant per shape
-  ([`dca5725`](https://github.com/mfozmen/notelore/commit/dca5725aca21cc240aa07deca122e649ae4eb416))
 
 
 ## v0.5.0 (2026-10-11)
@@ -528,14 +601,6 @@
 
 - Sync other devices' changes while the app is open
   ([`9db6f8d`](https://github.com/mfozmen/notelore/commit/9db6f8dd0630fdcbfeaa9c65428b073b122e5b21))
-
-### Continuous Integration
-
-- Upload the Windows release assets with bash; rebuild an existing tag
-  ([`1a077e0`](https://github.com/mfozmen/notelore/commit/1a077e09849674e94416bcef56153b8c72a11acd))
-
-- Write release checksums with LF on every OS
-  ([`612acd4`](https://github.com/mfozmen/notelore/commit/612acd4b16f041ce5f3f10f8816b1b5490fa7dff))
 
 ### Features
 
@@ -640,58 +705,10 @@
 - Validate nested tool arguments, create temp notes without chmod
   ([`f10d642`](https://github.com/mfozmen/notelore/commit/f10d642a4e275fe3e4b58aa425fce99f12bcd3ae))
 
-### Build System
-
-- Flutter workspace with a pure-Dart core and the Flutter app, CI on three OSes
-  ([`ab8078f`](https://github.com/mfozmen/notelore/commit/ab8078f5fed131167374d682227fc612e6345e6d))
-
-- Monorepo as a uv workspace with packages/core and apps/cli
-  ([`dc05da3`](https://github.com/mfozmen/notelore/commit/dc05da30d4a1ef63419631e30ecef830b7cc2f34))
-
 ### Chores
 
 - Retire the Python packages
   ([`a7f08b6`](https://github.com/mfozmen/notelore/commit/a7f08b6698935dbf0f4ec1f3d59660efb016d42e))
-
-### Continuous Integration
-
-- Bump the pinned actions to their latest majors
-  ([`16f2b56`](https://github.com/mfozmen/notelore/commit/16f2b56a849bb417a47e1ce2611dbb7455747812))
-
-- Cut releases only on manual dispatch
-  ([`0ce10b6`](https://github.com/mfozmen/notelore/commit/0ce10b6dcc8235914afed00d41f1c86b4cfdfa5c))
-
-- Fail loudly when the review range git log fails, test it on a real repo
-  ([`ce8af30`](https://github.com/mfozmen/notelore/commit/ce8af3082a5986b3829db7207c2a761cbb461905))
-
-- Incremental Claude review, only commits since the last reviewed head
-  ([`7a63e0a`](https://github.com/mfozmen/notelore/commit/7a63e0a863c0674294bb1e676e583be4908458fb))
-
-- Make the release push atomic and re-runnable
-  ([`f4b4309`](https://github.com/mfozmen/notelore/commit/f4b43098b09d537da92e75c98d1df5e1c83d6a7d))
-
-- Pin every action to a commit SHA, build Dart coverage outside the Sonar job
-  ([`88c5964`](https://github.com/mfozmen/notelore/commit/88c596414b139a7e1246f26cdca8a8065ee3ffa3))
-
-- Print the app's logcat lines in the Android smoke job
-  ([`2b23a5e`](https://github.com/mfozmen/notelore/commit/2b23a5ef50fc85b34ab818792572ec13777713fd))
-
-- Push release commits with a deploy key now that main is protected
-  ([`980ab38`](https://github.com/mfozmen/notelore/commit/980ab385904cdbea08d096d268d779bc6ab2fe07))
-
-- Put the Sonar comment back above the Sonar job
-  ([`266b96d`](https://github.com/mfozmen/notelore/commit/266b96de93324e0587bce2d666e9b6ce6d71a8c0))
-
-- Resolve Dart packages before the SonarCloud scan
-  ([`8e59213`](https://github.com/mfozmen/notelore/commit/8e59213c28f93774af2886fafe3039d36224b637))
-
-- Run the Android APK on an emulator and check the core diagnostics
-  ([`95ede88`](https://github.com/mfozmen/notelore/commit/95ede8813c47c43781e5e27cef06e6efa2cde137))
-
-### Documentation
-
-- Defer iOS until a Mac and an iOS device are available
-  ([`9be599d`](https://github.com/mfozmen/notelore/commit/9be599ddf8ab144c604c427a465cb492d79761a4))
 
 ### Features
 
@@ -758,22 +775,6 @@
 - Verify self-updates against a published SHA-256
   ([`d9b6d4d`](https://github.com/mfozmen/notelore/commit/d9b6d4d647154182281c3e4c13977ef426568d6f))
 
-### Refactoring
-
-- Split the difflib port into matching blocks and longest match
-  ([`fccf717`](https://github.com/mfozmen/notelore/commit/fccf717d62a03ba46cb2b92296964dac01337313))
-
-### Testing
-
-- A stray line in a section does not shift stale entry numbers
-  ([`3c65d7e`](https://github.com/mfozmen/notelore/commit/3c65d7e22b7b0209d5751546f51b3a2b7637fdab))
-
-- Dates are ASCII digits in both implementations; check year 0 first
-  ([`92d2e71`](https://github.com/mfozmen/notelore/commit/92d2e714487cb4a03c3c8dda52d088353fc5b8c0))
-
-- Use itertools.pairwise for the alternation check
-  ([`65f7faa`](https://github.com/mfozmen/notelore/commit/65f7faa7cb2c342eab7d374236e43bd1cf6b805c))
-
 ### Breaking Changes
 
 - The command-line app is gone; releases carry only the app for Windows, macOS and Android. The app
@@ -795,11 +796,6 @@
 - Daily update check and notelore update self-update
   ([`93ee126`](https://github.com/mfozmen/notelore/commit/93ee1261d3f92dc212176bdc438a0bc942457f34))
 
-### Testing
-
-- Enforce 100% line and branch coverage
-  ([`7891139`](https://github.com/mfozmen/notelore/commit/78911397d8e25f982cc6c18448681b90b023b914))
-
 
 ## v0.1.0 (2026-09-30)
 
@@ -807,16 +803,6 @@
 
 - Reject non-mapping or title-less front matter with ValueError
   ([`0db9c68`](https://github.com/mfozmen/notelore/commit/0db9c68c891bfd834b25a8c6943a282d2b03e178))
-
-### Build System
-
-- Read the version from __init__.py only
-  ([`598fdfb`](https://github.com/mfozmen/notelore/commit/598fdfb4891bd42d94ea2f2059a696e23a79da9f))
-
-### Documentation
-
-- Tick M0 CI green in the plan
-  ([`e7f36c4`](https://github.com/mfozmen/notelore/commit/e7f36c496567244e3126e668c58e8ad9039fc5ed))
 
 ### Features
 

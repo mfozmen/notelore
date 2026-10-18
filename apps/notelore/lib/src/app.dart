@@ -134,6 +134,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> with WidgetsBindingObserver {
   var _tab = 0;
+  late int _seenSharedDraft;
   String? _available; // a newer version
   String? _updateProblem;
   var _updating = false;
@@ -144,7 +145,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _seenSharedDraft = widget.session.sharedDraftVersion;
     WidgetsBinding.instance.addObserver(this);
+    widget.session.addListener(_showSharedDraft);
     widget.session.startAutoSync();
     if (widget.session.showPlanWelcome) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _welcomePlan());
@@ -158,6 +161,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         (_) => _check(updater, force: true).then<void>((_) {}, onError: (Object _) {}),
       );
     }
+  }
+
+  void _showSharedDraft() {
+    if (_seenSharedDraft == widget.session.sharedDraftVersion) return;
+    _seenSharedDraft = widget.session.sharedDraftVersion;
+    if (_tab != 0) setState(() => _tab = 0);
   }
 
   /// OpenAI's first sign-in confirmation for plan usage, shown once per device.
@@ -194,6 +203,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.session.removeListener(_showSharedDraft);
     widget.session.stopAutoSync();
     _recheck?.cancel();
     super.dispose();

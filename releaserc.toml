@@ -10,6 +10,15 @@ commit_message = "chore(release): {version} [skip ci]"
 allow_zero_version = true
 major_on_zero = false
 
+[semantic_release.changelog]
+# Only what users see goes into the CHANGELOG and the release notes: features,
+# fixes and performance. Chores, CI, tests, style, refactors, docs and builds
+# move no version and stay out of the notes.
+exclude_commit_patterns = [
+  '^(chore|ci|test|style|refactor|docs|build)(\([^)]*\))?!?:',
+  '^Merge ',
+]
+
 [semantic_release.changelog.default_templates]
 changelog_file = "CHANGELOG.md"
 

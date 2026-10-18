@@ -12,6 +12,7 @@ import 'package:notelore/src/app.dart';
 import 'package:notelore/src/mark.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/settings.dart';
+import 'package:notelore/src/share_in.dart';
 import 'package:notelore/src/strings.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore/src/voice.dart';
@@ -397,7 +398,7 @@ void main() {
     final harness = Harness(answers: ['Merhaba!', const HttpError(500, 'offline')]);
     await pumpApp(tester, harness);
     await connect(tester, key: 'sk-ant');
-    expect(find.text('Ask or tell me something.'), findsOneWidget);
+    expect(find.text('Write something to note, or ask about your notes.'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('message')), 'selam');
     await tester.pump(); // the Send button appears with the text
     await tester.tap(find.byTooltip('Send'));
@@ -689,6 +690,30 @@ void main() {
     await tester.tap(find.text('Chat'));
     await tester.pumpAndSettle();
     expect(draft(), isEmpty);
+  });
+
+  testWidgets('shared text opens an editable composer and waits for Send', (tester) async {
+    phone(tester);
+    final harness = Harness(answers: ['Saved.']);
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'My draft');
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    final delivery = ShareDelivery(session, () async => {'text': 'Shared words'});
+    addTearDown(delivery.dispose);
+    await delivery.check();
+    await tester.pumpAndSettle();
+    final field = tester.widget<TextField>(find.byKey(const Key('message')));
+    expect(field.controller!.text, 'My draft\n\nShared words');
+    expect(harness.provider.asked, isEmpty);
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    expect(harness.provider.asked, ['My draft\n\nShared words']);
+    await delivery.check(); // the chat is already open this time
+    await tester.pumpAndSettle();
+    expect(field.controller!.text, 'Shared words');
+    expect(harness.provider.asked, hasLength(1));
   });
 
   testWidgets('chat: a question offers its answers as buttons, sent once (#210)', (tester) async {
@@ -1328,7 +1353,7 @@ void main() {
     expect(find.text('Dil'), findsOneWidget);
     await tester.tap(find.text('Sohbet'));
     await tester.pumpAndSettle();
-    expect(find.text('Bana bir şey sor ya da anlat.'), findsOneWidget);
+    expect(find.text('Not almamı istediğin bir şey yaz ya da notlarına sor.'), findsOneWidget);
     await tester.tap(find.text('Ayarlar').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('language')));
