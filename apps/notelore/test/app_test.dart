@@ -39,6 +39,8 @@ Future<Session> pumpApp(WidgetTester tester, Harness harness, {DateTime Function
 
 /// The wizard's Choose step (#357): [provider], then Next.
 Future<void> choose(WidgetTester tester, [String provider = 'Claude (Anthropic)']) async {
+  await tester.ensureVisible(find.text(provider)); // further down the cards (#358)
+  await tester.pumpAndSettle();
   await tester.tap(find.text(provider));
   await tester.pumpAndSettle();
   await tester.ensureVisible(find.text('Next'));

@@ -32,22 +32,10 @@ void main() {
     UrlLauncherPlatform.instance = launcher;
     final harness = Harness(chatGpt: FakeAuth(), answers: ['Merhaba!']);
     await pumpPlanApp(tester, harness);
-    // Offered first and selected; no key to paste.
+    // Offered first and selected; no key to paste. Every other option is a
+    // card beside it, nothing hidden (#358).
     expect(find.text('ChatGPT plan (OpenAI)'), findsOneWidget);
-    // Grouped by how they are paid for (#108); the key and local ones wait
-    // under Advanced, closed (#206).
-    expect(find.text('Use your plan'), findsOneWidget);
-    expect(find.text('Advanced'), findsOneWidget);
-    // The desktop runs local models: Advanced says so (#304).
-    expect(find.text('Your own API key, or a model on this computer.'), findsOneWidget);
-    for (final heading in ['API key', 'On this computer']) {
-      expect(find.text(heading), findsNothing);
-    }
-    await tester.tap(find.text('Advanced'));
-    await tester.pumpAndSettle();
-    for (final heading in ['API key', 'On this computer']) {
-      expect(find.text(heading), findsOneWidget);
-    }
+    expect(find.byKey(const ValueKey('option-anthropic')), findsOneWidget);
     expect(find.byKey(const Key('api-key')), findsNothing); // ChatGPT still the choice
     await tester.tap(find.text('Continue with ChatGPT')); // one tap, right on Choose
     await tester.pumpAndSettle();
@@ -71,14 +59,14 @@ void main() {
       final session = await pumpPlanApp(tester, harness);
       session.setLanguage(language);
       await tester.pumpAndSettle();
-      final advanced = language == AppLanguage.en ? 'Advanced' : 'Gelişmiş';
-      expect(
-        find.text(
-          language == AppLanguage.en ? 'Use your own API key.' : 'Kendi API anahtarını kullan.',
-        ),
-        findsOneWidget,
-      );
-      await tester.tap(find.text(advanced));
+      String shownNow() => [
+        for (final text in tester.widgetList<Text>(find.byType(Text)))
+          text.data ?? text.textSpan?.toPlainText() ?? '',
+      ].join('\n');
+      for (final desktop in ['computer', 'bilgisayar']) {
+        expect(shownNow(), isNot(contains(desktop)), reason: 'Choose: $desktop');
+      }
+      await tester.ensureVisible(find.text('Claude (Anthropic)'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Claude (Anthropic)'));
       await tester.pumpAndSettle();
@@ -181,7 +169,7 @@ void main() {
     // Back, and another provider chosen: the card is about ChatGPT, so it goes.
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Advanced'));
+    await tester.ensureVisible(find.text('Claude (Anthropic)'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Claude (Anthropic)'));
     await tester.pumpAndSettle();
@@ -238,9 +226,7 @@ void main() {
   testWidgets('other providers show no plan line in the chat', (tester) async {
     final harness = Harness(chatGpt: FakeAuth());
     await pumpPlanApp(tester, harness);
-    await tester.tap(find.text('Advanced')); // a key setup still works, from Advanced
-    await tester.pumpAndSettle();
-    await connect(tester, key: 'k');
+    await connect(tester, key: 'k'); // a key setup still works beside the plan
     expect(find.text('Using ChatGPT plan'), findsNothing);
     expect(find.text("You're using your ChatGPT plan"), findsNothing);
   });
