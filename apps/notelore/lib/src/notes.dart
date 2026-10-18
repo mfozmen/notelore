@@ -447,8 +447,8 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
 
   Future<void> _empty(int count) async {
     final s = widget.session.strings;
-    if (!await _confirm(s.emptyArchive, s.emptyArchiveBody(count), s.emptyArchive)) return;
     final messenger = ScaffoldMessenger.of(context);
+    if (!await _confirm(s.emptyArchive, s.emptyArchiveBody(count), s.emptyArchive)) return;
     final gone = await widget.session.emptyArchive();
     messenger
       ..hideCurrentSnackBar()
