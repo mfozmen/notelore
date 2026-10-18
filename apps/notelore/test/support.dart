@@ -213,6 +213,8 @@ class Harness {
       voice: voice,
       whisperFiles: whisperFiles,
       httpClient: _models,
+      // Every name is on the public web: tests never ask real DNS.
+      resolve: (_) async => [InternetAddress('93.184.216.34')],
       makeWhisper: (_, microphone) {
         chosenMicrophone = microphone;
         return whisper;

@@ -90,6 +90,7 @@ class Session extends ChangeNotifier {
     this._voice,
     this.whisperFiles = whisperSmall,
     this.httpClient = http.Client.new,
+    this.resolve = InternetAddress.lookup,
     this.makeWhisper = nativeWhisper,
     this.readPdf = nativePdfText,
     this.listMicrophones = nativeMicrophones,
@@ -143,6 +144,9 @@ class Session extends ChangeNotifier {
   );
   final List<ModelFile> whisperFiles;
   final http.Client Function() httpClient;
+
+  /// How the link reader finds a host's addresses, to stay off private ones (#315).
+  final Resolve resolve;
   final Speech Function(WhisperModel model, String? Function() microphone) makeWhisper;
 
   /// An attached PDF's text (#284); throws on a damaged file.
@@ -954,7 +958,7 @@ class Session extends ChangeNotifier {
   Future<String> _withPages(String message) async {
     final client = httpClient();
     try {
-      return await withLinkedPages(message, client: client);
+      return await withLinkedPages(message, client: client, resolve: resolve);
     } finally {
       client.close();
     }

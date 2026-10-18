@@ -10,7 +10,7 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show InternetAddress, InternetAddressType;
+import 'dart:io' show InternetAddress, SocketException;
 
 import 'package:http/http.dart' as http;
 
@@ -48,14 +48,18 @@ class LinkUnreadable implements Exception {
 /// The page at [url] as text. Throws [LinkUnreadable] for anything but a
 /// readable http(s) text or HTML page within [timeout]. At most [maxBytes]
 /// are downloaded and [maxChars] of text kept.
+/// What a host name resolves to; [InternetAddress.lookup] in the app.
+typedef Resolve = Future<List<InternetAddress>> Function(String host);
+
 Future<WebPage> readPage(
   Uri url, {
   required http.Client client,
+  required Resolve resolve,
   Duration timeout = const Duration(seconds: 10),
   int maxBytes = 2000000,
   int maxChars = 8000,
 }) async {
-  final (:bytes, :type, :cut) = await _download(url, client, maxBytes, timeout);
+  final (:bytes, :type, :cut) = await _download(url, client, resolve, maxBytes, timeout);
   final charset = RegExp(r'charset=([\w-]+)', caseSensitive: false).firstMatch(type)?[1];
   final body = const {'iso-8859-1', 'latin1', 'windows-1252'}.contains(charset?.toLowerCase())
       ? latin1.decode(bytes)
@@ -77,12 +81,13 @@ Future<WebPage> readPage(
 Future<({List<int> bytes, String type, bool cut})> _download(
   Uri url,
   http.Client client,
+  Resolve resolve,
   int maxBytes,
   Duration timeout,
 ) async {
   final deadline = DateTime.now().add(timeout);
   try {
-    final response = await _follow(url, client, timeout);
+    final response = await _follow(url, client, resolve, timeout);
     if (response.statusCode >= 400) {
       throw LinkUnreadable('the site answered ${response.statusCode}');
     }
@@ -108,18 +113,22 @@ Future<({List<int> bytes, String type, bool cut})> _download(
 /// The answer at [url], redirects followed by hand (at most [_maxRedirects]),
 /// each hop checked like the first: a public page cannot hand the reader on to
 /// this device or the local network (#315).
-Future<http.StreamedResponse> _follow(Uri url, http.Client client, Duration timeout) async {
+Future<http.StreamedResponse> _follow(
+  Uri url,
+  http.Client client,
+  Resolve resolve,
+  Duration timeout,
+) async {
   for (var hops = 0; ; hops++) {
-    _mustBePublic(url);
+    await _mustBePublic(url, resolve);
     final request = http.Request('GET', url)..followRedirects = false;
     final response = await client.send(request).timeout(timeout);
     final next = response.headers['location'];
-    if (!response.isRedirect && (response.statusCode ~/ 100 != 3 || next == null)) {
-      return response;
-    }
+    // Not a redirect, or one with nowhere to go: the answer as it is.
+    if (response.statusCode ~/ 100 != 3 || next == null) return response;
     if (hops == _maxRedirects) throw const LinkUnreadable('too many redirects');
     unawaited(response.stream.drain<void>());
-    url = url.resolve(next!);
+    url = url.resolve(next);
   }
 }
 
@@ -127,29 +136,45 @@ const _maxRedirects = 5;
 
 /// Refuses a link to this device or the local network: a page or message could
 /// otherwise make Notelore read a router's or a cloud host's private pages.
-/// shortcut: a public name that resolves to a private address is not caught;
-/// resolve and check the address if the reader ever sends more than a GET.
-void _mustBePublic(Uri url) {
+/// Every address the name resolves to is checked, so numeric forms (2130706433),
+/// IPv4 inside IPv6 and public names that point home are caught too.
+/// shortcut: the name is resolved again to connect (a DNS rebinding race); fine
+/// for one GET, pin the checked address if the reader ever does more.
+Future<void> _mustBePublic(Uri url, Resolve resolve) async {
   if (url.scheme != 'http' && url.scheme != 'https') {
     throw const LinkUnreadable('only web links (http or https) are read');
   }
-  final host = url.host.toLowerCase();
-  final ip = InternetAddress.tryParse(host);
-  final private = switch (ip) {
-    null => host == 'localhost' || host.endsWith('.localhost') || host.endsWith('.local'),
-    final ip =>
-      ip.isLoopback || ip.isLinkLocal || _isPrivate(ip) || ip.rawAddress.every((b) => b == 0),
-  };
-  if (private) throw const LinkUnreadable('not a public web page');
+  final host = url.host.toLowerCase().replaceFirst(RegExp(r'\.$'), '');
+  final literal = InternetAddress.tryParse(host);
+  final List<InternetAddress> addresses;
+  try {
+    addresses = literal == null ? await resolve(host) : [literal];
+  } on SocketException catch (error) {
+    throw LinkUnreadable('the site could not be found (${error.message})');
+  }
+  if (host == 'localhost' || host.endsWith('.local') || addresses.any(_isPrivate)) {
+    throw const LinkUnreadable('not a public web page');
+  }
 }
 
-bool _isPrivate(InternetAddress ip) {
-  final b = ip.rawAddress;
-  return switch (ip.type) {
-    InternetAddressType.IPv4 =>
-      b[0] == 10 || (b[0] == 172 && b[1] >= 16 && b[1] < 32) || (b[0] == 192 && b[1] == 168),
-    _ => (b[0] & 0xfe) == 0xfc, // fc00::/7, unique local
-  };
+bool _isPrivate(InternetAddress address) {
+  var b = address.rawAddress;
+  // IPv4 inside IPv6 (::ffff:a.b.c.d) is that IPv4 address.
+  if (b.length == 16 && b.sublist(0, 10).every((x) => x == 0) && b[10] == 0xff && b[11] == 0xff) {
+    b = b.sublist(12);
+  }
+  if (b.every((x) => x == 0)) return true; // unspecified
+  if (b.length == 4) {
+    return b[0] == 127 || // loopback
+        b[0] == 10 ||
+        (b[0] == 172 && b[1] >= 16 && b[1] < 32) ||
+        (b[0] == 192 && b[1] == 168) ||
+        (b[0] == 169 && b[1] == 254) || // link-local, cloud metadata
+        (b[0] == 100 && b[1] >= 64 && b[1] < 128); // carrier-grade NAT
+  }
+  return (b.sublist(0, 15).every((x) => x == 0) && b[15] == 1) || // ::1
+      (b[0] & 0xfe) == 0xfc || // fc00::/7, unique local
+      (b[0] == 0xfe && (b[1] & 0xc0) == 0x80); // fe80::/10, link-local
 }
 
 final _hidden = RegExp(
@@ -184,10 +209,14 @@ String _squeeze(String text) => text.replaceAll(RegExp(r'\s+'), ' ').trim();
 
 /// [message] followed by the text of the pages it links to, for the model;
 /// unchanged when it links to none.
-Future<String> withLinkedPages(String message, {required http.Client client}) async {
+Future<String> withLinkedPages(
+  String message, {
+  required http.Client client,
+  required Resolve resolve,
+}) async {
   final links = linksIn(message);
   if (links.isEmpty) return message;
-  final pages = await Future.wait([for (final url in links) _tryRead(url, client)]);
+  final pages = await Future.wait([for (final url in links) _tryRead(url, client, resolve)]);
   return [
     message,
     '',
@@ -202,9 +231,9 @@ Future<String> withLinkedPages(String message, {required http.Client client}) as
   ].join('\n');
 }
 
-Future<Object> _tryRead(Uri url, http.Client client) async {
+Future<Object> _tryRead(Uri url, http.Client client, Resolve resolve) async {
   try {
-    return await readPage(url, client: client);
+    return await readPage(url, client: client, resolve: resolve);
   } on LinkUnreadable catch (error) {
     return error;
   }

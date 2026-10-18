@@ -1,10 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:notelore_core/src/links.dart';
 import 'package:test/test.dart';
+
+/// A resolver that finds every name on the public web: tests never ask real DNS.
+Future<List<InternetAddress>> publicDns(String host) async => [InternetAddress('93.184.216.34')];
 
 http.Client serving(String body, {String type = 'text/html; charset=utf-8', int status = 200}) =>
     MockClient(
@@ -36,6 +40,7 @@ void main() {
     test('the title and the readable text, without markup, scripts or styles', () async {
       final page = await readPage(
         Uri.parse('https://example.com'),
+        resolve: publicDns,
         client: serving('''
 <html><head><title>The Pragmatic &amp; Programmer</title>
 <style>body { color: red }</style><script>alert("x")</script></head>
@@ -49,6 +54,7 @@ void main() {
     test('plain text is read as it is; a page without a title has none', () async {
       final page = await readPage(
         Uri.parse('https://example.com/a.txt'),
+        resolve: publicDns,
         client: serving('just  some\ntext <b>kept</b>', type: 'text/plain'),
       );
       expect(page.title, isNull);
@@ -63,12 +69,16 @@ void main() {
           headers: {'content-type': 'text/html; charset=ISO-8859-1'},
         ),
       );
-      expect((await readPage(Uri.parse('https://e.com'), client: client)).text, 'Café');
+      expect(
+        (await readPage(Uri.parse('https://e.com'), client: client, resolve: publicDns)).text,
+        'Café',
+      );
     });
 
     test('a long page is cut at the size limit, and says so', () async {
       final page = await readPage(
         Uri.parse('https://example.com'),
+        resolve: publicDns,
         client: serving('<p>${'word ' * 100}</p>'),
         maxChars: 20,
       );
@@ -79,6 +89,7 @@ void main() {
     test('a page cut inside a script or style keeps none of it', () async {
       final page = await readPage(
         Uri.parse('https://example.com'),
+        resolve: publicDns,
         client: serving('<p>Intro</p><script>var secret = 1; // cut here'),
       );
       expect(page.text, 'Intro');
@@ -96,6 +107,7 @@ void main() {
         readPage(
           Uri.parse('https://e.com'),
           client: client,
+          resolve: publicDns,
           timeout: const Duration(milliseconds: 20),
         ),
         throwsA(isA<LinkUnreadable>()),
@@ -112,7 +124,12 @@ void main() {
         }).take(1000);
         return http.StreamedResponse(chunks, 200, headers: {'content-type': 'text/plain'});
       });
-      final page = await readPage(Uri.parse('https://e.com'), client: client, maxBytes: 5000);
+      final page = await readPage(
+        Uri.parse('https://e.com'),
+        client: client,
+        resolve: publicDns,
+        maxBytes: 5000,
+      );
       expect(page.cut, isTrue);
       expect(sent, lessThan(10000)); // the rest was never asked for
     });
@@ -120,7 +137,12 @@ void main() {
     test('what cannot be read says why, and is never guessed', () async {
       Future<String> why(Uri url, http.Client client, {Duration? timeout}) async {
         try {
-          await readPage(url, client: client, timeout: timeout ?? const Duration(seconds: 5));
+          await readPage(
+            url,
+            client: client,
+            resolve: publicDns,
+            timeout: timeout ?? const Duration(seconds: 5),
+          );
           return 'read';
         } on LinkUnreadable catch (error) {
           return '$error';
@@ -151,14 +173,56 @@ void main() {
   });
 
   group('only public pages are read (#315)', () {
-    Future<String> why(Uri url, http.Client client) async {
+    Future<String> why(Uri url, http.Client client, {Resolve? resolve}) async {
       try {
-        await readPage(url, client: client);
+        await readPage(url, client: client, resolve: resolve ?? publicDns);
         return 'read';
       } on LinkUnreadable catch (error) {
         return '$error';
       }
     }
+
+    test('a name or form that leads to this device or the network is refused too', () async {
+      final asked = <Uri>[];
+      final client = MockClient((request) async {
+        asked.add(request.url);
+        return http.Response('<p>x</p>', 200, headers: {'content-type': 'text/html'});
+      });
+      // What a resolver would answer: a public name pointing home, the numeric
+      // forms getaddrinfo still reads as 127.0.0.1.
+      Future<List<InternetAddress>> resolve(String host) async => [
+        InternetAddress(host == 'public.example' ? '93.184.216.34' : '127.0.0.1'),
+      ];
+      for (final url in [
+        'http://[::ffff:127.0.0.1]/',
+        'http://[::ffff:169.254.169.254]/latest',
+        'http://2130706433/',
+        'http://0x7f.1/',
+        'http://localhost./',
+        'http://home.127.0.0.1.nip.io/',
+      ]) {
+        expect(
+          await why(Uri.parse(url), client, resolve: resolve),
+          contains('not a public'),
+          reason: url,
+        );
+      }
+      expect(asked, isEmpty);
+      expect(await why(Uri.parse('https://public.example/'), client, resolve: resolve), 'read');
+      // A name that does not resolve says so.
+      Future<List<InternetAddress>> unknown(String host) async =>
+          throw const SocketException('Failed host lookup');
+      expect(
+        await why(Uri.parse('https://nowhere.example/'), client, resolve: unknown),
+        contains('could not be found'),
+      );
+      // A redirect without a place to go is the answer as it is, not a crash.
+      final nowhere = MockClient((_) async => http.Response('', 302));
+      expect(
+        await why(Uri.parse('https://public.example/'), nowhere, resolve: resolve),
+        contains('no readable text'),
+      );
+    });
 
     test('this device and the local network are never asked', () async {
       final asked = <Uri>[];
@@ -175,6 +239,7 @@ void main() {
         'http://169.254.169.254/latest',
         'http://[::1]/',
         'http://[fd00::1]/',
+        'http://[fe80::1]/',
         'http://router.local/',
         'http://0.0.0.0/',
       ]) {
@@ -226,6 +291,7 @@ void main() {
       );
       final message = await withLinkedPages(
         'save this for the trip https://good.com/a https://bad.com',
+        resolve: publicDns,
         client: client,
       );
       expect(message, startsWith('save this for the trip https://good.com/a https://bad.com\n\n'));
@@ -236,9 +302,13 @@ void main() {
     });
 
     test('a message without links is left alone; a cut page is marked', () async {
-      expect(await withLinkedPages('just words', client: serving('')), 'just words');
+      expect(
+        await withLinkedPages('just words', resolve: publicDns, client: serving('')),
+        'just words',
+      );
       final cut = await withLinkedPages(
         'https://long.com',
+        resolve: publicDns,
         client: serving('<p>${'x' * 9000}</p>'),
       );
       expect(cut, contains('[cut short]'));
