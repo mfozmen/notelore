@@ -24,6 +24,9 @@ const _rate = 16000;
 Speech nativeWhisper(WhisperModel model, String? Function() device) =>
     WhisperSpeech(microphone: RecordMicrophone(device), transcriber: IsolateTranscriber(model));
 
+/// Whisper over a downloaded [model], for attached audio files (#285).
+Transcriber nativeTranscriber(WhisperModel model) => IsolateTranscriber(model);
+
 /// The microphones the device lists.
 Future<List<MicrophoneChoice>> nativeMicrophones() async {
   final recorder = AudioRecorder();

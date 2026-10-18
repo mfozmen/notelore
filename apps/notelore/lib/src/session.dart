@@ -23,6 +23,8 @@ import 'package:notelore_core/notelore_core.dart';
 import 'package:notelore_core/notelore_core.dart' as core show listArchived, restoreArchived;
 import 'package:path/path.dart' as p;
 
+import 'audio_file.dart';
+import 'audio_native.dart';
 import 'lock_state.dart';
 import 'pdf_native.dart';
 import 'strings.dart';
@@ -31,7 +33,7 @@ import 'transfer.dart';
 import 'voice.dart';
 import 'whisper_model.dart';
 import 'whisper_native.dart';
-import 'whisper_speech.dart' show MicrophoneChoice;
+import 'whisper_speech.dart' show MicrophoneChoice, Transcriber;
 
 /// Checks a key and returns the chat models it can use.
 typedef Validate = Future<List<String>> Function(ProviderSpec spec, String key);
@@ -92,6 +94,8 @@ class Session extends ChangeNotifier {
     this.httpClient = http.Client.new,
     this.resolve = InternetAddress.lookup,
     this.makeWhisper = nativeWhisper,
+    this.makeTranscriber = nativeTranscriber,
+    this.decodeAudio = nativeDecodeAudio,
     this.readPdf = nativePdfText,
     this.listMicrophones = nativeMicrophones,
     this.localModels = true,
@@ -148,6 +152,26 @@ class Session extends ChangeNotifier {
   /// How the link reader finds a host's addresses, to stay off private ones (#315).
   final Resolve resolve;
   final Speech Function(WhisperModel model, String? Function() microphone) makeWhisper;
+
+  /// Whisper over an attached audio file (#285), and the platform's decoder
+  /// for what is not WAV (null where there is none).
+  final Transcriber Function(WhisperModel model) makeTranscriber;
+  final Future<Float32List?> Function(Uint8List bytes) decodeAudio;
+  Transcriber? _fileTranscriber;
+
+  /// An attached audio file's words, heard on this device (#285); null when no
+  /// words are heard. Throws [AudioUnavailable] before Whisper is here, and
+  /// [AudioUnreadable] for a format this device cannot open.
+  Future<String?> audioText(Uint8List bytes) async {
+    if (!whisper.ready) throw const AudioUnavailable();
+    final samples = wavSamples(bytes) ?? await decodeAudio(bytes);
+    if (samples == null) throw const AudioUnreadable();
+    return transcribeSamples(
+      samples,
+      _fileTranscriber ??= makeTranscriber(whisper),
+      strings.languageCode,
+    );
+  }
 
   /// An attached PDF's text (#284); throws on a damaged file.
   final Future<String> Function(Uint8List bytes) readPdf;

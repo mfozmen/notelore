@@ -102,6 +102,10 @@ abstract class Strings {
   /// Text files attached in the chat (#222).
   String get attachFile;
   String fileTooBig(String name);
+  String transcribing(String name);
+  String audioNeedsWhisper(String name);
+  String audioFormat(String name);
+  String audioNoWords(String name);
   String notText(String name);
   String tooLarge(String name);
   String noPdfText(String name);
@@ -504,6 +508,15 @@ class EnglishStrings extends Strings {
   String get copy => 'Copy';
   @override
   String get copied => 'Copied';
+  @override
+  String transcribing(String name) => 'Listening to $name…';
+  @override
+  String audioNeedsWhisper(String name) =>
+      '$name needs on-device speech recognition: Whisper is still on its way (Settings → Voice).';
+  @override
+  String audioFormat(String name) => '$name cannot be opened on this device. Try it as a WAV file.';
+  @override
+  String audioNoWords(String name) => 'No words were heard in $name, so nothing was sent.';
   @override
   String fileTooBig(String name) => '$name is too big to attach (20 MB at most).';
   @override
@@ -1151,6 +1164,15 @@ class TurkishStrings extends Strings {
   String get copy => 'Kopyala';
   @override
   String get copied => 'Kopyalandı';
+  @override
+  String transcribing(String name) => '$name dinleniyor…';
+  @override
+  String audioNeedsWhisper(String name) =>
+      '$name için cihazda konuşma tanıma gerekiyor: Whisper henüz yolda (Ayarlar → Ses).';
+  @override
+  String audioFormat(String name) => '$name bu cihazda açılamıyor. WAV dosyası olarak dene.';
+  @override
+  String audioNoWords(String name) => '$name içinde kelime duyulmadı, bir şey gönderilmedi.';
   @override
   String fileTooBig(String name) => '$name eklemek için çok büyük (en fazla 20 MB).';
   @override
