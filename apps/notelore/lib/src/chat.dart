@@ -12,7 +12,7 @@ import 'session.dart';
 import 'setup.dart' show ProviderWizard;
 import 'strings.dart';
 import 'theme.dart';
-import 'transfer.dart' show PickedFile;
+import 'transfer.dart' show FileTooBig, PickedFile;
 import 'voice.dart';
 import 'web_link.dart';
 
@@ -61,9 +61,20 @@ class _ChatScreenState extends State<ChatScreen> {
   /// files and PDFs' text in the message, images beside it. A file that is none
   /// of these, a PDF with no text in it (scanned, or damaged), too much, or an
   /// image the model cannot take now, is refused and nothing is sent.
+  /// The largest file that is read at all; what is kept of it is smaller still.
+  static const _maxFileBytes = 20 * 1024 * 1024;
+
   Future<void> _attach() async {
     final messenger = ScaffoldMessenger.of(context);
-    final picked = await widget.session.exchange.pick(any: true);
+    final List<PickedFile> picked;
+    try {
+      picked = await widget.session.exchange.pick(any: true, maxBytes: _maxFileBytes);
+    } on FileTooBig catch (big) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(widget.session.strings.fileTooBig(big.name))));
+      return;
+    }
     if (picked.isEmpty) return; // called off
     final (:files, :images, :names, :refused) = await _read(picked);
     if (refused != null) {

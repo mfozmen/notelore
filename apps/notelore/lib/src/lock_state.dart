@@ -14,6 +14,7 @@ class AppLock {
     required this.keys,
     required this.keySpace,
     required this.clock,
+    required this.uptime,
     required this.iterations,
     required this.offThread,
     required this.changed,
@@ -22,6 +23,9 @@ class AppLock {
   final FlutterSecureStorage keys;
   final String keySpace;
   final DateTime Function() clock;
+
+  /// Time that only moves forward: setting the clock ahead does not end a wait (#315).
+  final Duration Function() uptime;
 
   /// The hash's strength, and where its slow hashing runs (off the UI thread,
   /// so a phone does not stutter while it checks a PIN).
@@ -73,6 +77,9 @@ class AppLock {
   var _failures = 0;
   DateTime? _lastFailure;
 
+  /// [uptime] at the last wrong try in this run; a restart has only the clock.
+  Duration? _failedAt;
+
   /// How long a run of [failures] wrong tries makes the next one wait: nothing
   /// for the first four, then 30 seconds, a minute, and five minutes from the
   /// seventh on (a 4-digit PIN has only 10,000 values).
@@ -87,7 +94,10 @@ class AppLock {
   Duration get wait {
     final last = _lastFailure;
     if (last == null) return Duration.zero;
-    final left = last.add(delay(_failures)).difference(clock());
+    final byClock = last.add(delay(_failures)).difference(clock());
+    final failedAt = _failedAt;
+    final byUptime = failedAt == null ? Duration.zero : delay(_failures) - (uptime() - failedAt);
+    final left = byClock > byUptime ? byClock : byUptime;
     return left.isNegative ? Duration.zero : left;
   }
 
@@ -112,27 +122,36 @@ class AppLock {
   Future<void> _clearFailures() async {
     _failures = 0;
     _lastFailure = null;
+    _failedAt = null;
     await keys.delete(key: _failuresKey);
   }
 
   /// Opens the app when [secret] is the lock's PIN or password; not while a
   /// wait after wrong tries runs ([wait]).
   Future<bool> unlock(String secret) async {
-    if (wait > Duration.zero) return false;
-    if (!await _matches(secret)) {
-      _failures++;
-      _lastFailure = clock();
-      await keys.write(
-        key: _failuresKey,
-        value: jsonEncode({'count': _failures, 'last': _lastFailure!.toIso8601String()}),
-      );
-      changed();
-      return false;
-    }
-    await _clearFailures();
+    if (!await _tryOpen(secret)) return false;
     locked = false;
     changed();
     return true;
+  }
+
+  /// Whether [secret] is the lock's, counting a wrong one and refusing any while
+  /// a wait runs: opening and turning the lock off both go through here (#315).
+  Future<bool> _tryOpen(String secret) async {
+    if (wait > Duration.zero) return false;
+    if (await _matches(secret)) {
+      await _clearFailures();
+      return true;
+    }
+    _failures++;
+    _lastFailure = clock();
+    _failedAt = uptime();
+    await keys.write(
+      key: _failuresKey,
+      value: jsonEncode({'count': _failures, 'last': _lastFailure!.toIso8601String()}),
+    );
+    changed();
+    return false;
   }
 
   /// Turns the lock on (or changes it) with [secret]; only its hash is kept.
@@ -148,9 +167,8 @@ class AppLock {
   /// Turns the lock off when [current] is its PIN or password. Nothing else
   /// goes: notes, keys and settings stay.
   Future<bool> remove(String current) async {
-    if (!await _matches(current)) return false;
+    if (!await _tryOpen(current)) return false;
     await keys.delete(key: _lockKey);
-    await _clearFailures();
     enabled = locked = false;
     changed();
     return true;

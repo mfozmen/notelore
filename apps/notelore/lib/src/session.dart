@@ -79,6 +79,7 @@ class Session extends ChangeNotifier {
     this.today,
     this.keySpace = 'notelore',
     DateTime Function()? clock,
+    Duration Function()? uptime,
     this.keys = appKeys,
     this.driveAuth,
     this.remoteFor = _driveRemote,
@@ -99,6 +100,8 @@ class Session extends ChangeNotifier {
     this._exchange,
     this.timing,
   }) : clock = clock ?? DateTime.timestamp,
+       // Time that only moves forward; a given clock stands in for it, unless told apart.
+       uptime = uptime ?? _uptimeOf(clock),
        index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path),
        manifest = Manifest(paths.state.path);
 
@@ -189,6 +192,18 @@ class Session extends ChangeNotifier {
 
   /// Now, for the time of a settings change (tests pass their own).
   final DateTime Function() clock;
+
+  /// Time since start that setting the device clock does not move (#315).
+  final Duration Function() uptime;
+
+  static Duration Function() _uptimeOf(DateTime Function()? clock) {
+    if (clock == null) {
+      final watch = Stopwatch()..start();
+      return () => watch.elapsed;
+    }
+    final start = clock();
+    return () => clock().difference(start);
+  }
 
   /// The device's language code; [AppLanguage.system] follows it.
   final String systemLanguage;
@@ -427,6 +442,7 @@ class Session extends ChangeNotifier {
     keys: keys,
     keySpace: keySpace,
     clock: clock,
+    uptime: uptime,
     iterations: lockIterations,
     offThread: offThread,
     changed: notifyListeners,

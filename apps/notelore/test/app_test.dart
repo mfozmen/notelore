@@ -1475,6 +1475,22 @@ void main() {
     expect(find.text('Moved "Kitaplar" to the archive.'), findsNothing);
   });
 
+  testWidgets('chat: a file too big to attach is refused, and nothing is sent (#315)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    harness.files.picked = [
+      XFile.fromData(Uint8List(0), path: 'huge.pdf', length: 30 * 1024 * 1024),
+    ];
+    await tester.tap(find.byTooltip('Attach a file'));
+    await tester.pump();
+    expect(find.textContaining('huge.pdf is too big'), findsOneWidget);
+    expect(harness.provider.asked, isEmpty);
+  });
+
   testWidgets('notes: an image in a note is never loaded; its words show instead (#311)', (
     tester,
   ) async {
