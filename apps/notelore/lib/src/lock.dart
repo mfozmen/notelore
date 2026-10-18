@@ -145,70 +145,74 @@ class _LockScreenState extends State<LockScreen> {
   }
 
   /// What opens this lock: the device's prompt, the pattern pad, or a field.
-  List<Widget> _opener(Strings s, bool waiting, String? problem) {
-    final kind = widget.session.lock.kind;
-    if (kind == LockKind.device) {
-      return [
-        FilledButton.icon(
-          key: const Key('unlock-device'),
-          icon: const Icon(Icons.fingerprint),
-          onPressed: _checking ? null : _unlockWithDevice,
-          label: Text(s.unlock),
-        ),
-        if (_deviceGone)
-          _Problem(s.deviceLockGone)
-        else if (_deviceFailed)
-          _Problem(s.deviceNotUnlocked),
-      ];
+  List<Widget> _opener(Strings s, bool waiting, String? problem) =>
+      switch (widget.session.lock.kind) {
+        LockKind.device => _deviceOpener(s),
+        LockKind.pattern => _patternOpener(s, waiting, problem),
+        final kind => _secretOpener(s, waiting, problem, pin: kind == LockKind.pin),
+      };
+
+  List<Widget> _deviceOpener(Strings s) => [
+    FilledButton.icon(
+      key: const Key('unlock-device'),
+      icon: const Icon(Icons.fingerprint),
+      onPressed: _checking ? null : _unlockWithDevice,
+      label: Text(s.unlock),
+    ),
+    if (_deviceGone)
+      _Problem(s.deviceLockGone)
+    else if (_deviceFailed)
+      _Problem(s.deviceNotUnlocked),
+  ];
+
+  /// One line above the pad: what to do, or why it did not open. The wait's
+  /// countdown changes every second, so it is not read out each time.
+  List<Widget> _patternOpener(Strings s, bool waiting, String? problem) {
+    final String status;
+    if (problem != null) {
+      status = problem;
+    } else if (_tooShort) {
+      status = s.drawPattern;
+    } else {
+      status = s.drawYourPattern;
     }
-    if (kind == LockKind.pattern) {
-      // One line above the pad: what to do, or why it did not open. The wait's
-      // countdown changes every second, so it is not read out each time.
-      final String status;
-      if (problem != null) {
-        status = problem;
-      } else if (_tooShort) {
-        status = s.drawPattern;
-      } else {
-        status = s.drawYourPattern;
-      }
-      return [
-        _Problem(status, error: problem != null || _tooShort, live: !waiting, below: false),
-        const SizedBox(height: Gap.s),
-        Center(
-          child: PatternPad(
-            strings: s,
-            enabled: !_checking && !waiting,
-            onDone: _unlockWith,
-            onTooShort: () => setState(() {
-              _tooShort = true;
-              _wrong = false;
-            }),
-          ),
-        ),
-      ];
-    }
-    final pin = kind == LockKind.pin;
     return [
-      TextField(
-        key: const Key('unlock'),
-        controller: _secret,
-        obscureText: true,
-        autofocus: true,
-        enabled: !_checking && !waiting,
-        keyboardType: pin ? TextInputType.number : TextInputType.visiblePassword,
-        inputFormatters: [if (pin) FilteringTextInputFormatter.digitsOnly],
-        textInputAction: TextInputAction.done,
-        onSubmitted: (_) => _unlockWith(_secret.text),
-        decoration: InputDecoration(labelText: pin ? s.lockPin : s.lockSecret, errorText: problem),
-      ),
-      const SizedBox(height: Gap.m),
-      FilledButton(
-        onPressed: _checking || waiting ? null : () => _unlockWith(_secret.text),
-        child: Text(s.unlock),
+      _Problem(status, error: problem != null || _tooShort, live: !waiting, below: false),
+      const SizedBox(height: Gap.s),
+      Center(
+        child: PatternPad(
+          strings: s,
+          enabled: !_checking && !waiting,
+          onDone: _unlockWith,
+          onTooShort: () => setState(() {
+            _tooShort = true;
+            _wrong = false;
+          }),
+        ),
       ),
     ];
   }
+
+  /// A PIN, or an older lock's password.
+  List<Widget> _secretOpener(Strings s, bool waiting, String? problem, {required bool pin}) => [
+    TextField(
+      key: const Key('unlock'),
+      controller: _secret,
+      obscureText: true,
+      autofocus: true,
+      enabled: !_checking && !waiting,
+      keyboardType: pin ? TextInputType.number : TextInputType.visiblePassword,
+      inputFormatters: [if (pin) FilteringTextInputFormatter.digitsOnly],
+      textInputAction: TextInputAction.done,
+      onSubmitted: (_) => _unlockWith(_secret.text),
+      decoration: InputDecoration(labelText: pin ? s.lockPin : s.lockSecret, errorText: problem),
+    ),
+    const SizedBox(height: Gap.m),
+    FilledButton(
+      onPressed: _checking || waiting ? null : () => _unlockWith(_secret.text),
+      child: Text(s.unlock),
+    ),
+  ];
 }
 
 /// A line about the lock: why it did not open ([error]), or what to do. Read
