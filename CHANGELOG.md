@@ -623,9 +623,6 @@
 - Drop unsafe manifest entries on load, treat damaged base copies as missing
   ([`6d5aab6`](https://github.com/mfozmen/notelore/commit/6d5aab646b1303bcd4d376453d6927a1bf5968e9))
 
-- Keep notelore-core out of the mobile app's pip requirements
-  ([`975d11b`](https://github.com/mfozmen/notelore/commit/975d11b170b605050a190a68623a63e753d2015f))
-
 - Keep user and assistant turns alternating after an empty answer or max_turns
   ([`49f438f`](https://github.com/mfozmen/notelore/commit/49f438f1c23c3aee6455f243a565d82e2fdc3ce2))
 
