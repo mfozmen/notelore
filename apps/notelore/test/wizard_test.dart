@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/setup.dart';
 import 'package:notelore_core/notelore_core.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'app_test.dart' show phone, pumpApp;
 import 'desktop_test.dart' show desktop;
@@ -358,5 +360,52 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Stale hello.'), findsNothing);
     expect(find.text('Fresh hello.'), findsOneWidget);
+  });
+
+  testWidgets('Connect: back from the key page, a copied key of that provider goes in (#359)', (
+    tester,
+  ) async {
+    phone(tester);
+    final launcher = FakeLauncher();
+    UrlLauncherPlatform.instance = launcher;
+    String? clipboard;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (
+      call,
+    ) async {
+      return call.method == 'Clipboard.getData' ? {'text': clipboard} : null;
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    Future<void> comeBack(String copied) async {
+      clipboard = copied;
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+    }
+
+    await pumpApp(tester, Harness());
+    await tester.tap(find.text('Claude (Anthropic)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    final key = find.byKey(const Key('api-key'));
+    // Back without opening the page: the clipboard is not looked at.
+    await comeBack('sk-ant-api03-${'a' * 80}');
+    expect(tester.widget<TextField>(key).controller!.text, isEmpty);
+    await tester.tap(find.text('Open console.anthropic.com'));
+    await tester.pumpAndSettle();
+    expect(launcher.opened, ['https://console.anthropic.com/settings/keys']);
+    // Something that is not an Anthropic key stays out.
+    await comeBack('AIza${'x' * 35}');
+    expect(tester.widget<TextField>(key).controller!.text, isEmpty);
+    await tester.tap(find.text('Open console.anthropic.com'));
+    await tester.pumpAndSettle();
+    await comeBack('sk-ant-api03-${'a' * 80}');
+    expect(tester.widget<TextField>(key).controller!.text, 'sk-ant-api03-${'a' * 80}');
+    expect(find.textContaining('pasted from the clipboard'), findsOneWidget);
   });
 }
