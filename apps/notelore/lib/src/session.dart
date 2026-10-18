@@ -1307,9 +1307,9 @@ class Session extends ChangeNotifier {
   /// What was archived, newest first.
   List<ArchivedNote> listArchived() => core.listArchived(paths.notes.path);
 
-  /// An archived note as Markdown from its title down.
+  /// An archived note's file as written.
   String readArchived(ArchivedNote archived) =>
-      withoutFrontMatter(File(archived.path).readAsStringSync().replaceAll('\r\n', '\n'));
+      File(archived.path).readAsStringSync().replaceAll('\r\n', '\n');
 
   /// Puts [archived] back where it came from; false when a note took the name.
   Future<bool> restoreArchived(ArchivedNote archived) => _exclusive(() async {
@@ -1332,13 +1332,12 @@ class Session extends ChangeNotifier {
     notifyListeners();
   });
 
-  /// The note as Markdown from its `# title` down (the front matter is for tools).
+  /// The note's file as written, for the reader to lay out (#426).
   /// CRLF (an editor on Windows may save one) reads like LF.
-  String readNote(NoteInfo note) => withoutFrontMatter(
-    File(notePath(paths.notes.path, note.kind, note.slug))
-        .readAsStringSync()
-        .replaceAll('\r\n', '\n'),
-  );
+  String readNote(NoteInfo note) =>
+      File(notePath(paths.notes.path, note.kind, note.slug))
+          .readAsStringSync()
+          .replaceAll('\r\n', '\n');
 
   var _disposed = false;
 

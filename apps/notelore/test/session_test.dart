@@ -706,7 +706,7 @@ void main() {
     await session.send('Mopsos diye proje aç');
     final notes = session.listNotes();
     expect(notes.map((n) => n.title), ['Mopsos']);
-    expect(session.readNote(notes.single), startsWith('# Mopsos\n'));
+    expect(session.readNote(notes.single), contains('\n# Mopsos\n'));
   });
 
   test('setModel rebuilds the agent with the new model', () async {
@@ -1329,7 +1329,7 @@ void main() {
     final session = harness.session();
     final path = createNote(harness.paths.notes.path, 'topic', 'Windows', today: today);
     File(path).writeAsStringSync(File(path).readAsStringSync().replaceAll('\n', '\r\n'));
-    expect(session.readNote(session.listNotes().single), startsWith('# Windows\n'));
+    expect(session.readNote(session.listNotes().single), contains('\n# Windows\n'));
   });
 
   test('deleting a note moves it to the archive, and undo brings it back', () async {
@@ -1364,7 +1364,7 @@ void main() {
     await session.deleteNote(session.listNotes().single);
     final archived = session.listArchived().single;
     expect(archived.title, 'Kitaplar');
-    expect(session.readArchived(archived), startsWith('# Kitaplar'));
+    expect(session.readArchived(archived), contains('\n# Kitaplar\n'));
     expect(await session.restoreArchived(archived), isTrue);
     expect(File(path).existsSync(), isTrue);
     expect(session.listArchived(), isEmpty);

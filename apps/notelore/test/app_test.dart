@@ -11,6 +11,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
 import 'package:notelore/src/mark.dart';
+import 'package:notelore/src/note_view.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/settings.dart';
 import 'package:notelore/src/share_in.dart';
@@ -1706,17 +1707,17 @@ void main() {
     await tester.tap(find.textContaining('Tap to show'));
     await tester.pump();
     expect(tester.widgetList<Image>(find.byType(Image)).map((i) => i.image), [
-      isA<NetworkImage>(),
       isA<FileImage>(),
+      isA<NetworkImage>(),
     ]);
     expect(find.textContaining('Tap to show'), findsNothing);
     // One that cannot be shown (damaged, unreachable) says so, with its words.
-    final shown = tester.widget<Image>(find.byType(Image).last);
-    final fallback = shown.errorBuilder!(tester.element(find.byType(Image).last), 'bad', null);
+    final shown = tester.widget<Image>(find.byType(Image).first);
+    final fallback = shown.errorBuilder!(tester.element(find.byType(Image).first), 'bad', null);
     // While a remote one comes, the same box turns.
-    final remote = tester.widget<Image>(find.byType(Image).first);
+    final remote = tester.widget<Image>(find.byType(Image).last);
     final coming = remote.loadingBuilder!(
-      tester.element(find.byType(Image).first),
+      tester.element(find.byType(Image).last),
       const SizedBox(),
       const ImageChunkEvent(cumulativeBytesLoaded: 1, expectedTotalBytes: 2),
     );
@@ -1816,7 +1817,7 @@ void main() {
     expect(find.text('project · updated 2026-09-30'), findsOneWidget);
     await tester.tap(find.text('Mopsos'));
     await tester.pumpAndSettle();
-    expect(find.byType(Markdown), findsOneWidget);
+    expect(find.byType(NoteView), findsOneWidget);
     expect(find.text('Decisions'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -1957,12 +1958,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Links'));
     await tester.pumpAndSettle();
-    final markdown = tester.widget<Markdown>(find.byType(Markdown));
-    expect(markdown.selectable, isTrue); // and still selectable
+    expect(find.byType(SelectionArea), findsOneWidget); // and still selectable
     // Tapped where they are drawn, like a user would.
-    await tapOnPart(tester, 'Example');
-    await tapOnPart(tester, 'https://example.com/bare');
+    await tester.tapOnText(find.textRange.ofSubstring('Example'));
+    await tester.tapOnText(find.textRange.ofSubstring('https://example.com/bare'));
     await tester.pump();
+    final markdown = tester.widget<MarkdownBody>(find.byType(MarkdownBody).first);
     expect(launcher.opened, ['https://example.com/page', 'https://example.com/bare']);
     expect(launcher.modes.toSet(), {PreferredLaunchMode.externalApplication});
     // Other schemes and empty links open nothing.
