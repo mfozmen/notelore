@@ -65,14 +65,18 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
   /// The ChatGPT account signed in but has no plan to share (#321).
   var _noPlan = false;
 
-  /// Sent to Google AI Studio for a key: on return, it may be on the clipboard.
+  /// Sent to a key page: on return, the key may be on the clipboard.
   var _awaitingKey = false;
 
   /// The key in the box came from the clipboard; said under it.
   var _pasted = false;
 
-  /// What a Gemini API key looks like; nothing else is taken from the clipboard.
-  static final _geminiKey = RegExp(r'^AIza[0-9A-Za-z_\-]{35}$');
+  /// What each provider's API key looks like; nothing else is taken from the clipboard.
+  static final _keyShapes = {
+    'anthropic': RegExp(r'^sk-ant-[0-9A-Za-z_\-]{20,}$'),
+    'openai': RegExp(r'^sk-(?!ant-)[0-9A-Za-z_\-]{20,}$'),
+    'gemini': RegExp(r'^AIza[0-9A-Za-z_\-]{35}$'),
+  };
 
   @override
   void initState() {
@@ -103,12 +107,13 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     }
   }
 
-  /// Back from AI Studio: a copied key goes into the box (only one that looks
-  /// like a Gemini key, only into an empty box); connecting stays the user's.
+  /// Back from a key page: a copied key goes into the box (only one shaped like
+  /// the chosen provider's, only into an empty box); connecting stays the user's.
   Future<void> _pickUpKey() async {
     final copied = await Clipboard.getData(Clipboard.kTextPlain)
         .then((data) => data?.text?.trim() ?? '', onError: (Object _) => ''); // unreadable: none
-    if (!mounted || !_geminiKey.hasMatch(copied) || _key.text.isNotEmpty) return;
+    final shape = _keyShapes[_spec.name];
+    if (!mounted || shape == null || !shape.hasMatch(copied) || _key.text.isNotEmpty) return;
     setState(() {
       _key.text = copied;
       _pasted = true;
@@ -382,7 +387,12 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     Text(s.cost(_spec), style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
     if (s.keySteps(_spec) case final steps when steps.isNotEmpty) ...[
       const SizedBox(height: Gap.l),
-      _Steps(steps, link: _spec.keyUrl, openLabel: s.openKeyPage),
+      _Steps(
+        steps,
+        link: _spec.keyUrl,
+        openLabel: s.openKeyPage,
+        opened: () => _awaitingKey = true,
+      ),
     ],
     ..._keyEntry(s, theme),
     if (_noPlan) _NoPlan(s, getKey: _freeGemini),
@@ -535,11 +545,14 @@ class _StepHeader extends StatelessWidget {
 /// How to get a key, as numbered steps; the key page opens from the first
 /// one, where it says to sign in.
 class _Steps extends StatelessWidget {
-  const _Steps(this.steps, {required this.link, required this.openLabel});
+  const _Steps(this.steps, {required this.link, required this.openLabel, required this.opened});
 
   final List<String> steps;
   final String? link;
   final String Function(String host) openLabel;
+
+  /// The link was opened: the key may come back on the clipboard.
+  final VoidCallback opened;
 
   @override
   Widget build(BuildContext context) {
@@ -568,8 +581,12 @@ class _Steps extends StatelessWidget {
                     if (link case final url? when index == 0) ...[
                       const SizedBox(height: Gap.s),
                       OutlinedButton.icon(
-                        onPressed: () =>
+                        onPressed: () {
+                          opened();
+                          unawaited(
                             launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+                          );
+                        },
                         icon: const Icon(Icons.open_in_new, size: 18),
                         label: Text(openLabel(Uri.parse(url).host)),
                       ),
