@@ -13,6 +13,10 @@ concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# Read-only by default; a job that needs more says so itself (#315).
+permissions:
+  contents: read
+
 jobs:
   # The CI helper scripts (claude-review uses them) are plain Python 3 with
   # their own tests; the app itself is tested in flutter.yml.
@@ -26,6 +30,8 @@ jobs:
       - run: python3 .github/scripts/test_review_range.py
       - run: python3 .github/scripts/test_issue_priority.py
       - run: python3 .github/scripts/test_close_finished_epics.py
+      - run: python3 .github/scripts/test_security_verdict_gate.py
+      - run: python3 .github/scripts/test_sensitive_paths.py
       - run: python3 tool/train/test_finetune.py
 
   # Dart coverage for Sonar, built in a job that holds no secrets (#72): tests

@@ -15,6 +15,10 @@ concurrency:
   group: flutter-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# Read-only by default; a job that needs more says so itself (#315).
+permissions:
+  contents: read
+
 jobs:
   analyze:
     name: Flutter analyze
