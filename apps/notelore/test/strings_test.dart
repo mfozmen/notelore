@@ -94,6 +94,8 @@ void main() {
     for (final s in [en, tr]) {
       expect(s.waitingLines.length, greaterThanOrEqualTo(15));
       expect(s.waitingLines.toSet(), hasLength(s.waitingLines.length));
+      // Thinking, not answered: each ends with an ellipsis.
+      expect(s.waitingLines.where((l) => !l.endsWith('…')), isEmpty);
     }
     expect(tr.waitingLines.first, isNot(en.waitingLines.first));
   });
