@@ -207,6 +207,23 @@ UNCLEAR = [
     ("tr", "Bunu bir yere yaz."), ("tr", "Onu bitirdim, işaretle."), ("tr", "Şunu güncelle."),
 ]
 
+# Reminders (#430, #434), worked out from the minute the eval says it is,
+# 2026-10-18 14:00, a Sunday: (lang, note title, kind, message, "YYYY-MM-DD[ HH:MM]", a word).
+REMINDERS = [
+    ("en", "Garden Shed", "project", "Remind me tomorrow at 8 to call the timber yard about the garden shed.", "2026-10-19 08:00", "timber"),
+    ("en", "Podcast Launch", "project", "Podcast launch: remind me in 2 hours to email the first guest.", "2026-10-18 16:00", "guest"),
+    ("tr", "Düğün Hazırlığı", "project", "Düğün hazırlığı için yarın 10'da pastaneyi aramamı hatırlat.", "2026-10-19 10:00", "pasta"),
+    ("tr", "Mobil Uygulama", "project", "Mobil uygulama: 30 dakika sonra test sürümünü yüklemeyi hatırlat.", "2026-10-18 14:30", "test"),
+    ("en", "Kitchen Renovation", "project", "Remind me on Friday at 17:30 to pick up the kitchen tiles.", "2026-10-23 17:30", "tile"),
+    ("tr", "Yaz Tatili", "project", "Yaz tatili: 1 Kasım'da pasaportların süresine bakmamı hatırlat.", "2026-11-01", "pasaport"),
+    ("en", "Marathon Training", "project", "Marathon training: remind me in 45 minutes to stretch.", "2026-10-18 14:45", "stretch"),
+    ("tr", "Blog Sitesi", "project", "Blog sitesi için 20 dakika sonra yazıyı yayınlamamı hatırlat.", "2026-10-18 14:20", "yazı"),
+    ("en", "Health", "topic", "Remind me on 3 November at 9 to book the next blood test.", "2026-11-03 09:00", "blood"),
+    ("tr", "Köpeğimiz Pamuk", "topic", "Pamuk için 5 Mart'ta saat 11'de veterineri aramamı hatırlat.", "2027-03-05 11:00", "veteriner"),
+    ("en", "Apartment", "topic", "Remind me in 5 minutes to pay the rent for the apartment.", "2026-10-18 14:05", "rent"),
+    ("tr", "Araba", "topic", "Araba için 2 saat sonra lastikçiyi aramamı hatırlat.", "2026-10-18 16:00", "lastik"),
+]
+
 # Other notes every case's workspace gets beside its own, like the eval's shared notes.
 DISTRACTORS = 4
 
@@ -259,6 +276,12 @@ def cases(rng):
 
     for i, (lang, msg) in enumerate([("en", "ok, thank you"), ("tr", "sağ ol"), ("en", "great, thanks a lot"), ("tr", "tamamdır, teşekkür ederim")]):
         add(f"chat-{i}", "chat", lang, {}, msg, {})
+    # The note each reminder belongs to, as its project or topic case wrote it.
+    written = {p: text for case in out for p, text in case["notes"].items()}
+    for i, (lang, title, kind, msg, at, word) in enumerate(REMINDERS):
+        p = path(kind, title)
+        add(f"rem-{i}", "reminder", lang, {p: written[p]}, msg,
+            {"tools": ["add_reminder"], "notes": {f"^{re.escape(p)}$": [at, word]}})
     for i, (lang, msg) in enumerate(UNCLEAR):
         add(f"unclear-{i}", "unclear", lang, {}, msg, {"answer": ["?"]})
     for i, (lang, msg, pattern, item) in enumerate(NEW_LISTS):
