@@ -41,9 +41,20 @@ class _NoteloreAppState extends State<NoteloreApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) => switch (state) {
     AppLifecycleState.hidden || AppLifecycleState.paused => _opened?.lock.backgrounded(),
-    AppLifecycleState.resumed => _opened?.lock.foregrounded(),
+    AppLifecycleState.resumed => _foregrounded(),
     _ => null,
   };
+
+  /// Every screen the app shows, so locking can close what is open on top (#309).
+  final _navigator = GlobalKey<NavigatorState>();
+
+  /// Locked again: a note or dialog left open closes before the next frame, so
+  /// only the lock shows; the home underneath is the lock screen.
+  void _foregrounded() {
+    final lock = _opened?.lock;
+    lock?.foregrounded();
+    if (lock?.locked ?? false) _navigator.currentState?.popUntil((route) => route.isFirst);
+  }
 
   late final Future<Session> _session = widget.open()
     ..then<void>(_adopt, onError: (Object _) {}); // the error shows below
@@ -70,6 +81,7 @@ class _NoteloreAppState extends State<NoteloreApp> with WidgetsBindingObserver {
       builder: (context, _) {
         final strings = snapshot.data?.strings ?? EnglishStrings();
         return MaterialApp(
+          navigatorKey: _navigator,
           title: 'Notelore',
           theme: noteloreTheme(Brightness.light, snapshot.data?.palette ?? Palette.lagoon),
           darkTheme: noteloreTheme(Brightness.dark, snapshot.data?.palette ?? Palette.lagoon),
