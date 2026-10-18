@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:notelore_core/notelore_core.dart';
+import 'package:path/path.dart' as p;
 
 import 'session.dart';
 import 'strings.dart';
@@ -8,14 +11,76 @@ import 'theme.dart';
 import 'transfer.dart';
 import 'web_link.dart';
 
-Widget _noteMarkdown(String text) => Markdown(
+/// A note as Markdown; its images resolve against [folder], the note's own.
+Widget _noteMarkdown(String text, String folder, Strings s) => Markdown(
   data: text,
   selectable: true,
   padding: const EdgeInsets.all(Gap.m),
   onTapLink: (_, href, _) => openWebLink(href),
-  // Never fetched: a planted image's address could carry the note away (#311).
-  imageBuilder: (_, _, alt) => Text(alt ?? ''),
+  imageBuilder: (uri, _, alt) => _NoteImage(uri, alt ?? '', folder, s),
 );
+
+/// An image in a note. One on the device shows; a remote one waits for a tap:
+/// a planted image's address could carry the note away (#311, #339).
+class _NoteImage extends StatefulWidget {
+  const _NoteImage(this.uri, this.alt, this.folder, this.s);
+
+  final Uri uri;
+  final String alt;
+  final String folder;
+  final Strings s;
+
+  @override
+  State<_NoteImage> createState() => _NoteImageState();
+}
+
+class _NoteImageState extends State<_NoteImage> {
+  var _shown = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final uri = widget.uri;
+    Widget alt(_, _, _) => Text(widget.alt);
+    if (!uri.hasScheme) {
+      final file = File(p.normalize(p.join(widget.folder, Uri.decodeComponent(uri.path))));
+      return Image.file(file, semanticLabel: widget.alt, errorBuilder: alt);
+    }
+    if (uri.scheme != 'http' && uri.scheme != 'https') return Text(widget.alt);
+    if (_shown) return Image.network('$uri', semanticLabel: widget.alt, errorBuilder: alt);
+    final theme = Theme.of(context);
+    return Card.outlined(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => setState(() => _shown = true),
+        child: Padding(
+          padding: const EdgeInsets.all(Gap.s),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.image_outlined, color: theme.colorScheme.onSurfaceVariant),
+              const SizedBox(width: Gap.s),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (widget.alt.isNotEmpty) Text(widget.alt),
+                    Text(
+                      widget.s.tapToShow(uri.host),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// Every project and topic, newest first; a tap opens the note read-only, beside
 /// the list on a wide window. The entry's trash button (or a long press, or the
@@ -300,7 +365,13 @@ class _NotesScreenState extends State<NotesScreen> {
               ],
             ),
           ),
-          Expanded(child: _noteMarkdown(text)),
+          Expanded(
+            child: _noteMarkdown(
+              text,
+              p.dirname(notePath(widget.session.paths.notes.path, note.kind, note.slug)),
+              widget.session.strings,
+            ),
+          ),
         ],
       );
     } else {
@@ -340,7 +411,11 @@ class _NotesScreenState extends State<NotesScreen> {
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: Layout.column),
-            child: _noteMarkdown(text),
+            child: _noteMarkdown(
+              text,
+              p.dirname(notePath(widget.session.paths.notes.path, note.kind, note.slug)),
+              widget.session.strings,
+            ),
           ),
         ),
       ),
@@ -431,7 +506,12 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: Layout.column),
-            child: _noteMarkdown(text),
+            child: _noteMarkdown(
+              text,
+              // As it was: its images were linked from where it lived.
+              p.dirname(p.join(widget.session.paths.notes.path, archived.original)),
+              widget.session.strings,
+            ),
           ),
         ),
         floatingActionButton: FloatingActionButton.extended(
