@@ -41,6 +41,18 @@ void main() {
     );
   });
 
+  test('fromOllama drops the reasoning a thinking model leaks into its answer (#348)', () {
+    String? answer(String content) =>
+        fromOllama({
+              'message': {'content': content, 'thinking': 'hidden'},
+            }).content.firstOrNull?['text']
+            as String?;
+    expect(answer('<think>\nOkay, let me see.\n</think>\n\nSaved it.'), 'Saved it.');
+    expect(answer('Okay, let me figure out </think> the note.\n</think>\nDone.'), 'Done.');
+    expect(answer('<think>Only reasoning.</think>\n'), isNull);
+    expect(answer('No tags here.'), 'No tags here.');
+  });
+
   test('fromOllama variants', () {
     expect(fromOllama({}).content, isEmpty);
     final text = fromOllama({

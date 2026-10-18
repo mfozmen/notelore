@@ -90,11 +90,19 @@ List<Map<String, Object?>> _toOllama(Message message, Map<String, String> names)
   ];
 }
 
+/// The reply without the reasoning a thinking model leaks into it even with
+/// `think: false`: everything up to the last `</think>` (#348).
+Object? _answer(Object? content) {
+  if (content is! String) return content;
+  final end = content.lastIndexOf('</think>');
+  return end < 0 ? content : content.substring(end + '</think>'.length).trim();
+}
+
 AgentResponse fromOllama(Map<String, Object?> answer) {
   final message = answer['message'] as Map<String, Object?>?;
   if (message == null) return const AgentResponse([], 'end_turn');
   final blocks = <Block>[
-    if (message['content'] case final String text when text.isNotEmpty)
+    if (_answer(message['content']) case final String text when text.isNotEmpty)
       {'type': 'text', 'text': text},
     for (final call in (message['tool_calls'] as List? ?? const []).cast<Map<String, Object?>>())
       {
