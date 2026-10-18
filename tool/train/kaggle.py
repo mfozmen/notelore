@@ -8,8 +8,8 @@ the data, merging, quantizing and the eval stay local.
    `.dev-home/train/train-v3.jsonl` and this repo's `tool/train/finetune.py`.
 2. New notebook: Accelerator "GPU T4 x2" (one is used), Internet on, and add
    the dataset as input.
-3. Paste this whole file into one cell and run it. It takes about an hour for
-   ~250 turns over two epochs.
+3. Paste this whole file into one cell and run it. v2 took 5.9 hours for 209
+   turns over two epochs, so expect about 3 hours for one epoch of as many.
 4. Download `/kaggle/working/lora.zip` (~130 MB) from the Output panel and
    unpack it to `.dev-home/train/v3/lora`. Then, locally:
 
