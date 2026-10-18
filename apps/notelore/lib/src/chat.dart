@@ -34,7 +34,23 @@ class _ChatScreenState extends State<ChatScreen> {
   late final _voice = VoiceMode(widget.session, voice: widget.session.voice);
 
   @override
+  void initState() {
+    super.initState();
+    widget.session.addListener(_syncDraft);
+  }
+
+  void _syncDraft() {
+    final text = widget.session.draft;
+    if (_message.text == text) return;
+    _message.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  @override
   void dispose() {
+    widget.session.removeListener(_syncDraft);
     _voice
       ..end()
       ..dispose();

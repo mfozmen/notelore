@@ -401,6 +401,15 @@ class Session extends ChangeNotifier {
   /// What is written in the message box and not sent yet; it outlives the chat
   /// screen, so a trip to another tab (or a new window layout) keeps it.
   var draft = '';
+  var sharedDraftVersion = 0;
+
+  /// A share is untrusted input: show it for editing, never send it on receipt.
+  void receiveSharedText(String text) {
+    draft = draft.isEmpty ? text : '$draft\n\n$text';
+    sharedDraftVersion++;
+    notifyListeners();
+  }
+
   bool busy = false;
 
   bool get ready => _agent != null;
