@@ -18,6 +18,19 @@ void desktop(WidgetTester tester, double width) {
 }
 
 void main() {
+  testWidgets('setup: a readable card on the desktop (#337)', (tester) async {
+    desktop(tester, 1280);
+    await pumpApp(tester, Harness());
+    expect(tester.getSize(find.byKey(const Key('setup-card'))).width, lessThanOrEqualTo(480));
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('setup-card')),
+        matching: find.widgetWithText(FilledButton, 'Connect'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('Google sign-in on a wide window: a card of a readable width, centred (#296)', (
     tester,
   ) async {

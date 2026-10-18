@@ -27,6 +27,12 @@ abstract class Strings {
   // Setup.
   String get chooseProvider;
 
+  /// Under the setup screen's headline: what the provider is for.
+  String get chooseProviderWhy;
+
+  /// The button that opens a provider's key page at [host].
+  String openKeyPage(String host);
+
   /// Setup's API-key and local providers, under the one-tap plan (#206).
   String get advanced;
 
@@ -308,6 +314,11 @@ class EnglishStrings extends Strings {
 
   @override
   String get chooseProvider => 'Choose a model provider';
+  @override
+  String get chooseProviderWhy =>
+      'Notelore uses an AI model to write your notes and answer from them. Pick the one you have.';
+  @override
+  String openKeyPage(String host) => 'Open $host';
   @override
   String get advanced => 'Advanced';
   @override
@@ -760,6 +771,11 @@ class TurkishStrings extends Strings {
 
   @override
   String get chooseProvider => 'Bir model sağlayıcı seç';
+  @override
+  String get chooseProviderWhy =>
+      'Notelore notlarını yazmak ve onlardan cevap vermek için bir yapay zekâ modeli kullanır. Elinde olanı seç.';
+  @override
+  String openKeyPage(String host) => '$host adresini aç';
   @override
   String get advanced => 'Gelişmiş';
   @override
