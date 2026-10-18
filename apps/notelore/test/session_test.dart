@@ -425,6 +425,12 @@ void main() {
             'name': 'create_note',
             'input': {'kind': 'topic', 'title': 'Kitaplar'},
           },
+          {
+            'type': 'tool_use',
+            'id': 't2',
+            'name': 'add_note_entry',
+            'input': {'slug': 'kitaplar', 'text': 'Dune.'},
+          },
         ], 'tool_use'),
         const NetworkError('offline'),
       ],
@@ -661,6 +667,12 @@ void main() {
             'id': 't1',
             'name': 'create_note',
             'input': {'kind': 'project', 'title': 'Mopsos'},
+          },
+          {
+            'type': 'tool_use',
+            'id': 't2',
+            'name': 'add_note_entry',
+            'input': {'slug': 'mopsos', 'text': 'Started.'},
           },
         ], 'tool_use'),
         const NetworkError('offline'), // the note is written, the answer fails

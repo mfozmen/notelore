@@ -182,6 +182,34 @@ class Toolbox {
 
   List<Tool> get tools => noteTools;
 
+  /// Notes created since the last [takeBackEmpty] or [forgetCreated], as made.
+  final _created = <String, String>{};
+
+  /// Whether a note was created since the last call; they stay as they are.
+  bool forgetCreated() {
+    final any = _created.isNotEmpty;
+    _created.clear();
+    return any;
+  }
+
+  /// Takes back each note created since the last call that is still exactly as
+  /// created: nothing was ever written into it, so undoing its creation loses
+  /// nothing (#421). Returns whether a created note stays.
+  bool takeBackEmpty() {
+    var kept = false;
+    for (final MapEntry(key: path, value: made) in _created.entries) {
+      final file = File(path);
+      if (file.existsSync() && file.readAsStringSync() == made) {
+        file.deleteSync();
+        index.markChanged(path);
+      } else {
+        kept = true;
+      }
+    }
+    _created.clear();
+    return kept;
+  }
+
   String call(String name, Map<String, Object?> args) {
     final tool = noteTools.where((t) => t.name == name).firstOrNull;
     if (tool == null) return "Error: unknown tool '$name'.";
@@ -301,6 +329,7 @@ class Toolbox {
 
   Map<String, Object?> _createNote(String kind, String title, List<String>? tags, String lang) {
     final path = notes.createNote(root, kind, title, tags: tags, lang: lang, today: today);
+    _created[path] = File(path).readAsStringSync();
     index.markChanged(path);
     return {'slug': p.basenameWithoutExtension(path), 'kind': kind, 'path': _rel(path)};
   }

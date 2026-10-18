@@ -516,17 +516,66 @@ class FailsOnCall extends ScriptedProvider {
 void failureTests() {
   test('a turn that fails after writing a note says so; the next turn starts clean', () async {
     final box = newBox();
-    final provider = FailsOnCall(1, [
+    final provider = FailsOnCall(2, [
       toolUse('create_note', 't1', {'kind': 'project', 'title': 'Mopsos'}),
+      toolUse('add_note_entry', 't2', {'slug': 'mopsos', 'text': 'Uses Postgres.'}),
       text('ok'),
     ]);
     final agent = Agent(provider, box, today: today);
     expect(agent.wroteNotes, isFalse);
     await expectLater(agent.ask('note this'), throwsA(isA<NetworkError>()));
     expect(agent.wroteNotes, isTrue); // the note is on disk, the turn is not in history
+    expect(File(p.join(box.root, 'projects', 'mopsos.md')).existsSync(), isTrue);
     expect(agent.messages, isEmpty);
     expect(await agent.ask('thanks'), 'ok');
     expect(agent.wroteNotes, isFalse);
+  });
+
+  test('a failed turn takes back a note it created and never wrote into (#421)', () async {
+    final box = newBox();
+    // Failed right after create_note: no empty note stays, and nothing was saved.
+    final agent = Agent(
+      FailsOnCall(1, [
+        toolUse('create_note', 't1', {'kind': 'project', 'title': 'Mopsos'}),
+      ]),
+      box,
+      today: today,
+    );
+    await expectLater(agent.ask('note this'), throwsA(isA<NetworkError>()));
+    expect(File(p.join(box.root, 'projects', 'mopsos.md')).existsSync(), isFalse);
+    expect(agent.wroteNotes, isFalse);
+    // One someone changed meanwhile (an editor, a sync) is theirs now: it stays.
+    final films = File(p.join(box.root, 'topics', 'films.md'));
+    final edited = Agent(
+      FailsOnCall(1, [
+        toolUse('create_note', 't1', {'kind': 'topic', 'title': 'Films'}),
+      ]),
+      box,
+      today: today,
+    );
+    await expectLater(
+      edited.ask(
+        'note this',
+        onStep: (_) {
+          if (films.existsSync()) films.writeAsStringSync('${films.readAsStringSync()}\nMine.\n');
+        },
+      ),
+      throwsA(isA<NetworkError>()),
+    );
+    expect(films.existsSync(), isTrue);
+    expect(edited.wroteNotes, isTrue);
+    // An answered turn keeps what it made: "open a project Books" is a note.
+    final answered = Agent(
+      ScriptedProvider([
+        toolUse('create_note', 't1', {'kind': 'topic', 'title': 'Books'}),
+        text('Created.'),
+      ]),
+      box,
+      today: today,
+    );
+    await answered.ask('open a topic Books');
+    expect(File(p.join(box.root, 'topics', 'books.md')).existsSync(), isTrue);
+    expect(answered.wroteNotes, isTrue);
   });
 
   test('reading the notes before a failure is not a write', () async {

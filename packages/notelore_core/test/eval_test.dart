@@ -113,6 +113,7 @@ void main() {
   test('a missing tool, a write elsewhere or a missing fact fails, saying why', () async {
     final provider = ScriptedProvider([
       toolUse('create_note', 't1', {'kind': 'topic', 'title': 'Hit rate'}),
+      toolUse('add_todo', 't2', {'slug': 'hit-rate', 'text': 'Check daily.'}),
       text('Done.'),
     ]);
     final result = await runCase(filing, provider);

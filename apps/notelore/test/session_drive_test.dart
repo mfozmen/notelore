@@ -232,6 +232,12 @@ void main() {
             'name': 'create_note',
             'input': {'kind': 'project', 'title': 'Mopsos'},
           },
+          {
+            'type': 'tool_use',
+            'id': 't2',
+            'name': 'add_note_entry',
+            'input': {'slug': 'mopsos', 'text': 'Started.'},
+          },
         ], 'tool_use'),
         'Created.',
       ],
