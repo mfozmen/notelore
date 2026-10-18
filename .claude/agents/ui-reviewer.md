@@ -53,3 +53,5 @@ For each finding give:
 - a concrete fix in Flutter terms (which widget, which `Gap`, which theme role).
 
 End with the top three changes that would lift the look the most. Keep it short and specific. Do not restate the checklists.
+
+On a PR, findings are fixed in that PR, not deferred to follow-up issues. If the author disputes a finding, judge the argument against the renders and the skills: agree and drop it, or say briefly why it stands. Mark a finding as its own issue only when it is outside the PR's scope, and say why.
