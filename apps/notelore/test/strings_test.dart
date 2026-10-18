@@ -315,6 +315,8 @@ void main() {
       'devBuild': s.versionLine(''),
       'archive': s.archive,
       'pickNote': s.pickNote,
+      'tapToShow': s.tapToShow,
+      'imageFailed': s.imageFailed,
       'entriesFrom': s.entriesFrom('t'),
       'archiveEmpty': s.archiveEmpty,
       'archivedOn': s.archivedOn('2026-10-12'),

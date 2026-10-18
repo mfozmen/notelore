@@ -283,6 +283,12 @@ abstract class Strings {
   String get archive;
   String get pickNote;
 
+  /// Under a remote image in a note, before it is fetched (#339).
+  String get tapToShow;
+
+  /// Under an image in a note that could not be shown.
+  String get imageFailed;
+
   /// An archived note's name; archived entries say whose they are.
   String archivedTitle(ArchivedNote archived) =>
       archived.entries ? entriesFrom(archived.title) : archived.title;
@@ -888,6 +894,10 @@ class EnglishStrings extends Strings {
   String get archive => 'Archive';
   @override
   String get pickNote => 'Pick a note to read it here.';
+  @override
+  String get tapToShow => 'Tap to show';
+  @override
+  String get imageFailed => "Couldn't load";
   @override
   String entriesFrom(String title) => 'Entries from $title';
   @override
@@ -1606,6 +1616,10 @@ class TurkishStrings extends Strings {
   String get archive => 'Arşiv';
   @override
   String get pickNote => 'Okumak için bir not seç.';
+  @override
+  String get tapToShow => 'Göstermek için dokun';
+  @override
+  String get imageFailed => 'Yüklenemedi';
   @override
   String entriesFrom(String title) => '$title notundan girdiler';
   @override

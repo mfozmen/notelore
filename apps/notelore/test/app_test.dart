@@ -1674,21 +1674,60 @@ void main() {
     expect(harness.provider.asked, isEmpty);
   });
 
-  testWidgets('notes: an image in a note is never loaded; its words show instead (#311)', (
+  testWidgets('notes: a remote image loads only on a tap; one on the device shows (#311, #339)', (
     tester,
   ) async {
     phone(tester);
     final harness = Harness();
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    final root = harness.paths.notes.path;
+    final path = createNote(root, 'topic', 'Kitaplar', today: today);
     addEntry(path, 'See ![the chart](https://evil.example/p.png?q=notes)', today: today);
+    addEntry(path, 'And ![a photo](../attachments/2026-10-18/photo.png)', today: today);
+    addEntry(path, 'Not ![outside](../../secret.png)', today: today);
+    File(p.join(root, 'attachments', '2026-10-18', 'photo.png'))
+      ..parent.createSync(recursive: true)
+      ..writeAsBytesSync([0]);
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
-    expect(find.byType(Image), findsNothing);
-    expect(find.textContaining('the chart'), findsOneWidget);
+    // The one on the device shows; the remote one is a box saying where it would come from.
+    expect(tester.widgetList<Image>(find.byType(Image)).map((i) => i.image.runtimeType), [
+      FileImage,
+    ]);
+    expect(find.text('the chart'), findsOneWidget);
+    expect(find.textContaining('evil.example'), findsOneWidget);
+    // One outside the notes folder is never read.
+    expect(find.text('outside'), findsOneWidget);
+    expect(find.text("Couldn't load"), findsOneWidget);
+    // Only a tap fetches it.
+    await tester.tap(find.textContaining('Tap to show'));
+    await tester.pump();
+    expect(tester.widgetList<Image>(find.byType(Image)).map((i) => i.image), [
+      isA<NetworkImage>(),
+      isA<FileImage>(),
+    ]);
+    expect(find.textContaining('Tap to show'), findsNothing);
+    // One that cannot be shown (damaged, unreachable) says so, with its words.
+    final shown = tester.widget<Image>(find.byType(Image).last);
+    final fallback = shown.errorBuilder!(tester.element(find.byType(Image).last), 'bad', null);
+    // While a remote one comes, the same box turns.
+    final remote = tester.widget<Image>(find.byType(Image).first);
+    final coming = remote.loadingBuilder!(
+      tester.element(find.byType(Image).first),
+      const SizedBox(),
+      const ImageChunkEvent(cumulativeBytesLoaded: 1, expectedTotalBytes: 2),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Material(child: Column(children: [fallback, coming])),
+      ),
+    );
+    expect(find.text('a photo'), findsOneWidget);
+    expect(find.text("Couldn't load"), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
   testWidgets('notes: delete from the list or the reader, with undo', (tester) async {
