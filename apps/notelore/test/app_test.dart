@@ -566,6 +566,29 @@ void main() {
     expect(find.text(notice), findsNothing);
   });
 
+  testWidgets('lock: a file picked after the app locked is not sent (#387)', (tester) async {
+    phone(tester);
+    var now = DateTime.utc(2026, 10, 17, 12);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness, clock: () => now);
+    await connect(tester, key: 'k');
+    await session.lock.set('2468');
+    harness.files
+      ..hold = Completer<void>()
+      ..picked = [XFile.fromData(Uint8List.fromList(utf8.encode('notes')), path: 'a.txt')];
+    await tester.tap(find.byTooltip('Attach a file'));
+    await tester.pump();
+    // A minute in the picker: the app locks on the way back.
+    toBackground(tester);
+    now = now.add(const Duration(minutes: 1));
+    toForeground(tester);
+    await tester.pumpAndSettle();
+    harness.files.hold!.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Notelore is locked'), findsOneWidget);
+    expect(harness.provider.asked, isEmpty);
+  });
+
   testWidgets('lock: after five wrong tries the screen waits, then lets one try again', (
     tester,
   ) async {
@@ -844,6 +867,16 @@ void main() {
     harness.pdfText = (_) async => throw Exception('bad xref');
     await attach('broken.pdf');
     expect(find.textContaining('broken.pdf has no text'), findsOneWidget);
+    expect(harness.provider.asked, isEmpty);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    // One that never finishes is given up after 30 seconds (#389).
+    harness.pdfText = (_) => Completer<String>().future;
+    harness.files.picked = [XFile.fromData(pdf, path: 'endless.pdf')];
+    await tester.tap(find.byTooltip('Attach a file'));
+    await tester.pump(const Duration(seconds: 31));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('endless.pdf has no text'), findsOneWidget);
     expect(harness.provider.asked, isEmpty);
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();

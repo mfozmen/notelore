@@ -75,7 +75,8 @@ class _ChatScreenState extends State<ChatScreen> {
         ..showSnackBar(SnackBar(content: Text(widget.session.strings.fileTooBig(big.name))));
       return;
     }
-    if (picked.isEmpty) return; // called off
+    // Called off; or the app locked meanwhile and this screen is gone (#387).
+    if (picked.isEmpty || !mounted) return;
     final (:files, :images, :names, :refused) = await _read(picked);
     if (refused != null) {
       messenger
@@ -141,10 +142,13 @@ class _ChatScreenState extends State<ChatScreen> {
   static bool _isPdf(List<int> bytes) =>
       bytes.length >= 5 && ascii.decode(bytes.sublist(0, 5), allowInvalid: true) == '%PDF-';
 
-  /// A PDF's text, or null when it has none: scanned, or damaged.
+  /// A PDF's text, or null when it has none: scanned, damaged, or still not
+  /// read after 30 seconds (a hostile or huge one, #389).
   Future<String?> _pdfText(List<int> bytes) async {
     try {
-      final text = await widget.session.readPdf(Uint8List.fromList(bytes));
+      final text = await widget.session
+          .readPdf(Uint8List.fromList(bytes))
+          .timeout(const Duration(seconds: 30));
       return text.trim().isEmpty ? null : text;
     } on Object {
       return null;
