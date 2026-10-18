@@ -7,13 +7,16 @@ import 'dart:typed_data';
 import 'package:pdfrx/pdfrx.dart';
 
 // coverage:ignore-start
-/// Every page's text, pages apart by a blank line; throws on a damaged file.
-Future<String> nativePdfText(Uint8List bytes) async {
+/// The text of the first [maxPages] pages, apart by a blank line; throws on a
+/// damaged file. PDFium runs in pdfrx's own worker, off the UI isolate.
+Future<String> nativePdfText(Uint8List bytes, {int maxPages = 200}) async {
   await pdfrxFlutterInitialize();
   final document = await PdfDocument.openData(bytes);
   try {
-    return [for (final page in document.pages) (await page.loadText())?.fullText ?? '']
-        .join('\n\n');
+    // What goes to the model is cut far shorter anyway (#389).
+    return [
+      for (final page in document.pages.take(maxPages)) (await page.loadText())?.fullText ?? '',
+    ].join('\n\n');
   } finally {
     await document.dispose();
   }

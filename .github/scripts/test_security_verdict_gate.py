@@ -79,6 +79,23 @@ for name, got, want in [
     failures += got != want
     print(f"{'ok  ' if got == want else 'FAIL'} {name}: got {got!r}, want {want!r}")
 
+# A gate reads only its own run's comment (#385): an older run's verdict, for
+# an earlier head, must not stand in for a pass that never finished.
+def in_run(run, verdict, line="SECURITY-VERDICT"):
+    link = f"**Claude finished @owner's task in 2m** —— [View job](https://github.com/o/r/actions/runs/{run})\n"
+    return (BOT, link + f"findings\n\n{line}: {verdict}")
+
+
+for name, got, want in [
+    ("the security gate takes its own run's verdict", latest_verdict([in_run(1, "CLEAN"), in_run(2, "CRITICAL")], run_id="2"), "CRITICAL"),
+    ("an older run's CLEAN is not this run's", latest_verdict([in_run(1, "CLEAN")], run_id="2"), None),
+    ("a run id is a whole number, not a prefix", latest_verdict([in_run(21, "CLEAN")], run_id="2"), None),
+    ("the review gate too", review_verdict([in_run(1, "CLEAN", "REVIEW-VERDICT")], run_id="2"), None),
+    ("without a run id, as before", latest_verdict([in_run(1, "WARNING")]), "WARNING"),
+]:
+    failures += got != want
+    print(f"{'ok  ' if got == want else 'FAIL'} {name}: got {got!r}, want {want!r}")
+
 for verdict, code in [("CRITICAL", 1), ("WARNING", 0), ("CLEAN", 0), (None, 1)]:
     got, message = decide(verdict)
     ok = got == code and message

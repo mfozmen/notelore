@@ -216,6 +216,14 @@ void main() {
         await why(Uri.parse('https://nowhere.example/'), client, resolve: unknown),
         contains('could not be found'),
       );
+      // A redirect to an address that is not one says so, and fails nothing else (#389).
+      final garbled = MockClient(
+        (_) async => http.Response('', 302, headers: {'location': 'http://[bad'}),
+      );
+      expect(
+        await why(Uri.parse('https://public.example/'), garbled, resolve: resolve),
+        contains('not a web address'),
+      );
       // A redirect without a place to go is the answer as it is, not a crash.
       final nowhere = MockClient((_) async => http.Response('', 302));
       expect(

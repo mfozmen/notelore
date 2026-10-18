@@ -420,6 +420,9 @@ class FakeShare extends SharePlatform with MockPlatformInterfaceMixin {
 class FakeFileSelector extends FileSelectorPlatform with MockPlatformInterfaceMixin {
   /// Picked by the open dialog; none means it was called off.
   var picked = <XFile>[];
+
+  /// When set, the open dialog stays up until it completes.
+  Completer<void>? hold;
   String? saveAt;
   String? folder;
   final suggested = <String?>[];
@@ -432,6 +435,7 @@ class FakeFileSelector extends FileSelectorPlatform with MockPlatformInterfaceMi
     String? confirmButtonText,
   }) async {
     groups.add(acceptedTypeGroups);
+    await hold?.future;
     return picked;
   }
 

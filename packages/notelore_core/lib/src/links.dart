@@ -105,6 +105,8 @@ Future<({List<int> bytes, String type, bool cut})> _download(
     return (bytes: bytes, type: type, cut: false);
   } on http.ClientException catch (error) {
     throw LinkUnreadable(error.message);
+  } on FormatException {
+    throw const LinkUnreadable('a redirect led to something that is not a web address'); // #389
   } on TimeoutException {
     throw const LinkUnreadable('the site did not answer in time');
   }

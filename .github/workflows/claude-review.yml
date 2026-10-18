@@ -63,6 +63,21 @@ jobs:
             exit 1
           fi
 
+      # The scripts that steer and gate the review come from main, never from
+      # the PR under review: a PR must not rewrite its own gate, nor write
+      # GITHUB_ENV for the step that holds the Claude token (#313). Checked
+      # out first and moved out of the workspace, so nothing the PR commits
+      # (a symlink at that path) meets this checkout, and the reviewer never
+      # sees main's copies beside the PR's files (#385).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .trusted
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - name: Keep main's scripts outside the workspace
+        run: mv .trusted "$RUNNER_TEMP/trusted"
+
       # A comment-triggered run starts from main; check out the PR head so the
       # reviewer reads the PR's files, not main's.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -70,16 +85,6 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ github.event_name == 'issue_comment' && format('refs/pull/{0}/head', github.event.issue.number) || '' }}
-
-      # The scripts that steer and gate the review come from main, never from
-      # the PR under review: a PR must not rewrite its own gate, nor write
-      # GITHUB_ENV for the step that holds the Claude token (#313).
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          ref: ${{ github.event.repository.default_branch }}
-          path: .trusted
-          sparse-checkout: .github/scripts
-          persist-credentials: false
 
       # What to review: only the commits since the reviewer's last finished
       # comment (its REVIEWED-HEAD line). Falls back to the whole PR on a first
@@ -89,7 +94,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
-        run: python3 .trusted/.github/scripts/review_range.py
+        run: python3 "$RUNNER_TEMP/trusted/.github/scripts/review_range.py"
 
       - name: Claude review
         id: review
@@ -235,7 +240,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
-        run: python3 .trusted/.github/scripts/review_verdict_gate.py
+        run: python3 "$RUNNER_TEMP/trusted/.github/scripts/review_verdict_gate.py"
 
   # A second pass, only when the PR touches what an attacker would aim at:
   # auth, providers, sync, the app lock, the updater, platform manifests,
@@ -256,10 +261,19 @@ jobs:
       issues: write
       actions: read
     steps:
-      # Only `pull_request` runs this job, and there the workflow file itself
-      # comes from the PR (a same-repo branch), so the PR's own scripts add no
-      # trust beyond it. The comment path above, which runs main's workflow,
-      # is the one that must not run PR code (#313).
+      # main's scripts, as in the code review: a PR cannot edit them to skip
+      # its own security pass, and they are still there after the review
+      # action checks out the PR's head branch (it does; a branch cut before
+      # the scripts existed had no gate to run, #385).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .trusted
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - name: Keep main's scripts outside the workspace
+        run: mv .trusted "$RUNNER_TEMP/trusted"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
@@ -267,7 +281,7 @@ jobs:
 
       - name: Sensitive paths
         id: paths
-        run: python3 .github/scripts/sensitive_paths.py
+        run: python3 "$RUNNER_TEMP/trusted/.github/scripts/sensitive_paths.py"
 
       - name: Security pass
         id: security
@@ -335,4 +349,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: python3 .github/scripts/security_verdict_gate.py
+        run: python3 "$RUNNER_TEMP/trusted/.github/scripts/security_verdict_gate.py"
