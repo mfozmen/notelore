@@ -164,6 +164,49 @@ NEW_PROJECTS = [
     ("tr", "Yeni bir proje başlatıyorum: bahçede arı kovanı, iki kovanla.", r"^projects/[^/]*(ari|kovan)[^/]*\.md$", None),
 ]
 
+# A list with no note yet, while other lists are there (v3): a new note named
+# for its kind, never another list. (lang, message, note path pattern, item).
+NEW_LISTS = [
+    ("en", "Album to listen to: Blue by Joni Mitchell.", r"^topics/[^/]*album[^/]*\.md$", "Blue"),
+    ("en", "Wine to try: a Georgian Saperavi.", r"^topics/[^/]*wine[^/]*\.md$", "Saperavi"),
+    ("en", "Hiking trail idea: the Lycian Way, first stage.", r"^topics/[^/]*(hik|trail)[^/]*\.md$", "Lycian"),
+    ("en", "Course to take: an evening pottery class.", r"^topics/[^/]*(course|class)[^/]*\.md$", "pottery"),
+    ("en", "Series to watch: Slow Horses.", r"^topics/[^/]*(series|show)[^/]*\.md$", "Slow Horses"),
+    ("en", "Houseplant I'd like to get: a fiddle-leaf fig.", r"^topics/[^/]*plant[^/]*\.md$", "fig"),
+    ("tr", "İzlenecek dizi: Bir Başkadır.", r"^topics/[^/]*dizi[^/]*\.md$", "Bir Başkadır"),
+    ("tr", "Denenecek şarap: bir Öküzgözü.", r"^topics/[^/]*sarap[^/]*\.md$", "Öküzgözü"),
+    ("tr", "Yürüyüş rotası fikri: Likya Yolu'nun ilk etabı.", r"^topics/[^/]*(yuruyus|rota)[^/]*\.md$", "Likya"),
+    ("tr", "Almak istediğim bitki: bir paşa kılıcı.", r"^topics/[^/]*bitki[^/]*\.md$", "paşa kılıcı"),
+    ("tr", "Katılmak istediğim kurs: seramik atölyesi.", r"^topics/[^/]*kurs[^/]*\.md$", "seramik"),
+    ("tr", "Dinlenecek podcast: Medyascope.", r"^topics/[^/]*podcast[^/]*\.md$", "Medyascope"),
+]
+
+# Two lists of one kind (v3): what is read now and what is for later; the
+# sentence says which. (lang, now title, later title, [(message, now?, item)]).
+TWIN_LISTS = [
+    ("en", "Books on My Nightstand", "Books for Later", [
+        ("I just started The Name of the Wind.", True, "Name of the Wind"),
+        ("Reading Never Let Me Go at the moment.", True, "Never Let Me Go"),
+        ("Someday I'd like to read Middlemarch.", False, "Middlemarch"),
+        ("A friend recommended Pachinko, I'll read it later.", False, "Pachinko"),
+    ]),
+    ("tr", "Şu An Okuduklarım", "Sonra Okunacaklar", [
+        ("Bugün Puslu Kıtalar Atlası'na başladım.", True, "Puslu Kıtalar Atlası"),
+        ("Şu sıralar Yaban'ı okuyorum.", True, "Yaban"),
+        ("İleride Çalıkuşu'nu okumak istiyorum.", False, "Çalıkuşu"),
+        ("Bir arkadaşım Huzur'u önerdi, sonra okuyacağım.", False, "Huzur"),
+    ]),
+]
+
+# Too vague to file (v3): the answer is a question, and no note changes.
+UNCLEAR = [
+    ("en", "Put this in the note."), ("tr", "Şunu da ekle."), ("en", "Save it there."),
+    ("en", "Write that down for the project."), ("en", "Change it to the other one."),
+    ("en", "Add the thing we talked about."), ("en", "Mark it as done."),
+    ("tr", "Onu da projeye yaz."), ("tr", "Diğerini seçtik, onu kaydet."),
+    ("tr", "Bunu bir yere yaz."), ("tr", "Onu bitirdim, işaretle."), ("tr", "Şunu güncelle."),
+]
+
 # Other notes every case's workspace gets beside its own, like the eval's shared notes.
 DISTRACTORS = 4
 
@@ -177,8 +220,9 @@ def cases(rng):
     for lang, title, first, items, templates in COLLECTIONS:
         p = path("topic", title)
         notes = {p: note(title, "topic", lang, notes=[first])}
-        for i, item in enumerate(items):
-            for j, template in enumerate(rng.sample(templates, 2)):
+        for i, item in enumerate(rng.sample(items, 3)):
+            # One sentence an item: lists were over half of v2's turns, and it overfit on them.
+            for j, template in enumerate(rng.sample(templates, 1)):
                 add(f"coll-{slug(title)}-{i}-{j}", "collection", lang, notes, template.format(x=item),
                     {"notes": {f"^{re.escape(p)}$": [item.split(" — ")[0]]}})
         add(f"q-{slug(title)}", "question", lang, notes,
@@ -215,8 +259,15 @@ def cases(rng):
 
     for i, (lang, msg) in enumerate([("en", "ok, thank you"), ("tr", "sağ ol"), ("en", "great, thanks a lot"), ("tr", "tamamdır, teşekkür ederim")]):
         add(f"chat-{i}", "chat", lang, {}, msg, {})
-    for i, (lang, msg) in enumerate([("en", "Put this in the note."), ("tr", "Şunu da ekle."), ("en", "Save it there.")]):
+    for i, (lang, msg) in enumerate(UNCLEAR):
         add(f"unclear-{i}", "unclear", lang, {}, msg, {"answer": ["?"]})
+    for i, (lang, msg, pattern, item) in enumerate(NEW_LISTS):
+        add(f"newlist-{i}", "collection", lang, {}, msg, {"tools": ["create_note"], "notes": {pattern: [item]}})
+    for lang, now, later, messages in TWIN_LISTS:
+        notes = {path("topic", t): note(t, "topic", lang) for t in (now, later)}
+        for i, (msg, is_now, item) in enumerate(messages):
+            p = path("topic", now if is_now else later)
+            add(f"twin-{slug(now)}-{i}", "collection", lang, notes, msg, {"notes": {f"^{re.escape(p)}$": [item]}})
     for i, (lang, msg, pattern, word) in enumerate(NEW_PROJECTS):
         add(f"new-{i}", "new-note", lang, {}, msg, {"tools": ["create_note"], "notes": {pattern: [word] if word else []}})
 
@@ -224,7 +275,9 @@ def cases(rng):
     # right note, not by writing to the only one there (v1 learned that).
     pool = {p: text for case in out for p, text in case["notes"].items()}
     for case in out:
-        others = sorted(p for p in pool if p not in case["notes"])
+        # Never a note the case expects: a new list stays new, a choice stays one.
+        expected = [re.compile(pattern) for pattern in case["expect"].get("notes", {})]
+        others = sorted(p for p in pool if p not in case["notes"] and not any(e.search(p) for e in expected))
         case["notes"].update({p: pool[p] for p in rng.sample(others, DISTRACTORS)})
     return out
 
@@ -248,8 +301,9 @@ def main(argv):
     for case in generated:
         for pattern in case["expect"].get("notes", {}):
             matching = sum(bool(re.search(pattern, p)) for p in case["notes"])
-            # A new note must not be there yet; any other case names exactly one note.
-            assert matching == (0 if case["kind"] == "new-note" else 1), case["id"]
+            # A new note or list must not be there yet; any other case names exactly one note.
+            new = case["kind"] == "new-note" or case["id"].startswith("newlist-")
+            assert matching == (0 if new else 1), case["id"]
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(generated, ensure_ascii=False, indent=1) + "\n", encoding="utf-8", newline="\n")
     print(f"{len(generated)} scenarios -> {out}")
