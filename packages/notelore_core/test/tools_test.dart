@@ -41,6 +41,7 @@ void main() {
       'add_note_entry',
       'add_todo',
       'complete_todo',
+      'add_reminder',
       'record_decision',
       'get_decision',
       'decision_history',
@@ -83,6 +84,29 @@ void main() {
     final text = call('read_note', {'slug': 'sirket'})! as String;
     expect(text, startsWith('---\ntitle: Şirket\n'));
     expect(text, contains('## Kararlar'));
+  });
+
+  test('reminders: a day, or a day and a time (#430)', () {
+    call('create_note', {'kind': 'topic', 'title': 'Health'});
+    expect(
+      call('add_reminder', {'slug': 'health', 'at': '2026-10-20 10:00', 'text': 'Dentist'}),
+      'ok',
+    );
+    expect(call('add_reminder', {'slug': 'health', 'at': '2026-10-27', 'text': 'Call back'}), 'ok');
+    expect(
+      call('read_note', {'slug': 'health'}),
+      endsWith('## Reminders\n- 2026-10-20 10:00: Dentist\n- 2026-10-27: Call back\n'),
+    );
+    for (final at in ['tomorrow', '2026-10-20T10:00', '2026-02-30']) {
+      expect(
+        call('add_reminder', {'slug': 'health', 'at': at, 'text': 'x'}),
+        "Error: at must be YYYY-MM-DD or YYYY-MM-DD HH:MM, got '$at'.",
+      );
+    }
+    expect(
+      call('add_reminder', {'slug': 'health', 'at': '2026-10-20 25:00', 'text': 'x'}),
+      'Error: a reminder time is HH:MM, 00:00 to 23:59 (got 25:00)',
+    );
   });
 
   test('entries, todos and decisions', () {

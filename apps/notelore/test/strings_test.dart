@@ -322,6 +322,7 @@ void main() {
       'earlierDecisions': s.earlierDecisions(2),
       'supersededOn': s.supersededOn('d'),
       'overdue': s.overdue('d'),
+      'reminderPassed': s.reminderPassed('d'),
       'months': s.months.join(),
       'entriesFrom': s.entriesFrom('t'),
       'archiveEmpty': s.archiveEmpty,

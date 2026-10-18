@@ -211,6 +211,7 @@ void main() {
       expect(readNote(path).meta['created'], localToday());
       addEntry(path, 'e');
       addTodo(path, 't');
+      addReminder(path, 'r', d(2026, 11, 1));
       recordDecision(path, 'db', 'x');
       final note = readNote(path);
       expect(note.section('notes')!.entries.first, Entry(localToday(), 'e'));
@@ -266,6 +267,29 @@ void main() {
       );
       expect(() => completeTodo(path, 3, today: today), throwsA(isA<RangeError>()));
       expect(() => completeTodo(path, 0, today: today), throwsA(isA<RangeError>()));
+    });
+
+    test('reminders get their own section at the end, once (#430)', () {
+      final path = createNote(root, 'project', 'Mopsos', today: today);
+      addReminder(path, 'Renew the domain', d(2026, 11, 1), time: '09:00', today: today);
+      addReminder(path, '  Pay the hosting  ', d(2026, 11, 2), today: today);
+      expect(
+        read(path),
+        endsWith(
+          '## Todo\n\n## Reminders\n'
+          '- 2026-11-01 09:00: Renew the domain\n- 2026-11-02: Pay the hosting\n',
+        ),
+      );
+      final turkish = createNote(root, 'topic', 'Diş', lang: 'tr', today: today);
+      addReminder(turkish, 'Dişçi randevusu', d(2026, 10, 20), time: '10:00', today: today);
+      expect(read(turkish), endsWith('## Hatırlatıcılar\n- 2026-10-20 10:00: Dişçi randevusu\n'));
+      for (final time in ['9:00', '24:00', '10:60', 'noon']) {
+        expect(
+          () => addReminder(path, 'x', d(2026, 11, 3), time: time, today: today),
+          throwsA(isA<ArgumentError>()),
+          reason: time,
+        );
+      }
     });
 
     test('identical todos are completed by position', () {

@@ -409,7 +409,7 @@ class NoteIndex {
           if (entry.superseded case final day?) isoDate(day) else null,
         ]);
         body = '${entry.topic}: ${entry.text}';
-      case Entry(:final text) || Todo(:final text):
+      case Entry(:final text) || Todo(:final text) || Reminder(:final text):
         body = text;
     }
     final superseded = entry is Decision && entry.superseded != null;

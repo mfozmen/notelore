@@ -64,6 +64,7 @@ Known sections have a canonical key and localized headings from `i18n.dart`. The
 | `decisions` | `## Decisions` | `## Kararlar` |
 | `notes` | `## Notes` | `## Notlar` |
 | `todo` | `## Todo` | `## Yapılacaklar` |
+| `reminders` | `## Reminders` | `## Hatırlatıcılar` |
 
 Unknown sections (a human added `## Links` by hand) are preserved verbatim and never touched by code.
 
@@ -92,6 +93,15 @@ Text can wrap to indented continuation lines. The LLM writes a clean, self-conta
 - [ ] <date>: <text>          # date = due date if given, otherwise creation date
 - [x] <date>: <text>
 ```
+
+### Reminder entries
+
+```
+- <date>: <text>
+- <date> <HH:MM>: <text>      # a time of day, 24-hour, local time
+```
+
+A new note has Decisions, Notes and Todo; the Reminders section is added at the end of the file with its first reminder (`add_reminder`). The app turns reminders into notifications. A reminder whose time is not a real one (`25:00`, `9:30`) is kept verbatim like any other unparsable line.
 
 ### Parser guarantees
 

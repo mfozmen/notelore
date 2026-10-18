@@ -1,4 +1,58 @@
 {
+ "hatirlaticilar.md": {
+  "meta": {
+   "title": "Diş Tedavisi",
+   "kind": "topic",
+   "created": {
+    "date": "2026-10-05"
+   },
+   "updated": {
+    "date": "2026-10-19"
+   },
+   "tags": [
+    "sağlık"
+   ]
+  },
+  "heading": "Diş Tedavisi",
+  "preamble": [
+   ""
+  ],
+  "sections": [
+   {
+    "heading": "Notlar",
+    "key": "notes",
+    "entries": [
+     {
+      "type": "entry",
+      "date": "2026-10-05",
+      "text": "Sol alt dişte dolgu gerekiyor."
+     },
+     {
+      "type": "raw",
+      "text": ""
+     }
+    ]
+   },
+   {
+    "heading": "Hatırlatıcılar",
+    "key": "reminders",
+    "entries": [
+     {
+      "type": "reminder",
+      "date": "2026-10-20",
+      "time": "10:00",
+      "text": "Dişçi randevusu"
+     },
+     {
+      "type": "reminder",
+      "date": "2026-10-27",
+      "time": null,
+      "text": "Kontrol için arayıp gün al"
+     }
+    ]
+   }
+  ]
+ },
  "mopsos.md": {
   "meta": {
    "title": "Mopsos",
@@ -173,6 +227,66 @@
       "date": "2026-10-01",
       "text": "Replace the failing fan\n  (the rear one, 120 mm)",
       "done": false
+     }
+    ]
+   }
+  ]
+ },
+ "reminders.md": {
+  "meta": {
+   "title": "Passport Renewal",
+   "kind": "topic",
+   "created": {
+    "date": "2026-10-01"
+   },
+   "updated": {
+    "date": "2026-10-19"
+   },
+   "tags": []
+  },
+  "heading": "Passport Renewal",
+  "preamble": [
+   ""
+  ],
+  "sections": [
+   {
+    "heading": "Notes",
+    "key": "notes",
+    "entries": [
+     {
+      "type": "entry",
+      "date": "2026-10-01",
+      "text": "The old passport expires in December."
+     },
+     {
+      "type": "raw",
+      "text": ""
+     }
+    ]
+   },
+   {
+    "heading": "Reminders",
+    "key": "reminders",
+    "entries": [
+     {
+      "type": "reminder",
+      "date": "2026-10-21",
+      "time": null,
+      "text": "Book the photo appointment"
+     },
+     {
+      "type": "reminder",
+      "date": "2026-11-03",
+      "time": "09:30",
+      "text": "Passport office, bring the old passport\n  and two photos."
+     },
+     {
+      "type": "raw",
+      "text": "- 2026-11-03 25:00: an impossible time stays as written"
+     },
+     {
+      "type": "raw",
+      "text": "- someday: no date, kept verbatim"
      }
     ]
    }

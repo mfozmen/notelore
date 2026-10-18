@@ -295,6 +295,7 @@ abstract class Strings {
   String earlierDecisions(int count);
   String supersededOn(String date);
   String overdue(String date);
+  String reminderPassed(String date);
 
   /// The months, short, January first.
   List<String> get months;
@@ -926,6 +927,8 @@ class EnglishStrings extends Strings {
   String supersededOn(String date) => 'superseded $date';
   @override
   String overdue(String date) => 'Overdue, $date';
+  @override
+  String reminderPassed(String date) => 'Passed, $date';
   @override
   List<String> get months => const [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', //
@@ -1661,6 +1664,8 @@ class TurkishStrings extends Strings {
   String supersededOn(String date) => '$date tarihinde değişti';
   @override
   String overdue(String date) => 'Gecikti, $date';
+  @override
+  String reminderPassed(String date) => 'Geçti, $date';
   @override
   List<String> get months => const [
     'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara', //

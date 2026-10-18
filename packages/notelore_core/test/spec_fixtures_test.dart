@@ -9,8 +9,10 @@ void main() {
 
   test('the shared fixtures are all there', () {
     expect(fixtures.keys, [
+      'hatirlaticilar.md',
       'mopsos.md',
       'multiline-and-loose-lines.md',
+      'reminders.md',
       'simple.crlf.md',
       'turkish.md',
       'unknown-and-empty-sections.md',

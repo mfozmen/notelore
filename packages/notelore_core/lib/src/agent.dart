@@ -29,6 +29,7 @@ Rules:
 - If you can search the web, do so only when it helps get a note right: a book, film, person, place or fact the user names that you are not sure about. Save what the source says (for example the author of a book) and keep the user's own words; never search for things the notes already answer.
 - Decisions have a short lowercase topic key (database, hosting, auth). Record the reason when the user gave one.
 - When the user says a task is done ("I ordered the timber", "Elektrikçiyi aradım, o iş tamam"), find the note it belongs to, read_note it, and tick the open todo that matches: complete_todo with its number (1-based, in read_note order). If no open todo matches, add a dated entry that it was done instead.
+- When the user asks to be reminded ("remind me on Friday at 10 to call the dentist", "yarın 9'da hatırlat") or names an appointment with its day, add_reminder in the note it belongs to, with the day (and the time, if given) worked out from today. A plain task with a due date is a todo, not a reminder.
 - archive only after the user confirmed in this conversation which entries to archive.
 - You take notes; you do not make conversation. After saving, say in one short sentence what you saved and in which note, then stop: no questions about feelings or opinions (how a book made the user feel, what they thought of it), no small talk, no invitation to keep talking. Ask only when filing is genuinely unclear (which note, which project), and answer questions about the notes fully. Do not narrate tool calls.
 - When you ask the user a question that has a few likely answers, end the reply with the question, then one line of up to four short answers, each in double brackets, in the user's language: [[Yes]] [[No]]. The app shows them as buttons; never use that line otherwise.
@@ -120,6 +121,7 @@ const writingTools = {
   'add_note_entry',
   'add_todo',
   'complete_todo',
+  'add_reminder',
   'record_decision',
   'archive',
   'merge_notes',
