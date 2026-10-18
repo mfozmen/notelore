@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
+import 'package:notelore/src/mark.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/settings.dart';
 import 'package:notelore/src/strings.dart';
@@ -126,6 +127,8 @@ void main() {
     await pumpApp(tester, Harness(auth: auth));
     // A welcome first (#296): who we are, what it does, why Google.
     expect(find.text('Welcome to Notelore'), findsOneWidget);
+    expect(find.byType(NoteloreMark), findsOneWidget); // its own mark (#340)
+    expect(find.bySemanticsLabel('Notelore'), findsWidgets);
     expect(find.textContaining('your own Google Drive'), findsOneWidget);
     expect(find.textContaining('only see the files it creates'), findsOneWidget);
     expect(find.textContaining('Google (Gmail) account'), findsOneWidget);
@@ -1051,6 +1054,7 @@ void main() {
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));
     await tester.pumpAndSettle();
     expect(find.text('Notelore · development build'), findsOneWidget); // no release version
+    expect(find.byType(NoteloreMark), findsOneWidget); // About wears the mark (#340)
     // A release build names its version.
     await tester.pumpWidget(MaterialApp(home: SettingsScreen(session, version: '0.7.0')));
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));

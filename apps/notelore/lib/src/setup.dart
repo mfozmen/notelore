@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'mark.dart';
 import 'session.dart';
 import 'strings.dart';
 import 'theme.dart';
@@ -455,12 +456,7 @@ class _Welcome extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(color: colors.primaryContainer, shape: BoxShape.circle),
-          child: Icon(Icons.edit_note, size: 40, color: colors.onPrimaryContainer),
-        ),
+        const NoteloreMark(),
         const SizedBox(height: Gap.l),
         Text(
           strings.welcomeTitle,
