@@ -13,6 +13,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'awake_native.dart';
+
 const _clientId = String.fromEnvironment('NOTELORE_GOOGLE_CLIENT_ID');
 const _clientSecret = String.fromEnvironment('NOTELORE_GOOGLE_CLIENT_SECRET');
 const _webClientId = String.fromEnvironment('NOTELORE_GOOGLE_WEB_CLIENT_ID');
@@ -42,14 +44,16 @@ DriveAuth? driveAuthFor({
 
 /// The ChatGPT plan's sign-in: OpenAI's loopback redirect for local apps, on
 /// 127.0.0.1 of this device. A phone opens the page inside the app (a custom
-/// tab), so the app stays awake to hear the answer.
+/// tab), and is held [awake] meanwhile: Android freezes an app in the
+/// background, and a frozen app never hears the answer (#409).
 OAuthSignIn chatGptAuthFor({
   required bool mobile,
   required FlutterSecureStorage keys,
   required String keySpace,
+  Awake? awake,
 }) {
   String name(String item) => '$keySpace.chatgpt.$item';
-  return ChatGptAuth(
+  final auth = ChatGptAuth(
     openBrowser: (url) =>
         launchUrl(url, mode: mobile ? LaunchMode.inAppBrowserView : LaunchMode.externalApplication),
     read: (item) => keys.read(key: name(item)),
@@ -60,6 +64,41 @@ OAuthSignIn chatGptAuthFor({
     returnTo: mobile ? Uri.parse('notelore://signed-in') : null,
     backInApp: mobile ? _inFront : null,
   );
+  return mobile ? AwakeSignIn(auth, awake ?? const NativeAwake()) : auth;
+}
+
+/// Keeps the app running, out of the system's freezer, while held.
+abstract interface class Awake {
+  Future<void> hold();
+  Future<void> release();
+}
+
+/// [inner], held [awake] for as long as an interactive sign-in runs, and let
+/// go however it ends.
+class AwakeSignIn implements OAuthSignIn {
+  AwakeSignIn(this.inner, this.awake);
+
+  final OAuthSignIn inner;
+  final Awake awake;
+
+  @override
+  Future<void> signIn() async {
+    await awake.hold();
+    try {
+      await inner.signIn();
+    } finally {
+      await awake.release();
+    }
+  }
+
+  @override
+  Future<bool> signedIn() => inner.signedIn();
+
+  @override
+  Future<String> token({bool refresh = false}) => inner.token(refresh: refresh);
+
+  @override
+  Future<void> signOut() => inner.signOut();
 }
 
 /// Completes once the app is in front: at once if it already is.
