@@ -1101,13 +1101,13 @@ void main() {
       expect(section(name), findsOneWidget, reason: name);
     }
     // The model first, alone.
-    expect(find.text('Provider'), findsOneWidget);
+    expect(find.text('Connected models'), findsOneWidget);
     expect(find.text('Language'), findsNothing);
 
     await tester.tap(section('Appearance'));
     await tester.pumpAndSettle();
     expect(find.text('Language'), findsOneWidget);
-    expect(find.text('Provider'), findsNothing);
+    expect(find.text('Connected models'), findsNothing);
 
     await tester.tap(section('Voice'));
     await tester.pumpAndSettle();
@@ -1590,7 +1590,7 @@ void main() {
     await connect(tester, key: 'k');
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    expect(find.text('Claude (Anthropic) · API key'), findsOneWidget);
+    expect(find.byKey(const ValueKey('connection-anthropic')), findsOneWidget);
     // The model is picked from the list, never typed: nothing to save by hand.
     final picker = tester.widget<DropdownMenu<String?>>(find.byKey(const Key('model')));
     expect(picker.requestFocusOnTap, isFalse);

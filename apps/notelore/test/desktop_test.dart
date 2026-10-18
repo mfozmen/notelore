@@ -60,7 +60,7 @@ void main() {
     expect(find.text('Notelore'), findsOneWidget);
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    expect(find.text('Provider'), findsOneWidget);
+    expect(find.text('Connected models'), findsOneWidget);
 
     desktop(tester, 1000); // narrower: icons only
     await tester.pumpAndSettle();
