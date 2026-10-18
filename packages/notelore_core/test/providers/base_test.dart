@@ -73,7 +73,6 @@ void main() {
       'API key',
       'On this computer',
     ]);
-    expect(ProviderGroup.apiKey.explanation, contains('per use'));
     // What each one costs, so nobody is surprised by a bill (#95).
     expect(findProvider('anthropic').cost, contains('Pro or Max subscription cannot'));
     expect(findProvider('openai').cost, contains('per use'));

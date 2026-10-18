@@ -15,16 +15,15 @@ typedef Block = Map<String, Object?>;
 /// A message: `{"role": "user" | "assistant", "content": String | List<Block>}`.
 typedef Message = Map<String, Object?>;
 
-/// How a provider is paid for; the setup screen groups providers by it.
+/// How a provider is paid for, shown under its name in Settings.
 enum ProviderGroup {
-  plan('Use your plan', "No extra charges, within your plan's limits."),
-  apiKey('API key', 'Billed per use by the provider; Gemini has a free tier.'),
-  local('On this computer', 'Free: the model runs here.');
+  plan('Use your plan'),
+  apiKey('API key'),
+  local('On this computer');
 
-  const ProviderGroup(this.heading, this.explanation);
+  const ProviderGroup(this.heading);
 
   final String heading;
-  final String explanation;
 }
 
 final class ProviderSpec {

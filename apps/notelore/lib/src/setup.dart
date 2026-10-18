@@ -38,6 +38,9 @@ const _cardTop = 96.0;
 class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObserver {
   late ProviderSpec _spec = widget.session.providers.first;
   var _step = _Step.choose;
+
+  /// The options already connected on this device, marked on their cards.
+  var _connected = const <String>{};
   final _key = TextEditingController();
   final _keyFocus = FocusNode();
 
@@ -65,6 +68,11 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    unawaited(
+      widget.session.connections().then((specs) {
+        if (mounted) setState(() => _connected = {for (final spec in specs) spec.name});
+      }),
+    );
   }
 
   @override
@@ -107,12 +115,6 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     });
     unawaited(launchUrl(Uri.parse(gemini.keyUrl!), mode: LaunchMode.externalApplication));
   }
-
-  /// The providers that take a key or run on this computer.
-  List<Widget> get _advanced => [
-    _ProviderGroup(widget.session, ProviderGroup.apiKey),
-    _ProviderGroup(widget.session, ProviderGroup.local),
-  ];
 
   Future<void> _connect() async {
     if (_spec.requiresApiKey && _key.text.trim().isEmpty) {
@@ -273,38 +275,24 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     Text(s.chooseProvider, style: theme.textTheme.headlineSmall),
     const SizedBox(height: Gap.s),
     Text(s.chooseProviderWhy, style: theme.textTheme.bodyLarge?.copyWith(color: muted)),
-    RadioGroup<ProviderSpec>(
-      groupValue: _spec,
-      onChanged: (spec) => setState(() {
-        _spec = spec!;
-        _problem = null;
-        _keyMissing = false;
-        _noPlan = false; // about ChatGPT: gone with another choice
-        _keyRefused = null;
-      }),
-      // Grouped by how they are paid for. The plan, one tap, leads;
-      // keys and local models wait under Advanced (#206). Without a
-      // plan to offer there is nothing to be advanced from: all show.
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _ProviderGroup(widget.session, ProviderGroup.plan),
-          if (widget.session.providers.any((p) => p.group == ProviderGroup.plan))
-            ExpansionTile(
-              title: Text(s.advanced),
-              subtitle: Text(s.advancedExplained(localModels: widget.session.localModels)),
-              tilePadding: const EdgeInsets.only(right: Gap.xs),
-              childrenPadding: EdgeInsets.zero,
-              shape: const Border(), // no rules above and below when open
-              collapsedShape: const Border(),
-              expandedCrossAxisAlignment: CrossAxisAlignment.start,
-              children: _advanced,
-            )
-          else
-            ..._advanced,
-        ],
+    const SizedBox(height: Gap.m),
+    // Every option side by side, each told the same way (#358): nothing hidden.
+    for (final spec in widget.session.providers) ...[
+      _OptionCard(
+        spec: spec,
+        strings: s,
+        chosen: spec == _spec,
+        connected: _connected.contains(spec.name),
+        onTap: () => setState(() {
+          _spec = spec;
+          _problem = null;
+          _keyMissing = false;
+          _noPlan = false; // about ChatGPT: gone with another choice
+          _keyRefused = null;
+        }),
       ),
-    ),
+      const SizedBox(height: Gap.s),
+    ],
   ];
 
   /// The chosen provider: what it costs, how to get its key, the key itself.
@@ -582,47 +570,6 @@ class _NoPlan extends StatelessWidget {
   }
 }
 
-/// One way of paying, with its providers to pick from (inside the screen's
-/// RadioGroup); nothing when this device offers none of them.
-class _ProviderGroup extends StatelessWidget {
-  const _ProviderGroup(this.session, this.group);
-
-  final Session session;
-  final ProviderGroup group;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final s = session.strings;
-    final specs = session.providers.where((p) => p.group == group).toList();
-    if (specs.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(0, Gap.m, Gap.xs, Gap.xs),
-          child: Text(
-            s.groupHeading(group),
-            style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(0, 0, Gap.xs, Gap.s),
-          child: Text(s.groupExplanation(group), style: theme.textTheme.bodySmall),
-        ),
-        Card(
-          child: Column(
-            children: [
-              for (final spec in specs)
-                RadioListTile<ProviderSpec>(value: spec, title: Text(s.providerName(spec))),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 /// The first step of setup (#208): sign in with a Google account, which also
 /// connects Drive. Without one (refused, cancelled, no account) there is no
 /// way on, and the screen says why.
@@ -875,6 +822,90 @@ class _GoogleButton extends StatelessWidget {
           ),
           Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
         ],
+      ),
+    );
+  }
+}
+
+/// One option on the Choose step: what it costs, where the notes go, how good
+/// it is, the effort to set it up and who it suits, the same five lines on
+/// every card. Chosen is told by an icon and the border, never by colour alone.
+class _OptionCard extends StatelessWidget {
+  const _OptionCard({
+    required this.spec,
+    required this.strings,
+    required this.chosen,
+    required this.connected,
+    required this.onTap,
+  });
+
+  final ProviderSpec spec;
+  final Strings strings;
+  final bool chosen;
+  final bool connected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = strings;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final muted = colors.onSurfaceVariant;
+    Widget line(IconData icon, String text) => Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: Gap.s,
+      children: [
+        Icon(icon, size: 18, color: muted),
+        Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
+      ],
+    );
+    return Semantics(
+      key: ValueKey('option-${spec.name}'),
+      inMutuallyExclusiveGroup: true,
+      checked: chosen,
+      child: Card(
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: chosen ? colors.primary : colors.outlineVariant,
+            width: chosen ? 2 : 1,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(Gap.m),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: Gap.s,
+              children: [
+                Row(
+                  spacing: Gap.s,
+                  children: [
+                    Expanded(child: Text(s.providerName(spec), style: theme.textTheme.titleMedium)),
+                    if (connected)
+                      Chip(
+                        label: Text(s.connectedBadge),
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                      ),
+                    Icon(
+                      chosen ? Icons.check_circle : Icons.radio_button_unchecked,
+                      color: chosen ? colors.primary : muted,
+                    ),
+                  ],
+                ),
+                line(Icons.payments_outlined, s.optionCost(spec)),
+                line(Icons.lock_outline, s.optionPrivacy(spec)),
+                line(Icons.auto_awesome_outlined, s.optionQuality(spec)),
+                line(Icons.schedule_outlined, s.optionEffort(spec)),
+                Text(s.optionFit(spec), style: theme.textTheme.bodySmall?.copyWith(color: muted)),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -40,13 +40,22 @@ void main() {
       expect(en.providerName(spec), spec.displayName);
       expect(en.cost(spec), spec.cost);
       expect(en.keySteps(spec), spec.keySteps);
+      // The Choose step's card (#358): five lines, told in each language.
+      for (final line in <String Function(Strings)>[
+        (s) => s.optionCost(spec),
+        (s) => s.optionPrivacy(spec),
+        (s) => s.optionQuality(spec),
+        (s) => s.optionEffort(spec),
+        (s) => s.optionFit(spec),
+      ]) {
+        expect(line(en), isNotEmpty, reason: spec.name);
+        expect(line(tr), isNot(line(en)), reason: spec.name);
+      }
     }
     expect(tr.providerName(findProvider('ollama')), 'Ollama (yerel)');
     for (final group in ProviderGroup.values) {
       expect(tr.groupHeading(group), isNot(group.heading));
-      expect(tr.groupExplanation(group), isNot(group.explanation));
       expect(en.groupHeading(group), group.heading);
-      expect(en.groupExplanation(group), group.explanation);
     }
   });
 
@@ -128,9 +137,7 @@ void main() {
       'nowUsing': s.nowUsing('x'),
       'chooseProviderWhy': s.chooseProviderWhy,
       'openKeyPage': s.openKeyPage('example.com'),
-      'advanced': s.advanced,
-      'advancedExplained': s.advancedExplained(localModels: true),
-      'advancedExplainedPhone': s.advancedExplained(localModels: false),
+      'connectedBadge': s.connectedBadge,
       'apiKey': s.apiKey,
       'pasteKeyFirst': s.pasteKeyFirst,
       'checkConnection': s.checkConnection,

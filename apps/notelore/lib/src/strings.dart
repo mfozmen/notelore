@@ -28,6 +28,12 @@ abstract class Strings {
   String get chooseProvider;
   String stepOf(int step, int of);
   String connectedTo(String name);
+  String optionCost(ProviderSpec spec);
+  String optionPrivacy(ProviderSpec spec);
+  String optionQuality(ProviderSpec spec);
+  String optionEffort(ProviderSpec spec);
+  String optionFit(ProviderSpec spec);
+  String get connectedBadge;
   String get connectedExplained;
   String get start;
 
@@ -38,17 +44,14 @@ abstract class Strings {
   String openKeyPage(String host);
 
   /// Setup's API-key and local providers, under the one-tap plan (#206).
-  String get advanced;
 
   /// A phone has no local models: no word of a computer there (#304).
-  String advancedExplained({required bool localModels});
   String get apiKey;
   String get pasteKeyFirst;
   String get checkConnection;
   String get ollamaNoKey;
   String providerName(ProviderSpec spec);
   String groupHeading(ProviderGroup group);
-  String groupExplanation(ProviderGroup group);
   String cost(ProviderSpec spec);
   List<String> keySteps(ProviderSpec spec);
 
@@ -328,6 +331,49 @@ class EnglishStrings extends Strings {
   @override
   String connectedTo(String name) => 'Connected to $name';
   @override
+  String optionCost(ProviderSpec spec) => switch (spec.name) {
+    'chatgpt' => 'Your ChatGPT Plus or Pro plan, no extra charge',
+    'anthropic' => 'Pay per use, billed by Anthropic',
+    'openai' => 'Pay per use, billed by OpenAI',
+    'gemini' => 'Free tier, or pay per use',
+    _ => 'Free',
+  };
+  @override
+  String optionPrivacy(ProviderSpec spec) => switch (spec.name) {
+    'chatgpt' => 'Your notes go to OpenAI.',
+    'anthropic' => 'Your notes go to Anthropic.',
+    'openai' => 'Your notes go to OpenAI.',
+    'gemini' =>
+      'Your notes go to Google; on the free tier it may use them to improve its products.',
+    _ => 'Your notes stay on this computer.',
+  };
+  @override
+  String optionQuality(ProviderSpec spec) => switch (spec.name) {
+    'anthropic' => 'Very strong answers',
+    'openai' => 'Very strong answers',
+    'chatgpt' => 'Strong answers',
+    'gemini' => 'Strong answers',
+    _ => 'Depends on the model; usually weaker',
+  };
+  @override
+  String optionEffort(ProviderSpec spec) => switch (spec.name) {
+    'chatgpt' => 'One tap: sign in with ChatGPT',
+    'anthropic' => 'A key from the Anthropic Console, with billing set up',
+    'openai' => 'A key from the OpenAI platform, with billing set up',
+    'gemini' => 'A free key from Google AI Studio, about a minute',
+    _ => 'Install Ollama and a model first',
+  };
+  @override
+  String optionFit(ProviderSpec spec) => switch (spec.name) {
+    'chatgpt' => 'You have ChatGPT Plus or Pro',
+    'anthropic' => 'You want the best answers and pay as you go',
+    'openai' => 'You already use the OpenAI API',
+    'gemini' => 'You want to start for free',
+    _ => 'Nothing should leave this computer',
+  };
+  @override
+  String get connectedBadge => 'Connected';
+  @override
   String get connectedExplained =>
       'Notelore will use it to write your notes and answer from them. You can change it in '
       'Settings.';
@@ -338,11 +384,6 @@ class EnglishStrings extends Strings {
       'Notelore uses an AI model to write your notes and answer from them. Pick the one you have.';
   @override
   String openKeyPage(String host) => 'Open $host';
-  @override
-  String get advanced => 'Advanced';
-  @override
-  String advancedExplained({required bool localModels}) =>
-      localModels ? 'Your own API key, or a model on this computer.' : 'Use your own API key.';
   @override
   String get apiKey => 'API key';
   @override
@@ -375,8 +416,6 @@ class EnglishStrings extends Strings {
   String providerName(ProviderSpec spec) => spec.displayName;
   @override
   String groupHeading(ProviderGroup group) => group.heading;
-  @override
-  String groupExplanation(ProviderGroup group) => group.explanation;
   @override
   String cost(ProviderSpec spec) => spec.cost;
   @override
@@ -806,6 +845,48 @@ class TurkishStrings extends Strings {
   @override
   String connectedTo(String name) => '$name bağlandı';
   @override
+  String optionCost(ProviderSpec spec) => switch (spec.name) {
+    'chatgpt' => 'ChatGPT Plus ya da Pro planın, ek ücret yok',
+    'anthropic' => 'Kullandıkça öde, Anthropic faturalar',
+    'openai' => 'Kullandıkça öde, OpenAI faturalar',
+    'gemini' => 'Ücretsiz katman ya da kullandıkça öde',
+    _ => 'Ücretsiz',
+  };
+  @override
+  String optionPrivacy(ProviderSpec spec) => switch (spec.name) {
+    'chatgpt' => "Notların OpenAI'ye gider.",
+    'anthropic' => "Notların Anthropic'e gider.",
+    'openai' => "Notların OpenAI'ye gider.",
+    'gemini' => "Notların Google'a gider; ücretsiz katmanda Google bunları ürünlerini geliştirmek için kullanabilir.",
+    _ => 'Notların bu bilgisayarda kalır.',
+  };
+  @override
+  String optionQuality(ProviderSpec spec) => switch (spec.name) {
+    'anthropic' => 'Çok güçlü cevaplar',
+    'openai' => 'Çok güçlü cevaplar',
+    'chatgpt' => 'Güçlü cevaplar',
+    'gemini' => 'Güçlü cevaplar',
+    _ => 'Modele bağlı; genelde daha zayıf',
+  };
+  @override
+  String optionEffort(ProviderSpec spec) => switch (spec.name) {
+    'chatgpt' => 'Tek dokunuş: ChatGPT ile giriş yap',
+    'anthropic' => "Anthropic Console'dan, faturalandırması açık bir anahtar",
+    'openai' => 'OpenAI platformundan, faturalandırması açık bir anahtar',
+    'gemini' => "Google AI Studio'dan ücretsiz bir anahtar, yaklaşık bir dakika",
+    _ => "Önce Ollama'yı ve bir modeli kur",
+  };
+  @override
+  String optionFit(ProviderSpec spec) => switch (spec.name) {
+    'chatgpt' => "ChatGPT Plus ya da Pro'n varsa",
+    'anthropic' => 'En iyi cevapları istiyor, kullandıkça ödemeye razıysan',
+    'openai' => 'Zaten OpenAI API kullanıyorsan',
+    'gemini' => 'Ücretsiz başlamak istiyorsan',
+    _ => 'Hiçbir şey bu bilgisayardan çıkmasın istiyorsan',
+  };
+  @override
+  String get connectedBadge => 'Bağlı';
+  @override
   String get connectedExplained =>
       'Notelore notlarını yazmak ve onlardan cevap vermek için bunu kullanacak. Ayarlar\'dan '
       'değiştirebilirsin.';
@@ -816,12 +897,6 @@ class TurkishStrings extends Strings {
       'Notelore notlarını yazmak ve onlardan cevap vermek için bir yapay zekâ modeli kullanır. Elinde olanı seç.';
   @override
   String openKeyPage(String host) => '$host adresini aç';
-  @override
-  String get advanced => 'Gelişmiş';
-  @override
-  String advancedExplained({required bool localModels}) => localModels
-      ? 'Kendi API anahtarın ya da bu bilgisayardaki bir model.'
-      : 'Kendi API anahtarını kullan.';
   @override
   String get apiKey => 'API anahtarı';
   @override
@@ -862,13 +937,6 @@ class TurkishStrings extends Strings {
     ProviderGroup.plan => 'Planınla kullan',
     ProviderGroup.apiKey => 'API anahtarı',
     ProviderGroup.local => 'Bu bilgisayarda',
-  };
-  @override
-  String groupExplanation(ProviderGroup group) => switch (group) {
-    ProviderGroup.plan => 'Ek ücret yok, planının limitleri içinde.',
-    ProviderGroup.apiKey =>
-      'Sağlayıcı kullandıkça ücretlendirir; Gemini’nin ücretsiz bir kotası var.',
-    ProviderGroup.local => 'Ücretsiz: model bu bilgisayarda çalışır.',
   };
   @override
   String cost(ProviderSpec spec) => switch (spec.name) {

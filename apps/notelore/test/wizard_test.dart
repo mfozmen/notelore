@@ -116,4 +116,63 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Anthropic rejected the key'), findsNothing);
   });
+
+  testWidgets('Choose: every option on a card, with cost, privacy, quality, effort, fit (#358)', (
+    tester,
+  ) async {
+    phone(tester);
+    await pumpApp(tester, Harness(chatGpt: FakeAuth()));
+    Finder card(String name) => find.byKey(ValueKey('option-$name'));
+    Finder on(String name, String text) =>
+        find.descendant(of: card(name), matching: find.textContaining(text));
+    for (final name in ['chatgpt', 'anthropic', 'openai', 'gemini', 'ollama']) {
+      await tester.scrollUntilVisible(card(name), 200, scrollable: find.byType(Scrollable).first);
+      expect(card(name), findsOneWidget, reason: name);
+    }
+    expect(find.text('Advanced'), findsNothing); // nothing hidden: all side by side
+    await tester.scrollUntilVisible(
+      card('chatgpt'),
+      -200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(on('chatgpt', 'Plus or Pro plan'), findsWidgets);
+    expect(on('chatgpt', 'Your notes go to OpenAI'), findsOneWidget);
+    await tester.scrollUntilVisible(card('ollama'), 200, scrollable: find.byType(Scrollable).first);
+    expect(on('ollama', 'stay on this computer'), findsOneWidget);
+    expect(on('gemini', 'may use them to improve its products'), findsOneWidget);
+    // The choice is marked by an icon, not by colour alone.
+    expect(
+      find.descendant(of: card('ollama'), matching: find.byIcon(Icons.check_circle)),
+      findsNothing,
+    );
+    await tester.tap(card('ollama'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: card('ollama'), matching: find.byIcon(Icons.check_circle)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Choose: what is already connected says so (#358)', (tester) async {
+    phone(tester);
+    final session = await pumpApp(tester, Harness());
+    await tester.tap(find.text('Claude (Anthropic)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('api-key')), 'sk-ant');
+    await tester.tap(find.text('Connect'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start'));
+    await tester.pumpAndSettle();
+    unawaited(ProviderWizard.open(tester.element(find.byKey(const Key('message'))), session));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('option-anthropic')),
+        matching: find.text('Connected'),
+      ),
+      findsOneWidget,
+    );
+  });
 }
