@@ -1706,17 +1706,17 @@ void main() {
     await tester.tap(find.textContaining('Tap to show'));
     await tester.pump();
     expect(tester.widgetList<Image>(find.byType(Image)).map((i) => i.image), [
-      isA<FileImage>(),
       isA<NetworkImage>(),
+      isA<FileImage>(),
     ]);
     expect(find.textContaining('Tap to show'), findsNothing);
     // One that cannot be shown (damaged, unreachable) says so, with its words.
-    final shown = tester.widget<Image>(find.byType(Image).first);
-    final fallback = shown.errorBuilder!(tester.element(find.byType(Image).first), 'bad', null);
+    final shown = tester.widget<Image>(find.byType(Image).last);
+    final fallback = shown.errorBuilder!(tester.element(find.byType(Image).last), 'bad', null);
     // While a remote one comes, the same box turns.
-    final remote = tester.widget<Image>(find.byType(Image).last);
+    final remote = tester.widget<Image>(find.byType(Image).first);
     final coming = remote.loadingBuilder!(
-      tester.element(find.byType(Image).last),
+      tester.element(find.byType(Image).first),
       const SizedBox(),
       const ImageChunkEvent(cumulativeBytesLoaded: 1, expectedTotalBytes: 2),
     );
@@ -1813,7 +1813,7 @@ void main() {
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('Mopsos'), findsOneWidget);
-    expect(find.text('project · updated 2026-09-30'), findsOneWidget);
+    expect(find.text('Project · updated 30 Sep'), findsOneWidget);
     await tester.tap(find.text('Mopsos'));
     await tester.pumpAndSettle();
     expect(find.byType(NoteView), findsOneWidget);

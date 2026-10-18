@@ -111,8 +111,8 @@ void main() {
     );
     expect(tr.synced(0, 0, 0, 0), 'Eşitlendi; değişiklik yok.');
     expect(tr.synced(1, 2, 3, 4), contains('1 gönderildi, 2 alındı, 3 birleştirildi, 4 '));
-    expect(tr.noteSubtitle('project', '2026-10-11'), 'proje · güncelleme 2026-10-11');
-    expect(tr.noteSubtitle('topic', 'x'), startsWith('konu'));
+    expect(tr.noteSubtitle('project', '11 Eki'), 'Proje · güncelleme 11 Eki');
+    expect(tr.noteSubtitle('topic', 'x'), startsWith('Konu'));
     expect(tr.noteSubtitle('other', 'x'), startsWith('other'));
   });
 

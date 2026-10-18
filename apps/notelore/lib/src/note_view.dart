@@ -41,6 +41,7 @@ class NoteView extends StatelessWidget {
         padding: const EdgeInsets.all(Gap.m),
         onTapLink: (_, href, _) => openWebLink(href),
         imageBuilder: _image,
+        styleSheet: _sheet(Theme.of(context)),
       );
     }
     return SelectionArea(
@@ -68,12 +69,18 @@ class NoteView extends StatelessWidget {
   String _date(DateTime date) => strings.shortDate(date, today);
 
   /// Inline Markdown: bold, links and images work in every line.
-  Widget _markdown(String text, {TextStyle? style}) => MarkdownBody(
-    data: text,
-    onTapLink: (_, href, _) => openWebLink(href),
-    imageBuilder: _image,
-    styleSheet: style == null ? null : MarkdownStyleSheet(p: style),
+  Widget _markdown(String text, {TextStyle? style}) => Builder(
+    builder: (context) => MarkdownBody(
+      data: text,
+      onTapLink: (_, href, _) => openWebLink(href),
+      imageBuilder: _image,
+      styleSheet: _sheet(Theme.of(context)).copyWith(p: style),
+    ),
   );
+
+  /// Links in the theme's colour, not the package's blue.
+  static MarkdownStyleSheet _sheet(ThemeData theme) =>
+      MarkdownStyleSheet.fromTheme(theme).copyWith(a: TextStyle(color: theme.colorScheme.primary));
 
   List<Widget> _header(BuildContext context, Note note) {
     final theme = Theme.of(context);
@@ -89,23 +96,29 @@ class NoteView extends StatelessWidget {
         runSpacing: Gap.xs,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.secondaryContainer,
-              borderRadius: BorderRadius.circular(Gap.s),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Gap.s, vertical: Gap.xs / 2),
-              child: Text(
-                strings.noteKind('${note.meta['kind']}'),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSecondaryContainer,
+          if (note.meta['kind'] case final kind?)
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.secondaryContainer,
+                borderRadius: BorderRadius.circular(Gap.s),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Gap.s, vertical: Gap.xs / 2),
+                child: Text(
+                  strings.noteKind('$kind'),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSecondaryContainer,
+                  ),
                 ),
               ),
             ),
+          Text(
+            [
+              if (tags.isNotEmpty) tags.join(' '),
+              if (updated != null) strings.updatedOn(_date(updated)),
+            ].join('  ·  '),
+            style: muted,
           ),
-          if (tags.isNotEmpty) Text(tags.join('  '), style: muted),
-          if (updated != null) Text(strings.updatedOn(_date(updated)), style: muted),
         ],
       ),
     ];
@@ -156,7 +169,7 @@ class NoteView extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: Gap.xs),
-                Text(decision.value, style: theme.textTheme.titleMedium),
+                _markdown(decision.value, style: theme.textTheme.titleMedium),
                 if (decision.reason case final reason?) ...[
                   const SizedBox(height: Gap.xs),
                   _markdown(
@@ -175,6 +188,7 @@ class NoteView extends StatelessWidget {
           tilePadding: EdgeInsets.zero,
           childrenPadding: const EdgeInsets.only(bottom: Gap.s),
           expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          expandedAlignment: Alignment.centerLeft,
           shape: const Border(),
           collapsedShape: const Border(),
           title: Text(strings.earlierDecisions(earlier.length), style: theme.textTheme.bodyMedium),
@@ -182,10 +196,23 @@ class NoteView extends StatelessWidget {
             for (final decision in earlier)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: Gap.xs),
-                child: Text(
-                  '${decision.topic}: ${decision.value}  ·  ${_date(decision.date)}, '
-                  '${strings.supersededOn(_date(decision.superseded!))}',
-                  style: muted?.copyWith(decoration: TextDecoration.lineThrough),
+                child: Text.rich(
+                  TextSpan(
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: '${decision.topic}: ${decision.value}',
+                        style: const TextStyle(decoration: TextDecoration.lineThrough),
+                      ),
+                      TextSpan(
+                        text:
+                            '  ·  ${_date(decision.date)}, '
+                            '${strings.supersededOn(_date(decision.superseded!))}',
+                      ),
+                    ],
+                  ),
                 ),
               ),
           ],
@@ -206,13 +233,14 @@ class NoteView extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Shown, not tapped: no checkbox that looks like a control.
               Icon(
-                todo.done ? Icons.check_box : Icons.check_box_outline_blank,
+                todo.done ? Icons.check_circle : Icons.radio_button_unchecked,
                 size: 20,
-                color: todo.done ? colors.outline : colors.primary,
+                color: todo.done ? colors.outline : colors.onSurfaceVariant,
               ),
               const SizedBox(width: Gap.s),
-              Expanded(
+              Flexible(
                 child: _markdown(
                   todo.text,
                   style: theme.textTheme.bodyMedium?.copyWith(
@@ -229,34 +257,45 @@ class NoteView extends StatelessWidget {
     ];
   }
 
-  /// A late one in the error colour, and said so to a screen reader.
+  /// A late one says so, in words and in the error colour.
   Widget _todoDate(ThemeData theme, Todo todo, {required bool late}) => Text(
-    _date(todo.date),
-    semanticsLabel: late ? strings.overdue(_date(todo.date)) : null,
+    late ? strings.overdue(_date(todo.date)) : _date(todo.date),
     style: theme.textTheme.bodySmall?.copyWith(
       color: late ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
     ),
   );
 
-  /// Newest first, a day's entries under one date, on a rail.
+  /// Newest day first, each day's entries in the order written, on a rail.
+  /// A date carries no year; the year heads its days when it is not this one.
   List<Widget> _notes(BuildContext context, List<Entry> entries) {
     final theme = Theme.of(context);
+    final muted = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     final days = <DateTime, List<Entry>>{};
-    for (final entry in entries.reversed) {
+    for (final entry in entries) {
       days.putIfAbsent(entry.date, () => []).add(entry);
     }
+    final newest = days.entries.toList()..sort((a, b) => b.key.compareTo(a.key));
     return [
-      for (final MapEntry(key: date, value: texts) in days.entries)
+      for (final (index, MapEntry(key: date, value: texts)) in newest.indexed) ...[
+        if (date.year != (index == 0 ? today.year : newest[index - 1].key.year))
+          Padding(
+            padding: const EdgeInsets.only(bottom: Gap.s),
+            child: Text('${date.year}', style: theme.textTheme.labelLarge),
+          ),
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
                 width: 64,
-                child: Text(
-                  _date(date),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                child: Padding(
+                  // On the first line's baseline.
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    strings.shortDate(date, date),
+                    maxLines: 1,
+                    softWrap: false,
+                    style: muted,
                   ),
                 ),
               ),
@@ -264,7 +303,7 @@ class NoteView extends StatelessWidget {
               const SizedBox(width: Gap.s),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.only(bottom: Gap.m),
+                  padding: EdgeInsets.only(bottom: index == newest.length - 1 ? 0 : Gap.m),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -281,6 +320,7 @@ class NoteView extends StatelessWidget {
             ],
           ),
         ),
+      ],
     ];
   }
 }

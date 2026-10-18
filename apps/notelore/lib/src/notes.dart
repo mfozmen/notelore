@@ -239,7 +239,12 @@ class _NotesScreenState extends State<NotesScreen> {
                   ),
                   title: Text(note.title),
                   subtitle: Text(
-                    s.noteSubtitle(note.kind, note.updated == null ? '?' : isoDate(note.updated!)),
+                    s.noteSubtitle(
+                      note.kind,
+                      note.updated == null
+                          ? '?'
+                          : s.shortDate(note.updated!, widget.session.clock().toLocal()),
+                    ),
                   ),
                   onLongPress: () => _delete(note),
                   trailing: IconButton(
