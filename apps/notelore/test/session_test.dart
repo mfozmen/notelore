@@ -1072,6 +1072,9 @@ void main() {
     await again.load();
     expect(again.ready, isFalse);
     expect(again.setUpBefore, isTrue); // the app opens, asking for a model in the chat
+    // No model: a send (a quick answer, a resend) does nothing, never a crash.
+    await again.send('hello');
+    expect(again.transcript, isEmpty);
     await again.logout();
     expect(again.setUpBefore, isFalse);
     final fresh = harness.session();

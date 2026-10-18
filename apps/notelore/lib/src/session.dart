@@ -729,7 +729,8 @@ class Session extends ChangeNotifier {
   /// the chat sends them only when nothing runs or waits ([acceptsImages]).
   Future<void> send(String text, {List<Block> images = const []}) async {
     final message = text.trim();
-    if (message.isEmpty) return;
+    // No model to answer (#363): the chat asks for one; nothing to send with.
+    if (message.isEmpty || !ready) return;
     _lastImages = images;
     // Behind a waiting message, a new one waits too (kept, in order), even while
     // the waiting ones are being tried.
