@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -219,21 +220,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
         _Step.done => _done(s, theme, muted),
       },
     );
-    final action = switch (_step) {
-      // Connected before: used again at once, with no key asked.
-      _Step.choose when _connected.contains(_spec.name) => FilledButton(
-        onPressed: _checking ? null : _useConnected,
-        child: Text(s.useThisModel),
-      ),
-      // The plan is one tap, as before: it signs in right here.
-      _Step.choose when _spec.name == 'chatgpt' => _connectAction(s),
-      _Step.choose => FilledButton(
-        onPressed: () => setState(() => _step = _Step.connect),
-        child: Text(s.next),
-      ),
-      _Step.connect => _connectAction(s),
-      _Step.done => FilledButton(onPressed: _finish, child: Text(s.start)),
-    };
+    final action = _action(s);
     final header = _StepHeader(
       step: _step.index + 1,
       of: _Step.values.length,
@@ -264,6 +251,23 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       ),
     );
   }
+
+  /// What the step's button does.
+  Widget _action(Strings s) => switch (_step) {
+    // Connected before: used again at once, with no key asked.
+    _Step.choose when _connected.contains(_spec.name) => FilledButton(
+      onPressed: _checking ? null : _useConnected,
+      child: Text(s.useThisModel),
+    ),
+    // The plan is one tap, as before: it signs in right here.
+    _Step.choose when _spec.name == 'chatgpt' => _connectAction(s),
+    _Step.choose => FilledButton(
+      onPressed: () => setState(() => _step = _Step.connect),
+      child: Text(s.next),
+    ),
+    _Step.connect => _connectAction(s),
+    _Step.done => FilledButton(onPressed: _finish, child: Text(s.start)),
+  };
 
   /// The peak of the wizard: what is connected, and that it can change later.
   List<Widget> _done(Strings s, ThemeData theme, Color muted) => [
@@ -365,7 +369,8 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
             // Never taller than the window: the list scrolls, the action stays in view.
             constraints: BoxConstraints(
               maxWidth: 480,
-              maxHeight: size.maxHeight - _cardTop - Gap.l,
+              // Never negative, in a window shorter than the card's top.
+              maxHeight: max(0, size.maxHeight - _cardTop - Gap.l),
             ),
             child: Card(
               key: const Key('setup-card'),
@@ -874,29 +879,6 @@ class _OptionCard extends StatelessWidget {
     final colors = theme.colorScheme;
     final muted = colors.onSurfaceVariant;
     final local = spec.name == 'ollama';
-    Widget tag(String text, {bool strong = false}) => DecoratedBox(
-      decoration: BoxDecoration(
-        color: strong ? colors.secondaryContainer : colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(Gap.s),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: Gap.s, vertical: Gap.xs),
-        child: Text(
-          text,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: strong ? colors.onSecondaryContainer : muted,
-          ),
-        ),
-      ),
-    );
-    Widget line(IconData icon, String text) => Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: Gap.s,
-      children: [
-        Icon(icon, size: 18, color: muted),
-        Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
-      ],
-    );
     return Semantics(
       key: ValueKey('option-${spec.name}'),
       inMutuallyExclusiveGroup: true,
@@ -936,8 +918,8 @@ class _OptionCard extends StatelessWidget {
                   spacing: Gap.xs,
                   runSpacing: Gap.xs,
                   children: [
-                    if (connected) tag(s.connectedBadge, strong: true),
-                    for (final text in s.optionTags(spec)) tag(text),
+                    if (connected) _Tag(s.connectedBadge, strong: true),
+                    for (final text in s.optionTags(spec)) _Tag(text),
                   ],
                 ),
                 AnimatedSize(
@@ -950,14 +932,14 @@ class _OptionCard extends StatelessWidget {
                           child: Column(
                             spacing: Gap.xs,
                             children: [
-                              line(Icons.payments_outlined, s.optionCost(spec)),
+                              _Line(Icons.payments_outlined, s.optionCost(spec)),
                               // Where the notes go: a lock only when they stay here.
-                              line(
+                              _Line(
                                 local ? Icons.lock_outline : Icons.cloud_upload_outlined,
                                 s.optionPrivacy(spec),
                               ),
-                              line(Icons.auto_awesome_outlined, s.optionQuality(spec)),
-                              line(
+                              _Line(Icons.auto_awesome_outlined, s.optionQuality(spec)),
+                              _Line(
                                 spec.name == 'chatgpt' ? Icons.bolt_outlined : Icons.build_outlined,
                                 s.optionEffort(spec),
                               ),
@@ -971,6 +953,56 @@ class _OptionCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A short label on an option card; [strong] for what is already true (Connected).
+class _Tag extends StatelessWidget {
+  const _Tag(this.text, {this.strong = false});
+
+  final String text;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: strong ? colors.secondaryContainer : colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(Gap.s),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: Gap.s, vertical: Gap.xs),
+        child: Text(
+          text,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: strong ? colors.onSecondaryContainer : colors.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One fact on the chosen option's card, after its icon.
+class _Line extends StatelessWidget {
+  const _Line(this.icon, this.text);
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: Gap.s,
+      children: [
+        Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+        Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
+      ],
     );
   }
 }
