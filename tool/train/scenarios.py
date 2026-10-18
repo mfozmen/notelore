@@ -4,7 +4,9 @@ Writes cases in the eval's format (`packages/notelore_core/lib/src/eval.dart`)
 that `notelore_dev distill` plays with a teacher model, keeping only the turns
 the scorer passes. Every note, title and sentence here is different from
 `eval/cases.json`, so the student is never trained on the exam: `main` checks
-that no message or note title overlaps.
+that no message or note title overlaps. Each case's workspace also holds other
+notes, so it is passed by choosing the right note, and `main` checks that its
+expectation names exactly one of them.
 
     python tool/train/scenarios.py [out.json] [--seed=N]
 
@@ -81,47 +83,109 @@ COLLECTIONS = [
     ("en", "Gift Ideas", "A fountain pen for Dad",
      ["a wool scarf for my sister", "a cookbook for Ali", "a plant pot for Mom"],
      ["Gift idea: {x}.", "Note a gift idea: {x}."]),
+    ("en", "Podcasts to Try", "Hardcore History",
+     ["Radiolab", "99% Invisible", "Hidden Brain", "Song Exploder"],
+     ["Podcast to try: {x}.", "Someone recommended the podcast {x}."]),
+    ("tr", "Dinlenecek Albümler", "Kayahan — Benim Şarkılarım",
+     ["Gülümse", "Dönence", "Peki Peki Anladık", "Ben Bir Ceviz Ağacıyım"],
+     ["Dinlenecek albüm: {x}.", "{x} albümünü dinlemek istiyorum."]),
+    ("en", "Board Games to Buy", "Catan",
+     ["Wingspan", "Azul", "Ticket to Ride", "Carcassonne"],
+     ["Board game to get: {x}.", "Add {x} to the board games list."]),
+    ("tr", "Öğrenilecek Konular", "Temel istatistik",
+     ["Rust dili", "Gitar akorları", "İspanyolca", "Fotoğraf pozlama"],
+     ["Öğrenmek istediğim konu: {x}.", "Öğreneceklerime ekle: {x}."]),
+    ("en", "Restaurants to Try", "Mikla",
+     ["Neolokal", "Çiya Sofrası", "Karaköy Lokantası", "Aheste"],
+     ["Restaurant to try: {x}.", "Heard good things about {x}, I want to eat there."]),
+    ("tr", "Okunacak Makaleler", "Attention Is All You Need",
+     ["AlphaFold makalesi", "Dropout makalesi", "ResNet makalesi"],
+     ["Okunacak makale: {x}.", "Şu makaleyi okumalıyım: {x}."]),
 ]
 
-# Projects: (lang, title, notes, decisions, todos, facts, new decisions, new todos, done todo phrasing).
+# Projects: (lang, title, notes, decisions, todos, facts, new decisions, new todos,
+# ways to say the first todo is done, something done that is no todo, a word it leaves).
 PROJECTS = [
     ("en", "Garden Shed", ["The shed will be 2 by 3 metres."], [("roof", "Metal sheet")],
      ["Order the timber"], ["The door faces south.", "Paint colour is sage green."],
-     [("floor", "Concrete slab", "it lasts longer")], ["Get a building permit"], "I ordered the timber for the garden shed."),
+     [("floor", "Concrete slab", "it lasts longer")], ["Get a building permit"],
+     ["I ordered the timber for the garden shed.", "Garden shed: the timber is ordered."],
+     "Garden shed: I cleared the old leaves from the site.", "leaves"),
     ("en", "Podcast Launch", ["First episode is about local history."], [("host", "Anchor")],
      ["Record the trailer"], ["We need a cover image.", "Episodes come out on Tuesdays."],
-     [("microphone", "Shure MV7", "good value")], ["Write the show notes template"], "The podcast trailer is recorded."),
+     [("microphone", "Shure MV7", "good value")], ["Write the show notes template"],
+     ["The podcast trailer is recorded.", "Recorded the trailer for the podcast launch."],
+     "Podcast launch: I made a list of five possible guests.", "guests"),
     ("tr", "Düğün Hazırlığı", ["Davetli sayısı 120 kişi."], [("mekan", "Bahçe düğünü")],
      ["Fotoğrafçıyla görüş"], ["Pasta çikolatalı olacak.", "Davetiyeler mavi renkte."],
-     [("müzik", "Canlı orkestra", "daha samimi")], ["Gelinliği prova et"], "Fotoğrafçıyla görüştüm, düğün hazırlığındaki o iş bitti."),
+     [("müzik", "Canlı orkestra", "daha samimi")], ["Gelinliği prova et"],
+     ["Fotoğrafçıyla görüştüm, düğün hazırlığındaki o iş bitti.", "Düğün hazırlığı: fotoğrafçı görüşmesi yapıldı."],
+     "Düğün hazırlığı: nikah şekerlerini sipariş ettim.", "şeker"),
     ("tr", "Mobil Uygulama", ["İlk sürüm sadece Android için."], [("backend", "Firebase")],
      ["Giriş ekranını tasarla"], ["Kullanıcılar e-postayla kaydolacak.", "Karanlık tema da olacak."],
-     [("dil", "Kotlin", "ekip biliyor")], ["Play Store hesabı aç"], "Mobil uygulamanın giriş ekranını tasarladım."),
+     [("dil", "Kotlin", "ekip biliyor")], ["Play Store hesabı aç"],
+     ["Mobil uygulamanın giriş ekranını tasarladım.", "Mobil uygulama: giriş ekranı tasarımı bitti."],
+     "Mobil uygulama: ikon için üç taslak çizdim.", "ikon"),
+    ("en", "Kitchen Renovation", ["New cabinets are oak."], [("countertop", "Quartz")],
+     ["Measure the window"], ["The sink moves to the left wall.", "Budget: 8000 euros in total."],
+     [("tiles", "Terracotta", "it looks warmer")], ["Book the electrician"],
+     ["I measured the window for the kitchen.", "Kitchen renovation: the window is measured."],
+     "Kitchen renovation: I took the old fridge to the recycling centre.", "fridge"),
+    ("tr", "Yaz Tatili", ["Tatil Ağustos'ta."], [("otel", "Butik otel")],
+     ["Uçak biletlerini ayarla"], ["Kaş'ta beş gece kalacağız.", "Araç kiralama da yapılacak."],
+     [("ulaşım", "Uçak", "daha hızlı")], ["Valizi hazırla"],
+     ["Uçak biletlerini ayarladım, tatil için o iş tamam.", "Yaz tatili: uçak biletleri ayarlandı."],
+     "Yaz tatili: güneş kremi ve şapka aldım.", "krem"),
+    ("en", "Marathon Training", ["Race day is in April."], [("shoes", "Brooks Ghost")],
+     ["Sign up for the race"], ["Long runs are on Sundays.", "Target pace is 5:30 per km."],
+     [("plan", "Higdon novice", "it fits my schedule")], ["Buy energy gels"],
+     ["I signed up for the race.", "Marathon training: race registration is done."],
+     "Marathon training: I ran 18 km this morning.", "18"),
+    ("tr", "Blog Sitesi", ["Site Hugo ile yapılacak."], [("hosting", "Netlify")],
+     ["Alan adını kaydet"], ["İlk yazı yapay zekâ üzerine.", "Haftada bir yazı çıkacak."],
+     [("tema", "PaperMod", "sade ve hızlı")], ["Hakkımda sayfasını yaz"],
+     ["Alan adını kaydettim.", "Blog sitesinin alan adı kaydedildi, o iş bitti."],
+     "Blog sitesi: logo için renkleri seçtim.", "logo"),
 ]
 
 TOPICS = [
     ("en", "Health", ["Blood test results were normal."], "Started taking vitamin D in the mornings.", "What did the blood test show?", "normal"),
     ("tr", "Araba", ["Lastikler Kasım'da değişecek."], "Arabanın yağı 85.000 km'de değişti.", "Arabanın lastikleri ne zaman değişecek?", "Kasım"),
+    ("en", "Apartment", ["The rent is due on the 5th."], "The landlord said the heating is fixed next week.", "When is the rent due?", "5th"),
+    ("tr", "Köpeğimiz Pamuk", ["Pamuk'un aşısı Mart'ta."], "Pamuk artık günde iki kez yürüyüşe çıkıyor.", "Pamuk'un aşısı ne zaman?", "Mart"),
+    ("en", "Freelance Work", ["My day rate is 450 euros."], "A new client wants a logo by Friday.", "What is my day rate?", "450"),
 ]
+
+# New projects in passing: (lang, message, note path pattern, a word the note keeps).
+NEW_PROJECTS = [
+    ("en", "Starting a new project: a vegetable patch behind the house, with raised beds.", r"^projects/[^/]*(vegetable|patch)[^/]*\.md$", "raised"),
+    ("tr", "Yeni proje: çocuk odası için bir kitaplık yapacağım.", r"^projects/[^/]*kitaplik[^/]*\.md$", None),
+    ("en", "New project: learn to bake sourdough bread with a rye starter.", r"^projects/[^/]*sourdough[^/]*\.md$", "rye"),
+    ("tr", "Yeni bir proje başlatıyorum: bahçede arı kovanı, iki kovanla.", r"^projects/[^/]*(ari|kovan)[^/]*\.md$", None),
+]
+
+# Other notes every case's workspace gets beside its own, like the eval's shared notes.
+DISTRACTORS = 4
 
 
 def cases(rng):
     out = []
 
     def add(case_id, kind, lang, notes, message, expect):
-        out.append({"id": case_id, "kind": kind, "lang": lang, "notes": notes, "message": message, "expect": expect})
+        out.append({"id": case_id, "kind": kind, "lang": lang, "notes": dict(notes), "message": message, "expect": expect})
 
     for lang, title, first, items, templates in COLLECTIONS:
         p = path("topic", title)
         notes = {p: note(title, "topic", lang, notes=[first])}
         for i, item in enumerate(items):
-            message = rng.choice(templates).format(x=item)
-            add(f"coll-{slug(title)}-{i}", "collection", lang, notes, message, {"notes": {f"^{re.escape(p)}$": [item.split(" — ")[0]]}})
+            for j, template in enumerate(rng.sample(templates, 2)):
+                add(f"coll-{slug(title)}-{i}-{j}", "collection", lang, notes, template.format(x=item),
+                    {"notes": {f"^{re.escape(p)}$": [item.split(" — ")[0]]}})
         add(f"q-{slug(title)}", "question", lang, notes,
-            "Listede neler var?" if lang == "tr" else "What is on that list?",
+            f"{title} listesinde neler var?" if lang == "tr" else f"What is on my {title} list?",
             {"answer": [first.split(" — ")[0]]})
 
-    for lang, title, nts, decs, todos, facts, new_decs, new_todos, done in PROJECTS:
+    for lang, title, nts, decs, todos, facts, new_decs, new_todos, done, other, other_word in PROJECTS:
         p = path("project", title)
         notes = {p: note(title, "project", lang, notes=nts, decisions=decs, todos=todos)}
         pat = f"^{re.escape(p)}$"
@@ -133,7 +197,10 @@ def cases(rng):
         for todo in new_todos:
             msg = f"Add a todo to {title}: {todo}." if lang == "en" else f"{title} için yapılacak: {todo}."
             add(f"todo-{slug(title)}", "todo", lang, notes, msg, {"tools": ["add_todo"], "notes": {pat: [todo.split()[-1]]}})
-        add(f"done-{slug(title)}", "todo-done", lang, notes, done, {"tools": ["complete_todo"], "notes": {pat: []}})
+        for i, message in enumerate(done):
+            add(f"done-{slug(title)}-{i}", "todo-done", lang, notes, message, {"tools": ["complete_todo"], "notes": {pat: []}})
+        # Done, but no open todo says so: a dated entry, never a wrong tick (#349).
+        add(f"done-other-{slug(title)}", "filing", lang, notes, other, {"tools": ["add_note_entry"], "notes": {pat: [other_word]}})
         topic, value = decs[0]
         q = f"What did we decide for the {title} {topic}?" if lang == "en" else f"{title} için {topic} ne seçmiştik?"
         add(f"q-dec-{slug(title)}", "question", lang, notes, q, {"answer": [value.split()[0]]})
@@ -150,6 +217,15 @@ def cases(rng):
         add(f"chat-{i}", "chat", lang, {}, msg, {})
     for i, (lang, msg) in enumerate([("en", "Put this in the note."), ("tr", "Şunu da ekle."), ("en", "Save it there.")]):
         add(f"unclear-{i}", "unclear", lang, {}, msg, {"answer": ["?"]})
+    for i, (lang, msg, pattern, word) in enumerate(NEW_PROJECTS):
+        add(f"new-{i}", "new-note", lang, {}, msg, {"tools": ["create_note"], "notes": {pattern: [word] if word else []}})
+
+    # Every workspace holds other notes too, so a case is passed by choosing the
+    # right note, not by writing to the only one there (v1 learned that).
+    pool = {p: text for case in out for p, text in case["notes"].items()}
+    for case in out:
+        others = sorted(p for p in pool if p not in case["notes"])
+        case["notes"].update({p: pool[p] for p in rng.sample(others, DISTRACTORS)})
     return out
 
 
@@ -169,6 +245,11 @@ def main(argv):
         for text in case["notes"].values():
             assert re.search(r"^title: (.*)$", text, re.M).group(1) not in exam_titles, case["id"]
     assert len({c["id"] for c in generated}) == len(generated), "duplicate ids"
+    for case in generated:
+        for pattern in case["expect"].get("notes", {}):
+            matching = sum(bool(re.search(pattern, p)) for p in case["notes"])
+            # A new note must not be there yet; any other case names exactly one note.
+            assert matching == (0 if case["kind"] == "new-note" else 1), case["id"]
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(generated, ensure_ascii=False, indent=1) + "\n", encoding="utf-8", newline="\n")
     print(f"{len(generated)} scenarios -> {out}")
