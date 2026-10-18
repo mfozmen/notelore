@@ -36,8 +36,9 @@ FINISHED_SIGNATURE = "**Claude finished"
 
 
 # Both passes post as the same bot with the same signature; these lines tell
-# them apart. A body carrying the other pass's line is read by neither side,
-# so a quote, a slip or an injection fails closed instead of crossing over.
+# them apart. The other pass's own comments are skipped; a body carrying both
+# passes' lines (a quote, a slip, an injection) resets the verdict to none, so
+# the check fails closed instead of crossing over or keeping an older verdict.
 SECURITY_MARKERS = re.compile(r"^SECURITY-VERDICT:", re.MULTILINE)
 REVIEW_MARKERS = re.compile(r"^(REVIEW-VERDICT|REVIEWED-HEAD):", re.MULTILINE)
 
@@ -48,17 +49,18 @@ def latest_verdict(comments, marker=VERDICT, foreign=SECURITY_MARKERS):
     `comments` is a list of (author login, body) pairs, oldest first. Anything
     not written by the review action's own completed comment is ignored.
     `marker` picks whose verdict: the code review's, or the security pass's
-    (security_verdict_gate.py); a body matching `foreign`, the other pass's
-    markers, is skipped.
+    (security_verdict_gate.py); `foreign` matches the other pass's lines.
     """
     found = None
     for login, body in comments:
         body = body or ""
         if login != REVIEWER_LOGIN or not body.startswith(FINISHED_SIGNATURE):
             continue
-        if foreign.search(body):
-            continue
         matches = marker.findall(body)
+        if foreign.search(body):
+            if matches:
+                found = None  # both passes' lines: trust neither, nor anything older
+            continue
         if matches:
             found = matches[-1]
     return found
