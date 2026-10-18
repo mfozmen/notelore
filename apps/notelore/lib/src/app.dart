@@ -83,7 +83,7 @@ class _NoteloreAppState extends State<NoteloreApp> with WidgetsBindingObserver {
             // A Google account first, then the provider (#208).
             AsyncSnapshot(:final Session data) when data.needsGoogle => GoogleScreen(data),
             AsyncSnapshot(:final Session data) =>
-              data.ready && !data.finishingSetup
+              (data.ready || data.setUpBefore) && !data.finishingSetup
                   ? Home(data, updater: widget.updater, exitApp: widget.exitApp)
                   : ProviderWizard(data),
             AsyncSnapshot(:final Object error) => Scaffold(

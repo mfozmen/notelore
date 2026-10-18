@@ -39,6 +39,9 @@ abstract class Strings {
   String get tryPrompt;
   String get trying;
   String get tryCost;
+  String get noModel;
+  String get noModelWhy;
+  String get connectModel;
   String get connectedExplained;
   String get start;
 
@@ -395,6 +398,13 @@ class EnglishStrings extends Strings {
   String get tryCost =>
       'This one message went to the provider and counts against your plan or key, a few '
       'tokens.';
+  @override
+  String get noModel => 'Connect a model to start';
+  @override
+  String get noModelWhy =>
+      'Notelore needs a model to write and answer. Your notes are all here meanwhile.';
+  @override
+  String get connectModel => 'Connect a model';
   @override
   String get connectedExplained =>
       'Notelore will use it to write your notes and answer from them. You can change it in '
@@ -925,6 +935,13 @@ class TurkishStrings extends Strings {
   @override
   String get tryCost =>
       'Bu tek mesaj sağlayıcıya gitti ve planından ya da anahtarından birkaç token düştü.';
+  @override
+  String get noModel => 'Başlamak için bir model bağla';
+  @override
+  String get noModelWhy =>
+      'Notelore yazmak ve cevaplamak için bir modele ihtiyaç duyar. Notların bu arada burada.';
+  @override
+  String get connectModel => 'Model bağla';
   @override
   String get connectedExplained =>
       'Notelore notlarını yazmak ve onlardan cevap vermek için bunu kullanacak. Ayarlar\'dan '

@@ -1060,6 +1060,25 @@ void main() {
     expect(session.spec!.name, 'anthropic');
   });
 
+  test('a device set up once stays set up, across a restart, until logout (#363)', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.load();
+    expect(session.setUpBefore, isFalse);
+    await session.connect(findProvider('anthropic'), 'sk-ant');
+    expect(session.setUpBefore, isTrue);
+    await session.disconnect(findProvider('anthropic'));
+    final again = harness.session();
+    await again.load();
+    expect(again.ready, isFalse);
+    expect(again.setUpBefore, isTrue); // the app opens, asking for a model in the chat
+    await again.logout();
+    expect(again.setUpBefore, isFalse);
+    final fresh = harness.session();
+    await fresh.load();
+    expect(fresh.setUpBefore, isFalse);
+  });
+
   test('logout forgets the key, the provider and the conversation', () async {
     final harness = Harness(answers: ['hi']);
     final session = harness.session();

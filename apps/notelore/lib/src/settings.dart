@@ -184,7 +184,9 @@ class _ModelCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = session.strings;
-    final spec = session.spec!;
+    final spec = session.spec;
+    // No model in use (#363): only the list and the way to connect one.
+    if (spec == null) return Card(child: _Connections(session));
     final webSearch = switch (spec) {
       _ when !spec.webSearch => s.webSearchUnavailable,
       _ when spec.name == 'anthropic' => s.webSearchBilled,
