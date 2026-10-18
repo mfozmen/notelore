@@ -20,8 +20,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Step 2 of 3'), findsOneWidget);
     expect(find.byKey(const Key('api-key')), findsOneWidget);
-    // Back: the choice is still there.
+    // Back: the choice is still there. Android's back gesture does the same.
     await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Step 1 of 3'), findsOneWidget);
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.text('Step 1 of 3'), findsOneWidget);
     await tester.tap(find.text('Next'));

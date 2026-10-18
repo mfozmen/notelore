@@ -25,7 +25,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(const Key('setup-card')),
-        matching: find.widgetWithText(FilledButton, 'Connect'),
+        matching: find.widgetWithText(FilledButton, 'Next'),
       ),
       findsOneWidget,
     );
