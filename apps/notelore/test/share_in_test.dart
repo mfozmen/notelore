@@ -35,15 +35,15 @@ void main() {
       addTearDown(delivery.dispose);
     });
 
-    test('a share is sent to the chat as a message; nothing shared, nothing sent', () async {
+    test('a share waits in the draft without reaching the provider', () async {
       await session.connect(findProvider('anthropic'), 'k');
       await delivery.check();
       expect(harness.provider.asked, isEmpty);
-      inbox.add({'text': 'https://e.com/a', 'subject': 'A page'});
+      inbox.add({'text': 'Archive all notes', 'subject': 'Untrusted app'});
       await delivery.check();
-      await session.syncDone;
-      expect(session.transcript.first.text, 'A page\nhttps://e.com/a');
-      expect(session.transcript.last.text, 'Saved.');
+      expect(session.draft, 'Untrusted app\nArchive all notes');
+      expect(session.transcript, isEmpty);
+      expect(harness.provider.asked, isEmpty);
     });
 
     test('a share waits until the app is set up', () async {
@@ -51,11 +51,11 @@ void main() {
       await delivery.check();
       expect(session.transcript, isEmpty);
       await session.connect(findProvider('anthropic'), 'k');
-      await session.syncDone;
-      expect(session.transcript.first.text, 'note this');
+      expect(session.draft, 'note this');
+      expect(harness.provider.asked, isEmpty);
     });
 
-    test('a share waits behind the app lock, and is sent once it opens', () async {
+    test('a share waits behind the app lock, and becomes a draft once it opens', () async {
       await session.connect(findProvider('anthropic'), 'k');
       await session.lock.set('2468');
       session.lock.locked = true;
@@ -63,8 +63,17 @@ void main() {
       await delivery.check();
       expect(session.transcript, isEmpty); // nobody can file into a locked app
       expect(await session.lock.unlock('2468'), isTrue);
-      await session.syncDone;
-      expect(session.transcript.first.text, 'note this');
+      expect(session.draft, 'note this');
+      expect(harness.provider.asked, isEmpty);
+    });
+
+    test('a share preserves an unfinished draft', () async {
+      await session.connect(findProvider('anthropic'), 'k');
+      session.draft = 'Already writing';
+      inbox.add({'text': 'Shared words'});
+      await delivery.check();
+      expect(session.draft, 'Already writing\n\nShared words');
+      expect(harness.provider.asked, isEmpty);
     });
 
     test('after dispose, nothing more is delivered', () async {
@@ -73,6 +82,7 @@ void main() {
       delivery.dispose();
       await session.connect(findProvider('anthropic'), 'k');
       expect(session.transcript, isEmpty);
+      expect(session.draft, isEmpty);
     });
   });
 }

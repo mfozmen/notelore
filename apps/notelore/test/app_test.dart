@@ -12,6 +12,7 @@ import 'package:notelore/src/app.dart';
 import 'package:notelore/src/mark.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/settings.dart';
+import 'package:notelore/src/share_in.dart';
 import 'package:notelore/src/strings.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore/src/voice.dart';
@@ -689,6 +690,30 @@ void main() {
     await tester.tap(find.text('Chat'));
     await tester.pumpAndSettle();
     expect(draft(), isEmpty);
+  });
+
+  testWidgets('shared text opens an editable composer and waits for Send', (tester) async {
+    phone(tester);
+    final harness = Harness(answers: ['Saved.']);
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'My draft');
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    final delivery = ShareDelivery(session, () async => {'text': 'Shared words'});
+    addTearDown(delivery.dispose);
+    await delivery.check();
+    await tester.pumpAndSettle();
+    final field = tester.widget<TextField>(find.byKey(const Key('message')));
+    expect(field.controller!.text, 'My draft\n\nShared words');
+    expect(harness.provider.asked, isEmpty);
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    expect(harness.provider.asked, ['My draft\n\nShared words']);
+    await delivery.check(); // the chat is already open this time
+    await tester.pumpAndSettle();
+    expect(field.controller!.text, 'Shared words');
+    expect(harness.provider.asked, hasLength(1));
   });
 
   testWidgets('chat: a question offers its answers as buttons, sent once (#210)', (tester) async {
