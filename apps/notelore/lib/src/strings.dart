@@ -188,6 +188,7 @@ abstract class Strings {
   String get refreshModels;
   String get modelSaved;
   String get checkForUpdates;
+  String get privacyPolicy;
   String get logOut;
   String get logOutExplained;
   String get language;
@@ -670,6 +671,8 @@ class EnglishStrings extends Strings {
   String get refreshModels => 'Refresh the model list';
   @override
   String get modelSaved => 'Model saved.';
+  @override
+  String get privacyPolicy => 'Privacy policy';
   @override
   String get checkForUpdates => 'Check for updates';
   @override
@@ -1271,6 +1274,8 @@ class TurkishStrings extends Strings {
   String get refreshModels => 'Model listesini yenile';
   @override
   String get modelSaved => 'Model kaydedildi.';
+  @override
+  String get privacyPolicy => 'Gizlilik politikası';
   @override
   String get checkForUpdates => 'Güncellemeleri denetle';
   @override

@@ -228,6 +228,7 @@ void main() {
       'refreshModels': s.refreshModels,
       'modelSaved': s.modelSaved,
       'checkForUpdates': s.checkForUpdates,
+      'privacyPolicy': s.privacyPolicy,
       'logOut': s.logOut,
       'logOutExplained': s.logOutExplained,
       'language': s.language,

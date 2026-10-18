@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:notelore_core/notelore_core.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'lock.dart';
 import 'mark.dart';
@@ -10,6 +11,9 @@ import 'strings.dart';
 import 'theme.dart';
 import 'update.dart' show appVersion;
 import 'whisper_speech.dart' show MicrophoneChoice;
+
+/// The privacy policy, kept in the repository with its history.
+const privacyPolicyUrl = 'https://github.com/mfozmen/notelore/blob/main/docs/privacy.md';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen(this.session, {this.checkForUpdates, this.version = appVersion, super.key});
@@ -680,6 +684,14 @@ class _AboutCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ListTile(leading: const NoteloreMark(size: 40), title: Text(s.versionLine(version))),
+            // What goes where, said in full (#308).
+            ListTile(
+              leading: const Icon(Icons.privacy_tip_outlined),
+              title: Text(s.privacyPolicy),
+              trailing: const Icon(Icons.open_in_new, size: 20),
+              onTap: () =>
+                  launchUrl(Uri.parse(privacyPolicyUrl), mode: LaunchMode.externalApplication),
+            ),
             if (canCheck)
               Padding(
                 padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.m),

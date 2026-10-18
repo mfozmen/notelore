@@ -1203,6 +1203,21 @@ void main() {
     expect(tester.getTopLeft(find.text('Log out')).dy, greaterThan(version.dy));
   });
 
+  testWidgets('settings: About links the privacy policy (#308)', (tester) async {
+    phone(tester);
+    final launcher = FakeLauncher();
+    UrlLauncherPlatform.instance = launcher;
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Privacy policy'));
+    await tester.pumpAndSettle();
+    expect(launcher.opened, ['https://github.com/mfozmen/notelore/blob/main/docs/privacy.md']);
+  });
+
   testWidgets('settings: the app version at the bottom', (tester) async {
     phone(tester);
     final harness = Harness();
