@@ -48,12 +48,18 @@ class _NoteloreAppState extends State<NoteloreApp> with WidgetsBindingObserver {
   /// Every screen the app shows, so locking can close what is open on top (#309).
   final _navigator = GlobalKey<NavigatorState>();
 
-  /// Locked again: a note or dialog left open closes before the next frame, so
-  /// only the lock shows; the home underneath is the lock screen.
+  /// Notices, cleared on locking: one can name a note.
+  final _messenger = GlobalKey<ScaffoldMessengerState>();
+
+  /// Locked again: a note or dialog left open closes before the next frame, and
+  /// a notice from before goes, so only the lock shows; the home underneath is
+  /// the lock screen.
   void _foregrounded() {
     final lock = _opened?.lock;
     lock?.foregrounded();
-    if (lock?.locked ?? false) _navigator.currentState?.popUntil((route) => route.isFirst);
+    if (!(lock?.locked ?? false)) return;
+    _navigator.currentState?.popUntil((route) => route.isFirst);
+    _messenger.currentState?.clearSnackBars();
   }
 
   late final Future<Session> _session = widget.open()
@@ -82,6 +88,7 @@ class _NoteloreAppState extends State<NoteloreApp> with WidgetsBindingObserver {
         final strings = snapshot.data?.strings ?? EnglishStrings();
         return MaterialApp(
           navigatorKey: _navigator,
+          scaffoldMessengerKey: _messenger,
           title: 'Notelore',
           theme: noteloreTheme(Brightness.light, snapshot.data?.palette ?? Palette.lagoon),
           darkTheme: noteloreTheme(Brightness.dark, snapshot.data?.palette ?? Palette.lagoon),

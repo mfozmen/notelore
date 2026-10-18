@@ -546,6 +546,24 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Notelore is locked'), findsOneWidget);
     expect(find.text('Secret plans'), findsNothing); // nothing of the note, above or below
+    // A notice from just before (here: one note archived) does not wait over the lock.
+    await tester.enterText(find.byKey(const Key('unlock')), '2468');
+    await tester.tap(find.text('Unlock'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.longPress(find.text('Secret plans'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pump();
+    const notice = 'Moved "Secret plans" to the archive.';
+    expect(find.text(notice), findsOneWidget);
+    toBackground(tester);
+    now = now.add(const Duration(minutes: 1));
+    toForeground(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Notelore is locked'), findsOneWidget);
+    expect(find.text(notice), findsNothing);
   });
 
   testWidgets('lock: after five wrong tries the screen waits, then lets one try again', (
