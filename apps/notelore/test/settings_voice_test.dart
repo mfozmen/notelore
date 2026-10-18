@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/session.dart';
@@ -18,14 +20,24 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Lets the download's file work finish: real IO, outside the fake clock.
-  Future<void> settle(WidgetTester tester, Session session) async {
-    for (var i = 0; i < 100 && session.whisperProgress != null; i++) {
-      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
-      await tester.pump();
-    }
-    await tester.pumpAndSettle();
-  }
+  /// Until the download is over: its file work is real IO, outside the fake clock.
+  Future<void> settle(WidgetTester tester, Session session) =>
+      settleUntil(tester, () => session.whisperProgress == null);
+
+  testWidgets('settings: a download slower than a second still arrives (#365)', (tester) async {
+    phone(tester);
+    final served = Completer<void>();
+    // A real timer, outside the fake clock: the download takes 4 s of real
+    // time, as one can when the whole suite runs at once.
+    Zone.root.run(() => Timer(const Duration(seconds: 4), served.complete));
+    final harness = Harness()
+      ..modelPage = 'whisper bytes'
+      ..modelGate = served.future;
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await settle(tester, session);
+    expect(session.whisper.ready, isTrue);
+  });
 
   testWidgets('settings: Whisper arrives by itself; then pick its microphone', (tester) async {
     phone(tester);
