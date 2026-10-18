@@ -35,7 +35,7 @@ The app checks for a new release every time it opens (and every few hours while 
 ## Get started
 
 1. Open Notelore and *Sign in with Google* with your Google (Gmail) account: this also connects Google Drive, where your notes are backed up and synced.
-2. Pick a model:
+2. Pick a model, step by step: *Choose* the provider, *Connect* it (its cost and, for a key, numbered steps to get one), and *Done* says what is connected. A bar on top shows the step; back goes one step back and keeps your choice. The ChatGPT plan stays one tap, straight from *Choose*:
    - **ChatGPT plan** (desktop and phone), the default: *Continue with ChatGPT* and sign in, one tap; on a phone the browser hands you back to Notelore by itself. No extra charges, within your plan's limits. It needs a **Plus or Pro** plan: only those can be shared with other apps. A free ChatGPT account is told so plainly, and offered the free way in right there: *Get a free Gemini key* opens Google AI Studio with your Google account; copy the key, come back, and Notelore puts it in the box for you (you still tap *Connect*). On the free tier Google may use your requests to improve its products.
    - Under **Advanced**, for your own API key or a local model:
      - **Claude, GPT or Gemini:** paste an API key; numbered steps show where to get one, and a button opens the provider's key page in the browser. Keys stay in your device's keystore.
