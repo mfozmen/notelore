@@ -490,6 +490,40 @@
      "^_archive/": []
     }
    }
+  },
+  {
+   "id": "rem-tr-1",
+   "kind": "reminder",
+   "lang": "tr",
+   "message": "5 dakika sonra bana kitap okumayı hatırlat",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2026-10-18 14:05",
+      "kitap"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-en-1",
+   "kind": "reminder",
+   "lang": "en",
+   "message": "Remind me tomorrow at 9 to call the electrician for the house renovation.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^projects/ev-tadilati\\.md$": [
+      "2026-10-19 09:00",
+      "electric"
+     ]
+    }
+   }
   }
  ]
 }
