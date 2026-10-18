@@ -260,4 +260,52 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('Done tries the model once and shows its answer; a failure goes back (#361)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    final hello = Completer<String>();
+    harness.provider.tryAnswer = hello.future;
+    await pumpApp(tester, harness);
+    await tester.tap(find.text('Claude (Anthropic)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('api-key')), 'sk-ant');
+    await tester.tap(find.text('Connect'));
+    await tester.pump();
+    await tester.pump();
+    // On its way: said so, and Start waits for it.
+    expect(find.text('Saying hello to the model…'), findsOneWidget);
+    expect(
+      tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Start')).onPressed,
+      isNull,
+    );
+    hello.complete('Hello, ready to take notes.');
+    await tester.pumpAndSettle();
+    expect(find.text('Hello, ready to take notes.'), findsOneWidget);
+    expect(find.textContaining('This one message went to the provider'), findsOneWidget);
+    expect(harness.provider.asked, isEmpty); // the test turn is not a chat turn
+    expect(find.text('Start'), findsOneWidget);
+  });
+
+  testWidgets('a test turn that fails says why and goes back to Connect (#361)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    harness.provider.tryAnswer = const HttpError(429, 'quota');
+    final session = await pumpApp(tester, harness);
+    await tester.tap(find.text('Claude (Anthropic)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('api-key')), 'sk-ant');
+    await tester.tap(find.text('Connect'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('api-key')), findsOneWidget); // back on Connect
+    expect(find.byKey(const Key('setup-problem')), findsOneWidget);
+    expect(find.textContaining('quota'), findsNothing); // said kindly, not raw
+    expect(session.ready, isTrue); // the key itself was fine: it stays connected
+  });
 }

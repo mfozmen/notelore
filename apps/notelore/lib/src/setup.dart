@@ -40,6 +40,9 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
   late ProviderSpec _spec = widget.session.spec ?? widget.session.providers.first;
   var _step = _Step.choose;
 
+  /// The test turn's answer on Done (#361); null while it is on its way.
+  String? _tried;
+
   /// The options already connected on this device, marked on their cards.
   var _connected = const <String>{};
   final _key = TextEditingController();
@@ -143,7 +146,13 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     try {
       await connect();
       connected = true;
-      if (mounted) setState(() => _step = _Step.done);
+      if (mounted) {
+        setState(() {
+          _step = _Step.done;
+          _tried = null;
+        });
+        unawaited(_try());
+      }
     } on NoChatGptPlan {
       setState(() => _noPlan = true); // no retry helps: another way in does
     } on KeyValidationError catch (error) {
@@ -167,6 +176,22 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
 
   // OpenAI's wording for its sign-in button.
   String _connectLabel(Strings s) => _spec.name == 'chatgpt' ? s.continueWithChatGpt : s.connect;
+
+  /// The one test turn: its answer on Done, or why not, back on Connect.
+  Future<void> _try() async {
+    final s = widget.session.strings;
+    try {
+      final answer = await widget.session.tryModel();
+      if (mounted) setState(() => _tried = answer);
+    } on Exception catch (error) {
+      if (mounted) {
+        setState(() {
+          _problem = s.chatError(error);
+          _step = _Step.connect;
+        });
+      }
+    }
+  }
 
   /// One step back; the choice made is kept.
   void _back() => setState(() => _step = _Step.values[_step.index - 1]);
@@ -266,7 +291,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       child: Text(s.next),
     ),
     _Step.connect => _connectAction(s),
-    _Step.done => FilledButton(onPressed: _finish, child: Text(s.start)),
+    _Step.done => FilledButton(onPressed: _tried == null ? null : _finish, child: Text(s.start)),
   };
 
   /// The peak of the wizard: what is connected, and that it can change later.
@@ -285,6 +310,32 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       style: theme.textTheme.bodyLarge?.copyWith(color: muted),
       textAlign: TextAlign.center,
     ),
+    const SizedBox(height: Gap.l),
+    // The model's own hello: the proof it works (#361).
+    Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(Gap.m),
+        child: Semantics(
+          liveRegion: true,
+          child: switch (_tried) {
+            null => Row(
+              spacing: Gap.s,
+              children: [
+                const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                Expanded(child: Text(s.trying, style: theme.textTheme.bodyMedium)),
+              ],
+            ),
+            final answer => Text(answer, style: theme.textTheme.bodyLarge),
+          },
+        ),
+      ),
+    ),
+    const SizedBox(height: Gap.s),
+    Text(s.tryCost, style: theme.textTheme.bodySmall?.copyWith(color: muted)),
   ];
 
   /// Which provider: the plan first, keys and local models under Advanced.

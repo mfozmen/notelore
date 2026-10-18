@@ -36,6 +36,9 @@ abstract class Strings {
   String get connectedBadge;
   List<String> optionTags(ProviderSpec spec);
   String get useThisModel;
+  String get tryPrompt;
+  String get trying;
+  String get tryCost;
   String get connectedExplained;
   String get start;
 
@@ -384,6 +387,14 @@ class EnglishStrings extends Strings {
   };
   @override
   String get useThisModel => 'Use this model';
+  @override
+  String get tryPrompt => 'Say hello in one short sentence.';
+  @override
+  String get trying => 'Saying hello to the model…';
+  @override
+  String get tryCost =>
+      'This one message went to the provider and counts against your plan or key, a few '
+      'tokens.';
   @override
   String get connectedExplained =>
       'Notelore will use it to write your notes and answer from them. You can change it in '
@@ -907,6 +918,13 @@ class TurkishStrings extends Strings {
   };
   @override
   String get useThisModel => 'Bu modeli kullan';
+  @override
+  String get tryPrompt => 'Tek kısa cümleyle merhaba de.';
+  @override
+  String get trying => 'Modele merhaba deniyor…';
+  @override
+  String get tryCost =>
+      'Bu tek mesaj sağlayıcıya gitti ve planından ya da anahtarından birkaç token düştü.';
   @override
   String get connectedExplained =>
       'Notelore notlarını yazmak ve onlardan cevap vermek için bunu kullanacak. Ayarlar\'dan '
