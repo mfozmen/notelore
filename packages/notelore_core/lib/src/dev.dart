@@ -6,9 +6,9 @@
 ///     notelore_dev models              the plan's models
 ///     notelore_dev chat [--provider=chatgpt] [--model=<id>] <message...>
 ///     notelore_dev eval [--provider=…] [--model=…] [--cases=eval/cases.json]
+///                                      the model eval (#325), on temp notes
 ///     notelore_dev distill [--provider=…] [--model=…] [--cases=…] [--out=train.jsonl]
 ///                                      a teacher's passing turns as training data (#327)
-///                                      the model eval (#325), on temp notes
 ///
 /// It refuses to run without `NOTELORE_HOME`, so the real notes are never
 /// touched. Secrets live in `<state>/dev-secrets.json`, never the app's
