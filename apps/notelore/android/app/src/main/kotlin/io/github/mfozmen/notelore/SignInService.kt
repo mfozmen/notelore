@@ -23,7 +23,7 @@ class SignInService : Service() {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager.createNotificationChannel(
-                NotificationChannel(CHANNEL, "Sign-in", NotificationManager.IMPORTANCE_LOW),
+                NotificationChannel(CHANNEL, getString(R.string.sign_in_channel), NotificationManager.IMPORTANCE_LOW),
             )
         }
         val notification = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -34,7 +34,7 @@ class SignInService : Service() {
         })
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("Notelore")
-            .setContentText("Waiting for the sign-in to finish")
+            .setContentText(getString(R.string.sign_in_waiting))
             .setOngoing(true)
             .build()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {

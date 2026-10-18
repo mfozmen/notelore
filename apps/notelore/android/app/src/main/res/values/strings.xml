@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sign_in_channel">Sign-in</string>
+    <string name="sign_in_waiting">Waiting for the sign-in to finish</string>
+</resources>

@@ -116,19 +116,21 @@ void main() {
     expect(tr.noteSubtitle('other', 'x'), startsWith('other'));
   });
 
-  test("OpenAI's plan wording stays as OpenAI asks in both languages", () {
-    for (final s in [en, tr]) {
-      expect(s.continueWithChatGpt, 'Continue with ChatGPT');
-      expect(s.usingPlan, "You're using your ChatGPT plan");
-      expect(s.usingChatGptPlan, 'Using ChatGPT plan');
-      expect(s.manageUsage, 'Manage usage');
-      expect(s.gotIt, 'Got it');
-    }
-  });
-
   test('every entry exists in both languages, and the Turkish is Turkish', () {
     Map<String, String> all(Strings s) => {
       'chat': s.chat,
+      'deleteForever': s.deleteForever,
+      'deleteForeverTitle': s.deleteForeverTitle('t'),
+      'deleteForeverBody': s.deleteForeverBody,
+      'deletedForever': s.deletedForever('t'),
+      'emptyArchive': s.emptyArchive,
+      'archiveEmptied': s.archiveEmptied(1) + s.archiveEmptied(2),
+      'emptyArchiveBody': s.emptyArchiveBody(1) + s.emptyArchiveBody(2),
+      'continueWithChatGpt': s.continueWithChatGpt,
+      'usingPlan': s.usingPlan,
+      'gotIt': s.gotIt,
+      'usingChatGptPlan': s.usingChatGptPlan,
+      'manageUsage': s.manageUsage,
       'notes': s.notes,
       'settings': s.settings,
       'cancel': s.cancel,

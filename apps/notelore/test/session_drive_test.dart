@@ -250,6 +250,20 @@ void main() {
     expect(harness.remote.texts.keys, unorderedEquals(['projects/mopsos.md', sharedSettings]));
   });
 
+  test('a note deleted for good from the archive goes to Drive\'s trash (#438)', () async {
+    final harness = Harness(auth: FakeAuth()..granted = true);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    await session.load();
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    await session.deleteNote(session.listNotes().single);
+    await session.syncNow();
+    expect(harness.remote.texts.keys.where((k) => k.startsWith('_archive/')), hasLength(1));
+    await session.deleteArchived(session.listArchived().single);
+    await session.syncDone;
+    expect(harness.remote.texts.keys.where((k) => k.startsWith('_archive/')), isEmpty);
+  });
+
   test('offline is not an error: the next sync catches up', () async {
     final harness = Harness(auth: FakeAuth()..granted = true);
     harness.remote.failure = const NetworkError('no route to host');
