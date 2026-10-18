@@ -202,8 +202,10 @@ class _Empty extends StatelessWidget {
   final Strings strings;
   final ValueChanged<String>? example;
 
+  // Low on the screen, near the thumb and the message box.
   @override
-  Widget build(BuildContext context) => Center(
+  Widget build(BuildContext context) => Align(
+    alignment: const Alignment(0, 0.6),
     child: SingleChildScrollView(
       padding: const EdgeInsets.all(Gap.l),
       child: Column(
@@ -218,15 +220,26 @@ class _Empty extends StatelessWidget {
           ),
           if (example case final example?) ...[
             const SizedBox(height: Gap.l),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: Gap.s,
-              runSpacing: Gap.s,
-              children: [
-                for (final e in strings.examples)
-                  ActionChip(label: Text(e), onPressed: () => example(e)),
-              ],
-            ),
+            // Full-width rows that wrap, so a long example never gets cut.
+            for (final e in strings.examples)
+              Padding(
+                padding: const EdgeInsets.only(bottom: Gap.s),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => example(e),
+                    icon: const Icon(Icons.north_west, size: 18),
+                    label: Text(e),
+                    style: OutlinedButton.styleFrom(
+                      alignment: AlignmentDirectional.centerStart,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Gap.m,
+                        vertical: Gap.m - Gap.xs,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ],
       ),
@@ -841,12 +854,16 @@ class _Bubble extends StatelessWidget {
               for (final a in answers) OutlinedButton(onPressed: () => answer(a), child: Text(a)),
             ],
           ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            button(strings.copy, Icons.copy, () => _copy(context, text)),
-            if (resend case final resend?) button(strings.resend, Icons.replay, resend),
-          ],
+        // Close under its bubble (full-size targets, pulled up a little).
+        Transform.translate(
+          offset: const Offset(0, -Gap.s),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              button(strings.copy, Icons.copy, () => _copy(context, text)),
+              if (resend case final resend?) button(strings.resend, Icons.replay, resend),
+            ],
+          ),
         ),
       ],
     );
