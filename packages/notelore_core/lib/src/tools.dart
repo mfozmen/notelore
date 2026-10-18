@@ -160,7 +160,8 @@ final noteTools = List<Tool>.unmodifiable([
   Tool(
     'merge_notes',
     'Move everything of note "from" that "into" lacks into "into", then archive "from". '
-        'Only after the user confirmed which note goes into which.',
+        'Only after the user confirmed which note goes into which. A todo open in one '
+        'and done in the other is the same todo: it is kept once, done.',
     _schema(
       ['from', 'into'],
       {'from': _slug, 'into': _slug, 'from_kind': _kind, 'into_kind': _kind},

@@ -17,11 +17,27 @@ import 'package:http/http.dart' as http;
 /// The http(s) links in [text], in order, each once; at most [max].
 List<Uri> linksIn(String text, {int max = 3}) {
   final found = <String>{};
-  for (final match in RegExp(r'''https?://[^\s<>"'()\[\]{}]+''').allMatches(text)) {
-    found.add(match[0]!.replaceFirst(RegExp(r'[.,;:!?]+$'), ''));
+  for (final match in RegExp(r'''https?://[^\s<>"'\[\]{}]+''').allMatches(text)) {
+    found.add(_trimmed(match[0]!));
     if (found.length == max) break;
   }
   return [for (final link in found) Uri.parse(link)];
+}
+
+/// [link] without the sentence's punctuation after it, nor a closing
+/// parenthesis that opens nowhere in it: "(see https://e.com/x)" (#275).
+String _trimmed(String link) {
+  var end = link.length;
+  while (end > 0) {
+    final last = link[end - 1];
+    final unbalanced =
+        last == ')' &&
+        ')'.allMatches(link.substring(0, end)).length >
+            '('.allMatches(link.substring(0, end)).length;
+    if (!'.,;:!?'.contains(last) && !unbalanced) break;
+    end--;
+  }
+  return link.substring(0, end);
 }
 
 /// The readable part of a web page.
@@ -60,7 +76,13 @@ Future<WebPage> readPage(
   int maxChars = 8000,
 }) async {
   final (:bytes, :type, :cut) = await _download(url, client, resolve, maxBytes, timeout);
-  final charset = RegExp(r'charset=([\w-]+)', caseSensitive: false).firstMatch(type)?[1];
+  // The header's charset, else one the page names in <meta> (#275).
+  final charset =
+      (RegExp(r'charset=([\w-]+)', caseSensitive: false).firstMatch(type) ??
+      RegExp(
+        r'''<meta[^>]*charset=["']?([\w-]+)''',
+        caseSensitive: false,
+      ).firstMatch(latin1.decode(bytes.take(2048).toList())))?[1];
   final body = const {'iso-8859-1', 'latin1', 'windows-1252'}.contains(charset?.toLowerCase())
       ? latin1.decode(bytes)
       : utf8.decode(bytes, allowMalformed: true);
@@ -99,6 +121,8 @@ Future<({List<int> bytes, String type, bool cut})> _download(
     // A stalled body ends the loop with a TimeoutException, which cancels it.
     await for (final chunk in response.stream.timeout(deadline.difference(DateTime.now()))) {
       bytes.addAll(chunk);
+      // A page that trickles in never stalls: the limit is on the whole download (#275).
+      if (DateTime.now().isAfter(deadline)) throw TimeoutException('the whole page took too long');
       // Leaving the loop cancels the download: the rest is never fetched.
       if (bytes.length >= maxBytes) return (bytes: bytes, type: type, cut: true);
     }
