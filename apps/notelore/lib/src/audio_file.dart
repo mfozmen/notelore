@@ -5,6 +5,7 @@
 library;
 
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'whisper_speech.dart';
@@ -33,36 +34,42 @@ bool isAudio(List<int> bytes) =>
     _starts(bytes, 'OggS') ||
     _starts(bytes, 'fLaC');
 
-/// A WAV's sound as 16 kHz mono samples (-1..1); null when it is not a PCM
-/// (16-bit) or float (32-bit) WAV this can read.
-Float32List? wavSamples(Uint8List bytes) {
-  if (!isWav(bytes)) return null;
+/// A WAV's format and where its sound is; null when a chunk is missing.
+({int format, int channels, int rate, int bits, ByteData sound})? _wavParts(Uint8List bytes) {
   final data = ByteData.sublistView(bytes);
-  int? format, channels, rate, bits;
+  ({int format, int channels, int rate, int bits})? fmt;
   ByteData? sound;
   for (var at = 12; at + 8 <= bytes.length;) {
     final size = data.getUint32(at + 4, Endian.little);
     final body = at + 8;
     if (_starts(bytes, 'fmt ', at) && body + 16 <= bytes.length) {
-      format = data.getUint16(body, Endian.little);
-      channels = data.getUint16(body + 2, Endian.little);
-      rate = data.getUint32(body + 4, Endian.little);
-      bits = data.getUint16(body + 14, Endian.little);
+      fmt = (
+        format: data.getUint16(body, Endian.little),
+        channels: data.getUint16(body + 2, Endian.little),
+        rate: data.getUint32(body + 4, Endian.little),
+        bits: data.getUint16(body + 14, Endian.little),
+      );
     } else if (_starts(bytes, 'data', at)) {
-      final end = body + size > bytes.length ? bytes.length : body + size;
-      sound = ByteData.sublistView(bytes, body, end);
+      sound = ByteData.sublistView(bytes, body, min(body + size, bytes.length));
     }
     at = body + size + size % 2;
   }
+  if (fmt == null || sound == null) return null;
+  return (format: fmt.format, channels: fmt.channels, rate: fmt.rate, bits: fmt.bits, sound: sound);
+}
+
+/// A WAV's sound as 16 kHz mono samples (-1..1); null when it is not a PCM
+/// (16-bit) or float (32-bit) WAV this can read.
+Float32List? wavSamples(Uint8List bytes) {
+  if (!isWav(bytes)) return null;
+  final parts = _wavParts(bytes);
+  if (parts == null) return null;
+  final (:format, :channels, :rate, :bits, :sound) = parts;
   final pcm = format == 1 && bits == 16;
-  final float = format == 3 && bits == 32;
-  if (sound == null || channels == null || channels == 0 || rate == null || !(pcm || float)) {
-    return null;
-  }
-  final width = bits! ~/ 8 * channels;
-  final frames = sound.lengthInBytes ~/ width;
-  final mono = Float32List(frames);
-  for (var f = 0; f < frames; f++) {
+  if (channels == 0 || !(pcm || (format == 3 && bits == 32))) return null;
+  final width = bits ~/ 8 * channels;
+  final mono = Float32List(sound.lengthInBytes ~/ width);
+  for (var f = 0; f < mono.length; f++) {
     var sum = 0.0;
     for (var c = 0; c < channels; c++) {
       final at = f * width + c * bits ~/ 8;

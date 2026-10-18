@@ -100,6 +100,7 @@ class _ChatScreenState extends State<ChatScreen> {
         ..showSnackBar(SnackBar(content: Text(refused)));
       return;
     }
+    if (!mounted) return; // listening to audio takes a while: the screen may be gone (#387)
     final typed = _message.text.trim();
     _message.clear();
     await widget.session.send(withAttachments(typed, files, images: names), images: images);
@@ -118,27 +119,15 @@ class _ChatScreenState extends State<ChatScreen> {
     var sent = 0; // characters, over every text file of the message
     var pictured = 0; // bytes, over every image of it
     for (final file in picked) {
-      // Audio first: heard on the device, it goes as its words (#285).
-      if (isAudio(file.bytes)) {
-        final (:text, :refused) = await _audioText(file);
-        if (refused != null) return (files: files, images: images, names: names, refused: refused);
-        files.add((name: file.name, text: text!));
-        sent += text.length;
-        continue;
-      }
-      // An image first: a GIF begins as plain ASCII.
-      final type = imageType(file.bytes);
-      final pdf = type == null && _isPdf(file.bytes);
-      String? text;
-      if (type == null) text = pdf ? await _pdfText(file.bytes) : _text(file.bytes);
-      final refused = switch ((type, text)) {
-        (null, null) when pdf => s.noPdfText(file.name),
-        (null, null) => s.notText(file.name),
-        (_?, _) when pictured + file.bytes.length > maxImage => s.tooLarge(file.name),
-        (_, final text?) when sent + text.length > maxAttachment => s.tooLarge(file.name),
-        _ => null,
-      };
-      if (refused != null) return (files: files, images: images, names: names, refused: refused);
+      final (:text, :type, :refused) = await _content(file);
+      final over =
+          refused ??
+          switch ((type, text)) {
+            (_?, _) when pictured + file.bytes.length > maxImage => s.tooLarge(file.name),
+            (_, final text?) when sent + text.length > maxAttachment => s.tooLarge(file.name),
+            _ => null,
+          };
+      if (over != null) return (files: files, images: images, names: names, refused: over);
       if (type != null) {
         images.add(imageBlock(type, file.bytes));
         pictured += file.bytes.length;
@@ -165,6 +154,25 @@ class _ChatScreenState extends State<ChatScreen> {
 
   static bool _isPdf(List<int> bytes) =>
       bytes.length >= 5 && ascii.decode(bytes.sublist(0, 5), allowInvalid: true) == '%PDF-';
+
+  /// What [file] holds for the model: its words (audio heard on the device,
+  /// a PDF's or a text file's text) or an image's type; or why it cannot go.
+  Future<({String? text, String? type, String? refused})> _content(PickedFile file) async {
+    final s = widget.session.strings;
+    // Audio first: heard on the device, it goes as its words (#285).
+    if (isAudio(file.bytes)) {
+      final (:text, :refused) = await _audioText(file);
+      return (text: text, type: null, refused: refused);
+    }
+    // An image next: a GIF begins as plain ASCII.
+    if (imageType(file.bytes) case final type?) return (text: null, type: type, refused: null);
+    if (_isPdf(file.bytes)) {
+      final text = await _pdfText(file.bytes);
+      return (text: text, type: null, refused: text == null ? s.noPdfText(file.name) : null);
+    }
+    final text = _text(file.bytes);
+    return (text: text, type: null, refused: text == null ? s.notText(file.name) : null);
+  }
 
   /// An audio file's words, heard on the device, or why it cannot go: no
   /// Whisper yet, a format this device cannot open, or no words in it.
