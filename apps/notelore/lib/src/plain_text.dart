@@ -43,6 +43,13 @@ String _block(md.Node node, String indent) {
       return _blocks(node.children!, indent);
     case 'pre':
       return _inline(node).trimRight();
+    case 'table':
+      // A row a line, its cells " | " apart; the header is the first row.
+      return [
+        for (final part in node.children!)
+          for (final row in (part as md.Element).children!)
+            [for (final cell in (row as md.Element).children!) _inline(cell).trim()].join(' | '),
+      ].join('\n');
     default:
       return _inline(node).trim(); // a paragraph, a heading
   }
@@ -65,6 +72,8 @@ String _item(md.Element item, String indent) {
 String _inline(md.Node node) {
   if (node is! md.Element) return node.textContent;
   switch (node.tag) {
+    case 'input': // a task's box
+      return node.attributes['checked'] == 'true' ? '[x] ' : '[ ] ';
     case 'img':
       return node.attributes['alt'] ?? '';
     case 'br':

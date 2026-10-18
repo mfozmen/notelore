@@ -29,4 +29,15 @@ void main() {
     expect(plainText('<div>raw</div>'), '<div>raw</div>');
     expect(plainText(''), '');
   });
+
+  test('a table keeps its rows and cells apart; a task keeps its box', () {
+    expect(
+      plainText('People:\n\n| Name | Role |\n| --- | --- |\n| Ana | Dev |\n| Can | Ops |'),
+      'People:\n\nName | Role\nAna | Dev\nCan | Ops',
+    );
+    expect(
+      plainText('- [ ] Pick a host\n- [x] Pick a database'),
+      '- [ ] Pick a host\n- [x] Pick a database',
+    );
+  });
 }
