@@ -142,6 +142,7 @@ void main() {
       'remove': s.remove,
       'removeModel': s.removeModel('x'),
       'removeModelWhy': s.removeModelWhy,
+      'removeFailed': s.removeFailed,
       'nowUsing': s.nowUsing('x'),
       'chooseProviderWhy': s.chooseProviderWhy,
       'openKeyPage': s.openKeyPage('example.com'),

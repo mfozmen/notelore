@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore_core/notelore_core.dart';
 
+import 'app_chatgpt_test.dart' show pumpPlanApp;
 import 'app_test.dart' show choose, connect, phone, pumpApp;
 import 'support.dart';
 
@@ -128,5 +131,48 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Sign-in did not finish. Please try again.'), findsOneWidget);
     expect(session.spec!.name, 'openai');
+  });
+
+  testWidgets('settings: a removal that fails says so; no removal while switching (#369)', (
+    tester,
+  ) async {
+    final auth = FakeAuth();
+    final harness = Harness(chatGpt: auth);
+    await pumpPlanApp(tester, harness);
+    await tester.tap(find.text('Continue with ChatGPT'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Got it'));
+    await tester.pumpAndSettle();
+    await openSettings(tester);
+    await tester.tap(find.text('Connect another model'));
+    await tester.pumpAndSettle();
+    await choose(tester, 'Claude (Anthropic)');
+    await tester.enterText(find.byKey(const Key('api-key')), 'sk-ant');
+    await tester.tap(find.text('Connect'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start'));
+    await tester.pumpAndSettle();
+    // The sign-out fails: said, and the row stays.
+    auth.failSignOut = Exception('keystore locked');
+    await tester.tap(find.descendant(of: row('chatgpt'), matching: find.byTooltip('Remove')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
+    await tester.pumpAndSettle();
+    expect(find.text('Could not remove it. Please try again.'), findsOneWidget);
+    expect(row('chatgpt'), findsOneWidget);
+    // While a switch is checked, nothing can be removed.
+    await tester.tap(row('chatgpt'));
+    await tester.pumpAndSettle();
+    harness.connectHold = Completer<void>();
+    await tester.tap(row('anthropic')); // its key is checked again
+    await tester.pump();
+    for (final remove in find.byTooltip('Remove').evaluate()) {
+      final button = remove.findAncestorWidgetOfExactType<IconButton>()!;
+      expect(button.onPressed, isNull);
+    }
+    harness.connectHold!.complete();
+    await tester.pumpAndSettle();
   });
 }

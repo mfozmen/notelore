@@ -303,8 +303,14 @@ class _ConnectionsState extends State<_Connections> {
         ],
       ),
     );
-    if (!(sure ?? false)) return;
-    await session.disconnect(spec);
+    if (!(sure ?? false) || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await session.disconnect(spec);
+    } on Object catch (error) {
+      debugPrint('removal failed: $error'); // the detail, for the log only
+      messenger.showSnackBar(SnackBar(content: Text(s.removeFailed)));
+    }
     if (mounted) _reload();
   }
 
@@ -358,7 +364,7 @@ class _ConnectionsState extends State<_Connections> {
                     // A removal never wears the accent colour of the one in use.
                     color: colors.onSurfaceVariant,
                     icon: const Icon(Icons.delete_outline),
-                    onPressed: () => _remove(spec),
+                    onPressed: _switching != null ? null : () => _remove(spec),
                   ),
                 ),
             ],
