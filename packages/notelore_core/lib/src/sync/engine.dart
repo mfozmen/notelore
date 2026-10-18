@@ -83,14 +83,13 @@ Future<SyncReport> sync(
       for (final file in Directory(
         root,
       ).listSync(recursive: true, followLinks: false).whereType<File>())
-        if (file.path.endsWith('.md'))
-          unorm.nfc(p.split(p.relative(file.path, from: root)).join('/')): file,
+        if (_synced(_relOf(root, file.path))) _relOf(root, file.path): file,
   };
   // Only notes: anything else in the remote folder (the shared app settings) is
   // not ours to pull, and pulling it would later read as deleted here and trash it.
   final remoteFiles = {
     for (final MapEntry(:key, :value) in (await remote.list()).entries)
-      if (key.endsWith('.md')) unorm.nfc(key): value,
+      if (_synced(unorm.nfc(key))) unorm.nfc(key): value,
   };
   final report = SyncReport();
   final keys = {...local.keys, ...remoteFiles.keys, ...manifest.paths()}.toList()..sort();
@@ -111,10 +110,18 @@ Future<SyncReport> sync(
       report.ignored.add(rel);
       continue;
     }
-    await run.file(rel, remoteFiles[rel], local[rel]);
+    final binary = rel.startsWith('$attachmentsFolder/');
+    await (binary ? run.binary : run.file)(rel, remoteFiles[rel], local[rel]);
   }
   return report;
 }
+
+/// [path] relative to [root], with forward slashes and in NFC.
+String _relOf(String root, String path) =>
+    unorm.nfc(p.split(p.relative(path, from: root)).join('/'));
+
+/// Notes, and the originals kept beside them (#279); nothing else in the folder.
+bool _synced(String rel) => rel.endsWith('.md') || rel.startsWith('$attachmentsFolder/');
 
 class _Pass {
   _Pass(this.root, this.manifest, this.remote, this.resolve, this.stamp, this.report);
@@ -175,6 +182,62 @@ class _Pass {
         manifest.forget(rel);
         report.removedRemote.add(rel);
     }
+  }
+
+  /// An attachment (#279): its bytes travel as they are, never merged. Changed
+  /// on both sides, Drive's copy stays and this one goes to history.
+  Future<void> binary(String rel, RemoteFile? meta, File? found) async {
+    final path = found?.path ?? _path(rel);
+    final entry = manifest.get(rel);
+    final local = found?.readAsBytesSync();
+    final untouched = meta == null || (entry != null && meta.md5 == entry.md5);
+    final downloaded = untouched ? null : await remote.download(meta.id);
+    final localHash = local == null ? null : bytesHash(local);
+    final remoteHash = meta == null
+        ? null
+        : (downloaded == null ? entry?.localHash : bytesHash(downloaded));
+    ManifestEntry recorded(RemoteFile at, String hash) =>
+        ManifestEntry(localHash: hash, driveId: at.id, md5: at.md5, modified: at.modified);
+    switch (decide(entry?.localHash, localHash, remoteHash)) {
+      case SyncAction.none:
+        if (local != null && meta != null) {
+          if (entry != recorded(meta, localHash!)) manifest.record(rel, recorded(meta, localHash));
+        } else {
+          manifest.forget(rel);
+        }
+      case SyncAction.push:
+        final uploaded = await remote.upload(rel, local!, meta?.id);
+        manifest.record(rel, recorded(uploaded, localHash!));
+        report.pushed.add(rel);
+      case SyncAction.pull:
+        _take(rel, path, meta!, downloaded!, recorded(meta, remoteHash!));
+      case SyncAction.merge:
+        // Changed here too: this copy is kept apart before Drive's replaces it.
+        final target = _history(rel);
+        Directory(p.dirname(target)).createSync(recursive: true);
+        moveWithRetry(path, target);
+        report.history.add(_rel(target));
+        _take(rel, path, meta!, downloaded!, recorded(meta, remoteHash!));
+      case SyncAction.removeLocal:
+        final target = _history(rel);
+        Directory(p.dirname(target)).createSync(recursive: true);
+        moveWithRetry(path, target);
+        manifest.forget(rel);
+        report
+          ..removedLocal.add(rel)
+          ..history.add(_rel(target));
+      case SyncAction.removeRemote:
+        await remote.trash(meta!.id);
+        manifest.forget(rel);
+        report.removedRemote.add(rel);
+    }
+  }
+
+  /// Drive's copy of an attachment, written here and recorded.
+  void _take(String rel, String path, RemoteFile meta, List<int> bytes, ManifestEntry entry) {
+    atomicWriteBytes(path, bytes);
+    manifest.record(rel, entry);
+    report.pulled.add(rel);
   }
 
   /// The local text and the remote one, downloaded only when Drive changed it

@@ -33,6 +33,10 @@ class FakeDrive implements Remote {
 
   String text(String rel) => utf8.decode(files[rel]!.$2);
 
+  void putBytes(String rel, List<int> data) => files[rel] = (files[rel]?.$1 ?? _newId(), data);
+
+  List<int> bytes(String rel) => files[rel]!.$2;
+
   RemoteFile _meta(String rel) {
     final (id, data) = files[rel]!;
     return RemoteFile(id: id, md5: md5.convert(data).toString(), modified: 't${data.length}');
@@ -104,6 +108,47 @@ void main() {
     Link(at('projects/elsewhere')).createSync(outside.path);
     final report = await run();
     expect(report.pushed, ['projects/a.md']);
+  });
+
+  test('an attachment travels as it is: pushed, pulled, never merged (#279)', () async {
+    final bytes = [0, 255, 1, 254]; // not text
+    File(at('attachments/2026-10-18/memo.m4a'))
+      ..parent.createSync(recursive: true)
+      ..writeAsBytesSync(bytes);
+    var report = await run();
+    expect(report.pushed, ['attachments/2026-10-18/memo.m4a']);
+    expect(drive.bytes('attachments/2026-10-18/memo.m4a'), bytes);
+    expect((await run()).changed, 0);
+    // One made on another device comes down.
+    drive.putBytes('attachments/2026-10-19/call.ogg', [7, 7, 7]);
+    report = await run();
+    expect(report.pulled, ['attachments/2026-10-19/call.ogg']);
+    expect(File(at('attachments/2026-10-19/call.ogg')).readAsBytesSync(), [7, 7, 7]);
+    // Changed on both sides: Drive's copy stays, this one goes to history, nothing lost.
+    File(at('attachments/2026-10-19/call.ogg')).writeAsBytesSync([1]);
+    drive.putBytes('attachments/2026-10-19/call.ogg', [2]);
+    report = await run();
+    expect(File(at('attachments/2026-10-19/call.ogg')).readAsBytesSync(), [2]);
+    expect(report.history.single, endsWith('attachments/2026-10-19/call.ogg'));
+    expect(File(p.join(root, report.history.single)).readAsBytesSync(), [1]);
+    // Deleted here: trashed on Drive, never hard deleted.
+    File(at('attachments/2026-10-18/memo.m4a')).deleteSync();
+    report = await run();
+    expect(report.removedRemote, ['attachments/2026-10-18/memo.m4a']);
+    // Trashed on Drive: here it goes to history, never deleted.
+    drive.files.remove('attachments/2026-10-19/call.ogg');
+    report = await run();
+    expect(report.removedLocal, ['attachments/2026-10-19/call.ogg']);
+    expect(File(at('attachments/2026-10-19/call.ogg')).existsSync(), isFalse);
+    // Gone on both sides with the manifest still knowing it: forgotten quietly.
+    File(at('attachments/2026-10-20/x.wav'))
+      ..parent.createSync(recursive: true)
+      ..writeAsBytesSync([3]);
+    await run();
+    File(at('attachments/2026-10-20/x.wav')).deleteSync();
+    drive.files.remove('attachments/2026-10-20/x.wav');
+    expect((await run()).changed, 0);
+    expect(manifest.get('attachments/2026-10-20/x.wav'), isNull);
   });
 
   test('a new remote file is pulled', () async {
