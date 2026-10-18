@@ -206,9 +206,13 @@ class Agent {
       return answer;
     } catch (_) {
       messages.removeRange(start, messages.length);
+      // A failed turn leaves no note it made but never wrote into (#421).
+      if (toolbox.takeBackEmpty()) wroteNotes = true;
       rethrow;
     } finally {
       timer.cancel();
+      // An answered turn keeps what it made: "open a project Mopsos" is a note.
+      if (toolbox.forgetCreated()) wroteNotes = true;
     }
   }
 
@@ -258,7 +262,10 @@ class Agent {
         return blocks.map((b) => b['text']).join('\n');
       }
       onStep(describeTool('${uses.first['name']}'));
-      if (uses.any((u) => writingTools.contains(u['name']))) wroteNotes = true;
+      // A new note counts once the turn keeps it ([Toolbox.takeBackEmpty]).
+      if (uses.any((u) => u['name'] != 'create_note' && writingTools.contains(u['name']))) {
+        wroteNotes = true;
+      }
       messages.add({
         'role': 'user',
         'content': [
