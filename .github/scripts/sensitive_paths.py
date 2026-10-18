@@ -25,7 +25,12 @@ PATTERNS = (
     "*/lib/src/lock*.dart",
     "*/lib/src/update.dart",
     "*/lib/*auth*.dart",
+    "packages/notelore_core/lib/src/tools.dart",  # what the model may do to the notes
+    "packages/notelore_core/lib/src/dev.dart",  # signs in to ChatGPT, stores its tokens
     "*/AndroidManifest.xml",
+    "*/android/*build.gradle*",
+    "*/android/app/src/main/res/xml/*",  # backup, data extraction, file provider
+    ".claude/*",  # the security reviewer's own rules, and Claude Code's settings
     "*/Info.plist",
     "*.entitlements",
     "pubspec.yaml",
