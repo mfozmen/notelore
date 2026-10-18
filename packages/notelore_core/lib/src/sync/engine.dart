@@ -79,7 +79,10 @@ Future<SyncReport> sync(
   // Keys are NFC: macOS hands back NFD names for the same note Drive stores as NFC.
   final local = <String, File>{
     if (Directory(root).existsSync())
-      for (final file in Directory(root).listSync(recursive: true).whereType<File>())
+      // A link is not followed: nothing outside the notes folder is ever uploaded.
+      for (final file in Directory(
+        root,
+      ).listSync(recursive: true, followLinks: false).whereType<File>())
         if (file.path.endsWith('.md'))
           unorm.nfc(p.split(p.relative(file.path, from: root)).join('/')): file,
   };

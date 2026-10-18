@@ -49,9 +49,12 @@ String withAttachments(String message, List<Attachment> files, {List<String> ima
       if (message.isNotEmpty) message,
       for (final f in files)
         '<attached file="${_quoted(f.name)}">\n'
-            '${f.text.trimRight().replaceAll('</attached>', r'<\/attached>')}\n</attached>',
+            '${f.text.trimRight().replaceAllMapped(_closing, (m) => '<\\/${m[1]}')}\n</attached>',
       for (final name in images) '<attached image="${_quoted(name)}"/>',
     ].join('\n\n');
+
+/// A file's own closing tag, in any case (#315).
+final _closing = RegExp('</(attached)', caseSensitive: false);
 
 /// [name] safe inside the marker's quotes, on one line.
 String _quoted(String name) => name.replaceAll('"', "'").replaceAll(RegExp(r'[\r\n]+'), ' ');

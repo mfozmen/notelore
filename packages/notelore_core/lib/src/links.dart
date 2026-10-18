@@ -10,6 +10,7 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show InternetAddress, InternetAddressType;
 
 import 'package:http/http.dart' as http;
 
@@ -54,9 +55,6 @@ Future<WebPage> readPage(
   int maxBytes = 2000000,
   int maxChars = 8000,
 }) async {
-  if (url.scheme != 'http' && url.scheme != 'https') {
-    throw const LinkUnreadable('only web links (http or https) are read');
-  }
   final (:bytes, :type, :cut) = await _download(url, client, maxBytes, timeout);
   final charset = RegExp(r'charset=([\w-]+)', caseSensitive: false).firstMatch(type)?[1];
   final body = const {'iso-8859-1', 'latin1', 'windows-1252'}.contains(charset?.toLowerCase())
@@ -84,7 +82,7 @@ Future<({List<int> bytes, String type, bool cut})> _download(
 ) async {
   final deadline = DateTime.now().add(timeout);
   try {
-    final response = await client.send(http.Request('GET', url)).timeout(timeout);
+    final response = await _follow(url, client, timeout);
     if (response.statusCode >= 400) {
       throw LinkUnreadable('the site answered ${response.statusCode}');
     }
@@ -105,6 +103,53 @@ Future<({List<int> bytes, String type, bool cut})> _download(
   } on TimeoutException {
     throw const LinkUnreadable('the site did not answer in time');
   }
+}
+
+/// The answer at [url], redirects followed by hand (at most [_maxRedirects]),
+/// each hop checked like the first: a public page cannot hand the reader on to
+/// this device or the local network (#315).
+Future<http.StreamedResponse> _follow(Uri url, http.Client client, Duration timeout) async {
+  for (var hops = 0; ; hops++) {
+    _mustBePublic(url);
+    final request = http.Request('GET', url)..followRedirects = false;
+    final response = await client.send(request).timeout(timeout);
+    final next = response.headers['location'];
+    if (!response.isRedirect && (response.statusCode ~/ 100 != 3 || next == null)) {
+      return response;
+    }
+    if (hops == _maxRedirects) throw const LinkUnreadable('too many redirects');
+    unawaited(response.stream.drain<void>());
+    url = url.resolve(next!);
+  }
+}
+
+const _maxRedirects = 5;
+
+/// Refuses a link to this device or the local network: a page or message could
+/// otherwise make Notelore read a router's or a cloud host's private pages.
+/// shortcut: a public name that resolves to a private address is not caught;
+/// resolve and check the address if the reader ever sends more than a GET.
+void _mustBePublic(Uri url) {
+  if (url.scheme != 'http' && url.scheme != 'https') {
+    throw const LinkUnreadable('only web links (http or https) are read');
+  }
+  final host = url.host.toLowerCase();
+  final ip = InternetAddress.tryParse(host);
+  final private = switch (ip) {
+    null => host == 'localhost' || host.endsWith('.localhost') || host.endsWith('.local'),
+    final ip =>
+      ip.isLoopback || ip.isLinkLocal || _isPrivate(ip) || ip.rawAddress.every((b) => b == 0),
+  };
+  if (private) throw const LinkUnreadable('not a public web page');
+}
+
+bool _isPrivate(InternetAddress ip) {
+  final b = ip.rawAddress;
+  return switch (ip.type) {
+    InternetAddressType.IPv4 =>
+      b[0] == 10 || (b[0] == 172 && b[1] >= 16 && b[1] < 32) || (b[0] == 192 && b[1] == 168),
+    _ => (b[0] & 0xfe) == 0xfc, // fc00::/7, unique local
+  };
 }
 
 final _hidden = RegExp(
