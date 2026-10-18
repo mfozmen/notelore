@@ -44,8 +44,10 @@ class _NoteImageState extends State<_NoteImage> {
     Widget failed(BuildContext context, _, _) =>
         _card(context, const Icon(Icons.broken_image_outlined), s.imageFailed);
     if (!uri.hasScheme) {
-      final file = File(p.normalize(p.join(widget.folder, Uri.decodeComponent(uri.path))));
-      return Image.file(file, semanticLabel: widget.alt, errorBuilder: failed);
+      final path = p.normalize(p.join(widget.folder, Uri.decodeComponent(uri.path)));
+      // Only inside the notes folder (the note's folder's parent): a note never probes the disk.
+      if (!p.isWithin(p.dirname(widget.folder), path)) return failed(context, null, null);
+      return Image.file(File(path), semanticLabel: widget.alt, errorBuilder: failed);
     }
     if (uri.scheme != 'http' && uri.scheme != 'https') return Text(widget.alt);
     if (_shown) {
