@@ -46,9 +46,11 @@ def last_review(comments):
         body = body or ""
         if login != REVIEWER_LOGIN or not body.startswith(FINISHED_SIGNATURE):
             continue
-        if SECURITY_MARKERS.search(body):  # the security pass's, never a code review's head
-            continue
         matches = REVIEWED_HEAD.findall(body)
+        if SECURITY_MARKERS.search(body):  # the security pass's, never a code review's head
+            if matches:
+                found = (None, None)  # both passes' lines: the next review is a full one
+            continue
         if matches:
             found = (matches[-1], body)
     return found

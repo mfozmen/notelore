@@ -65,13 +65,16 @@ got = review_verdict([review("CLEAN"), security("CRITICAL")])
 failures += got != "CLEAN"
 print(f"{'ok  ' if got == 'CLEAN' else 'FAIL'} the code review ignores the security pass: got {got!r}")
 
-# A body that carries both passes' markers (a quote, a slip, an injection) is
-# read by neither: each side then fails closed instead of taking the other's.
+# A newest body that carries both passes' markers (a quote, a slip, an
+# injection) resets both sides: no verdict, so the check fails, and no head, so
+# the next review is a full one. Skipping it would leave an older verdict in
+# force (found in this PR's review).
 mixed = (BOT, DONE + "SECURITY-VERDICT: CLEAN\nREVIEWED-HEAD: def5678\nREVIEW-VERDICT: CLEAN")
 for name, got, want in [
-    ("the security gate skips a body with review markers", latest_verdict([security("CRITICAL"), mixed]), "CRITICAL"),
-    ("the review gate skips a body with a security marker", review_verdict([review("CRITICAL"), mixed]), "CRITICAL"),
-    ("the review range skips it too", last_review([review("CLEAN"), mixed])[0], "abc1234"),
+    ("a mixed body resets the security gate", latest_verdict([security("CLEAN"), mixed]), None),
+    ("a mixed body resets the review gate", review_verdict([review("CLEAN"), mixed]), None),
+    ("a mixed body resets the review range", last_review([review("CLEAN"), mixed])[0], None),
+    ("a later clean pass counts again", latest_verdict([mixed, security("WARNING")]), "WARNING"),
 ]:
     failures += got != want
     print(f"{'ok  ' if got == want else 'FAIL'} {name}: got {got!r}, want {want!r}")
