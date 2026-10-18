@@ -979,6 +979,35 @@ void main() {
     expect(await again.lock.unlock('anything'), isTrue); // no lock: nothing to open
   });
 
+  test('the wait after wrong tries holds when the clock is moved forward (#315)', () async {
+    var now = DateTime.utc(2026, 10, 17, 12);
+    var up = Duration.zero; // time that only moves forward, unlike the device clock
+    final session = Harness().session(clock: () => now, uptime: () => up);
+    await session.lock.set('2468');
+    for (var i = 0; i < 5; i++) {
+      await session.lock.unlock('0000');
+    }
+    expect(session.lock.wait, const Duration(seconds: 30));
+    now = now.add(const Duration(hours: 1)); // the clock set ahead
+    expect(session.lock.wait, const Duration(seconds: 30));
+    expect(await session.lock.unlock('2468'), isFalse);
+    up += const Duration(seconds: 30);
+    expect(session.lock.wait, Duration.zero);
+    expect(await session.lock.unlock('2468'), isTrue);
+  });
+
+  test('turning the lock off counts wrong tries and waits like opening it (#315)', () async {
+    final now = DateTime.utc(2026, 10, 17, 12);
+    final session = Harness().session(clock: () => now);
+    await session.lock.set('2468');
+    for (var i = 0; i < 5; i++) {
+      expect(await session.lock.remove('0000'), isFalse);
+    }
+    expect(session.lock.wait, const Duration(seconds: 30));
+    expect(await session.lock.remove('2468'), isFalse); // even the right one waits
+    expect(session.lock.enabled, isTrue);
+  });
+
   test('a development run keeps its own lock, apart from the real app', () async {
     final harness = Harness();
     final dev = harness.session(keySpace: 'notelore-dev');

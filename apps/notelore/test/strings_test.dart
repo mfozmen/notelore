@@ -167,6 +167,7 @@ void main() {
       'copy': s.copy,
       'copied': s.copied,
       'attachFile': s.attachFile,
+      'fileTooBig': s.fileTooBig('a.pdf'),
       'notText': s.notText('x'),
       'tooLarge': s.tooLarge('x'),
       'noPdfText': s.noPdfText('x'),

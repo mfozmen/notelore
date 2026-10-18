@@ -174,6 +174,7 @@ class Harness {
     String systemLanguage = 'en',
     String keySpace = 'notelore',
     DateTime Function()? clock,
+    Duration Function()? uptime,
     Duration retryEvery = const Duration(hours: 1), // tests try again by hand
     void Function(String entry)? timing,
   }) {
@@ -184,6 +185,7 @@ class Harness {
       systemLanguage: systemLanguage,
       keySpace: keySpace,
       clock: clock,
+      uptime: uptime,
       speech: speech,
       voice: voice,
       whisperFiles: whisperFiles,

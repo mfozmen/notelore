@@ -181,7 +181,8 @@ class Exchange {
   /// The files the person picks to import; none when called off. A desktop
   /// offers Markdown; a phone anything, as apps seldom say what a .md is.
   /// [any] offers every file everywhere (a chat attachment: its content decides).
-  Future<List<PickedFile>> pick({bool any = false}) async {
+  /// A file over [maxBytes] is refused with [FileTooBig] before it is read (#315).
+  Future<List<PickedFile>> pick({bool any = false, int? maxBytes}) async {
     final picked = await openFiles(
       acceptedTypeGroups: mobile || any
           ? const []
@@ -193,6 +194,16 @@ class Exchange {
               ),
             ],
     );
+    for (final file in picked) {
+      if (maxBytes != null && await file.length() > maxBytes) throw FileTooBig(file.name);
+    }
     return [for (final file in picked) (name: file.name, bytes: await file.readAsBytes())];
   }
+}
+
+/// A picked file larger than the caller takes.
+class FileTooBig implements Exception {
+  const FileTooBig(this.name);
+
+  final String name;
 }

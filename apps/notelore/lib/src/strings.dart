@@ -101,6 +101,7 @@ abstract class Strings {
 
   /// Text files attached in the chat (#222).
   String get attachFile;
+  String fileTooBig(String name);
   String notText(String name);
   String tooLarge(String name);
   String noPdfText(String name);
@@ -487,6 +488,8 @@ class EnglishStrings extends Strings {
   String get copy => 'Copy';
   @override
   String get copied => 'Copied';
+  @override
+  String fileTooBig(String name) => '$name is too big to attach (20 MB at most).';
   @override
   String get attachFile => 'Attach a file';
   @override
@@ -1080,6 +1083,8 @@ class TurkishStrings extends Strings {
   String get copy => 'Kopyala';
   @override
   String get copied => 'Kopyalandı';
+  @override
+  String fileTooBig(String name) => '$name eklemek için çok büyük (en fazla 20 MB).';
   @override
   String get attachFile => 'Dosya ekle';
   @override

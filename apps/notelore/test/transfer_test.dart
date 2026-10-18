@@ -113,6 +113,15 @@ void main() {
       expect(p.isWithin(p.join(harness.scratch.path, 'temp'), sent), isTrue);
     });
 
+    test('a file over the size limit is refused before it is read (#315)', () async {
+      final big = XFile.fromData(Uint8List(0), path: 'huge.pdf', length: 30 * 1024 * 1024);
+      harness.files.picked = [big];
+      await expectLater(
+        exchange(mobile: true).pick(any: true, maxBytes: 20 * 1024 * 1024),
+        throwsA(isA<FileTooBig>().having((e) => e.name, 'name', 'huge.pdf')),
+      );
+    });
+
     test('picks files to import: Markdown on a desktop, anything on a phone', () async {
       final picked = File(p.join(harness.scratch.path, 'mopsos.md'))..writeAsStringSync('hi');
       harness.files.picked = [XFile(picked.path)];
