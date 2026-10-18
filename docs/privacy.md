@@ -32,11 +32,11 @@ Android's own backup and phone-to-phone transfer take nothing from Notelore. Goo
 | **Google Drive** (your account) | Your notes, plus the app settings shared between your devices | On every sync, to a folder Notelore creates. With the `drive.file` permission, Notelore sees only files it created itself. |
 | **Google sign-in** | The standard sign-in exchange | When you sign in, and when a token is refreshed |
 | **OpenAI sign-in** (ChatGPT plan, optional) | The standard sign-in exchange | When you sign in, and when a token is refreshed |
-| **Web pages you link to** | One request for the page | When a message contains a link. Only public http(s) pages are fetched; Notelore never asks addresses on your device or local network. |
+| **Web pages you link to** | One request for the page | When a message contains a link. Only public http(s) pages are fetched; Notelore never requests addresses on your device or local network. |
 | **GitHub** (`api.github.com`) | A request for the latest release | At start, to check for updates. On the desktop it also downloads a new version when you ask for one. |
 | **Hugging Face** | A download of the Whisper speech model (about 375 MB) | Once per device, for voice mode |
 
-Each provider handles what it receives under its own terms and privacy policy. These say whether it keeps your data or uses it to improve its products. Notably, **Gemini's free tier may use your requests to improve Google's products**, as the setup screen tells you before you choose it. With an API key, Anthropic and OpenAI do not train on what you send by default. Through your ChatGPT plan, your ChatGPT data controls apply.
+Each provider handles what it receives under its own terms and privacy policy. These say whether it keeps your data or uses it to improve its products. Notably, **Gemini's free tier may use your requests to improve Google's products**, as the setup screen tells you before you choose it. As of October 2026, Anthropic and OpenAI say they do not train on what is sent with an API key by default, and through your ChatGPT plan your ChatGPT data controls apply. Their own policies are what counts, and they can change.
 
 ## The microphone and speech
 

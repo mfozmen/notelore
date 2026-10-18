@@ -684,7 +684,6 @@ class _AboutCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ListTile(leading: const NoteloreMark(size: 40), title: Text(s.versionLine(version))),
-            // What goes where, said in full (#308).
             ListTile(
               leading: const Icon(Icons.privacy_tip_outlined),
               title: Text(s.privacyPolicy),

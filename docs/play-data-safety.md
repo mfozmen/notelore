@@ -24,7 +24,7 @@ Prepared for the first Play release (#308). The source for every answer is [priv
 
 - `RECORD_AUDIO`: voice mode, only while the talk button is held.
 - `INTERNET`: the chosen AI provider, Google Drive, sign-in, reading linked pages, and the update check.
-- Play builds have no `REQUEST_INSTALL_PACKAGES`: a Play build updates through Play (#307).
+- Play builds are to have no `REQUEST_INSTALL_PACKAGES`, because a Play build updates through Play (#307). Check the merged manifest before submitting.
 
 ## Privacy policy URL
 
