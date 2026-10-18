@@ -397,7 +397,7 @@ void main() {
     final harness = Harness(answers: ['Merhaba!', const HttpError(500, 'offline')]);
     await pumpApp(tester, harness);
     await connect(tester, key: 'sk-ant');
-    expect(find.text('Ask or tell me something.'), findsOneWidget);
+    expect(find.text('Write something to note, or ask about your notes.'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('message')), 'selam');
     await tester.pump(); // the Send button appears with the text
     await tester.tap(find.byTooltip('Send'));
@@ -1328,7 +1328,7 @@ void main() {
     expect(find.text('Dil'), findsOneWidget);
     await tester.tap(find.text('Sohbet'));
     await tester.pumpAndSettle();
-    expect(find.text('Bana bir şey sor ya da anlat.'), findsOneWidget);
+    expect(find.text('Not almamı istediğin bir şey yaz ya da notlarına sor.'), findsOneWidget);
     await tester.tap(find.text('Ayarlar').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('language')));

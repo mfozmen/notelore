@@ -471,7 +471,7 @@ class EnglishStrings extends Strings {
       'charges. You can see and manage that usage in ChatGPT.';
 
   @override
-  String get askSomething => 'Ask or tell me something.';
+  String get askSomething => 'Write something to note, or ask about your notes.';
   @override
   List<String> get examples => const [
     "I'm reading Tanpınar's The Time Regulation Institute",
@@ -1066,7 +1066,7 @@ class TurkishStrings extends Strings {
       'alınmaz. Bu kullanımı ChatGPT’de görebilir ve yönetebilirsin.';
 
   @override
-  String get askSomething => 'Bana bir şey sor ya da anlat.';
+  String get askSomething => 'Not almamı istediğin bir şey yaz ya da notlarına sor.';
   @override
   List<String> get examples => const [
     "Tanpınar'ın Saatleri Ayarlama Enstitüsü'nü okuyorum",
