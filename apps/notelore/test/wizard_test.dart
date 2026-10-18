@@ -327,4 +327,36 @@ void main() {
     expect(find.byKey(const Key('setup-problem')), findsOneWidget); // back on Connect, said
     expect(find.text('Saying hello to the model…'), findsNothing);
   });
+
+  testWidgets('a test turn that never answers stops at 20 s; a late answer is ignored (#376)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    final late = Completer<String>();
+    harness.provider.tryAnswer = late.future;
+    await pumpApp(tester, harness);
+    await tester.tap(find.text('Claude (Anthropic)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('api-key')), 'sk-ant');
+    await tester.tap(find.text('Connect'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 19));
+    expect(find.text('Saying hello to the model…'), findsOneWidget); // still waiting
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('api-key')), findsOneWidget); // back on Connect
+    expect(find.textContaining('did not answer within 20 seconds'), findsOneWidget);
+    // Connected again; then the first attempt's answer turns up late.
+    harness.provider.tryAnswer = 'Fresh hello.';
+    await tester.tap(find.text('Connect'));
+    await tester.pumpAndSettle();
+    expect(find.text('Fresh hello.'), findsOneWidget);
+    late.complete('Stale hello.');
+    await tester.pumpAndSettle();
+    expect(find.text('Stale hello.'), findsNothing);
+    expect(find.text('Fresh hello.'), findsOneWidget);
+  });
 }

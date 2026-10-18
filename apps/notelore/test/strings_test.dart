@@ -150,6 +150,7 @@ void main() {
       'tryPrompt': s.tryPrompt,
       'trying': s.trying,
       'tryCost': s.tryCost,
+      'tryTimedOut': s.tryTimedOut(20),
       'noModel': s.noModel,
       'noModelWhy': s.noModelWhy,
       'connectModel': s.connectModel,

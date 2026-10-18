@@ -43,6 +43,12 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
   /// The test turn's answer on Done (#361); null while it is on its way.
   String? _tried;
 
+  /// Which test turn is the current one: an earlier one answering late is dropped (#376).
+  var _tries = 0;
+
+  /// How long the test turn may take before Done gives up on it (#376).
+  static const _tryLimit = Duration(seconds: 20);
+
   /// The options already connected on this device, marked on their cards.
   var _connected = const <String>{};
   final _key = TextEditingController();
@@ -180,14 +186,19 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
   /// The one test turn: its answer on Done, or why not, back on Connect.
   Future<void> _try() async {
     final s = widget.session.strings;
+    final mine = ++_tries;
     try {
-      final answer = await widget.session.tryModel();
-      if (mounted) setState(() => _tried = answer);
+      final answer = await widget.session.tryModel().timeout(_tryLimit);
+      if (mounted && mine == _tries) setState(() => _tried = answer);
     } on Object catch (error) {
       // Anything at all, an Error too: Done must never be left spinning.
-      if (mounted) {
+      if (mounted && mine == _tries) {
         setState(() {
-          _problem = error is Exception ? s.chatError(error) : s.signInProblem(error);
+          _problem = switch (error) {
+            TimeoutException() => s.tryTimedOut(_tryLimit.inSeconds),
+            final Exception error => s.chatError(error),
+            _ => s.signInProblem(error),
+          };
           _step = _Step.connect;
         });
       }

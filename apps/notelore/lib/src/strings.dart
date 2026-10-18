@@ -39,6 +39,9 @@ abstract class Strings {
   String get tryPrompt;
   String get trying;
   String get tryCost;
+
+  /// The test turn got no answer in time (#376).
+  String tryTimedOut(int seconds);
   String get noModel;
   String get noModelWhy;
   String get connectModel;
@@ -397,6 +400,9 @@ class EnglishStrings extends Strings {
   String get tryPrompt => 'Say hello in one short sentence.';
   @override
   String get trying => 'Saying hello to the model…';
+  @override
+  String tryTimedOut(int seconds) =>
+      'The model did not answer within $seconds seconds. Check the connection, then connect again.';
   @override
   String get tryCost =>
       'This one message went to the provider and counts against your plan or key, a few '
@@ -941,6 +947,9 @@ class TurkishStrings extends Strings {
   String get tryPrompt => 'Tek kısa cümleyle merhaba de.';
   @override
   String get trying => 'Modele merhaba deniyor…';
+  @override
+  String tryTimedOut(int seconds) =>
+      'Model $seconds saniye içinde cevap vermedi. Bağlantıyı kontrol edip yeniden bağlan.';
   @override
   String get tryCost =>
       'Bu tek mesaj sağlayıcıya gitti ve planından ya da anahtarından birkaç token düştü.';
