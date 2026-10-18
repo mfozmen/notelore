@@ -354,6 +354,44 @@ void main() {
     expect(find.text('Waiting to send'), findsNothing);
   });
 
+  testWidgets('chat: an empty chat offers examples; a tap puts one in the box (#289)', (
+    tester,
+  ) async {
+    phone(tester);
+    await pumpApp(tester, Harness(answers: ['Saved.']));
+    await connect(tester, key: 'k');
+    final example = EnglishStrings().examples.first;
+    await tester.tap(find.text(example));
+    await tester.pump();
+    final field = tester.widget<TextField>(find.byKey(const Key('message')));
+    expect(field.controller!.text, example); // in the box to edit, not sent
+    expect(find.byTooltip('Send'), findsOneWidget);
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    expect(find.text(example), findsOneWidget); // the bubble; the examples are gone
+  });
+
+  testWidgets('chat: message buttons are full-size targets; bubbles leave a gutter (#289)', (
+    tester,
+  ) async {
+    phone(tester);
+    await pumpApp(tester, Harness(answers: ['Merhaba!']));
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'selam ' * 40);
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    for (final button in find.byTooltip('Copy').evaluate()) {
+      expect(tester.getSize(find.byWidget(button.widget)).height, greaterThanOrEqualTo(48));
+    }
+    final width = tester.view.physicalSize.width / tester.view.devicePixelRatio;
+    final bubble = find.ancestor(
+      of: find.text(('selam ' * 40).trim()),
+      matching: find.byType(Container),
+    );
+    expect(tester.getSize(bubble.first).width, lessThanOrEqualTo(width * 0.85));
+  });
+
   testWidgets('chat: send a message, see the answer and errors', (tester) async {
     phone(tester);
     final harness = Harness(answers: ['Merhaba!', const HttpError(500, 'offline')]);

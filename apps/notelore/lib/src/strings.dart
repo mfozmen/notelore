@@ -87,6 +87,9 @@ abstract class Strings {
 
   // Chat.
   String get askSomething;
+
+  /// Tappable starters under an empty chat: what talking to Notelore looks like.
+  List<String> get examples;
   String get message;
   String get send;
   String get resend;
@@ -461,6 +464,12 @@ class EnglishStrings extends Strings {
 
   @override
   String get askSomething => 'Ask or tell me something.';
+  @override
+  List<String> get examples => const [
+    "I'm reading Tanpınar's The Time Regulation Institute",
+    'Remind me to renew my passport next month',
+    'What did we decide about the database?',
+  ];
   @override
   String get message => 'Message';
   @override
@@ -1038,6 +1047,12 @@ class TurkishStrings extends Strings {
 
   @override
   String get askSomething => 'Bana bir şey sor ya da anlat.';
+  @override
+  List<String> get examples => const [
+    "Tanpınar'ın Saatleri Ayarlama Enstitüsü'nü okuyorum",
+    'Gelecek ay pasaportumu yenilemeyi hatırlat',
+    'Veritabanı için ne karar vermiştik?',
+  ];
   @override
   String get message => 'Mesaj';
   @override
