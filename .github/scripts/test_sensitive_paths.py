@@ -1,14 +1,16 @@
 """Tests for sensitive_paths: which changed files call for the security pass.
-No network, no git. Run by ci.yml:
+No network; one test builds a throwaway git repository. Run by ci.yml:
 
     python3 .github/scripts/test_sensitive_paths.py
 """
 
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from sensitive_paths import sensitive
+from sensitive_paths import changed_files, sensitive
 
 cases = [
     ("a provider", "packages/notelore_core/lib/src/providers/chatgpt.dart", True),
@@ -49,5 +51,29 @@ got = sensitive(["README.md", "apps/notelore/lib/src/update.dart", "docs/x.md"])
 ok = got == ["apps/notelore/lib/src/update.dart"]
 failures += not ok
 print(f"{'ok  ' if ok else 'FAIL'} a mixed change names only its sensitive files: got {got}")
+
+
+# A sensitive file renamed to an ordinary path must still count: git would
+# report the rename under its new name only (#385).
+with tempfile.TemporaryDirectory() as repo:
+    def git(*args):
+        subprocess.run(["git", "-C", repo, *args], check=True, capture_output=True)
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.email", "t@t")
+    git("config", "user.name", "t")
+    secret = Path(repo, "packages/notelore_core/lib/src/secret.dart")
+    secret.parent.mkdir(parents=True)
+    secret.write_text("the hash\n" * 20, encoding="utf-8")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    git("branch", "base")
+    Path(repo, "docs").mkdir()
+    git("mv", "packages/notelore_core/lib/src/secret.dart", "docs/notes.md")
+    git("commit", "-q", "-m", "hide it")
+    got = sensitive(changed_files("base", cwd=repo))
+    ok = got == ["packages/notelore_core/lib/src/secret.dart"]
+    failures += not ok
+    print(f"{'ok  ' if ok else 'FAIL'} a renamed sensitive file still counts: got {got}")
 
 sys.exit(1 if failures else 0)

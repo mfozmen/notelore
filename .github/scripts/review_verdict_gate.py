@@ -43,18 +43,23 @@ SECURITY_MARKERS = re.compile(r"^SECURITY-VERDICT:", re.MULTILINE)
 REVIEW_MARKERS = re.compile(r"^(REVIEW-VERDICT|REVIEWED-HEAD):", re.MULTILINE)
 
 
-def latest_verdict(comments, marker=VERDICT, foreign=SECURITY_MARKERS):
+def latest_verdict(comments, marker=VERDICT, foreign=SECURITY_MARKERS, run_id=None):
     """The verdict of the newest finished review comment, else None.
 
     `comments` is a list of (author login, body) pairs, oldest first. Anything
     not written by the review action's own completed comment is ignored.
     `marker` picks whose verdict: the code review's, or the security pass's
     (security_verdict_gate.py); `foreign` matches the other pass's lines.
+    With `run_id`, only that workflow run's comment counts: its "View job"
+    link names the run, so an older run's verdict never stands in (#385).
     """
+    own_run = run_id and re.compile(rf"/actions/runs/{re.escape(run_id)}(?!\d)")
     found = None
     for login, body in comments:
         body = body or ""
         if login != REVIEWER_LOGIN or not body.startswith(FINISHED_SIGNATURE):
+            continue
+        if own_run and not own_run.search(body):
             continue
         matches = marker.findall(body)
         if foreign.search(body):
@@ -118,7 +123,7 @@ def main():
     bodies = fetch_bodies(
         os.environ["GITHUB_REPOSITORY"], os.environ["PR_NUMBER"], os.environ["GH_TOKEN"]
     )
-    verdict = latest_verdict(bodies)
+    verdict = latest_verdict(bodies, run_id=os.environ.get("GITHUB_RUN_ID"))
     print(f"reviewer verdict: {verdict or 'MISSING'} (from {len(bodies)} comment(s))")
     code, message = decide(verdict)
     print(message)

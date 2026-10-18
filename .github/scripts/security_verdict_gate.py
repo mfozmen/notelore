@@ -20,9 +20,9 @@ from review_verdict_gate import latest_verdict as _latest
 SECURITY_VERDICT = re.compile(r"^SECURITY-VERDICT: ([A-Z]+)$", re.MULTILINE)
 
 
-def latest_verdict(comments):
+def latest_verdict(comments, run_id=None):
     """The newest finished security pass's verdict, else None."""
-    return _latest(comments, SECURITY_VERDICT, foreign=REVIEW_MARKERS)
+    return _latest(comments, SECURITY_VERDICT, foreign=REVIEW_MARKERS, run_id=run_id)
 
 
 def decide(verdict):
@@ -46,7 +46,7 @@ def main():
     bodies = fetch_bodies(
         os.environ["GITHUB_REPOSITORY"], os.environ["PR_NUMBER"], os.environ["GH_TOKEN"]
     )
-    verdict = latest_verdict(bodies)
+    verdict = latest_verdict(bodies, run_id=os.environ.get("GITHUB_RUN_ID"))
     print(f"security verdict: {verdict or 'MISSING'} (from {len(bodies)} comment(s))")
     code, message = decide(verdict)
     print(message)
