@@ -134,6 +134,7 @@ Updater? updaterFor({required String system, required String version, required S
     system: system,
     executable: executable,
     current: version,
+    temp: Directory.systemTemp,
     fetch: httpFetch,
     run: Process.run,
     spawn: startDetached,
@@ -145,6 +146,7 @@ class Updater {
     required this.system,
     required this.executable,
     required this.current,
+    required this.temp,
     required this.fetch,
     required this.run,
     required this.spawn,
@@ -159,6 +161,11 @@ class Updater {
   final OpenInstaller openInstaller;
   final String executable;
   final String current;
+
+  /// Where setups and APKs are downloaded, and what [cleanup] clears of them:
+  /// the system's temp folder in the app, a folder of its own in each test,
+  /// so a test's cleanup never deletes another test's download (#330).
+  final Directory temp;
   final Fetch fetch;
   final Run run;
   final Spawn spawn;
@@ -199,7 +206,7 @@ class Updater {
     if (system == 'windows' || system == 'android') {
       // The setup replaces the files once this app has exited; the APK goes to
       // the system installer (see relaunch).
-      final folder = Directory.systemTemp.createTempSync('notelore-update-');
+      final folder = temp.createTempSync('notelore-update-');
       _setup = (File(p.join(folder.path, name))..writeAsBytesSync(data)).path;
       return version;
     }
@@ -293,7 +300,7 @@ class Updater {
       }
       // Setups and APKs of earlier updates: they were opened after this app
       // handed over, so it could not delete them then.
-      for (final folder in Directory.systemTemp.listSync().whereType<Directory>()) {
+      for (final folder in temp.listSync().whereType<Directory>()) {
         if (p.basename(folder.path).startsWith('notelore-update-')) {
           folder.deleteSync(recursive: true);
         }

@@ -19,10 +19,12 @@ void main() {
   late String install;
   late List<String> spawned;
   late List<int> exits;
+  late Directory temp;
   setUp(() {
     final dir = Directory.systemTemp.createTempSync('notelore_banner_');
     addTearDown(() => dir.deleteSync(recursive: true));
     install = p.join(dir.path, 'Notelore');
+    temp = Directory(p.join(dir.path, 'temp'))..createSync(); // never the system's (#330)
     File(p.join(install, 'notelore.exe'))
       ..parent.createSync(recursive: true)
       ..writeAsStringSync('old');
@@ -34,6 +36,7 @@ void main() {
     system: 'windows',
     executable: p.join(install, 'notelore.exe'),
     current: '0.2.0',
+    temp: temp,
     fetch: Pages(pages).call,
     run: (command, args) async => ProcessResult(0, 0, '', ''),
     spawn: (exe, args) async => spawned.add(exe),
@@ -75,6 +78,7 @@ void main() {
       system: 'windows',
       executable: p.join(install, 'notelore.exe'),
       current: '0.2.0',
+      temp: temp,
       fetch: Pages({
         latestReleaseUrl: release(v),
         ...download('notelore-app-$v-windows-x64-setup.exe', setup),
@@ -100,6 +104,7 @@ void main() {
       system: 'macos',
       executable: p.join(bundle, 'Contents', 'MacOS', 'notelore'),
       current: '0.2.0',
+      temp: temp,
       fetch: Pages({latestReleaseUrl: release(v), ...download('notelore-app-$v-macos.dmg', setup)})
           .call,
       run: (command, args) async {
@@ -154,6 +159,7 @@ void main() {
       system: 'windows',
       executable: p.join(install, 'notelore.exe'),
       current: '0.2.0',
+      temp: temp,
       fetch: (url) async {
         if (url != latestReleaseUrl) await Completer<void>().future; // never arrives
         return release(v);
@@ -176,6 +182,7 @@ void main() {
         system: 'windows',
         executable: p.join(install, 'notelore.exe'),
         current: '0.2.0',
+        temp: temp,
         fetch: pages.call,
         run: (command, args) async => ProcessResult(0, 0, '', ''),
         spawn: (exe, args) async => spawned.add(exe),
@@ -218,6 +225,7 @@ void main() {
         system: 'windows',
         executable: p.join(install, 'notelore.exe'),
         current: '0.2.0',
+        temp: temp,
         fetch: pages.call,
         run: (command, args) async => ProcessResult(0, 0, '', ''),
         spawn: (exe, args) async => spawned.add(exe),
@@ -257,6 +265,7 @@ void main() {
         system: 'windows',
         executable: p.join(install, 'notelore.exe'),
         current: '0.2.0',
+        temp: temp,
         fetch: (url) async {
           if (url.endsWith('setup.exe')) await hold.future; // the download is slow
           return pages.call(url);
@@ -285,6 +294,7 @@ void main() {
         system: 'android',
         executable: '/system/bin/app_process',
         current: '0.2.0',
+        temp: temp,
         fetch: Pages({
           latestReleaseUrl: release(v),
           ...download('notelore-app-$v-android.apk', utf8.encode('apk')),

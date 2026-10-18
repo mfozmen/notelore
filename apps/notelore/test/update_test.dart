@@ -113,6 +113,7 @@ void main() {
       system: 'windows',
       executable: p.join(install, 'notelore.exe'),
       current: '0.2.0',
+      temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
       fetch: Pages(pages).call,
       run: (command, args) async => fail('nothing is unpacked on Windows'),
       spawn: spawn ?? (exe, args) async => spawned.add([exe, ...args]),
@@ -133,6 +134,26 @@ void main() {
       expect(File(exe).readAsBytesSync(), setup);
       expect(p.basename(exe), 'notelore-app-$v-windows-x64-setup.exe');
       expect(args, ['/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/DIR=$install']);
+    });
+
+    test('the download stays in its own temp folder, safe from another cleanup (#330)', () async {
+      final u = updater(good());
+      expect(await u.apply(), v);
+      // Another updater (another test file run in parallel, or another start)
+      // cleaning up its temp folder leaves this download alone.
+      Updater(
+        system: 'windows',
+        executable: p.join(install, 'notelore.exe'),
+        current: '0.2.0',
+        temp: Directory(p.join(dir, 'other-temp'))..createSync(),
+        fetch: Pages(const {}).call,
+        run: (command, args) async => fail('nothing runs'),
+        spawn: (exe, args) async => fail('nothing starts'),
+      ).cleanup();
+      await u.relaunch();
+      final [exe, ...] = spawned.single;
+      expect(p.isWithin(p.join(dir, 'temp'), exe), isTrue);
+      expect(File(exe).readAsBytesSync(), setup);
     });
 
     test('already up to date: nothing is downloaded', () async {
@@ -188,6 +209,7 @@ void main() {
         system: 'windows',
         executable: p.join(dir, 'gone', 'notelore.exe'),
         current: '0.2.0',
+        temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
         fetch: Pages({}).call,
         run: (command, args) async => ProcessResult(0, 0, '', ''),
         spawn: (_, _) async {},
@@ -222,6 +244,7 @@ void main() {
       system: 'macos',
       executable: p.join(bundle, 'Contents', 'MacOS', 'notelore'),
       current: '0.2.0',
+      temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
       fetch: Pages(pages).call,
       run: run ?? tools,
       spawn: (exe, args) async => spawned.add([exe, ...args]),
@@ -259,6 +282,7 @@ void main() {
         system: 'macos',
         executable: p.join(bundle, 'Contents', 'MacOS', 'notelore'),
         current: '0.2.0',
+        temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
         fetch: Pages(good()).call,
         run: tools,
         spawn: (_, _) async {},
@@ -342,6 +366,7 @@ void main() {
       system: 'android',
       executable: '/system/bin/app_process',
       current: '0.2.0',
+      temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
       fetch: Pages(pages).call,
       run: (command, args) async => fail('nothing runs on Android'),
       spawn: (_, _) async => fail('nothing is spawned on Android'),
