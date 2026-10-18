@@ -6,6 +6,7 @@ library;
 
 import 'package:notelore_core/notelore_core.dart';
 
+import 'lock_state.dart' show LockKind;
 import 'theme.dart';
 import 'transfer.dart' show ExportFormat;
 
@@ -119,8 +120,38 @@ abstract class Strings {
 
   /// The app lock (#224): Settings, its dialogs and the screen at start.
   String get appLock;
-  String get appLockOn;
+
+  /// What opens Notelore now (#295); an older password lock invites a switch.
+  String appLockOn(LockKind kind);
   String get appLockOff;
+
+  /// The lock chooser (#295).
+  String get lockChoose;
+  String get lockWithDevice;
+  String get lockWithDeviceExplained;
+  String get lockNoDevice;
+  String get lockWithPattern;
+  String get lockWithPin;
+  String get recommended;
+  String get lockPin;
+  String get drawPattern;
+  String get drawPatternAgain;
+  String get patternMismatch;
+  String patternDot(int number);
+  String get clearPattern;
+  String get patternDone;
+
+  /// What the device's own lock prompt says it is for.
+  String get unlockReason;
+  String get lockOnReason;
+  String get lockOffReason;
+  String get drawYourPattern;
+  String get deviceNotUnlocked;
+  String get deviceLockGone;
+  String get pinTooEasy;
+  String get patternTooEasy;
+  String patternDotsChosen(int count);
+  String get lockNotTurnedOn;
   String get turnOn;
   String get turnOff;
   String get lockSecret;
@@ -544,7 +575,13 @@ class EnglishStrings extends Strings {
   @override
   String get appLock => 'App lock';
   @override
-  String get appLockOn => 'On: Notelore asks for your PIN or password when it opens.';
+  String appLockOn(LockKind kind) => switch (kind) {
+    LockKind.device => "On: your device's lock opens Notelore.",
+    LockKind.pattern => 'On: a pattern opens Notelore.',
+    LockKind.pin => 'On: a PIN opens Notelore.',
+    _ =>
+      "On: your password opens Notelore. You can switch to your device's lock, a pattern or a PIN.",
+  };
   @override
   String get appLockOff => 'Off: Notelore opens without asking.';
   @override
@@ -556,7 +593,58 @@ class EnglishStrings extends Strings {
   @override
   String get lockRepeat => 'Repeat it';
   @override
-  String get lockTooShort => 'At least 4 characters.';
+  String get lockTooShort => 'At least 4 digits.';
+  @override
+  String get lockChoose => 'How should Notelore lock?';
+  @override
+  String get lockWithDevice => "Your device's lock";
+  @override
+  String get lockWithDeviceExplained =>
+      'Fingerprint, face, pattern or PIN: whatever unlocks this device.';
+  @override
+  String get lockNoDevice =>
+      'This device has no screen lock set up: set one up, or use a pattern or PIN.';
+  @override
+  String get lockWithPattern => 'A pattern for Notelore';
+  @override
+  String get lockWithPin => 'A PIN for Notelore';
+  @override
+  String get recommended => 'Recommended';
+  @override
+  String get lockPin => 'PIN';
+  @override
+  String get drawPattern => 'Draw a pattern through at least 4 dots.';
+  @override
+  String get drawPatternAgain => 'Draw the same pattern again.';
+  @override
+  String get patternMismatch => 'That was a different pattern. Start again.';
+  @override
+  String patternDot(int number) => 'Dot $number';
+  @override
+  String get clearPattern => 'Clear';
+  @override
+  String get patternDone => 'Done';
+  @override
+  String get unlockReason => 'Unlock Notelore';
+  @override
+  String get lockOnReason => 'Turn on the app lock';
+  @override
+  String get lockOffReason => 'Turn off the app lock';
+  @override
+  String get drawYourPattern => 'Draw your pattern.';
+  @override
+  String get deviceNotUnlocked => 'Not unlocked. Tap Unlock to try again.';
+  @override
+  String get deviceLockGone =>
+      "This device has no screen lock any more. Set one up in the device's settings to open Notelore.";
+  @override
+  String get pinTooEasy => 'Too easy to guess: not one digit repeated, nor a run like 1234.';
+  @override
+  String get patternTooEasy => 'That pattern is one of the first people try. Draw another.';
+  @override
+  String patternDotsChosen(int count) => count == 1 ? '1 dot chosen' : '$count dots chosen';
+  @override
+  String get lockNotTurnedOn => 'The app lock is still off.';
   @override
   String get lockMismatch => "They don't match.";
   @override
@@ -1201,7 +1289,13 @@ class TurkishStrings extends Strings {
   @override
   String get appLock => 'Uygulama kilidi';
   @override
-  String get appLockOn => 'Açık: Notelore açılırken PIN veya parolanı sorar.';
+  String appLockOn(LockKind kind) => switch (kind) {
+    LockKind.device => 'Açık: Notelore cihazının kilidiyle açılır.',
+    LockKind.pattern => 'Açık: Notelore bir desenle açılır.',
+    LockKind.pin => 'Açık: Notelore bir PIN ile açılır.',
+    _ =>
+      'Açık: Notelore parolanla açılır. Cihazının kilidine, bir desene ya da PIN’e geçebilirsin.',
+  };
   @override
   String get appLockOff => 'Kapalı: Notelore sormadan açılır.';
   @override
@@ -1213,7 +1307,58 @@ class TurkishStrings extends Strings {
   @override
   String get lockRepeat => 'Tekrar yaz';
   @override
-  String get lockTooShort => 'En az 4 karakter.';
+  String get lockTooShort => 'En az 4 rakam.';
+  @override
+  String get lockChoose => 'Notelore nasıl kilitlensin?';
+  @override
+  String get lockWithDevice => 'Cihazının kilidi';
+  @override
+  String get lockWithDeviceExplained => 'Parmak izi, yüz, desen ya da PIN: bu cihazı ne açıyorsa.';
+  @override
+  String get lockNoDevice =>
+      'Bu cihazda ekran kilidi kurulu değil: bir tane kur ya da desen veya PIN kullan.';
+  @override
+  String get lockWithPattern => 'Notelore için bir desen';
+  @override
+  String get lockWithPin => 'Notelore için bir PIN';
+  @override
+  String get recommended => 'Önerilen';
+  @override
+  String get lockPin => 'PIN';
+  @override
+  String get drawPattern => 'En az 4 noktadan geçen bir desen çiz.';
+  @override
+  String get drawPatternAgain => 'Aynı deseni bir kez daha çiz.';
+  @override
+  String get patternMismatch => 'Farklı bir desen çizdin. Baştan başla.';
+  @override
+  String patternDot(int number) => 'Nokta $number';
+  @override
+  String get clearPattern => 'Temizle';
+  @override
+  String get patternDone => 'Tamam';
+  @override
+  String get unlockReason => 'Notelore kilidini aç';
+  @override
+  String get lockOnReason => 'Uygulama kilidini etkinleştir';
+  @override
+  String get lockOffReason => 'Uygulama kilidini kapat';
+  @override
+  String get drawYourPattern => 'Desenini çiz.';
+  @override
+  String get deviceNotUnlocked => 'Kilit açılmadı. Tekrar denemek için Kilidi aç’a dokun.';
+  @override
+  String get deviceLockGone =>
+      'Bu cihazda artık ekran kilidi yok. Notelore’u açmak için cihaz ayarlarından bir tane kur.';
+  @override
+  String get pinTooEasy =>
+      'Tahmini çok kolay: tek bir rakamın tekrarı ya da 1234 gibi bir sıra olmasın.';
+  @override
+  String get patternTooEasy => 'Bu desen ilk denenenlerden biri. Başka bir desen çiz.';
+  @override
+  String patternDotsChosen(int count) => '$count nokta seçildi';
+  @override
+  String get lockNotTurnedOn => 'Uygulama kilidi hâlâ kapalı.';
   @override
   String get lockMismatch => 'Aynı değil.';
   @override

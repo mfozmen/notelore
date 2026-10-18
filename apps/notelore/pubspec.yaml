@@ -19,6 +19,7 @@ dependencies:
   flutter_tts: ^4.2.5
   google_sign_in: ^7.2.0
   http: ^1.6.0
+  local_auth: 3.0.2
   notelore_core:
     path: ../../packages/notelore_core
   path: ^1.9.1

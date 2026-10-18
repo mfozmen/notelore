@@ -442,12 +442,14 @@ void main() {
     expect(find.textContaining('opens without asking'), findsOneWidget);
     await tester.tap(find.text('Turn on'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('A PIN for Notelore'));
+    await tester.pumpAndSettle();
     FilledButton confirm() => tester.widget<FilledButton>(
       find.descendant(of: find.byType(AlertDialog), matching: find.byType(FilledButton)),
     );
     await tester.enterText(find.byKey(const Key('lock-new')), '24');
     await tester.pump();
-    expect(find.text('At least 4 characters.'), findsOneWidget);
+    expect(find.text('At least 4 digits.'), findsOneWidget);
     expect(confirm().onPressed, isNull);
     await tester.enterText(find.byKey(const Key('lock-new')), '2468');
     await tester.enterText(find.byKey(const Key('lock-repeat')), '2469');
@@ -459,7 +461,7 @@ void main() {
     await tester.tap(find.descendant(of: find.byType(AlertDialog), matching: find.text('Turn on')));
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);
-    expect(find.textContaining('asks for your PIN or password'), findsOneWidget);
+    expect(find.text('On: a PIN opens Notelore.'), findsOneWidget);
 
     // The next start: locked, nothing of the notes or the chat shows.
     await restart(tester, harness);
