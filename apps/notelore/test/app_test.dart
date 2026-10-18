@@ -1864,6 +1864,22 @@ void main() {
     // No heading outgrows the bubble's few type sizes (#335).
     expect(sheet.h1!.fontSize, theme.textTheme.titleMedium!.fontSize);
     expect(sheet.h3!.fontWeight, AnswerStyle.headingWeight);
+    // A heading stands as far from the words above it as a paragraph does.
+    expect([
+      sheet.h1Padding,
+      sheet.h2Padding,
+      sheet.h3Padding,
+    ], everyElement(const EdgeInsets.only(top: Gap.xs)));
+    // A code block is tinted once, by its box, not again behind its letters.
+    final block = body.syntaxHighlighter!.format('cache.ttl = 24h');
+    expect(block.text, 'cache.ttl = 24h');
+    expect(block.style!.backgroundColor, isNull);
+    expect(block.style!.fontFamily, 'monospace');
+    // The paragraph's own step makes up the top of the bubble, so it is even.
+    final bubble = tester.widget<Container>(
+      find.ancestor(of: find.byType(MarkdownBody), matching: find.byType(Container)).first,
+    );
+    expect(bubble.padding!.vertical, (Gap.m - Gap.xs) * 2 - Gap.xs);
     await tapOnPart(tester, 'the docs');
     await tester.pump();
     expect(launcher.opened, ['https://example.com/d']);

@@ -49,7 +49,8 @@ abstract final class Gap {
 /// How an answer's Markdown is drawn on its bubble (#335). The tints are of the
 /// bubble's own text colour, so they read in every palette, light and dark.
 abstract final class AnswerStyle {
-  static const headingWeight = FontWeight.w600;
+  /// As bold words: an answer keeps to two weights.
+  static const headingWeight = FontWeight.bold;
 
   /// Behind code, inline and in a block.
   static const double tint = 0.12;

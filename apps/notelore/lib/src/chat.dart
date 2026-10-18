@@ -975,7 +975,8 @@ class _Bubble extends StatelessWidget {
         alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: Gap.xs),
-          padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.m - Gap.xs),
+          // An answer's first paragraph brings its own small step at the top (#335).
+          padding: EdgeInsets.fromLTRB(Gap.m, mine ? Gap.m - Gap.xs : Gap.s, Gap.m, Gap.m - Gap.xs),
           // A gutter on the other side on a phone; a readable line on wide windows.
           constraints: BoxConstraints(maxWidth: min(560, size.maxWidth * 0.85)),
           decoration: BoxDecoration(
@@ -1104,12 +1105,18 @@ Widget _markdown(BuildContext context, String text, TextStyle style) {
   final body = theme.textTheme.bodyMedium!.merge(style);
   final color = style.color!;
   final tint = color.withValues(alpha: AnswerStyle.tint);
+  final code = body.copyWith(
+    fontFamily: 'monospace',
+    fontFamilyFallback: const ['Menlo', 'Consolas', 'Courier New'],
+  );
   TextStyle heading(TextStyle? size) =>
       size!.copyWith(color: color, fontWeight: AnswerStyle.headingWeight);
   return SelectionArea(
     child: MarkdownBody(
       data: text,
       onTapLink: (_, href, _) => openWebLink(href),
+      // A code block's box carries the tint; its letters are not tinted again.
+      syntaxHighlighter: _PlainCode(code),
       // Never fetched: an image address could carry the notes off to whoever
       // the model was steered by. Its words show instead.
       imageBuilder: (_, _, alt) => Text(alt ?? '', style: body),
@@ -1118,6 +1125,9 @@ Widget _markdown(BuildContext context, String text, TextStyle style) {
         // sit close, and a list stays under the line that leads into it.
         blockSpacing: Gap.xs,
         pPadding: const EdgeInsets.only(top: Gap.xs),
+        h1Padding: const EdgeInsets.only(top: Gap.xs),
+        h2Padding: const EdgeInsets.only(top: Gap.xs),
+        h3Padding: const EdgeInsets.only(top: Gap.xs),
         p: body,
         listBullet: body,
         strong: const TextStyle(fontWeight: FontWeight.bold).copyWith(color: color),
@@ -1127,11 +1137,7 @@ Widget _markdown(BuildContext context, String text, TextStyle style) {
           decoration: TextDecoration.underline,
           decorationColor: theme.colorScheme.primary,
         ),
-        code: body.copyWith(
-          fontFamily: 'monospace',
-          fontFamilyFallback: const ['Menlo', 'Consolas', 'Courier New'],
-          backgroundColor: tint,
-        ),
+        code: code.copyWith(backgroundColor: tint),
         codeblockDecoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(Gap.s)),
         blockquote: body,
         blockquoteDecoration: BoxDecoration(
@@ -1149,6 +1155,16 @@ Widget _markdown(BuildContext context, String text, TextStyle style) {
       ),
     ),
   );
+}
+
+/// A code block's letters in [style], with no colouring of their own.
+class _PlainCode extends SyntaxHighlighter {
+  _PlainCode(this.style);
+
+  final TextStyle style;
+
+  @override
+  TextSpan format(String source) => TextSpan(style: style, text: source);
 }
 
 /// One file sent with a message: a kind's icon and its name on one line; the
