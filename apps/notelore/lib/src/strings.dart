@@ -26,6 +26,9 @@ abstract class Strings {
 
   // Setup.
   String get chooseProvider;
+  String stepOf(int step, int of);
+  String connectedTo(String name);
+  String get start;
 
   /// Under the setup screen's headline: what the provider is for.
   String get chooseProviderWhy;
@@ -314,6 +317,12 @@ class EnglishStrings extends Strings {
 
   @override
   String get chooseProvider => 'Choose a model provider';
+  @override
+  String stepOf(int step, int of) => 'Step $step of $of';
+  @override
+  String connectedTo(String name) => 'Connected to $name';
+  @override
+  String get start => 'Start';
   @override
   String get chooseProviderWhy =>
       'Notelore uses an AI model to write your notes and answer from them. Pick the one you have.';
@@ -771,6 +780,12 @@ class TurkishStrings extends Strings {
 
   @override
   String get chooseProvider => 'Bir model sağlayıcı seç';
+  @override
+  String stepOf(int step, int of) => 'Adım $step/$of';
+  @override
+  String connectedTo(String name) => '$name bağlandı';
+  @override
+  String get start => 'Başla';
   @override
   String get chooseProviderWhy =>
       'Notelore notlarını yazmak ve onlardan cevap vermek için bir yapay zekâ modeli kullanır. Elinde olanı seç.';
