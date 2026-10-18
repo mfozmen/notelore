@@ -271,7 +271,7 @@ void addTodo(String path, String text, {DateTime? due, DateTime? today}) {
 
 /// Adds a reminder for [date], at [time] (`HH:MM`, local) if given (#430).
 void addReminder(String path, String text, DateTime date, {String? time, DateTime? today}) {
-  if (time != null && !RegExp(r'^([01][0-9]|2[0-3]):[0-5][0-9]$').hasMatch(time)) {
+  if (time != null && !isReminderTime(time)) {
     throw ArgumentError.value(time, 'time', 'a reminder time is HH:MM, 00:00 to 23:59');
   }
   final note = readNote(path);

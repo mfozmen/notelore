@@ -20,8 +20,14 @@ final _superseded = RegExp(
   dotAll: true,
 );
 final _entry = RegExp('^- $_date: (.*)\$', dotAll: true);
+// A reminder's time of day, 00:00 to 23:59: the parser and the writer go by this one pattern.
+const _time = '([01][0-9]|2[0-3]):([0-5][0-9])';
 // The time is optional; an hour or minute that cannot be one keeps the line Raw.
-final _reminder = RegExp('^- $_date(?: ([01][0-9]|2[0-3]):([0-5][0-9]))?: (.*)\$', dotAll: true);
+final _reminder = RegExp('^- $_date(?: $_time)?: (.*)\$', dotAll: true);
+
+/// Whether [time] is a reminder's time of day as the format writes it (`HH:MM`).
+bool isReminderTime(String time) => RegExp('^$_time\$').hasMatch(time);
+
 final _todo = RegExp('^- \\[([ x])\\] $_date: (.*)\$', dotAll: true);
 
 /// `YYYY-MM-DD` of a date.
