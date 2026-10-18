@@ -48,7 +48,15 @@ class _NotesScreenState extends State<NotesScreen> {
         content: Text(s.deleteExplained),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialog, false), child: Text(s.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(dialog, true), child: Text(s.delete)),
+          FilledButton(
+            // Deleting, so the error colour, not the brand's.
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialog).colorScheme.error,
+              foregroundColor: Theme.of(dialog).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(dialog, true),
+            child: Text(s.delete),
+          ),
         ],
       ),
     );

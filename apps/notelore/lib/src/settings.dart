@@ -237,14 +237,33 @@ class _ModelCard extends StatelessWidget {
 
 /// Every model this device has connected (#362): the one in use marked, any
 /// other one tap away, each removable, and the wizard for another.
-class _Connections extends StatelessWidget {
+class _Connections extends StatefulWidget {
   const _Connections(this.session);
 
   final Session session;
 
-  Future<void> _switch(BuildContext context, ProviderSpec spec) async {
+  @override
+  State<_Connections> createState() => _ConnectionsState();
+}
+
+class _ConnectionsState extends State<_Connections> {
+  /// Asked once, and again after a removal or the wizard: never on every
+  /// rebuild, so the list does not flicker.
+  late Future<List<ProviderSpec>> _connections = widget.session.connections();
+
+  /// The model being switched to while its key is checked again.
+  ProviderSpec? _switching;
+
+  Session get session => widget.session;
+
+  void _reload() => setState(() {
+    _connections = session.connections();
+  });
+
+  Future<void> _switch(ProviderSpec spec) async {
     final s = session.strings;
     final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+    setState(() => _switching = spec);
     try {
       await session.switchTo(spec);
       messenger.showSnackBar(SnackBar(content: Text(s.nowUsing(s.providerName(spec)))));
@@ -252,6 +271,7 @@ class _Connections extends StatelessWidget {
       // A key lost since the list showed it is a StateError: said plainly too.
       messenger.showSnackBar(SnackBar(content: Text(_why(s, error))));
     }
+    if (mounted) setState(() => _switching = null);
   }
 
   static String _why(Strings s, Object error) => switch (error) {
@@ -260,8 +280,9 @@ class _Connections extends StatelessWidget {
     _ => s.signInProblem(error),
   };
 
-  Future<void> _remove(BuildContext context, ProviderSpec spec) async {
+  Future<void> _remove(ProviderSpec spec) async {
     final s = session.strings;
+    final colors = Theme.of(context).colorScheme;
     final sure = await showDialog<bool>(
       context: context,
       builder: (dialog) => AlertDialog(
@@ -269,53 +290,87 @@ class _Connections extends StatelessWidget {
         content: Text(s.removeModelWhy),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialog, false), child: Text(s.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(dialog, true), child: Text(s.remove)),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: colors.error,
+              foregroundColor: colors.onError,
+            ),
+            onPressed: () => Navigator.pop(dialog, true),
+            child: Text(s.remove),
+          ),
         ],
       ),
     );
-    if (sure ?? false) await session.disconnect(spec);
+    if (!(sure ?? false)) return;
+    await session.disconnect(spec);
+    if (mounted) _reload();
+  }
+
+  Future<void> _connectAnother() async {
+    await ProviderWizard.open(context, session);
+    if (mounted) _reload();
   }
 
   @override
   Widget build(BuildContext context) {
     final s = session.strings;
-    final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ListTile(leading: const Icon(Icons.auto_awesome_outlined), title: Text(s.connectedModels)),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, Gap.s),
+          child: Text(
+            s.connectedModels,
+            style: theme.textTheme.titleSmall?.copyWith(color: colors.primary),
+          ),
+        ),
         FutureBuilder(
-          future: session.connections(),
+          future: _connections,
           builder: (context, snapshot) => Column(
             children: [
-              for (final spec in snapshot.data ?? const <ProviderSpec>[])
+              // The one in use shows at once, before the keystore answers.
+              for (final spec in snapshot.data ?? [?session.spec])
                 ListTile(
                   key: ValueKey('connection-${spec.name}'),
                   // The one in use is marked; any other is one tap away.
-                  leading: spec == session.spec
-                      ? Icon(Icons.check_circle, color: colors.primary)
-                      : const Icon(Icons.radio_button_unchecked),
+                  leading: switch (spec) {
+                    _ when spec == _switching => const SizedBox.square(
+                      dimension: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    _ when spec == session.spec => Icon(
+                      Icons.check_circle,
+                      color: colors.primary,
+                      semanticLabel: s.nowUsing(s.providerName(spec)),
+                    ),
+                    _ => const Icon(Icons.radio_button_unchecked),
+                  },
                   title: Text(s.providerName(spec)),
                   subtitle: Text(s.groupHeading(spec.group)),
                   selected: spec == session.spec,
-                  onTap: spec == session.spec ? null : () => _switch(context, spec),
+                  onTap: spec == session.spec || _switching != null ? null : () => _switch(spec),
                   trailing: IconButton(
                     tooltip: s.remove,
+                    // A removal never wears the accent colour of the one in use.
+                    color: colors.onSurfaceVariant,
                     icon: const Icon(Icons.delete_outline),
-                    onPressed: () => _remove(context, spec),
+                    onPressed: () => _remove(spec),
                   ),
                 ),
             ],
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+          padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, Gap.m),
           child: OutlinedButton.icon(
             icon: const Icon(Icons.add),
             label: Text(s.connectAnother),
-            onPressed: () => ProviderWizard.open(context, session),
+            onPressed: _connectAnother,
           ),
         ),
+        const Divider(height: Gap.l),
       ],
     );
   }
