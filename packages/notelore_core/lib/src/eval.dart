@@ -209,6 +209,7 @@ enum TrainingIssue { toolError, repeatedCall }
 Set<TrainingIssue> trainingIssues(List<Message> messages) {
   final issues = <TrainingIssue>{};
   final calls = <List<Object?>>[];
+  const equality = DeepCollectionEquality();
   for (final message in messages) {
     if (message['content'] case final List<Object?> blocks) {
       for (final block in blocks.cast<Map<Object?, Object?>>()) {
@@ -219,7 +220,7 @@ Set<TrainingIssue> trainingIssues(List<Message> messages) {
         }
         if (block['type'] == 'tool_use') {
           final call = [block['name'], block['input']];
-          if (calls.any((seen) => const DeepCollectionEquality().equals(seen, call))) {
+          if (calls.any((seen) => equality.equals(seen, call))) {
             issues.add(TrainingIssue.repeatedCall);
           }
           calls.add(call);

@@ -184,9 +184,10 @@ Future<void> _eval(
   keep.writeAsStringSync(kept.map((line) => '$line\n').join());
   out.writeln('kept ${kept.length} of ${results.length} in ${keep.path}');
   out.writeln(
-    'dropped ${issues.values.where((found) => found.contains(TrainingIssue.toolError)).length}'
-    ' tool errors, ${issues.values.where((found) => found.contains(TrainingIssue.repeatedCall)).length}'
-    ' repeated calls',
+    'excluded ${issues.length - kept.length} passing turns '
+    '(tool errors: ${issues.values.where((found) => found.contains(TrainingIssue.toolError)).length}; '
+    'repeated calls: ${issues.values.where((found) => found.contains(TrainingIssue.repeatedCall)).length}; '
+    'counts may overlap)',
   );
 }
 
