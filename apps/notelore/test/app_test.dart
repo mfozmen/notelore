@@ -45,6 +45,7 @@ Future<void> connect(
   await tester.tap(find.text(provider));
   await tester.pumpAndSettle();
   if (key != null) await tester.enterText(find.byKey(const Key('api-key')), key);
+  await tester.ensureVisible(find.text('Connect')); // the end of a long card on a desk
   await tester.tap(find.text('Connect'));
   await tester.pumpAndSettle();
 }
@@ -99,16 +100,67 @@ void main() {
     await tester.tap(find.text('Claude (Anthropic)'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Anthropic Console'), findsOneWidget);
-    expect(find.text('https://console.anthropic.com/settings/keys'), findsOneWidget);
+    expect(find.text('Open console.anthropic.com'), findsOneWidget); // the link as a button (#337)
     expect(find.textContaining('Billed per use through the Anthropic API'), findsOneWidget); // #95
     await tester.tap(find.text('Connect'));
     await tester.pumpAndSettle();
-    expect(find.text('Paste the key first.'), findsOneWidget);
-    await tester.enterText(find.byKey(const Key('api-key')), 'bad');
+    // On the empty field itself, which takes the focus (and so comes into view).
+    final field = find.byKey(const Key('api-key'));
+    expect(find.descendant(of: field, matching: find.text('Paste the key first.')), findsOneWidget);
+    expect(tester.widget<TextField>(field).focusNode!.hasFocus, isTrue);
+    expect(find.byKey(const Key('setup-problem')), findsNothing);
+    await tester.enterText(field, 'bad');
+    await tester.pump();
+    expect(find.text('Paste the key first.'), findsNothing); // gone once typing starts
     await tester.testTextInput.receiveAction(TextInputAction.done); // Enter connects too
     await tester.pumpAndSettle();
-    expect(find.text('Anthropic rejected the key: bad'), findsOneWidget);
+    // What the provider said, in the friendly card, like the sign-in screen's.
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('setup-problem')),
+        matching: find.text('Anthropic rejected the key: bad'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Choose a model provider'), findsOneWidget);
+  });
+
+  testWidgets('setup: on a short window the action scrolls with the rest (#337)', (tester) async {
+    tester.view
+      ..physicalSize = const Size(800, 400)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final harness = Harness(rejected: const TransientValidationError('OpenAI is not reachable'));
+    await pumpApp(tester, harness);
+    await connect(tester, provider: 'GPT (OpenAI)', key: 'sk'); // a two-line problem
+    tester.view.viewInsets = const FakeViewPadding(bottom: 260); // and the keyboard up
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull); // no overflow
+    expect(
+      find.descendant(
+        of: find.byType(SingleChildScrollView),
+        matching: find.widgetWithText(FilledButton, 'Connect'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('setup: a screen reader hears the key being checked (#337)', (tester) async {
+    phone(tester);
+    final harness = Harness()..connectHold = Completer<void>();
+    await pumpApp(tester, harness);
+    await tester.tap(find.text('Claude (Anthropic)'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('api-key')), 'k');
+    await tester.tap(find.text('Connect'));
+    await tester.pump();
+    expect(
+      tester.widget<CircularProgressIndicator>(find.byType(CircularProgressIndicator)),
+      isA<CircularProgressIndicator>().having((p) => p.semanticsLabel, 'label', 'Signing in…'),
+    );
+    harness.connectHold!.complete();
+    await tester.pumpAndSettle();
   });
 
   testWidgets('setup: a network failure says so', (tester) async {
@@ -1482,6 +1534,19 @@ void main() {
     expect(session.models, ['model-c']);
   });
 
+  testWidgets('setup: no app bar, the action pinned at the bottom of a phone (#337)', (
+    tester,
+  ) async {
+    phone(tester);
+    await pumpApp(tester, Harness());
+    expect(find.byType(AppBar), findsNothing);
+    expect(find.text('Choose a model provider'), findsOneWidget);
+    final screen = tester.getSize(find.byType(Scaffold).first);
+    final button = tester.getRect(find.widgetWithText(FilledButton, 'Connect'));
+    expect(screen.height - button.bottom, lessThanOrEqualTo(Gap.l));
+    expect(find.byKey(const Key('setup-card')), findsNothing);
+  });
+
   testWidgets('setup: the key page opens in the browser', (tester) async {
     phone(tester);
     final launcher = FakeLauncher();
@@ -1489,7 +1554,7 @@ void main() {
     await pumpApp(tester, Harness());
     await tester.tap(find.text('Claude (Anthropic)'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('https://console.anthropic.com/settings/keys'));
+    await tester.tap(find.text('Open console.anthropic.com'));
     await tester.pumpAndSettle();
     expect(launcher.opened, ['https://console.anthropic.com/settings/keys']);
   });

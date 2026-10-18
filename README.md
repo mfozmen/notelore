@@ -38,7 +38,7 @@ The app checks for a new release every time it opens (and every few hours while 
 2. Pick a model:
    - **ChatGPT plan** (desktop and phone), the default: *Continue with ChatGPT* and sign in, one tap; on a phone the browser hands you back to Notelore by itself. No extra charges, within your plan's limits. It needs a **Plus or Pro** plan: only those can be shared with other apps. A free ChatGPT account is told so plainly, and offered the free way in right there: *Get a free Gemini key* opens Google AI Studio with your Google account; copy the key, come back, and Notelore puts it in the box for you (you still tap *Connect*). On the free tier Google may use your requests to improve its products.
    - Under **Advanced**, for your own API key or a local model:
-     - **Claude, GPT or Gemini:** paste an API key; the app shows step by step where to get one. Keys stay in your device's keystore.
+     - **Claude, GPT or Gemini:** paste an API key; numbered steps show where to get one, and a button opens the provider's key page in the browser. Keys stay in your device's keystore.
      - **Ollama** (desktop): start Ollama on this computer; no key needed.
 
    A key you set up before keeps working.

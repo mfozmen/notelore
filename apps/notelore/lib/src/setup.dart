@@ -23,6 +23,10 @@ class SetupScreen extends StatefulWidget {
 class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
   late ProviderSpec _spec = widget.session.providers.first;
   final _key = TextEditingController();
+  final _keyFocus = FocusNode();
+
+  /// Connect was pressed with no key: said on the field.
+  var _keyMissing = false;
   String? _problem;
   var _checking = false;
 
@@ -48,6 +52,7 @@ class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _key.dispose();
+    _keyFocus.dispose();
     super.dispose();
   }
 
@@ -92,7 +97,8 @@ class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
 
   Future<void> _connect() async {
     if (_spec.requiresApiKey && _key.text.trim().isEmpty) {
-      setState(() => _problem = widget.session.strings.pasteKeyFirst);
+      setState(() => _keyMissing = true);
+      _keyFocus.requestFocus(); // brings the field into view, keyboard up
       return;
     }
     setState(() {
@@ -120,100 +126,207 @@ class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final s = widget.session.strings;
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(s.chooseProvider, style: theme.textTheme.headlineSmall),
+        const SizedBox(height: Gap.s),
+        Text(s.chooseProviderWhy, style: theme.textTheme.bodyLarge?.copyWith(color: muted)),
+        RadioGroup<ProviderSpec>(
+          groupValue: _spec,
+          onChanged: (spec) => setState(() {
+            _spec = spec!;
+            _problem = null;
+            _keyMissing = false;
+            _noPlan = false; // about ChatGPT: gone with another choice
+          }),
+          // Grouped by how they are paid for. The plan, one tap, leads;
+          // keys and local models wait under Advanced (#206). Without a
+          // plan to offer there is nothing to be advanced from: all show.
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ProviderGroup(widget.session, ProviderGroup.plan),
+              if (widget.session.providers.any((p) => p.group == ProviderGroup.plan))
+                ExpansionTile(
+                  title: Text(s.advanced),
+                  subtitle: Text(s.advancedExplained(localModels: widget.session.localModels)),
+                  tilePadding: const EdgeInsets.only(right: Gap.xs),
+                  childrenPadding: EdgeInsets.zero,
+                  shape: const Border(), // no rules above and below when open
+                  collapsedShape: const Border(),
+                  expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                  children: _advanced,
+                )
+              else
+                ..._advanced,
+            ],
+          ),
+        ),
+        const SizedBox(height: Gap.m),
+        Text(s.cost(_spec), style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
+        if (s.keySteps(_spec) case final steps when steps.isNotEmpty) ...[
+          const SizedBox(height: Gap.l),
+          _Steps(steps, link: _spec.keyUrl, openLabel: s.openKeyPage),
+        ],
+        if (_spec.requiresApiKey) ...[
+          const SizedBox(height: Gap.l),
+          TextField(
+            key: const Key('api-key'),
+            controller: _key,
+            focusNode: _keyFocus,
+            obscureText: true,
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: InputDecoration(
+              labelText: s.apiKey,
+              prefixIcon: const Icon(Icons.key_outlined),
+              helperText: _pasted ? s.keyFromClipboard : null,
+              errorText: _keyMissing ? s.pasteKeyFirst : null,
+            ),
+            onChanged: (_) {
+              if (_keyMissing) setState(() => _keyMissing = false);
+            },
+            onSubmitted: (_) => _connect(),
+          ),
+        ] else if (_spec.name == 'ollama') ...[
+          const SizedBox(height: Gap.s),
+          Text(s.ollamaNoKey, style: theme.textTheme.bodyMedium),
+        ],
+        if (_noPlan) _NoPlan(s, getKey: _freeGemini),
+      ],
+    );
+    // What went wrong sits on the button, in view on a phone and next to the
+    // key it is usually about.
+    final action = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: Gap.m,
+      children: [
+        if (_problem case final problem?) _SignInProblem(problem, key: const Key('setup-problem')),
+        _ConnectButton(
+          // Without a plan, the free way in leads; this stays, for an upgrade.
+          primary: !_noPlan,
+          onPressed: _checking ? null : _connect,
+          child: _checking
+              ? SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, semanticsLabel: s.signingIn),
+                )
+              // OpenAI's wording for its sign-in button.
+              : Text(_spec.name == 'chatgpt' ? s.continueWithChatGpt : s.connect),
+        ),
+      ],
+    );
     return Scaffold(
-      appBar: AppBar(title: const Text('Notelore')),
       body: SafeArea(
-        child: Center(
+        child: LayoutBuilder(builder: (context, size) => _layout(context, size, content, action)),
+      ),
+    );
+  }
+
+  /// A desk: one card of a readable width, like the sign-in's. A phone: the
+  /// choices scroll and the action stays where the thumb is, above the keyboard
+  /// too, when the window is tall enough; otherwise it all scrolls together.
+  /// The window's height decides, not what the keyboard leaves, so the layout
+  /// never changes under the field being typed in.
+  Widget _layout(BuildContext context, BoxConstraints size, Widget content, Widget action) {
+    if (size.maxWidth >= Layout.wide) {
+      return Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(Gap.l),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.l),
-              children: [
-                Text(s.chooseProvider, style: theme.textTheme.titleLarge),
-                const SizedBox(height: Gap.s),
-                RadioGroup<ProviderSpec>(
-                  groupValue: _spec,
-                  onChanged: (spec) => setState(() {
-                    _spec = spec!;
-                    _problem = null;
-                    _noPlan = false; // about ChatGPT: gone with another choice
-                  }),
-                  // Grouped by how they are paid for. The plan, one tap, leads;
-                  // keys and local models wait under Advanced (#206). Without a
-                  // plan to offer there is nothing to be advanced from: all show.
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _ProviderGroup(widget.session, ProviderGroup.plan),
-                      if (widget.session.providers.any((p) => p.group == ProviderGroup.plan))
-                        ExpansionTile(
-                          title: Text(s.advanced),
-                          subtitle: Text(
-                            s.advancedExplained(localModels: widget.session.localModels),
-                          ),
-                          tilePadding: const EdgeInsets.symmetric(horizontal: Gap.xs),
-                          childrenPadding: EdgeInsets.zero,
-                          expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                          children: _advanced,
-                        )
-                      else
-                        ..._advanced,
-                    ],
-                  ),
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Card(
+              key: const Key('setup-card'),
+              child: Padding(
+                padding: const EdgeInsets.all(Gap.l + Gap.s), // 32
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: Gap.l,
+                  children: [content, action],
                 ),
-                const SizedBox(height: Gap.m),
-                Text(s.cost(_spec), style: theme.textTheme.bodySmall),
-                const SizedBox(height: Gap.s),
-                for (final (index, step) in s.keySteps(_spec).indexed) Text('${index + 1}. $step'),
-                if (_spec.keyUrl case final url?) ...[
-                  const SizedBox(height: 4),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton(
-                      onPressed: () =>
-                          launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
-                      child: Text(url),
-                    ),
-                  ),
-                ],
-                if (_spec.requiresApiKey) ...[
-                  const SizedBox(height: 12),
-                  TextField(
-                    key: const Key('api-key'),
-                    controller: _key,
-                    obscureText: true,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    decoration: InputDecoration(
-                      labelText: s.apiKey,
-                      prefixIcon: const Icon(Icons.key_outlined),
-                      helperText: _pasted ? s.keyFromClipboard : null,
-                    ),
-                    onSubmitted: (_) => _connect(),
-                  ),
-                ] else if (_spec.name == 'ollama')
-                  Text(s.ollamaNoKey),
-                if (_noPlan)
-                  _NoPlan(s, getKey: _freeGemini)
-                else if (_problem case final problem?) ...[
-                  const SizedBox(height: 12),
-                  Text(problem, style: TextStyle(color: theme.colorScheme.error)),
-                ],
-                const SizedBox(height: Gap.m),
-                _ConnectButton(
-                  // Without a plan, the free way in leads; this stays, for an upgrade.
-                  primary: !_noPlan,
-                  onPressed: _checking ? null : _connect,
-                  child: _checking
-                      ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator())
-                      // OpenAI's wording for its sign-in button.
-                      : Text(_spec.name == 'chatgpt' ? s.continueWithChatGpt : s.connect),
-                ),
-              ],
+              ),
             ),
           ),
         ),
-      ),
+      );
+    }
+    if (MediaQuery.sizeOf(context).height < 560) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(Gap.l),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: Gap.l,
+          children: [content, action],
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(Gap.l, Gap.l, Gap.l, Gap.m),
+            child: content,
+          ),
+        ),
+        Padding(padding: const EdgeInsets.fromLTRB(Gap.l, Gap.s, Gap.l, Gap.m), child: action),
+      ],
+    );
+  }
+}
+
+/// How to get a key, as numbered steps; the key page opens from the first
+/// one, where it says to sign in.
+class _Steps extends StatelessWidget {
+  const _Steps(this.steps, {required this.link, required this.openLabel});
+
+  final List<String> steps;
+  final String? link;
+  final String Function(String host) openLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: Gap.m,
+      children: [
+        for (final (index, step) in steps.indexed)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: Gap.m,
+            children: [
+              CircleAvatar(
+                radius: 12,
+                backgroundColor: colors.primaryContainer,
+                foregroundColor: colors.onPrimaryContainer,
+                child: Text('${index + 1}', style: theme.textTheme.labelMedium),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(step, style: theme.textTheme.bodyMedium),
+                    if (link case final url? when index == 0) ...[
+                      const SizedBox(height: Gap.s),
+                      OutlinedButton.icon(
+                        onPressed: () =>
+                            launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+                        icon: const Icon(Icons.open_in_new, size: 18),
+                        label: Text(openLabel(Uri.parse(url).host)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+      ],
     );
   }
 }
@@ -311,14 +424,14 @@ class _ProviderGroup extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(Gap.xs, Gap.m, Gap.xs, Gap.xs),
+          padding: const EdgeInsets.fromLTRB(0, Gap.m, Gap.xs, Gap.xs),
           child: Text(
             s.groupHeading(group),
             style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(Gap.xs, 0, Gap.xs, Gap.s),
+          padding: const EdgeInsets.fromLTRB(0, 0, Gap.xs, Gap.s),
           child: Text(s.groupExplanation(group), style: theme.textTheme.bodySmall),
         ),
         Card(
@@ -381,7 +494,7 @@ class _GoogleScreenState extends State<GoogleScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       spacing: Gap.m,
       children: [
-        if (_problem case final problem?) _SignInProblem(problem),
+        if (_problem case final problem?) _SignInProblem(problem, key: const Key('google-problem')),
         Text(
           s.welcomeAccount,
           textAlign: TextAlign.center,
@@ -499,9 +612,9 @@ class _Reason extends StatelessWidget {
   }
 }
 
-/// Why signing in did not work, said kindly, and read out when it appears.
+/// Why signing in or connecting did not work, said kindly, and read out when it appears.
 class _SignInProblem extends StatelessWidget {
-  const _SignInProblem(this.problem);
+  const _SignInProblem(this.problem, {super.key});
 
   final String problem;
 
@@ -509,7 +622,6 @@ class _SignInProblem extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Semantics(
-      key: const Key('google-problem'),
       liveRegion: true,
       label: problem,
       excludeSemantics: true,

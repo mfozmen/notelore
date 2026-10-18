@@ -116,6 +116,8 @@ void main() {
       'connect': s.connect,
       'openFailed': s.openFailed('x'),
       'chooseProvider': s.chooseProvider,
+      'chooseProviderWhy': s.chooseProviderWhy,
+      'openKeyPage': s.openKeyPage('example.com'),
       'advanced': s.advanced,
       'advancedExplained': s.advancedExplained(localModels: true),
       'advancedExplainedPhone': s.advancedExplained(localModels: false),

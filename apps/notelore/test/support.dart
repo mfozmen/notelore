@@ -92,6 +92,9 @@ class Harness {
   /// When set, the provider refuses the key (tests may set it after connecting).
   Exception? rejected;
 
+  /// When set, checking a key waits for it.
+  Completer<void>? connectHold;
+
   /// What the provider lists for a good key; tests change it between calls.
   var models = <String>['claude-sonnet-5-5', 'model-a', 'model-b'];
   final FakeAuth? auth;
@@ -177,6 +180,7 @@ class Harness {
       listMicrophones: () async => microphones,
       readPdf: (bytes) => pdfText(bytes),
       validate: (spec, key) async {
+        await connectHold?.future;
         if (rejected != null) throw rejected!;
         return models;
       },
