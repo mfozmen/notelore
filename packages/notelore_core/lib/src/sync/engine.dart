@@ -120,8 +120,11 @@ Future<SyncReport> sync(
 String _relOf(String root, String path) =>
     unorm.nfc(p.split(p.relative(path, from: root)).join('/'));
 
-/// Notes, and the originals kept beside them (#279); nothing else in the folder.
-bool _synced(String rel) => rel.endsWith('.md') || rel.startsWith('$attachmentsFolder/');
+/// Notes, and the originals kept beside them (#279); nothing else in the folder,
+/// nor a write's temp file left by a crash (a dot file).
+bool _synced(String rel) =>
+    rel.endsWith('.md') ||
+    (rel.startsWith('$attachmentsFolder/') && !rel.split('/').last.startsWith('.'));
 
 class _Pass {
   _Pass(this.root, this.manifest, this.remote, this.resolve, this.stamp, this.report);
