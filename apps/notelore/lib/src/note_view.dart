@@ -13,8 +13,9 @@ import 'web_link.dart';
 /// A note as a page (#426): its title and what it is, then each known section
 /// in its own form: decisions as cards, todos as checkboxes, notes as a dated
 /// timeline. The file stays plain Markdown; only the reading changes. A file
-/// the parser cannot read shows as Markdown. Reminders come before the notes (#430). Images resolve against [folder],
-/// the note's own; [today] (with its time) marks late todos and past reminders.
+/// the parser cannot read shows as Markdown. What is coming (reminders, todos)
+/// comes before the notes (#430). Images resolve against [folder], the note's
+/// own; [today] (with its time) marks late todos and past reminders.
 class NoteView extends StatelessWidget {
   const NoteView(
     this.source, {
@@ -64,13 +65,17 @@ class NoteView extends StatelessWidget {
     );
   }
 
-  /// The sections as the file has them, but Reminders right before Notes:
-  /// what is coming first, what happened after.
+  /// The sections as the file has them, but Reminders and Todo right before
+  /// Notes: what is coming first, what happened after.
   static List<Section> _ordered(List<Section> sections) {
-    final reminders = sections.where((s) => s.key == 'reminders').toList();
-    final rest = sections.where((s) => s.key != 'reminders').toList();
+    bool coming(Section s) => s.key == 'reminders' || s.key == 'todo';
+    final ahead = [
+      ...sections.where((s) => s.key == 'reminders'),
+      ...sections.where((s) => s.key == 'todo'),
+    ];
+    final rest = sections.where((s) => !coming(s)).toList();
     final notes = rest.indexWhere((s) => s.key == 'notes');
-    return rest..insertAll(notes < 0 ? rest.length : notes, reminders);
+    return rest..insertAll(notes < 0 ? rest.length : notes, ahead);
   }
 
   Widget _image(Uri uri, String? title, String? alt) => _NoteImage(uri, alt ?? '', folder, strings);
@@ -250,7 +255,7 @@ class NoteView extends StatelessWidget {
                 color: todo.done ? colors.outline : colors.onSurfaceVariant,
               ),
               const SizedBox(width: Gap.s),
-              Flexible(
+              Expanded(
                 child: _markdown(
                   todo.text,
                   style: theme.textTheme.bodyMedium?.copyWith(
@@ -282,7 +287,7 @@ class NoteView extends StatelessWidget {
     return [
       for (final (reminder, passed) in [
         for (final r in coming) (r, false),
-        for (final r in past) (r, true),
+        for (final r in past.toList().reversed) (r, true),
       ])
         Padding(
           padding: const EdgeInsets.symmetric(vertical: Gap.xs),
@@ -295,7 +300,7 @@ class NoteView extends StatelessWidget {
                 color: passed ? colors.outline : colors.primary,
               ),
               const SizedBox(width: Gap.s),
-              Flexible(
+              Expanded(
                 child: _markdown(
                   reminder.text.replaceAll('\n  ', '\n'),
                   style: theme.textTheme.bodyMedium?.copyWith(
