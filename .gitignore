@@ -21,3 +21,6 @@ coverage/
 
 # Scratch renders of the ui-reviewer agent (.claude/agents/ui-reviewer.md).
 zz_ui_review*
+
+# flutter_test golden-comparison failure output
+test/failures/
