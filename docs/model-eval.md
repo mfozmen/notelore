@@ -29,6 +29,7 @@ Findings:
   - It is slow (52 s median). Ollama's `qwen3:4b` is the thinking variant, and with `think: false` it still writes long reasoning into the answer. A non-thinking instruct build is the next run.
 - **Thinking buys the quality.** The non-thinking instruct build of the same 4B is 40 times faster (1.3 s) but drops to 26%. It skips writes, puts facts into new notes and answers questions without reading. This is the gap a fine-tune closes: teach the fast non-thinking model the right tool calls from a stronger teacher's correct turns (distillation, #327).
 - **No local model is a clean teacher.** Qwen3 4B thinking (68%) and Qwen3-Coder 30B (63%) are the best, and every model fails collection notes, which points at the prompt as much as the model (#293). So the training data is filtered: the teacher plays generated turns, the eval's scorer keeps only the turns that pass, and only those train the student. A wrong teacher answer never reaches training.
+- **Distill filters teacher detours (#381).** In addition to the eval pass, `notelore_dev distill` drops turns with a tool result starting `Error` or a repeated call with the same name and arguments. It reports the count for each reason; a turn with both reasons appears in both counts. Earlier training files are unchanged.
 - **Below 4B, tool use falls apart:** the models skip the write, loop on `create_note`, or answer without tools.
 - **Next:**
   - run `qwen3:4b-instruct-2507` (non-thinking), FunctionGemma 270M and Gemma 3n through a runtime that supports their tool format;

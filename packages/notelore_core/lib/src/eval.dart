@@ -11,6 +11,7 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:path/path.dart' as p;
 
 import 'agent.dart';
@@ -204,6 +205,33 @@ Map<String, Object?> trainingExample(EvalResult result) => {
   ],
   'tools': functionTools(noteTools),
 };
+
+enum TrainingIssue { toolError, repeatedCall }
+
+/// Problems in a passing turn that would teach the student a bad tool path.
+Set<TrainingIssue> trainingIssues(List<Message> messages) {
+  final issues = <TrainingIssue>{};
+  final calls = <List<Object?>>[];
+  for (final message in messages) {
+    if (message['content'] case final List<Object?> blocks) {
+      for (final block in blocks.cast<Map<Object?, Object?>>()) {
+        if (block['type'] == 'tool_result' &&
+            block['content'] is String &&
+            (block['content']! as String).startsWith('Error')) {
+          issues.add(TrainingIssue.toolError);
+        }
+        if (block['type'] == 'tool_use') {
+          final call = [block['name'], block['input']];
+          if (calls.any((seen) => const DeepCollectionEquality().equals(seen, call))) {
+            issues.add(TrainingIssue.repeatedCall);
+          }
+          calls.add(call);
+        }
+      }
+    }
+  }
+  return issues;
+}
 
 bool _has(String text, String fact) => text.toLowerCase().contains(fact.toLowerCase());
 
