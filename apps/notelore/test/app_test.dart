@@ -126,14 +126,12 @@ void main() {
     expect(find.text('Paste the key first.'), findsNothing); // gone once typing starts
     await tester.testTextInput.receiveAction(TextInputAction.done); // Enter connects too
     await tester.pumpAndSettle();
-    // What the provider said, in the friendly card, like the sign-in screen's.
+    // What the provider said, on the field it is about.
     expect(
-      find.descendant(
-        of: find.byKey(const Key('setup-problem')),
-        matching: find.text('Anthropic rejected the key: bad'),
-      ),
+      find.descendant(of: field, matching: find.text('Anthropic rejected the key: bad')),
       findsOneWidget,
     );
+    expect(find.byKey(const Key('setup-problem')), findsNothing);
     expect(find.text('Step 2 of 3'), findsOneWidget); // still on Connect
   });
 
@@ -1565,10 +1563,8 @@ void main() {
   ) async {
     phone(tester);
     await pumpApp(tester, Harness());
-    expect(
-      find.descendant(of: find.byType(AppBar), matching: find.text('Step 1 of 3')),
-      findsOneWidget,
-    );
+    expect(find.byType(AppBar), findsNothing);
+    expect(find.text('Step 1 of 3'), findsOneWidget); // in the step header
     expect(find.text('Choose a model provider'), findsOneWidget);
     final screen = tester.getSize(find.byType(Scaffold).first);
     final button = tester.getRect(find.widgetWithText(FilledButton, 'Next'));

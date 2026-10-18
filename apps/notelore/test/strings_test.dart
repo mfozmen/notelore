@@ -118,6 +118,7 @@ void main() {
       'chooseProvider': s.chooseProvider,
       'stepOf': s.stepOf(1, 3),
       'connectedTo': s.connectedTo('x'),
+      'connectedExplained': s.connectedExplained,
       'start': s.start,
       'chooseProviderWhy': s.chooseProviderWhy,
       'openKeyPage': s.openKeyPage('example.com'),
