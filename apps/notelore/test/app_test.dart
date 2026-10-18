@@ -920,6 +920,23 @@ void main() {
         ),
       ),
     );
+    // Two of the same name, from two folders: each links its own original.
+    harness.provider.answers.add('Saved.');
+    harness.files.picked = [
+      XFile.fromData(pdf, path: 'report.pdf'),
+      XFile.fromData(pdf, path: 'report.pdf'),
+    ];
+    await tester.tap(find.byTooltip('Attach a file'));
+    await tester.pumpAndSettle();
+    expect(
+      harness.provider.asked.last,
+      allOf(
+        contains('<attached file="report.pdf" original="attachments/2026-09-30/report-2.pdf">'),
+        contains(
+          '<attached file="report (2).pdf" original="attachments/2026-09-30/report-2-2.pdf">',
+        ),
+      ),
+    );
   });
 
   testWidgets('chat: copy a message or an answer, with a short confirmation (#225)', (

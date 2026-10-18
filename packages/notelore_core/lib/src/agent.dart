@@ -45,6 +45,7 @@ typedef Attachment = ({String name, String text});
 /// then the names of the [images] sent with it (their pictures go as blocks).
 /// A file cannot end its own marker (its closing tag is escaped), nor its name
 /// leave the quotes: what a file holds stays inside it.
+///
 /// A file kept on the device names its original in [originals] (name to path,
 /// #279), so the note can link it.
 String withAttachments(

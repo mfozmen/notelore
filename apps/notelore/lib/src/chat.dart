@@ -84,7 +84,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final List<PickedFile> picked;
     try {
-      picked = await widget.session.exchange.pick(any: true, maxBytes: _maxFileBytes);
+      picked = _distinct(await widget.session.exchange.pick(any: true, maxBytes: _maxFileBytes));
     } on FileTooBig catch (big) {
       messenger
         ..hideCurrentSnackBar()
@@ -159,6 +159,23 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!session.acceptsImages) return s.noImages(s.providerName(session.spec!));
     final waiting = session.busy || session.transcript.any((l) => l.role == ChatRole.pending);
     return waiting ? s.imagesNotNow : null;
+  }
+
+  /// [files] with names made distinct ("report (2).pdf"): two of one name, from
+  /// two folders, each keep their own marker and their own original.
+  static List<PickedFile> _distinct(List<PickedFile> files) {
+    final taken = <String>{};
+    return [for (final file in files) (name: _free(file.name, taken), bytes: file.bytes)];
+  }
+
+  static String _free(String name, Set<String> taken) {
+    final dot = name.lastIndexOf('.');
+    final (stem, extension) = dot > 0 ? (name.substring(0, dot), name.substring(dot)) : (name, '');
+    var free = name;
+    for (var n = 2; !taken.add(free); n++) {
+      free = '$stem ($n)$extension';
+    }
+    return free;
   }
 
   static bool _isPdf(List<int> bytes) =>
