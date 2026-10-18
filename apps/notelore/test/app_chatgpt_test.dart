@@ -7,7 +7,7 @@ import 'package:notelore/src/strings.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
-import 'app_test.dart' show phone;
+import 'app_test.dart' show connect, phone;
 import 'support.dart';
 
 Future<Session> pumpPlanApp(WidgetTester tester, Harness harness) async {
@@ -34,7 +34,6 @@ void main() {
     await pumpPlanApp(tester, harness);
     // Offered first and selected; no key to paste.
     expect(find.text('ChatGPT plan (OpenAI)'), findsOneWidget);
-    expect(find.textContaining('no separate charges'), findsOneWidget);
     // Grouped by how they are paid for (#108); the key and local ones wait
     // under Advanced, closed (#206).
     expect(find.text('Use your plan'), findsOneWidget);
@@ -50,7 +49,12 @@ void main() {
       expect(find.text(heading), findsOneWidget);
     }
     expect(find.byKey(const Key('api-key')), findsNothing); // ChatGPT still the choice
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('no separate charges'), findsOneWidget); // its cost, on Connect
     await tester.tap(find.text('Continue with ChatGPT'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start')); // the wizard's last step (#357)
     await tester.pumpAndSettle();
     expect(find.text("You're using your ChatGPT plan"), findsOneWidget);
     await tester.tap(find.text('Got it'));
@@ -79,7 +83,9 @@ void main() {
       );
       await tester.tap(find.text(advanced));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Claude (Anthropic)')); // its key steps show
+      await tester.tap(find.text('Claude (Anthropic)'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(language == AppLanguage.en ? 'Next' : 'İleri')); // its key steps
       await tester.pumpAndSettle();
       final shown = [
         for (final text in tester.widgetList<Text>(find.byType(Text)))
@@ -111,6 +117,8 @@ void main() {
     );
     final harness = Harness(chatGpt: FakeAuth()..failSignIn = const NoChatGptPlan());
     await pumpPlanApp(tester, harness);
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Continue with ChatGPT'));
     await tester.pumpAndSettle();
     final card = find.byKey(const Key('no-chatgpt-plan'));
@@ -171,29 +179,41 @@ void main() {
     }
 
     await pumpPlanApp(tester, Harness(chatGpt: FakeAuth()..failSignIn = const NoChatGptPlan()));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Continue with ChatGPT'));
     await tester.pumpAndSettle();
     final card = find.byKey(const Key('no-chatgpt-plan'));
     expect(card, findsOneWidget);
-    // Another provider chosen: the card is about ChatGPT, so it goes.
+    // Back, and another provider chosen: the card is about ChatGPT, so it goes.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Advanced'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Claude (Anthropic)'));
     await tester.pumpAndSettle();
-    final list = find.byType(Scrollable).first;
-    await tester.scrollUntilVisible(find.text('Connect'), 200, scrollable: list);
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
     expect(card, findsNothing);
     await comeBack();
     expect(reads, 0); // never asked for a key: the clipboard is not read
-    await tester.scrollUntilVisible(find.text('ChatGPT plan (OpenAI)'), -200, scrollable: list);
-    await tester.ensureVisible(find.text('ChatGPT plan (OpenAI)'));
+    await tester.pageBack();
     await tester.pumpAndSettle();
+    final list = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(find.text('ChatGPT plan (OpenAI)'), -200, scrollable: list);
     await tester.tap(find.text('ChatGPT plan (OpenAI)'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Continue with ChatGPT'), 200, scrollable: list);
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Continue with ChatGPT'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Get a free Gemini key'), 200, scrollable: list);
+    await tester.scrollUntilVisible(
+      find.text('Get a free Gemini key'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Get a free Gemini key'));
     await tester.pumpAndSettle();
@@ -211,6 +231,8 @@ void main() {
       chatGpt: FakeAuth()..failSignIn = const SignInFailed('access_denied', service: 'ChatGPT'),
     );
     await pumpPlanApp(tester, harness);
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Continue with ChatGPT'));
     await tester.pumpAndSettle();
     expect(find.text('Sign-in did not finish. Please try again.'), findsOneWidget);
@@ -229,17 +251,7 @@ void main() {
     await pumpPlanApp(tester, harness);
     await tester.tap(find.text('Advanced')); // a key setup still works, from Advanced
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Claude (Anthropic)'));
-    await tester.pumpAndSettle();
-    // Past the grouped list (the key field is a scrollable too: name the list's).
-    await tester.scrollUntilVisible(
-      find.text('Connect'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.enterText(find.byKey(const Key('api-key')), 'k');
-    await tester.tap(find.text('Connect'));
-    await tester.pumpAndSettle();
+    await connect(tester, key: 'k');
     expect(find.text('Using ChatGPT plan'), findsNothing);
     expect(find.text("You're using your ChatGPT plan"), findsNothing);
   });
