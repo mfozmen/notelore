@@ -231,4 +231,33 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('a connected model whose key was revoked: said, and a new key can go in (#358)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await tester.tap(find.text('Claude (Anthropic)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('api-key')), 'sk-ant');
+    await tester.tap(find.text('Connect'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start'));
+    await tester.pumpAndSettle();
+    harness.rejected = const KeyValidationError('Anthropic rejected the key');
+    unawaited(ProviderWizard.open(tester.element(find.byKey(const Key('message'))), session));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Use this model'));
+    await tester.pumpAndSettle();
+    // On Connect, the reason on the field, and the field there for a new key.
+    final field = find.byKey(const Key('api-key'));
+    expect(field, findsOneWidget);
+    expect(
+      find.descendant(of: field, matching: find.text('Anthropic rejected the key')),
+      findsOneWidget,
+    );
+  });
 }

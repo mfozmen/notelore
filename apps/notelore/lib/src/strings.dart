@@ -378,8 +378,8 @@ class EnglishStrings extends Strings {
   @override
   List<String> optionTags(ProviderSpec spec) => switch (spec.name) {
     'chatgpt' => ['Your plan', 'One tap'],
-    'anthropic' || 'openai' => ['Pay per use', 'API key'],
-    'gemini' => ['Free tier', 'API key'],
+    'anthropic' || 'openai' => ['Pay per use', apiKey],
+    'gemini' => ['Free tier', apiKey],
     _ => ['Free', 'Stays on this computer'],
   };
   @override
@@ -901,8 +901,8 @@ class TurkishStrings extends Strings {
   @override
   List<String> optionTags(ProviderSpec spec) => switch (spec.name) {
     'chatgpt' => ['Planın', 'Tek dokunuş'],
-    'anthropic' || 'openai' => ['Kullandıkça öde', 'API anahtarı'],
-    'gemini' => ['Ücretsiz katman', 'API anahtarı'],
+    'anthropic' || 'openai' => ['Kullandıkça öde', apiKey],
+    'gemini' => ['Ücretsiz katman', apiKey],
     _ => ['Ücretsiz', 'Bu bilgisayarda kalır'],
   };
   @override
@@ -957,7 +957,7 @@ class TurkishStrings extends Strings {
   @override
   String groupHeading(ProviderGroup group) => switch (group) {
     ProviderGroup.plan => 'Planınla kullan',
-    ProviderGroup.apiKey => 'API anahtarı',
+    ProviderGroup.apiKey => apiKey,
     ProviderGroup.local => 'Bu bilgisayarda',
   };
   @override
