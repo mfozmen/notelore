@@ -261,6 +261,20 @@ void main() {
     // No cases file: said plainly.
     expect(await run(['eval', '--cases=missing.json']), 1);
     expect('$out', contains('missing.json'));
+
+    // distill: only the passing turns, one JSON line each, for a fine-tune (#327).
+    expect(
+      await run(
+        ['distill', '--provider=anthropic', '--cases=cases.json', '--out=train.jsonl'],
+        client: anthropic,
+        environment: {'NOTELORE_HOME': 'home', 'NOTELORE_ANTHROPIC_API_KEY': 'k'},
+      ),
+      0,
+    );
+    final lines = File(p.join(temp.path, 'train.jsonl')).readAsLinesSync();
+    expect(lines, hasLength(1));
+    expect(jsonDecode(lines.single), containsPair('tools', isNotEmpty));
+    expect('$out', contains('kept 1 of 2'));
   });
 
   test('a failing turn reports the error and where the trace is', () async {

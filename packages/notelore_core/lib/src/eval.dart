@@ -15,6 +15,8 @@ import 'package:path/path.dart' as p;
 
 import 'agent.dart';
 import 'providers/base.dart';
+import 'providers/ollama.dart';
+import 'providers/openai.dart';
 import 'store/index.dart';
 import 'tools.dart';
 
@@ -75,7 +77,15 @@ List<EvalCase> loadCases(String json) {
 }
 
 class EvalResult {
-  EvalResult(this.evalCase, this.tools, this.changed, this.answer, this.problems, this.took);
+  EvalResult(
+    this.evalCase,
+    this.tools,
+    this.changed,
+    this.answer,
+    this.problems,
+    this.took, {
+    this.messages = const [],
+  });
 
   final EvalCase evalCase;
   final List<String> tools;
@@ -83,6 +93,9 @@ class EvalResult {
   final String answer;
   final List<String> problems;
   final Duration took;
+
+  /// The whole exchange, for a training example of a passing turn (#327).
+  final List<Message> messages;
 
   bool get passed => problems.isEmpty;
 }
@@ -116,7 +129,15 @@ Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider) async {
           if (!_has(answer, fact)) 'the answer lacks "$fact"',
       ]);
     }
-    return EvalResult(evalCase, tools, changed, answer, problems, watch.elapsed);
+    return EvalResult(
+      evalCase,
+      tools,
+      changed,
+      answer,
+      problems,
+      watch.elapsed,
+      messages: agent.messages,
+    );
   } finally {
     index.close();
     dir.deleteSync(recursive: true);
@@ -170,6 +191,16 @@ Iterable<String> _missingFacts(
       if (!changed.any((path) => RegExp(key).hasMatch(path) && _has(after[path] ?? '', fact)))
         'no changed note matching $key contains "$fact"',
 ];
+
+/// [result]'s turn as one chat transcript with tool calls, the shape Qwen's
+/// and most open models' chat templates train on (#327).
+Map<String, Object?> trainingExample(EvalResult result) => {
+  'messages': [
+    {'role': 'system', 'content': systemPrompt(evalToday)},
+    ...toOllama(result.messages),
+  ],
+  'tools': functionTools(noteTools),
+};
 
 bool _has(String text, String fact) => text.toLowerCase().contains(fact.toLowerCase());
 

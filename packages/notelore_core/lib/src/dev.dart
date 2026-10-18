@@ -6,6 +6,8 @@
 ///     notelore_dev models              the plan's models
 ///     notelore_dev chat [--provider=chatgpt] [--model=<id>] <message...>
 ///     notelore_dev eval [--provider=…] [--model=…] [--cases=eval/cases.json]
+///     notelore_dev distill [--provider=…] [--model=…] [--cases=…] [--out=train.jsonl]
+///                                      a teacher's passing turns as training data (#327)
 ///                                      the model eval (#325), on temp notes
 ///
 /// It refuses to run without `NOTELORE_HOME`, so the real notes are never
@@ -33,7 +35,8 @@ import 'tools.dart';
 
 const _usage =
     'usage: notelore_dev signin | models | chat [--provider=<name>] [--model=<id>] <message>'
-    ' | eval [--provider=<name>] [--model=<id>] [--cases=<file>]';
+    ' | eval [--provider=<name>] [--model=<id>] [--cases=<file>]'
+    ' | distill [--provider=<name>] [--model=<id>] [--cases=<file>] [--out=<file>]';
 
 /// A trace file's name for a run started at [time]: UTC to the microsecond,
 /// always six digits, so names sort in time order (`toIso8601String()` drops
@@ -68,7 +71,7 @@ Future<int> runDev(
   final command = words.firstOrNull;
   final message = words.skip(1).join(' ');
   if (command == null ||
-      !const {'signin', 'models', 'chat', 'eval'}.contains(command) ||
+      !const {'signin', 'models', 'chat', 'eval', 'distill'}.contains(command) ||
       (command == 'chat' && message.isEmpty)) {
     out.writeln(_usage);
     return 64;
@@ -106,9 +109,12 @@ Future<int> runDev(
         out.writeln('Signed in with ChatGPT.');
       case 'models':
         out.writeln((await listChatGptModels(auth.token, client: traced)).join('\n'));
-      case 'eval':
+      case 'eval' || 'distill':
         final cases = File(p.join(currentDirectory.path, options['cases'] ?? 'eval/cases.json'));
-        await _eval(cases, () => _provider(options, environment, auth, traced, out), out);
+        final keep = command == 'distill'
+            ? File(p.join(currentDirectory.path, options['out'] ?? 'train.jsonl'))
+            : null;
+        await _eval(cases, () => _provider(options, environment, auth, traced, out), out, keep);
       default:
         await _chat(message, options, environment, paths, auth, traced, out);
     }
@@ -150,8 +156,14 @@ Future<void> _chat(
 }
 
 /// Every case in [cases] against the provider [open] makes once the file is
-/// there, each said as it ends, then the report.
-Future<void> _eval(File cases, Future<LlmProvider> Function() open, StringSink out) async {
+/// there, each said as it ends, then the report. With [keep], the passing
+/// turns go there as training examples, one JSON line each.
+Future<void> _eval(
+  File cases,
+  Future<LlmProvider> Function() open,
+  StringSink out, [
+  File? keep,
+]) async {
   if (!cases.existsSync()) throw StateError('no cases file at ${cases.path}');
   final provider = await open();
   final results = <EvalResult>[];
@@ -162,6 +174,13 @@ Future<void> _eval(File cases, Future<LlmProvider> Function() open, StringSink o
     out.writeln('$verdict ${evalCase.id} (${result.took.inMilliseconds} ms) ${result.tools}');
   }
   out.writeln(summarize(results));
+  if (keep == null) return;
+  final kept = [
+    for (final result in results)
+      if (result.passed) jsonEncode(trainingExample(result)),
+  ];
+  keep.writeAsStringSync(kept.map((line) => '$line\n').join());
+  out.writeln('kept ${kept.length} of ${results.length} in ${keep.path}');
 }
 
 /// The provider and model [options] name (the ChatGPT plan by default), said on [out].
