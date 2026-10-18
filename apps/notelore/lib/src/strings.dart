@@ -103,6 +103,10 @@ abstract class Strings {
   /// Text files attached in the chat (#222).
   String get attachFile;
   String fileTooBig(String name);
+  String transcribing(String name);
+  String audioNeedsWhisper(String name);
+  String audioFormat(String name);
+  String audioNoWords(String name);
   String notText(String name);
   String tooLarge(String name);
   String noPdfText(String name);
@@ -230,6 +234,16 @@ abstract class Strings {
 
   // Usage (#217).
   String get usage;
+  String get showAdvanced;
+  String get showAdvancedWhy;
+  String get usageWhat;
+  String get lastDays;
+  String get byModel;
+
+  /// What the last days chart says to a screen reader.
+  String lastDaysSummary(String total);
+  String get lastDaysNothing;
+  String busiestDay(String amount, int day);
   String get usageConversation;
   String get usageDevice;
   String get usageNothing;
@@ -246,12 +260,14 @@ abstract class Strings {
 
   /// What [summary] used: tokens, the calls that did not say, the estimated
   /// cost; "not available" where the provider gave nothing to go on.
+  /// [n] with this language's thousands separator.
+  String number(int n) => '$n'.replaceAllMapped(RegExp(r'\B(?=(\d{3})+$)'), (_) => thousands);
+
   List<String> usageLines(UsageSummary summary) {
     if (summary.calls == 0) return [usageNothing];
-    String grouped(int n) => '$n'.replaceAllMapped(RegExp(r'\B(?=(\d{3})+$)'), (_) => thousands);
     return [
       if (summary.tokensKnown)
-        usageTokens(grouped(summary.input), grouped(summary.output))
+        usageTokens(number(summary.input), number(summary.output))
       else
         usageTokensUnavailable,
       if (summary.unreported > 0) usageUnreported(summary.unreported),
@@ -316,6 +332,7 @@ abstract class Strings {
   // Updates.
   String get upToDate;
   String updateAvailable(String version);
+  String get whatsNew;
   String installing(String version);
   String installed(String version);
   String checkFailed(Object error);
@@ -522,6 +539,15 @@ class EnglishStrings extends Strings {
   String get copy => 'Copy';
   @override
   String get copied => 'Copied';
+  @override
+  String transcribing(String name) => 'Listening to $name…';
+  @override
+  String audioNeedsWhisper(String name) =>
+      '$name needs on-device speech recognition: Whisper is still on its way (Settings → Voice).';
+  @override
+  String audioFormat(String name) => '$name cannot be opened on this device. Try it as a WAV file.';
+  @override
+  String audioNoWords(String name) => 'No words were heard in $name, so nothing was sent.';
   @override
   String fileTooBig(String name) => '$name is too big to attach (20 MB at most).';
   @override
@@ -813,13 +839,29 @@ class EnglishStrings extends Strings {
   @override
   String get usage => 'Usage';
   @override
+  String get showAdvanced => 'Show advanced settings';
+  @override
+  String get showAdvancedWhy => 'Extra pages for checking how the app works.';
+  @override
+  String busiestDay(String amount, int day) => 'Busiest day: the ${day}th, $amount';
+  @override
+  String get usageWhat => 'What the model read and wrote, and what it cost';
+  @override
+  String get lastDays => 'Last 14 days';
+  @override
+  String get byModel => 'By model';
+  @override
+  String lastDaysSummary(String total) => 'Last 14 days: $total in all';
+  @override
+  String get lastDaysNothing => 'Last 14 days: nothing used';
+  @override
   String get usageConversation => 'This conversation';
   @override
   String get usageDevice => 'On this device';
   @override
   String get usageNothing => 'Nothing yet.';
   @override
-  String usageTokens(String input, String output) => 'Tokens: $input in, $output out';
+  String usageTokens(String input, String output) => '$input read · $output written';
   @override
   String get usageTokensUnavailable => 'Tokens: not available';
   @override
@@ -831,7 +873,8 @@ class EnglishStrings extends Strings {
   String get usageCostUnavailable => 'Estimated cost: not available';
   @override
   String usageEstimate(String date) =>
-      "Costs are estimates from list prices taken on $date; your provider's bill is what counts.";
+      'Read and written are counted in tokens, pieces of words. Costs are estimates from list '
+      "prices taken on $date; your provider's bill is what counts.";
   @override
   String get usagePlan =>
       "The ChatGPT plan has no per-token charge: use counts against your plan's limits.";
@@ -941,9 +984,11 @@ class EnglishStrings extends Strings {
   @override
   String get upToDate => 'Notelore is up to date.';
   @override
-  String updateAvailable(String version) => 'Notelore $version is available.';
+  String updateAvailable(String version) => 'A fresh Notelore is ready: $version.';
   @override
-  String installing(String version) => 'Installing Notelore $version...';
+  String get whatsNew => "What's new";
+  @override
+  String installing(String version) => 'Putting the new Notelore in place ($version)…';
   @override
   String installed(String version) =>
       'Notelore $version is installed. Close and reopen Notelore to use it.';
@@ -1207,6 +1252,15 @@ class TurkishStrings extends Strings {
   String get copy => 'Kopyala';
   @override
   String get copied => 'Kopyalandı';
+  @override
+  String transcribing(String name) => '$name dinleniyor…';
+  @override
+  String audioNeedsWhisper(String name) =>
+      '$name için cihazda konuşma tanıma gerekiyor: Whisper henüz yolda (Ayarlar → Ses).';
+  @override
+  String audioFormat(String name) => '$name bu cihazda açılamıyor. WAV dosyası olarak dene.';
+  @override
+  String audioNoWords(String name) => '$name içinde kelime duyulmadı, bir şey gönderilmedi.';
   @override
   String fileTooBig(String name) => '$name eklemek için çok büyük (en fazla 20 MB).';
   @override
@@ -1504,13 +1558,29 @@ class TurkishStrings extends Strings {
   @override
   String get usage => 'Kullanım';
   @override
+  String get showAdvanced => 'Gelişmiş ayarları göster';
+  @override
+  String get showAdvancedWhy => 'Uygulamanın nasıl çalıştığını gösteren ek sayfalar.';
+  @override
+  String busiestDay(String amount, int day) => 'En yoğun gün: $day, $amount';
+  @override
+  String get usageWhat => 'Modelin okuduğu, yazdığı ve maliyeti';
+  @override
+  String get lastDays => 'Son 14 gün';
+  @override
+  String get byModel => 'Modele göre';
+  @override
+  String lastDaysSummary(String total) => 'Son 14 gün: toplam $total';
+  @override
+  String get lastDaysNothing => 'Son 14 gün: kullanım yok';
+  @override
   String get usageConversation => 'Bu konuşma';
   @override
   String get usageDevice => 'Bu cihazda';
   @override
   String get usageNothing => 'Henüz yok.';
   @override
-  String usageTokens(String input, String output) => 'Token: $input giriş, $output çıkış';
+  String usageTokens(String input, String output) => '$input okundu · $output yazıldı';
   @override
   String get usageTokensUnavailable => 'Token: bilgi yok';
   @override
@@ -1521,7 +1591,8 @@ class TurkishStrings extends Strings {
   String get usageCostUnavailable => 'Tahmini maliyet: bilgi yok';
   @override
   String usageEstimate(String date) =>
-      'Maliyetler $date tarihli liste fiyatlarından tahmindir; geçerli olan sağlayıcınızın faturasıdır.';
+      'Okunan ve yazılan token ile, yani kelime parçalarıyla sayılır. Maliyetler $date tarihli '
+      'liste fiyatlarından tahmindir; geçerli olan sağlayıcınızın faturasıdır.';
   @override
   String get usagePlan =>
       'ChatGPT planında token başına ücret yok: kullanım planınızın sınırlarından düşer.';
@@ -1632,9 +1703,11 @@ class TurkishStrings extends Strings {
   @override
   String get upToDate => 'Notelore güncel.';
   @override
-  String updateAvailable(String version) => 'Notelore $version çıktı.';
+  String updateAvailable(String version) => 'Notelore’un taze bir sürümü hazır: $version.';
   @override
-  String installing(String version) => 'Notelore $version kuruluyor...';
+  String get whatsNew => 'Neler yeni';
+  @override
+  String installing(String version) => 'Yeni Notelore yerine yerleşiyor ($version)…';
   @override
   String installed(String version) =>
       'Notelore $version kuruldu. Kullanmak için Notelore’u kapatıp yeniden aç.';

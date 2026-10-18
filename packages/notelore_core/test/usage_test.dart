@@ -125,6 +125,38 @@ void main() {
       expect(meter.device.calls, 1); // still counted while the app runs
     });
 
+    test('each day keeps its own count, for the last days chart (#294)', () {
+      var day = DateTime(2026, 10, 16);
+      final meter = UsageMeter(file(), today: () => day);
+      meter.record('anthropic', 'claude-sonnet-5-5', const TokenUsage(10, 2));
+      day = DateTime(2026, 10, 18);
+      meter.record('anthropic', 'claude-sonnet-5-5', const TokenUsage(5, 1));
+      meter.record('gemini', 'gemini-2.5-flash', const TokenUsage(3, 3));
+      final days = UsageMeter(file(), today: () => day).lastDays(3); // kept on disk
+      expect(
+        [for (final d in days) d.day],
+        [DateTime(2026, 10, 16), DateTime(2026, 10, 17), DateTime(2026, 10, 18)],
+      );
+      expect([for (final d in days) d.count.input + d.count.output], [12, 0, 12]);
+      // Per model, over the whole device.
+      final models = meter.byModel;
+      expect(models.keys, ['anthropic/claude-sonnet-5-5', 'gemini/gemini-2.5-flash']);
+      expect(models['anthropic/claude-sonnet-5-5']!.input, 15);
+      expect(models['gemini/gemini-2.5-flash']!.cost, closeTo((3 * 0.30 + 3 * 2.50) / 1e6, 1e-12));
+    });
+
+    test('days older than ninety are dropped; a damaged day file starts again', () {
+      var day = DateTime(2026, 1, 1);
+      final meter = UsageMeter(file(), today: () => day);
+      meter.record('x', 'm', const TokenUsage(1, 1));
+      day = DateTime(2026, 6, 1);
+      meter.record('x', 'm', const TokenUsage(1, 1));
+      final saved = File(p.join(dir.path, 'state', 'usage-days.json')).readAsStringSync();
+      expect(saved, isNot(contains('2026-01-01')));
+      File(p.join(dir.path, 'state', 'usage-days.json')).writeAsStringSync('{broken');
+      expect(UsageMeter(file(), today: () => day).lastDays(1).single.count.calls, 0);
+    });
+
     test('a damaged file starts the device total again instead of failing', () {
       File(file())
         ..parent.createSync(recursive: true)

@@ -83,7 +83,7 @@ class AppLock {
       _ => switch (await keys.read(key: _kindKey)) {
         'pattern' => LockKind.pattern,
         'pin' => LockKind.pin,
-        _ => LockKind.password,
+        _ => LockKind.password, // a lock set before #295 has no kind: it keeps working
       },
     };
     enabled = locked = stored != null;

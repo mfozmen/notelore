@@ -62,3 +62,5 @@ A diff: `git diff origin/main...HEAD`, or the range you were given. A full audit
 ## Report
 
 Group the findings by severity. For each one give the file and line, the attack scenario in one or two sentences, and the smallest fix. Then list the areas you checked and the areas you could not check (for example, a native binary or a store console setting). End with the three fixes that matter most before a store release.
+
+On a PR, findings are fixed in that PR, not deferred to follow-up issues. If the author disputes a finding, judge the argument against the code: agree and drop it, or say briefly why it stands. Mark a finding as its own issue only when it is outside the PR's scope, and say why.

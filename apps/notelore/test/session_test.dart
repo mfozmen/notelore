@@ -1368,6 +1368,15 @@ void main() {
     expect(withoutFrontMatter('# Plain\n'), '# Plain\n');
     expect(withoutFrontMatter('---\nunterminated'), '---\nunterminated');
   });
+
+  test('an original that cannot be written is skipped; the words still go (#279)', () {
+    final harness = Harness();
+    final session = harness.session();
+    File(p.join(harness.paths.notes.path, 'attachments'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('in the way'); // a file where the folder would go
+    expect(session.keepOriginal('memo.wav', [1]), isNull);
+  });
 }
 
 /// A keystore whose delete fails, like a locked one.

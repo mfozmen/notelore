@@ -15,6 +15,7 @@ import 'package:notelore/src/session.dart';
 import 'package:notelore/src/transfer.dart';
 import 'package:notelore/src/voice.dart';
 import 'package:notelore/src/whisper_model.dart';
+import 'package:notelore/src/whisper_speech.dart' show Transcriber;
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
@@ -157,6 +158,12 @@ class Harness {
   final speech = FakeSpeech([]);
   final voice = FakeVoice();
 
+  /// Whisper hearing an attached audio file (#285): its answers, in order.
+  final fileTranscriber = FakeTranscriber();
+
+  /// The platform's audio decoder for what is not WAV: none, unless a test sets one.
+  Future<Float32List?> Function(Uint8List bytes) decodeAudio = (_) async => null;
+
   /// Whisper's speech, and the one small model file it downloads (absent: 404).
   final whisper = FakeSpeech([]);
 
@@ -227,6 +234,8 @@ class Harness {
       listMicrophones: () async => microphones,
       readPdf: (bytes) => pdfText(bytes),
       deviceAuth: deviceAuth,
+      makeTranscriber: (_) => fileTranscriber,
+      decodeAudio: (bytes) => decodeAudio(bytes),
       validate: (spec, key) async {
         await connectHold?.future;
         if (rejected != null) throw rejected!;
@@ -485,4 +494,20 @@ class FakeAwake implements Awake {
 
   @override
   Future<void> release() async => calls.add('release');
+}
+
+/// Whisper over an attached file: [answers] in order, what it heard recorded.
+class FakeTranscriber implements Transcriber {
+  final answers = <String>[];
+  final heard = <int>[];
+
+  /// When set, hearing waits for it: a long recording.
+  Completer<void>? hold;
+
+  @override
+  Future<String> transcribe(Float32List samples, String language) async {
+    heard.add(samples.length);
+    await hold?.future;
+    return answers.isEmpty ? '' : answers.removeAt(0);
+  }
 }

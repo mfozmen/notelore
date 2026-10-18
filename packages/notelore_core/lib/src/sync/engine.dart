@@ -76,21 +76,12 @@ Future<SyncReport> sync(
   final t = (now ?? DateTime.now()).toUtc();
   final stamp =
       '${t.year}-${_two(t.month)}-${_two(t.day)}T${_two(t.hour)}${_two(t.minute)}${_two(t.second)}Z';
-  // Keys are NFC: macOS hands back NFD names for the same note Drive stores as NFC.
-  final local = <String, File>{
-    if (Directory(root).existsSync())
-      // A link is not followed: nothing outside the notes folder is ever uploaded.
-      for (final file in Directory(
-        root,
-      ).listSync(recursive: true, followLinks: false).whereType<File>())
-        if (file.path.endsWith('.md'))
-          unorm.nfc(p.split(p.relative(file.path, from: root)).join('/')): file,
-  };
+  final local = _localFiles(root);
   // Only notes: anything else in the remote folder (the shared app settings) is
   // not ours to pull, and pulling it would later read as deleted here and trash it.
   final remoteFiles = {
     for (final MapEntry(:key, :value) in (await remote.list()).entries)
-      if (key.endsWith('.md')) unorm.nfc(key): value,
+      if (_synced(unorm.nfc(key))) unorm.nfc(key): value,
   };
   final report = SyncReport();
   final keys = {...local.keys, ...remoteFiles.keys, ...manifest.paths()}.toList()..sort();
@@ -101,20 +92,45 @@ Future<SyncReport> sync(
   }
   final run = _Pass(root, manifest, remote, resolve, stamp, report);
   for (final rel in keys) {
-    try {
-      checkedRel(rel);
-    } on ArgumentError {
+    if (!_safe(rel) || folded[rel.toLowerCase()]! > 1) {
       report.ignored.add(rel);
       continue;
     }
-    if (folded[rel.toLowerCase()]! > 1) {
-      report.ignored.add(rel);
-      continue;
-    }
-    await run.file(rel, remoteFiles[rel], local[rel]);
+    final binary = rel.startsWith('$attachmentsFolder/');
+    await (binary ? run.binary : run.file)(rel, remoteFiles[rel], local[rel]);
   }
   return report;
 }
+
+/// The synced files under [root], by their relative path. Keys are NFC: macOS
+/// hands back NFD names for the same note Drive stores as NFC.
+Map<String, File> _localFiles(String root) => {
+  if (Directory(root).existsSync())
+    // A link is not followed: nothing outside the notes folder is ever uploaded.
+    for (final file in Directory(
+      root,
+    ).listSync(recursive: true, followLinks: false).whereType<File>())
+      if (_synced(_relOf(root, file.path))) _relOf(root, file.path): file,
+};
+
+bool _safe(String rel) {
+  try {
+    checkedRel(rel);
+    return true;
+  } on ArgumentError {
+    return false;
+  }
+}
+
+/// [path] relative to [root], with forward slashes and in NFC.
+String _relOf(String root, String path) =>
+    unorm.nfc(p.split(p.relative(path, from: root)).join('/'));
+
+/// Notes, and the originals kept beside them (#279); nothing else in the folder,
+/// nor a write's temp file left by a crash (a dot file).
+bool _synced(String rel) =>
+    rel.endsWith('.md') ||
+    (rel.startsWith('$attachmentsFolder/') && !rel.split('/').last.startsWith('.'));
 
 class _Pass {
   _Pass(this.root, this.manifest, this.remote, this.resolve, this.stamp, this.report);
@@ -175,6 +191,62 @@ class _Pass {
         manifest.forget(rel);
         report.removedRemote.add(rel);
     }
+  }
+
+  /// An attachment (#279): its bytes travel as they are, never merged. Changed
+  /// on both sides, Drive's copy stays and this one goes to history.
+  Future<void> binary(String rel, RemoteFile? meta, File? found) async {
+    final path = found?.path ?? _path(rel);
+    final entry = manifest.get(rel);
+    final local = found?.readAsBytesSync();
+    final untouched = meta == null || (entry != null && meta.md5 == entry.md5);
+    final downloaded = untouched ? null : await remote.download(meta.id);
+    final localHash = local == null ? null : bytesHash(local);
+    // Unchanged on Drive: its bytes are the ones last synced.
+    var remoteHash = meta == null ? null : entry?.localHash;
+    if (downloaded != null) remoteHash = bytesHash(downloaded);
+    ManifestEntry recorded(RemoteFile at, String hash) =>
+        ManifestEntry(localHash: hash, driveId: at.id, md5: at.md5, modified: at.modified);
+    switch (decide(entry?.localHash, localHash, remoteHash)) {
+      case SyncAction.none:
+        if (local != null && meta != null) {
+          if (entry != recorded(meta, localHash!)) manifest.record(rel, recorded(meta, localHash));
+        } else {
+          manifest.forget(rel);
+        }
+      case SyncAction.push:
+        final uploaded = await remote.upload(rel, local!, meta?.id);
+        manifest.record(rel, recorded(uploaded, localHash!));
+        report.pushed.add(rel);
+      case SyncAction.pull:
+        _take(rel, path, meta!, downloaded!, recorded(meta, remoteHash!));
+      case SyncAction.merge:
+        // Changed here too: this copy is kept apart before Drive's replaces it.
+        final target = _history(rel);
+        Directory(p.dirname(target)).createSync(recursive: true);
+        moveWithRetry(path, target);
+        report.history.add(_rel(target));
+        _take(rel, path, meta!, downloaded!, recorded(meta, remoteHash!));
+      case SyncAction.removeLocal:
+        final target = _history(rel);
+        Directory(p.dirname(target)).createSync(recursive: true);
+        moveWithRetry(path, target);
+        manifest.forget(rel);
+        report
+          ..removedLocal.add(rel)
+          ..history.add(_rel(target));
+      case SyncAction.removeRemote:
+        await remote.trash(meta!.id);
+        manifest.forget(rel);
+        report.removedRemote.add(rel);
+    }
+  }
+
+  /// Drive's copy of an attachment, written here and recorded.
+  void _take(String rel, String path, RemoteFile meta, List<int> bytes, ManifestEntry entry) {
+    atomicWriteBytes(path, bytes);
+    manifest.record(rel, entry);
+    report.pulled.add(rel);
   }
 
   /// The local text and the remote one, downloaded only when Drive changed it

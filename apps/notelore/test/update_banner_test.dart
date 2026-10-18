@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
 import 'package:notelore/src/update.dart';
 import 'package:path/path.dart' as p;
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'app_test.dart' show connect, phone;
 import 'support.dart';
@@ -65,7 +66,14 @@ void main() {
         ...download('notelore-app-$v-windows-x64-setup.exe', setup),
       }),
     );
-    expect(find.text('Notelore $v is available.'), findsOneWidget);
+    expect(find.text('A fresh Notelore is ready: $v.'), findsOneWidget);
+    // What it brings, in a line; the rest one tap away (#288).
+    expect(find.text('Notes sync faster · Voice works offline'), findsOneWidget);
+    final launcher = FakeLauncher();
+    UrlLauncherPlatform.instance = launcher;
+    await tester.tap(find.text("What's new"));
+    await tester.pump();
+    expect(launcher.opened.single, 'https://github.com/mfozmen/notelore/releases/tag/v$v');
     await tester.tap(find.text('Update and restart'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
     await tester.pumpAndSettle();
@@ -170,7 +178,7 @@ void main() {
     await pump(tester, slow);
     await tester.tap(find.text('Update and restart'));
     await tester.pump();
-    expect(find.text('Installing Notelore $v...'), findsOneWidget);
+    expect(find.text('Putting the new Notelore in place ($v)…'), findsOneWidget);
     expect(tester.widget<TextButton>(find.widgetWithText(TextButton, 'Later')).onPressed, isNull);
   });
 
@@ -206,7 +214,7 @@ void main() {
     expect(find.textContaining('Could not check for updates'), findsOneWidget);
     pages.pages[latestReleaseUrl] = release(v);
     await check();
-    expect(find.text('Notelore $v is available.'), findsWidgets); // the banner too
+    expect(find.text('A fresh Notelore is ready: $v.'), findsWidgets); // the banner too
     expect(find.text('Update and restart'), findsOneWidget);
   });
 
@@ -250,7 +258,7 @@ void main() {
     // A newer one than the dismissed version does show.
     pages.pages[latestReleaseUrl] = release('10.0.0');
     await tick(tester);
-    expect(find.text('Notelore 10.0.0 is available.'), findsOneWidget);
+    expect(find.text('A fresh Notelore is ready: 10.0.0.'), findsOneWidget);
   });
 
   testWidgets('a tick leaves the banner alone while an update installs', (tester) async {
@@ -278,7 +286,7 @@ void main() {
     await tester.pump();
     pages.pages[latestReleaseUrl] = release('0.2.0'); // a tick would clear the banner
     await tick(tester);
-    expect(find.textContaining('Installing Notelore $v'), findsOneWidget);
+    expect(find.textContaining('Putting the new Notelore in place'), findsOneWidget);
     hold.complete();
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
     await tester.pumpAndSettle();

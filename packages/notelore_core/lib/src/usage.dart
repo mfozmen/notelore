@@ -11,7 +11,10 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 import 'providers/base.dart';
+import 'store/format.dart' show isoDate;
 import 'store/notes.dart' show atomicWrite;
 
 /// US dollars per million tokens.
@@ -124,37 +127,91 @@ UsageSummary summarize(Map<String, UsageCount> counts) {
 }
 
 /// The counts of this conversation, in memory, and of this device, kept in
-/// [file] (derived state: deleting it only resets the total).
+/// [file], with each day's apart in `usage-days.json` beside it for the last
+/// days chart (#294); derived state: deleting either only resets it.
 class UsageMeter {
-  UsageMeter(this.file);
+  UsageMeter(this.file, {DateTime Function()? today}) : _today = today ?? DateTime.now;
 
   final String file;
+  final DateTime Function() _today;
   final _conversation = <String, UsageCount>{};
-  late final _device = _load();
+  late final _device = _counts(_read(file));
+  late final _days = _loadDays();
+
+  String get _daysFile => p.join(p.dirname(file), 'usage-days.json');
+
+  /// Days kept; older ones are dropped on the next record.
+  static const _keep = 90;
 
   UsageSummary get conversation => summarize(_conversation);
   UsageSummary get device => summarize(_device);
+
+  /// Each "provider/model" used on this device, on its own.
+  Map<String, UsageSummary> get byModel => {
+    for (final MapEntry(:key, :value) in _device.entries) key: summarize({key: value}),
+  };
+
+  /// The last [n] local calendar days, oldest first, each its total (zero
+  /// when nothing was used).
+  List<({DateTime day, UsageCount count})> lastDays(int n) {
+    final now = _today();
+    final today = DateTime(now.year, now.month, now.day);
+    return [
+      for (var i = n - 1; i >= 0; i--)
+        () {
+          final day = DateTime(today.year, today.month, today.day - i);
+          final counts = _days[isoDate(day)]?.values ?? const <UsageCount>[];
+          return (day: day, count: counts.fold(const UsageCount(), (a, b) => a + b));
+        }(),
+    ];
+  }
 
   void record(String provider, String model, TokenUsage? usage) {
     final key = '$provider/$model';
     _conversation[key] = (_conversation[key] ?? const UsageCount()).add(usage);
     _device[key] = (_device[key] ?? const UsageCount()).add(usage);
-    try {
-      File(file).parent.createSync(recursive: true);
-      atomicWrite(file, '${jsonEncode(_device)}\n');
-    } on FileSystemException {
-      // Bookkeeping never fails an answer: the next call saves it again.
-    }
+    final day = _days.putIfAbsent(isoDate(_today()), () => {});
+    day[key] = (day[key] ?? const UsageCount()).add(usage);
+    final oldest = isoDate(_today().subtract(const Duration(days: _keep)));
+    _days.removeWhere((date, _) => date.compareTo(oldest) < 0);
+    _save(file, _device);
+    _save(_daysFile, _days);
   }
 
   void newConversation() => _conversation.clear();
 
-  Map<String, UsageCount> _load() {
+  /// Bookkeeping never fails an answer: the next call saves it again.
+  static void _save(String path, Object value) {
+    try {
+      File(path).parent.createSync(recursive: true);
+      atomicWrite(path, '${jsonEncode(value)}\n');
+    } on FileSystemException {
+      // not saved this time
+    }
+  }
+
+  Map<String, Map<String, UsageCount>> _loadDays() {
+    final days = <String, Map<String, UsageCount>>{};
+    for (final MapEntry(:key, :value) in _read(_daysFile).entries) {
+      if ((key, value) case (final String date, final Map<Object?, Object?> day)) {
+        days[date] = _counts(day);
+      }
+    }
+    return days;
+  }
+
+  static Map<Object?, Object?> _read(String path) {
+    try {
+      return jsonDecode(File(path).readAsStringSync()) as Map;
+    } on Object {
+      return {}; // none yet, or damaged: it starts again
+    }
+  }
+
+  static Map<String, UsageCount> _counts(Map<Object?, Object?> saved) {
     try {
       return {
-        for (final MapEntry(:key, :value) in (jsonDecode(
-          File(file).readAsStringSync(),
-        ) as Map).cast<String, Map<String, Object?>>().entries)
+        for (final MapEntry(:key, :value) in saved.cast<String, Map<String, Object?>>().entries)
           key: UsageCount(
             calls: value['calls']! as int,
             unreported: value['unreported']! as int,
@@ -163,7 +220,7 @@ class UsageMeter {
           ),
       };
     } on Object {
-      return {}; // none yet, or damaged: the total starts again
+      return {}; // damaged: the total starts again
     }
   }
 }
