@@ -150,6 +150,69 @@ void main() {
     });
   });
 
+  group('only public pages are read (#315)', () {
+    Future<String> why(Uri url, http.Client client) async {
+      try {
+        await readPage(url, client: client);
+        return 'read';
+      } on LinkUnreadable catch (error) {
+        return '$error';
+      }
+    }
+
+    test('this device and the local network are never asked', () async {
+      final asked = <Uri>[];
+      final client = MockClient((request) async {
+        asked.add(request.url);
+        return http.Response('<p>x</p>', 200, headers: {'content-type': 'text/html'});
+      });
+      for (final url in [
+        'http://localhost:8080/',
+        'http://127.0.0.1/',
+        'http://10.1.2.3/',
+        'http://172.16.0.1/',
+        'http://192.168.1.1/admin',
+        'http://169.254.169.254/latest',
+        'http://[::1]/',
+        'http://[fd00::1]/',
+        'http://router.local/',
+        'http://0.0.0.0/',
+      ]) {
+        expect(await why(Uri.parse(url), client), contains('not a public'), reason: url);
+      }
+      expect(asked, isEmpty);
+      expect(await why(Uri.parse('https://example.com/'), client), 'read');
+    });
+
+    test('a redirect is followed only to a public page, and only a few times', () async {
+      http.Client redirecting(String Function(int hop) location) {
+        var hop = 0;
+        return MockClient((request) async {
+          hop++;
+          return http.Response('', 302, headers: {'location': location(hop)});
+        });
+      }
+
+      expect(
+        await why(Uri.parse('https://e.com/'), redirecting((_) => 'http://127.0.0.1/admin')),
+        contains('not a public'),
+      );
+      expect(
+        await why(Uri.parse('https://e.com/'), redirecting((hop) => '/next$hop')),
+        contains('too many redirects'),
+      );
+      var hops = 0;
+      final once = MockClient((request) async {
+        hops++;
+        return request.url.path == '/moved'
+            ? http.Response('<p>here</p>', 200, headers: {'content-type': 'text/html'})
+            : http.Response('', 301, headers: {'location': '/moved'});
+      });
+      expect(await why(Uri.parse('https://e.com/old'), once), 'read');
+      expect(hops, 2);
+    });
+  });
+
   group('a message with its pages', () {
     test('each page goes along as data, marked as such; a failure says so', () async {
       final client = MockClient(

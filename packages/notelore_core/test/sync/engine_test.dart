@@ -97,6 +97,15 @@ void main() {
     expect(drive.uploads, 2);
   });
 
+  test('a link in the notes folder is not followed: nothing outside is uploaded (#315)', () async {
+    final outside = Directory(p.join(p.dirname(root), 'private'))..createSync(recursive: true);
+    File(p.join(outside.path, 'secret.md')).writeAsStringSync(note);
+    write('projects/a.md', note);
+    Link(at('projects/elsewhere')).createSync(outside.path);
+    final report = await run();
+    expect(report.pushed, ['projects/a.md']);
+  });
+
   test('a new remote file is pulled', () async {
     drive.put('topics/from-mac.md', note);
     expect((await run()).pulled, ['topics/from-mac.md']);
