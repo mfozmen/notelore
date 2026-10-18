@@ -434,6 +434,10 @@ class Session extends ChangeNotifier {
       final key = found.requiresApiKey ? await keys.read(key: _keyName(found)) : '';
       if (key == null) return; // the keystore lost it: set up again
       if (found.name == 'chatgpt' && !(await chatGpt?.signedIn() ?? false)) return;
+      // Set up before its mark existed (#356): [connections] should list it too.
+      if (found.name == 'ollama' && await keys.read(key: _keyName(found)) == null) {
+        await keys.write(key: _keyName(found), value: '');
+      }
       models = switch (saved['models']) {
         final List<Object?> listed => listed.whereType<String>().toList(),
         _ => const [], // settings from before the model list

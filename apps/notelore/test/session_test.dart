@@ -1029,6 +1029,29 @@ void main() {
     },
   );
 
+  test('an Ollama set up before connections existed counts as connected (#356)', () async {
+    final harness = Harness();
+    await harness.session().connect(findProvider('ollama'), '');
+    await const FlutterSecureStorage().delete(key: 'notelore.ollama.api_key'); // as before #356
+    final again = harness.session();
+    await again.load();
+    expect((await again.connections()).map((s) => s.name), ['ollama']);
+  });
+
+  test('a message waiting when its model is removed goes out with the next one (#356)', () async {
+    final harness = Harness(answers: [const NetworkError('offline'), 'Saved.']);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'sk-ant');
+    await session.send('remember the milk');
+    expect(session.transcript.last.role, ChatRole.pending);
+    await session.disconnect(findProvider('anthropic'));
+    await session.retryNow(); // no model: it keeps waiting
+    expect(session.transcript.last.role, ChatRole.pending);
+    await session.connect(findProvider('openai'), 'sk-oa');
+    await session.retryNow();
+    expect(session.transcript.last, (role: ChatRole.assistant, text: 'Saved.'));
+  });
+
   test('switching to a model whose key is gone says so and changes nothing (#356)', () async {
     final harness = Harness();
     final session = harness.session();
