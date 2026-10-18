@@ -685,7 +685,13 @@ class _RemindersCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: Gap.m),
                 child: FilledButton.tonalIcon(
                   icon: const Icon(Icons.notifications_active_outlined),
-                  onPressed: session.allowReminders,
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    // Refused before, the system asks no more: say where to turn them on.
+                    if (!await session.allowReminders()) {
+                      messenger.showSnackBar(SnackBar(content: Text(s.notificationsBlocked)));
+                    }
+                  },
                   label: Text(s.allowNotifications),
                 ),
               ),

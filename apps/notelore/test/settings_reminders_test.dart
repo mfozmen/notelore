@@ -32,11 +32,36 @@ void main() {
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     await openReminders(tester);
-    expect(find.textContaining('Notifications are off for Notelore'), findsOneWidget);
+    expect(
+      find.text(
+        "Notifications are off for Notelore: reminders stay in your notes, but you won't be notified.",
+      ),
+      findsOneWidget,
+    );
     harness.reminders.grant = true;
     await tester.tap(find.text('Allow notifications'));
     await tester.pumpAndSettle();
     expect(harness.reminders.asked, 1);
+    expect(find.text("Notelore notifies you on this device at a reminder's time."), findsOneWidget);
+  });
+
+  testWidgets('settings: a refused Allow says where to turn them on; back, the card knows', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness()..reminders.allowed = false;
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await openReminders(tester);
+    // Asked twice already: the system shows nothing any more.
+    await tester.tap(find.text('Allow notifications'));
+    await tester.pumpAndSettle();
+    expect(find.text('Turn on notifications for Notelore in the system settings.'), findsOneWidget);
+    // Turned on there, then back in the app (no Drive to sync): the card follows.
+    harness.reminders.allowed = true;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
     expect(find.text("Notelore notifies you on this device at a reminder's time."), findsOneWidget);
   });
 

@@ -64,6 +64,14 @@ void main() {
     expect(due.first.text, 'Later today');
   });
 
+  test("a long reminder's words are cut for a notification", () {
+    final long = createNote(root, 'topic', 'Long', today: d(2026, 10, 1));
+    addReminder(long, 'word ' * 100, d(2026, 10, 19), time: '15:00', today: d(2026, 10, 1));
+    final text = upcomingReminders(root, now: now).firstWhere((r) => r.note == 'Long').text;
+    expect(text.length, 200);
+    expect(text, endsWith('…'));
+  });
+
   test('no notes folder, no reminders', () {
     expect(upcomingReminders(p.join(tempDir(), 'none'), now: now), isEmpty);
   });

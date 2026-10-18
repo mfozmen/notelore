@@ -23,9 +23,19 @@ abstract interface class ReminderNotifier {
 
 /// Schedules exactly [due]: a reminder already scheduled stays as it is, one
 /// no note has any more is cancelled, so processing the notes again never
-/// doubles a notification.
-Future<void> scheduleReminders(ReminderNotifier device, List<DueReminder> due) async {
-  final scheduled = await device.ids();
+/// doubles a notification. [anew] replaces them all, for when their words
+/// change but not what they are (the app lock hides or shows them).
+Future<void> scheduleReminders(
+  ReminderNotifier device,
+  List<DueReminder> due, {
+  bool anew = false,
+}) async {
+  final scheduled = anew ? <int>{} : await device.ids();
+  if (anew) {
+    for (final id in await device.ids()) {
+      await device.cancel(id);
+    }
+  }
   final wanted = {for (final reminder in due) reminder.id};
   for (final id in scheduled.difference(wanted)) {
     await device.cancel(id);

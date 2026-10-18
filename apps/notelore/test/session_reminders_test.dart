@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
+import 'package:share_plus/share_plus.dart' show XFile;
 
 import 'support.dart';
 
@@ -79,6 +80,49 @@ void main() {
     await session.connect(findProvider('anthropic'), 'k');
     await session.send('hi');
     expect(session.transcript.last.text, 'Saved.');
+  });
+
+  test('with the app lock on, a notification says only that there is a reminder', () async {
+    final harness = Harness();
+    remindIn(harness, 'Divorce', 'Pay the lawyer');
+    final session = harness.session();
+    await session.load();
+    expect(harness.reminders.scheduled.last.text, 'Pay the lawyer');
+    await session.lock.set('2580');
+    await pumpEventQueue();
+    // On a locked phone's screen nothing of the note shows.
+    expect(harness.reminders.pending.values, ['You have a reminder.']);
+    expect(harness.reminders.scheduled.last.note, 'Notelore');
+    expect(harness.reminders.scheduled.last.at, DateTime(2099, 5, 1, 10)); // still on time
+    expect(await session.lock.remove('2580'), isTrue);
+    await pumpEventQueue();
+    expect(harness.reminders.pending.values, ['Pay the lawyer']);
+  });
+
+  test('a deleted note takes its reminder with it; restored, it comes back', () async {
+    final harness = Harness();
+    remindIn(harness, 'Health', 'Dentist');
+    final session = harness.session();
+    await session.load();
+    final note = session.listNotes().single;
+    final archived = await session.deleteNote(note);
+    expect(harness.reminders.pending, isEmpty);
+    await session.restoreNote(note, archived!);
+    expect(harness.reminders.pending.values, ['Dentist']);
+    await session.deleteNote(note);
+    await session.restoreArchived(session.listArchived().single);
+    expect(harness.reminders.pending.values, ['Dentist']);
+  });
+
+  test('a shared note brought in brings its reminders', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.load();
+    final shared = createNote(harness.scratch.path, 'topic', 'Trip', today: today);
+    addReminder(shared, 'Pack', DateTime.utc(2099, 6, 1), today: today);
+    harness.files.picked = [XFile(shared)];
+    await session.importNotes();
+    expect(harness.reminders.pending.values, ['Pack']);
   });
 
   test('without notifications on this device, nothing to allow', () async {

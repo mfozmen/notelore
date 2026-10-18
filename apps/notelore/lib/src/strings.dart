@@ -302,6 +302,8 @@ abstract class Strings {
   String get remindersOn;
   String get remindersOff;
   String get allowNotifications;
+  String get notificationsBlocked;
+  String get reminderHidden;
 
   /// The months, short, January first.
   List<String> get months;
@@ -941,9 +943,13 @@ class EnglishStrings extends Strings {
   String get remindersOn => "Notelore notifies you on this device at a reminder's time.";
   @override
   String get remindersOff =>
-      'Notifications are off for Notelore: reminders stay in your notes, but none comes.';
+      "Notifications are off for Notelore: reminders stay in your notes, but you won't be notified.";
   @override
   String get allowNotifications => 'Allow notifications';
+  @override
+  String get notificationsBlocked => 'Turn on notifications for Notelore in the system settings.';
+  @override
+  String get reminderHidden => 'You have a reminder.';
   @override
   List<String> get months => const [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', //
@@ -1690,6 +1696,10 @@ class TurkishStrings extends Strings {
       'Notelore için bildirimler kapalı: hatırlatıcılar notlarında kalır ama bildirim gelmez.';
   @override
   String get allowNotifications => 'Bildirimlere izin ver';
+  @override
+  String get notificationsBlocked => 'Notelore için bildirimleri sistem ayarlarından aç.';
+  @override
+  String get reminderHidden => 'Bir hatırlatıcın var.';
   @override
   List<String> get months => const [
     'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara', //

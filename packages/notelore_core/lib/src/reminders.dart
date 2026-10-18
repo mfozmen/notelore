@@ -71,5 +71,11 @@ int _id(String key) {
   return hash & 0x7fffffff;
 }
 
-/// Continuation lines as one line of text.
-String _flat(String text) => text.replaceAll('\n  ', ' ');
+/// Continuation lines as one line of text, at most [_longest] characters:
+/// a notification is a glance, not the note.
+String _flat(String text) {
+  final line = text.replaceAll('\n  ', ' ');
+  return line.length <= _longest ? line : '${line.substring(0, _longest - 1)}…';
+}
+
+const _longest = 200;

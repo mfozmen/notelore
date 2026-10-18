@@ -132,6 +132,18 @@ class Session extends ChangeNotifier {
   /// Asked once a run at most: a refusal is not asked again until Allow.
   var _askedReminders = false;
 
+  /// Whether the scheduled reminders hide their words (the app lock was on);
+  /// null until scheduled this run, so the first time schedules them all anew.
+  bool? _scheduledPrivately;
+
+  /// The lock turned on or off: the notifications follow (#431).
+  void _lockChanged() {
+    notifyListeners();
+    if (_scheduledPrivately case final private? when private != lock.enabled) {
+      unawaited(refreshReminders(ask: false));
+    }
+  }
+
   /// Where exports go and imports come from (#215): the share sheet on a phone,
   /// save and open dialogs on the desktop.
   late final Exchange exchange =
@@ -526,7 +538,7 @@ class Session extends ChangeNotifier {
     uptime: uptime,
     iterations: lockIterations,
     offThread: offThread,
-    changed: notifyListeners,
+    changed: _lockChanged,
     device: deviceAuth,
   );
 
@@ -1261,32 +1273,43 @@ class Session extends ChangeNotifier {
     if (device == null) return;
     final root = paths.notes.path;
     final now = clock().toLocal();
+    // With the app lock on, a locked phone's screen shows nothing of the notes.
+    final private = lock.enabled;
+    final wasAllowed = remindersAllowed;
     try {
-      final due = await offThread(() => upcomingReminders(root, now: now));
+      var due = await offThread(() => upcomingReminders(root, now: now));
+      if (private) {
+        due = [for (final r in due) DueReminder(r.id, r.at, 'Notelore', strings.reminderHidden)];
+      }
       var allowed = await device.isAllowed();
       if (!allowed && ask && due.isNotEmpty && !_askedReminders) {
         _askedReminders = true;
         allowed = await device.ask();
       }
       remindersAllowed = allowed;
-      await scheduleReminders(device, due);
+      await scheduleReminders(device, due, anew: private != _scheduledPrivately);
+      _scheduledPrivately = private;
     } on Exception {
       return; // no notifications here: the reminders stay in the notes
+    } finally {
+      if (remindersAllowed != wasAllowed) notifyListeners(); // Settings shows it
     }
   }
 
-  /// Settings' Allow: asks for notifications again.
-  Future<void> allowReminders() async {
+  /// Settings' Allow: asks for notifications again; whether they are allowed
+  /// now. The system may no longer show its question (asked twice already).
+  Future<bool> allowReminders() async {
     final device = reminders;
-    if (device == null) return;
+    if (device == null) return false;
     try {
       remindersAllowed = await device.ask();
     } on Exception {
-      return;
+      return false;
     } finally {
       notifyListeners();
     }
     await refreshReminders(ask: false);
+    return remindersAllowed ?? false;
   }
 
   void _markSyncedNotes(SyncReport report) {
@@ -1329,6 +1352,7 @@ class Session extends ChangeNotifier {
     const news = {ImportOutcome.added, ImportOutcome.renamed};
     final changed = reports.any((r) => news.contains(r.imported?.outcome));
     if (changed) {
+      await refreshReminders(ask: false); // a shared note's reminders come too
       notifyListeners();
       if (driveConnected) unawaited(syncNow());
     }
@@ -1353,6 +1377,7 @@ class Session extends ChangeNotifier {
     if (!File(path).existsSync()) return null;
     final archived = archiveNote(paths.notes.path, path, today: today);
     index.markChanged(path);
+    await refreshReminders(ask: false); // an archived note's reminders go with it
     notifyListeners();
     return archived;
   });
@@ -1372,6 +1397,7 @@ class Session extends ChangeNotifier {
     } on RestoreTaken {
       return false;
     }
+    await refreshReminders(ask: false);
     notifyListeners();
     return true;
   });
@@ -1382,6 +1408,7 @@ class Session extends ChangeNotifier {
     if (File(path).existsSync()) return; // never overwrite; the archive copy stays
     moveWithRetry(archived, path);
     index.markChanged(path);
+    await refreshReminders(ask: false);
     notifyListeners();
   });
 

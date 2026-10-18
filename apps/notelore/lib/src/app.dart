@@ -193,10 +193,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   }
 
   /// Back in the foreground (a phone app reopened, a desktop window focused):
-  /// pick up what other devices changed meanwhile.
+  /// pick up what other devices changed meanwhile, and notifications the user
+  /// turned on or off in the system settings (#431).
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      unawaited(widget.session.refreshReminders(ask: false));
       widget.session
         ..setForeground(true)
         ..syncIfIdle();

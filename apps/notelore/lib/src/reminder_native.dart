@@ -85,6 +85,8 @@ class PluginNotifier implements ReminderNotifier {
           channelDescription: 'Reminders from your notes, at their time',
           importance: Importance.high,
           priority: Priority.high,
+          // A lock screen set to hide sensitive content hides it (#431).
+          visibility: NotificationVisibility.private,
         ),
         macOS: DarwinNotificationDetails(),
         windows: WindowsNotificationDetails(),

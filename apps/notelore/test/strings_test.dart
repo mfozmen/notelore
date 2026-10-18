@@ -327,6 +327,8 @@ void main() {
       'remindersOn': s.remindersOn,
       'remindersOff': s.remindersOff,
       'allowNotifications': s.allowNotifications,
+      'notificationsBlocked': s.notificationsBlocked,
+      'reminderHidden': s.reminderHidden,
       'months': s.months.join(),
       'entriesFrom': s.entriesFrom('t'),
       'archiveEmpty': s.archiveEmpty,
