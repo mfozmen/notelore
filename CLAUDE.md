@@ -12,7 +12,7 @@ These hold end-to-end. Any change that would break one needs explicit maintainer
 2. **Notes stay human-readable.** A person must be able to open any note in a plain text editor or Obsidian and understand it without Notelore. The format is specified in `docs/note-format.md`; the parser and writer must round-trip it losslessly.
 3. **The LLM never rewrites a file wholesale.** Every write goes through narrow tools over the store (`packages/notelore_core/lib/src/store/`) that append entries, mark decisions superseded, or move notes to the archive. There is no "overwrite file" tool.
 4. **Deterministic questions get deterministic answers.** "What is the current decision for X?" is answered by the parser/index, not by the model reading free text. The model only picks the parameters and phrases the result.
-5. **Every automated change is reversible.** Nothing is hard-deleted by the agent. Cleanup moves notes to `_archive/`; sync conflicts keep the losing version under `.notelore/history/`; Drive files go to the trash.
+5. **Every automated change is reversible.** Nothing is hard-deleted by the agent. The one exception is the undo of its own create: a note a failed turn made and never wrote into is removed, so no empty note stays (#421). Cleanup moves notes to `_archive/`; sync conflicts keep the losing version under `.notelore/history/`; Drive files go to the trash.
 6. **Every platform is first-class.** CI runs the full suite on Windows, macOS and Linux and builds the Android, Windows and macOS app. A change that is green on one OS only is not done.
 
 ## Commands

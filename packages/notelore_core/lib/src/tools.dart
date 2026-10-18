@@ -171,8 +171,10 @@ final noteTools = List<Tool>.unmodifiable([
 
 final _isoDate = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
+void _delete(File file) => file.deleteSync();
+
 class Toolbox {
-  Toolbox(this.root, this.index, {this.today});
+  Toolbox(this.root, this.index, {this.today, this.delete = _delete});
 
   final String root;
   final NoteIndex index;
@@ -182,29 +184,36 @@ class Toolbox {
 
   List<Tool> get tools => noteTools;
 
-  /// Notes created since the last [takeBackEmpty] or [forgetCreated], as made.
+  /// Removes a file; tests make it fail as a held file does on Windows.
+  final void Function(File file) delete;
+
+  /// This turn's new notes, as made: a failed turn takes back the empty ones (#421).
   final _created = <String, String>{};
 
-  /// Whether a note was created since the last call; they stay as they are.
+  /// Whether this turn made a note; it stays.
   bool forgetCreated() {
     final any = _created.isNotEmpty;
     _created.clear();
     return any;
   }
 
-  /// Takes back each note created since the last call that is still exactly as
-  /// created: nothing was ever written into it, so undoing its creation loses
-  /// nothing (#421). Returns whether a created note stays.
+  /// Undoes this turn's creates that nothing was written into, so nothing is
+  /// lost (#421); whether a new note stays. Never throws: the turn's own error
+  /// is what the caller must see.
   bool takeBackEmpty() {
     var kept = false;
     for (final MapEntry(key: path, value: made) in _created.entries) {
       final file = File(path);
-      if (file.existsSync() && file.readAsStringSync() == made) {
-        file.deleteSync();
-        index.markChanged(path);
-      } else {
-        kept = true;
+      try {
+        if (file.existsSync() && file.readAsStringSync() == made) {
+          delete(file);
+          index.markChanged(path);
+          continue;
+        }
+      } on FileSystemException {
+        // Held by another app: it stays, a note like any other.
       }
+      kept = true;
     }
     _created.clear();
     return kept;

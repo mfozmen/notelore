@@ -564,6 +564,45 @@ void failureTests() {
     );
     expect(films.existsSync(), isTrue);
     expect(edited.wroteNotes, isTrue);
+    // A stopped turn takes it back too.
+    late Agent stopped;
+    stopped = Agent(
+      ScriptedProvider([
+        toolUse('create_note', 't1', {'kind': 'topic', 'title': 'Plays'}),
+        text('never'),
+      ]),
+      box,
+      today: today,
+    );
+    await expectLater(
+      stopped.ask(
+        'note this',
+        onStep: (step) {
+          if (step == 'Thinking' && File(p.join(box.root, 'topics', 'plays.md')).existsSync()) {
+            stopped.stop();
+          }
+        },
+      ),
+      throwsA(isA<TurnStopped>()),
+    );
+    expect(File(p.join(box.root, 'topics', 'plays.md')).existsSync(), isFalse);
+    // One that cannot be removed (held by another app) stays, and the turn's own error shows.
+    final held = Toolbox(
+      box.root,
+      box.index,
+      today: today,
+      delete: (file) => throw FileSystemException('in use', file.path),
+    );
+    final holding = Agent(
+      FailsOnCall(1, [
+        toolUse('create_note', 't1', {'kind': 'topic', 'title': 'Songs'}),
+      ]),
+      held,
+      today: today,
+    );
+    await expectLater(holding.ask('note this'), throwsA(isA<NetworkError>()));
+    expect(File(p.join(box.root, 'topics', 'songs.md')).existsSync(), isTrue);
+    expect(holding.wroteNotes, isTrue);
     // An answered turn keeps what it made: "open a project Books" is a note.
     final answered = Agent(
       ScriptedProvider([
