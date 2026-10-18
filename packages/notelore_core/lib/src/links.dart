@@ -45,12 +45,12 @@ class LinkUnreadable implements Exception {
   String toString() => reason;
 }
 
-/// The page at [url] as text. Throws [LinkUnreadable] for anything but a
-/// readable http(s) text or HTML page within [timeout]. At most [maxBytes]
-/// are downloaded and [maxChars] of text kept.
 /// What a host name resolves to; [InternetAddress.lookup] in the app.
 typedef Resolve = Future<List<InternetAddress>> Function(String host);
 
+/// The page at [url] as text. Throws [LinkUnreadable] for anything but a
+/// readable public http(s) text or HTML page within [timeout]. At most
+/// [maxBytes] are downloaded and [maxChars] of text kept.
 Future<WebPage> readPage(
   Uri url, {
   required http.Client client,
