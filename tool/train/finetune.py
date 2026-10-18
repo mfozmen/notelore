@@ -4,7 +4,7 @@ Trains a LoRA on the base model (4-bit, so it fits an 8 GB GPU) from the JSONL
 that `notelore_dev distill` writes (only turns the eval scorer passed), then
 merges it into full weights, then into a Q4_K_M GGUF for Ollama:
 
-    python tool/train/finetune.py <base dir> <train.jsonl> <out dir> [--epochs=3]
+    python tool/train/finetune.py <base dir> <train.jsonl> <out dir> [--epochs=3] [--assistant-only]
     python <llama.cpp>/convert_hf_to_gguf.py <out dir>/merged --outtype bf16 \\
         --outfile <out dir>/model-bf16.gguf
     llama-quantize <out dir>/model-bf16.gguf <out dir>/model-q4_K_M.gguf Q4_K_M
@@ -16,6 +16,10 @@ MLX runtime), hence llama.cpp's converter (it needs the `gguf` and
 takes its chat template and parameters from the base model as Ollama ships it
 (`--ollama-base`, qwen3:4b-instruct-2507-q4_K_M by default), so tool calls
 are read the same way.
+
+`--assistant-only` puts the loss on the assistant's tokens alone (about 7% of
+a turn), not on the system prompt, tool schemas and tool results it would
+otherwise also learn to predict. v1 and v2 trained without it; v3 uses it.
 
 Needs torch with CUDA, transformers, peft, trl, bitsandbytes and datasets (a
 venv under .dev-home/train is fine). Stop running Ollama models first, so the
@@ -50,11 +54,42 @@ def clean(message):
 
 def texts(tokenizer, data):
     """Each kept turn rendered with the model's own chat template, tools included."""
-    rows = [json.loads(line) for line in Path(data).read_text(encoding="utf-8").splitlines() if line.strip()]
+    lines = Path(data).read_text(encoding="utf-8").splitlines()
+    rows = [json.loads(line) for line in lines if line.strip()]
     return [
-        tokenizer.apply_chat_template([clean(m) for m in r["messages"]], tools=r["tools"], tokenize=False)
+        tokenizer.apply_chat_template(
+            [clean(m) for m in r["messages"]], tools=r["tools"], tokenize=False
+        )
         for r in rows
     ]
+
+
+def assistant_labels(ids, start, end):
+    """Labels for one rendered turn: the assistant's tokens (its replies and
+    tool calls, through its closing `end`) are learned. Everything else (the
+    system prompt, tool schemas, user messages and tool results, about 2.6k of
+    a turn's ~3k tokens) is context only, -100 (#373)."""
+    labels, inside = [], False
+    for i, token in enumerate(ids):
+        labels.append(token if inside else -100)
+        if inside and token == end:
+            inside = False
+        elif not inside and ids[max(0, i + 1 - len(start)) : i + 1] == start:
+            inside = True
+    return labels
+
+
+def dataset(tokenizer, data, assistant_only):
+    """The training rows: rendered text (the loss covers every token, as v1 and
+    v2 trained), or with `assistant_only` token ids with assistant-only labels."""
+    rendered = texts(tokenizer, data)
+    if not assistant_only:
+        return Dataset.from_dict({"text": rendered})
+    start = tokenizer("<|im_start|>assistant\n", add_special_tokens=False)["input_ids"]
+    end = tokenizer.convert_tokens_to_ids("<|im_end|>")
+    ids = [tokenizer(text, add_special_tokens=False)["input_ids"] for text in rendered]
+    labels = [assistant_labels(i, start, end) for i in ids]
+    return Dataset.from_dict({"input_ids": ids, "labels": labels})
 
 
 def precision(bf16):
@@ -76,18 +111,22 @@ def load(base, dtype):
     )
 
 
-def train(base, data, out, epochs):
+def train(base, data, out, epochs, assistant_only=False):
     tokenizer = AutoTokenizer.from_pretrained(base)
-    dataset = Dataset.from_dict({"text": texts(tokenizer, data)})
-    print(f"{len(dataset)} training turns")
+    rows = dataset(tokenizer, data, assistant_only)
+    print(f"{len(rows)} training turns")
     flags, dtype = precision(torch.cuda.is_bf16_supported())
     model = load(base, dtype)
     trainer = SFTTrainer(
         model=model,
-        train_dataset=dataset,
+        train_dataset=rows,
         processing_class=tokenizer,
         peft_config=LoraConfig(
-            r=16, lora_alpha=32, lora_dropout=0.05, target_modules="all-linear", task_type="CAUSAL_LM"
+            r=16,
+            lora_alpha=32,
+            lora_dropout=0.05,
+            target_modules="all-linear",
+            task_type="CAUSAL_LM",
         ),
         args=SFTConfig(
             output_dir=str(Path(out) / "lora"),
@@ -114,8 +153,15 @@ def modelfile(out, ollama_base):
     """A Modelfile for the quantized GGUF, with the base model's template and
     parameters as Ollama ships them (everything after its FROM line)."""
     shipped = subprocess.run(
-        ["ollama", "show", "--modelfile", ollama_base], capture_output=True, text=True, check=True
+        ["ollama", "show", "--modelfile", ollama_base],
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout
+    if "\nFROM " not in shipped:
+        raise ValueError(
+            f"`ollama show --modelfile {ollama_base}` has no FROM line: {shipped[:200]!r}"
+        )
     rest = shipped.split("\nFROM ", 1)[1].split("\n", 1)[1]
     (Path(out) / "Modelfile").write_text("FROM ./model-q4_K_M.gguf\n" + rest, encoding="utf-8")
 
@@ -129,14 +175,27 @@ def merge(base, out):
     AutoTokenizer.from_pretrained(base).save_pretrained(merged)
 
 
+USAGE = (
+    "usage: python tool/train/finetune.py <base dir> <train.jsonl> <out dir> "
+    "[--epochs=3] [--ollama-base=qwen3:4b-instruct-2507-q4_K_M] [--assistant-only]"
+)
+
+
 def main(argv):
-    base, data, out = (a for a in argv if not a.startswith("--"))
-    option = lambda name, default: next((a.split("=", 1)[1] for a in argv if a.startswith(f"--{name}=")), default)
-    modelfile(out, option("ollama-base", "qwen3:4b-instruct-2507-q4_K_M"))  # fails early if Ollama lacks it
-    train(base, data, out, int(option("epochs", "3")))
+    paths = [a for a in argv if not a.startswith("--")]
+    if len(paths) != 3:
+        raise SystemExit(USAGE)
+    base, data, out = paths
+
+    def option(name, default):
+        return next((a.split("=", 1)[1] for a in argv if a.startswith(f"--{name}=")), default)
+
+    # Before hours of training: fails at once if Ollama lacks the base model.
+    modelfile(out, option("ollama-base", "qwen3:4b-instruct-2507-q4_K_M"))
+    train(base, data, out, int(option("epochs", "3")), "--assistant-only" in argv)
     torch.cuda.empty_cache()
     merge(base, out)
-    print(f"merged -> {Path(out) / 'merged'}; next: convert and quantize it to {Path(out) / 'model-q4_K_M.gguf'}")
+    print(f"merged -> {Path(out) / 'merged'}; next: convert and quantize it")
 
 
 if __name__ == "__main__":

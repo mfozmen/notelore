@@ -16,7 +16,7 @@ sys.modules["torch"].bfloat16, sys.modules["torch"].float16 = "bfloat16", "float
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import finetune
-from finetune import clean, load, precision
+from finetune import assistant_labels, clean, load, main, modelfile, precision
 
 failures = 0
 
@@ -62,5 +62,35 @@ check(
     {"role": "assistant", "content": "", "tool_calls": [call]},
 )
 check("other roles stay as they are", clean({"role": "user", "content": " hi "}), {"role": "user", "content": " hi "})
+
+# Token ids: 7 opens a message, 8 is "assistant\n", 4 "user\n", 9 closes a message.
+system, user, tool = [7, 5, 6, 9], [7, 4, 3, 9], [7, 4, 30, 9]
+ids = system + user + [7, 8, 20, 21, 9] + tool + [7, 8, 22, 9]
+_ = -100
+check(
+    "only the assistant's tokens are learned, through its closing token (#373)",
+    assistant_labels(ids, start=[7, 8], end=9),
+    [_] * 8 + [_, _, 20, 21, 9] + [_] * 4 + [_, _, 22, 9],
+)
+check("a turn with no assistant reply learns nothing", assistant_labels(system + user, start=[7, 8], end=9), [_] * 8)
+
+
+class Shipped:
+    def __init__(self, stdout):
+        self.stdout = stdout
+
+
+finetune.subprocess.run = lambda *a, **k: Shipped("# no model line here\n")
+try:
+    modelfile(".", "qwen3:4b-instruct-2507-q4_K_M")
+    check("a Modelfile without FROM is refused", "no error", "ValueError")
+except ValueError as error:
+    check("a Modelfile without FROM says what it expected", "FROM" in str(error), True)
+
+try:
+    main(["only-a-base-dir"])
+    check("too few paths stop with a usage message", "ran", "usage")
+except SystemExit as stop:
+    check("too few paths stop with a usage message", str(stop).startswith("usage: python tool/train/finetune.py"), True)
 
 sys.exit(1 if failures else 0)
