@@ -100,13 +100,7 @@ Future<SyncReport> sync(
   }
   final run = _Pass(root, manifest, remote, resolve, stamp, report);
   for (final rel in keys) {
-    try {
-      checkedRel(rel);
-    } on ArgumentError {
-      report.ignored.add(rel);
-      continue;
-    }
-    if (folded[rel.toLowerCase()]! > 1) {
+    if (!_safe(rel) || folded[rel.toLowerCase()]! > 1) {
       report.ignored.add(rel);
       continue;
     }
@@ -114,6 +108,15 @@ Future<SyncReport> sync(
     await (binary ? run.binary : run.file)(rel, remoteFiles[rel], local[rel]);
   }
   return report;
+}
+
+bool _safe(String rel) {
+  try {
+    checkedRel(rel);
+    return true;
+  } on ArgumentError {
+    return false;
+  }
 }
 
 /// [path] relative to [root], with forward slashes and in NFC.
@@ -196,9 +199,9 @@ class _Pass {
     final untouched = meta == null || (entry != null && meta.md5 == entry.md5);
     final downloaded = untouched ? null : await remote.download(meta.id);
     final localHash = local == null ? null : bytesHash(local);
-    final remoteHash = meta == null
-        ? null
-        : (downloaded == null ? entry?.localHash : bytesHash(downloaded));
+    // Unchanged on Drive: its bytes are the ones last synced.
+    var remoteHash = meta == null ? null : entry?.localHash;
+    if (downloaded != null) remoteHash = bytesHash(downloaded);
     ManifestEntry recorded(RemoteFile at, String hash) =>
         ManifestEntry(localHash: hash, driveId: at.id, md5: at.md5, modified: at.modified);
     switch (decide(entry?.localHash, localHash, remoteHash)) {
