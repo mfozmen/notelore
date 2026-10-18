@@ -40,6 +40,19 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
   late ProviderSpec _spec = widget.session.spec ?? widget.session.providers.first;
   var _step = _Step.choose;
 
+  /// The phone's list goes on under the pinned action.
+  var _moreBelow = false;
+
+  bool _scrolled(Notification event) {
+    final metrics = switch (event) {
+      ScrollNotification(:final metrics) || ScrollMetricsNotification(:final metrics) => metrics,
+      _ => null,
+    };
+    final more = (metrics?.extentAfter ?? 0) > 0;
+    if (metrics != null && more != _moreBelow) setState(() => _moreBelow = more);
+    return false;
+  }
+
   /// The test turn's answer on Done (#361); null while it is on its way.
   String? _tried;
 
@@ -395,7 +408,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       ),
     ],
     ..._keyEntry(s, theme),
-    if (_noPlan) _NoPlan(s, getKey: _freeGemini),
+    if (_noPlan) _NoPlan(s),
   ];
 
   // What went wrong sits on the button, in view on a phone and next to the key
@@ -406,17 +419,25 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     spacing: Gap.m,
     children: [
       if (_problem case final problem?) _SignInProblem(problem, key: const Key('setup-problem')),
-      _ConnectButton(
-        // Without a plan, the free way in leads; this stays, for an upgrade.
-        primary: !_noPlan,
-        onPressed: _checking ? null : _connect,
-        child: _checking
-            ? SizedBox.square(
-                dimension: 18,
-                child: CircularProgressIndicator(strokeWidth: 2, semanticsLabel: s.signingIn),
-              )
-            : Text(_connectLabel(s)),
-      ),
+      // Without a plan, the free way in is the action; the plan stays, quietly,
+      // for after an upgrade (#352).
+      if (_noPlan) ...[
+        FilledButton.icon(
+          onPressed: _freeGemini,
+          icon: const Icon(Icons.open_in_new),
+          label: Text(s.getFreeGeminiKey),
+        ),
+        TextButton(onPressed: _checking ? null : _connect, child: Text(_connectLabel(s))),
+      ] else
+        FilledButton(
+          onPressed: _checking ? null : _connect,
+          child: _checking
+              ? SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, semanticsLabel: s.signingIn),
+                )
+              : Text(_connectLabel(s)),
+        ),
     ],
   );
 
@@ -480,11 +501,16 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       children: [
         Padding(padding: const EdgeInsets.fromLTRB(Gap.s, Gap.s, Gap.l, 0), child: header),
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(Gap.l, Gap.l, Gap.l, Gap.m),
-            child: content,
+          child: NotificationListener<Notification>(
+            onNotification: _scrolled,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(Gap.l, Gap.l, Gap.l, Gap.m),
+              child: content,
+            ),
           ),
         ),
+        // An edge while the list runs on under the action (#352).
+        if (_moreBelow) const Divider(key: Key('action-edge'), height: 1),
         Padding(padding: const EdgeInsets.fromLTRB(Gap.l, Gap.s, Gap.l, Gap.m), child: action),
       ],
     );
@@ -568,7 +594,7 @@ class _Steps extends StatelessWidget {
             spacing: Gap.m,
             children: [
               CircleAvatar(
-                radius: 12,
+                radius: MediaQuery.textScalerOf(context).scale(12), // grows with the text
                 backgroundColor: colors.primaryContainer,
                 foregroundColor: colors.onPrimaryContainer,
                 child: Text('${index + 1}', style: theme.textTheme.labelMedium),
@@ -601,29 +627,13 @@ class _Steps extends StatelessWidget {
   }
 }
 
-/// Setup's last step: filled as the one primary action, or outlined when
-/// something else on the screen leads ([primary] false).
-class _ConnectButton extends StatelessWidget {
-  const _ConnectButton({required this.primary, required this.onPressed, required this.child});
-
-  final bool primary;
-  final VoidCallback? onPressed;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => primary
-      ? FilledButton(onPressed: onPressed, child: child)
-      : OutlinedButton(onPressed: onPressed, child: child);
-}
-
 /// A ChatGPT account without Plus or Pro (#321): what happened, plainly, and
 /// the free way on in the same place: a Gemini key from Google AI Studio, with
 /// what its free tier means for privacy. Not an alarm: nothing went wrong.
 class _NoPlan extends StatelessWidget {
-  const _NoPlan(this.strings, {required this.getKey});
+  const _NoPlan(this.strings);
 
   final Strings strings;
-  final VoidCallback getKey;
 
   @override
   Widget build(BuildContext context) {
@@ -662,12 +672,6 @@ class _NoPlan extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: Gap.m),
-            FilledButton.icon(
-              onPressed: getKey,
-              icon: const Icon(Icons.open_in_new),
-              label: Text(strings.getFreeGeminiKey),
             ),
           ],
         ),

@@ -454,7 +454,7 @@ class EnglishStrings extends Strings {
   @override
   String get cannotReach => 'Could not reach the service.';
   @override
-  String get ollamaNoKey => 'Ollama runs on this computer; no key is needed.';
+  String get ollamaNoKey => 'No key is needed.';
   @override
   String providerName(ProviderSpec spec) => spec.displayName;
   @override
@@ -1003,7 +1003,7 @@ class TurkishStrings extends Strings {
   @override
   String get cannotReach => 'Hizmete ulaşılamadı.';
   @override
-  String get ollamaNoKey => 'Ollama bu bilgisayarda çalışır; anahtar gerekmez.';
+  String get ollamaNoKey => 'Anahtar gerekmez.';
   @override
   String providerName(ProviderSpec spec) => switch (spec.name) {
     'chatgpt' => 'ChatGPT planı (OpenAI)',
