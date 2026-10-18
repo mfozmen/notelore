@@ -5,6 +5,7 @@ import 'package:notelore_core/notelore_core.dart';
 import 'lock.dart';
 import 'mark.dart';
 import 'session.dart';
+import 'setup.dart' show ProviderWizard;
 import 'strings.dart';
 import 'theme.dart';
 import 'update.dart' show appVersion;
@@ -195,11 +196,7 @@ class _ModelCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ListTile(
-              leading: const Icon(Icons.auto_awesome_outlined),
-              title: Text(s.provider),
-              subtitle: Text('${s.providerName(spec)} · ${s.groupHeading(spec.group)}'),
-            ),
+            _Connections(session),
             _SettingRow(
               icon: Icons.psychology_outlined,
               title: s.model,
@@ -234,6 +231,92 @@ class _ModelCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Every model this device has connected (#362): the one in use marked, any
+/// other one tap away, each removable, and the wizard for another.
+class _Connections extends StatelessWidget {
+  const _Connections(this.session);
+
+  final Session session;
+
+  Future<void> _switch(BuildContext context, ProviderSpec spec) async {
+    final s = session.strings;
+    final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+    try {
+      await session.switchTo(spec);
+      messenger.showSnackBar(SnackBar(content: Text(s.nowUsing(s.providerName(spec)))));
+    } on Object catch (error) {
+      // A key lost since the list showed it is a StateError: said plainly too.
+      messenger.showSnackBar(SnackBar(content: Text(_why(s, error))));
+    }
+  }
+
+  static String _why(Strings s, Object error) => switch (error) {
+    KeyValidationError(:final message) => message,
+    TransientValidationError(:final message) => '$message ${s.checkConnection}',
+    _ => s.signInProblem(error),
+  };
+
+  Future<void> _remove(BuildContext context, ProviderSpec spec) async {
+    final s = session.strings;
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: Text(s.removeModel(s.providerName(spec))),
+        content: Text(s.removeModelWhy),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialog, false), child: Text(s.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(dialog, true), child: Text(s.remove)),
+        ],
+      ),
+    );
+    if (sure ?? false) await session.disconnect(spec);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = session.strings;
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(leading: const Icon(Icons.auto_awesome_outlined), title: Text(s.connectedModels)),
+        FutureBuilder(
+          future: session.connections(),
+          builder: (context, snapshot) => Column(
+            children: [
+              for (final spec in snapshot.data ?? const <ProviderSpec>[])
+                ListTile(
+                  key: ValueKey('connection-${spec.name}'),
+                  // The one in use is marked; any other is one tap away.
+                  leading: spec == session.spec
+                      ? Icon(Icons.check_circle, color: colors.primary)
+                      : const Icon(Icons.radio_button_unchecked),
+                  title: Text(s.providerName(spec)),
+                  subtitle: Text(s.groupHeading(spec.group)),
+                  selected: spec == session.spec,
+                  onTap: spec == session.spec ? null : () => _switch(context, spec),
+                  trailing: IconButton(
+                    tooltip: s.remove,
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => _remove(context, spec),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.add),
+            label: Text(s.connectAnother),
+            onPressed: () => ProviderWizard.open(context, session),
+          ),
+        ),
+      ],
     );
   }
 }

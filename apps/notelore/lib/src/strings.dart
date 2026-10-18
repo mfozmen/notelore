@@ -159,7 +159,12 @@ abstract class Strings {
   String noteSubtitle(String kind, String updated);
 
   // Settings.
-  String get provider;
+  String get connectedModels;
+  String get connectAnother;
+  String get remove;
+  String removeModel(String name);
+  String get removeModelWhy;
+  String nowUsing(String name);
   String get model;
   String get refreshModels;
   String get modelSaved;
@@ -554,7 +559,18 @@ class EnglishStrings extends Strings {
   String noteSubtitle(String kind, String updated) => '$kind · updated $updated';
 
   @override
-  String get provider => 'Provider';
+  String get connectedModels => 'Connected models';
+  @override
+  String get connectAnother => 'Connect another model';
+  @override
+  String get remove => 'Remove';
+  @override
+  String removeModel(String name) => 'Remove $name?';
+  @override
+  String get removeModelWhy =>
+      'Its key or sign-in is removed from this device. Your notes and this conversation stay.';
+  @override
+  String nowUsing(String name) => 'Now using $name';
   @override
   String get model => 'Model';
   @override
@@ -1073,7 +1089,18 @@ class TurkishStrings extends Strings {
       }} · güncelleme $updated';
 
   @override
-  String get provider => 'Sağlayıcı';
+  String get connectedModels => 'Bağlı modeller';
+  @override
+  String get connectAnother => 'Başka bir model bağla';
+  @override
+  String get remove => 'Kaldır';
+  @override
+  String removeModel(String name) => '$name kaldırılsın mı?';
+  @override
+  String get removeModelWhy =>
+      'Anahtarı ya da girişi bu cihazdan silinir. Notların ve bu sohbet yerinde kalır.';
+  @override
+  String nowUsing(String name) => 'Artık $name kullanılıyor';
   @override
   String get model => 'Model';
   @override
