@@ -310,6 +310,20 @@ void main() {
     expect(attachedFiles(tricky).files, ['a.txt']);
   });
 
+  test('a file kept on the device says where, for the note to link it (#279)', () {
+    final message = withAttachments(
+      'memo',
+      [(name: 'memo.m4a', text: 'Buy milk.')],
+      originals: {'memo.m4a': 'attachments/2026-10-18/memo.m4a'},
+    );
+    expect(
+      message,
+      contains('<attached file="memo.m4a" original="attachments/2026-10-18/memo.m4a">'),
+    );
+    expect(attachedFiles(message).files, ['memo.m4a']);
+    expect(attachedFiles(message).text, 'memo');
+  });
+
   test('an attached image is named in the message; its picture goes as a block (#278)', () {
     expect(systemPrompt(today), contains('<attached image='));
     final message = withAttachments(

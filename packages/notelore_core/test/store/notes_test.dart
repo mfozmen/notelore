@@ -538,6 +538,29 @@ void main() {
     });
   });
 
+  group('attachments (#279)', () {
+    test('an original is kept by its date, under a safe name, never over another', () {
+      final first = keepAttachment(root, 'Sesli Not 1.M4A', [1, 2, 3], today: d(2026, 10, 18));
+      expect(first, 'attachments/2026-10-18/sesli-not-1.m4a');
+      expect(File(p.join(root, 'attachments', '2026-10-18', 'sesli-not-1.m4a')).readAsBytesSync(), [
+        1,
+        2,
+        3,
+      ]);
+      final second = keepAttachment(root, 'sesli not 1.m4a', [9], today: d(2026, 10, 18));
+      expect(second, 'attachments/2026-10-18/sesli-not-1-2.m4a');
+      expect(File(p.join(root, 'attachments', '2026-10-18', 'sesli-not-1.m4a')).lengthSync(), 3);
+      expect(
+        keepAttachment(root, '../../x', [0], today: d(2026, 10, 18)),
+        'attachments/2026-10-18/x',
+      );
+      expect(
+        keepAttachment(root, 'con.wav', [0], today: d(2026, 10, 18)),
+        'attachments/2026-10-18/con-note.wav',
+      );
+    });
+  });
+
   group('merge (#229)', () {
     late String from;
     late String into;

@@ -22,6 +22,9 @@ import '../store/notes.dart';
 /// SHA-256 of the NFC text as UTF-8; macOS may hand back NFD for the same note.
 String contentHash(String text) => sha256.convert(utf8.encode(unorm.nfc(text))).toString();
 
+/// An attachment's hash (#279): its bytes as they are.
+String bytesHash(List<int> bytes) => sha256.convert(bytes).toString();
+
 final class ManifestEntry {
   const ManifestEntry({
     required this.localHash,
@@ -138,8 +141,9 @@ class Manifest {
   }
 
   /// Remembers [content] as synced: base copy first, so the manifest never points at none.
-  void record(String rel, ManifestEntry entry, String content) {
-    atomicWrite(_baseFile(rel), content);
+  /// An attachment has no [content]: it is never merged, so it needs no base.
+  void record(String rel, ManifestEntry entry, [String? content]) {
+    if (content != null) atomicWrite(_baseFile(rel), content);
     _entries[rel] = entry;
     _save();
   }

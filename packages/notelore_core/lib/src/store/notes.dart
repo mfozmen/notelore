@@ -9,6 +9,7 @@
 /// an isolate.
 library;
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -61,6 +62,27 @@ String slugify(String title) {
   return _reserved.contains(slug) ? '$slug-note' : slug;
 }
 
+/// Where originals are kept, under the notes root (#279).
+const attachmentsFolder = 'attachments';
+
+/// Keeps an attached file's original beside the notes, in a folder of [today]'s
+/// date, under a safe name and never over another file ("-2" and on). Returns
+/// its path relative to the root, for a note to link.
+String keepAttachment(String root, String name, List<int> bytes, {DateTime? today}) {
+  final base = p.basename(name.replaceAll(r'\', '/'));
+  final extension = p.extension(base).toLowerCase().replaceAll(RegExp('[^.a-z0-9]'), '');
+  final stem = slugify(p.basenameWithoutExtension(base));
+  final folder = isoDate(today ?? localToday());
+  for (var n = 1; ; n++) {
+    final file = n == 1 ? '$stem$extension' : '$stem-$n$extension';
+    final rel = '$attachmentsFolder/$folder/$file';
+    final path = p.joinAll([root, ...rel.split('/')]);
+    if (File(path).existsSync()) continue;
+    atomicWriteBytes(path, bytes);
+    return rel;
+  }
+}
+
 String notePath(String root, String kind, String slug) {
   final folder = kinds[kind];
   if (folder == null) {
@@ -81,7 +103,16 @@ typedef Pause = void Function(Duration duration);
 void _rename(String source, String target) => File(source).renameSync(target);
 
 /// UTF-8, LF, written to a temp file next to [path] and renamed into place.
-void atomicWrite(String path, String text, {Rename rename = _rename, Pause pause = sleep}) {
+void atomicWrite(String path, String text, {Rename rename = _rename, Pause pause = sleep}) =>
+    atomicWriteBytes(path, utf8.encode(text), rename: rename, pause: pause);
+
+/// [atomicWrite] for bytes: an attachment (#279).
+void atomicWriteBytes(
+  String path,
+  List<int> bytes, {
+  Rename rename = _rename,
+  Pause pause = sleep,
+}) {
   Directory(p.dirname(path)).createSync(recursive: true);
   final random = Random();
   final suffix = List.generate(16, (_) => random.nextInt(256).toRadixString(16)).join();
@@ -91,7 +122,7 @@ void atomicWrite(String path, String text, {Rename rename = _rename, Pause pause
     final handle = tmp.openSync(mode: FileMode.writeOnly);
     try {
       handle
-        ..writeStringSync(text)
+        ..writeFromSync(bytes)
         ..flushSync();
     } finally {
       handle.closeSync();
