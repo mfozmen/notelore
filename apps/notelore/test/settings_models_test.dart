@@ -78,6 +78,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('message')), findsNothing);
       expect(find.text('Connect a model to start'), findsOneWidget);
+      expect(find.byTooltip('Resend'), findsNothing); // nothing to send it with
       await tester.tap(find.text('Notes'));
       await tester.pumpAndSettle();
       expect(find.text('Notes'), findsWidgets);

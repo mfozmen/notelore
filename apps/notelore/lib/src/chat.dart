@@ -217,7 +217,7 @@ class _Lines extends StatelessWidget {
     // One tap sends the last message again; not while a turn runs.
     // After a failure, the way out is the error's own Try again (#306).
     final resendable = switch (lines.firstOrNull?.role) {
-      _ when session.busy => -1,
+      _ when session.busy || !session.ready => -1,
       ChatRole.error => 0,
       _ => lines.indexWhere((l) => l.role == ChatRole.user),
     };
@@ -232,7 +232,7 @@ class _Lines extends StatelessWidget {
           s,
           resend: index == resendable ? session.resend : null,
           retry: session.retryNow,
-          answer: index == 0 ? (a) => _answer(lines.length, a) : null,
+          answer: index == 0 && session.ready ? (a) => _answer(lines.length, a) : null,
         );
       },
     );
