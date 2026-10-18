@@ -814,7 +814,7 @@ class EnglishStrings extends Strings {
   @override
   String get undo => 'Undo';
   @override
-  String noteSubtitle(String kind, String updated) => '$kind · updated $updated';
+  String noteSubtitle(String kind, String updated) => '${noteKind(kind)} · updated $updated';
 
   @override
   String get connectedModels => 'Connected models';
@@ -1550,12 +1550,7 @@ class TurkishStrings extends Strings {
   @override
   String get undo => 'Geri al';
   @override
-  String noteSubtitle(String kind, String updated) =>
-      '${switch (kind) {
-        'project' => 'proje',
-        'topic' => 'konu',
-        _ => kind,
-      }} · güncelleme $updated';
+  String noteSubtitle(String kind, String updated) => '${noteKind(kind)} · güncelleme $updated';
 
   @override
   String get connectedModels => 'Bağlı modeller';

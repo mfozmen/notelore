@@ -63,8 +63,7 @@ void main() {
     await show(tester, _mopsos);
     expect(find.text('Mopsos'), findsOneWidget);
     expect(find.text('Project'), findsOneWidget);
-    expect(find.text('#investing  #side-project'), findsOneWidget);
-    expect(find.text('Updated 18 Oct'), findsOneWidget);
+    expect(find.text('#investing #side-project  ·  Updated 18 Oct'), findsOneWidget);
     expect(find.text('Stock picks, scored weekly.'), findsOneWidget);
   });
 
@@ -80,8 +79,8 @@ void main() {
     expect(find.text('PostgreSQL'), findsNothing);
     await tester.tap(find.text('Earlier decisions (1)'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('PostgreSQL'), findsOneWidget);
-    expect(find.textContaining('superseded 28 Sep'), findsOneWidget);
+    expect(find.textContaining('PostgreSQL', findRichText: true), findsOneWidget);
+    expect(find.textContaining('superseded 28 Sep', findRichText: true), findsOneWidget);
   });
 
   testWidgets('todos: open ones by date with the late ones marked, done ones last (#426)', (
@@ -93,9 +92,9 @@ void main() {
         tester.getTopLeft(find.text(text)).dy,
     ];
     expect(order, orderedEquals([...order]..sort()));
-    expect(find.byIcon(Icons.check_box_outline_blank), findsNWidgets(2));
-    expect(find.byIcon(Icons.check_box), findsOneWidget);
-    expect(tester.widget<Text>(find.text('15 Oct')).semanticsLabel, 'Overdue, 15 Oct');
+    expect(find.byIcon(Icons.radio_button_unchecked), findsNWidgets(2));
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    expect(find.text('Overdue, 15 Oct'), findsOneWidget);
     expect(find.text('2 Nov'), findsOneWidget);
   });
 
@@ -111,6 +110,20 @@ void main() {
     expect(find.text('Broker API'), findsOneWidget);
   });
 
+  testWidgets('no kind, no pill; a value in Markdown; days by their date (#426)', (tester) async {
+    await show(
+      tester,
+      '---\ntitle: Loose\n---\n# Loose\n\n## Decisions\n- 2026-10-01 — **host**: **Fly.io**.\n\n'
+      '## Notes\n- 2026-10-02: Later one.\n- 2026-09-01: Earlier, written below.\n',
+    );
+    expect(find.text('null'), findsNothing);
+    expect(find.text('Fly.io', findRichText: true), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('Later one.', findRichText: true)).dy,
+      lessThan(tester.getTopLeft(find.text('Earlier, written below.', findRichText: true)).dy),
+    );
+  });
+
   testWidgets('a file that is not a note shows as Markdown; Turkish dates (#426)', (tester) async {
     await show(tester, '# Just a page\n\nHello.\n');
     expect(find.text('Just a page'), findsOneWidget);
@@ -118,11 +131,16 @@ void main() {
     tester.widget<Markdown>(find.byType(Markdown)).onTapLink!('none', null, ''); // opens nothing
     await show(
       tester,
-      _mopsos.replaceFirst('updated: 2026-10-18', 'updated: 2025-01-05'),
+      _mopsos
+          .replaceFirst('updated: 2026-10-18', 'updated: 2025-01-05')
+          .replaceFirst('- 2026-09-15: Prediction', '- 2025-09-15: Prediction'),
       strings: TurkishStrings(),
     );
     expect(find.text('Proje'), findsOneWidget);
-    expect(find.text('Güncellendi 5 Oca 2025'), findsOneWidget);
+    expect(find.text('#investing #side-project  ·  Güncellendi 5 Oca 2025'), findsOneWidget);
+    // An older year heads its days once; the days themselves carry no year.
+    expect(find.text('2025'), findsOneWidget);
+    expect(find.text('15 Eyl'), findsOneWidget);
     expect(find.text('Önceki kararlar (1)'), findsOneWidget);
   });
 }
