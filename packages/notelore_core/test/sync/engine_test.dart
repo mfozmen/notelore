@@ -115,6 +115,8 @@ void main() {
     File(at('attachments/2026-10-18/memo.m4a'))
       ..parent.createSync(recursive: true)
       ..writeAsBytesSync(bytes);
+    // A write cut off by a crash leaves its temp file: never uploaded.
+    File(at('attachments/2026-10-18/.memo.m4a.0a1b.tmp')).writeAsBytesSync([5]);
     var report = await run();
     expect(report.pushed, ['attachments/2026-10-18/memo.m4a']);
     expect(drive.bytes('attachments/2026-10-18/memo.m4a'), bytes);
