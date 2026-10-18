@@ -429,13 +429,73 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     if (mounted) setState(() {});
   }
 
+  /// Asks, then deletes [archived] for good; true when it went.
+  Future<bool> _deleteForever(ArchivedNote archived) async {
+    final s = widget.session.strings;
+    final messenger = ScaffoldMessenger.of(context);
+    final title = s.archivedTitle(archived);
+    if (!await _confirm(s.deleteForeverTitle(title), s.deleteForeverBody, s.deleteForever)) {
+      return false;
+    }
+    await widget.session.deleteArchived(archived);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(s.deletedForever(title))));
+    if (mounted) setState(() {});
+    return true;
+  }
+
+  Future<void> _empty(int count) async {
+    final s = widget.session.strings;
+    if (!await _confirm(s.emptyArchive, s.emptyArchiveBody(count), s.emptyArchive)) return;
+    await widget.session.emptyArchive();
+    if (mounted) setState(() {});
+  }
+
+  /// A destructive step, said plainly, with its button in the error colour.
+  Future<bool> _confirm(String title, String body, String action) async {
+    final s = widget.session.strings;
+    final colors = Theme.of(context).colorScheme;
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        icon: Icon(Icons.delete_forever_outlined, color: colors.error),
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialog).pop(false), child: Text(s.cancel)),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: colors.error,
+              foregroundColor: colors.onError,
+            ),
+            onPressed: () => Navigator.of(dialog).pop(true),
+            child: Text(action),
+          ),
+        ],
+      ),
+    );
+    return sure ?? false;
+  }
+
   // Read once: a restore moves the file while the app rebuilds this route.
   void _open(ArchivedNote archived) => _show(archived, widget.session.readArchived(archived));
 
   void _show(ArchivedNote archived, String text) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (reader) => Scaffold(
-        appBar: AppBar(title: Text(widget.session.strings.archivedTitle(archived))),
+        appBar: AppBar(
+          title: Text(widget.session.strings.archivedTitle(archived)),
+          actions: [
+            IconButton(
+              tooltip: widget.session.strings.deleteForever,
+              icon: const Icon(Icons.delete_forever_outlined),
+              onPressed: () async {
+                if (await _deleteForever(archived) && reader.mounted) Navigator.of(reader).pop();
+              },
+            ),
+          ],
+        ),
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: Layout.column),
@@ -462,7 +522,17 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     final s = widget.session.strings;
     final archived = widget.session.listArchived();
     return Scaffold(
-      appBar: AppBar(title: Text(s.archive)),
+      appBar: AppBar(
+        title: Text(s.archive),
+        actions: [
+          if (archived.isNotEmpty)
+            IconButton(
+              tooltip: s.emptyArchive,
+              icon: const Icon(Icons.delete_sweep_outlined),
+              onPressed: () => _empty(archived.length),
+            ),
+        ],
+      ),
       body: archived.isEmpty
           ? Center(
               child: Padding(
@@ -482,6 +552,12 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                     '${s.archivedOn(archived[index].archivedOn)} · ${archived[index].original}',
                   ),
                   onTap: () => _open(archived[index]),
+                  onLongPress: () => _deleteForever(archived[index]),
+                  trailing: IconButton(
+                    tooltip: s.deleteForever,
+                    icon: const Icon(Icons.delete_forever_outlined),
+                    onPressed: () => _deleteForever(archived[index]),
+                  ),
                 ),
               ),
             ),

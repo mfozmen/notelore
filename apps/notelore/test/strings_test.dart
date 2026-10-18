@@ -129,6 +129,12 @@ void main() {
   test('every entry exists in both languages, and the Turkish is Turkish', () {
     Map<String, String> all(Strings s) => {
       'chat': s.chat,
+      'deleteForever': s.deleteForever,
+      'deleteForeverTitle': s.deleteForeverTitle('t'),
+      'deleteForeverBody': s.deleteForeverBody,
+      'deletedForever': s.deletedForever('t'),
+      'emptyArchive': s.emptyArchive,
+      'emptyArchiveBody': s.emptyArchiveBody(1) + s.emptyArchiveBody(2),
       'notes': s.notes,
       'settings': s.settings,
       'cancel': s.cancel,

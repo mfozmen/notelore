@@ -1375,6 +1375,26 @@ void main() {
     expect(session.listArchived(), hasLength(1));
   });
 
+  test('the archive: one note deleted for good, then the rest (#438)', () async {
+    final harness = Harness();
+    final session = harness.session();
+    final root = harness.paths.notes.path;
+    createNote(root, 'topic', 'Kitaplar', today: today);
+    createNote(root, 'topic', 'Filmler', today: today);
+    for (final note in session.listNotes()) {
+      await session.deleteNote(note);
+    }
+    final first = session.listArchived().first;
+    await session.deleteArchived(first);
+    expect(File(first.path).existsSync(), isFalse);
+    expect(session.listArchived(), hasLength(1));
+    expect(await session.emptyArchive(), 1);
+    expect(session.listArchived(), isEmpty);
+    // No empty dated folders are left behind.
+    expect(Directory(p.join(root, '_archive')).listSync(), isEmpty);
+    expect(await session.emptyArchive(), 0);
+  });
+
   test('withoutFrontMatter shows a note from its title down', () {
     expect(withoutFrontMatter('---\ntitle: T\n---\n# T\nbody\n'), '# T\nbody\n');
     expect(withoutFrontMatter('# Plain\n'), '# Plain\n');
