@@ -252,6 +252,9 @@ abstract class Strings {
   String get archive;
   String get pickNote;
 
+  /// Under a remote image in a note, before it is fetched (#339).
+  String tapToShow(String host);
+
   /// An archived note's name; archived entries say whose they are.
   String archivedTitle(ArchivedNote archived) =>
       archived.entries ? entriesFrom(archived.title) : archived.title;
@@ -800,6 +803,8 @@ class EnglishStrings extends Strings {
   String get archive => 'Archive';
   @override
   String get pickNote => 'Pick a note to read it here.';
+  @override
+  String tapToShow(String host) => '$host · Tap to show';
   @override
   String entriesFrom(String title) => 'Entries from $title';
   @override
@@ -1461,6 +1466,8 @@ class TurkishStrings extends Strings {
   String get archive => 'Arşiv';
   @override
   String get pickNote => 'Okumak için bir not seç.';
+  @override
+  String tapToShow(String host) => '$host · Göstermek için dokun';
   @override
   String entriesFrom(String title) => '$title notundan girdiler';
   @override

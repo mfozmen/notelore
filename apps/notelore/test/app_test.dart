@@ -1671,21 +1671,42 @@ void main() {
     expect(harness.provider.asked, isEmpty);
   });
 
-  testWidgets('notes: an image in a note is never loaded; its words show instead (#311)', (
+  testWidgets('notes: a remote image loads only on a tap; one on the device shows (#311, #339)', (
     tester,
   ) async {
     phone(tester);
     final harness = Harness();
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    final root = harness.paths.notes.path;
+    final path = createNote(root, 'topic', 'Kitaplar', today: today);
     addEntry(path, 'See ![the chart](https://evil.example/p.png?q=notes)', today: today);
+    addEntry(path, 'And ![a photo](../attachments/2026-10-18/photo.png)', today: today);
+    File(p.join(root, 'attachments', '2026-10-18', 'photo.png'))
+      ..parent.createSync(recursive: true)
+      ..writeAsBytesSync([0]);
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
-    expect(find.byType(Image), findsNothing);
-    expect(find.textContaining('the chart'), findsOneWidget);
+    // The one on the device shows; the remote one is a box saying where it would come from.
+    expect(tester.widgetList<Image>(find.byType(Image)).map((i) => i.image.runtimeType), [
+      FileImage,
+    ]);
+    expect(find.text('the chart'), findsOneWidget);
+    expect(find.textContaining('evil.example'), findsOneWidget);
+    // Only a tap fetches it.
+    await tester.tap(find.textContaining('Tap to show'));
+    await tester.pump();
+    expect(tester.widgetList<Image>(find.byType(Image)).map((i) => i.image), [
+      isA<NetworkImage>(),
+      isA<FileImage>(),
+    ]);
+    expect(find.textContaining('Tap to show'), findsNothing);
+    // One that cannot be shown (damaged, unreachable) leaves its words.
+    final shown = tester.widget<Image>(find.byType(Image).last);
+    final fallback = shown.errorBuilder!(tester.element(find.byType(Image).last), 'bad', null);
+    expect((fallback as Text).data, 'a photo');
   });
 
   testWidgets('notes: delete from the list or the reader, with undo', (tester) async {
