@@ -1323,6 +1323,33 @@ class Session extends ChangeNotifier {
     return true;
   });
 
+  /// Deletes [archived] for good, at the person's own word (#438): only Drive's
+  /// trash keeps it after the next sync. Its emptied folders go too.
+  Future<void> deleteArchived(ArchivedNote archived) => _exclusive(() async {
+    _deleteArchived(archived);
+    notifyListeners();
+    if (driveConnected) unawaited(syncNow());
+  });
+
+  /// Deletes the whole archive for good; how many notes went.
+  Future<int> emptyArchive() => _exclusive(() async {
+    final all = listArchived();
+    all.forEach(_deleteArchived);
+    notifyListeners();
+    if (all.isNotEmpty && driveConnected) unawaited(syncNow());
+    return all.length;
+  });
+
+  void _deleteArchived(ArchivedNote archived) {
+    // Already gone (a sync, or by hand, since the list was drawn): nothing to do.
+    if (File(archived.path).existsSync()) File(archived.path).deleteSync();
+    final archive = p.join(paths.notes.path, '_archive');
+    for (var dir = p.dirname(archived.path); p.isWithin(archive, dir); dir = p.dirname(dir)) {
+      if (Directory(dir).listSync().isNotEmpty) break;
+      Directory(dir).deleteSync();
+    }
+  }
+
   /// Undoes [deleteNote], unless a new note has taken the place meanwhile.
   Future<void> restoreNote(NoteInfo note, String archived) => _exclusive(() async {
     final path = notePath(paths.notes.path, note.kind, note.slug);

@@ -312,6 +312,15 @@ abstract class Strings {
   String archivedOn(String date);
   String get restore;
   String restored(String title);
+
+  // Deleting from the archive for good (#438).
+  String get deleteForever;
+  String deleteForeverTitle(String title);
+  String get deleteForeverBody;
+  String deletedForever(String title);
+  String get emptyArchive;
+  String emptyArchiveBody(int count);
+  String archiveEmptied(int count);
   String restoreTaken(String title);
   String get webSearch;
   String get webSearchExplained;
@@ -953,6 +962,26 @@ class EnglishStrings extends Strings {
   String get restore => 'Restore';
   @override
   String restored(String title) => 'Restored "$title".';
+  @override
+  String get deleteForever => 'Delete for good';
+  @override
+  String deleteForeverTitle(String title) => 'Delete "$title" for good?';
+  @override
+  String get deleteForeverBody =>
+      'This cannot be undone on this device. With Google Drive on, its copy stays in '
+      "Drive's trash for 30 days.";
+  @override
+  String deletedForever(String title) => 'Deleted "$title" for good.';
+  @override
+  String get emptyArchive => 'Empty the archive';
+  @override
+  String archiveEmptied(int count) =>
+      'Deleted $count ${count == 1 ? 'note' : 'notes'} from the archive for good.';
+  @override
+  String emptyArchiveBody(int count) =>
+      'All $count ${count == 1 ? 'note' : 'notes'} in the archive will be deleted for good. '
+      "This cannot be undone on this device; with Google Drive on, the copies stay in Drive's "
+      'trash for 30 days.';
   @override
   String restoreTaken(String title) =>
       'A note called "$title" already exists, so this one stays in the archive.';
@@ -1700,6 +1729,23 @@ class TurkishStrings extends Strings {
   String get restore => 'Geri getir';
   @override
   String restored(String title) => '"$title" geri getirildi.';
+  @override
+  String get deleteForever => 'Kalıcı olarak sil';
+  @override
+  String deleteForeverTitle(String title) => '"$title" kalıcı olarak silinsin mi?';
+  @override
+  String get deleteForeverBody =>
+      'Bu cihazda geri alınamaz. Google Drive açıksa kopyası 30 gün Drive çöp kutusunda kalır.';
+  @override
+  String deletedForever(String title) => '"$title" kalıcı olarak silindi.';
+  @override
+  String get emptyArchive => 'Arşivi boşalt';
+  @override
+  String archiveEmptied(int count) => 'Arşivden $count not kalıcı olarak silindi.';
+  @override
+  String emptyArchiveBody(int count) =>
+      'Arşivdeki $count not kalıcı olarak silinecek. Bu cihazda geri alınamaz; Google Drive '
+      'açıksa kopyaları 30 gün Drive çöp kutusunda kalır.';
   @override
   String restoreTaken(String title) =>
       '"$title" adında bir not zaten var, bu yüzden bu not arşivde kalıyor.';
