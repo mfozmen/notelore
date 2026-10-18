@@ -183,10 +183,11 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     try {
       final answer = await widget.session.tryModel();
       if (mounted) setState(() => _tried = answer);
-    } on Exception catch (error) {
+    } on Object catch (error) {
+      // Anything at all, an Error too: Done must never be left spinning.
       if (mounted) {
         setState(() {
-          _problem = s.chatError(error);
+          _problem = error is Exception ? s.chatError(error) : s.signInProblem(error);
           _step = _Step.connect;
         });
       }

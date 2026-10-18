@@ -46,6 +46,7 @@ class ScriptedProvider implements LlmProvider {
     if (system == Session.trySystem) {
       final text = switch (tryAnswer) {
         final Exception error => throw error,
+        final Error error => throw error,
         final Future<String> later => await later,
         final other => '$other',
       };
