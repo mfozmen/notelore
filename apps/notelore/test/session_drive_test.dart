@@ -70,6 +70,20 @@ void main() {
       await after.load();
       expect(after.driveNeedsSignIn, isFalse);
     });
+
+    test('a sync still running when the user disconnects never asks', () async {
+      final harness = Harness(auth: FakeAuth());
+      final session = harness.session();
+      await session.connectDrive();
+      harness.remote.hold = Completer();
+      final running = session.syncNow();
+      await session.disconnectDrive(); // chose to sign out meanwhile
+      harness.remote
+        ..failure = const NotSignedIn()
+        ..hold!.complete();
+      await running;
+      expect(session.driveNeedsSignIn, isFalse);
+    });
   });
 
   test('connecting Drive signs in and sends the notes up', () async {
@@ -393,9 +407,21 @@ void main() {
       session.syncStatus,
       'Your Google Drive is full: free some space and Notelore syncs again.',
     );
+    // A rate limit is not a full Drive: telling that to delete things would be wrong.
+    harness.remote.failure = const HttpError(403, 'User rate limit exceeded: project quota');
+    await session.syncNow();
+    expect(session.syncStatus, 'Google Drive could not be reached. Notelore tries again later.');
     harness.remote.failure = const HttpError(500, 'Backend Error');
     await session.syncNow();
     expect(session.syncStatus, 'Google Drive could not be reached. Notelore tries again later.');
+    // Refused even after a fresh token: a sign-in again, not a wait.
+    harness.remote.failure = const HttpError(401, 'Invalid Credentials');
+    await session.syncNow();
+    expect(session.syncStatus, 'Signed out of Google. Connect again.');
+    expect(session.driveNeedsSignIn, isTrue);
+    harness.remote.failure = null;
+    await session.connectDrive();
+    harness.remote.failure = const HttpError(500, 'Backend Error');
     session.setLanguage(AppLanguage.tr);
     await session.syncNow();
     expect(session.syncStatus, "Google Drive'a ulaşılamadı. Notelore daha sonra yeniden dener.");
@@ -403,7 +429,10 @@ void main() {
       'The granted scopes do not give access to all of the requested spaces.',
     );
     await session.syncNow();
-    expect(session.syncStatus, startsWith("Notlarını Google Drive'da tutmaya"));
+    expect(
+      session.syncStatus,
+      "Notlarının eşitlenmeye devam etmesi için Google'a yeniden giriş yap.",
+    );
     expect(session.syncStatus, isNot(contains('scopes')));
   });
 

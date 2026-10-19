@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:notelore_core/notelore_core.dart' show SignInFailed;
 import 'package:url_launcher/url_launcher.dart';
 
 import 'calendar.dart';
@@ -317,7 +317,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             update: _update,
           ),
         if (widget.session.heldNotes.isNotEmpty) _HeldBanner(widget.session),
-        if (widget.session.driveNeedsSignIn && !_signInLater)
+        if (widget.session.driveNeedsSignIn && !_signInLater && _tab != 3)
           _SignInBanner(widget.session, later: () => setState(() => _signInLater = true)),
         Expanded(
           child: switch (_tab) {
@@ -386,8 +386,9 @@ class _SignInBannerState extends State<_SignInBanner> {
     });
     try {
       await widget.session.connectDrive();
-    } on SignInFailed catch (error) {
-      debugPrint('Google sign-in failed: ${error.message}'); // the detail, for the log only
+    } on Exception catch (error) {
+      // Refused, cancelled, offline: said plainly, the detail in a debug log only.
+      if (kDebugMode) debugPrint('Google sign-in failed: $error');
       if (mounted) setState(() => _problem = widget.session.strings.signInUnfinished);
     } finally {
       if (mounted) setState(() => _signingIn = false);
@@ -405,7 +406,11 @@ class _SignInBannerState extends State<_SignInBanner> {
         spacing: Gap.s,
         children: [
           Text(s.driveSignInBanner),
-          if (_problem case final problem?) Text(problem, style: TextStyle(color: colors.error)),
+          if (_problem case final problem?)
+            Semantics(
+              liveRegion: true, // a screen reader hears that it failed
+              child: Text(problem, style: TextStyle(color: colors.error)),
+            ),
           if (_signingIn) const LinearProgressIndicator(),
         ],
       ),
