@@ -45,6 +45,44 @@ void main() {
     expect(session.syncStatus, 'Synced; nothing changed.');
   });
 
+  group('many notes gone from Drive at once (#454)', () {
+    Future<(Session, MemoryRemote, String)> wiped() async {
+      final harness = Harness(auth: FakeAuth());
+      final session = harness.session();
+      final root = harness.paths.notes.path;
+      for (final name in ['A', 'B', 'C', 'D']) {
+        createNote(root, 'topic', name, today: today);
+      }
+      await session.connectDrive();
+      harness.remote.texts.removeWhere((rel, _) => rel.endsWith('.md'));
+      await session.syncNow();
+      return (session, harness.remote, root);
+    }
+
+    test('are held here, not removed, until the person decides', () async {
+      final (session, _, root) = await wiped();
+      expect(session.heldNotes, ['topics/a.md', 'topics/b.md', 'topics/c.md', 'topics/d.md']);
+      expect(File(p.join(root, 'topics', 'a.md')).existsSync(), isTrue);
+    });
+
+    test('Restore puts them back on Drive', () async {
+      final (session, remote, _) = await wiped();
+      await session.restoreHeld();
+      expect(session.heldNotes, isEmpty);
+      expect(remote.texts.keys.where((rel) => rel.endsWith('.md')), hasLength(4));
+      await session.syncNow();
+      expect(session.heldNotes, isEmpty);
+    });
+
+    test('Delete here too moves them to history', () async {
+      final (session, _, root) = await wiped();
+      await session.deleteHeld();
+      expect(session.heldNotes, isEmpty);
+      expect(File(p.join(root, 'topics', 'a.md')).existsSync(), isFalse);
+      expect(Directory(p.join(root, '.notelore', 'history')).existsSync(), isTrue);
+    });
+  });
+
   group('settings travel through Drive', () {
     DateTime Function() at(int hour) =>
         () => DateTime.utc(2026, 10, 12, hour);

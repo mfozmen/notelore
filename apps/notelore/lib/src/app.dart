@@ -312,6 +312,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             }),
             update: _update,
           ),
+        if (widget.session.heldNotes.isNotEmpty) _HeldBanner(widget.session),
         Expanded(
           child: switch (_tab) {
             0 => ChatScreen(widget.session),
@@ -351,6 +352,52 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   NavigationDestination(icon: Icon(icon), selectedIcon: Icon(chosen), label: label),
               ],
             ),
+    );
+  }
+}
+
+/// Many notes gone from Google Drive at once (#454): put them back on Drive,
+/// or, once confirmed, let them go here too. Both wait while a sync runs.
+class _HeldBanner extends StatelessWidget {
+  const _HeldBanner(this.session);
+
+  final Session session;
+
+  Future<void> _delete(BuildContext context) async {
+    final s = session.strings;
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: Text(s.deleteHeldQuestion(session.heldNotes.length)),
+        content: Text(s.deleteHeldExplained),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialog, false), child: Text(s.cancel)),
+          FilledButton(
+            // Deleting, so the error colour, not the brand's.
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialog).colorScheme.error,
+              foregroundColor: Theme.of(dialog).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(dialog, true),
+            child: Text(s.delete),
+          ),
+        ],
+      ),
+    );
+    if (sure == true) await session.deleteHeld();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = session.strings;
+    final idle = !session.syncing;
+    return MaterialBanner(
+      leading: const Icon(Icons.cloud_off_outlined),
+      content: Text(s.heldNotes(session.heldNotes.length)),
+      actions: [
+        TextButton(onPressed: idle ? () => _delete(context) : null, child: Text(s.deleteHereToo)),
+        TextButton(onPressed: idle ? session.restoreHeld : null, child: Text(s.restoreToDrive)),
+      ],
     );
   }
 }
