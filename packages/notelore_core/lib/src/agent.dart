@@ -186,6 +186,10 @@ class Agent {
   /// The model on the device (#447): [slimSystemPrompt] and [slimTools].
   final bool slim;
 
+  String get _system => slim ? slimSystemPrompt(today) : systemPrompt(today);
+
+  List<Tool> get _tools => slim ? slimTools : toolbox.tools;
+
   /// How long a whole turn, every model call and tool round, may take.
   final Duration deadline;
   final messages = <Message>[];
@@ -287,13 +291,7 @@ class Agent {
       final watch = Stopwatch()..start();
       // A stopped turn does not wait for the model: its answer is dropped.
       final response = await Future.any([
-        provider
-            .turn(
-              slim ? slimSystemPrompt(today) : systemPrompt(today),
-              messages,
-              slim ? slimTools : toolbox.tools,
-            )
-            .whenComplete(() => _took('model', watch)),
+        provider.turn(_system, messages, _tools).whenComplete(() => _took('model', watch)),
         stopped,
       ]);
       // A tool_use outside a tool_use stop is half-built (e.g. cut by max_tokens):
