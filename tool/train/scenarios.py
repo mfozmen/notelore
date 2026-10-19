@@ -224,6 +224,19 @@ UNCLEAR = [
 
 # Reminders (#430, #434), worked out from the minute the eval says it is,
 # 2026-10-18 14:00, a Sunday: (lang, note title, kind, message, "YYYY-MM-DD[ HH:MM]", a word).
+# Plans the user states (v4, #478): a reminder on the day, saved without
+# asking, for the whole day when no time is said. The model on the device
+# cannot search, so every day here is known from the message itself.
+# (lang, message, "YYYY-MM-DD[ HH:MM]"), from 2026-10-18 14:00, a Sunday.
+PLANS = [
+    ("tr", "Yarın akşam tiyatroya gideceğim.", "2026-10-19"),
+    ("tr", "Perşembe günü Ankara'ya gideceğim.", "2026-10-22"),
+    ("tr", "Cumartesi saat 21'de annemlerle konsere gideceğim.", "2026-10-24 21:00"),
+    ("en", "On Friday I'm going to the book fair.", "2026-10-23"),
+    ("en", "I'll watch the cup final on 30 October.", "2026-10-30"),
+    ("en", "Wednesday at 19:30 I'm going to a jazz night.", "2026-10-21 19:30"),
+]
+
 REMINDERS = [
     ("en", "Garden Shed", "project", "Remind me tomorrow at 8 to call the timber yard about the garden shed.", "2026-10-19 08:00", "timber"),
     ("en", "Podcast Launch", "project", "Podcast launch: remind me in 2 hours to email the first guest.", "2026-10-18 16:00", "guest"),
@@ -299,6 +312,9 @@ def cases(rng):
         add(f"chat-{i}", "chat", lang, {}, msg, {})
     # The note each reminder belongs to, as its project or topic case wrote it.
     written = {p: text for case in out for p, text in case["notes"].items()}
+    for i, (lang, msg, at) in enumerate(PLANS):
+        add(f"plan-{i}", "plan", lang, {}, msg,
+            {"tools": ["add_reminder"], "notes": {r"^(topics|projects)/[^/]*\.md$": [at]}, "answer_not": ["?"]})
     for i, (lang, title, kind, msg, at, word) in enumerate(REMINDERS):
         p = path(kind, title)
         add(f"rem-{i}", "reminder", lang, {p: written[p]}, msg,
@@ -322,7 +338,9 @@ def cases(rng):
     pool = {p: text for case in out for p, text in case["notes"].items()}
     for case in out:
         # Never a note the case expects: a new list stays new, a choice stays one.
-        expected = [re.compile(pattern) for pattern in case["expect"].get("notes", {})]
+        # A plan may go in any note: its pattern matches all, so it gets distractors as they come.
+        patterns = [] if case["kind"] == "plan" else case["expect"].get("notes", {})
+        expected = [re.compile(pattern) for pattern in patterns]
         others = sorted(p for p in pool if p not in case["notes"] and not any(e.search(p) for e in expected))
         case["notes"].update({p: pool[p] for p in rng.sample(others, DISTRACTORS)})
     return out
@@ -348,6 +366,8 @@ def main(argv):
         for pattern in case["expect"].get("notes", {}):
             matching = sum(bool(re.search(pattern, p)) for p in case["notes"])
             # A new note or list must not be there yet; any other case names exactly one note.
+            if case["kind"] == "plan":
+                continue  # any note may hold a plan: a new one, or one that fits
             new = case["kind"] == "new-note" or case["id"].startswith("newlist-")
             assert matching == (0 if new else 1), case["id"]
     out.parent.mkdir(parents=True, exist_ok=True)

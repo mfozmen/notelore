@@ -211,6 +211,45 @@ void main() {
     expect(await run(['chat', '--provider=nope', 'hi']), 1);
   });
 
+  test('a case with web results runs only where the provider can search (#478)', () async {
+    File(p.join(temp.path, 'cases.json')).writeAsStringSync(
+      jsonEncode([
+        {
+          'id': 'plain',
+          'kind': 'chat',
+          'lang': 'en',
+          'message': 'hi',
+          'expect': <String, Object?>{},
+        },
+        {
+          'id': 'searched',
+          'kind': 'plan',
+          'lang': 'en',
+          'message': 'I will watch the derby next week',
+          'search': ['The derby is on 25 October at 20:00.'],
+          'expect': <String, Object?>{},
+        },
+      ]),
+    );
+    // Ollama has no web search in the app: its run leaves the case out.
+    final ollama = MockClient(
+      (_) async => http.Response(
+        jsonEncode({
+          'message': {'role': 'assistant', 'content': 'Hello'},
+          'done': true,
+        }),
+        200,
+      ),
+    );
+    expect(
+      await run(['eval', '--provider=ollama', '--model=m', '--cases=cases.json'], client: ollama),
+      0,
+    );
+    expect('$out', contains('ok   plain'));
+    expect('$out', isNot(contains('searched')));
+    expect('$out', contains('left out 1 case that needs web search'));
+  });
+
   test('eval: every case of a file against one model, with a report (#325)', () async {
     File(p.join(temp.path, 'cases.json')).writeAsStringSync(
       jsonEncode([

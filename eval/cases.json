@@ -559,6 +559,49 @@
      "error"
     ]
    }
+  },
+  {
+   "id": "plan-tr-search",
+   "kind": "plan",
+   "lang": "tr",
+   "message": "haftaya fenerbahçe galatasaray maçını izleyeceğim",
+   "notes": {},
+   "search": [
+    "Süper Lig 10. hafta: Fenerbahçe - Galatasaray, 25 Ekim 2026 Pazar, saat 20:00, Ülker Stadyumu."
+   ],
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]*\\.md$": [
+      "2026-10-25 20:00"
+     ]
+    },
+    "answer": [
+     "20:00"
+    ]
+   }
+  },
+  {
+   "id": "plan-en-1",
+   "kind": "plan",
+   "lang": "en",
+   "message": "I'm going to my cousin's wedding on Saturday.",
+   "notes": {},
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]*\\.md$": [
+      "2026-10-24"
+     ]
+    },
+    "answer_not": [
+     "?"
+    ]
+   }
   }
  ]
 }
