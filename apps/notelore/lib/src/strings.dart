@@ -1229,6 +1229,8 @@ class EnglishStrings extends Strings {
 }
 
 class TurkishStrings extends Strings {
+  static const _free = 'Ücretsiz';
+
   @override
   String get continueWithChatGpt => 'ChatGPT ile devam et';
   @override
@@ -1269,7 +1271,7 @@ class TurkishStrings extends Strings {
     'openai' => 'Kullandıkça öde, OpenAI faturalar',
     'gemini' => 'Ücretsiz katman ya da kullandıkça öde',
     'device' => 'Ücretsiz, çevrimdışı da çalışır',
-    _ => 'Ücretsiz',
+    _ => _free,
   };
   @override
   String optionPrivacy(ProviderSpec spec) => switch (spec.name) {
@@ -1314,8 +1316,8 @@ class TurkishStrings extends Strings {
     'chatgpt' => ['Planın', 'Tek dokunuş'],
     'anthropic' || 'openai' => ['Kullandıkça öde', apiKey],
     'gemini' => ['Ücretsiz katman', apiKey],
-    'device' => ['Ücretsiz', 'Çevrimdışı'],
-    _ => ['Ücretsiz', 'Bu bilgisayarda kalır'],
+    'device' => [_free, 'Çevrimdışı'],
+    _ => [_free, 'Bu bilgisayarda kalır'],
   };
   @override
   String get useThisModel => 'Bu modeli kullan';

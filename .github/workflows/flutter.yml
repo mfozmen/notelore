@@ -30,7 +30,7 @@ jobs:
         with:
           flutter-version-file: pubspec.yaml
           cache: true
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
       - run: dart format --output=none --set-exit-if-changed .
       - run: dart analyze --fatal-infos
 
@@ -48,7 +48,7 @@ jobs:
         with:
           flutter-version-file: pubspec.yaml
           cache: true
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
       - name: Core tests with coverage
         working-directory: packages/notelore_core
         run: dart run coverage:test_with_coverage
@@ -74,7 +74,7 @@ jobs:
         with:
           flutter-version-file: pubspec.yaml
           cache: true
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
       - name: Build the debug APK
         working-directory: apps/notelore
         run: flutter build apk --debug
@@ -102,7 +102,7 @@ jobs:
         with:
           flutter-version-file: pubspec.yaml
           cache: true
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
       - name: Build ${{ matrix.target }}
         working-directory: apps/notelore
         run: flutter build ${{ matrix.target }} --debug

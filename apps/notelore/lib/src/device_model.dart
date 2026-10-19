@@ -14,6 +14,7 @@ const _qwen =
 
 /// Qwen3 4B Instruct 2507, Q4_K_M (Apache-2.0): the stock model until the
 /// fine-tune is published (#445). Pinned to one revision, checked by its hash.
+/// Another model family has other control tokens: [_inert] must follow.
 const deviceModelFiles = [
   ModelFile(
     'Qwen3-4B-Instruct-2507-Q4_K_M.gguf',

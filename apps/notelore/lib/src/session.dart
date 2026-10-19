@@ -228,6 +228,23 @@ class Session extends ChangeNotifier {
   /// second copy of the model in memory.
   LocalEngine? _deviceEngine;
 
+  /// [chosen]'s provider: the model on the device runs on the one engine.
+  LlmProvider _providerFor(ProviderSpec chosen, String key, String chosenModel) {
+    if (chosen.name == 'device') {
+      return LocalProvider(
+        chosenModel,
+        _deviceEngine ??= makeDeviceEngine(deviceModel.path(deviceFiles.first.name)),
+      );
+    }
+    return makeProvider(
+      chosen,
+      key,
+      model: chosenModel,
+      planToken: chosen.name == 'chatgpt' ? chatGpt!.token : null,
+      webSearch: webSearch && chosen.webSearch,
+    );
+  }
+
   /// Lets go of the model on the device, when another model is used or none.
   Future<void> _freeDeviceEngine() async {
     final engine = _deviceEngine;
@@ -245,10 +262,13 @@ class Session extends ChangeNotifier {
   /// Why the last device model download failed, if it did.
   String? deviceProblem;
 
-  Future<void> downloadDeviceModel() async {
-    if (deviceProgress != null) return;
-    await _fetch(deviceModel, (done) => deviceProgress = done, (why) => deviceProblem = why);
-  }
+  /// One download at a time; a second call waits for the one running.
+  Future<void> downloadDeviceModel() => _deviceDownload ??= _fetch(
+    deviceModel,
+    (done) => deviceProgress = done,
+    (why) => deviceProblem = why,
+  ).whenComplete(() => _deviceDownload = null);
+  Future<void>? _deviceDownload;
 
   final List<ModelFile> whisperFiles;
   final http.Client Function() httpClient;
@@ -726,7 +746,9 @@ class Session extends ChangeNotifier {
       await keys.delete(key: _keyName(spec));
     }
     if (spec.name == 'device') {
-      // Removed means removed: its 2.5 GB go too (downloaded again on request).
+      // Removed means removed: its 2.5 GB go too (downloaded again on request),
+      // once a download that runs has ended, so it never writes into nothing.
+      await _deviceDownload;
       await _freeDeviceEngine();
       final dir = Directory(deviceModel.dir);
       if (dir.existsSync()) dir.deleteSync(recursive: true);
@@ -902,22 +924,7 @@ class Session extends ChangeNotifier {
     model = chosenModel;
     if (chosen.name != 'device') unawaited(_freeDeviceEngine());
     final toolbox = Toolbox(paths.notes.path, index, today: today);
-    _provider = MeteredProvider(
-      chosen.name == 'device'
-          ? LocalProvider(
-              chosenModel,
-              _deviceEngine ??= makeDeviceEngine(deviceModel.path(deviceFiles.first.name)),
-            )
-          : makeProvider(
-              chosen,
-              key,
-              model: chosenModel,
-              planToken: chosen.name == 'chatgpt' ? chatGpt!.token : null,
-              webSearch: webSearch && chosen.webSearch,
-            ),
-      chosen.name,
-      usage,
-    );
+    _provider = MeteredProvider(_providerFor(chosen, key, chosenModel), chosen.name, usage);
     // A model switch keeps the conversation; logout has already dropped it.
     final history = _agent?.messages ?? const <Message>[];
     _agent = Agent(_provider!, toolbox, today: today, timing: timing)..messages.addAll(history);

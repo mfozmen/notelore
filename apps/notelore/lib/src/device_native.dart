@@ -30,7 +30,12 @@ class _LlamaDart implements LocalEngine {
   final String path;
   Future<LlamaEngine>? _loading;
 
+  /// The previous engine's release: a new one loads only once it is done, so
+  /// a quick switch away and back never holds two copies of the model.
+  static Future<void> _released = Future.value();
+
   Future<LlamaEngine> _engine() => _loading ??= () async {
+    await _released;
     try {
       // The whole prompt with the tools is ~2,800 tokens; a turn adds tool results.
       return await LlamaEngine.load(
@@ -62,15 +67,17 @@ class _LlamaDart implements LocalEngine {
   }
 
   @override
-  Future<void> dispose() async {
+  Future<void> dispose() {
     final loading = _loading;
     _loading = null;
-    if (loading == null) return;
-    try {
-      await (await loading).dispose();
-    } on LocalModelFailed {
-      return; // it never loaded
-    }
+    if (loading == null) return Future.value();
+    return _released = () async {
+      try {
+        await (await loading).dispose();
+      } on Object {
+        return; // never loaded, or failed to let go: nothing more to free here
+      }
+    }();
   }
 }
 

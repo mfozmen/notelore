@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -71,6 +72,22 @@ void main() {
     expect(harness.deviceEngine.disposed, 1);
     expect(session.deviceModel.ready, isFalse);
     expect(Directory(session.deviceModel.dir).existsSync(), isFalse);
+  });
+
+  test('removed while it downloads: the download ends first, then nothing is left', () async {
+    final harness = Harness();
+    final session = harness.session(deviceModels: true);
+    final served = Completer<String>();
+    harness.pages['https://models.test/q.gguf'] = served.future;
+    final downloading = session.downloadDeviceModel();
+    final again = session.downloadDeviceModel(); // the same download, not a second
+    final removing = session.disconnect(findProvider('device'));
+    served.complete('model bytes');
+    await Future.wait([downloading, again, removing]);
+    expect(session.deviceModel.ready, isFalse);
+    expect(Directory(session.deviceModel.dir).existsSync(), isFalse);
+    expect(session.deviceProgress, isNull);
+    expect(session.deviceProblem, isNull); // it finished, then went: no failure to show
   });
 
   test('another model, or closing, frees the one on the device', () async {
