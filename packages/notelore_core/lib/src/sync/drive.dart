@@ -5,18 +5,21 @@
 /// delete a note there by accident (#454). Each file sits directly in it,
 /// named by its path relative to the notes root. Drive cannot trash a file
 /// there, so a removal marks it (`appProperties.removed`, a UTC time), the
-/// listing skips it, and a listing deletes the ones marked over 30 days ago,
-/// as Drive empties its trash.
+/// listing skips it, and a listing deletes the ones marked over 30 days ago
+/// by Drive's own clock, as Drive empties its trash.
 ///
 /// Before #454 the notes were in a visible `Notelore` folder in My Drive
 /// (scope `drive.file`, which only ever sees files the app created). The first
 /// listing copies what is still there into the app folder, never a name
-/// already there, so a move cut off or made by two devices at once is safe,
-/// then moves that folder to Drive's trash.
+/// already there, so a move cut off or made by two devices at once is safe.
+/// Each file it copied then goes to Drive's trash; the folder itself stays,
+/// marked as moved, because a person's own files in it are not Notelore's to
+/// throw away.
 library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show HttpDate;
 
 import 'package:http/http.dart' as http;
 
@@ -61,6 +64,12 @@ class DriveRemote implements Remote {
   var moved = false;
   var _checkedVisible = false;
 
+  /// Drive's clock, from its last answer: a removal's 30 days never count by a
+  /// device clock that is off.
+  DateTime? _driveNow;
+
+  DateTime _now() => _driveNow ?? _clock().toUtc();
+
   Future<http.Response> _send(
     String method,
     String url, {
@@ -80,11 +89,12 @@ class DriveRemote implements Remote {
       } on TimeoutException {
         throw const NetworkError('Google Drive did not answer in time');
       }
+      if (response.headers['date'] case final date?) _driveNow = HttpDate.parse(date);
       if (response.statusCode == 401 && !refresh) continue; // expired: refresh once
       if (response.statusCode >= 400) {
         final message = errorMessage(utf8.decode(response.bodyBytes));
         // A grant from before the app folder: signing in again adds it.
-        if (response.statusCode == 403 && message.contains('insufficient authentication scopes')) {
+        if (response.statusCode == 403 && message.contains('scope')) {
           throw NotSignedIn(message);
         }
         throw HttpError(response.statusCode, message);
@@ -117,22 +127,24 @@ class DriveRemote implements Remote {
 
   @override
   Future<Map<String, RemoteFile>> list() async {
-    moved = false;
     if (!_checkedVisible) {
       await _moveVisible();
       _checkedVisible = true;
     }
-    final now = _clock().toUtc();
+    final files = await _listAll(_app);
     final notes = <String, RemoteFile>{};
     // In creation order: when two devices copied the same file, the first wins.
-    for (final file in await _listAll(_app)) {
+    for (final file in files) {
       final name = file['name']! as String;
+      final id = file['id']! as String;
       final removed = (file['appProperties'] as Map?)?['removed'] as String?;
       if (removed != null) {
         final at = DateTime.tryParse(removed);
-        if (at == null || now.difference(at) > _kept) await _delete(file['id']! as String);
+        // A mark that does not read as a time counts from now, never as long ago.
+        if (at == null) await _unlessGone(() => trash(id));
+        if (at != null && _now().difference(at) > _kept) await _unlessGone(() => _delete(id));
       } else if (notes.containsKey(name)) {
-        await trash(file['id']! as String);
+        await _unlessGone(() => trash(id));
       } else if (file['md5Checksum'] != null) {
         notes[name] = _remoteFile(file); // Google Docs have no content hash: not notes
       }
@@ -141,25 +153,49 @@ class DriveRemote implements Remote {
   }
 
   /// Copies the visible folder's files into the app folder, those not there
-  /// yet, then trashes the folder.
+  /// yet, trashes each one, and marks the folder moved.
   Future<void> _moveVisible() async {
     final all = await _listAll('drive');
     final byId = {for (final file in all) file['id']! as String: file};
     // Two devices may each have created a Notelore folder before either synced:
     // the oldest one held the notes (the listing is in creation order).
-    final root = all
+    final roots = all
         .where((f) => f['mimeType'] == _folderType && f['name'] == _rootName)
         .where((f) => (f['appProperties'] as Map?)?['notelore'] == 'root')
-        .firstOrNull;
-    if (root == null) return;
+        .toList();
+    if (roots.isEmpty) return;
     final there = {for (final file in await _listAll(_app)) file['name']};
     for (final file in all) {
-      final path = file == root ? null : _pathOf(file, root['id'], byId);
-      if (path == null || file['md5Checksum'] == null || there.contains(path)) continue;
-      await upload(path, await download(file['id']! as String), null);
+      final path = _pathOf(file, roots.first['id'], byId);
+      if (path == null || file['md5Checksum'] == null) continue;
+      final id = file['id']! as String;
+      if (!there.contains(path)) {
+        final data = await _unlessGone(() => download(id));
+        if (data == null) continue; // another device moved it meanwhile
+        await upload(path, data, null);
+      }
+      await _unlessGone(() => _json('PATCH', '$_files/$id', body: {'trashed': true}));
     }
-    await _json('PATCH', '$_files/${root['id']}', body: {'trashed': true});
+    for (final root in roots) {
+      await _json(
+        'PATCH',
+        '$_files/${root['id']}',
+        body: {
+          'appProperties': {'notelore': 'moved'},
+        },
+      );
+    }
     moved = true;
+  }
+
+  /// What [request] answers, or null when its file is gone: another device
+  /// removed or moved it first.
+  static Future<T?> _unlessGone<T>(Future<T> Function() request) async {
+    try {
+      return await request();
+    } on HttpError catch (error) {
+      return error.status == 404 ? null : throw error;
+    }
   }
 
   /// Every file the app can see in [space] that is not in the trash, page by
@@ -253,7 +289,7 @@ class DriveRemote implements Remote {
       'PATCH',
       '$_files/$fileId',
       body: {
-        'appProperties': {'removed': _clock().toUtc().toIso8601String()},
+        'appProperties': {'removed': _now().toIso8601String()},
       },
     );
   }

@@ -1225,7 +1225,8 @@ class EnglishStrings extends Strings {
   @override
   String get notesMoved =>
       "Your notes now live in Google Drive's hidden app storage, where they cannot be "
-      "changed by accident; the old Notelore folder is in Drive's trash.";
+      'changed by accident. The old Notelore folder in your Drive no longer holds them; '
+      'you can delete it.';
 
   @override
   String heldNotes(int count) => count == 1
@@ -2081,8 +2082,8 @@ class TurkishStrings extends Strings {
 
   @override
   String get notesMoved =>
-      "Notların artık Google Drive'ın gizli uygulama alanında, yanlışlıkla değişemezler; "
-      "eski Notelore klasörü Drive'ın çöp kutusunda.";
+      "Notların artık Google Drive'ın gizli uygulama alanında; orada yanlışlıkla değişemezler. "
+      "Drive'ındaki eski Notelore klasöründe artık notların yok; onu silebilirsin.";
 
   @override
   String heldNotes(int count) => count == 1

@@ -50,7 +50,9 @@ void main() {
     final session = harness.session();
     harness.remote.moved = true;
     await session.connectDrive();
-    expect(session.syncStatus, endsWith("the old Notelore folder is in Drive's trash."));
+    expect(session.syncStatus, endsWith('no longer holds them; you can delete it.'));
+    await session.syncNow(); // said once
+    expect(session.syncStatus, 'Synced; nothing changed.');
   });
 
   group('many notes gone from Drive at once (#454)', () {
