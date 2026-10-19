@@ -319,7 +319,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           child: switch (_tab) {
             0 => ChatScreen(widget.session),
             1 => NotesScreen(widget.session),
-            2 => CalendarScreen(widget.session),
+            2 => CalendarScreen(widget.session, toChat: () => select(0)),
             _ => SettingsScreen(
               widget.session,
               checkForUpdates: widget.updater == null ? null : _checkNow,

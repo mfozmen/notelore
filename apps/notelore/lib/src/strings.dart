@@ -324,8 +324,13 @@ abstract class Strings {
   List<String> get weekdays;
   List<String> get weekdayNames;
   List<String> get monthNames;
-  String weekdayName(DateTime day) => weekdayNames[day.weekday - 1];
   String monthYear(DateTime month) => '${monthNames[month.month - 1]} ${month.year}';
+
+  /// A day's heading: "Sunday, 25 October" / "25 Ekim Pazar".
+  String dayHeading(DateTime day);
+  String get showAll;
+  String get calendarExample;
+  String get goToChat;
 
   // The note reader (#426).
   String noteKind(String kind);
@@ -1046,6 +1051,15 @@ class EnglishStrings extends Strings {
   String get previousMonth => 'Previous month';
   @override
   String get nextMonth => 'Next month';
+  @override
+  String dayHeading(DateTime day) =>
+      '${weekdayNames[day.weekday - 1]}, ${day.day} ${monthNames[day.month - 1]}';
+  @override
+  String get showAll => 'Show all';
+  @override
+  String get calendarExample => 'Try: "remind me Friday at 10 to call the dentist"';
+  @override
+  String get goToChat => 'Go to chat';
   @override
   List<String> get weekdays => const ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
   @override
@@ -1929,6 +1943,15 @@ class TurkishStrings extends Strings {
   String get previousMonth => 'Önceki ay';
   @override
   String get nextMonth => 'Sonraki ay';
+  @override
+  String dayHeading(DateTime day) =>
+      '${day.day} ${monthNames[day.month - 1]} ${weekdayNames[day.weekday - 1]}';
+  @override
+  String get showAll => 'Tümünü göster';
+  @override
+  String get calendarExample => 'Örnek: "Cuma 10\'da dişçiyi aramamı hatırlat"';
+  @override
+  String get goToChat => 'Sohbete git';
   @override
   List<String> get weekdays => const ['Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct', 'Pz'];
   @override

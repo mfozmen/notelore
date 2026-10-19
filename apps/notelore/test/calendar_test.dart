@@ -31,15 +31,14 @@ void main() {
     await tester.tap(find.text('Calendar'));
     await tester.pumpAndSettle();
     expect(find.text('October 2026'), findsOneWidget);
-    expect(find.text('Upcoming'), findsOneWidget);
     final order = [
       for (final text in ['Overdue', 'Order timber', 'Tomorrow', 'Dentist', 'Paint the door'])
         tester.getTopLeft(find.text(text).last).dy,
     ];
     expect(order, orderedEquals([...order]..sort()));
-    expect(find.text('Overdue, 10 Oct · Garden Shed'), findsOneWidget);
+    expect(find.text('10 Oct · Garden Shed'), findsOneWidget); // under Overdue, said once
     expect(find.text('10:00 · Health'), findsOneWidget);
-    expect(find.text('Sunday, 25 Oct'), findsOneWidget);
+    expect(find.text('Sunday, 25 October'), findsOneWidget);
     await tester.tap(find.text('Dentist'));
     await tester.pumpAndSettle();
     expect(find.byType(NoteView), findsOneWidget);
@@ -53,25 +52,29 @@ void main() {
     await withPlans(tester);
     await tester.tap(find.text('Calendar'));
     await tester.pumpAndSettle();
-    await tester.tap(find.bySemanticsLabel('25 Oct'));
+    await tester.tap(find.bySemanticsLabel('Sunday, 25 October'));
     await tester.pumpAndSettle();
-    expect(find.text('Sunday, 25 Oct'), findsOneWidget);
+    expect(find.text('Sunday, 25 October'), findsWidgets);
     expect(find.text('Paint the door'), findsOneWidget);
     expect(find.text('Dentist'), findsNothing);
     // A day with nothing on it.
-    await tester.tap(find.bySemanticsLabel('22 Oct'));
+    await tester.tap(find.bySemanticsLabel('Thursday, 22 October'));
     await tester.pumpAndSettle();
     expect(find.text('Nothing on this day.'), findsOneWidget);
-    // Picked again, or Upcoming: back to what is coming.
-    await tester.tap(find.widgetWithText(TextButton, 'Upcoming'));
+    // A late day picked says it is late, as there is no Overdue heading there.
+    await tester.tap(find.bySemanticsLabel('Saturday, 10 October'));
+    await tester.pumpAndSettle();
+    expect(find.text('Overdue, 10 Oct · Garden Shed'), findsOneWidget);
+    // Show all, or the same day again: back to what is coming.
+    await tester.tap(find.text('Show all'));
     await tester.pumpAndSettle();
     expect(find.text('Dentist'), findsOneWidget);
-    await tester.tap(find.bySemanticsLabel('20 Oct'));
+    await tester.tap(find.bySemanticsLabel('Tuesday, 20 October'));
     await tester.pumpAndSettle();
-    expect(find.text('Tomorrow'), findsOneWidget);
-    await tester.tap(find.bySemanticsLabel('20 Oct'));
+    expect(find.text('Show all'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('Tuesday, 20 October'));
     await tester.pumpAndSettle();
-    expect(find.text('Upcoming'), findsOneWidget);
+    expect(find.text('Show all'), findsNothing);
     await tester.tap(find.byTooltip('Next month'));
     await tester.pumpAndSettle();
     expect(find.text('November 2026'), findsOneWidget);
@@ -79,6 +82,10 @@ void main() {
     await tester.tap(find.byTooltip('Previous month'));
     await tester.pumpAndSettle();
     expect(find.text('September 2026'), findsOneWidget);
+    // Today brings the month back.
+    await tester.tap(find.byTooltip('Today'));
+    await tester.pumpAndSettle();
+    expect(find.text('October 2026'), findsOneWidget);
   });
 
   testWidgets('calendar: empty, it says where things come from; a wide window side by side', (
@@ -94,5 +101,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Nothing planned'), findsOneWidget);
     expect(find.byType(VerticalDivider), findsWidgets);
+    // The way to make one: the chat.
+    await tester.tap(find.text('Go to chat'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('message')), findsOneWidget);
   });
 }

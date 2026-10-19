@@ -11,9 +11,12 @@ import 'theme.dart';
 /// from the notes, on a month grid with the chosen day's list beside it or
 /// below. Nothing is chosen: what is coming, the late todos first.
 class CalendarScreen extends StatefulWidget {
-  const CalendarScreen(this.session, {super.key});
+  const CalendarScreen(this.session, {required this.toChat, super.key});
 
   final Session session;
+
+  /// Goes to the chat, where reminders are made.
+  final VoidCallback toChat;
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -67,58 +70,80 @@ class _CalendarScreenState extends State<CalendarScreen> {
         today: today,
         picked: _picked,
         marked: {for (final item in items) item.day},
+        late: {
+          for (final item in items)
+            if (item.todo && item.day.isBefore(today)) item.day,
+        },
         pick: (day) => setState(() => _picked = day == _picked ? null : day),
         turn: (by) => setState(() => _month = DateTime(_month.year, _month.month + by)),
       );
-      final list = _Agenda(
-        s,
-        items: _picked == null
-            ? items
-            : [
-                for (final i in items)
-                  if (i.day == _picked) i,
-              ],
-        today: today,
-        picked: _picked,
-        upcoming: () => setState(() => _picked = null),
-        open: _open,
-      );
-      return LayoutBuilder(
-        builder: (context, box) => box.maxWidth >= Layout.wide
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 380,
-                    child: ListView(padding: const EdgeInsets.all(Gap.m), children: [grid]),
-                  ),
-                  const VerticalDivider(width: 1),
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: Layout.column),
-                        child: ListView(padding: const EdgeInsets.all(Gap.m), children: [list]),
+      final list = items.isEmpty
+          ? _Empty(s, toChat: widget.toChat)
+          : _Agenda(
+              s,
+              items: _picked == null
+                  ? items
+                  : [
+                      for (final i in items)
+                        if (i.day == _picked) i,
+                    ],
+              today: today,
+              picked: _picked,
+              showAll: () => setState(() => _picked = null),
+              open: _open,
+            );
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(s.calendar),
+          actions: [
+            IconButton(
+              tooltip: s.today,
+              icon: const Icon(Icons.today),
+              onPressed: () => setState(() {
+                _month = _monthOf(today);
+                _picked = null;
+              }),
+            ),
+          ],
+        ),
+        body: LayoutBuilder(
+          builder: (context, box) => box.maxWidth >= Layout.wide
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 380,
+                      child: ListView(padding: const EdgeInsets.all(Gap.m), children: [grid]),
+                    ),
+                    const VerticalDivider(width: 1),
+                    Expanded(
+                      // Beside the grid, not floating off on a very wide window.
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: Layout.column),
+                          child: ListView(padding: const EdgeInsets.all(Gap.m), children: [list]),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              )
-            : ListView(
-                padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, Gap.l),
-                children: [
-                  grid,
-                  const SizedBox(height: Gap.l),
-                  list,
-                ],
-              ),
+                  ],
+                )
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.l),
+                  children: [
+                    grid,
+                    const SizedBox(height: Gap.m),
+                    list,
+                  ],
+                ),
+        ),
       );
     },
   );
 }
 
-/// A month, Monday first: today ringed, the chosen day filled, a dot under
-/// each day with something on it.
+/// A month, Monday first, in 48 dp rows: today ringed, the chosen day filled,
+/// a dot under each day with something on it (red when all of it is late).
 class _MonthGrid extends StatelessWidget {
   const _MonthGrid(
     this.s, {
@@ -126,6 +151,7 @@ class _MonthGrid extends StatelessWidget {
     required this.today,
     required this.picked,
     required this.marked,
+    required this.late,
     required this.pick,
     required this.turn,
   });
@@ -135,6 +161,7 @@ class _MonthGrid extends StatelessWidget {
   final DateTime today;
   final DateTime? picked;
   final Set<DateTime> marked;
+  final Set<DateTime> late;
   final ValueChanged<DateTime> pick;
   final ValueChanged<int> turn;
 
@@ -183,22 +210,28 @@ class _MonthGrid extends StatelessWidget {
           ],
         ),
         const SizedBox(height: Gap.xs),
-        GridView.count(
-          crossAxisCount: 7,
+        GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          children: [
-            for (var i = 0; i < lead; i++) const SizedBox.shrink(),
-            for (var d = 1; d <= days; d++)
-              _Day(
-                DateTime(month.year, month.month, d),
-                today: today,
-                picked: picked,
-                marked: marked,
-                pick: pick,
-                label: s.shortDate,
-              ),
-          ],
+          // Rows of 48 dp, not square cells: the list below stays in sight.
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 7,
+            mainAxisExtent: 48,
+          ),
+          itemCount: lead + days,
+          itemBuilder: (context, i) {
+            if (i < lead) return const SizedBox.shrink();
+            final day = DateTime(month.year, month.month, i - lead + 1);
+            return _Day(
+              day,
+              label: s.dayHeading(day),
+              today: day == today,
+              chosen: day == picked,
+              dot: late.contains(day) ? colors.error : null,
+              marked: marked.contains(day),
+              pick: pick,
+            );
+          },
         ),
       ],
     );
@@ -208,64 +241,101 @@ class _MonthGrid extends StatelessWidget {
 class _Day extends StatelessWidget {
   const _Day(
     this.day, {
-    required this.today,
-    required this.picked,
-    required this.marked,
-    required this.pick,
     required this.label,
+    required this.today,
+    required this.chosen,
+    required this.marked,
+    required this.dot,
+    required this.pick,
   });
 
   final DateTime day;
-  final DateTime today;
-  final DateTime? picked;
-  final Set<DateTime> marked;
+  final String label;
+  final bool today;
+  final bool chosen;
+  final bool marked;
+
+  /// The dot's colour when it is not the plain one: red for late todos.
+  final Color? dot;
   final ValueChanged<DateTime> pick;
-  final String Function(DateTime, DateTime) label;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final chosen = day == picked;
-    final isToday = day == today;
     return Semantics(
       button: true,
       selected: chosen,
-      label: label(day, today),
+      label: label,
       excludeSemantics: true,
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: () => pick(day),
         child: Center(
           child: Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: chosen ? colors.primary : null,
-              border: isToday && !chosen ? Border.all(color: colors.primary) : null,
+              border: today && !chosen ? Border.all(color: colors.primary, width: 1.5) : null,
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   '${day.day}',
-                  style: TextStyle(color: chosen ? colors.onPrimary : colors.onSurface),
+                  style: TextStyle(
+                    color: chosen ? colors.onPrimary : colors.onSurface,
+                    fontWeight: today ? FontWeight.w600 : null,
+                  ),
                 ),
                 Container(
-                  width: 4,
-                  height: 4,
+                  width: 6,
+                  height: 6,
                   margin: const EdgeInsets.only(top: 2),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: marked.contains(day)
-                        ? (chosen ? colors.onPrimary : colors.primary)
-                        : Colors.transparent,
+                    color: !marked
+                        ? Colors.transparent
+                        : (chosen ? colors.onPrimary : (dot ?? colors.primary)),
                   ),
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Nothing planned yet: where these come from, and the way to make one.
+class _Empty extends StatelessWidget {
+  const _Empty(this.s, {required this.toChat});
+
+  final Strings s;
+  final VoidCallback toChat;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: Gap.l),
+      child: Column(
+        children: [
+          Icon(Icons.event_available, size: 48, color: muted),
+          const SizedBox(height: Gap.m),
+          Text(s.nothingPlanned, textAlign: TextAlign.center),
+          const SizedBox(height: Gap.s),
+          Text(
+            s.calendarExample,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(color: muted),
+          ),
+          const SizedBox(height: Gap.m),
+          FilledButton.tonal(onPressed: toChat, child: Text(s.goToChat)),
+        ],
       ),
     );
   }
@@ -279,7 +349,7 @@ class _Agenda extends StatelessWidget {
     required this.items,
     required this.today,
     required this.picked,
-    required this.upcoming,
+    required this.showAll,
     required this.open,
   });
 
@@ -287,13 +357,13 @@ class _Agenda extends StatelessWidget {
   final List<DayItem> items;
   final DateTime today;
   final DateTime? picked;
-  final VoidCallback upcoming;
+  final VoidCallback showAll;
   final ValueChanged<DayItem> open;
 
   String _heading(DateTime day) {
     if (day == today) return s.today;
     if (day == today.add(const Duration(days: 1))) return s.tomorrow;
-    return '${s.weekdayName(day)}, ${s.shortDate(day, today)}';
+    return s.dayHeading(day);
   }
 
   @override
@@ -301,48 +371,52 @@ class _Agenda extends StatelessWidget {
     final theme = Theme.of(context);
     final groups = <String, List<DayItem>>{};
     for (final item in items) {
-      final late = item.todo && item.day.isBefore(today);
+      final late = picked == null && item.todo && item.day.isBefore(today);
       groups.putIfAbsent(late ? s.overdueGroup : _heading(item.day), () => []).add(item);
     }
+    Widget heading(String text) => Text(
+      text,
+      style: theme.textTheme.titleSmall?.copyWith(
+        color: text == s.overdueGroup ? theme.colorScheme.error : theme.colorScheme.primary,
+      ),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                picked == null ? s.upcoming : _heading(picked!),
-                style: theme.textTheme.titleMedium,
-              ),
-            ),
-            if (picked != null) TextButton(onPressed: upcoming, child: Text(s.upcoming)),
-          ],
-        ),
-        const SizedBox(height: Gap.s),
-        if (items.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: Gap.m),
-            child: Text(
-              picked == null ? s.nothingPlanned : s.nothingThatDay,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+        if (picked case final day?) ...[
+          // As tall as the month's row, so nothing moves when a day is picked.
+          SizedBox(
+            height: 48,
+            child: Row(
+              children: [
+                Expanded(child: Text(_heading(day), style: theme.textTheme.titleMedium)),
+                TextButton.icon(
+                  icon: const Icon(Icons.close),
+                  label: Text(s.showAll),
+                  onPressed: showAll,
+                ),
+              ],
             ),
           ),
-        for (final MapEntry(key: heading, value: group) in groups.entries) ...[
-          if (picked == null)
+          if (items.isEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: Gap.m, bottom: Gap.xs),
+              padding: const EdgeInsets.symmetric(vertical: Gap.m),
               child: Text(
-                heading,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: heading == s.overdueGroup
-                      ? theme.colorScheme.error
-                      : theme.colorScheme.primary,
+                s.nothingThatDay,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
-          for (final item in group) _Item(s, item, today: today, open: open),
+        ],
+        for (final MapEntry(key: name, value: group) in groups.entries) ...[
+          if (picked == null)
+            Padding(
+              padding: const EdgeInsets.only(top: Gap.m, bottom: Gap.xs),
+              child: heading(name),
+            ),
+          for (final item in group)
+            _Item(s, item, today: today, open: open, underOverdue: picked == null),
         ],
       ],
     );
@@ -350,20 +424,30 @@ class _Agenda extends StatelessWidget {
 }
 
 class _Item extends StatelessWidget {
-  const _Item(this.s, this.item, {required this.today, required this.open});
+  const _Item(
+    this.s,
+    this.item, {
+    required this.today,
+    required this.open,
+    required this.underOverdue,
+  });
 
   final Strings s;
   final DayItem item;
   final DateTime today;
   final ValueChanged<DayItem> open;
 
+  /// Under an "Overdue" heading already: it need not say so again.
+  final bool underOverdue;
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final late = item.todo && item.day.isBefore(today);
+    final date = s.shortDate(item.day, today);
     final when = [
       ?item.time,
-      if (late) s.overdue(s.shortDate(item.day, today)),
+      if (late) underOverdue ? date : s.overdue(date),
       item.note,
     ].join(' · ');
     return ListTile(
@@ -373,7 +457,7 @@ class _Item extends StatelessWidget {
         color: late ? colors.error : colors.primary,
       ),
       title: Text(item.text),
-      subtitle: Text(when, style: TextStyle(color: late ? colors.error : null)),
+      subtitle: Text(when, style: TextStyle(color: colors.onSurfaceVariant)),
       onTap: () => open(item),
     );
   }
