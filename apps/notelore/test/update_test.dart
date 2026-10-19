@@ -131,6 +131,17 @@ void main() {
         );
         final unsummed = Pages({latestReleaseUrl: release(v, checksums: false)});
         expect(await checkRelease(current: '0.2.0', fetch: unsummed.call, system: 'macos'), isNull);
+        // Assets GitHub never sends in this shape: still silent, never a crash at start.
+        for (final assets in <Object?>[
+          null,
+          <String, Object?>{},
+          ['not a map'],
+        ]) {
+          final odd = Pages({
+            latestReleaseUrl: utf8.encode(jsonEncode({'tag_name': 'v$v', 'assets': assets})),
+          });
+          expect(await checkRelease(current: '0.2.0', fetch: odd.call, system: 'macos'), isNull);
+        }
       },
     );
 

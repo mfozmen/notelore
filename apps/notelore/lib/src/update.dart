@@ -139,8 +139,10 @@ Future<({String version, List<String> highlights, String page})?> checkRelease({
   }
   final version = '${data['tag_name']}'.replaceFirst(RegExp('^v'), '');
   if (!isNewer(version, current)) return null;
+  // Whatever shape the answer has, a check at start never throws.
+  final listed = data['assets'] is List ? data['assets']! as List : const <Object?>[];
   final assets = {
-    for (final asset in (data['assets'] as List?) ?? const []) '${(asset as Map)['name']}',
+    for (final asset in listed.whereType<Map<Object?, Object?>>()) '${asset['name']}',
   };
   final file = assetName(version, system);
   if (!assets.contains(file) || !assets.contains('$file.sha256')) return null;
