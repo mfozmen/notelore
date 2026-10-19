@@ -1093,7 +1093,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Stopped.'), findsOneWidget);
     expect(waiting(), isNull);
-    expect(find.byTooltip('Hold to talk'), findsOneWidget); // the box is empty again
+    expect(find.byTooltip('Tap or hold to talk'), findsOneWidget); // the box is empty again
   });
 
   testWidgets('chat: one button, Send with text and the microphone without (#231)', (tester) async {
@@ -1103,13 +1103,13 @@ void main() {
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     // Empty: the button records.
-    expect(find.byTooltip('Hold to talk'), findsOneWidget);
+    expect(find.byTooltip('Tap or hold to talk'), findsOneWidget);
     expect(find.byTooltip('Send'), findsNothing);
     // Text: the same place sends.
     await tester.enterText(find.byKey(const Key('message')), 'yazı');
     await tester.pump();
     expect(find.byTooltip('Send'), findsOneWidget);
-    expect(find.byTooltip('Hold to talk'), findsNothing);
+    expect(find.byTooltip('Tap or hold to talk'), findsNothing);
     await tester.enterText(find.byKey(const Key('message')), '');
     await tester.pump();
 
@@ -1119,7 +1119,7 @@ void main() {
     await tester.pump();
     final hold = await tester.createGesture();
     await hold.down(
-      tester.getCenter(find.byTooltip('Hold to talk')),
+      tester.getCenter(find.byTooltip('Tap or hold to talk')),
       timeStamp: const Duration(seconds: 10),
     );
     await tester.pump();
@@ -1144,7 +1144,7 @@ void main() {
     Future<void> talk(int at) async {
       final hold = await tester.createGesture();
       await hold.down(
-        tester.getCenter(find.byTooltip('Hold to talk')),
+        tester.getCenter(find.byTooltip('Tap or hold to talk')),
         timeStamp: Duration(seconds: at),
       );
       await tester.pump();
@@ -1183,7 +1183,7 @@ void main() {
 
     // A screen reader taps: once to start, once to send.
     final talk = find.byWidgetPredicate(
-      (w) => w is Semantics && w.properties.label == 'Hold to talk',
+      (w) => w is Semantics && w.properties.label == 'Tap or hold to talk',
     );
     expect(tester.widget<Semantics>(talk).properties.enabled, isTrue);
     tester.widget<Semantics>(talk).properties.onTap!();
@@ -1196,7 +1196,7 @@ void main() {
 
   testWidgets('chat: hold to talk, let go to send; the answer is read aloud', (tester) async {
     phone(tester);
-    final harness = Harness(answers: ['Cevap.', 'Yazdın.']);
+    final harness = Harness(answers: ['Cevap.', 'Yazdın.', 'Dokundun.', 'Yeniden.']);
     harness.speech.phrases.add('merhaba');
     final reading = Completer<void>();
     harness.voice.holding = reading;
@@ -1205,7 +1205,7 @@ void main() {
     expect(find.byKey(const Key('voice-state')), findsNothing);
     final hold = await tester.createGesture();
     await hold.down(
-      tester.getCenter(find.byTooltip('Hold to talk')),
+      tester.getCenter(find.byTooltip('Tap or hold to talk')),
       timeStamp: const Duration(seconds: 10),
     );
     await tester.pump();
@@ -1230,12 +1230,46 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Yazdın.'), findsOneWidget);
     expect(harness.voice.spoken, hasLength(1)); // typed: not read aloud
-    // A plain click records nothing: it says to hold.
-    await tester.tap(find.byTooltip('Hold to talk'));
+    // A tap starts it and leaves it on; the button turns to Stop, a tap there sends (#452).
+    harness.speech.phrases.add('dokunarak');
+    final tap = await tester.createGesture();
+    await tap.down(
+      tester.getCenter(find.byTooltip('Tap or hold to talk')),
+      timeStamp: const Duration(seconds: 13),
+    );
+    await tester.pump();
+    await tap.up(timeStamp: const Duration(seconds: 13, milliseconds: 100));
+    await tester.pump();
+    expect(find.text('Listening…'), findsOneWidget); // still on after the finger is up
+    expect(find.byTooltip('Stop and send'), findsOneWidget);
+    expect(find.byIcon(Icons.stop), findsOneWidget);
+    final stop = await tester.createGesture();
+    await stop.down(
+      tester.getCenter(find.byTooltip('Stop and send')),
+      timeStamp: const Duration(seconds: 16),
+    );
+    await tester.pump();
+    await stop.up(timeStamp: const Duration(seconds: 16, milliseconds: 80));
     await tester.pumpAndSettle();
-    expect(find.text('Hold the button while you talk.'), findsOneWidget);
+    expect(find.text('dokunarak'), findsOneWidget);
+    expect(find.byTooltip('Tap or hold to talk'), findsOneWidget);
+    // Started by a tap but ended elsewhere: the button is the talk button again.
+    harness.speech.phrases.add('yeniden');
+    final again1 = await tester.createGesture();
+    await again1.down(
+      tester.getCenter(find.byTooltip('Tap or hold to talk')),
+      timeStamp: const Duration(seconds: 17),
+    );
+    await tester.pump();
+    await again1.up(timeStamp: const Duration(seconds: 17, milliseconds: 50));
+    await tester.pump();
+    await harness.speech.finish(); // the recognizer ended by itself (silence)
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Tap or hold to talk'), findsOneWidget);
     // A hold the system takes away (a call, say) ends like a let-go.
-    final taken = await tester.startGesture(tester.getCenter(find.byTooltip('Hold to talk')));
+    final taken = await tester.startGesture(
+      tester.getCenter(find.byTooltip('Tap or hold to talk')),
+    );
     await tester.pump();
     await taken.cancel();
     await tester.pumpAndSettle();
@@ -1244,7 +1278,7 @@ void main() {
     harness.speech.failure = const VoiceUnavailable();
     final again = await tester.createGesture();
     await again.down(
-      tester.getCenter(find.byTooltip('Hold to talk')),
+      tester.getCenter(find.byTooltip('Tap or hold to talk')),
       timeStamp: const Duration(seconds: 20),
     );
     await tester.pumpAndSettle();

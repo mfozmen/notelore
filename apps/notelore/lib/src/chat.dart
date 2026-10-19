@@ -503,8 +503,16 @@ class _ComposerState extends State<_Composer> {
   /// When the talk button last went down (the pointer's own clock).
   var _down = Duration.zero;
 
-  /// The last press was a plain click: show how talking works.
-  var _holdHint = false;
+  /// A tap (no hold) began listening that goes on until the next tap (#452).
+  var _latched = false;
+
+  /// The press that ends a tap-started recording: its let-go does nothing more.
+  var _stopping = false;
+
+  /// Shorter than this, a press is a tap.
+  static const _tap = Duration(milliseconds: 300);
+
+  bool get _stopShown => _latched && _voice.state == VoiceState.listening;
 
   /// A screen reader's tap: starts listening, or sends what was said.
   void _toggleTalk() =>
@@ -534,16 +542,27 @@ class _ComposerState extends State<_Composer> {
 
   void _pressed(PointerDownEvent down) {
     _down = down.timeStamp;
-    setState(() => _holdHint = false);
+    if (_stopShown) {
+      _stopping = true;
+      _latched = false;
+      _voice.release();
+      return;
+    }
+    _latched = false;
     _hold();
   }
 
   void _released(PointerUpEvent up) {
-    _voice.release();
-    // A plain click records nothing: say how it works.
-    if (up.timeStamp - _down < const Duration(milliseconds: 300)) {
-      setState(() => _holdHint = true);
+    if (_stopping) {
+      _stopping = false;
+      return;
     }
+    // A tap keeps listening, and the button turns to Stop; a hold sends on let-go.
+    if (up.timeStamp - _down < _tap) {
+      setState(() => _latched = true);
+      return;
+    }
+    _voice.release();
   }
 
   @override
@@ -554,8 +573,7 @@ class _ComposerState extends State<_Composer> {
       listenable: _voice,
       builder: (context, _) => Column(
         children: [
-          if (_voice.state == VoiceState.speaking || _holdHint)
-            _VoiceStatus(s, speaking: _voice.state == VoiceState.speaking),
+          if (_voice.state == VoiceState.speaking) _VoiceStatus(s),
           _ComposerRow(
             session,
             voice: _voice,
@@ -563,8 +581,9 @@ class _ComposerState extends State<_Composer> {
             send: widget.send,
             attach: widget.attach,
             talk: _TalkButton(
-              label: s.talk,
+              label: _stopShown ? s.stopTalking : s.talk,
               listening: _voice.state == VoiceState.listening,
+              stop: _stopShown,
               busy: session.busy,
               pressed: _pressed,
               released: _released,
@@ -685,6 +704,7 @@ class _TalkButton extends StatelessWidget {
   const _TalkButton({
     required this.label,
     required this.listening,
+    required this.stop,
     required this.busy,
     required this.pressed,
     required this.released,
@@ -695,6 +715,9 @@ class _TalkButton extends StatelessWidget {
 
   final String label;
   final bool listening;
+
+  /// A tap started it: the button ends it.
+  final bool stop;
   final bool busy;
   final ValueChanged<PointerDownEvent> pressed;
   final ValueChanged<PointerUpEvent> released;
@@ -720,7 +743,7 @@ class _TalkButton extends StatelessWidget {
         onKeyEvent: (_, event) => onKey(event),
         child: IconButton.filled(
           tooltip: label,
-          icon: Icon(listening ? Icons.mic : Icons.mic_none),
+          icon: Icon(stop ? Icons.stop : (listening ? Icons.mic : Icons.mic_none)),
           onPressed: busy ? null : () {},
         ),
       ),
@@ -762,12 +785,11 @@ class _Recording extends StatelessWidget {
 }
 
 /// A line above the message box: the answer is read aloud ([speaking]), or else
-/// how to talk: above the button, not over it, so a plain click learns to hold.
+/// Above the button while the answer is read aloud.
 class _VoiceStatus extends StatelessWidget {
-  const _VoiceStatus(this.strings, {required this.speaking});
+  const _VoiceStatus(this.strings);
 
   final Strings strings;
-  final bool speaking;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -775,18 +797,10 @@ class _VoiceStatus extends StatelessWidget {
     child: Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(
-          speaking ? Icons.volume_up : Icons.touch_app_outlined,
-          size: 18,
-          color: Theme.of(context).colorScheme.primary,
-        ),
+        Icon(Icons.volume_up, size: 18, color: Theme.of(context).colorScheme.primary),
         const SizedBox(width: Gap.s),
-        Flexible(
-          // wraps on a narrow phone
-          child: speaking
-              ? Text(strings.speaking, key: const Key('voice-state'))
-              : Text(strings.holdHint),
-        ),
+        // wraps on a narrow phone
+        Flexible(child: Text(strings.speaking, key: const Key('voice-state'))),
       ],
     ),
   );
