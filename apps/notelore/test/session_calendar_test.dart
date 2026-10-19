@@ -196,4 +196,24 @@ void main() {
     await session.signInCalendar();
     expect(session.calendarProblem, CalendarProblem.signIn);
   });
+
+  test('a delete or a restore answers at once while the calendar is slow (#504)', () async {
+    final harness = Harness();
+    remindIn(harness, 'Health', 'Dentist');
+    final session = harness.session();
+    await session.load();
+    await session.setCalendar(true);
+    final hold = harness.calendar.hold = Completer<void>();
+    final note = session.listNotes().single;
+    final archived = await session.deleteNote(note).timeout(const Duration(seconds: 1));
+    expect(session.listNotes(), isEmpty);
+    await session.restoreNote(note, archived!).timeout(const Duration(seconds: 1));
+    await session.deleteNote(note).timeout(const Duration(seconds: 1));
+    final again = session.listArchived().single;
+    expect(await session.restoreArchived(again).timeout(const Duration(seconds: 1)), isTrue);
+    hold.complete();
+    await pumpEventQueue();
+    // The calendar still follows the notes once it answers.
+    expect(harness.calendar.events.values, ['Dentist']);
+  });
 }

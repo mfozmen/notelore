@@ -543,9 +543,13 @@ class FakeCalendar implements ReminderCalendar {
     return id = 'cal${++made}';
   }
 
+  /// While set, sync waits for it: a slow network (#504).
+  Completer<void>? hold;
+
   @override
   Future<void> sync(String calendarId, List<DueReminder> due, {required DateTime now}) async {
     if (fail case final error?) throw error;
+    await hold?.future;
     events
       ..clear()
       ..addAll({for (final reminder in due) reminder.id: reminder.text});

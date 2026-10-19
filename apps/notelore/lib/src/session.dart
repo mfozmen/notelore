@@ -1700,7 +1700,7 @@ class Session extends ChangeNotifier {
     const news = {ImportOutcome.added, ImportOutcome.renamed};
     final changed = reports.any((r) => news.contains(r.imported?.outcome));
     if (changed) {
-      await refreshReminders(ask: false); // a shared note's reminders come too
+      unawaited(refreshReminders(ask: false)); // a shared note's reminders come too
       notifyListeners();
       if (driveConnected) unawaited(syncNow());
     }
@@ -1725,7 +1725,9 @@ class Session extends ChangeNotifier {
     if (!File(path).existsSync()) return null;
     final archived = archiveNote(paths.notes.path, path, today: today);
     index.markChanged(path);
-    await refreshReminders(ask: false); // an archived note's reminders go with it
+    unawaited(
+      refreshReminders(ask: false),
+    ); // the calendar's network never holds up a delete (#504)
     notifyListeners();
     return archived;
   });
@@ -1745,7 +1747,7 @@ class Session extends ChangeNotifier {
     } on RestoreTaken {
       return false;
     }
-    await refreshReminders(ask: false);
+    unawaited(refreshReminders(ask: false));
     notifyListeners();
     return true;
   });
@@ -1779,7 +1781,7 @@ class Session extends ChangeNotifier {
     if (File(path).existsSync()) return; // never overwrite; the archive copy stays
     moveWithRetry(archived, path);
     index.markChanged(path);
-    await refreshReminders(ask: false);
+    unawaited(refreshReminders(ask: false));
     notifyListeners();
   });
 
