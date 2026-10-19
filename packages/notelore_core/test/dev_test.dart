@@ -347,6 +347,31 @@ void main() {
     expect('$out', contains('kept 2 of 2'));
   });
 
+  test('reprompt gives every example of a file the current prompt and tools', () async {
+    final examples = [
+      for (final prompt in ['old one', 'old two'])
+        {
+          'messages': [
+            {'role': 'system', 'content': prompt},
+            {'role': 'user', 'content': 'hi'},
+          ],
+          'tools': <Object?>[],
+        },
+    ];
+    File(p.join(temp.path, 'mixed.jsonl'))
+        .writeAsStringSync(examples.map((e) => '${jsonEncode(e)}\n').join());
+    expect(await run(['reprompt', '--in=mixed.jsonl', '--out=same.jsonl']), 0);
+    final lines = File(p.join(temp.path, 'same.jsonl')).readAsLinesSync();
+    expect(lines, hasLength(2));
+    for (final line in lines) {
+      final example = jsonDecode(line) as Map;
+      expect(((example['messages']! as List).first as Map)['content'], contains('Notelore'));
+      expect(example['tools'], isNotEmpty);
+    }
+    expect(lines.toSet(), hasLength(1)); // the same prompt for both now
+    expect('$out', contains('2 examples'));
+  });
+
   test('distill excludes passing turns with tool errors or repeated calls', () async {
     File(p.join(temp.path, 'cases.json')).writeAsStringSync(
       jsonEncode([

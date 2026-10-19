@@ -37,6 +37,7 @@ const _usage =
     'usage: notelore_dev signin | models | chat [--provider=<name>] [--model=<id>] <message>'
     ' | eval [--provider=<name>] [--model=<id>] [--cases=<file>] [--slim]'
     ' | distill [--provider=<name>] [--model=<id>] [--cases=<file>] [--out=<file>] [--slim]'
+    ' | reprompt --in=<file> --out=<file> [--slim]'
     ' (--slim: the prompt and tools of the model on the device)';
 
 /// A trace file's name for a run started at [time]: UTC to the microsecond,
@@ -73,7 +74,7 @@ Future<int> runDev(
   final command = words.firstOrNull;
   final message = words.skip(1).join(' ');
   if (command == null ||
-      !const {'signin', 'models', 'chat', 'eval', 'distill'}.contains(command) ||
+      !const {'signin', 'models', 'chat', 'eval', 'distill', 'reprompt'}.contains(command) ||
       (command == 'chat' && message.isEmpty)) {
     out.writeln(_usage);
     return 64;
@@ -111,6 +112,16 @@ Future<int> runDev(
         out.writeln('Signed in with ChatGPT.');
       case 'models':
         out.writeln((await listChatGptModels(auth.token, client: traced)).join('\n'));
+      case 'reprompt':
+        final from = File(p.join(currentDirectory.path, options['in'] ?? 'train.jsonl'));
+        final to = File(p.join(currentDirectory.path, options['out'] ?? 'train-reprompted.jsonl'));
+        final lines = [
+          for (final line in from.readAsLinesSync())
+            if (line.trim().isNotEmpty)
+              jsonEncode(reprompted((jsonDecode(line) as Map).cast(), slim: slim)),
+        ];
+        to.writeAsStringSync(lines.map((line) => '$line\n').join());
+        out.writeln('${lines.length} examples with the current prompt in ${to.path}');
       case 'eval' || 'distill':
         final cases = File(p.join(currentDirectory.path, options['cases'] ?? 'eval/cases.json'));
         final keep = command == 'distill'
