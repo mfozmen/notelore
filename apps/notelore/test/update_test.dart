@@ -11,12 +11,12 @@ import 'package:path/path.dart' as p;
 const v = '9.9.9';
 
 /// A GitHub "latest release" answer with the app assets for [version].
-List<int> release(String version, {bool checksums = true}) {
-  final apps = [
-    'notelore-app-$version-windows-x64-setup.exe',
-    'notelore-app-$version-macos.dmg',
-    'notelore-app-$version-android.apk',
-  ];
+List<int> release(
+  String version, {
+  bool checksums = true,
+  List<String> systems = const ['windows', 'macos', 'android'],
+}) {
+  final apps = [for (final system in systems) assetName(version, system)];
   final names = [...apps, if (checksums) ...apps.map((a) => '$a.sha256')];
   return utf8.encode(
     jsonEncode({
@@ -98,28 +98,54 @@ void main() {
   group('the check', () {
     test('a newer release comes with its highlights and its page (#288)', () async {
       final pages = Pages({latestReleaseUrl: release(v)});
-      final found = await checkRelease(current: '0.2.0', fetch: pages.call);
+      final found = await checkRelease(current: '0.2.0', fetch: pages.call, system: 'windows');
       expect(found!.version, v);
       expect(found.highlights, ['Notes sync faster', 'Voice works offline']);
       expect(found.page, 'https://github.com/mfozmen/notelore/releases/tag/v$v');
-      expect(await checkRelease(current: v, fetch: pages.call), isNull);
+      expect(await checkRelease(current: v, fetch: pages.call, system: 'windows'), isNull);
     });
 
     test('asks GitHub every time, so each start hears of a new release', () async {
       final pages = Pages({latestReleaseUrl: release('0.2.0')});
-      expect(await checkForUpdate(current: '0.2.0', fetch: pages.call), isNull);
+      expect(await checkForUpdate(current: '0.2.0', fetch: pages.call, system: 'windows'), isNull);
       pages.pages[latestReleaseUrl] = release(v); // published a minute later
-      expect(await checkForUpdate(current: '0.2.0', fetch: pages.call), v);
-      expect(await checkForUpdate(current: v, fetch: pages.call), isNull);
+      expect(await checkForUpdate(current: '0.2.0', fetch: pages.call, system: 'windows'), v);
+      expect(await checkForUpdate(current: v, fetch: pages.call, system: 'windows'), isNull);
       expect(pages.calls, 3);
     });
 
+    test(
+      'a release whose file for this system, or its checksum, is not up yet waits (#476)',
+      () async {
+        // The app said v0.17.0 was there while its files were still building.
+        final building = Pages({
+          latestReleaseUrl: release(v, systems: ['windows']),
+        });
+        expect(
+          await checkRelease(current: '0.2.0', fetch: building.call, system: 'android'),
+          isNull,
+        );
+        expect(
+          (await checkRelease(current: '0.2.0', fetch: building.call, system: 'windows'))!.version,
+          v,
+        );
+        final unsummed = Pages({latestReleaseUrl: release(v, checksums: false)});
+        expect(await checkRelease(current: '0.2.0', fetch: unsummed.call, system: 'macos'), isNull);
+      },
+    );
+
     test('offline or a garbled answer is silent, unless forced', () async {
-      expect(await checkForUpdate(current: '0.2.0', fetch: Pages({}).call), isNull);
+      expect(
+        await checkForUpdate(current: '0.2.0', fetch: Pages({}).call, system: 'windows'),
+        isNull,
+      );
       final garbled = Pages({latestReleaseUrl: utf8.encode('<html>')});
-      expect(await checkForUpdate(current: '0.2.0', fetch: garbled.call), isNull);
+      expect(
+        await checkForUpdate(current: '0.2.0', fetch: garbled.call, system: 'windows'),
+        isNull,
+      );
       await expectLater(
-        checkForUpdate(current: '0.2.0', fetch: Pages({}).call, force: true),
+        checkForUpdate(current: '0.2.0', fetch: Pages({}).call, system: 'windows', force: true),
         throwsA(isA<UpdateFailed>()),
       );
     });
