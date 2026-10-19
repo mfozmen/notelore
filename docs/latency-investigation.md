@@ -192,7 +192,9 @@ prompt. It opens only the GGUF named by `--dart-define=MODEL`, never app state,
 keys or notes.
 
 ```bash
-(cd apps/notelore && MSYS_NO_PATHCONV=1 flutter build apk --debug --target-platform android-x64   -t tool/device_model_probe.dart   --dart-define=MODEL=/data/user/0/io.github.mfozmen.notelore/files/model.gguf)
+(cd apps/notelore && MSYS_NO_PATHCONV=1 flutter build apk --debug --target-platform android-x64 \
+  -t tool/device_model_probe.dart \
+  --dart-define=MODEL=/data/user/0/io.github.mfozmen.notelore/files/model.gguf)
 # Install first: run-as needs the app on the device.
 adb -s emulator-5554 install -r apps/notelore/build/app/outputs/flutter-apk/app-debug.apk
 adb -s emulator-5554 push model.gguf /data/local/tmp/model.gguf
@@ -210,8 +212,12 @@ maintainer's Windows PC) gave:
 | Cold turn | 552 s (first token after 541 s) | 3,237 in, 38 out | 6.0 tok/s prefill, 3.5 tok/s decode | 4,445 MB |
 | Warm turn | 6.2 s (first token after 4.6 s) | 3,259 in (3,237 cached), 6 out | 3.9 tok/s decode | 4,434 MB |
 
-Peak RSS was 4,509 MB. The time to the first token comes from the engine; the decode rate is the rest of the turn's wall time over the tokens out, so it slightly undercounts. This is only a rough guide: the emulator runs an x86_64
-image on the PC's CPU, not a phone's ARM cores. What carries over is the shape:
+Peak RSS was 4,509 MB. The time to the first token comes from the engine; the
+decode rate is the rest of the turn's wall time over the tokens out, so it
+slightly undercounts.
+
+This is only a rough guide: the emulator runs an x86_64 image on the PC's CPU,
+not a phone's ARM cores. What carries over is the shape:
 the system prompt and tools are about 3,200 tokens, so the first turn is
 dominated by prefill, while later turns reuse the cached prompt and start in
 seconds. A slimmer on-device prompt (#447) cuts the cold turn the most, and the
