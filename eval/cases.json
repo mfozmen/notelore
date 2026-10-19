@@ -587,7 +587,7 @@
    "message": "haftaya fenerbahçe galatasaray maçını izleyeceğim",
    "notes": {},
    "search": [
-    "Süper Lig 10. hafta: Fenerbahçe - Galatasaray, 25 Ekim 2026 Pazar, saat 20:00, Ülker Stadyumu."
+    "Süper Lig 10. hafta: Galatasaray - Fenerbahçe, 25 Ekim 2026 Pazar, saat 20:00, RAMS Park."
    ],
    "expect": {
     "tools": [
@@ -598,6 +598,9 @@
       "2026-10-25 20:00"
      ]
     },
+    "lines_not": [
+     "^- 2026-10-25 20:00: (.{50,}|.*\\d[.:]\\d\\d|.*Fenerbahçe.*Galatasaray)"
+    ],
     "answer": [
      "20:00"
     ]

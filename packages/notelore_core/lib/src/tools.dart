@@ -111,7 +111,10 @@ final noteTools = List<Tool>.unmodifiable([
         'at': {'type': 'string', 'description': 'YYYY-MM-DD, or YYYY-MM-DD HH:MM (24-hour)'},
         'text': {
           'type': 'string',
-          'description': 'A short title of a few words, as a calendar shows it; no date or time',
+          'description':
+              'A short title, as a calendar shows it: the event\'s own name when it was found '
+              '(a match as the source names it, "Arsenal - Chelsea"), else a few words; '
+              'no date or time',
         },
         'kind': _kind,
       },

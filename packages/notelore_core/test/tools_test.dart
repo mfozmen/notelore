@@ -427,7 +427,10 @@ void schemaTests() {
   test("a reminder's text is asked for as a short calendar title, without the time (#499)", () {
     final reminder = noteTools.firstWhere((t) => t.name == 'add_reminder');
     final text = (reminder.inputSchema['properties']! as Map)['text'] as Map;
-    expect(text['description'], allOf(contains('short'), contains('no date or time')));
+    expect(
+      text['description'],
+      allOf(contains('short'), contains("event's own name"), contains('no date or time')),
+    );
   });
 
   test('the slim tools leave out what a phone rarely needs, in fewer words (#447)', () {
