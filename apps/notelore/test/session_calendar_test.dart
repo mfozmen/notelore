@@ -145,26 +145,88 @@ void main() {
     expect(session.calendar, isFalse);
   });
 
-  test('on from another device: no notification here, and no writes without this grant', () async {
-    final harness = Harness(auth: FakeAuth());
-    remindIn(harness, 'Health', 'Dentist');
-    harness.remote.texts[sharedSettings] = jsonEncode({
-      'updated': DateTime.utc(2030).toIso8601String(),
-      'calendar': true,
-      'calendarId': 'cal-elsewhere',
-    });
+  test(
+    'on from another device: this device reminds until it signs in here, never twice (#503)',
+    () async {
+      final harness = Harness(auth: FakeAuth());
+      remindIn(harness, 'Health', 'Dentist');
+      harness.remote.texts[sharedSettings] = jsonEncode({
+        'updated': DateTime.utc(2030).toIso8601String(),
+        'calendar': true,
+        'calendarId': 'cal-elsewhere',
+      });
+      final session = harness.session();
+      await session.connectDrive();
+      expect(session.calendar, isTrue);
+      // Without the grant here nothing would reach Google until the other device
+      // opens: this one keeps reminding.
+      expect(harness.reminders.pending.values, ['Dentist']);
+      expect(harness.calendar.events, isEmpty); // this device has no calendar grant
+      expect(session.calendarHere, isFalse); // Settings offers the sign-in
+      // Signed in here too: it writes into the same calendar, and its own
+      // notification goes, so nothing reminds twice.
+      harness.calendar.id = 'cal-elsewhere';
+      await session.signInCalendar();
+      expect(session.calendarHere, isTrue);
+      expect(harness.calendar.made, 0);
+      expect(harness.calendar.events.values, ['Dentist']);
+      expect(harness.reminders.pending, isEmpty);
+    },
+  );
+
+  test('set up elsewhere, a reminder made here offers the sign-in once (#503)', () async {
+    final harness = Harness();
     final session = harness.session();
-    await session.connectDrive();
-    expect(session.calendar, isTrue);
-    expect(harness.reminders.pending, isEmpty); // Google reminds; this device would twice
-    expect(harness.calendar.events, isEmpty); // this device has no calendar grant
-    expect(session.calendarHere, isFalse); // Settings offers the sign-in
-    // Signed in here too: it writes into the same calendar.
-    harness.calendar.id = 'cal-elsewhere';
+    await session.load();
+    session.calendar = true; // as the shared settings bring it
+    await session.refreshReminders();
+    expect(session.calendarNudge, isFalse); // nothing to remind of yet
+    remindIn(harness, 'Health', 'Dentist');
+    await session.refreshReminders(ask: false); // a sync brought it: not made here
+    expect(session.calendarNudge, isFalse);
+    await session.refreshReminders(); // a turn that made no reminder
+    expect(session.calendarNudge, isFalse);
+    remindIn(harness, 'Car', 'Tyres');
+    await session.refreshReminders(); // after the turn that made it
+    expect(session.calendarNudge, isTrue);
+    // Meanwhile this device reminds.
+    expect(harness.reminders.pending.values, unorderedEquals(['Dentist', 'Tyres']));
+    session.calendarNudgeLater();
+    expect(session.calendarNudge, isFalse);
+    await session.refreshReminders();
+    expect(session.calendarNudge, isFalse); // once
+    // Remembered: the next start does not ask again.
+    final again = harness.session();
+    await again.load();
+    again.calendar = true;
+    await again.refreshReminders();
+    expect(again.calendarNudge, isFalse);
+  });
+
+  test('signed in from the offer, it is not offered again (#503)', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.load();
+    session.calendar = true;
+    remindIn(harness, 'Health', 'Dentist');
+    await session.refreshReminders();
+    expect(session.calendarNudge, isTrue);
     await session.signInCalendar();
-    expect(session.calendarHere, isTrue);
-    expect(harness.calendar.made, 0);
+    expect(session.calendarNudge, isFalse);
+    expect(harness.reminders.pending, isEmpty);
     expect(harness.calendar.events.values, ['Dentist']);
+  });
+
+  test('a keystore that cannot tell counts as no grant: this device reminds (#503)', () async {
+    final harness = Harness();
+    remindIn(harness, 'Health', 'Dentist');
+    harness.calendarAuth.failSignedIn = Exception('keystore locked');
+    final session = harness.session();
+    await session.load();
+    session.calendar = true;
+    await session.refreshReminders();
+    expect(session.calendarHere, isFalse);
+    expect(harness.reminders.pending.values, ['Dentist']);
   });
 
   test('a build without Google sign-in keeps reminding, whatever another device chose', () async {
