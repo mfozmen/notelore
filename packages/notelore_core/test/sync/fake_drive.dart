@@ -89,7 +89,10 @@ class FakeDrive {
     headers: {'content-type': 'application/json', 'date': ?_date},
   );
 
-  String? get _date => now == null ? null : HttpDate.format(now!);
+  String? get _date => dateHeader ?? (now == null ? null : HttpDate.format(now!));
+
+  /// A Date header as sent, overriding [now]: a broken one, say.
+  String? dateHeader;
 
   http.Response _error(String message, int status) => _json({
     'error': {'message': message},

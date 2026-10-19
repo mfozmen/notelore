@@ -97,6 +97,14 @@ void main() {
     expect(drive.files, contains(file.id));
   });
 
+  test('a Date header that does not read as a time is passed over', () async {
+    final r = remote();
+    final file = await r.upload('topics/t.md', utf8.encode('x\n'), null);
+    drive.dateHeader = 'not a date';
+    await r.trash(file.id); // the request worked: so does the mark, by this device's clock
+    expect(drive.files[file.id]!['appProperties'], {'removed': '2026-10-19T12:00:00.000Z'});
+  });
+
   test('a mark that does not read as a time counts from now', () async {
     final file = drive.add('topics/t.md', 'appDataFolder', text: 'x\n')
       ..['appProperties'] = {'removed': 'yes'};
@@ -227,12 +235,13 @@ void main() {
       expect(drive.files.values.where((f) => f['name'] == 'topics/b.md'), hasLength(1));
     });
 
-    test('two folders named Notelore: the first one created is moved', () async {
+    test('two folders named Notelore: both move, the first one made wins a name', () async {
       drive
         ..legacy({'topics/t.md': 'first\n'})
-        ..legacy({'topics/t.md': 'second\n'});
-      expect((await remote().list()).keys, ['topics/t.md']);
+        ..legacy({'topics/t.md': 'second\n', 'topics/only-here.md': 'kept\n'});
+      expect((await remote().list()).keys, unorderedEquals(['topics/t.md', 'topics/only-here.md']));
       expect(drive.text('topics/t.md'), 'first\n');
+      expect(drive.text('topics/only-here.md'), 'kept\n'); // none left in a folder marked moved
     });
   });
 
