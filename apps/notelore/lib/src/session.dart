@@ -1268,10 +1268,12 @@ class Session extends ChangeNotifier {
   /// always equals the notes. After a turn (the user just asked for one) it
   /// may [ask] for notifications, once a run. A device that cannot notify
   /// changes nothing else.
-  Future<void> refreshReminders({bool ask = true}) =>
-      _reminderRuns = _reminderRuns.then((_) => _refreshReminders(ask: ask));
+  Future<void> refreshReminders({bool ask = true}) => _reminderRuns = _reminderRuns
+      .catchError((Object _) {})
+      .then((_) => _refreshReminders(ask: ask));
 
-  /// One run at a time: a resume, a sync and a turn can all ask at once.
+  /// One run at a time: a resume, a sync and a turn can all ask at once; a
+  /// run that broke never stops the next.
   Future<void> _reminderRuns = Future.value();
 
   Future<void> _refreshReminders({required bool ask}) async {
