@@ -186,6 +186,13 @@ class _FailsOnce extends Toolbox {
   }
 }
 
+/// The error a case injects ([EvalCase.failFirstCall]), which no real tool
+/// gives: training tells it from a real one, as recovering from it is the
+/// lesson, not a detour.
+final _injectedError = RegExp(r'^Error: \w+ could not run this time\. Call it again\.$');
+
+bool _injected(Object? content) => content is String && _injectedError.hasMatch(content);
+
 void _write(String root, Map<String, String> notes) {
   Directory(root).createSync(recursive: true);
   for (final MapEntry(:key, :value) in notes.entries) {
@@ -314,13 +321,20 @@ Set<TrainingIssue> trainingIssues(List<Message> messages) {
   final issues = <TrainingIssue>{};
   final calls = <List<Object?>>[];
   const equality = DeepCollectionEquality();
-  for (final block in _trainingBlocks(collapseRepeatedReads(messages))) {
+  final blocks = _trainingBlocks(collapseRepeatedReads(messages)).toList();
+  // The call a case made fail on purpose: its retry is no repeat.
+  final injected = {
+    for (final block in blocks)
+      if (block['type'] == 'tool_result' && _injected(block['content'])) block['tool_use_id'],
+  };
+  for (final block in blocks) {
     if (block['type'] == 'tool_result' &&
         block['content'] is String &&
+        !_injected(block['content']) &&
         (block['content']! as String).toLowerCase().startsWith('error')) {
       issues.add(TrainingIssue.toolError);
     }
-    if (block['type'] == 'tool_use') {
+    if (block['type'] == 'tool_use' && !injected.contains(block['id'])) {
       final call = [block['name'], block['input']];
       if (calls.any((seen) => equality.equals(seen, call))) {
         issues.add(TrainingIssue.repeatedCall);
