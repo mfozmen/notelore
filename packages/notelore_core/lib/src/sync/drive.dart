@@ -89,17 +89,28 @@ class DriveRemote implements Remote {
       } on TimeoutException {
         throw const NetworkError('Google Drive did not answer in time');
       }
-      if (response.headers['date'] case final date?) _driveNow = HttpDate.parse(date);
+      _driveNow = _dateOf(response.headers['date']) ?? _driveNow;
       if (response.statusCode == 401 && !refresh) continue; // expired: refresh once
-      if (response.statusCode >= 400) {
-        final message = errorMessage(utf8.decode(response.bodyBytes));
-        // A grant from before the app folder: signing in again adds it.
-        if (response.statusCode == 403 && message.contains('scope')) {
-          throw NotSignedIn(message);
-        }
-        throw HttpError(response.statusCode, message);
-      }
+      if (response.statusCode >= 400) throw _failure(response);
       return response;
+    }
+  }
+
+  /// What a refused request throws: a grant from before the app folder asks
+  /// to sign in again, which adds it.
+  static Exception _failure(http.Response response) {
+    final message = errorMessage(utf8.decode(response.bodyBytes));
+    if (response.statusCode == 403 && message.contains('scope')) return NotSignedIn(message);
+    return HttpError(response.statusCode, message);
+  }
+
+  /// The time in a Date header; none when it is missing or does not read as one.
+  static DateTime? _dateOf(String? header) {
+    if (header == null) return null;
+    try {
+      return HttpDate.parse(header);
+    } on Exception {
+      return null;
     }
   }
 
@@ -141,8 +152,11 @@ class DriveRemote implements Remote {
       if (removed != null) {
         final at = DateTime.tryParse(removed);
         // A mark that does not read as a time counts from now, never as long ago.
-        if (at == null) await _unlessGone(() => trash(id));
-        if (at != null && _now().difference(at) > _kept) await _unlessGone(() => _delete(id));
+        if (at == null) {
+          await _unlessGone(() => trash(id));
+        } else if (_now().difference(at) > _kept) {
+          await _unlessGone(() => _delete(id));
+        }
       } else if (notes.containsKey(name)) {
         await _unlessGone(() => trash(id));
       } else if (file['md5Checksum'] != null) {
@@ -165,16 +179,13 @@ class DriveRemote implements Remote {
         .toList();
     if (roots.isEmpty) return;
     final there = {for (final file in await _listAll(_app)) file['name']};
-    for (final file in all) {
-      final path = _pathOf(file, roots.first['id'], byId);
-      if (path == null || file['md5Checksum'] == null) continue;
-      final id = file['id']! as String;
-      if (!there.contains(path)) {
-        final data = await _unlessGone(() => download(id));
-        if (data == null) continue; // another device moved it meanwhile
-        await upload(path, data, null);
+    // Every folder's files, the oldest folder's first: a name already copied
+    // keeps that copy, and nothing is left behind in a folder marked moved.
+    for (final root in roots) {
+      for (final file in all) {
+        final path = _pathOf(file, root['id'], byId);
+        if (path != null && file['md5Checksum'] != null) await _moveFile(file, path, there);
       }
-      await _unlessGone(() => _json('PATCH', '$_files/$id', body: {'trashed': true}));
     }
     for (final root in roots) {
       await _json(
@@ -186,6 +197,19 @@ class DriveRemote implements Remote {
       );
     }
     moved = true;
+  }
+
+  /// Copies [file] to [path] in the app folder unless a file is [there] by
+  /// that name, then trashes it.
+  Future<void> _moveFile(Map<String, Object?> file, String path, Set<Object?> there) async {
+    final id = file['id']! as String;
+    if (!there.contains(path)) {
+      final data = await _unlessGone(() => download(id));
+      if (data == null) return; // another device moved it meanwhile
+      await upload(path, data, null);
+      there.add(path);
+    }
+    await _unlessGone(() => _json('PATCH', '$_files/$id', body: {'trashed': true}));
   }
 
   /// What [request] answers, or null when its file is gone: another device

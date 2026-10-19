@@ -291,7 +291,10 @@ class _Pass {
   /// The manifest's [entry], unless the remote file is another one with other
   /// content: the last sync's base then says nothing about it (the notes moved
   /// on the remote while another device still wrote to the old place, #454),
-  /// and taking Drive's copy over an edit here would lose the edit.
+  /// and taking Drive's copy over an edit here would lose the edit. The price:
+  /// a note another device changed after the move, and this one did not,
+  /// merges against nothing on this device's first sync after it, so it may
+  /// come up as one conflict for the model, never as a loss.
   static ManifestEntry? _trusted(ManifestEntry? entry, RemoteFile? meta) =>
       entry != null && meta != null && meta.id != entry.driveId && meta.md5 != entry.md5
       ? null
