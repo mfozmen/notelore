@@ -132,7 +132,15 @@ void main() {
 
     testWidgets('a banner offers Restore to Drive', (tester) async {
       final harness = await wiped(tester);
+      harness.remote.hold = Completer(); // the sync runs: both wait, a bar says so
       await tester.tap(find.text('Restore to Drive'));
+      await tester.pump();
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      expect(
+        tester.widget<TextButton>(find.widgetWithText(TextButton, 'Restore to Drive')).onPressed,
+        isNull,
+      );
+      harness.remote.hold!.complete();
       await tester.pumpAndSettle();
       expect(find.textContaining('removed from Google Drive'), findsNothing);
       expect(harness.remote.texts.keys.where((rel) => rel.endsWith('.md')), hasLength(4));
