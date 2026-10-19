@@ -170,39 +170,24 @@ Future<void> _eval(
   if (!cases.existsSync()) throw StateError('no cases file at ${cases.path}');
   final provider = await open();
   final done = keep == null ? null : File('${keep.path}.done');
-  final finished = done?.existsSync() ?? false ? done!.readAsLinesSync().toSet() : <String>{};
-  if (keep != null && finished.isEmpty) keep.writeAsStringSync('');
+  final finished = keep == null ? const <String>{} : _resume(keep, done!);
   final results = <EvalResult>[];
-  final excluded = <Set<TrainingIssue>>[];
-  var kept = 0;
-  var skipped = 0;
+  // Per case: null when it failed, the reasons it was left out, or none when kept.
+  final outcomes = <Set<TrainingIssue>?>[];
   for (final evalCase in loadCases(cases.readAsStringSync())) {
-    if (finished.contains(evalCase.id)) {
-      skipped++;
-      continue;
-    }
+    if (finished.contains(evalCase.id)) continue;
     final result = await runCase(evalCase, provider);
     results.add(result);
     final verdict = result.passed ? 'ok  ' : 'FAIL';
     out.writeln('$verdict ${evalCase.id} (${result.took.inMilliseconds} ms) ${result.tools}');
-    if (keep == null) continue;
-    final issues = result.passed ? trainingIssues(result.messages) : null;
-    if (issues != null && issues.isEmpty) {
-      keep.writeAsStringSync(
-        '${jsonEncode(trainingExample(result))}\n',
-        mode: FileMode.append,
-        flush: true,
-      );
-      kept++;
-    } else if (issues != null) {
-      excluded.add(issues);
-    }
-    done!.writeAsStringSync('${evalCase.id}\n', mode: FileMode.append, flush: true);
+    if (keep != null) outcomes.add(_keepTurn(result, keep, done!));
   }
   out.writeln(summarize(results));
   if (keep == null) return;
-  if (skipped > 0) out.writeln('skipped $skipped already done in ${done!.path}');
+  if (finished.isNotEmpty) out.writeln('skipped ${finished.length} already done in ${done!.path}');
+  final kept = outcomes.where((issues) => issues != null && issues.isEmpty).length;
   out.writeln('kept $kept of ${results.length} in ${keep.path}');
+  final excluded = outcomes.whereType<Set<TrainingIssue>>().where((issues) => issues.isNotEmpty);
   int count(TrainingIssue issue) => excluded.where((found) => found.contains(issue)).length;
   out.writeln(
     'excluded ${excluded.length} passing turns '
@@ -210,6 +195,37 @@ Future<void> _eval(
     'repeated calls: ${count(TrainingIssue.repeatedCall)}; '
     'counts may overlap)',
   );
+}
+
+/// The case ids [done] marks finished (`<id>`, or `<id>\tkept` when it kept a
+/// turn), with [keep] cut back to the turns those kept: a run stopped after
+/// writing a turn but before marking its case leaves no duplicate. Without
+/// [done], [keep] starts over.
+Set<String> _resume(File keep, File done) {
+  final records = done.existsSync() ? done.readAsLinesSync() : const <String>[];
+  final lines = keep.existsSync() ? keep.readAsLinesSync() : const <String>[];
+  final kept = records.where((record) => record.endsWith('\tkept')).length;
+  if (records.isEmpty || lines.length > kept) {
+    keep.writeAsStringSync(lines.take(kept).map((line) => '$line\n').join(), flush: true);
+  }
+  return {for (final record in records) record.split('\t').first};
+}
+
+/// Appends [result] to [keep] when it passed without detours, then marks its
+/// case in [done]; null when it failed, else why it was left out (none: kept).
+Set<TrainingIssue>? _keepTurn(EvalResult result, File keep, File done) {
+  final issues = result.passed ? trainingIssues(result.messages) : null;
+  final keeps = issues != null && issues.isEmpty;
+  if (keeps) {
+    keep.writeAsStringSync(
+      '${jsonEncode(trainingExample(result))}\n',
+      mode: FileMode.append,
+      flush: true,
+    );
+  }
+  final mark = keeps ? '\tkept' : '';
+  done.writeAsStringSync('${result.evalCase.id}$mark\n', mode: FileMode.append, flush: true);
+  return issues;
 }
 
 /// The provider and model [options] name (the ChatGPT plan by default), said on [out].
