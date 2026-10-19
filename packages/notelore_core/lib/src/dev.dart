@@ -157,7 +157,10 @@ Future<void> _chat(
 
 /// Every case in [cases] against the provider [open] makes once the file is
 /// there, each said as it ends, then the report. With [keep], the passing
-/// turns go there as training examples, one JSON line each.
+/// turns go there as training examples, one JSON line each, written as each
+/// case ends; the finished case ids go to `<keep>.done`, so a run that was
+/// stopped (hours in, out of memory) goes on where it was (#327). Without
+/// that file a run starts [keep] over.
 Future<void> _eval(
   File cases,
   Future<LlmProvider> Function() open,
@@ -166,27 +169,45 @@ Future<void> _eval(
 ]) async {
   if (!cases.existsSync()) throw StateError('no cases file at ${cases.path}');
   final provider = await open();
+  final done = keep == null ? null : File('${keep.path}.done');
+  final finished = done?.existsSync() ?? false ? done!.readAsLinesSync().toSet() : <String>{};
+  if (keep != null && finished.isEmpty) keep.writeAsStringSync('');
   final results = <EvalResult>[];
+  final excluded = <Set<TrainingIssue>>[];
+  var kept = 0;
+  var skipped = 0;
   for (final evalCase in loadCases(cases.readAsStringSync())) {
+    if (finished.contains(evalCase.id)) {
+      skipped++;
+      continue;
+    }
     final result = await runCase(evalCase, provider);
     results.add(result);
     final verdict = result.passed ? 'ok  ' : 'FAIL';
     out.writeln('$verdict ${evalCase.id} (${result.took.inMilliseconds} ms) ${result.tools}');
+    if (keep == null) continue;
+    final issues = result.passed ? trainingIssues(result.messages) : null;
+    if (issues != null && issues.isEmpty) {
+      keep.writeAsStringSync(
+        '${jsonEncode(trainingExample(result))}\n',
+        mode: FileMode.append,
+        flush: true,
+      );
+      kept++;
+    } else if (issues != null) {
+      excluded.add(issues);
+    }
+    done!.writeAsStringSync('${evalCase.id}\n', mode: FileMode.append, flush: true);
   }
   out.writeln(summarize(results));
   if (keep == null) return;
-  final passing = results.where((result) => result.passed);
-  final issues = {for (final result in passing) result: trainingIssues(result.messages)};
-  final kept = [
-    for (final result in passing)
-      if (issues[result]!.isEmpty) jsonEncode(trainingExample(result)),
-  ];
-  keep.writeAsStringSync(kept.map((line) => '$line\n').join());
-  out.writeln('kept ${kept.length} of ${results.length} in ${keep.path}');
+  if (skipped > 0) out.writeln('skipped $skipped already done in ${done!.path}');
+  out.writeln('kept $kept of ${results.length} in ${keep.path}');
+  int count(TrainingIssue issue) => excluded.where((found) => found.contains(issue)).length;
   out.writeln(
-    'excluded ${issues.length - kept.length} passing turns '
-    '(tool errors: ${issues.values.where((found) => found.contains(TrainingIssue.toolError)).length}; '
-    'repeated calls: ${issues.values.where((found) => found.contains(TrainingIssue.repeatedCall)).length}; '
+    'excluded ${excluded.length} passing turns '
+    '(tool errors: ${count(TrainingIssue.toolError)}; '
+    'repeated calls: ${count(TrainingIssue.repeatedCall)}; '
     'counts may overlap)',
   );
 }
