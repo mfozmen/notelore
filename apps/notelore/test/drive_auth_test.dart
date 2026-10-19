@@ -111,6 +111,17 @@ void main() {
     )!;
     await auth.signIn();
     expect(platform.asked.last, [calendarScope]);
+    // Signing the calendar out never revokes Drive: one account, one grant to disconnect.
+    await auth.token();
+    await auth.signOut();
+    expect(platform.disconnected, isFalse);
+    expect(platform.cleared, hasLength(1));
+    await calendarAuthFor(
+      mobile: true,
+      keys: const FlutterSecureStorage(),
+      keySpace: 'n',
+      webClientId: 'web',
+    )!.signOut();
   });
 
   test('phone: saying no is a failed sign-in', () async {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -77,6 +78,37 @@ void main() {
     expect(harness.calendar.cleared, 1);
     expect(harness.reminders.pending.values, ['Dentist']);
     expect(session.calendar, isFalse);
+    // The calendar's grant goes with it; Drive's stays as it was.
+    expect(harness.calendarAuth.signedOut, isTrue);
+  });
+
+  test('with the app lock on, the calendar shows nothing of the notes either', () async {
+    final harness = Harness();
+    remindIn(harness, 'Divorce', 'Pay the lawyer');
+    final session = harness.session();
+    await session.load();
+    await session.setCalendar(true);
+    expect(harness.calendar.events.values, ['Pay the lawyer']);
+    await session.lock.set('2580');
+    await pumpEventQueue();
+    expect(harness.calendar.events.values, ['You have a reminder.']);
+    expect(await session.lock.remove('2580'), isTrue);
+    await pumpEventQueue();
+    expect(harness.calendar.events.values, ['Pay the lawyer']);
+  });
+
+  test('busy while it signs in: a second tap starts no second sign-in', () async {
+    final harness = Harness();
+    final hold = harness.calendarAuth.hold = Completer<void>();
+    final session = harness.session();
+    final first = session.setCalendar(true);
+    await pumpEventQueue();
+    expect(session.calendarBusy, isTrue);
+    await session.setCalendar(true); // ignored while the first runs
+    hold.complete();
+    await first;
+    expect(session.calendarBusy, isFalse);
+    expect(session.calendar, isTrue);
   });
 
   test('a refused sign-in keeps reminders on this device and says why', () async {
@@ -84,7 +116,7 @@ void main() {
     final session = harness.session();
     await session.setCalendar(true);
     expect(session.calendar, isFalse);
-    expect(session.calendarError, contains('access_denied'));
+    expect(session.calendarProblem, CalendarProblem.signIn);
   });
 
   test('a calendar error is shown; offline it simply tries again later', () async {
@@ -94,13 +126,13 @@ void main() {
     await session.setCalendar(true);
     harness.calendar.fail = const NetworkError('offline');
     await session.refreshReminders();
-    expect(session.calendarError, isNull);
+    expect(session.calendarProblem, isNull);
     harness.calendar.fail = const HttpError(403, 'Calendar API has not been used');
     await session.refreshReminders();
-    expect(session.calendarError, contains('Calendar API has not been used'));
+    expect(session.calendarProblem, CalendarProblem.update);
     harness.calendar.fail = null;
     await session.refreshReminders();
-    expect(session.calendarError, isNull);
+    expect(session.calendarProblem, isNull);
     expect(harness.calendar.events.values, ['Dentist']);
     // Off while it fails: off all the same; the events wait for the next time.
     harness.calendar.fail = const NetworkError('offline');
@@ -121,10 +153,11 @@ void main() {
     expect(session.calendar, isTrue);
     expect(harness.reminders.pending, isEmpty); // Google reminds; this device would twice
     expect(harness.calendar.events, isEmpty); // this device has no calendar grant
-    // Granted here too: it writes into the same calendar.
-    harness.calendarAuth.granted = true;
+    expect(session.calendarHere, isFalse); // Settings offers the sign-in
+    // Signed in here too: it writes into the same calendar.
     harness.calendar.id = 'cal-elsewhere';
-    await session.refreshReminders();
+    await session.signInCalendar();
+    expect(session.calendarHere, isTrue);
     expect(harness.calendar.made, 0);
     expect(harness.calendar.events.values, ['Dentist']);
   });
@@ -139,6 +172,14 @@ void main() {
     final session = Harness().session(calendar: false);
     expect(session.calendarAvailable, isFalse);
     await session.setCalendar(true);
+    await session.signInCalendar();
     expect(session.calendar, isFalse);
+  });
+
+  test("a refused sign-in on a device that is not the calendar's says so", () async {
+    final harness = Harness()..calendarAuth.failSignIn = const SignInFailed('access_denied');
+    final session = harness.session();
+    await session.signInCalendar();
+    expect(session.calendarProblem, CalendarProblem.signIn);
   });
 }

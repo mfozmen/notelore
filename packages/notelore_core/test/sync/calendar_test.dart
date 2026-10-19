@@ -22,6 +22,12 @@ class FakeCalendarApi {
   /// What a delete answers instead, when set.
   int? deleteStatus;
 
+  /// Calendars that exist but are not this app's to see.
+  final forbidden = <String>{};
+
+  /// What creating a calendar answers instead, when set.
+  String? madeAnswer;
+
   late final http.Client client = MockClient((request) async {
     requests.add('${request.method} ${request.url.path}');
     if (request.headers['Authorization'] != 'Bearer $token') {
@@ -30,13 +36,17 @@ class FakeCalendarApi {
     final path = request.url.pathSegments.skip(2).toList(); // after calendar/v3
     final body = request.body.isEmpty ? null : jsonDecode(request.body) as Map<String, Object?>;
     switch ((request.method, path)) {
+      case ('POST', ['calendars']) when madeAnswer != null:
+        return http.Response(madeAnswer!, 200);
       case ('POST', ['calendars']):
         final id = 'cal${_next++}@group.calendar.google.com';
         calendars[id] = body!['summary']! as String;
         events[id] = {};
         return _json({'id': id, 'summary': calendars[id]});
+      case ('GET', ['calendars', final id]) when forbidden.contains(id):
+        return http.Response('{"error": {"message": "Forbidden"}}', 403);
       case ('GET', ['calendars', final id]):
-        return calendars.containsKey(id) ? _json({'id': id}) : _missing();
+        return calendars.containsKey(id) ? _json({'id': id, 'summary': calendars[id]}) : _missing();
       case ('GET', ['calendars', final id, 'events']):
         final all = events[id];
         if (all == null) return _missing();
@@ -99,6 +109,21 @@ void main() {
     expect(again, isNot(id));
   });
 
+  test("an id from elsewhere is used only while it is Notelore's own calendar", () async {
+    // Not this app's to see (another account's, or planted in the shared settings).
+    api.forbidden.add('someone-else');
+    expect(await calendar().calendarId('someone-else'), isNot('someone-else'));
+    // A calendar by another name is not Notelore's either.
+    api.calendars['other'] = 'Work';
+    expect(await calendar().calendarId('other'), isNot('other'));
+    expect(api.calendars.values.where((name) => name == 'Notelore'), hasLength(2));
+  });
+
+  test('an answer without what it must have is a format error, not a crash', () async {
+    api.madeAnswer = '{}';
+    expect(() => calendar().calendarId(null), throwsA(isA<FormatException>()));
+  });
+
   test('the coming events are exactly the coming reminders, each once', () async {
     final cal = calendar();
     final id = await cal.calendarId(null);
@@ -127,6 +152,12 @@ void main() {
     final created = api.requests.where((r) => r.startsWith('POST')).length;
     await cal.sync(id, first, now: now);
     expect(api.requests.where((r) => r.startsWith('POST')), hasLength(created));
+    // The same reminder in other words (the app lock hides them): replaced.
+    await cal.sync(id, [
+      DueReminder(1, DateTime(2026, 10, 21, 9, 30), 'Notelore', 'Hidden'),
+    ], now: now);
+    expect(api.events[id]!.values.map((e) => e['summary']), ['Hidden']);
+    await cal.sync(id, first, now: now);
     // One gone from the notes, one new: deleted and added.
     await cal.sync(id, [first[0], first[2], due(4, DateTime(2026, 11, 1, 8))], now: now);
     expect(

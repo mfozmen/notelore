@@ -49,20 +49,25 @@ class GoogleCalendar implements ReminderCalendar {
   Future<String> calendarId(String? known) async {
     if (known != null) {
       try {
-        await _call('GET', '/calendars/${Uri.encodeComponent(known)}');
-        return known;
+        // Only Notelore's own: an id from the shared settings could name another.
+        final found = await _call('GET', '/calendars/${Uri.encodeComponent(known)}');
+        if (found['summary'] == _name) return known;
       } on HttpError catch (error) {
-        if (error.status != 404) rethrow; // deleted in Google Calendar: make it again
+        // Deleted in Google Calendar (404), or not this app's to see (403): a new one.
+        if (error.status != 404 && error.status != 403) rethrow;
       }
     }
     final made = await _call('POST', '/calendars', body: {'summary': _name});
-    return made['id']! as String;
+    return switch (made['id']) {
+      final String id => id,
+      _ => throw const FormatException('Google Calendar made a calendar without an id'),
+    };
   }
 
   @override
   Future<void> sync(String calendarId, List<DueReminder> due, {required DateTime now}) async {
     final events = await _coming(calendarId, now);
-    final wanted = {for (final reminder in due) '${reminder.id}': reminder};
+    final wanted = {for (final reminder in due) _markOf(reminder): reminder};
     for (final MapEntry(key: mark, value: event) in events.entries) {
       if (!wanted.containsKey(mark)) await _delete(calendarId, event);
     }
@@ -103,7 +108,7 @@ class GoogleCalendar implements ReminderCalendar {
           in (listed['items'] as List?)?.cast<Map<String, Object?>>() ??
               const <Map<String, Object?>>[]) {
         final mark = ((event['extendedProperties'] as Map?)?['private'] as Map?)?[_mark];
-        if (mark is String) found[mark] = event['id']! as String;
+        if ((mark, event['id']) case (final String mark, final String id)) found[mark] = id;
       }
       page = listed['nextPageToken'] as String?;
     } while (page != null);
@@ -121,6 +126,11 @@ class GoogleCalendar implements ReminderCalendar {
     }
   }
 
+  /// The reminder and its words: the same reminder in other words (the app
+  /// lock hides them, or shows them again) is replaced, not kept.
+  static String _markOf(DueReminder reminder) =>
+      '${reminder.id}-${stableId('${reminder.note}\n${reminder.text}')}';
+
   /// A short event at the reminder's minute; Google notifies at its start.
   static Map<String, Object?> _event(DueReminder reminder) {
     String at(DateTime time) => time.toUtc().toIso8601String();
@@ -136,7 +146,7 @@ class GoogleCalendar implements ReminderCalendar {
         ],
       },
       'extendedProperties': {
-        'private': {_mark: '${reminder.id}'},
+        'private': {_mark: _markOf(reminder)},
       },
     };
   }

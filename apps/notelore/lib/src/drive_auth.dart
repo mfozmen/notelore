@@ -159,7 +159,9 @@ class GoogleSignInAuth implements DriveAuth {
 
   /// What it grants: Drive by default; the calendar has its own (#432).
   final String scope;
-  Future<void>? _initialized;
+
+  /// Once per app: Drive's and the calendar's sign-ins share the plugin.
+  static Future<void>? _initialized;
 
   Future<GoogleSignInAuthorizationClient> _client() async {
     await (_initialized ??= GoogleSignIn.instance.initialize(serverClientId: serverClientId));
@@ -191,7 +193,13 @@ class GoogleSignInAuth implements DriveAuth {
 
   @override
   Future<void> signOut() async {
-    await _client();
+    final client = await _client();
+    if (scope != driveScope) {
+      // The plugin can only disconnect the whole account, which would take
+      // Drive too: the calendar just drops its token here.
+      if (_last case final token?) await client.clearAuthorizationToken(accessToken: token);
+      return;
+    }
     await GoogleSignIn.instance.disconnect(); // revokes the grant, not just this device
   }
 }

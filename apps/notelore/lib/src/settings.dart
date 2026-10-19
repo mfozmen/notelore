@@ -680,9 +680,11 @@ class _RemindersCard extends StatelessWidget {
           children: [
             if (session.calendar)
               ListTile(
-                leading: const Icon(Icons.event_available_outlined),
+                leading: const Icon(Icons.notifications_off_outlined),
                 title: Text(s.reminders),
-                subtitle: Text(s.remindersInCalendar),
+                subtitle: Text(
+                  session.calendarHere == false ? s.calendarElsewhere : s.remindersInCalendar,
+                ),
               )
             else if (device)
               ListTile(
@@ -692,9 +694,18 @@ class _RemindersCard extends StatelessWidget {
                 title: Text(s.reminders),
                 subtitle: Text(allowed ? s.remindersOn : s.remindersOff),
               ),
+            if (session.calendar && session.calendarHere == false)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.s),
+                child: FilledButton.tonalIcon(
+                  icon: const Icon(Icons.login),
+                  onPressed: session.signInCalendar,
+                  label: Text(s.signInCalendar),
+                ),
+              ),
             if (device && !allowed)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.s),
                 child: FilledButton.tonalIcon(
                   icon: const Icon(Icons.notifications_active_outlined),
                   onPressed: () async {
@@ -709,19 +720,29 @@ class _RemindersCard extends StatelessWidget {
               ),
             if (session.calendarAvailable)
               SwitchListTile(
-                secondary: const Icon(Icons.calendar_month_outlined),
+                // Busy while the sign-in runs: a second tap waits.
+                secondary: session.calendarBusy
+                    ? const SizedBox.square(
+                        dimension: 24,
+                        child: Padding(
+                          padding: EdgeInsets.all(2),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : const Icon(Icons.calendar_month_outlined),
                 title: Text(s.addToCalendar),
-                subtitle: Text(s.addToCalendarHint),
+                // What went wrong stands under the switch it belongs to.
+                subtitle: switch (session.calendarProblem) {
+                  null => Text(s.addToCalendarHint),
+                  final problem => Text(
+                    problem == CalendarProblem.signIn
+                        ? s.calendarSignInFailed
+                        : s.calendarUpdateFailed,
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
+                },
                 value: session.calendar,
-                onChanged: session.setCalendar,
-              ),
-            if (session.calendarError case final why?)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-                child: Text(
-                  s.calendarFailed(why),
-                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
-                ),
+                onChanged: session.calendarBusy ? null : session.setCalendar,
               ),
           ],
         ),

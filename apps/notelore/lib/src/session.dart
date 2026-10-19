@@ -76,6 +76,10 @@ T? _named<T extends Enum>(List<T> values, Object? name) =>
 /// engine leaves it alone).
 const sharedSettings = '.notelore/settings.json';
 
+/// What went wrong with Google Calendar (#432): its sign-in, or a write the
+/// next refresh tries again.
+enum CalendarProblem { signIn, update }
+
 class Session extends ChangeNotifier {
   Session(
     this.paths, {
@@ -144,8 +148,14 @@ class Session extends ChangeNotifier {
   /// Notelore's own calendar in the user's Google Calendar, shared too.
   String? calendarId;
 
-  /// Why the calendar could not be reached or signed in to, for Settings.
-  String? calendarError;
+  /// What went wrong with the calendar, for Settings to say in plain words.
+  CalendarProblem? calendarProblem;
+
+  /// While the calendar's sign-in or first write runs: the switch waits.
+  var calendarBusy = false;
+
+  /// Whether this device holds the calendar grant; null until looked at.
+  bool? calendarHere;
 
   bool get calendarAvailable => calendarAuth != null;
 
@@ -1313,31 +1323,36 @@ class Session extends ChangeNotifier {
   Future<void> _refreshReminders({required bool ask}) async {
     final root = paths.notes.path;
     final now = clock().toLocal();
-    final due = await offThread(() => upcomingReminders(root, now: now));
+    var due = await offThread(() => upcomingReminders(root, now: now));
+    // With the app lock on, nothing of the notes shows: not on a locked
+    // phone's screen, not in Google Calendar.
+    final private = lock.enabled;
+    if (private) {
+      due = [for (final r in due) DueReminder(r.id, r.at, 'Notelore', strings.reminderHidden)];
+    }
+    final anew = private != _scheduledPrivately;
+    _scheduledPrivately = private;
     // Google Calendar reminds while it is on: this device then none, never twice.
-    await _remindOnDevice(calendar ? const [] : due, ask: ask);
+    await _remindOnDevice(calendar ? const [] : due, ask: ask, anew: anew);
     if (calendar) await _remindInCalendar(due, now);
   }
 
-  Future<void> _remindOnDevice(List<DueReminder> coming, {required bool ask}) async {
+  Future<void> _remindOnDevice(
+    List<DueReminder> due, {
+    required bool ask,
+    required bool anew,
+  }) async {
     final device = reminders;
     if (device == null) return;
-    // With the app lock on, a locked phone's screen shows nothing of the notes.
-    final private = lock.enabled;
     final wasAllowed = remindersAllowed;
     try {
-      var due = coming;
-      if (private) {
-        due = [for (final r in due) DueReminder(r.id, r.at, 'Notelore', strings.reminderHidden)];
-      }
       var allowed = await device.isAllowed();
       if (!allowed && ask && due.isNotEmpty && !_askedReminders) {
         _askedReminders = true;
         allowed = await device.ask();
       }
       remindersAllowed = allowed;
-      await scheduleReminders(device, due, anew: private != _scheduledPrivately);
-      _scheduledPrivately = private;
+      await scheduleReminders(device, due, anew: anew);
     } on Exception {
       return; // no notifications here: the reminders stay in the notes
     } finally {
@@ -1350,9 +1365,11 @@ class Session extends ChangeNotifier {
   Future<void> _remindInCalendar(List<DueReminder> due, DateTime now) async {
     final auth = calendarAuth;
     if (auth == null) return;
-    final before = calendarError;
+    final before = (calendarProblem, calendarHere);
     try {
-      if (!await auth.signedIn()) return;
+      // Without the grant here, another device writes: Settings offers it here.
+      calendarHere = await auth.signedIn();
+      if (!calendarHere!) return;
       final google = calendarFor(auth);
       final id = await google.calendarId(calendarId);
       if (id != calendarId) {
@@ -1361,14 +1378,31 @@ class Session extends ChangeNotifier {
         _touch(); // other devices write into the same calendar
       }
       await google.sync(id, due, now: now);
-      calendarError = null;
+      calendarProblem = null;
     } on NetworkError {
       return; // offline: the next refresh catches up
-    } on Exception catch (error) {
-      calendarError = '$error';
+    } on Exception {
+      calendarProblem = CalendarProblem.update; // tried again at the next refresh
     } finally {
-      if (calendarError != before) notifyListeners();
+      if ((calendarProblem, calendarHere) != before) notifyListeners();
     }
+  }
+
+  /// Settings' sign-in on a device where the calendar is on (another device
+  /// turned it on) but this one has no grant yet.
+  Future<void> signInCalendar() async {
+    final auth = calendarAuth;
+    if (auth == null) return;
+    calendarProblem = null;
+    try {
+      await auth.signIn();
+    } on Exception {
+      calendarProblem = CalendarProblem.signIn;
+      notifyListeners();
+      return;
+    }
+    await refreshReminders(ask: false);
+    notifyListeners();
   }
 
   /// Settings' Add to Google Calendar (#432): on, its own sign-in, then Google
@@ -1376,16 +1410,20 @@ class Session extends ChangeNotifier {
   /// and this device reminds again.
   Future<void> setCalendar(bool on) async {
     final auth = calendarAuth;
-    if (auth == null || on == calendar) return;
-    calendarError = null;
+    if (auth == null || on == calendar || calendarBusy) return;
+    calendarProblem = null;
+    calendarBusy = true;
+    notifyListeners();
     try {
       if (on && !await auth.signedIn()) await auth.signIn();
-      if (!on && calendarId != null && await auth.signedIn()) {
-        await calendarFor(auth).clear(calendarId!, now: clock().toLocal());
+      if (!on && await auth.signedIn()) {
+        if (calendarId case final id?) await calendarFor(auth).clear(id, now: clock().toLocal());
+        await auth.signOut(); // no grant left behind (Drive's own is not touched)
       }
-    } on Exception catch (error) {
+    } on Exception {
       if (on) {
-        calendarError = '$error';
+        calendarProblem = CalendarProblem.signIn;
+        calendarBusy = false;
         notifyListeners();
         return; // still off: this device keeps reminding
       }
@@ -1395,6 +1433,8 @@ class Session extends ChangeNotifier {
     _saveUi();
     _touch();
     await refreshReminders(ask: false);
+    calendarBusy = false;
+    notifyListeners();
   }
 
   /// Settings' Allow: asks for notifications again; whether they are allowed
