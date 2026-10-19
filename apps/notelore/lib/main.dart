@@ -61,6 +61,7 @@ Future<Session> openSession({
     systemLanguage: PlatformDispatcher.instance.locale.languageCode,
     timing: keySpace == 'notelore-dev' ? debugPrint : null, // #232: development runs only
     reminders: reminders(), // the notes' reminders as this device's notifications (#431)
+    calendarAuth: calendarAuthFor(mobile: phone, keys: appKeys, keySpace: keySpace), // #432
   );
   await session.load();
   if (phone && Platform.isAndroid) listenForShares(session); // "Share → Notelore" (#211)

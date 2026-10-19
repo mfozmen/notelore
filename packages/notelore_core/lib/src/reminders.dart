@@ -4,6 +4,7 @@
 library;
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
@@ -39,6 +40,8 @@ List<DueReminder> upcomingReminders(String root, {required DateTime now}) {
         note = readNote(file.path);
       } on NotANote {
         continue;
+      } on FileSystemException {
+        continue; // not UTF-8, or held by another app: the other notes still count
       }
       final rel = p.posix.joinAll(p.split(p.relative(file.path, from: root)));
       for (final reminder

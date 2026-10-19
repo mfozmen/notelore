@@ -57,6 +57,7 @@ typedef RemoteFor = Remote Function(DriveAuth auth);
 const appKeys = FlutterSecureStorage(mOptions: MacOsOptions(usesDataProtectionKeychain: false));
 
 Remote _driveRemote(DriveAuth auth) => DriveRemote(http.Client(), auth.token);
+ReminderCalendar _googleCalendar(OAuthSignIn auth) => GoogleCalendar(http.Client(), auth.token);
 
 /// [pending]: the user's message, still waiting to reach the model (offline,
 /// or the provider's usage limit).
@@ -108,6 +109,8 @@ class Session extends ChangeNotifier {
     this._exchange,
     this.timing,
     this.reminders,
+    this.calendarAuth,
+    this.calendarFor = _googleCalendar,
   }) : clock = clock ?? DateTime.timestamp,
        deviceAuth = deviceAuth ?? LocalDeviceAuth(),
        // Time that only moves forward; a given clock stands in for it, unless told apart.
@@ -128,6 +131,23 @@ class Session extends ChangeNotifier {
 
   /// Whether Notelore may notify on this device; null where it cannot at all.
   bool? remindersAllowed;
+
+  /// Google Calendar's own grant (#432): another scope than Drive's, asked
+  /// for when the switch is turned on; null in a build without Google sign-in.
+  final OAuthSignIn? calendarAuth;
+  final ReminderCalendar Function(OAuthSignIn auth) calendarFor;
+
+  /// Google Calendar reminds, on every device, instead of this device's
+  /// notifications. Shared through Drive, so no device reminds twice.
+  bool calendar = false;
+
+  /// Notelore's own calendar in the user's Google Calendar, shared too.
+  String? calendarId;
+
+  /// Why the calendar could not be reached or signed in to, for Settings.
+  String? calendarError;
+
+  bool get calendarAvailable => calendarAuth != null;
 
   /// Asked once a run at most: a refusal is not asked again until Allow.
   var _askedReminders = false;
@@ -343,6 +363,8 @@ class Session extends ChangeNotifier {
           'palette': palette.name,
           'appearance': appearance.name,
           'webSearch': webSearch,
+          if (calendar) 'calendar': true,
+          'calendarId': ?calendarId,
           'microphone': ?microphone,
           if (setUpBefore) 'setUp': true,
           if (advanced) 'advanced': true,
@@ -361,6 +383,11 @@ class Session extends ChangeNotifier {
       palette = _named(Palette.values, saved['palette']) ?? Palette.lagoon;
       appearance = _named(Appearance.values, saved['appearance']) ?? Appearance.system;
       webSearch = saved['webSearch'] != false;
+      calendar = saved['calendar'] == true;
+      calendarId = switch (saved['calendarId']) {
+        final String id => id,
+        _ => null,
+      };
       setUpBefore = saved['setUp'] == true;
       advanced = saved['advanced'] == true;
       microphone = switch (saved['microphone']) {
@@ -1172,6 +1199,8 @@ class Session extends ChangeNotifier {
       'palette': palette.name,
       'appearance': appearance.name,
       'webSearch': webSearch,
+      'calendar': calendar,
+      'calendarId': ?calendarId,
       'provider': ?spec?.name,
       'model': ?model,
     };
@@ -1198,6 +1227,11 @@ class Session extends ChangeNotifier {
       _named(Appearance.values, theirs['appearance']) ?? appearance,
     );
     if (theirs['webSearch'] case final bool on when on != webSearch) await _applyWebSearch(on);
+    if (theirs['calendar'] case final bool on) {
+      calendar = on;
+      if (theirs['calendarId'] case final String id) calendarId = id;
+      _saveUi();
+    }
     final (name, chosen) = (theirs['provider'], theirs['model']);
     if (name is! String || chosen is! String || name == 'ollama') return;
     final found = providerSpecs.where((s) => s.name == name).firstOrNull;
@@ -1231,8 +1265,8 @@ class Session extends ChangeNotifier {
         );
         _markSyncedNotes(report);
         completed = true;
-        await refreshReminders(ask: false);
         await _syncSettings(_remote!);
+        await refreshReminders(ask: false); // the notes' and the shared setting's
         final counts = (
           report.pushed.length + report.removedRemote.length,
           report.pulled.length + report.removedLocal.length,
@@ -1277,15 +1311,22 @@ class Session extends ChangeNotifier {
   Future<void> _reminderRuns = Future.value();
 
   Future<void> _refreshReminders({required bool ask}) async {
-    final device = reminders;
-    if (device == null) return;
     final root = paths.notes.path;
     final now = clock().toLocal();
+    final due = await offThread(() => upcomingReminders(root, now: now));
+    // Google Calendar reminds while it is on: this device then none, never twice.
+    await _remindOnDevice(calendar ? const [] : due, ask: ask);
+    if (calendar) await _remindInCalendar(due, now);
+  }
+
+  Future<void> _remindOnDevice(List<DueReminder> coming, {required bool ask}) async {
+    final device = reminders;
+    if (device == null) return;
     // With the app lock on, a locked phone's screen shows nothing of the notes.
     final private = lock.enabled;
     final wasAllowed = remindersAllowed;
     try {
-      var due = await offThread(() => upcomingReminders(root, now: now));
+      var due = coming;
       if (private) {
         due = [for (final r in due) DueReminder(r.id, r.at, 'Notelore', strings.reminderHidden)];
       }
@@ -1302,6 +1343,58 @@ class Session extends ChangeNotifier {
     } finally {
       if (remindersAllowed != wasAllowed) notifyListeners(); // Settings shows it
     }
+  }
+
+  /// Writes the coming reminders as events in Notelore's calendar, where this
+  /// device holds the calendar grant (another device may hold it instead).
+  Future<void> _remindInCalendar(List<DueReminder> due, DateTime now) async {
+    final auth = calendarAuth;
+    if (auth == null) return;
+    final before = calendarError;
+    try {
+      if (!await auth.signedIn()) return;
+      final google = calendarFor(auth);
+      final id = await google.calendarId(calendarId);
+      if (id != calendarId) {
+        calendarId = id;
+        _saveUi();
+        _touch(); // other devices write into the same calendar
+      }
+      await google.sync(id, due, now: now);
+      calendarError = null;
+    } on NetworkError {
+      return; // offline: the next refresh catches up
+    } on Exception catch (error) {
+      calendarError = '$error';
+    } finally {
+      if (calendarError != before) notifyListeners();
+    }
+  }
+
+  /// Settings' Add to Google Calendar (#432): on, its own sign-in, then Google
+  /// reminds on every device instead of this one; off, the coming events go
+  /// and this device reminds again.
+  Future<void> setCalendar(bool on) async {
+    final auth = calendarAuth;
+    if (auth == null || on == calendar) return;
+    calendarError = null;
+    try {
+      if (on && !await auth.signedIn()) await auth.signIn();
+      if (!on && calendarId != null && await auth.signedIn()) {
+        await calendarFor(auth).clear(calendarId!, now: clock().toLocal());
+      }
+    } on Exception catch (error) {
+      if (on) {
+        calendarError = '$error';
+        notifyListeners();
+        return; // still off: this device keeps reminding
+      }
+      // Off all the same; the events that could not go stay in that calendar.
+    }
+    calendar = on;
+    _saveUi();
+    _touch();
+    await refreshReminders(ask: false);
   }
 
   /// Settings' Allow: asks for notifications again; whether they are allowed

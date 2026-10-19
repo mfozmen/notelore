@@ -6,6 +6,8 @@ import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:notelore_core/src/providers/http.dart';
+import 'package:notelore_core/src/sync/calendar.dart' show calendarScope;
+import 'package:notelore_core/src/sync/drive.dart' show driveScope;
 import 'package:notelore_core/src/sync/google_auth.dart';
 import 'package:test/test.dart';
 
@@ -76,7 +78,12 @@ void main() {
         }());
       };
 
-  LoopbackAuth auth({Future<void> Function(Uri)? openBrowser, Duration? wait}) => LoopbackAuth(
+  LoopbackAuth auth({
+    Future<void> Function(Uri)? openBrowser,
+    Duration? wait,
+    String scope = driveScope,
+  }) => LoopbackAuth(
+    scope: scope,
     clientId: 'client-id',
     clientSecret: 'client-secret',
     openBrowser: openBrowser ?? browser(),
@@ -107,6 +114,18 @@ void main() {
     expect(stored, 'refresh-1');
     expect(await a.signedIn(), isTrue);
     expect(await a.token(), 'access-1'); // from the sign-in itself
+  });
+
+  test("the calendar's sign-in asks for that scope alone (#432)", () async {
+    final opened = <Uri>[];
+    await auth(
+      openBrowser: browser(opened: opened),
+      scope: calendarScope,
+    ).signIn();
+    expect(
+      opened.single.queryParameters['scope'],
+      'https://www.googleapis.com/auth/calendar.app.created',
+    );
   });
 
   test('the access token is reused until it expires, then refreshed', () async {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore_core/notelore_core.dart' show SignInFailed;
 
 import 'app_test.dart' show connect, phone, pumpApp;
 import 'support.dart';
@@ -65,7 +66,38 @@ void main() {
     expect(find.text("Notelore notifies you on this device at a reminder's time."), findsOneWidget);
   });
 
-  testWidgets('settings: a device that cannot notify shows no reminders card', (tester) async {
+  testWidgets('settings: Add to Google Calendar, then Google reminds on every device (#432)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness()..reminders.allowed = false;
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await openReminders(tester);
+    expect(find.text('Allow notifications'), findsOneWidget);
+    await tester.tap(find.text('Add to Google Calendar'));
+    await tester.pumpAndSettle();
+    expect(harness.calendarAuth.granted, isTrue);
+    expect(find.textContaining('in its own "Notelore" calendar'), findsOneWidget);
+    // Google reminds: this device's permission is beside the point now.
+    expect(find.text('Allow notifications'), findsNothing);
+  });
+
+  testWidgets('settings: a refused calendar sign-in says why, and stays off', (tester) async {
+    phone(tester);
+    final harness = Harness()..calendarAuth.failSignIn = const SignInFailed('access_denied');
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await openReminders(tester);
+    await tester.tap(find.text('Add to Google Calendar'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('access_denied'), findsOneWidget);
+    expect(find.text("Notelore notifies you on this device at a reminder's time."), findsOneWidget);
+  });
+
+  testWidgets('settings: a device that cannot notify offers nothing of its own notifications', (
+    tester,
+  ) async {
     phone(tester);
     final harness = Harness()..reminders.fail = Exception('no notifications here');
     await pumpApp(tester, harness);

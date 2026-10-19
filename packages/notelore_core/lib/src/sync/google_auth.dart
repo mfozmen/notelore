@@ -35,11 +35,15 @@ class LoopbackAuth implements DriveAuth {
     DateTime Function()? clock,
     this.wait = const Duration(minutes: 5),
     this.timeout = const Duration(seconds: 30),
+    this.scope = driveScope,
   }) : _client = client ?? http.Client(),
        clock = clock ?? DateTime.timestamp;
 
   final String clientId;
   final String clientSecret;
+
+  /// What the sign-in grants: Drive by default; the calendar has its own (#432).
+  final String scope;
   final Future<void> Function(Uri url) openBrowser;
   final Future<String?> Function() readRefreshToken;
 
@@ -70,7 +74,7 @@ class LoopbackAuth implements DriveAuth {
           'client_id': clientId,
           'redirect_uri': redirect,
           'response_type': 'code',
-          'scope': driveScope,
+          'scope': scope,
           'access_type': 'offline',
           'prompt': 'consent', // always hand out a refresh token
           'state': state,

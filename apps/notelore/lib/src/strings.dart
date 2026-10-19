@@ -305,6 +305,12 @@ abstract class Strings {
   String get notificationsBlocked;
   String get reminderHidden;
 
+  // Reminders through Google Calendar (#432).
+  String get addToCalendar;
+  String get addToCalendarHint;
+  String get remindersInCalendar;
+  String calendarFailed(String why);
+
   /// The months, short, January first.
   List<String> get months;
 
@@ -969,6 +975,17 @@ class EnglishStrings extends Strings {
   String get notificationsBlocked => 'Turn on notifications for Notelore in the system settings.';
   @override
   String get reminderHidden => 'You have a reminder.';
+  @override
+  String get addToCalendar => 'Add to Google Calendar';
+  @override
+  String get addToCalendarHint =>
+      'Only a calendar of its own: your other calendars stay as they are.';
+  @override
+  String get remindersInCalendar =>
+      'Google Calendar reminds you on every device, in its own "Notelore" calendar. '
+      'Notelore sends no notification of its own.';
+  @override
+  String calendarFailed(String why) => 'Google Calendar: $why';
   @override
   List<String> get months => const [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', //
@@ -1749,6 +1766,16 @@ class TurkishStrings extends Strings {
   String get notificationsBlocked => 'Notelore için bildirimleri sistem ayarlarından aç.';
   @override
   String get reminderHidden => 'Bir hatırlatıcın var.';
+  @override
+  String get addToCalendar => "Google Takvim'e ekle";
+  @override
+  String get addToCalendarHint => 'Yalnızca kendi takvimi: diğer takvimlerine dokunulmaz.';
+  @override
+  String get remindersInCalendar =>
+      'Google Takvim her cihazda, kendi "Notelore" takviminden hatırlatır. '
+      'Notelore ayrıca bildirim göndermez.';
+  @override
+  String calendarFailed(String why) => 'Google Takvim: $why';
   @override
   List<String> get months => const [
     'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara', //

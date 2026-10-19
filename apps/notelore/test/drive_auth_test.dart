@@ -21,6 +21,9 @@ class FakeSignIn extends GoogleSignInPlatform with MockPlatformInterfaceMixin {
   var disconnected = false;
   String? serverClientId;
 
+  /// The scopes each token request named.
+  final asked = <List<String>>[];
+
   @override
   Future<void> init(InitParameters params) async => serverClientId = params.serverClientId;
 
@@ -28,7 +31,7 @@ class FakeSignIn extends GoogleSignInPlatform with MockPlatformInterfaceMixin {
   Future<ClientAuthorizationTokenData?> clientAuthorizationTokensForScopes(
     ClientAuthorizationTokensForScopesParameters params,
   ) async {
-    expect(params.request.scopes, [driveScope]);
+    asked.add(params.request.scopes);
     if (!granted && params.request.promptIfUnauthorized) {
       if (refused) {
         throw const GoogleSignInException(code: GoogleSignInExceptionCode.canceled);
@@ -96,6 +99,18 @@ void main() {
     await auth.signOut();
     expect(platform.disconnected, isTrue);
     expect(await auth.signedIn(), isFalse);
+    expect(platform.asked, everyElement([driveScope]));
+  });
+
+  test("phone: the calendar's grant asks for the calendar scope alone (#432)", () async {
+    final auth = calendarAuthFor(
+      mobile: true,
+      keys: const FlutterSecureStorage(),
+      keySpace: 'n',
+      webClientId: 'web',
+    )!;
+    await auth.signIn();
+    expect(platform.asked.last, [calendarScope]);
   });
 
   test('phone: saying no is a failed sign-in', () async {
@@ -120,6 +135,31 @@ void main() {
     );
     // This build was made without the client ids (they are never in the repo).
     expect(driveAuthFor(mobile: false, keys: keys, keySpace: 'n'), isNull);
+    expect(calendarAuthFor(mobile: false, keys: keys, keySpace: 'n'), isNull);
+    expect(calendarAuthFor(mobile: true, keys: keys, keySpace: 'n', webClientId: ''), isNull);
+  });
+
+  test("desktop: the calendar's grant has its own scope and refresh token (#432)", () async {
+    final auth =
+        calendarAuthFor(
+              mobile: false,
+              keys: const FlutterSecureStorage(),
+              keySpace: 'notelore-dev',
+              clientId: 'id',
+              clientSecret: 's',
+            )!
+            as LoopbackAuth;
+    expect(auth.scope, calendarScope);
+    await auth.saveRefreshToken('c');
+    // Drive's token is a different entry: switching the calendar never touches Drive.
+    expect(
+      await const FlutterSecureStorage().read(key: 'notelore-dev.google.calendar.refresh_token'),
+      'c',
+    );
+    expect(
+      await const FlutterSecureStorage().read(key: 'notelore-dev.google.refresh_token'),
+      isNull,
+    );
   });
 
   test('desktop: the browser opens, the refresh token lives in the keystore', () async {

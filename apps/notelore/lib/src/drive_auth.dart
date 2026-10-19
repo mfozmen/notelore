@@ -28,11 +28,46 @@ DriveAuth? driveAuthFor({
   String clientId = _clientId,
   String clientSecret = _clientSecret,
   String webClientId = _webClientId,
-}) {
-  if (mobile) return webClientId.isEmpty ? null : GoogleSignInAuth(serverClientId: webClientId);
+}) =>
+    _googleAuth(driveScope, 'google', mobile, keys, keySpace, clientId, clientSecret, webClientId);
+
+/// The calendar's own grant (#432): its own scope and refresh token, so
+/// turning it on or off never touches Drive's.
+OAuthSignIn? calendarAuthFor({
+  required bool mobile,
+  required FlutterSecureStorage keys,
+  required String keySpace,
+  String clientId = _clientId,
+  String clientSecret = _clientSecret,
+  String webClientId = _webClientId,
+}) => _googleAuth(
+  calendarScope,
+  'google.calendar',
+  mobile,
+  keys,
+  keySpace,
+  clientId,
+  clientSecret,
+  webClientId,
+);
+
+OAuthSignIn? _googleAuth(
+  String scope,
+  String keyName,
+  bool mobile,
+  FlutterSecureStorage keys,
+  String keySpace,
+  String clientId,
+  String clientSecret,
+  String webClientId,
+) {
+  if (mobile) {
+    return webClientId.isEmpty ? null : GoogleSignInAuth(serverClientId: webClientId, scope: scope);
+  }
   if (clientId.isEmpty) return null;
-  final name = '$keySpace.google.refresh_token';
+  final name = '$keySpace.$keyName.refresh_token';
   return LoopbackAuth(
+    scope: scope,
     clientId: clientId,
     clientSecret: clientSecret,
     openBrowser: (url) => launchUrl(url, mode: LaunchMode.externalApplication),
@@ -118,9 +153,12 @@ Future<void> _inFront() {
 /// Drive access through the google_sign_in plugin. The plugin keeps the grant;
 /// tokens are asked for silently and only [signIn] may show a sheet.
 class GoogleSignInAuth implements DriveAuth {
-  GoogleSignInAuth({required this.serverClientId});
+  GoogleSignInAuth({required this.serverClientId, this.scope = driveScope});
 
   final String serverClientId;
+
+  /// What it grants: Drive by default; the calendar has its own (#432).
+  final String scope;
   Future<void>? _initialized;
 
   Future<GoogleSignInAuthorizationClient> _client() async {
@@ -131,13 +169,12 @@ class GoogleSignInAuth implements DriveAuth {
   String? _last;
 
   @override
-  Future<bool> signedIn() async =>
-      await (await _client()).authorizationForScopes(const [driveScope]) != null;
+  Future<bool> signedIn() async => await (await _client()).authorizationForScopes([scope]) != null;
 
   @override
   Future<void> signIn() async {
     try {
-      await (await _client()).authorizeScopes(const [driveScope]);
+      await (await _client()).authorizeScopes([scope]);
     } on GoogleSignInException catch (error) {
       throw SignInFailed(error.description ?? error.code.name);
     }
@@ -147,7 +184,7 @@ class GoogleSignInAuth implements DriveAuth {
   Future<String> token({bool refresh = false}) async {
     final client = await _client();
     if (refresh && _last != null) await client.clearAuthorizationToken(accessToken: _last!);
-    final authorization = await client.authorizationForScopes(const [driveScope]);
+    final authorization = await client.authorizationForScopes([scope]);
     if (authorization == null) throw const NotSignedIn();
     return _last = authorization.accessToken;
   }

@@ -66,7 +66,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     final lock = _LockCard(session);
     // Only where this device can notify at all (#431).
-    final reminders = session.remindersAllowed == null ? null : _RemindersCard(session);
+    final reminders = session.remindersAllowed == null && !session.calendarAvailable
+        ? null
+        : _RemindersCard(session);
     final about = _AboutCard(
       session,
       version: widget.version,
@@ -666,21 +668,31 @@ class _RemindersCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = session.strings;
+    final theme = Theme.of(context);
     final allowed = session.remindersAllowed ?? false;
+    // This device's notifications matter only while Google Calendar does not remind.
+    final device = !session.calendar && session.remindersAllowed != null;
     return Card(
       child: Padding(
-        padding: EdgeInsets.only(bottom: allowed ? 0 : Gap.m),
+        padding: const EdgeInsets.only(bottom: Gap.s),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ListTile(
-              leading: Icon(
-                allowed ? Icons.notifications_outlined : Icons.notifications_off_outlined,
+            if (session.calendar)
+              ListTile(
+                leading: const Icon(Icons.event_available_outlined),
+                title: Text(s.reminders),
+                subtitle: Text(s.remindersInCalendar),
+              )
+            else if (device)
+              ListTile(
+                leading: Icon(
+                  allowed ? Icons.notifications_outlined : Icons.notifications_off_outlined,
+                ),
+                title: Text(s.reminders),
+                subtitle: Text(allowed ? s.remindersOn : s.remindersOff),
               ),
-              title: Text(s.reminders),
-              subtitle: Text(allowed ? s.remindersOn : s.remindersOff),
-            ),
-            if (!allowed)
+            if (device && !allowed)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: Gap.m),
                 child: FilledButton.tonalIcon(
@@ -693,6 +705,22 @@ class _RemindersCard extends StatelessWidget {
                     }
                   },
                   label: Text(s.allowNotifications),
+                ),
+              ),
+            if (session.calendarAvailable)
+              SwitchListTile(
+                secondary: const Icon(Icons.calendar_month_outlined),
+                title: Text(s.addToCalendar),
+                subtitle: Text(s.addToCalendarHint),
+                value: session.calendar,
+                onChanged: session.setCalendar,
+              ),
+            if (session.calendarError case final why?)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                child: Text(
+                  s.calendarFailed(why),
+                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
                 ),
               ),
           ],

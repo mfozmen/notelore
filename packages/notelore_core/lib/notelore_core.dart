@@ -90,6 +90,7 @@ export 'src/store/notes.dart'
 export 'src/store/stale.dart' show Stale, findStaleNotes;
 export 'src/store/transfer.dart'
     show ImportOutcome, Imported, LineStyle, OutlineLine, importNote, metaLine, notesHtml, outline;
+export 'src/sync/calendar.dart' show GoogleCalendar, ReminderCalendar, calendarScope;
 export 'src/sync/drive.dart' show AccessToken, DriveRemote, driveScope;
 export 'src/sync/engine.dart' show Remote, RemoteFile, SyncReport, sync;
 export 'src/sync/google_auth.dart' show DriveAuth, LoopbackAuth;
