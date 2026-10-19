@@ -556,6 +556,9 @@ class Session extends ChangeNotifier {
   /// What the last sync did, for the settings screen; null before any.
   String? syncStatus;
 
+  /// Whether this run already said the notes moved into Drive's hidden storage.
+  var _toldMoved = false;
+
   /// Notes gone from Drive with too many others at once (#454): kept here
   /// until the person restores them to Drive or deletes them here too.
   List<String> heldNotes = const [];
@@ -1400,8 +1403,9 @@ class Session extends ChangeNotifier {
           strings.synced(counts.$1, counts.$2, counts.$3, counts.$4),
           // How the model settled conflicts; nothing to explain when nothing moved.
           if (changed) ...?resolver?.explanations,
-          if (_remote!.moved) strings.notesMoved,
+          if (_remote!.moved && !_toldMoved) strings.notesMoved,
         ].join(' ');
+        _toldMoved = _remote!.moved; // said once
       } on NotSignedIn catch (error) {
         driveConnected = false;
         syncStatus = strings.signInAgain(error.message);

@@ -86,6 +86,38 @@ void main() {
     expect(drive.files, isNot(contains(file.id)));
   });
 
+  test("the 30 days count by Drive's clock, never by a device's that is off", () async {
+    final r = remote();
+    final file = await r.upload('topics/t.md', utf8.encode('x\n'), null);
+    drive.now = DateTime.utc(2026, 10, 1);
+    await r.trash(file.id); // marked when Drive says it is
+    now = DateTime.utc(2027, 3, 1); // months ahead
+    drive.now = DateTime.utc(2026, 10, 2);
+    expect(await remote().list(), isEmpty);
+    expect(drive.files, contains(file.id));
+  });
+
+  test('a mark that does not read as a time counts from now', () async {
+    final file = drive.add('topics/t.md', 'appDataFolder', text: 'x\n')
+      ..['appProperties'] = {'removed': 'yes'};
+    expect(await remote().list(), isEmpty);
+    expect(drive.files[file['id']]!['appProperties'], {'removed': '2026-10-19T12:00:00.000Z'});
+  });
+
+  test('a file another device removed meanwhile is no error; a Drive failure is', () async {
+    final old = drive.add('topics/a.md', 'appDataFolder', text: 'a\n')
+      ..['appProperties'] = {'removed': '2026-01-01T00:00:00Z'};
+    drive.gone.add(old['id']! as String);
+    expect(await remote().list(), isEmpty);
+    drive
+      ..gone.clear()
+      ..failing.add(old['id']! as String);
+    await expectLater(
+      remote().list(),
+      throwsA(isA<HttpError>().having((e) => e.status, 'status', 500)),
+    );
+  });
+
   test('only the app folder holds notes: My Drive and Google Docs are not notes', () async {
     final r = remote();
     await r.upload('topics/t.md', utf8.encode('x\n'), null);
@@ -143,13 +175,14 @@ void main() {
   });
 
   group('the visible Notelore folder moves into the app folder once (#454)', () {
-    test('its files are copied, then the folder goes to the trash', () async {
+    test('its files are copied and go to the trash; the folder stays, marked', () async {
       final root = drive.legacy({
         'projects/a.md': '# A\n',
         '_archive/2026-01-01/topics/c.md': '# C\n',
         '.notelore/settings.json': '{}',
       });
-      drive.add('doc', root['id']! as String); // a Google Doc: not ours to copy
+      // A Google Doc put there by hand: not Notelore's to copy or throw away.
+      final doc = drive.add('doc', root['id']! as String);
       final r = remote();
       final listed = await r.list();
       expect(
@@ -162,11 +195,24 @@ void main() {
       );
       expect(drive.text('projects/a.md'), '# A\n');
       expect(drive.file('doc'), isNull);
-      expect(root['trashed'], isTrue); // reversible: in Drive's trash for 30 days
+      final old = drive.files.values.where((f) => f['name'] == 'a.md').single;
+      expect(old['trashed'], isTrue); // reversible: in Drive's trash for 30 days
+      expect(doc['trashed'], isFalse);
+      expect(root['trashed'], isFalse);
+      expect(root['appProperties'], {'notelore': 'moved'});
       expect(r.moved, isTrue);
+      await r.list();
+      expect(r.moved, isTrue); // for the app to say once, however often it lists
       final again = remote();
       expect((await again.list()).keys, hasLength(3));
       expect(again.moved, isFalse);
+    });
+
+    test('a file another device moved meanwhile is skipped', () async {
+      drive.legacy({'topics/a.md': 'a\n', 'topics/b.md': 'b\n'});
+      final b = drive.files.values.firstWhere((f) => f['name'] == 'b.md');
+      drive.gone.add(b['id']! as String);
+      expect((await remote().list()).keys, ['topics/a.md']);
     });
 
     test('a move cut off, or made by two devices at once, keeps one copy of each', () async {

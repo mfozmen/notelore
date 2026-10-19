@@ -379,6 +379,28 @@ void main() {
     expect(report.removedLocal, ['topics/n0.md', 'topics/n1.md']);
   });
 
+  test('another file with other content on Drive is merged, never pulled over (#454)', () async {
+    // The notes moved on Drive (new ids) while an older device still edited the
+    // old copy: this device's base no longer describes the file there.
+    write('topics/t.md', note);
+    write('attachments/x.png', 'one');
+    await run();
+    final edited = '$note- 2026-10-02: from an old device\n';
+    drive.files['topics/t.md'] = ('moved-1', utf8.encode(edited));
+    drive.files['attachments/x.png'] = ('moved-2', utf8.encode('two'));
+    final report = await run(resolve: (conflict) => null);
+    expect(report.pulled, isNot(contains('topics/t.md')));
+    expect(report.skipped, contains('topics/t.md')); // a conflict, left for the model
+    expect(readRel('topics/t.md'), note);
+    // An attachment keeps this copy in history and takes Drive's.
+    expect(report.history.single, endsWith('attachments/x.png'));
+    expect(readRel('attachments/x.png'), 'two');
+    // The same content under a new id is just the move: recorded, nothing else.
+    drive.files['topics/t.md'] = ('moved-3', utf8.encode(note));
+    expect((await run()).changed, 0);
+    expect(manifest.get('topics/t.md')!.driveId, 'moved-3');
+  });
+
   test('deleted here but changed there keeps the change', () async {
     write('topics/t.md', note);
     await run();

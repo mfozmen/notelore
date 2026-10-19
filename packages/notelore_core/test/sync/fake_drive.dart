@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show HttpDate;
 
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
@@ -15,6 +16,13 @@ class FakeDrive {
 
   /// False for a grant from before the app folder (#454): drive.file only.
   var appData = true;
+
+  /// Drive's clock, sent in each answer's Date header when set.
+  DateTime? now;
+
+  /// Files another device removed meanwhile (404), or that Drive fails on (500).
+  final gone = <String>{};
+  final failing = <String>{};
   final requests = <String>[];
   var _next = 0;
 
@@ -75,8 +83,13 @@ class FakeDrive {
     if (file['data'] case final List<int> data) 'md5Checksum': md5.convert(data).toString(),
   };
 
-  http.Response _json(Object body, [int status = 200]) =>
-      http.Response(jsonEncode(body), status, headers: {'content-type': 'application/json'});
+  http.Response _json(Object body, [int status = 200]) => http.Response(
+    jsonEncode(body),
+    status,
+    headers: {'content-type': 'application/json', 'date': ?_date},
+  );
+
+  String? get _date => now == null ? null : HttpDate.format(now!);
 
   http.Response _error(String message, int status) => _json({
     'error': {'message': message},
@@ -101,6 +114,8 @@ class FakeDrive {
       return _error('Request had insufficient authentication scopes.', 403);
     }
     if (request.method == 'GET' && id == null) return _list(query);
+    if (gone.contains(id)) return _error('File not found: $id', 404);
+    if (failing.contains(id)) return _error('Backend Error', 500);
     if (id != null && (file == null || file['trashed'] == true)) {
       return _error('File not found: $id', 404);
     }
@@ -109,7 +124,7 @@ class FakeDrive {
         return http.Response.bytes(file!['data']! as List<int>, 200);
       case 'DELETE':
         files.remove(id);
-        return http.Response('', 204);
+        return http.Response('', 204, headers: {'date': ?_date});
       case 'POST' when path.startsWith('/upload/'):
         return _created(_multipart(request));
       case 'POST':
