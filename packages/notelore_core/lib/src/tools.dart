@@ -185,6 +185,43 @@ final noteTools = List<Tool>.unmodifiable([
   ),
 ]);
 
+/// The tools a phone rarely needs, left out for the model on the device (#447).
+const slimLeftOut = {'merge_notes', 'find_stale_notes', 'decision_history'};
+
+/// Shorter words for the model on the device, where every token is read
+/// before the first word comes.
+const _slimDescriptions = {
+  'create_note': 'Create a project or topic. Fails if it exists.',
+  'add_note_entry': "Append a dated note: one self-contained sentence in the user's language.",
+  'add_todo': 'Add an open todo; due if the user gave a date.',
+  'complete_todo': 'Tick todo number N (1-based, in read_note order).',
+  'add_reminder': 'Add a reminder for a day, or a day and a time, in the note it belongs to.',
+  'record_decision':
+      'Record a decision for a short lowercase topic key; the previous one is superseded.',
+  'get_decision': 'The current decision for a topic.',
+  'search_notes': 'Full-text search over every note, best matches first.',
+  'archive': 'Move entries (by section and 1-based number) or the whole note to the archive.',
+  'related_notes': 'Notes a new note may belong with. Call before create_note.',
+};
+
+/// [noteTools] for the model on the device (#447): fewer, in fewer words, with
+/// the same arguments, so the toolbox checks a call as any other.
+final slimTools = List<Tool>.unmodifiable([
+  for (final tool in noteTools)
+    if (!slimLeftOut.contains(tool.name))
+      Tool(tool.name, _slimDescriptions[tool.name] ?? tool.description, _bare(tool.inputSchema)),
+]);
+
+/// [schema] without the slug's description, said again in nearly every tool;
+/// the words that carry a format (a date, a time, entries) stay.
+Map<String, Object?> _bare(Map<String, Object?> schema) => {
+  ...schema,
+  'properties': {
+    for (final MapEntry(:key, :value) in (schema['properties']! as Map<String, Object?>).entries)
+      key: identical(value, _slug) ? const {'type': 'string'} : value,
+  },
+};
+
 final _isoDate = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
 void _delete(File file) => file.deleteSync();

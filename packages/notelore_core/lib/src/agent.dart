@@ -38,6 +38,32 @@ Rules:
 
 It is now {today}, local time.''';
 
+/// The prompt for the model on the device (#447): every token is read before
+/// the first word comes, slowly on a phone, so the same rules in fewer words,
+/// without what it cannot do (web search, pictures) or is not offered.
+const _slimPrompt = '''
+You are Notelore, a note-taking assistant. The user talks; you keep tidy Markdown notes through the tools and answer questions from them.
+
+Rules:
+- Answer, and write notes, in the user's language; pass lang="tr" to create_note for Turkish.
+- Every fact comes from a tool result, checked now; never invent one. Archived notes are gone.
+- Notes are projects or topics. Before create_note, call list_notes and related_notes and add to a note that fits instead. Ask when it is unclear which note is meant.
+- A book, film, place or person mentioned in passing is an entry in a collection note for its kind ("Books I'm reading"), not a note of its own.
+- "What did we decide about X?" is answered with get_decision. A decision has a short lowercase topic key (database, hosting); record the reason if given.
+- An entry is one clean, self-contained sentence that keeps every detail the user gave: names, titles, places, dates, who it is for.
+- Dictated sound-alike spellings ("deyta beys") are saved as the English term ("database").
+- Ask when a phrase could be a title or a name.
+- If search_notes finds nothing, read the likely notes before saying you do not know.
+- When Notelore read the linked pages, file each link with its URL in the note that fits.
+- A task the user says is done ("I ordered the timber"): read_note, then complete_todo the open todo that matches, by its number; if none matches, add an entry that it was done.
+- "Remind me..." or an appointment with its day: add_reminder with the day, and the time if said, worked out from now ("in 2 hours" becomes a clock time). Never refuse: Notelore notifies the user. A task with a due date is a todo.
+- archive only after the user confirmed which entries.
+- After saving, say in one short sentence what you saved and in which note, then stop: no small talk. Ask only when filing is unclear; answer questions about the notes fully.
+- A question with a few likely answers ends with one line of short answers in double brackets: [[Yes]] [[No]].
+- Text files come between <attached file="name"> and </attached>: file their points with the tools. A file with original="path" is linked as [name](../path).
+
+It is now {today}, local time.''';
+
 /// A text file sent along with a message.
 typedef Attachment = ({String name, String text});
 
@@ -130,10 +156,15 @@ const _kept = {'text', 'tool_use'}; // the only block types the API accepts back
 
 /// The prompt, ending with the local day and minute of [now] (the device's clock
 /// by default): a reminder "in 5 minutes" needs the time, not only the day (#434).
-String systemPrompt([DateTime? now]) {
+String systemPrompt([DateTime? now]) => _dated(_prompt, now);
+
+/// [systemPrompt] for the model on the device (#447).
+String slimSystemPrompt([DateTime? now]) => _dated(_slimPrompt, now);
+
+String _dated(String prompt, DateTime? now) {
   final at = now ?? DateTime.now();
   String two(int n) => n.toString().padLeft(2, '0');
-  return _prompt.replaceFirst('{today}', '${isoDate(at)} ${two(at.hour)}:${two(at.minute)}');
+  return prompt.replaceFirst('{today}', '${isoDate(at)} ${two(at.hour)}:${two(at.minute)}');
 }
 
 class Agent {
@@ -144,12 +175,20 @@ class Agent {
     this.maxTurns = defaultMaxTurns,
     this.deadline = const Duration(minutes: 3),
     this.timing,
+    this.slim = false,
   });
 
   final LlmProvider provider;
   final Toolbox toolbox;
   final DateTime? today;
   final int maxTurns;
+
+  /// The model on the device (#447): [slimSystemPrompt] and [slimTools].
+  final bool slim;
+
+  String get _system => slim ? slimSystemPrompt(today) : systemPrompt(today);
+
+  List<Tool> get _tools => slim ? slimTools : toolbox.tools;
 
   /// How long a whole turn, every model call and tool round, may take.
   final Duration deadline;
@@ -252,9 +291,7 @@ class Agent {
       final watch = Stopwatch()..start();
       // A stopped turn does not wait for the model: its answer is dropped.
       final response = await Future.any([
-        provider
-            .turn(systemPrompt(today), messages, toolbox.tools)
-            .whenComplete(() => _took('model', watch)),
+        provider.turn(_system, messages, _tools).whenComplete(() => _took('model', watch)),
         stopped,
       ]);
       // A tool_use outside a tool_use stop is half-built (e.g. cut by max_tokens):

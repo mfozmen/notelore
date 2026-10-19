@@ -116,6 +116,21 @@ void main() {
     expect(session.spec, isNull); // the file is on the other device, not here
   });
 
+  test('the model on the device is asked with the slim prompt and tools (#447)', () async {
+    final harness = Harness();
+    final session = harness.session(deviceModels: true);
+    harness.pages['https://models.test/q.gguf'] = 'model bytes';
+    await session.downloadDeviceModel();
+    await session.connect(findProvider('device'), '');
+    harness.deviceEngine.answers.add({
+      'message': {'content': 'Hello.'},
+    });
+    await session.send('hi');
+    final (messages, tools) = harness.deviceEngine.asked.single;
+    expect(messages.first['content'], contains('Dictated sound-alike'));
+    expect(tools, hasLength(slimTools.length));
+  });
+
   test('a device that cannot run the model says so in the chat', () async {
     final harness = Harness();
     final session = harness.session(deviceModels: true);

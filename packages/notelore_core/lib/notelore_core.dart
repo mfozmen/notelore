@@ -109,7 +109,7 @@ export 'src/sync/merge.dart'
         decide,
         threeWay;
 export 'src/sync/resolve.dart' show Ask, ModelResolver, askProvider;
-export 'src/tools.dart' show Toolbox, noteTools;
+export 'src/tools.dart' show Toolbox, noteTools, slimTools;
 export 'src/usage.dart'
     show
         MeteredProvider,
