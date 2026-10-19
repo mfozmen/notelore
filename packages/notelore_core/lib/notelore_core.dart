@@ -35,6 +35,7 @@ export 'src/providers/chatgpt.dart'
     show BearerToken, ChatGptProvider, PlanLimitReached, chatGptUsageUrl, listChatGptModels;
 export 'src/providers/chatgpt_auth.dart' show ChatGptAuth;
 export 'src/providers/http.dart' show HttpError, NetworkError, Transport, defaultTransport;
+export 'src/providers/local.dart' show LocalEngine, LocalProvider;
 export 'src/providers/ollama.dart' show ollamaHost;
 export 'src/providers/providers.dart' show createProvider;
 export 'src/providers/validator.dart'
