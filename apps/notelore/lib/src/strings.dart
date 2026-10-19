@@ -385,6 +385,7 @@ abstract class Strings {
   String get calendarUpdateFailed;
   String get calendarElsewhere;
   String get calendarNudge;
+  String get signIn;
   String get signInCalendar;
 
   /// The months, short, January first.
@@ -1189,12 +1190,13 @@ class EnglishStrings extends Strings {
   @override
   String get calendarElsewhere =>
       'Google Calendar is set up on another device. '
-      'This device reminds you itself until you sign in here too; '
-      'then its reminders go to Google Calendar as well.';
+      'Until you sign in here, this device reminds you on its own.';
   @override
   String get calendarNudge =>
-      'This device reminds you itself for now. Sign in to Google Calendar here too, '
-      'so the reminders you add on this device reach it as well.';
+      'Reminders you add here only ring on this device for now. '
+      'Sign in to send them to Google Calendar too.';
+  @override
+  String get signIn => 'Sign in';
   @override
   String get signInCalendar => 'Sign in to Google Calendar';
   @override
@@ -2132,12 +2134,13 @@ class TurkishStrings extends Strings {
   @override
   String get calendarElsewhere =>
       'Google Takvim başka bir cihazda kuruldu. '
-      'Burada da giriş yapana kadar bu cihaz sana kendisi hatırlatır; '
-      'giriş yapınca buradaki hatırlatıcılar da Google Takvim\'e gider.';
+      'Burada giriş yapana kadar bu cihaz sana kendi bildirimiyle hatırlatır.';
   @override
   String get calendarNudge =>
-      'Şimdilik bu cihaz sana kendisi hatırlatıyor. Bu cihazda eklediğin hatırlatıcılar '
-      'da Google Takvim\'e gitsin diye burada da giriş yap.';
+      'Burada eklediğin hatırlatıcılar şimdilik yalnızca bu cihazda çalıyor. '
+      'Google Takvim\'e de gitmeleri için giriş yap.';
+  @override
+  String get signIn => 'Giriş yap';
   @override
   String get signInCalendar => "Google Takvim'e giriş yap";
   @override
