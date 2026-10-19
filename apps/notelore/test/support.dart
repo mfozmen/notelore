@@ -624,6 +624,12 @@ class FakeDeviceEngine implements LocalEngine {
   /// Thrown instead of an answer: a device that cannot run the model.
   Exception? failure;
 
+  /// How often the model was let go of.
+  var disposed = 0;
+
+  @override
+  Future<void> dispose() async => disposed++;
+
   @override
   Future<Map<String, Object?>> chat(
     List<Map<String, Object?>> messages,

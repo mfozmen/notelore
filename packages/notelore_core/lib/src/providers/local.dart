@@ -17,6 +17,9 @@ abstract interface class LocalEngine {
     List<Map<String, Object?>> messages,
     List<Map<String, Object?>> tools,
   );
+
+  /// Lets go of the loaded model: gigabytes of memory, never left to the GC.
+  Future<void> dispose();
 }
 
 /// The device could not load or run the model: too little memory, or a file

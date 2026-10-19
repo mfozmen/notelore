@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/session.dart';
@@ -52,6 +53,38 @@ void main() {
     harness.pages['https://models.test/q.gguf'] = 'model bytes';
     await Future.wait([session.downloadDeviceModel(), session.downloadDeviceModel()]);
     expect(session.deviceModel.ready, isTrue);
+  });
+
+  test('one engine at a time: a rebuild reuses it, leaving the model frees it (#328)', () async {
+    final harness = Harness();
+    final session = harness.session(deviceModels: true);
+    harness.pages['https://models.test/q.gguf'] = 'model bytes';
+    await session.downloadDeviceModel();
+    final device = findProvider('device');
+    await session.connect(device, '');
+    await session.setWebSearch(false); // rebuilds the provider
+    await session.switchTo(device);
+    expect(harness.enginePaths, hasLength(1)); // never a second 2.5 GB copy in memory
+    expect(harness.deviceEngine.disposed, 0);
+    // Removed: the engine goes, and the 2.5 GB file with it.
+    await session.disconnect(device);
+    expect(harness.deviceEngine.disposed, 1);
+    expect(session.deviceModel.ready, isFalse);
+    expect(Directory(session.deviceModel.dir).existsSync(), isFalse);
+  });
+
+  test('another model, or closing, frees the one on the device', () async {
+    final harness = Harness();
+    final session = harness.session(deviceModels: true, owned: false);
+    harness.pages['https://models.test/q.gguf'] = 'model bytes';
+    await session.downloadDeviceModel();
+    await session.connect(findProvider('device'), '');
+    await session.connect(findProvider('anthropic'), 'k');
+    expect(harness.deviceEngine.disposed, 1);
+    expect(session.deviceModel.ready, isTrue); // only removing it deletes the file
+    await session.connect(findProvider('device'), '');
+    session.dispose();
+    expect(harness.deviceEngine.disposed, 2);
   });
 
   test('another device on the model of its own does not move this one there', () async {

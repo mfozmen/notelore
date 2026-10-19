@@ -17,6 +17,9 @@ class FakeEngine implements LocalEngine {
     asked.add((messages, tools));
     return answers.removeAt(0);
   }
+
+  @override
+  Future<void> dispose() async {}
 }
 
 const _tools = [

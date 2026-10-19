@@ -491,7 +491,7 @@ class EnglishStrings extends Strings {
     'openai' => 'Your notes go to OpenAI.',
     'gemini' =>
       'Your notes go to Google; on the free tier it may use them to improve its products.',
-    'device' => 'Your notes stay on this device.',
+    'device' => 'The model runs on this device: your notes go to no AI provider.',
     _ => 'Your notes stay on this computer.',
   };
   @override
@@ -518,7 +518,7 @@ class EnglishStrings extends Strings {
     'anthropic' => 'You want the best answers and pay as you go',
     'openai' => 'You already use the OpenAI API',
     'gemini' => 'You want to start for free',
-    'device' => 'Nothing should leave this device',
+    'device' => 'No AI provider should see your notes',
     _ => 'Nothing should leave this computer',
   };
   @override
@@ -1277,7 +1277,7 @@ class TurkishStrings extends Strings {
     'anthropic' => "Notların Anthropic'e gider.",
     'openai' => "Notların OpenAI'ye gider.",
     'gemini' => "Notların Google'a gider; ücretsiz katmanda Google bunları ürünlerini geliştirmek için kullanabilir.",
-    'device' => 'Notların bu cihazda kalır.',
+    'device' => 'Model bu cihazda çalışır: notların hiçbir yapay zekâ sağlayıcısına gitmez.',
     _ => 'Notların bu bilgisayarda kalır.',
   };
   @override
@@ -1304,7 +1304,7 @@ class TurkishStrings extends Strings {
     'anthropic' => 'En iyi cevapları istiyor, kullandıkça ödemeye razıysan',
     'openai' => 'Zaten OpenAI API kullanıyorsan',
     'gemini' => 'Ücretsiz başlamak istiyorsan',
-    'device' => 'Hiçbir şey bu cihazdan çıkmasın istiyorsan',
+    'device' => 'Notlarını hiçbir yapay zekâ sağlayıcısı görmesin istiyorsan',
     _ => 'Hiçbir şey bu bilgisayardan çıkmasın istiyorsan',
   };
   @override

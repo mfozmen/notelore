@@ -224,6 +224,17 @@ class Session extends ChangeNotifier {
   /// The engine that runs [deviceModel]'s file: llama.cpp; a fake in tests.
   final LocalEngine Function(String path) makeDeviceEngine;
 
+  /// The one loaded engine, if any: a rebuilt provider reuses it, never a
+  /// second copy of the model in memory.
+  LocalEngine? _deviceEngine;
+
+  /// Lets go of the model on the device, when another model is used or none.
+  Future<void> _freeDeviceEngine() async {
+    final engine = _deviceEngine;
+    _deviceEngine = null;
+    await engine?.dispose();
+  }
+
   /// The model on the device is offered (where llama.cpp runs: Android,
   /// Windows, macOS).
   final bool deviceModels;
@@ -714,6 +725,12 @@ class Session extends ChangeNotifier {
     } else {
       await keys.delete(key: _keyName(spec));
     }
+    if (spec.name == 'device') {
+      // Removed means removed: its 2.5 GB go too (downloaded again on request).
+      await _freeDeviceEngine();
+      final dir = Directory(deviceModel.dir);
+      if (dir.existsSync()) dir.deleteSync(recursive: true);
+    }
     if (this.spec?.name == spec.name) _forgetProvider();
     notifyListeners();
   }
@@ -854,6 +871,7 @@ class Session extends ChangeNotifier {
     models = const [];
     _agent = null;
     _provider = null;
+    unawaited(_freeDeviceEngine());
   }
 
   /// Forgets every provider's key on this device and the chosen provider; the
@@ -882,10 +900,14 @@ class Session extends ChangeNotifier {
     }
     spec = chosen;
     model = chosenModel;
+    if (chosen.name != 'device') unawaited(_freeDeviceEngine());
     final toolbox = Toolbox(paths.notes.path, index, today: today);
     _provider = MeteredProvider(
       chosen.name == 'device'
-          ? LocalProvider(chosenModel, makeDeviceEngine(deviceModel.path(deviceFiles.first.name)))
+          ? LocalProvider(
+              chosenModel,
+              _deviceEngine ??= makeDeviceEngine(deviceModel.path(deviceFiles.first.name)),
+            )
           : makeProvider(
               chosen,
               key,
@@ -1668,6 +1690,7 @@ class Session extends ChangeNotifier {
     _stopRetrying();
     _disposed = true;
     index.close();
+    unawaited(_freeDeviceEngine());
     super.dispose();
   }
 }

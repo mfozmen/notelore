@@ -15,8 +15,14 @@ workspace:
 dev_dependencies:
   test: ^1.26.0
 
-# The on-device model (#328): llamadart bundles only llama.cpp, no LiteRT-LM.
+# The on-device model (#328): llamadart bundles only llama.cpp (no LiteRT-LM),
+# on the CPU (no Vulkan: 26 MB per ABI for a feature most never download a
+# model for). Android keeps its full set of CPU variants for prefill speed.
 hooks:
   user_defines:
     llamadart:
       llamadart_native_runtimes: [llama_cpp]
+      llamadart_native_backends:
+        platforms:
+          android: [cpu]
+          windows: [cpu]

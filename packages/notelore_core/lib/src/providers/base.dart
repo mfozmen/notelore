@@ -146,7 +146,7 @@ const providerSpecs = [
     group: ProviderGroup.device,
     requiresApiKey: false,
     defaultModel: 'qwen3-4b-instruct-2507',
-    cost: 'Free and offline: the model runs on this device. A 2.5 GB download, once.',
+    cost: 'Free: the model runs on this device, no AI provider sees your notes. A 2.5 GB download, once.',
   ),
 ];
 

@@ -23,7 +23,30 @@ const deviceModelFiles = [
   ),
 ];
 
-/// The OpenAI-like messages [LocalProvider] sends, as llama.cpp's.
+/// Where the model on the device is offered (#328): the desktops llama.cpp
+/// runs on, and an Android phone with a 64-bit runtime and at least 6 GB of
+/// memory ([meminfo] is `/proc/meminfo`); a smaller one is killed loading it.
+bool deviceModelRuns({required String os, required String dartVersion, String? meminfo}) {
+  if (os == 'windows' || os == 'macos') return true;
+  if (os != 'android') return false;
+  if (!RegExp('android_(arm64|x64)').hasMatch(dartVersion)) return false;
+  final kb = RegExp(r'MemTotal:\s*(\d+) kB').firstMatch(meminfo ?? '')?[1];
+  return kb != null && int.parse(kb) >= _enoughKb;
+}
+
+/// 6 GB as the kernel counts it; a "6 GB" phone reports a little less.
+const _enoughKb = 5500000;
+
+/// Text a model would read as its own markers (a turn's end, a tool call, its
+/// thinking), written so it stays text: llama.cpp parses those tokens even in
+/// a message, so a shared note or a web page could otherwise forge a turn.
+String _inert(String text) => text.replaceAllMapped(
+  RegExp(r'<(\||/?tool_call>|/?tool_response>|/?think>)'),
+  (m) => '<\u200B${m[1]}',
+);
+
+/// The OpenAI-like messages [LocalProvider] sends, as llama.cpp's. Everything
+/// but the app's own system prompt is made [_inert].
 List<LlamaChatMessage> toLlama(List<Map<String, Object?>> messages) => [
   for (final message in messages)
     switch (message['role']) {
@@ -35,7 +58,7 @@ List<LlamaChatMessage> toLlama(List<Map<String, Object?>> messages) => [
         role: LlamaChatRole.assistant,
         content: [
           if (message['content'] case final String text when text.isNotEmpty)
-            LlamaTextContent(text),
+            LlamaTextContent(_inert(text)),
           for (final call
               in (message['tool_calls'] as List? ?? const []).cast<Map<Object?, Object?>>())
             _call(call['function']! as Map),
@@ -44,10 +67,16 @@ List<LlamaChatMessage> toLlama(List<Map<String, Object?>> messages) => [
       'tool' => LlamaChatMessage.withContent(
         role: LlamaChatRole.tool,
         content: [
-          LlamaToolResultContent(name: '${message['tool_name']}', result: message['content']),
+          LlamaToolResultContent(
+            name: '${message['tool_name']}',
+            result: _inert('${message['content']}'),
+          ),
         ],
       ),
-      _ => LlamaChatMessage.fromText(role: LlamaChatRole.user, text: '${message['content']}'),
+      _ => LlamaChatMessage.fromText(
+        role: LlamaChatRole.user,
+        text: _inert('${message['content']}'),
+      ),
     },
 ];
 

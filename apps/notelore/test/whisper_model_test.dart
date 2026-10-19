@@ -36,6 +36,17 @@ void main() {
         );
       });
 
+  test('a server that sends more than the file stops there: the disk never fills (#328)', () async {
+    final model = WhisperModel(dir.path, files: [file('tokens.txt', 'a 1\nb 2\n')]);
+    final flood = serving({'tokens.txt': 'a 1\nb 2\n${'x' * 1000}'});
+    await expectLater(
+      model.download(client: flood, onProgress: (_) {}),
+      throwsA(isA<ModelDownloadFailed>().having((e) => '$e', 'message', contains('larger'))),
+    );
+    expect(model.ready, isFalse);
+    expect(File(p.join(dir.path, 'tokens.txt.part')).existsSync(), isFalse);
+  });
+
   test('downloads every file, checked, with progress; then ready', () async {
     final model = WhisperModel(dir.path, files: files);
     expect(model.ready, isFalse);
