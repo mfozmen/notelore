@@ -143,6 +143,7 @@ void main() {
       await tester.tap(find.text('Delete here too'));
       await tester.pumpAndSettle();
       expect(find.text('Delete 4 notes here too?'), findsOneWidget);
+      expect(find.text('a\nb\nc\nd'), findsOneWidget); // which ones, before deciding
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
       expect(find.textContaining('removed from Google Drive'), findsOneWidget);

@@ -363,13 +363,33 @@ class _HeldBanner extends StatelessWidget {
 
   final Session session;
 
+  /// Shown before deleting: the first few, so a partial wipe can be spotted.
+  static const _named = 5;
+
   Future<void> _delete(BuildContext context) async {
     final s = session.strings;
+    final held = session.heldNotes;
     final sure = await showDialog<bool>(
       context: context,
       builder: (dialog) => AlertDialog(
-        title: Text(s.deleteHeldQuestion(session.heldNotes.length)),
-        content: Text(s.deleteHeldExplained),
+        icon: Icon(Icons.delete_outline, color: Theme.of(dialog).colorScheme.error),
+        title: Text(s.deleteHeldQuestion(held.length)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: Gap.s,
+          children: [
+            Text(s.deleteHeldExplained),
+            Text(
+              [
+                for (final rel in held.take(_named)) rel.split('/').last.replaceAll('.md', ''),
+                if (held.length > _named) s.andMore(held.length - _named),
+              ].join('\n'),
+              style: Theme.of(dialog).textTheme.bodySmall
+                  ?.copyWith(color: Theme.of(dialog).colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialog, false), child: Text(s.cancel)),
           FilledButton(
@@ -392,8 +412,19 @@ class _HeldBanner extends StatelessWidget {
     final s = session.strings;
     final idle = !session.syncing;
     return MaterialBanner(
-      leading: const Icon(Icons.cloud_off_outlined),
-      content: Text(s.heldNotes(session.heldNotes.length)),
+      leading: Icon(
+        Icons.cloud_off_outlined,
+        color: Theme.of(context).colorScheme.onSecondaryContainer,
+      ),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: Gap.s,
+        children: [
+          Text(s.heldNotes(session.heldNotes.length)),
+          // Restore or delete under way: the buttons wait, this says why.
+          if (!idle) const LinearProgressIndicator(),
+        ],
+      ),
       actions: [
         TextButton(onPressed: idle ? () => _delete(context) : null, child: Text(s.deleteHereToo)),
         TextButton(onPressed: idle ? session.restoreHeld : null, child: Text(s.restoreToDrive)),

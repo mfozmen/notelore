@@ -78,6 +78,7 @@ Future<SyncReport> sync(
   Resolver resolve, {
   DateTime? now,
   Set<String> remove = const {},
+  Set<String> restore = const {},
 }) async {
   final t = (now ?? DateTime.now()).toUtc();
   final stamp =
@@ -96,15 +97,10 @@ Future<SyncReport> sync(
   for (final key in keys) {
     folded.update(key.toLowerCase(), (n) => n + 1, ifAbsent: () => 1);
   }
-  // More than one gone, and more than 3 or a fifth of what was synced: a wipe,
-  // not a tidy-up. Only those in [remove], the person's choice, go here too.
-  final gone = [
-    for (final rel in manifest.paths())
-      if (!remoteFiles.containsKey(rel) && local.containsKey(rel)) rel,
-  ];
-  final wiped = gone.length > 1 && (gone.length > 3 || gone.length * 5 > manifest.paths().length);
+  // Only those in [remove], the person's choice, go here too.
+  final wiped = _wiped(manifest.paths(), remoteFiles, local);
   bool hold(String rel) => wiped && !remove.contains(rel);
-  final run = _Pass(root, manifest, remote, resolve, stamp, report, hold);
+  final run = _Pass(root, manifest, remote, resolve, stamp, report, hold, restore);
   for (final rel in keys) {
     if (!_safe(rel) || folded[rel.toLowerCase()]! > 1) {
       report.ignored.add(rel);
@@ -114,6 +110,27 @@ Future<SyncReport> sync(
     await (binary ? run.binary : run.file)(rel, remoteFiles[rel], local[rel]);
   }
   return report;
+}
+
+/// Whether the notes gone from [remote] look like a wipe, not a tidy-up: all
+/// of them, or more than one and more than 3 or a fifth of the notes. Only
+/// notes count, with a copy still here: not the archive or history (emptying
+/// the archive is a choice made elsewhere), nor a note another device archived
+/// (its copy is now under `_archive/`).
+bool _wiped(List<String> synced, Map<String, RemoteFile> remote, Map<String, File> local) {
+  final known = synced.toSet();
+  final archived = {
+    for (final rel in remote.keys)
+      if (rel.startsWith('_archive/') && !known.contains(rel)) rel.split('/').skip(2).join('/'),
+  };
+  final notes = synced.where(
+    (rel) => !rel.startsWith('_archive/') && !rel.startsWith('.notelore/'),
+  );
+  final gone = notes
+      .where((rel) => !remote.containsKey(rel) && local.containsKey(rel) && !archived.contains(rel))
+      .length;
+  if (gone == 0) return false;
+  return !synced.any(remote.containsKey) || (gone > 1 && (gone > 3 || gone * 5 > notes.length));
 }
 
 /// The synced files under [root], by their relative path. Keys are NFC: macOS
@@ -147,7 +164,16 @@ bool _synced(String rel) =>
     (rel.startsWith('$attachmentsFolder/') && !rel.split('/').last.startsWith('.'));
 
 class _Pass {
-  _Pass(this.root, this.manifest, this.remote, this.resolve, this.stamp, this.report, this.hold);
+  _Pass(
+    this.root,
+    this.manifest,
+    this.remote,
+    this.resolve,
+    this.stamp,
+    this.report,
+    this.hold,
+    this.restore,
+  );
 
   final String root;
   final Manifest manifest;
@@ -156,6 +182,14 @@ class _Pass {
   final String stamp;
   final SyncReport report;
   final bool Function(String rel) hold;
+
+  /// Gone from the remote, and to be put back there: pushed, not removed here.
+  final Set<String> restore;
+
+  SyncAction _action(String rel, String? base, String? local, String? remote) {
+    final action = decide(base, local, remote);
+    return action == SyncAction.removeLocal && restore.contains(rel) ? SyncAction.push : action;
+  }
 
   String _path(String rel, [String? base]) => p.joinAll([base ?? root, ...rel.split('/')]);
 
@@ -175,7 +209,7 @@ class _Pass {
     final remoteHash = _remoteHash(meta, remoteText, baseHash);
     final localHash = localText == null ? null : contentHash(localText);
 
-    switch (decide(baseHash, localHash, remoteHash)) {
+    switch (_action(rel, baseHash, localHash, remoteHash)) {
       case SyncAction.none:
         if (localText != null && meta != null) {
           if (entry != _entry(meta, localText)) _record(rel, meta, localText);
@@ -216,7 +250,7 @@ class _Pass {
     if (downloaded != null) remoteHash = bytesHash(downloaded);
     ManifestEntry recorded(RemoteFile at, String hash) =>
         ManifestEntry(localHash: hash, driveId: at.id, md5: at.md5, modified: at.modified);
-    switch (decide(entry?.localHash, localHash, remoteHash)) {
+    switch (_action(rel, entry?.localHash, localHash, remoteHash)) {
       case SyncAction.none:
         if (local != null && meta != null) {
           if (entry != recorded(meta, localHash!)) manifest.record(rel, recorded(meta, localHash));

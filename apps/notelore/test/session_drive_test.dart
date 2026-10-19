@@ -74,6 +74,17 @@ void main() {
       expect(session.heldNotes, isEmpty);
     });
 
+    test('a Restore that failed offline leaves Delete here too working', () async {
+      final (session, remote, root) = await wiped();
+      remote.failure = const NetworkError('offline');
+      await session.restoreHeld();
+      expect(session.heldNotes, hasLength(4));
+      remote.failure = null;
+      await session.deleteHeld();
+      expect(File(p.join(root, 'topics', 'a.md')).existsSync(), isFalse);
+      expect(remote.texts.keys.where((rel) => rel.endsWith('.md')), isEmpty);
+    });
+
     test('Delete here too moves them to history', () async {
       final (session, _, root) = await wiped();
       await session.deleteHeld();
