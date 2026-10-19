@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:notelore_core/src/eval.dart';
+import 'package:notelore_core/src/providers/base.dart' show Message;
 import 'package:test/test.dart';
 
 import 'agent_test.dart' show ScriptedProvider, text, toolUse;
@@ -148,6 +149,108 @@ void main() {
     ];
     expect(trainingIssues(messages), {TrainingIssue.toolError, TrainingIssue.repeatedCall});
     expect(trainingIssues([messages.last]), isEmpty);
+  });
+
+  group('a read repeated with the same result adds nothing: it is dropped, not the turn', () {
+    Message call(String id, String name, [Map<String, Object?> input = const {}]) => {
+      'type': 'tool_use',
+      'id': id,
+      'name': name,
+      'input': input,
+    };
+    Message result(String id, String content) => {
+      'type': 'tool_result',
+      'tool_use_id': id,
+      'content': content,
+    };
+    Message assistant(List<Message> blocks) => {'role': 'assistant', 'content': blocks};
+    Message results(List<Message> blocks) => {'role': 'user', 'content': blocks};
+    const list = '[{"slug": "mopsos"}]';
+
+    test('a call alone in its step goes with its step', () {
+      final messages = [
+        {'role': 'user', 'content': 'Mopsos: weekly.'},
+        assistant([call('a', 'list_notes')]),
+        results([result('a', list)]),
+        assistant([call('b', 'list_notes')]),
+        results([result('b', list)]),
+        assistant([
+          call('c', 'add_note_entry', {'slug': 'mopsos', 'text': 'Weekly.'}),
+        ]),
+        results([result('c', 'ok')]),
+        assistant([
+          {'type': 'text', 'text': 'Saved.'},
+        ]),
+      ];
+      final collapsed = collapseRepeatedReads(messages);
+      expect(collapsed, [...messages.take(3), ...messages.skip(5)]);
+      expect(trainingIssues(messages), isEmpty);
+    });
+
+    test('a call beside others goes alone, with its result', () {
+      final messages = [
+        assistant([
+          call('a', 'read_note', {'slug': 'x'}),
+        ]),
+        results([result('a', '# X')]),
+        assistant([
+          call('b', 'read_note', {'slug': 'x'}),
+          call('c', 'read_note', {'slug': 'y'}),
+        ]),
+        results([result('b', '# X'), result('c', '# Y')]),
+      ];
+      expect(collapseRepeatedReads(messages).skip(2), [
+        assistant([
+          call('c', 'read_note', {'slug': 'y'}),
+        ]),
+        results([result('c', '# Y')]),
+      ]);
+    });
+
+    test('a read that answered otherwise, or a write, is kept and still counts', () {
+      final changed = [
+        assistant([call('a', 'list_notes')]),
+        results([result('a', '[]')]),
+        assistant([call('b', 'list_notes')]),
+        results([result('b', list)]), // a note was made in between
+      ];
+      expect(collapseRepeatedReads(changed), changed);
+      expect(trainingIssues(changed), {TrainingIssue.repeatedCall});
+      final writes = [
+        assistant([
+          call('a', 'add_todo', {'slug': 'x', 'text': 'Buy milk'}),
+        ]),
+        results([result('a', 'ok')]),
+        assistant([
+          call('b', 'add_todo', {'slug': 'x', 'text': 'Buy milk'}),
+        ]),
+        results([result('b', 'ok')]),
+      ];
+      expect(collapseRepeatedReads(writes), writes);
+      expect(trainingIssues(writes), {TrainingIssue.repeatedCall});
+    });
+
+    test('the training example is the collapsed exchange', () async {
+      final result = await runCase(
+        filing,
+        ScriptedProvider([
+          toolUse('list_notes', 't1'),
+          toolUse('list_notes', 't2'),
+          toolUse('add_note_entry', 't3', {'slug': 'mopsos', 'text': 'Hit rate is now daily.'}),
+          text('Saved to Mopsos.'),
+        ]),
+      );
+      final messages = (trainingExample(result)['messages']! as List).cast<Map<String, Object?>>();
+      expect(messages.map((m) => m['role']), [
+        'system',
+        'user',
+        'assistant',
+        'tool',
+        'assistant',
+        'tool',
+        'assistant',
+      ]);
+    });
   });
 
   test('training issues recognize tool error prefixes regardless of case', () {

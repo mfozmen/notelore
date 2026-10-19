@@ -201,10 +201,50 @@ Iterable<String> _missingFacts(
 Map<String, Object?> trainingExample(EvalResult result) => {
   'messages': [
     {'role': 'system', 'content': systemPrompt(evalNow)},
-    ...toOllama(result.messages),
+    ...toOllama(collapseRepeatedReads(result.messages)),
   ],
   'tools': functionTools(noteTools),
 };
+
+/// [messages] without each read that repeats an earlier one, same tool, same
+/// arguments, same result (a second identical list_notes, say): it taught
+/// nothing, so it goes with its result, and with its step when it was the
+/// step's only call. A write, or a read that answered otherwise, stays.
+List<Message> collapseRepeatedReads(List<Message> messages) {
+  const equality = DeepCollectionEquality();
+  final results = {
+    for (final block in _trainingBlocks(messages))
+      if (block['type'] == 'tool_result') block['tool_use_id']: block['content'],
+  };
+  final seen = <List<Object?>>[];
+  final dropped = <Object?>{};
+  for (final block in _trainingBlocks(messages)) {
+    if (block['type'] != 'tool_use' || block['id'] == null) continue;
+    if (!results.containsKey(block['id'])) continue;
+    final call = [block['name'], block['input'], results[block['id']]];
+    if (!writingTools.contains(block['name']) && seen.any((s) => equality.equals(s, call))) {
+      dropped.add(block['id']);
+    }
+    seen.add(call);
+  }
+  bool gone(Object? block) =>
+      block is Map &&
+      dropped.contains(block['type'] == 'tool_use' ? block['id'] : block['tool_use_id']);
+  bool calls(Object? block) => block is Map && block['type'] == 'tool_use';
+  return [
+    for (final message in messages)
+      if (message['content'] case final List<Object?> blocks)
+        // A step whose every call went goes whole, its words with it.
+        if (blocks.any(calls) && blocks.where(calls).every(gone))
+          ...[]
+        else if (blocks.where((b) => !gone(b)).toList() case final left when left.isNotEmpty)
+          {...message, 'content': left}
+        else
+          ...[]
+      else
+        message,
+  ];
+}
 
 /// Reasons a scored-passing teacher turn is excluded from distillation.
 enum TrainingIssue { toolError, repeatedCall }
@@ -215,7 +255,7 @@ Set<TrainingIssue> trainingIssues(List<Message> messages) {
   final issues = <TrainingIssue>{};
   final calls = <List<Object?>>[];
   const equality = DeepCollectionEquality();
-  for (final block in _trainingBlocks(messages)) {
+  for (final block in _trainingBlocks(collapseRepeatedReads(messages))) {
     if (block['type'] == 'tool_result' &&
         block['content'] is String &&
         (block['content']! as String).toLowerCase().startsWith('error')) {
