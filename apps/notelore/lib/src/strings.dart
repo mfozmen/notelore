@@ -421,6 +421,7 @@ abstract class Strings {
   String get deleteHereToo;
   String deleteHeldQuestion(int count);
   String get deleteHeldExplained;
+  String andMore(int count);
 
   /// A text the core produced in English, in this language.
   String core(String english);
@@ -1215,17 +1216,21 @@ class EnglishStrings extends Strings {
   }
 
   @override
-  String heldNotes(int count) =>
-      '$count notes were removed from Google Drive at once. Notelore kept them here.';
+  String heldNotes(int count) => count == 1
+      ? '1 note was removed from Google Drive. Notelore kept it here.'
+      : '$count notes were removed from Google Drive at once. Notelore kept them here.';
   @override
   String get restoreToDrive => 'Restore to Drive';
   @override
   String get deleteHereToo => 'Delete here too';
   @override
-  String deleteHeldQuestion(int count) => 'Delete $count notes here too?';
+  String deleteHeldQuestion(int count) =>
+      count == 1 ? 'Delete 1 note here too?' : 'Delete $count notes here too?';
   @override
   String get deleteHeldExplained =>
       "They leave this device as they left Drive. A copy stays in Notelore's history.";
+  @override
+  String andMore(int count) => '+$count more';
 
   @override
   String core(String english) => english;
@@ -2059,8 +2064,9 @@ class TurkishStrings extends Strings {
   }
 
   @override
-  String heldNotes(int count) =>
-      "$count not Google Drive'dan bir anda kaldırıldı. Notelore onları burada tuttu.";
+  String heldNotes(int count) => count == 1
+      ? "1 not Google Drive'dan kaldırıldı. Notelore onu burada tuttu."
+      : "$count not Google Drive'dan bir anda kaldırıldı. Notelore onları burada tuttu.";
   @override
   String get restoreToDrive => "Drive'a geri yükle";
   @override
@@ -2070,6 +2076,8 @@ class TurkishStrings extends Strings {
   @override
   String get deleteHeldExplained =>
       "Drive'dan gittikleri gibi bu cihazdan da giderler. Bir kopyası Notelore'un geçmişinde kalır.";
+  @override
+  String andMore(int count) => '+$count tane daha';
 
   static const _core = {
     'Thinking': 'Düşünüyor',

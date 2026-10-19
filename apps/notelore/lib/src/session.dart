@@ -1364,13 +1364,13 @@ class Session extends ChangeNotifier {
       var completed = false;
       try {
         final resolver = _provider == null ? null : ModelResolver(askProvider(_provider!));
-        restore.forEach(manifest.forget); // never synced, as far as this pass knows: pushed
         final report = await sync(
           paths.notes.path,
           manifest,
           _remote ??= remoteFor(driveAuth!),
           resolver?.call ?? _unresolved, // no model connected: conflicts wait
           remove: remove,
+          restore: restore,
         );
         heldNotes = report.held;
         _markSyncedNotes(report);

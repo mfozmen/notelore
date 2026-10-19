@@ -86,8 +86,11 @@ void main() {
     ..parent.createSync(recursive: true)
     ..writeAsBytesSync(utf8.encode(text));
   String readRel(String rel) => read(at(rel));
-  Future<SyncReport> run({Resolver resolve = never, Set<String> remove = const {}}) =>
-      sync(root, manifest, drive, resolve, now: now, remove: remove);
+  Future<SyncReport> run({
+    Resolver resolve = never,
+    Set<String> remove = const {},
+    Set<String> restore = const {},
+  }) => sync(root, manifest, drive, resolve, now: now, remove: remove, restore: restore);
 
   test('the first sync pushes everything and the second does nothing', () async {
     write('projects/a.md', note);
@@ -137,7 +140,10 @@ void main() {
     File(at('attachments/2026-10-18/memo.m4a')).deleteSync();
     report = await run();
     expect(report.removedRemote, ['attachments/2026-10-18/memo.m4a']);
-    // Trashed on Drive: here it goes to history, never deleted.
+    // Trashed on Drive (with a note still there, so not a wipe, #454): here it
+    // goes to history, never deleted.
+    write('topics/stays.md', note);
+    await run();
     drive.files.remove('attachments/2026-10-19/call.ogg');
     report = await run();
     expect(report.removedLocal, ['attachments/2026-10-19/call.ogg']);
@@ -268,6 +274,7 @@ void main() {
 
   test('a remote removal moves the local copy to history', () async {
     write('topics/t.md', note);
+    write('topics/stays.md', note);
     await run();
     drive.files.remove('topics/t.md');
     final report = await run();
@@ -305,6 +312,56 @@ void main() {
     expect(removed.removedLocal, ['attachments/x.png', 'topics/a.md']);
     expect(removed.held, hasLength(4));
     expect(readRel('.notelore/history/$stamp/topics/a.md'), note);
+  });
+
+  test('everything gone from Drive is held, even a single note (#454)', () async {
+    write('topics/only.md', note);
+    await run();
+    drive.files.clear(); // the folder trashed, or the app data deleted
+    final report = await run();
+    expect(report.held, ['topics/only.md']);
+    expect(File(at('topics/only.md')).existsSync(), isTrue);
+  });
+
+  test('Restore puts held notes back on Drive in the same pass (#454)', () async {
+    for (final name in ['a', 'b']) {
+      write('topics/$name.md', note);
+    }
+    await run();
+    drive.files.clear();
+    final report = await run(restore: {'topics/a.md', 'topics/b.md'});
+    expect(report.pushed, ['topics/a.md', 'topics/b.md']);
+    expect(report.held, isEmpty);
+    expect(drive.text('topics/a.md'), note);
+    expect((await run()).changed, 0);
+  });
+
+  test('notes archived on another device are not a mass delete (#454)', () async {
+    for (final name in ['a', 'b', 'c', 'd', 'e']) {
+      write('topics/$name.md', note);
+    }
+    await run();
+    for (final name in ['a', 'b', 'c', 'd']) {
+      drive
+        ..files.remove('topics/$name.md')
+        ..put('_archive/2026-10-01/topics/$name.md', note);
+    }
+    final report = await run();
+    expect(report.held, isEmpty);
+    expect(report.removedLocal, hasLength(4));
+    expect(File(at('_archive/2026-10-01/topics/a.md')).existsSync(), isTrue);
+  });
+
+  test('emptying the archive on another device is not a mass delete (#454)', () async {
+    write('topics/kept.md', note);
+    for (final name in ['a', 'b', 'c', 'd']) {
+      write('_archive/2026-09-01/topics/$name.md', note);
+    }
+    await run();
+    drive.files.removeWhere((rel, _) => rel.startsWith('_archive/'));
+    final report = await run();
+    expect(report.held, isEmpty);
+    expect(report.removedLocal, hasLength(4));
   });
 
   test('a few notes gone from many are removed as before (#454)', () async {
