@@ -94,3 +94,69 @@ String _flat(String text) {
 }
 
 const _longest = 200;
+
+/// One thing on a day of the calendar view (#453): a reminder, or an open todo
+/// with its date, and the note it lives in.
+final class DayItem {
+  const DayItem({
+    required this.day,
+    required this.time,
+    required this.text,
+    required this.note,
+    required this.kind,
+    required this.slug,
+    required this.todo,
+  });
+
+  /// The local date, at midnight.
+  final DateTime day;
+
+  /// "HH:MM", or null for the whole day.
+  final String? time;
+  final String text;
+
+  /// The note's title, and where it lives ([kind], [slug]) to open it.
+  final String note;
+  final String kind;
+  final String slug;
+  final bool todo;
+}
+
+/// The reminders from [today] on and every open todo under [root], by day and
+/// then by time (a whole day first). Late todos stay: they are still to do.
+List<DayItem> calendarItems(String root, {required DateTime today}) {
+  final from = DateTime(today.year, today.month, today.day);
+  final items = <DayItem>[];
+  for (final MapEntry(key: kind, value: folder) in kinds.entries) {
+    for (final file in markdownFiles(p.join(root, folder))) {
+      final note = _readable(file.path);
+      if (note == null) continue;
+      DayItem item(DateTime date, String? time, String text, {required bool todo}) => DayItem(
+        day: DateTime(date.year, date.month, date.day),
+        time: time,
+        text: _flat(text),
+        note: note.title,
+        kind: kind,
+        slug: p.basenameWithoutExtension(file.path),
+        todo: todo,
+      );
+      for (final entry in note.section('reminders')?.entries ?? const <NoteEntry>[]) {
+        if (entry case Reminder(:final date, :final time, :final text)
+            when !DateTime(date.year, date.month, date.day).isBefore(from)) {
+          items.add(item(date, time, text, todo: false));
+        }
+      }
+      for (final entry in note.section('todo')?.entries ?? const <NoteEntry>[]) {
+        if (entry case Todo(:final date, :final text, done: false)) {
+          items.add(item(date, null, text, todo: true));
+        }
+      }
+    }
+  }
+  int order(DayItem a, DayItem b) {
+    final byDay = a.day.compareTo(b.day);
+    return byDay != 0 ? byDay : (a.time ?? '').compareTo(b.time ?? '');
+  }
+
+  return items..sort(order);
+}
