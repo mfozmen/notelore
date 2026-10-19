@@ -70,13 +70,13 @@ Future<void> connect(
   }
 }
 
-/// A phone-sized screen (432 x 960 logical pixels); a tap that misses its widget fails.
 /// The on-screen keyboard's room, as a phone reports it while one is up.
 void softKeyboard(WidgetTester tester) {
   tester.view.viewInsets = const FakeViewPadding(bottom: 900);
   addTearDown(tester.view.resetViewInsets);
 }
 
+/// A phone-sized screen (432 x 960 logical pixels); a tap that misses its widget fails.
 void phone(WidgetTester tester) {
   WidgetController.hitTestWarningShouldBeFatal = true;
   addTearDown(() => WidgetController.hitTestWarningShouldBeFatal = false);
