@@ -119,6 +119,9 @@ void main() {
   test('every entry exists in both languages, and the Turkish is Turkish', () {
     Map<String, String> all(Strings s) => {
       'chat': s.chat,
+      'usageInPlan': s.usageInPlan,
+      'usageNoCharge': s.usageNoCharge,
+      'usagePlanPart': s.usagePlanPart,
       'deleteForever': s.deleteForever,
       'deleteForeverTitle': s.deleteForeverTitle('t'),
       'deleteForeverBody': s.deleteForeverBody,
@@ -412,6 +415,26 @@ void main() {
       '1 model call did not report usage',
       'Estimated cost: not available',
     ]);
+    // On a plan or a local model nothing is charged per token: said so, never "$0.00" (#436).
+    const onPlan = UsageSummary(
+      UsageCount(calls: 2, input: 53117, output: 422),
+      cost: 0,
+      plan: true,
+      billed: false,
+    );
+    expect(en.usageLines(onPlan).last, 'Included in your ChatGPT plan');
+    expect(tr.usageLines(onPlan).last, 'ChatGPT planına dahil');
+    const local = UsageSummary(UsageCount(calls: 1), cost: 0, plan: false, billed: false);
+    expect(en.usageLines(local).last, 'No per-token charge: a local model');
+    expect(tr.usageLines(local).last, 'Token başına ücret yok: yerel model');
+    const mixed = UsageSummary(UsageCount(calls: 2), cost: 0.5, plan: true);
+    expect(en.usageLines(mixed).sublist(1), [
+      'Estimated cost: about \$0.50',
+      'What ran on the ChatGPT plan is included in it',
+    ]);
+    expect(tr.usageLines(mixed).last, 'ChatGPT planında çalışan kısım plana dahil');
+    expect(tr.usagePlan, contains('planının'));
+    expect(tr.usageEstimate('d'), isNot(contains('nız')));
     const blank = UsageSummary(UsageCount(calls: 2, unreported: 2), cost: null, plan: false);
     expect(en.usageLines(blank), [
       'Tokens: not available',

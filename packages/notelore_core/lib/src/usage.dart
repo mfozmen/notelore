@@ -86,7 +86,7 @@ final class UsageCount {
 
 /// Counts added up over provider and model, for the user to see.
 final class UsageSummary {
-  const UsageSummary(this.count, {required this.cost, required this.plan});
+  const UsageSummary(this.count, {required this.cost, required this.plan, this.billed = true});
 
   final UsageCount count;
   int get calls => count.calls;
@@ -103,6 +103,10 @@ final class UsageSummary {
 
   /// Some of it ran on the ChatGPT plan: no per-token charge.
   final bool plan;
+
+  /// Some of it ran where tokens are charged; without that, there is no cost
+  /// to state, only where it went (#436).
+  final bool billed;
 }
 
 /// [counts] ("provider/model" to count) as one summary.
@@ -123,6 +127,7 @@ UsageSummary summarize(Map<String, UsageCount> counts) {
     counts.values.fold(const UsageCount(), (total, count) => total + count),
     cost: cost,
     plan: counts.keys.any((key) => key.startsWith('chatgpt/')),
+    billed: counts.keys.any((key) => !_free.contains(key.substring(0, key.indexOf('/')))),
   );
 }
 
