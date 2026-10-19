@@ -63,10 +63,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _send() async {
     final text = _message.text;
     _message.clear();
-    // A phone's keyboard would cover half the answer; a desktop keeps typing.
-    if (Theme.of(context).platform case TargetPlatform.android || TargetPlatform.iOS) {
-      FocusScope.of(context).unfocus();
-    }
+    _keyboardAway(context);
     await widget.session.send(text);
   }
 
@@ -114,6 +111,7 @@ class _ChatScreenState extends State<ChatScreen> {
     };
     final typed = _message.text.trim();
     _message.clear();
+    _keyboardAway(context);
     await widget.session.send(
       withAttachments(typed, files, images: names, originals: originals),
       images: images,
@@ -375,7 +373,7 @@ class _Lines extends StatelessWidget {
           s,
           resend: index == resendable ? session.resend : null,
           retry: session.retryNow,
-          answer: index == 0 && session.ready ? (a) => _answer(lines.length, a) : null,
+          answer: index == 0 && session.ready ? (a) => _answer(context, lines.length, a) : null,
         );
       },
     );
@@ -384,9 +382,18 @@ class _Lines extends StatelessWidget {
   /// Only the newest question, and only once: a later tap finds the
   /// conversation moved on (longer than [shown], taken at build), even before
   /// the screen redraws.
-  void _answer(int shown, String answer) {
-    if (session.transcript.length == shown) unawaited(session.send(answer));
+  void _answer(BuildContext context, int shown, String answer) {
+    if (session.transcript.length != shown) return;
+    _keyboardAway(context);
+    unawaited(session.send(answer));
   }
+}
+
+/// Sending puts an on-screen keyboard away, or it would cover half the answer.
+/// A hardware keyboard (a desktop, a tablet with one) leaves no inset and
+/// keeps the focus, so the next message needs no tap.
+void _keyboardAway(BuildContext context) {
+  if (View.of(context).viewInsets.bottom > 0) FocusManager.instance.primaryFocus?.unfocus();
 }
 
 /// In the composer's place when no model is connected (#363): what is missing

@@ -71,6 +71,12 @@ Future<void> connect(
 }
 
 /// A phone-sized screen (432 x 960 logical pixels); a tap that misses its widget fails.
+/// The on-screen keyboard's room, as a phone reports it while one is up.
+void softKeyboard(WidgetTester tester) {
+  tester.view.viewInsets = const FakeViewPadding(bottom: 900);
+  addTearDown(tester.view.resetViewInsets);
+}
+
 void phone(WidgetTester tester) {
   WidgetController.hitTestWarningShouldBeFatal = true;
   addTearDown(() => WidgetController.hitTestWarningShouldBeFatal = false);
@@ -351,6 +357,7 @@ void main() {
     tester,
   ) async {
     phone(tester);
+    softKeyboard(tester);
     // An answer longer than the screen, so the conversation scrolls.
     final harness = Harness(answers: [List.generate(40, (i) => 'Satır $i.').join('\n\n')]);
     await pumpApp(tester, harness);
@@ -365,8 +372,27 @@ void main() {
     await tester.pump();
     expect(tester.testTextInput.isVisible, isTrue);
     // Dragging the conversation puts it away too.
-    await tester.dragFrom(tester.getCenter(find.byType(Scaffold).first), const Offset(0, 200));
+    await tester.dragFrom(const Offset(200, 200), const Offset(0, 150)); // on the conversation
     await tester.pumpAndSettle();
+    expect(tester.testTextInput.isVisible, isFalse);
+  });
+
+  testWidgets('chat: a suggested answer tapped puts the keyboard away too (#497)', (tester) async {
+    phone(tester);
+    softKeyboard(tester);
+    final harness = Harness(answers: ['Hangi proje?\n[[Mopsos]] [[Atlas]]', 'Kaydedildi.']);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'not al');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('message'))); // about to type, then picks a button
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isTrue);
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Mopsos'));
+    await tester.pumpAndSettle();
+    expect(harness.provider.asked, ['not al', 'Mopsos']);
     expect(tester.testTextInput.isVisible, isFalse);
   });
 
