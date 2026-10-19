@@ -7,8 +7,9 @@
 /// deleted: a file removed on the other device moves to `.notelore/history/`,
 /// and when the model had to settle a real conflict both original sides go there
 /// too. Many notes gone from the remote at once (a wiped Drive folder) are held,
-/// not removed here, until the person decides (#454). The manifest is updated file by file, so an interrupted sync keeps its
-/// progress and simply continues next time.
+/// not removed here, until the person decides (#454). The manifest is updated
+/// file by file, so an interrupted sync keeps its progress and simply continues
+/// next time.
 ///
 /// The remote is a small interface so the Drive client (and a fake in the tests)
 /// plug in the same way. Ported from the Python reference.
@@ -116,7 +117,9 @@ Future<SyncReport> sync(
 /// of them, or more than one and more than 3 or a fifth of the notes. Only
 /// notes count, with a copy still here: not the archive or history (emptying
 /// the archive is a choice made elsewhere), nor a note another device archived
-/// (its copy is now under `_archive/`).
+/// (its copy is now under `_archive/`). Moving the notes elsewhere on the
+/// remote must list the moved copies from the first pass on, or every one of
+/// them reads as gone here and is held.
 bool _wiped(List<String> synced, Map<String, RemoteFile> remote, Map<String, File> local) {
   final known = synced.toSet();
   final archived = {
