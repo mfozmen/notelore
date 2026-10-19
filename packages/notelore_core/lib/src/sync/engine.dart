@@ -252,13 +252,7 @@ class _Pass {
         _record(rel, uploaded, localText);
         report.pushed.add(rel);
       case SyncAction.pull:
-        if (!_unchanged(path, localText)) return report.skipped.add(rel);
-        if (localText != null && _loses(localText, remoteText!)) {
-          _keepCopy(rel, utf8.encode(localText));
-        }
-        atomicWrite(path, remoteText!);
-        _record(rel, meta!, remoteText);
-        report.pulled.add(rel);
+        _pull(rel, path, meta!, localText, remoteText!);
       case SyncAction.merge:
         final base = trusted == null ? null : manifest.base(rel);
         await _merge(rel, path, meta!, localText!, remoteText!, base ?? '');
@@ -297,8 +291,8 @@ class _Pass {
         manifest.record(rel, recorded(uploaded, localHash!));
         report.pushed.add(rel);
       case SyncAction.pull:
-        if (local != null) _keepCopy(rel, local); // bytes cannot tell a loss: always kept
-        _take(rel, path, meta!, downloaded!, recorded(meta, remoteHash!));
+        // Bytes cannot tell a loss: what is here is always kept.
+        _take(rel, path, meta!, downloaded!, recorded(meta, remoteHash!), kept: local);
       case SyncAction.merge:
         // Changed here too: this copy is kept apart before Drive's replaces it.
         final target = _history(rel);
@@ -371,8 +365,27 @@ class _Pass {
     return false;
   }
 
-  /// Drive's copy of an attachment, written here and recorded.
-  void _take(String rel, String path, RemoteFile meta, List<int> bytes, ManifestEntry entry) {
+  /// Drive's copy of a note, written here and recorded; this one kept first
+  /// when Drive's lacks a line of it (#456).
+  void _pull(String rel, String path, RemoteFile meta, String? localText, String remoteText) {
+    if (!_unchanged(path, localText)) return report.skipped.add(rel);
+    if (localText != null && _loses(localText, remoteText)) _keepCopy(rel, utf8.encode(localText));
+    atomicWrite(path, remoteText);
+    _record(rel, meta, remoteText);
+    report.pulled.add(rel);
+  }
+
+  /// Drive's copy of an attachment, written here and recorded; the bytes it
+  /// replaces, [kept], go to [keptFolder] first.
+  void _take(
+    String rel,
+    String path,
+    RemoteFile meta,
+    List<int> bytes,
+    ManifestEntry entry, {
+    List<int>? kept,
+  }) {
+    if (kept != null) _keepCopy(rel, kept);
     atomicWriteBytes(path, bytes);
     manifest.record(rel, entry);
     report.pulled.add(rel);
