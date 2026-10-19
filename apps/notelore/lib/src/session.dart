@@ -1257,7 +1257,6 @@ class Session extends ChangeNotifier {
     _agent?.stop();
   }
 
-  /// Interactive Google sign-in, then the first sync. Throws [SignInFailed].
   /// This device signed in to Google before, but Drive needs a sign-in again:
   /// its grant lacks a scope (#479), or was revoked. The app says so in a
   /// banner and the Drive status, in plain words (#480).
@@ -1282,6 +1281,7 @@ class Session extends ChangeNotifier {
     syncStatus = status;
   }
 
+  /// Interactive Google sign-in, then the first sync. Throws [SignInFailed].
   Future<void> connectDrive() async {
     await driveAuth!.signIn();
     driveConnected = true;
