@@ -229,6 +229,19 @@ void main() {
     expect(harness.reminders.pending.values, ['Dentist']);
   });
 
+  test('signed in here, a keystore that fails once changes nothing: never twice (#503)', () async {
+    final harness = Harness();
+    remindIn(harness, 'Health', 'Dentist');
+    final session = harness.session();
+    await session.load();
+    await session.setCalendar(true);
+    expect(harness.reminders.pending, isEmpty);
+    harness.calendarAuth.failSignedIn = Exception('keystore busy after unlock');
+    await session.refreshReminders();
+    expect(session.calendarHere, isTrue);
+    expect(harness.reminders.pending, isEmpty); // Google still reminds; this device not too
+  });
+
   test('a build without Google sign-in keeps reminding, whatever another device chose', () async {
     final harness = Harness();
     remindIn(harness, 'Health', 'Dentist');
