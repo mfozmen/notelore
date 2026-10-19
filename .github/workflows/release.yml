@@ -278,8 +278,9 @@ jobs:
         run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
       # Only when every platform built: a failed build leaves the release a
       # draft, never a release some devices find no file in. A rebuild then
-      # publishes it; a rebuild of a release already out leaves it as it is,
-      # so an older tag never becomes the latest.
+      # publishes it; a rebuild of a release already out leaves it as it is.
+      # Latest only when no newer release is out: a draft rebuilt after a
+      # newer one shipped never takes "latest" from it.
       - name: Publish
         if: needs.app-desktop.result == 'success' && needs.app-android.result == 'success'
         env:
@@ -287,6 +288,11 @@ jobs:
           TAG: ${{ needs.release.outputs.tag }}
         run: |
           draft=$(gh release view "$TAG" --json isDraft --jq .isDraft --repo "$GITHUB_REPOSITORY")
-          if [ "$draft" = true ]; then
-            gh release edit "$TAG" --draft=false --latest --repo "$GITHUB_REPOSITORY"
+          [ "$draft" = true ] || exit 0
+          newest=$(gh release list --exclude-drafts --limit 100 --json tagName --jq '.[].tagName' \
+            --repo "$GITHUB_REPOSITORY" | sort -V | tail -1)
+          latest=false
+          if [ "$(printf '%s\n%s\n' "$newest" "$TAG" | sort -V | tail -1)" = "$TAG" ]; then
+            latest=true
           fi
+          gh release edit "$TAG" --draft=false --latest="$latest" --repo "$GITHUB_REPOSITORY"
