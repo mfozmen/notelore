@@ -329,14 +329,15 @@ void main() {
     final harness = Harness(
       answers: [const NetworkError('offline'), const NetworkError('offline'), 'Geldi.'],
     );
-    final session = harness.session(retryEvery: const Duration(milliseconds: 20));
+    // Slow enough that no tick lands before the first check, even on a busy CI runner.
+    final session = harness.session(retryEvery: const Duration(milliseconds: 500));
     await session.connect(findProvider('anthropic'), 'k');
     session.setForeground(false); // the phone put Notelore away mid-reply
     await session.send('selam');
     session.setForeground(true); // back: tried again, still offline
     await settled(session);
     expect(harness.provider.asked, ['selam', 'selam']);
-    await Future<void>.delayed(const Duration(milliseconds: 60)); // the timer tries once more
+    await Future<void>.delayed(const Duration(milliseconds: 600)); // the timer tries once more
     await settled(session);
     expect(session.transcript.last.text, 'Geldi.');
     expect(harness.provider.asked, ['selam', 'selam', 'selam']);

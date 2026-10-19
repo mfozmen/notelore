@@ -32,4 +32,22 @@ void main() {
     expect(session.usage.conversation.calls, 0);
     expect(session.usage.device.calls, 2);
   });
+
+  test('every turn counts its time, tool calls, notes written and errors (#481)', () async {
+    final harness = Harness(
+      answers: [
+        const AgentResponse([
+          {'type': 'tool_use', 'id': 't1', 'name': 'list_notes', 'input': <String, Object?>{}},
+        ], 'tool_use'),
+        answer('Nothing yet.'),
+        Exception('the provider broke'),
+      ],
+    );
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'sk-ant-1');
+    await session.send('what is there?');
+    await session.send('again');
+    final turns = session.usage.turnsIn(UsageRange.all).values.single;
+    expect((turns.turns, turns.failed, turns.toolCalls, turns.wrote), (2, 1, 1, 0));
+  });
 }
