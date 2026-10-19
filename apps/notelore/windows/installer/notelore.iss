@@ -71,17 +71,23 @@ Filename: "{app}\notelore.exe"; Flags: nowait runasoriginaluser; Check: LaunchAf
 const
   AllUsersKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{8F3C2A51-6E2B-4D7A-9C1E-5B0A7D3E9F42}_is1';
 
-// An earlier all-users copy in Program Files goes once this per-user one is in,
-// after one UAC prompt; declined, it stays (#493).
+// An earlier all-users copy goes once this per-user one is in, after one UAC
+// prompt; declined, it stays. Only an uninstaller in Program Files is run
+// elevated: one in a folder the user can write to could be anything.
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   Uninstaller: String;
   Code: Integer;
 begin
-  if (CurStep = ssPostInstall) and not IsAdminInstallMode and
-     RegQueryStringValue(HKLM, AllUsersKey, 'UninstallString', Uninstaller) then
-    ShellExec('runas', RemoveQuotes(Uninstaller), '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART',
-      '', SW_HIDE, ewWaitUntilTerminated, Code);
+  if (CurStep <> ssPostInstall) or IsAdminInstallMode or
+     not RegQueryStringValue(HKLM, AllUsersKey, 'UninstallString', Uninstaller) then
+    Exit;
+  Uninstaller := RemoveQuotes(Uninstaller);
+  if Pos(Lowercase(AddBackslash(ExpandConstant('{commonpf64}'))), Lowercase(Uninstaller)) <> 1 then
+    Log('All-users copy left: its uninstaller is outside Program Files: ' + Uninstaller)
+  else if not ShellExec('runas', Uninstaller, '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART', '',
+                        SW_HIDE, ewWaitUntilTerminated, Code) then
+    Log('All-users copy left: ' + SysErrorMessage(Code));
 end;
 
 // /NOLAUNCH: a silent install that does not start the app (CI's install check).

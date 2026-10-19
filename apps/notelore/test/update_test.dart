@@ -195,7 +195,7 @@ void main() {
       final [exe, ...args] = spawned.single;
       expect(File(exe).readAsBytesSync(), setup);
       expect(p.basename(exe), 'notelore-app-$v-windows-x64-setup.exe');
-      expect(args, ['/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART']); // never into Program Files
+      expect(args, ['/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART']);
     });
 
     test('the download stays in its own temp folder, safe from another cleanup (#330)', () async {
