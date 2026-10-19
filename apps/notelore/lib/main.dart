@@ -58,6 +58,8 @@ Future<Session> openSession({
     driveAuth: driveAuthFor(mobile: phone, keys: appKeys, keySpace: keySpace),
     chatGpt: chatGptAuthFor(mobile: phone, keys: appKeys, keySpace: keySpace),
     localModels: !phone,
+    // The model on the device, where llama.cpp runs (#328).
+    deviceModels: Platform.isAndroid || Platform.isWindows || Platform.isMacOS,
     systemLanguage: PlatformDispatcher.instance.locale.languageCode,
     timing: keySpace == 'notelore-dev' ? debugPrint : null, // #232: development runs only
     reminders: reminders(), // the notes' reminders as this device's notifications (#431)

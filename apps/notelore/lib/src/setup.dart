@@ -150,6 +150,20 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       _keyFocus.requestFocus(); // brings the field into view, keyboard up
       return;
     }
+    if (_spec.name == 'device' && !widget.session.deviceModel.ready) {
+      final session = widget.session;
+      // Busy like any connect: the bar above says how far it is.
+      setState(() {
+        _problem = null;
+        _checking = true;
+      });
+      await session.downloadDeviceModel();
+      if (!mounted) return;
+      setState(() => _checking = false);
+      if (!session.deviceModel.ready) {
+        return setState(() => _problem = session.strings.deviceDownloadFailed);
+      }
+    }
     await _attempt(() => widget.session.connect(_spec, _key.text));
   }
 
@@ -198,8 +212,12 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     }
   }
 
-  // OpenAI's wording for its sign-in button.
-  String _connectLabel(Strings s) => _spec.name == 'chatgpt' ? s.continueWithChatGpt : s.connect;
+  // OpenAI's wording for its sign-in button; the model on the device downloads first.
+  String _connectLabel(Strings s) => switch (_spec.name) {
+    'chatgpt' => s.continueWithChatGpt,
+    'device' when !widget.session.deviceModel.ready => s.downloadAndConnect,
+    _ => s.connect,
+  };
 
   /// The one test turn: its answer on Done, or why not, back on Connect.
   Future<void> _try() async {
@@ -259,6 +277,9 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     ] else if (_spec.name == 'ollama') ...[
       const SizedBox(height: Gap.l),
       Text(s.ollamaNoKey, style: theme.textTheme.bodyMedium),
+    ] else if (_spec.name == 'device') ...[
+      const SizedBox(height: Gap.l),
+      _DeviceDownload(widget.session),
     ],
   ];
 
@@ -935,6 +956,45 @@ class _GoogleButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The model on the device (#328): what the download costs, and while it runs
+/// how far it is, in a bar and in words (screen readers hear the value).
+class _DeviceDownload extends StatelessWidget {
+  const _DeviceDownload(this.session);
+
+  final Session session;
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: session,
+    builder: (context, _) {
+      final s = session.strings;
+      final theme = Theme.of(context);
+      final progress = session.deviceProgress;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: Gap.s,
+        children: [
+          Text(
+            session.deviceModel.ready ? s.deviceModelHere : s.deviceDownloadNote,
+            style: theme.textTheme.bodyMedium,
+          ),
+          if (progress != null) ...[
+            LinearProgressIndicator(
+              value: progress,
+              semanticsLabel: s.downloadingModel,
+              semanticsValue: '${(progress * 100).floor()}%',
+            ),
+            Text(
+              s.downloadedPercent((progress * 100).floor()),
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ],
+      );
+    },
+  );
 }
 
 /// One option on the Choose step (#358). Every card says who it suits and a few

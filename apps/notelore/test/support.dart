@@ -188,6 +188,23 @@ class Harness {
     ),
   ];
 
+  /// The model that runs on the device (#328): one small file served by [pages].
+  static final deviceFiles = [
+    ModelFile(
+      'q.gguf',
+      'https://models.test/q.gguf',
+      sha256.convert(utf8.encode('model bytes')).toString(),
+      11,
+    ),
+  ];
+  final deviceEngine = FakeDeviceEngine();
+
+  /// The model on the device is offered (as on Android, Windows and macOS).
+  var deviceModels = false;
+
+  /// The model files the device engine was made for.
+  final enginePaths = <String>[];
+
   /// Thrown by the model download instead of an answer (an Error, say).
   Object? modelFailure;
 
@@ -222,9 +239,16 @@ class Harness {
     void Function(String entry)? timing,
     bool reminders = true,
     bool calendar = true,
+    bool? deviceModels,
   }) {
     final session = Session(
       paths,
+      deviceModels: deviceModels ?? this.deviceModels,
+      deviceFiles: deviceFiles,
+      makeDeviceEngine: (path) {
+        enginePaths.add(path);
+        return deviceEngine;
+      },
       reminders: reminders ? this.reminders : null,
       calendarAuth: calendar ? calendarAuth : null,
       calendarFor: (_) => this.calendar,
@@ -589,6 +613,25 @@ class FakeReminders implements ReminderNotifier {
     _check();
     cancelled.add(id);
     pending.remove(id);
+  }
+}
+
+/// llama.cpp on the device, scripted: what it was asked, what it answers.
+class FakeDeviceEngine implements LocalEngine {
+  final answers = <Map<String, Object?>>[];
+  final asked = <(List<Map<String, Object?>>, List<Map<String, Object?>>)>[];
+
+  /// Thrown instead of an answer: a device that cannot run the model.
+  Exception? failure;
+
+  @override
+  Future<Map<String, Object?>> chat(
+    List<Map<String, Object?>> messages,
+    List<Map<String, Object?>> tools,
+  ) async {
+    if (failure case final error?) throw error;
+    asked.add((messages, tools));
+    return answers.removeAt(0);
   }
 }
 

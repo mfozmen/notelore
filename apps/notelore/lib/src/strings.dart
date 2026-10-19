@@ -62,6 +62,14 @@ abstract class Strings {
   String get pasteKeyFirst;
   String get checkConnection;
   String get ollamaNoKey;
+
+  // The model on the device (#328).
+  String get downloadAndConnect;
+  String get deviceDownloadNote;
+  String get deviceModelHere;
+  String get downloadingModel;
+  String downloadedPercent(int percent);
+  String get deviceDownloadFailed;
   String providerName(ProviderSpec spec);
   String groupHeading(ProviderGroup group);
   String cost(ProviderSpec spec);
@@ -410,6 +418,7 @@ abstract class Strings {
     HttpError(status: 429) => errorBusy,
     HttpError(:final status) when status >= 500 => errorProvider,
     HttpError(:final message) => errorOther(message),
+    LocalModelFailed() => errorDevice,
     _ => core('$error'),
   };
   String get errorOffline;
@@ -418,6 +427,7 @@ abstract class Strings {
   String get errorNoQuota;
   String get errorProvider;
   String errorOther(String detail);
+  String get errorDevice;
 }
 
 class EnglishStrings extends Strings {
@@ -460,6 +470,7 @@ class EnglishStrings extends Strings {
     'anthropic' => 'Pay per use, billed by Anthropic',
     'openai' => 'Pay per use, billed by OpenAI',
     'gemini' => 'Free tier, or pay per use',
+    'device' => 'Free, and works offline',
     _ => 'Free',
   };
   @override
@@ -469,6 +480,7 @@ class EnglishStrings extends Strings {
     'openai' => 'Your notes go to OpenAI.',
     'gemini' =>
       'Your notes go to Google; on the free tier it may use them to improve its products.',
+    'device' => 'Your notes stay on this device.',
     _ => 'Your notes stay on this computer.',
   };
   @override
@@ -477,6 +489,7 @@ class EnglishStrings extends Strings {
     'openai' => 'Very strong answers',
     'chatgpt' => 'Strong answers',
     'gemini' => 'Strong answers',
+    'device' => 'Simpler answers, and slow on a phone',
     _ => 'Depends on the model; usually weaker',
   };
   @override
@@ -485,6 +498,7 @@ class EnglishStrings extends Strings {
     'anthropic' => 'A key from the Anthropic Console, with billing set up',
     'openai' => 'A key from the OpenAI platform, with billing set up',
     'gemini' => 'A free key from Google AI Studio, about a minute',
+    'device' => 'A 2.5 GB download, once',
     _ => 'Install Ollama and a model first',
   };
   @override
@@ -493,6 +507,7 @@ class EnglishStrings extends Strings {
     'anthropic' => 'You want the best answers and pay as you go',
     'openai' => 'You already use the OpenAI API',
     'gemini' => 'You want to start for free',
+    'device' => 'Nothing should leave this device',
     _ => 'Nothing should leave this computer',
   };
   @override
@@ -502,6 +517,7 @@ class EnglishStrings extends Strings {
     'chatgpt' => ['Your plan', 'One tap'],
     'anthropic' || 'openai' => ['Pay per use', apiKey],
     'gemini' => ['Free tier', apiKey],
+    'device' => ['Free', 'Offline'],
     _ => ['Free', 'Stays on this computer'],
   };
   @override
@@ -564,6 +580,21 @@ class EnglishStrings extends Strings {
   String get cannotReach => 'Could not reach the service.';
   @override
   String get ollamaNoKey => 'No key is needed.';
+  @override
+  String get downloadAndConnect => 'Download and connect';
+  @override
+  String get deviceDownloadNote =>
+      'No key is needed. Download it on Wi-Fi, with the app open; then it works offline.';
+  @override
+  String get deviceModelHere => 'The model is on this device. No key is needed.';
+  @override
+  String get downloadingModel => 'Downloading the model';
+  @override
+  String downloadedPercent(int percent) => 'Downloading… $percent%';
+  @override
+  String get deviceDownloadFailed =>
+      'The model could not be downloaded. Check the connection and try again: '
+      'it continues where it stopped.';
   @override
   String providerName(ProviderSpec spec) => spec.displayName;
   @override
@@ -1173,6 +1204,10 @@ class EnglishStrings extends Strings {
   String get errorProvider => "The model's service is having trouble right now. Try again soon.";
   @override
   String errorOther(String detail) => 'The provider could not answer: $detail';
+  @override
+  String get errorDevice =>
+      'This device could not run the model: it may not have enough memory. '
+      'Choose another model in Settings.';
 }
 
 class TurkishStrings extends Strings {
@@ -1215,6 +1250,7 @@ class TurkishStrings extends Strings {
     'anthropic' => 'Kullandıkça öde, Anthropic faturalar',
     'openai' => 'Kullandıkça öde, OpenAI faturalar',
     'gemini' => 'Ücretsiz katman ya da kullandıkça öde',
+    'device' => 'Ücretsiz, çevrimdışı da çalışır',
     _ => 'Ücretsiz',
   };
   @override
@@ -1223,6 +1259,7 @@ class TurkishStrings extends Strings {
     'anthropic' => "Notların Anthropic'e gider.",
     'openai' => "Notların OpenAI'ye gider.",
     'gemini' => "Notların Google'a gider; ücretsiz katmanda Google bunları ürünlerini geliştirmek için kullanabilir.",
+    'device' => 'Notların bu cihazda kalır.',
     _ => 'Notların bu bilgisayarda kalır.',
   };
   @override
@@ -1231,6 +1268,7 @@ class TurkishStrings extends Strings {
     'openai' => 'Çok güçlü cevaplar',
     'chatgpt' => 'Güçlü cevaplar',
     'gemini' => 'Güçlü cevaplar',
+    'device' => 'Daha basit cevaplar; telefonda yavaş',
     _ => 'Modele bağlı; genelde daha zayıf',
   };
   @override
@@ -1239,6 +1277,7 @@ class TurkishStrings extends Strings {
     'anthropic' => "Anthropic Console'dan, faturalandırması açık bir anahtar",
     'openai' => 'OpenAI platformundan, faturalandırması açık bir anahtar',
     'gemini' => "Google AI Studio'dan ücretsiz bir anahtar, yaklaşık bir dakika",
+    'device' => 'Bir kez 2,5 GB indirme',
     _ => "Önce Ollama'yı ve bir modeli kur",
   };
   @override
@@ -1247,6 +1286,7 @@ class TurkishStrings extends Strings {
     'anthropic' => 'En iyi cevapları istiyor, kullandıkça ödemeye razıysan',
     'openai' => 'Zaten OpenAI API kullanıyorsan',
     'gemini' => 'Ücretsiz başlamak istiyorsan',
+    'device' => 'Hiçbir şey bu cihazdan çıkmasın istiyorsan',
     _ => 'Hiçbir şey bu bilgisayardan çıkmasın istiyorsan',
   };
   @override
@@ -1256,6 +1296,7 @@ class TurkishStrings extends Strings {
     'chatgpt' => ['Planın', 'Tek dokunuş'],
     'anthropic' || 'openai' => ['Kullandıkça öde', apiKey],
     'gemini' => ['Ücretsiz katman', apiKey],
+    'device' => ['Ücretsiz', 'Çevrimdışı'],
     _ => ['Ücretsiz', 'Bu bilgisayarda kalır'],
   };
   @override
@@ -1319,6 +1360,21 @@ class TurkishStrings extends Strings {
   @override
   String get ollamaNoKey => 'Anahtar gerekmez.';
   @override
+  String get downloadAndConnect => 'İndir ve bağlan';
+  @override
+  String get deviceDownloadNote =>
+      'Anahtar gerekmez. Wi-Fi’dayken, uygulama açıkken indir; sonra çevrimdışı çalışır.';
+  @override
+  String get deviceModelHere => 'Model bu cihazda. Anahtar gerekmez.';
+  @override
+  String get downloadingModel => 'Model indiriliyor';
+  @override
+  String downloadedPercent(int percent) => 'İndiriliyor… %$percent';
+  @override
+  String get deviceDownloadFailed =>
+      'Model indirilemedi. Bağlantını kontrol edip yeniden dene: '
+      'kaldığı yerden devam eder.';
+  @override
   String providerName(ProviderSpec spec) => switch (spec.name) {
     'chatgpt' => 'ChatGPT planı (OpenAI)',
     'ollama' => 'Ollama (yerel)',
@@ -1329,6 +1385,7 @@ class TurkishStrings extends Strings {
     ProviderGroup.plan => 'Planınla kullan',
     ProviderGroup.apiKey => apiKey,
     ProviderGroup.local => 'Bu bilgisayarda',
+    ProviderGroup.device => 'Bu cihazda',
   };
   @override
   String cost(ProviderSpec spec) => switch (spec.name) {
@@ -1983,6 +2040,10 @@ class TurkishStrings extends Strings {
   String get errorProvider => 'Modelin hizmetinde şu an bir sorun var; birazdan yeniden dene.';
   @override
   String errorOther(String detail) => 'Sağlayıcı yanıt veremedi: $detail';
+  @override
+  String get errorDevice =>
+      'Bu cihaz modeli çalıştıramadı: belleği yetmiyor olabilir. '
+      "Ayarlar'dan başka bir model seç.";
 }
 
 /// The strings for [language], [system] being the device's language code.

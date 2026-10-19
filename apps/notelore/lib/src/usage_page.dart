@@ -72,7 +72,8 @@ class UsagePage extends StatelessWidget {
                     ),
                   if (usage.device.plan || session.spec?.name == 'chatgpt')
                     Text(s.usagePlan, style: small),
-                  if (session.spec?.name == 'ollama') Text(s.usageLocal, style: small),
+                  if (session.spec?.name case 'ollama' || 'device')
+                    Text(s.usageLocal, style: small),
                   Text(s.usageEstimate(pricesTaken), style: small),
                 ],
               ),

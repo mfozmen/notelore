@@ -27,7 +27,7 @@ Download the app from the [releases page](https://github.com/mfozmen/notelore/re
 | Platform | File | Notes |
 |---|---|---|
 | Windows | `notelore-app-<version>-windows-x64-setup.exe` | Installs for all users by default, or only for you. Windows may warn about an unknown publisher (not code-signed yet). |
-| macOS | `notelore-app-<version>-macos.dmg` | Drag `notelore.app` onto *Applications*. The first time, right-click it and choose *Open* (not notarized yet). |
+| macOS | `notelore-app-<version>-macos.dmg` | Needs macOS 14 (Sonoma) or later. Drag `notelore.app` onto *Applications*. The first time, right-click it and choose *Open* (not notarized yet). |
 | Android | `notelore-app-<version>-android.apk` | Allow installing from your browser or file manager. |
 
 The app checks for a new release every time it opens (and every few hours while it stays open), says what the new version brings in a line (with *What's new* for the rest) and offers *Update* (on Android you confirm in the system installer).
@@ -39,6 +39,7 @@ The app checks for a new release every time it opens (and every few hours while 
    - **ChatGPT plan** (desktop and phone), the default: *Continue with ChatGPT* and sign in, one tap; on a phone the browser hands you back to Notelore by itself. No extra charges, within your plan's limits. It needs a **Plus or Pro** plan: only those can be shared with other apps. A free ChatGPT account is told so plainly, and offered the free way in right there: *Get a free Gemini key* opens Google AI Studio with your Google account; copy the key, come back, and Notelore puts it in the box for you (you still tap *Connect*). On the free tier Google may use your requests to improve its products.
    - Beside it, for your own API key or a local model:
      - **Claude, GPT or Gemini:** paste an API key; numbered steps show where to get one, and a button opens the provider's key page in the browser. Copy the key there and come back: Notelore puts it in the box for you (only a key shaped like that provider's, and the clipboard is read only on that return). Keys stay in your device's keystore.
+     - **On this device** (Android, Windows, macOS): no key and no account. The model (Qwen3 4B, about 2.5 GB) downloads once, checked against its SHA-256, and continues where it stopped if the connection drops; it then runs inside Notelore through llama.cpp, offline, and nothing leaves the device. Answers are simpler than a cloud model's and slow on a phone. A device that cannot run it (too little memory) says so in the chat.
      - **Ollama** (desktop): no key needed. Steps show how to install it and pull a model (a button opens ollama.com), and connecting checks that Ollama answers and has a model; if it has none, it says which command pulls one.
 
    A key you set up before keeps working.

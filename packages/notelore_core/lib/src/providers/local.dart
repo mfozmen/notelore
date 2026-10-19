@@ -19,6 +19,17 @@ abstract interface class LocalEngine {
   );
 }
 
+/// The device could not load or run the model: too little memory, or a file
+/// the runtime refuses. The chat says so; another model can be chosen.
+class LocalModelFailed implements Exception {
+  const LocalModelFailed(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 /// The model on the device, whose [engine] the app supplies. Like Ollama, the
 /// runtime gives tool calls no ids (fromOllama makes them) and its tool
 /// results are matched to their call by the tool's name.
