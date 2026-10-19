@@ -19,7 +19,8 @@ typedef Message = Map<String, Object?>;
 enum ProviderGroup {
   plan('Use your plan'),
   apiKey('API key'),
-  local('On this computer');
+  local('On this computer'),
+  device('On this device');
 
   const ProviderGroup(this.heading);
 
@@ -136,6 +137,16 @@ const providerSpecs = [
       'Pull a model: in a terminal, run ollama pull qwen3:4b',
       'Come back and connect.',
     ],
+  ),
+  // The model runs in the app itself, through llama.cpp (#328): nothing to
+  // install, nothing leaves the device.
+  ProviderSpec(
+    'device',
+    'On this device (Qwen3 4B)',
+    group: ProviderGroup.device,
+    requiresApiKey: false,
+    defaultModel: 'qwen3-4b-instruct-2507',
+    cost: 'Free: the model runs on this device, no AI provider sees your notes. A 2.5 GB download, once.',
   ),
 ];
 

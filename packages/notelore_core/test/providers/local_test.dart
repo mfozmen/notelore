@@ -17,6 +17,9 @@ class FakeEngine implements LocalEngine {
     asked.add((messages, tools));
     return answers.removeAt(0);
   }
+
+  @override
+  Future<void> dispose() async {}
 }
 
 const _tools = [
@@ -31,6 +34,10 @@ const _tools = [
 ];
 
 void main() {
+  test('a model the device cannot run says why', () {
+    expect('${const LocalModelFailed('out of memory')}', 'out of memory');
+  });
+
   test(
     'a turn on the device: the prompt, the history and the tools in, a tool call out (#328)',
     () async {

@@ -26,6 +26,8 @@ import 'package:path/path.dart' as p;
 import 'audio_file.dart';
 import 'audio_native.dart';
 import 'device_auth.dart';
+import 'device_model.dart';
+import 'device_native.dart';
 import 'lock_state.dart';
 import 'pdf_native.dart';
 import 'reminder_notifier.dart';
@@ -106,6 +108,9 @@ class Session extends ChangeNotifier {
     this.readPdf = nativePdfText,
     this.listMicrophones = nativeMicrophones,
     this.localModels = true,
+    this.deviceModels = false,
+    this.deviceFiles = deviceModelFiles,
+    this.makeDeviceEngine = nativeDeviceEngine,
     this.retryEvery = const Duration(minutes: 1),
     this.lockIterations = defaultIterations,
     DeviceAuth? deviceAuth,
@@ -207,6 +212,64 @@ class Session extends ChangeNotifier {
     p.join(paths.state.path, 'models', 'whisper-small'),
     files: whisperFiles,
   );
+
+  /// The chat model that runs on this device (#328), downloaded on request
+  /// like Whisper: checked, resumable, kept in this device's state.
+  late final WhisperModel deviceModel = WhisperModel(
+    p.join(paths.state.path, 'models', 'device'),
+    files: deviceFiles,
+  );
+  final List<ModelFile> deviceFiles;
+
+  /// The engine that runs [deviceModel]'s file: llama.cpp; a fake in tests.
+  final LocalEngine Function(String path) makeDeviceEngine;
+
+  /// The one loaded engine, if any: a rebuilt provider reuses it, never a
+  /// second copy of the model in memory.
+  LocalEngine? _deviceEngine;
+
+  /// [chosen]'s provider: the model on the device runs on the one engine.
+  LlmProvider _providerFor(ProviderSpec chosen, String key, String chosenModel) {
+    if (chosen.name == 'device') {
+      return LocalProvider(
+        chosenModel,
+        _deviceEngine ??= makeDeviceEngine(deviceModel.path(deviceFiles.first.name)),
+      );
+    }
+    return makeProvider(
+      chosen,
+      key,
+      model: chosenModel,
+      planToken: chosen.name == 'chatgpt' ? chatGpt!.token : null,
+      webSearch: webSearch && chosen.webSearch,
+    );
+  }
+
+  /// Lets go of the model on the device, when another model is used or none.
+  Future<void> _freeDeviceEngine() async {
+    final engine = _deviceEngine;
+    _deviceEngine = null;
+    await engine?.dispose();
+  }
+
+  /// The model on the device is offered (where llama.cpp runs: Android,
+  /// Windows, macOS).
+  final bool deviceModels;
+
+  /// From 0 to 1 while the device model downloads, else null.
+  double? deviceProgress;
+
+  /// Why the last device model download failed, if it did.
+  String? deviceProblem;
+
+  /// One download at a time; a second call waits for the one running.
+  Future<void> downloadDeviceModel() => _deviceDownload ??= _fetch(
+    deviceModel,
+    (done) => deviceProgress = done,
+    (why) => deviceProblem = why,
+  ).whenComplete(() => _deviceDownload = null);
+  Future<void>? _deviceDownload;
+
   final List<ModelFile> whisperFiles;
   final http.Client Function() httpClient;
 
@@ -267,25 +330,37 @@ class Session extends ChangeNotifier {
 
   Future<void> downloadWhisper() async {
     if (whisperProgress != null) return;
-    whisperProblem = null;
-    whisperProgress = 0;
+    await _fetch(whisper, (done) => whisperProgress = done, (why) => whisperProblem = why);
+  }
+
+  /// Downloads [model], telling [progress] (null when over) and [problem].
+  Future<void> _fetch(
+    WhisperModel model,
+    void Function(double? done) progress,
+    void Function(String? why) problem,
+  ) async {
+    var shown = 0.0;
+    problem(null);
+    progress(shown);
     notifyListeners();
     final client = httpClient();
     try {
-      await whisper.download(
+      await model.download(
         client: client,
-        onProgress: (done) {
+        onProgress: (sent) {
+          // A server that sends more than it should never shows past 100%.
+          final done = sent.clamp(0.0, 1.0);
           // Each percent, not each chunk: the screen redraws on every notify.
-          if ((done * 100).floor() == (whisperProgress! * 100).floor()) return;
-          whisperProgress = done;
+          if ((done * 100).floor() == (shown * 100).floor()) return;
+          progress(shown = done);
           notifyListeners();
         },
       );
     } on Object catch (error) {
-      whisperProblem = '$error'; // whatever it was, said rather than lost
+      problem('$error'); // whatever it was, said rather than lost
     } finally {
       client.close();
-      whisperProgress = null;
+      progress(null);
       notifyListeners();
     }
   }
@@ -422,7 +497,9 @@ class Session extends ChangeNotifier {
   /// The providers this device offers.
   List<ProviderSpec> get providers => [
     for (final spec in providerSpecs)
-      if ((spec.name != 'chatgpt' || chatGpt != null) && (spec.name != 'ollama' || localModels))
+      if ((spec.name != 'chatgpt' || chatGpt != null) &&
+          (spec.name != 'ollama' || localModels) &&
+          (spec.name != 'device' || deviceModels))
         spec,
   ];
 
@@ -668,6 +745,14 @@ class Session extends ChangeNotifier {
     } else {
       await keys.delete(key: _keyName(spec));
     }
+    if (spec.name == 'device') {
+      // Removed means removed: its 2.5 GB go too (downloaded again on request),
+      // once a download that runs has ended, so it never writes into nothing.
+      await _deviceDownload;
+      await _freeDeviceEngine();
+      final dir = Directory(deviceModel.dir);
+      if (dir.existsSync()) dir.deleteSync(recursive: true);
+    }
     if (this.spec?.name == spec.name) _forgetProvider();
     notifyListeners();
   }
@@ -713,6 +798,11 @@ class Session extends ChangeNotifier {
   /// plan signs in first when [signIn] (only on connect: a refresh never opens
   /// a browser).
   Future<List<String>> _models(ProviderSpec spec, String key, {required bool signIn}) async {
+    if (spec.name == 'device') {
+      // Its one model, once its file is here; nothing to ask a server.
+      if (!deviceModel.ready) throw const TransientValidationError('Download the model first');
+      return [spec.defaultModel];
+    }
     if (spec.name != 'chatgpt') return currentModels(spec.name, await validate(spec, key));
     if (signIn) await chatGpt!.signIn();
     return currentModels(spec.name, await listPlanModels(chatGpt!.token));
@@ -742,7 +832,7 @@ class Session extends ChangeNotifier {
   /// has quota for; the cheapest listed is often a lite or preview one with
   /// none (#400). Any other: the cheapest listed.
   static String? _startModel(ProviderSpec spec, List<String> listed) => switch (spec.name) {
-    'ollama' => null,
+    'ollama' || 'device' => null,
     'gemini' when listed.contains(spec.defaultModel) => spec.defaultModel,
     _ => cheapestModel(spec.name, listed),
   };
@@ -803,6 +893,7 @@ class Session extends ChangeNotifier {
     models = const [];
     _agent = null;
     _provider = null;
+    unawaited(_freeDeviceEngine());
   }
 
   /// Forgets every provider's key on this device and the chosen provider; the
@@ -831,18 +922,9 @@ class Session extends ChangeNotifier {
     }
     spec = chosen;
     model = chosenModel;
+    if (chosen.name != 'device') unawaited(_freeDeviceEngine());
     final toolbox = Toolbox(paths.notes.path, index, today: today);
-    _provider = MeteredProvider(
-      makeProvider(
-        chosen,
-        key,
-        model: chosenModel,
-        planToken: chosen.name == 'chatgpt' ? chatGpt!.token : null,
-        webSearch: webSearch && chosen.webSearch,
-      ),
-      chosen.name,
-      usage,
-    );
+    _provider = MeteredProvider(_providerFor(chosen, key, chosenModel), chosen.name, usage);
     // A model switch keeps the conversation; logout has already dropped it.
     final history = _agent?.messages ?? const <Message>[];
     _agent = Agent(_provider!, toolbox, today: today, timing: timing)..messages.addAll(history);
@@ -1243,7 +1325,8 @@ class Session extends ChangeNotifier {
       _saveUi();
     }
     final (name, chosen) = (theirs['provider'], theirs['model']);
-    if (name is! String || chosen is! String || name == 'ollama') return;
+    // A local model is this machine's own: another device's choice of one stays there.
+    if (name is! String || chosen is! String || name == 'ollama' || name == 'device') return;
     final found = providerSpecs.where((s) => s.name == name).firstOrNull;
     if (found == null) return;
     if (found == spec) {
@@ -1614,6 +1697,7 @@ class Session extends ChangeNotifier {
     _stopRetrying();
     _disposed = true;
     index.close();
+    unawaited(_freeDeviceEngine());
     super.dispose();
   }
 }

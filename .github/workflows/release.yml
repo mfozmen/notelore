@@ -140,8 +140,10 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
         with:
           flutter-version-file: pubspec.yaml
-          cache: true
-      - run: flutter pub get
+          # No restored pub cache: native code from build hooks (llamadart, #328)
+          # runs here beside the signing key, so only what the lock pins.
+          cache: false
+      - run: flutter pub get --enforce-lockfile
       - name: Build
         working-directory: apps/notelore
         shell: bash
@@ -190,8 +192,10 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
         with:
           flutter-version-file: pubspec.yaml
-          cache: true
-      - run: flutter pub get
+          # No restored pub cache: native code from build hooks (llamadart, #328)
+          # runs here beside the signing key, so only what the lock pins.
+          cache: false
+      - run: flutter pub get --enforce-lockfile
       # A debug-signed APK could never be updated by a properly signed one: no key, no release.
       - name: Release key
         run: |

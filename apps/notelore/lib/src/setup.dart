@@ -150,8 +150,22 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       _keyFocus.requestFocus(); // brings the field into view, keyboard up
       return;
     }
+    if (_spec.name == 'device' && !widget.session.deviceModel.ready) {
+      final session = widget.session;
+      // Back stays open: minutes of downloading must never look like a hang.
+      // The download goes on in the session; leaving only skips the connect.
+      setState(() => _problem = null);
+      await session.downloadDeviceModel();
+      if (!mounted || _step != _Step.connect || _spec.name != 'device') return;
+      if (!session.deviceModel.ready) {
+        return setState(() => _problem = session.strings.deviceDownloadFailed);
+      }
+    }
     await _attempt(() => widget.session.connect(_spec, _key.text));
   }
+
+  /// The model on the device is downloading: its button waits, Back does not.
+  bool get _downloading => _spec.name == 'device' && widget.session.deviceProgress != null;
 
   /// A model connected before: used again with its stored key, no key asked.
   Future<void> _useConnected() => _attempt(() => widget.session.switchTo(_spec));
@@ -198,8 +212,13 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     }
   }
 
-  // OpenAI's wording for its sign-in button.
-  String _connectLabel(Strings s) => _spec.name == 'chatgpt' ? s.continueWithChatGpt : s.connect;
+  // OpenAI's wording for its sign-in button; the model on the device downloads first.
+  String _connectLabel(Strings s) => switch (_spec.name) {
+    'chatgpt' => s.continueWithChatGpt,
+    'device' when !widget.session.deviceModel.ready =>
+      _problem == null ? s.downloadAndConnect : s.resumeDownload,
+    _ => s.connect,
+  };
 
   /// The one test turn: its answer on Done, or why not, back on Connect.
   Future<void> _try() async {
@@ -259,6 +278,9 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     ] else if (_spec.name == 'ollama') ...[
       const SizedBox(height: Gap.l),
       Text(s.ollamaNoKey, style: theme.textTheme.bodyMedium),
+    ] else if (_spec.name == 'device') ...[
+      const SizedBox(height: Gap.l),
+      _DeviceDownload(widget.session),
     ],
   ];
 
@@ -430,7 +452,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
         TextButton(onPressed: _checking ? null : _connect, child: Text(_connectLabel(s))),
       ] else
         FilledButton(
-          onPressed: _checking ? null : _connect,
+          onPressed: _checking || _downloading ? null : _connect,
           child: _checking
               ? SizedBox.square(
                   dimension: 18,
@@ -937,6 +959,42 @@ class _GoogleButton extends StatelessWidget {
   }
 }
 
+/// The model on the device (#328): what the download costs, and while it runs
+/// how far it is, in a bar and in words (screen readers hear the value).
+class _DeviceDownload extends StatelessWidget {
+  const _DeviceDownload(this.session);
+
+  final Session session;
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: session,
+    builder: (context, _) {
+      final s = session.strings;
+      final theme = Theme.of(context);
+      final progress = session.deviceProgress;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: Gap.s,
+        children: [
+          Text(
+            session.deviceModel.ready ? s.deviceModelHere : s.deviceDownloadNote,
+            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          if (progress != null) ...[
+            LinearProgressIndicator(
+              value: progress,
+              semanticsLabel: s.downloadingModel,
+              semanticsValue: '${(progress * 100).floor()}%',
+            ),
+            Text(s.downloadedPercent((progress * 100).floor()), style: theme.textTheme.bodyMedium),
+          ],
+        ],
+      );
+    },
+  );
+}
+
 /// One option on the Choose step (#358). Every card says who it suits and a few
 /// short tags; the chosen one opens to cost, where the notes go, quality and
 /// the effort to set it up, so all options fit one screen and stay comparable.
@@ -962,7 +1020,7 @@ class _OptionCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final muted = colors.onSurfaceVariant;
-    final local = spec.name == 'ollama';
+    final local = spec.name == 'ollama' || spec.name == 'device';
     return Semantics(
       key: ValueKey('option-${spec.name}'),
       inMutuallyExclusiveGroup: true,

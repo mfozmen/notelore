@@ -7,7 +7,7 @@ import 'package:notelore/src/setup.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
-import 'app_test.dart' show phone, pumpApp;
+import 'app_test.dart' show choose, phone, pumpApp;
 import 'desktop_test.dart' show desktop;
 import 'support.dart';
 
@@ -419,6 +419,66 @@ void main() {
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -5000));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('action-edge')), findsNothing); // at the end: none
+  });
+
+  testWidgets('on this device: a checked download, then the model answers here (#328)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness()..deviceModels = true;
+    harness.pages['https://models.test/q.gguf'] = 'model bytes';
+    harness.deviceEngine.answers.add({
+      'message': {'content': 'Hello from this phone.'},
+    });
+    final session = await pumpApp(tester, harness);
+    await choose(tester, 'On this device (Qwen3 4B)');
+    expect(find.textContaining('2.5 GB download'), findsWidgets);
+    await tester.tap(find.text('Download and connect'));
+    // The download is real file work, outside the fake clock.
+    await settleUntil(tester, () => session.ready);
+    expect(session.deviceModel.ready, isTrue);
+    expect(session.spec?.name, 'device');
+    expect(find.text('Step 3 of 3'), findsOneWidget);
+    expect(find.textContaining('Hello from this phone.'), findsOneWidget);
+  });
+
+  testWidgets('on this device: a download that fails says so and stays on Connect', (tester) async {
+    phone(tester);
+    final harness = Harness()..deviceModels = true;
+    harness.pages['https://models.test/q.gguf'] = 'broken bytes';
+    final session = await pumpApp(tester, harness);
+    await choose(tester, 'On this device (Qwen3 4B)');
+    await tester.tap(find.text('Download and connect'));
+    await settleUntil(
+      tester,
+      () => find.textContaining('could not be downloaded').evaluate().isNotEmpty,
+    );
+    expect(session.ready, isFalse);
+    expect(find.text('Step 2 of 3'), findsOneWidget);
+    expect(find.textContaining('could not be downloaded'), findsOneWidget);
+    // The button says what it does now.
+    expect(find.text('Resume download'), findsOneWidget);
+  });
+
+  testWidgets('on this device: Back works during the download, and nothing connects behind it', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness()..deviceModels = true;
+    final served = Completer<String>();
+    harness.pages['https://models.test/q.gguf'] = served.future;
+    final session = await pumpApp(tester, harness);
+    await choose(tester, 'On this device (Qwen3 4B)');
+    await tester.tap(find.text('Download and connect'));
+    await tester.pump();
+    expect(session.deviceProgress, isNotNull);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Step 1 of 3'), findsOneWidget);
+    served.complete('model bytes');
+    await settleUntil(tester, () => session.deviceModel.ready);
+    expect(session.spec, isNull); // left before it finished: nothing chosen behind the user's back
+    expect(find.text('Step 1 of 3'), findsOneWidget);
   });
 
   testWidgets('step numbers grow with the text size (#352)', (tester) async {

@@ -47,6 +47,7 @@ void main() {
       'openai',
       'gemini',
       'ollama',
+      'device',
     ]);
     expect(findProvider('anthropic').keySteps, isNotEmpty);
     // Who can look things up on the web (#96).
@@ -66,18 +67,21 @@ void main() {
         'openai': ProviderGroup.apiKey,
         'gemini': ProviderGroup.apiKey,
         'ollama': ProviderGroup.local,
+        'device': ProviderGroup.device,
       },
     );
     expect(ProviderGroup.values.map((g) => g.heading), [
       'Use your plan',
       'API key',
       'On this computer',
+      'On this device',
     ]);
     // What each one costs, so nobody is surprised by a bill (#95).
     expect(findProvider('anthropic').cost, contains('Pro or Max subscription cannot'));
     expect(findProvider('openai').cost, contains('per use'));
     expect(findProvider('gemini').cost, contains('without billing'));
     expect(findProvider('ollama').cost, startsWith('Free'));
+    expect(findProvider('device').cost, contains('2.5 GB download'));
     expect(findProvider('ollama').requiresApiKey, isFalse);
     // No key, but steps: install it and pull a model (#360).
     expect(findProvider('ollama').keyUrl, 'https://ollama.com/download');

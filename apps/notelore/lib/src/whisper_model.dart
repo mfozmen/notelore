@@ -145,13 +145,23 @@ class WhisperModel {
     }
     // Opened only once the server answers: a refused download leaves no file.
     final sink = part.openWrite(mode: kept > 0 ? FileMode.append : FileMode.write);
+    var written = kept;
     try {
       await for (final chunk in answer.stream) {
+        // More than the file is never written: a wrong or hostile server must
+        // not fill the disk the notes are on.
+        if ((written += chunk.length) > file.size) {
+          await sink.close();
+          part.deleteSync();
+          throw ModelDownloadFailed('${file.name}: the download is larger than the file');
+        }
         sink.add(chunk);
         hashing.add(chunk);
         done += chunk.length;
         onProgress(done / bytes);
       }
+    } on ModelDownloadFailed {
+      rethrow;
     } on Object catch (error) {
       // What arrived stays, for the next try to go on from; the download's
       // error says more than one from closing the file.

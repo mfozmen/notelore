@@ -49,7 +49,7 @@ jobs:
         with:
           flutter-version-file: pubspec.yaml
           cache: true
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
       - name: Coverage with paths Sonar can resolve
         run: |
           (cd packages/notelore_core && dart run coverage:test_with_coverage)

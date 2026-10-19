@@ -52,6 +52,7 @@ void main() {
       final summary = summarize({
         'chatgpt/gpt-5': const UsageCount(calls: 1, input: 10, output: 1),
         'ollama/llama3.2': const UsageCount(calls: 1, input: 10, output: 1),
+        'device/qwen3-4b-instruct-2507': const UsageCount(calls: 1, input: 10, output: 1),
       });
       expect(summary.cost, 0);
       expect(summary.plan, isTrue);

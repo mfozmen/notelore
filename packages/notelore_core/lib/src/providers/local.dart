@@ -17,6 +17,20 @@ abstract interface class LocalEngine {
     List<Map<String, Object?>> messages,
     List<Map<String, Object?>> tools,
   );
+
+  /// Lets go of the loaded model: gigabytes of memory, never left to the GC.
+  Future<void> dispose();
+}
+
+/// The device could not load or run the model: too little memory, or a file
+/// the runtime refuses. The chat says so; another model can be chosen.
+class LocalModelFailed implements Exception {
+  const LocalModelFailed(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
 }
 
 /// The model on the device, whose [engine] the app supplies. Like Ollama, the

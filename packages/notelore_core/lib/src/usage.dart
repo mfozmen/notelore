@@ -47,7 +47,7 @@ const prices = {
 };
 
 /// Providers whose use has no per-token charge.
-const _free = {'chatgpt', 'ollama'};
+const _free = {'chatgpt', 'ollama', 'device'};
 
 final class UsageCount {
   const UsageCount({this.calls = 0, this.unreported = 0, this.input = 0, this.output = 0});
