@@ -1199,7 +1199,7 @@ void main() {
 
   testWidgets('chat: hold to talk, let go to send; the answer is read aloud', (tester) async {
     phone(tester);
-    final harness = Harness(answers: ['Cevap.', 'Yazdın.', 'Dokundun.', 'Yeniden.']);
+    final harness = Harness(answers: ['Cevap.', 'Yazdın.', 'Dokundun.', 'Yeniden.', 'A', 'B']);
     harness.speech.phrases.add('merhaba');
     final reading = Completer<void>();
     harness.voice.holding = reading;
@@ -1283,6 +1283,29 @@ void main() {
     await tester.pumpAndSettle();
     expect(harness.provider.asked, hasLength(asked));
     expect(find.byTooltip('Tap or hold to talk'), findsOneWidget);
+    // The press on Stop taken away by the system: the next hold still sends on let-go.
+    final tapped = await tester.createGesture();
+    await tapped.down(
+      tester.getCenter(find.byTooltip('Tap or hold to talk')),
+      timeStamp: const Duration(seconds: 19),
+    );
+    await tester.pump();
+    await tapped.up(timeStamp: const Duration(seconds: 19, milliseconds: 50));
+    await tester.pump();
+    final taken2 = await tester.startGesture(tester.getCenter(find.byTooltip('Stop and send')));
+    await tester.pump();
+    await taken2.cancel();
+    await tester.pumpAndSettle();
+    harness.speech.phrases.add('sonra');
+    final later = await tester.createGesture();
+    await later.down(
+      tester.getCenter(find.byTooltip('Tap or hold to talk')),
+      timeStamp: const Duration(seconds: 25),
+    );
+    await tester.pump();
+    await later.up(timeStamp: const Duration(seconds: 27));
+    await tester.pumpAndSettle();
+    expect(find.text('sonra'), findsOneWidget);
     // A hold the system takes away (a call, say) ends like a let-go.
     final taken = await tester.startGesture(
       tester.getCenter(find.byTooltip('Tap or hold to talk')),

@@ -537,7 +537,10 @@ class _ComposerState extends State<_Composer> {
         event.logicalKey != LogicalKeyboardKey.enter) {
       return KeyEventResult.ignored;
     }
-    if (event is KeyDownEvent && !busy) unawaited(_hold());
+    if (event is KeyDownEvent && !busy) {
+      setState(() => _latched = false); // a key is held: never a tap's Stop
+      unawaited(_hold());
+    }
     if (event is KeyUpEvent) _voice.release();
     return KeyEventResult.handled; // and its repeats, so the button's own press does not fire
   }
@@ -553,8 +556,15 @@ class _ComposerState extends State<_Composer> {
     }
   }
 
+  /// The system took the press away (a call, say): it ends like a let-go.
+  void _cancelled() {
+    _stopping = false;
+    _voice.release();
+  }
+
   void _pressed(PointerDownEvent down) {
     _down = down.timeStamp;
+    _stopping = false;
     if (_stopShown) {
       _stopping = true;
       _latched = false;
@@ -604,7 +614,7 @@ class _ComposerState extends State<_Composer> {
               busy: session.busy,
               pressed: _pressed,
               released: _released,
-              cancelled: _voice.release,
+              cancelled: _cancelled,
               toggle: _toggleTalk,
               onKey: (event) => _talkKey(event, busy: session.busy),
             ),
