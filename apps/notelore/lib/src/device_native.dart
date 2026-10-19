@@ -71,13 +71,14 @@ class _LlamaDart implements LocalEngine {
     final loading = _loading;
     _loading = null;
     if (loading == null) return Future.value();
-    return _released = () async {
+    // Chained: every release done before the next engine loads.
+    return _released = _released.then((_) async {
       try {
         await (await loading).dispose();
       } on Object {
         return; // never loaded, or failed to let go: nothing more to free here
       }
-    }();
+    });
   }
 }
 
