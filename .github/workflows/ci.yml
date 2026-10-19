@@ -45,9 +45,15 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Flutter version from the root pubspec, read without yq (windows-latest lacks it, #469)
+        id: flutter
+        shell: bash
+        run: |
+          echo "version=$(sed -n 's/^  flutter: *\([0-9.]*\).*/\1/p' pubspec.yaml)" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
         with:
-          flutter-version-file: pubspec.yaml
+          flutter-version: ${{ steps.flutter.outputs.version }}
+          channel: stable
           cache: true
       - run: flutter pub get --enforce-lockfile
       - name: Coverage with paths Sonar can resolve
@@ -84,9 +90,15 @@ jobs:
       # "unknown URI" issue (#77). pub get downloads the locked versions (hashes
       # checked) and runs no package code; no cache, so nothing another run
       # wrote is restored next to the token.
+      - name: Flutter version from the root pubspec, read without yq (windows-latest lacks it, #469)
+        id: flutter
+        shell: bash
+        run: |
+          echo "version=$(sed -n 's/^  flutter: *\([0-9.]*\).*/\1/p' pubspec.yaml)" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
         with:
-          flutter-version-file: pubspec.yaml
+          flutter-version: ${{ steps.flutter.outputs.version }}
+          channel: stable
           cache: false
       - run: flutter pub get --enforce-lockfile
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
