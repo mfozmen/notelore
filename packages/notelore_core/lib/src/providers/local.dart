@@ -19,6 +19,9 @@ abstract interface class LocalEngine {
   );
 }
 
+/// The model on the device, whose [engine] the app supplies. Like Ollama, the
+/// runtime gives tool calls no ids (fromOllama makes them) and its tool
+/// results are matched to their call by the tool's name.
 class LocalProvider implements LlmProvider {
   LocalProvider(this.model, this.engine);
 

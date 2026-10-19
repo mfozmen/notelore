@@ -66,7 +66,7 @@ void main() {
       final call = reply.content.single;
       expect(call['name'], 'add_note_entry');
       expect(call['input'], {'slug': 'mopsos', 'text': 'Weekly.'});
-      expect(call['id'], isA<String>());
+      expect(call['id'], isA<String>().having((id) => id, 'id', isNotEmpty));
       expect((reply.usage!.input, reply.usage!.output), (2707, 31));
     },
   );
