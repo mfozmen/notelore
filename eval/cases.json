@@ -526,6 +526,26 @@
    }
   },
   {
+   "id": "rem-tr-title",
+   "kind": "reminder",
+   "lang": "tr",
+   "message": "Yarın akşam 21.30'da Fenerbahçe–Galatasaray maçını izleyeceğim, hatırlat.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2026-10-19 21:30",
+      "Galatasaray"
+     ]
+    },
+    "lines_not": [
+     "^- \\d{4}-\\d\\d-\\d\\d \\d\\d:\\d\\d: (.{50,}|.*\\d[.:]\\d\\d)"
+    ]
+   }
+  },
+  {
    "id": "coll-tr-empty",
    "kind": "collection",
    "lang": "tr",

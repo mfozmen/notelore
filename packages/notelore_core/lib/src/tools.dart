@@ -109,7 +109,10 @@ final noteTools = List<Tool>.unmodifiable([
       {
         'slug': _slug,
         'at': {'type': 'string', 'description': 'YYYY-MM-DD, or YYYY-MM-DD HH:MM (24-hour)'},
-        'text': _string,
+        'text': {
+          'type': 'string',
+          'description': 'A short title of a few words, as a calendar shows it; no date or time',
+        },
         'kind': _kind,
       },
     ),

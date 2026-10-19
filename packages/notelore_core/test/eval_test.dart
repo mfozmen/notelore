@@ -8,6 +8,18 @@ import 'package:test/test.dart';
 
 import 'agent_test.dart' show ScriptedProvider, text, toolUse;
 
+const _futbol = '''---
+title: Futbol
+kind: topic
+created: 2026-10-01
+updated: 2026-10-01
+tags: []
+---
+# Futbol
+
+## Notes
+''';
+
 const _mopsos = '''---
 title: Mopsos
 kind: project
@@ -218,6 +230,44 @@ void main() {
         r'no changed note matching ^projects/mopsos\.md$ contains "daily"',
         'the answer has "add_note_entry"',
         'the answer has "sorry"',
+      ]);
+    });
+  });
+
+  group('lines a changed note must not have (#499)', () {
+    final match = _case({
+      'id': 'rem-title',
+      'kind': 'reminder',
+      'lang': 'tr',
+      'notes': {'topics/futbol.md': _futbol},
+      'message': "Yarın 21.30'da Fenerbahçe–Galatasaray maçını izleyeceğim, hatırlat.",
+      'expect': {
+        'notes': {
+          r'^topics/futbol\.md$': ['2026-10-19 21:30'],
+        },
+        'lines_not': [r'^- \d{4}-\d\d-\d\d \d\d:\d\d: (.{50,}|.*\d[.:]\d\d)'],
+      },
+    });
+
+    Future<EvalResult> remind(String title) => runCase(
+      match,
+      ScriptedProvider([
+        toolUse('add_reminder', 't1', {'slug': 'futbol', 'at': '2026-10-19 21:30', 'text': title}),
+        text('Hatırlatacağım.'),
+      ]),
+    );
+
+    test('a short title passes', () async {
+      final result = await remind('Fenerbahçe–Galatasaray maçı');
+      expect(result.passed, isTrue, reason: '${result.problems}');
+    });
+
+    test('a sentence with the time in it fails', () async {
+      final result = await remind(
+        "Fenerbahçe–Galatasaray maçını izle; maç Türkiye saatiyle 21.30'da başlayacak.",
+      );
+      expect(result.problems, [
+        r'topics/futbol.md has a line matching ^- \d{4}-\d\d-\d\d \d\d:\d\d: (.{50,}|.*\d[.:]\d\d)',
       ]);
     });
   });

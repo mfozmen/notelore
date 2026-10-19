@@ -32,6 +32,7 @@ class Expectation {
     : tools = [...?(json['tools'] as List?)?.cast<String>()],
       answer = [...?(json['answer'] as List?)?.cast<String>()],
       answerNot = [...?(json['answer_not'] as List?)?.cast<String>()],
+      linesNot = [...?(json['lines_not'] as List?)?.cast<String>()],
       notes = {
         for (final MapEntry(:key, :value) in ((json['notes'] as Map?) ?? {}).entries)
           '$key': (value as List).cast<String>(),
@@ -45,6 +46,10 @@ class Expectation {
 
   /// Words it must not (case-insensitive): a tool's name, an apology (#474).
   final List<String> answerNot;
+
+  /// Patterns no line of a changed note may match: a reminder written as a
+  /// sentence instead of a calendar title (#499).
+  final List<String> linesNot;
 
   /// Path pattern (relative, `/`) -> facts a changed note matching it must hold.
   /// Only notes matching one of these may change.
@@ -166,6 +171,10 @@ Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider, {bool slim =
           if (!_has(answer, fact)) 'the answer lacks "$fact"',
         for (final word in evalCase.expect.answerNot)
           if (_has(answer, word)) 'the answer has "$word"',
+        for (final pattern in evalCase.expect.linesNot)
+          for (final path in changed)
+            if (RegExp(pattern, multiLine: true).hasMatch(after[path] ?? ''))
+              '$path has a line matching $pattern',
       ]);
     }
     return EvalResult(
