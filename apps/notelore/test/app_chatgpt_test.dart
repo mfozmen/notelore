@@ -55,7 +55,8 @@ void main() {
     testWidgets('setup on a phone never speaks of a computer or of clicking (#304, $language)', (
       tester,
     ) async {
-      final harness = Harness(chatGpt: FakeAuth(), localModels: false);
+      // As main.dart sets a phone up: no Ollama, the model on the device if it can run it.
+      final harness = Harness(chatGpt: FakeAuth(), localModels: false)..deviceModels = true;
       final session = await pumpPlanApp(tester, harness);
       session.setLanguage(language);
       await tester.pumpAndSettle();
@@ -63,6 +64,8 @@ void main() {
         for (final text in tester.widgetList<Text>(find.byType(Text)))
           text.data ?? text.textSpan?.toPlainText() ?? '',
       ].join('\n');
+      // Ollama runs on a computer: on a phone the Choose step has no card for it (#448).
+      expect(shownNow(), isNot(contains('Ollama')));
       for (final desktop in ['computer', 'bilgisayar']) {
         expect(shownNow(), isNot(contains(desktop)), reason: 'Choose: $desktop');
       }
