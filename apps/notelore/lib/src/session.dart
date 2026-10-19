@@ -556,6 +556,9 @@ class Session extends ChangeNotifier {
   /// What the last sync did, for the settings screen; null before any.
   String? syncStatus;
 
+  /// Whether this run already said the notes moved into Drive's hidden storage.
+  var _toldMoved = false;
+
   /// Notes gone from Drive with too many others at once (#454): kept here
   /// until the person restores them to Drive or deletes them here too.
   List<String> heldNotes = const [];
@@ -1389,18 +1392,7 @@ class Session extends ChangeNotifier {
         completed = true;
         await _syncSettings(_remote!);
         await refreshReminders(ask: false); // the notes' and the shared setting's
-        final counts = (
-          report.pushed.length + report.removedRemote.length,
-          report.pulled.length + report.removedLocal.length,
-          report.merged.length,
-          report.skipped.length,
-        );
-        final changed = counts.$1 + counts.$2 + counts.$3 + counts.$4 > 0;
-        syncStatus = [
-          strings.synced(counts.$1, counts.$2, counts.$3, counts.$4),
-          // How the model settled conflicts; nothing to explain when nothing moved.
-          if (changed) ...?resolver?.explanations,
-        ].join(' ');
+        syncStatus = _syncSummary(report, resolver);
       } on NotSignedIn catch (error) {
         driveConnected = false;
         syncStatus = strings.signInAgain(error.message);
@@ -1417,6 +1409,26 @@ class Session extends ChangeNotifier {
         notifyListeners();
       }
     });
+  }
+
+  /// What a finished sync says: what moved, how the model settled conflicts,
+  /// and once, that the notes moved into Drive's hidden storage (#454).
+  String _syncSummary(SyncReport report, ModelResolver? resolver) {
+    final counts = (
+      report.pushed.length + report.removedRemote.length,
+      report.pulled.length + report.removedLocal.length,
+      report.merged.length,
+      report.skipped.length,
+    );
+    final changed = counts.$1 + counts.$2 + counts.$3 + counts.$4 > 0;
+    final summary = [
+      strings.synced(counts.$1, counts.$2, counts.$3, counts.$4),
+      // How the model settled conflicts; nothing to explain when nothing moved.
+      if (changed) ...?resolver?.explanations,
+      if (_remote!.moved && !_toldMoved) strings.notesMoved,
+    ].join(' ');
+    _toldMoved = _remote!.moved; // said once
+    return summary;
   }
 
   /// Schedules the notes' coming reminders on this device (#431): at start,

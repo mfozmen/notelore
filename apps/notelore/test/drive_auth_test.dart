@@ -99,7 +99,7 @@ void main() {
     await auth.signOut();
     expect(platform.disconnected, isTrue);
     expect(await auth.signedIn(), isFalse);
-    expect(platform.asked, everyElement([driveScope]));
+    expect(platform.asked, everyElement(driveScope.split(' ')));
   });
 
   test("phone: the calendar's grant asks for the calendar scope alone (#432)", () async {

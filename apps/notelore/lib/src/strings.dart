@@ -439,6 +439,9 @@ abstract class Strings {
   String noteInUse(String message);
   String synced(int sent, int received, int merged, int waiting);
 
+  /// Once, after the notes left the visible Drive folder (#454).
+  String get notesMoved;
+
   // Many notes gone from Drive at once (#454).
   String heldNotes(int count);
   String get restoreToDrive;
@@ -1138,8 +1141,8 @@ class EnglishStrings extends Strings {
   String deleteForeverTitle(String title) => 'Delete "$title" for good?';
   @override
   String get deleteForeverBody =>
-      'This cannot be undone on this device. With Google Drive on, its copy stays in '
-      "Drive's trash for 30 days.";
+      'This cannot be undone on this device. With Google Drive on, its copy there is '
+      'removed after 30 days.';
   @override
   String deletedForever(String title) => 'Deleted "$title" for good.';
   @override
@@ -1150,8 +1153,8 @@ class EnglishStrings extends Strings {
   @override
   String emptyArchiveBody(int count) =>
       'All $count ${count == 1 ? 'note' : 'notes'} in the archive will be deleted for good. '
-      "This cannot be undone on this device; with Google Drive on, the copies stay in Drive's "
-      'trash for 30 days.';
+      'This cannot be undone on this device; with Google Drive on, the copies there are '
+      'removed after 30 days.';
   @override
   String restoreTaken(String title) =>
       'A note called "$title" already exists, so this one stays in the archive.';
@@ -1219,7 +1222,8 @@ class EnglishStrings extends Strings {
   String get welcomeDrive =>
       'Your notes are backed up and synced through your own Google Drive, on all your devices.';
   @override
-  String get welcomePrivate => 'Notelore can only see the files it creates there.';
+  String get welcomePrivate =>
+      'Notelore keeps them in its own hidden space there and sees only its own files.';
   @override
   String get welcomeAccount => 'Sign in with your Google (Gmail) account to start.';
   @override
@@ -1279,6 +1283,12 @@ class EnglishStrings extends Strings {
     ];
     return parts.isEmpty ? 'Synced; nothing changed.' : 'Synced: ${parts.join(', ')}.';
   }
+
+  @override
+  String get notesMoved =>
+      "Your notes now live in Google Drive's hidden app storage, where they cannot be "
+      'changed by accident. The old Notelore folder in your Drive no longer holds them; '
+      'you can delete it.';
 
   @override
   String heldNotes(int count) => count == 1
@@ -2030,7 +2040,7 @@ class TurkishStrings extends Strings {
   String deleteForeverTitle(String title) => '"$title" kalıcı olarak silinsin mi?';
   @override
   String get deleteForeverBody =>
-      'Bu cihazda geri alınamaz. Google Drive açıksa kopyası 30 gün Drive çöp kutusunda kalır.';
+      'Bu cihazda geri alınamaz. Google Drive açıksa oradaki kopyası 30 gün sonra silinir.';
   @override
   String deletedForever(String title) => '"$title" kalıcı olarak silindi.';
   @override
@@ -2040,7 +2050,7 @@ class TurkishStrings extends Strings {
   @override
   String emptyArchiveBody(int count) =>
       'Arşivdeki $count not kalıcı olarak silinecek. Bu cihazda geri alınamaz; Google Drive '
-      'açıksa kopyaları 30 gün Drive çöp kutusunda kalır.';
+      'açıksa oradaki kopyaları 30 gün sonra silinir.';
   @override
   String restoreTaken(String title) =>
       '"$title" adında bir not zaten var, bu yüzden bu not arşivde kalıyor.';
@@ -2108,7 +2118,8 @@ class TurkishStrings extends Strings {
   String get welcomeDrive =>
       'Notların kendi Google Drive’ın üzerinden yedeklenir ve tüm cihazlarında eşitlenir.';
   @override
-  String get welcomePrivate => 'Notelore orada yalnızca kendi oluşturduğu dosyaları görebilir.';
+  String get welcomePrivate =>
+      'Notelore onları orada kendi gizli alanında tutar ve yalnızca kendi dosyalarını görür.';
   @override
   String get welcomeAccount => 'Başlamak için Google (Gmail) hesabınla giriş yap.';
   @override
@@ -2169,6 +2180,11 @@ class TurkishStrings extends Strings {
     ];
     return parts.isEmpty ? 'Eşitlendi; değişiklik yok.' : 'Eşitlendi: ${parts.join(', ')}.';
   }
+
+  @override
+  String get notesMoved =>
+      "Notların artık Google Drive'ın gizli uygulama alanında; orada yanlışlıkla değişemezler. "
+      "Drive'ındaki eski Notelore klasöründe artık notların yok; onu silebilirsin.";
 
   @override
   String heldNotes(int count) => count == 1

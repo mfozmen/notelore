@@ -1,44 +1,74 @@
 /// Google Drive as the sync [Remote], over the Drive v3 REST API.
 ///
-/// The notes tree is mirrored under one `Notelore` folder in My Drive (folders
-/// for `projects/`, `topics/`, `_archive/`...), so the backup is browsable in
-/// Drive too. The scope is `drive.file`: the app only ever sees files it
-/// created, so one listing of everything it can see is the whole tree.
+/// The notes are in Drive's hidden app folder (`appDataFolder`, scope
+/// `drive.appdata`): Drive shows it nowhere, so a person cannot edit, move or
+/// delete a note there by accident (#454). Each file sits directly in it,
+/// named by its path relative to the notes root. Drive cannot trash a file
+/// there, so a removal marks it (`appProperties.removed`, a UTC time), the
+/// listing skips it, and a listing deletes the ones marked over 30 days ago
+/// by Drive's own clock, as Drive empties its trash.
+///
+/// Before #454 the notes were in a visible `Notelore` folder in My Drive
+/// (scope `drive.file`, which only ever sees files the app created). The first
+/// listing copies what is still there into the app folder, never a name
+/// already there, so a move cut off or made by two devices at once is safe.
+/// Each file it copied then goes to Drive's trash; the folder itself stays,
+/// marked as moved, because a person's own files in it are not Notelore's to
+/// throw away.
 library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show HttpDate;
 
 import 'package:http/http.dart' as http;
 
+import '../oauth.dart';
 import '../providers/http.dart';
 import 'engine.dart';
 
-const driveScope = 'https://www.googleapis.com/auth/drive.file';
+/// Both grants: the app folder, and the old visible folder to move out of.
+const driveScope =
+    'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata';
 
 const _files = 'https://www.googleapis.com/drive/v3/files';
 const _uploads = 'https://www.googleapis.com/upload/drive/v3/files';
 const _folderType = 'application/vnd.google-apps.folder';
 const _fields = 'id,name,parents,mimeType,md5Checksum,modifiedTime,appProperties';
+const _app = 'appDataFolder';
 const _rootName = 'Notelore';
-const _rootMark = {'notelore': 'root'};
 const _contentType = 'Content-Type';
+
+/// How long a removed file stays, like a file in Drive's trash.
+const _kept = Duration(days: 30);
 
 /// A valid access token; [refresh] asks for a new one after the old one was refused.
 typedef AccessToken = Future<String> Function({bool refresh});
 
 class DriveRemote implements Remote {
-  DriveRemote(this._client, this._token, {this.timeout = const Duration(seconds: 60)});
+  DriveRemote(
+    this._client,
+    this._token, {
+    this.timeout = const Duration(seconds: 60),
+    DateTime Function()? clock,
+  }) : _clock = clock ?? DateTime.timestamp;
 
   /// How long one request may take before the sync counts as offline.
   final Duration timeout;
 
   final http.Client _client;
   final AccessToken _token;
+  final DateTime Function() _clock;
 
-  /// Folder ids by path relative to the notes root ('' is the Notelore folder),
-  /// learned from [list] and from the folders this client creates.
-  final _folders = <String, String>{};
+  @override
+  var moved = false;
+  var _checkedVisible = false;
+
+  /// Drive's clock, from its last answer: a removal's 30 days never count by a
+  /// device clock that is off.
+  DateTime? _driveNow;
+
+  DateTime _now() => _driveNow ?? _clock().toUtc();
 
   Future<http.Response> _send(
     String method,
@@ -59,11 +89,28 @@ class DriveRemote implements Remote {
       } on TimeoutException {
         throw const NetworkError('Google Drive did not answer in time');
       }
+      _driveNow = _dateOf(response.headers['date']) ?? _driveNow;
       if (response.statusCode == 401 && !refresh) continue; // expired: refresh once
-      if (response.statusCode >= 400) {
-        throw HttpError(response.statusCode, errorMessage(utf8.decode(response.bodyBytes)));
-      }
+      if (response.statusCode >= 400) throw _failure(response);
       return response;
+    }
+  }
+
+  /// What a refused request throws: a grant from before the app folder asks
+  /// to sign in again, which adds it.
+  static Exception _failure(http.Response response) {
+    final message = errorMessage(utf8.decode(response.bodyBytes));
+    if (response.statusCode == 403 && message.contains('scope')) return NotSignedIn(message);
+    return HttpError(response.statusCode, message);
+  }
+
+  /// The time in a Date header; none when it is missing or does not read as one.
+  static DateTime? _dateOf(String? header) {
+    if (header == null) return null;
+    try {
+      return HttpDate.parse(header);
+    } on Exception {
+      return null;
     }
   }
 
@@ -91,34 +138,93 @@ class DriveRemote implements Remote {
 
   @override
   Future<Map<String, RemoteFile>> list() async {
-    final all = await _listAll();
-    final byId = {for (final file in all) file['id']! as String: file};
-    // Two devices may each have created a Notelore folder before either synced:
-    // the oldest one wins (the listing is in creation order).
-    final root = all
-        .where((f) => f['mimeType'] == _folderType && f['name'] == _rootName)
-        .where((f) => (f['appProperties'] as Map?)?['notelore'] == 'root')
-        .firstOrNull;
-    _folders.clear();
-    if (root == null) return {};
-
-    _folders[''] = root['id']! as String;
+    if (!_checkedVisible) {
+      await _moveVisible();
+      _checkedVisible = true;
+    }
+    final files = await _listAll(_app);
     final notes = <String, RemoteFile>{};
-    for (final file in all) {
-      final path = file == root ? null : _pathOf(file, root['id'], byId);
-      if (path == null) continue;
-      if (file['mimeType'] == _folderType) {
-        _folders[path] = file['id']! as String;
+    // In creation order: when two devices copied the same file, the first wins.
+    for (final file in files) {
+      final name = file['name']! as String;
+      final id = file['id']! as String;
+      final removed = (file['appProperties'] as Map?)?['removed'] as String?;
+      if (removed != null) {
+        final at = DateTime.tryParse(removed);
+        // A mark that does not read as a time counts from now, never as long ago.
+        if (at == null) {
+          await _unlessGone(() => trash(id));
+        } else if (_now().difference(at) > _kept) {
+          await _unlessGone(() => _delete(id));
+        }
+      } else if (notes.containsKey(name)) {
+        await _unlessGone(() => trash(id));
       } else if (file['md5Checksum'] != null) {
-        notes[path] = _remoteFile(file); // Google Docs have no content hash: not notes
+        notes[name] = _remoteFile(file); // Google Docs have no content hash: not notes
       }
     }
     return notes;
   }
 
-  /// Every file the app can see that is not in the trash, page by page, in
-  /// creation order.
-  Future<List<Map<String, Object?>>> _listAll() async {
+  /// Copies the visible folder's files into the app folder, those not there
+  /// yet, trashes each one, and marks the folder moved.
+  Future<void> _moveVisible() async {
+    final all = await _listAll('drive');
+    final byId = {for (final file in all) file['id']! as String: file};
+    // Two devices may each have created a Notelore folder before either synced:
+    // the oldest one held the notes (the listing is in creation order).
+    final roots = all
+        .where((f) => f['mimeType'] == _folderType && f['name'] == _rootName)
+        .where((f) => (f['appProperties'] as Map?)?['notelore'] == 'root')
+        .toList();
+    if (roots.isEmpty) return;
+    final there = {for (final file in await _listAll(_app)) file['name']};
+    // Every folder's files, the oldest folder's first: a name already copied
+    // keeps that copy, and nothing is left behind in a folder marked moved.
+    for (final root in roots) {
+      for (final file in all) {
+        final path = _pathOf(file, root['id'], byId);
+        if (path != null && file['md5Checksum'] != null) await _moveFile(file, path, there);
+      }
+    }
+    for (final root in roots) {
+      await _json(
+        'PATCH',
+        '$_files/${root['id']}',
+        body: {
+          'appProperties': {'notelore': 'moved'},
+        },
+      );
+    }
+    moved = true;
+  }
+
+  /// Copies [file] to [path] in the app folder unless a file is [there] by
+  /// that name, then trashes it.
+  Future<void> _moveFile(Map<String, Object?> file, String path, Set<Object?> there) async {
+    final id = file['id']! as String;
+    if (!there.contains(path)) {
+      final data = await _unlessGone(() => download(id));
+      if (data == null) return; // another device moved it meanwhile
+      await upload(path, data, null);
+      there.add(path);
+    }
+    await _unlessGone(() => _json('PATCH', '$_files/$id', body: {'trashed': true}));
+  }
+
+  /// What [request] answers, or null when its file is gone: another device
+  /// removed or moved it first.
+  static Future<T?> _unlessGone<T>(Future<T> Function() request) async {
+    try {
+      return await request();
+    } on HttpError catch (error) {
+      return error.status == 404 ? null : throw error;
+    }
+  }
+
+  /// Every file the app can see in [space] that is not in the trash, page by
+  /// page, in creation order.
+  Future<List<Map<String, Object?>>> _listAll(String space) async {
     final all = <Map<String, Object?>>[];
     String? page;
     do {
@@ -127,6 +233,7 @@ class DriveRemote implements Remote {
         _files,
         query: {
           'q': 'trashed = false',
+          if (space == _app) 'spaces': _app,
           'orderBy': 'createdTime',
           'pageSize': '1000',
           'fields': 'nextPageToken,files($_fields)',
@@ -174,11 +281,9 @@ class DriveRemote implements Remote {
       );
       return _remoteFile((jsonDecode(utf8.decode(response.bodyBytes)) as Map).cast());
     }
-    final slash = rel.lastIndexOf('/');
-    final parent = await _folder(slash < 0 ? '' : rel.substring(0, slash));
     final metadata = jsonEncode({
-      'name': rel.substring(slash + 1),
-      'parents': [parent],
+      'name': rel,
+      'parents': [_app],
       'mimeType': 'text/markdown',
     });
     const boundary = 'notelore-part-boundary';
@@ -200,34 +305,18 @@ class DriveRemote implements Remote {
     return _remoteFile((jsonDecode(utf8.decode(response.bodyBytes)) as Map).cast());
   }
 
-  /// The id of the folder at [path] under the root, created (with its parents)
-  /// when missing.
-  Future<String> _folder(String path) async {
-    if (_folders[path] case final id?) return id;
-    final String parent;
-    final Map<String, Object?> metadata;
-    if (path.isEmpty) {
-      parent = 'root'; // My Drive
-      metadata = {'name': _rootName, 'appProperties': _rootMark};
-    } else {
-      final slash = path.lastIndexOf('/');
-      parent = await _folder(slash < 0 ? '' : path.substring(0, slash));
-      metadata = {'name': path.substring(slash + 1)};
-    }
-    final created = await _json(
-      'POST',
-      _files,
-      body: {
-        ...metadata,
-        'mimeType': _folderType,
-        'parents': [parent],
-      },
-    );
-    return _folders[path] = created['id']! as String;
-  }
-
+  /// Marks the file removed: Drive cannot trash a file in the app folder, so
+  /// the mark keeps it [_kept] long, as the trash would.
   @override
   Future<void> trash(String fileId) async {
-    await _json('PATCH', '$_files/$fileId', body: {'trashed': true});
+    await _json(
+      'PATCH',
+      '$_files/$fileId',
+      body: {
+        'appProperties': {'removed': _now().toIso8601String()},
+      },
+    );
   }
+
+  Future<void> _delete(String fileId) => _send('DELETE', '$_files/$fileId');
 }
