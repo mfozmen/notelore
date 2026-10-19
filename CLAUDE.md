@@ -137,3 +137,10 @@ At runtime, the agent answers in the language the user writes in, and writes not
 ## Platform
 
 Maintainer develops on Windows 11 (bash shell) and also runs on macOS.
+
+## Comments
+
+Follow the `commentie:comments` skill. Clear code needs no comment. Comment only
+a non-obvious why, a trap, or a hidden coupling, in one or two short sentences.
+No narration, no history, no commented-out code, no bare issue refs.
+Reviewers: a narrative comment is a warning, reported once per branch, never a blocker.
