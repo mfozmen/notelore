@@ -234,6 +234,24 @@ void main() {
       expect(readRel(kept), contains('one'));
     });
 
+    test('a copy goes after 30 days, so a phone that syncs often does not fill up', () async {
+      // now is 2026-10-01 09:30:05.
+      for (final name in [
+        '2026-08-31T093004Z',
+        '2026-08-31T093004Z-2',
+        '2026-09-01T093005Z',
+        'mine',
+      ]) {
+        write('.notelore/kept/$name/projects/a.md', note);
+      }
+      await run();
+      final left = Directory(p.join(root, '.notelore', 'kept'))
+          .listSync()
+          .map((d) => p.basename(d.path));
+      // Older than 30 days goes; 30 days to the second stays; a folder it did not make stays.
+      expect(left, unorderedEquals(['2026-09-01T093005Z', 'mine']));
+    });
+
     test('an attachment Drive changed keeps the bytes it replaces', () async {
       File(at('attachments/2026-10-18/memo.m4a'))
         ..parent.createSync(recursive: true)

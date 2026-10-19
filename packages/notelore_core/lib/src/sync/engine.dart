@@ -89,6 +89,7 @@ Future<SyncReport> sync(
   final t = (now ?? DateTime.now()).toUtc();
   final stamp =
       '${t.year}-${_two(t.month)}-${_two(t.day)}T${_two(t.hour)}${_two(t.minute)}${_two(t.second)}Z';
+  _pruneKept(root, t);
   final local = _localFiles(root);
   // Only notes: anything else in the remote folder (the shared app settings) is
   // not ours to pull, and pulling it would later read as deleted here and trash it.
@@ -167,6 +168,23 @@ String _relOf(String root, String path) =>
 
 /// Where a pull keeps the copy it replaced (#456): on this device only.
 const keptFolder = '.notelore/kept';
+
+/// A pass's folder under [keptFolder]: its UTC stamp, maybe "-2" after it.
+final _keptStamp = RegExp(r'^(\d{4})-(\d\d)-(\d\d)T(\d\d)(\d\d)(\d\d)Z(-\d+)?$');
+
+/// Removes the copies a pull kept more than 30 days before [now], so a phone
+/// that syncs often does not fill up; a folder by another name stays.
+void _pruneKept(String root, DateTime now) {
+  final kept = Directory(p.joinAll([root, ...keptFolder.split('/')]));
+  if (!kept.existsSync()) return;
+  for (final dir in kept.listSync().whereType<Directory>()) {
+    final m = _keptStamp.firstMatch(p.basename(dir.path));
+    if (m == null) continue;
+    final [y, mo, d, h, mi, s] = [for (var i = 1; i <= 6; i++) int.parse(m[i]!)];
+    final made = DateTime.utc(y, mo, d, h, mi, s);
+    if (now.difference(made) > const Duration(days: 30)) dir.deleteSync(recursive: true);
+  }
+}
 
 /// Notes, and the originals kept beside them (#279); nothing else in the folder,
 /// nor a write's temp file left by a crash (a dot file), nor what a pull kept.
