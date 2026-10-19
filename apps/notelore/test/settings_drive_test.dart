@@ -7,17 +7,14 @@ import 'package:notelore_core/notelore_core.dart';
 import 'app_test.dart' show connect, phone, pumpApp;
 import 'support.dart';
 
-Future<void> openSettings(WidgetTester tester) async {
-  await tester.tap(find.text('Settings'));
-  await tester.pumpAndSettle();
-}
+Future<void> openSync(WidgetTester tester) => openSettings(tester, 'Sync');
 
 void main() {
   testWidgets('a build without sign-in says so', (tester) async {
     phone(tester);
     await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
-    await openSettings(tester);
+    await openSync(tester);
     expect(find.text('Sync is not set up in this build.'), findsOneWidget);
   });
 
@@ -28,7 +25,7 @@ void main() {
     await tester.tap(find.text('Sign in with Google'));
     await tester.pumpAndSettle();
     await connect(tester, key: 'k');
-    await openSettings(tester);
+    await openSync(tester);
     expect(find.text('Synced; nothing changed.'), findsOneWidget);
     harness.remote.texts['topics/t.md'] = '---\ntitle: T\n---\n# T\n';
     await tester.ensureVisible(find.byTooltip('Sync now'));
@@ -36,10 +33,12 @@ void main() {
     await tester.tap(find.byTooltip('Sync now'));
     await tester.pumpAndSettle();
     expect(find.text('Synced: 1 received.'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('T'), findsOneWidget); // the pulled note is listed
-    await openSettings(tester);
+    await openSync(tester);
     await tester.ensureVisible(find.byTooltip('Disconnect Google Drive'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Disconnect Google Drive'));
@@ -74,7 +73,7 @@ void main() {
     await session.syncNow();
     await tester.pumpAndSettle();
     expect(find.text('Sign in with Google'), findsNothing); // still in the app
-    await openSettings(tester);
+    await openSync(tester);
     expect(find.text('Signed out of Google. Connect again.'), findsOneWidget);
     auth.failSignIn = const SignInFailed('access_denied');
     await tester.ensureVisible(find.widgetWithText(FilledButton, 'Connect'));
@@ -99,7 +98,7 @@ void main() {
     final harness = Harness(auth: FakeAuth()..granted = true);
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    await openSettings(tester);
+    await openSync(tester);
     harness.remote.hold = Completer<void>(); // the next sync stays in flight
     unawaited(session.syncNow());
     await tester.pump();
@@ -165,10 +164,12 @@ void main() {
       await pumpApp(tester, harness);
       await connect(tester, key: 'k');
       harness.remote.texts.removeWhere((rel, _) => rel.endsWith('.md'));
-      await openSettings(tester);
+      await openSync(tester);
       await tester.ensureVisible(find.byTooltip('Sync now'));
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Sync now'));
+      await tester.pumpAndSettle();
+      await tester.pageBack(); // the banner is above the task screens
       await tester.pumpAndSettle();
       expect(
         find.text('4 notes were removed from Google Drive at once. Notelore kept them here.'),

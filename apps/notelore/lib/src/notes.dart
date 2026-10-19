@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
+import 'app.dart' show AppMenu;
 import 'note_view.dart';
 import 'session.dart';
 import 'strings.dart';
@@ -159,6 +160,7 @@ class _NotesScreenState extends State<NotesScreen> {
     }
     return Scaffold(
       appBar: AppBar(
+        leading: AppMenu.button(context),
         title: Text(s.notes),
         actions: [
           IconButton(

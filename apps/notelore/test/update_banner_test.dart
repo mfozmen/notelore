@@ -198,8 +198,7 @@ void main() {
         spawn: (exe, args) async => spawned.add(exe),
       ),
     );
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await openSettings(tester, 'About');
     Future<void> check() async {
       // At the end of Settings, in the About card.
       await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));
@@ -216,7 +215,9 @@ void main() {
     expect(find.textContaining('Could not check for updates'), findsOneWidget);
     pages.pages[latestReleaseUrl] = release(v);
     await check();
-    expect(find.text('A fresh Notelore is ready: $v.'), findsWidgets); // the banner too
+    expect(find.text('A fresh Notelore is ready: $v.'), findsWidgets);
+    await tester.pageBack(); // the banner, above the task screens
+    await tester.pumpAndSettle();
     expect(find.text('Update and restart'), findsOneWidget);
   });
 

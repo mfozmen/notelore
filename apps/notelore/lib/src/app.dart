@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'calendar.dart';
 import 'chat.dart';
 import 'lock.dart';
+import 'mark.dart';
 import 'notes.dart';
 import 'session.dart';
 import 'settings.dart';
@@ -137,6 +138,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> with WidgetsBindingObserver {
   var _tab = 0;
+  final _scaffold = GlobalKey<ScaffoldState>();
   late int _seenSharedDraft;
   String? _available; // a newer version
 
@@ -285,19 +287,38 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     if (widget.updater!.system != 'android') widget.exitApp(0);
   }
 
+  Future<String> Function()? get _checkByHand => widget.updater == null ? null : _checkNow;
+
+  /// The screen of [tab].
+  Widget _screen(int tab, {required bool wide}) => switch (tab) {
+    // Below the menu, to find it.
+    0 when !wide => Builder(
+      builder: (context) => Scaffold(
+        appBar: AppBar(leading: AppMenu.button(context), title: const Text('Notelore')),
+        body: ChatScreen(widget.session),
+      ),
+    ),
+    0 => ChatScreen(widget.session),
+    1 => NotesScreen(widget.session),
+    2 => CalendarScreen(widget.session, toChat: () => setState(() => _tab = 0)),
+    _ => SettingsScreen(widget.session, checkForUpdates: _checkByHand),
+  };
+
   @override
   Widget build(BuildContext context) {
     final s = widget.session.strings;
     final width = MediaQuery.sizeOf(context).width;
     // A desktop window navigates from a side rail, with its labels when there
-    // is room; a phone from the bottom bar.
+    // is room; a phone from the bottom bar, which keeps to the screens of the
+    // task: Settings, secondary, is in the menu at the top (#509).
     final wide = width >= Layout.wide;
     final destinations = [
       (Icons.chat_bubble_outline, Icons.chat_bubble, s.chat),
       (Icons.description_outlined, Icons.description, s.notes),
       (Icons.calendar_month_outlined, Icons.calendar_month, s.calendar),
-      (Icons.settings_outlined, Icons.settings, s.settings),
+      if (wide) (Icons.settings_outlined, Icons.settings, s.settings),
     ];
+    final tab = _tab < destinations.length ? _tab : 0; // a window made narrow on Settings
     void select(int tab) => setState(() => _tab = tab);
     final page = Column(
       children: [
@@ -318,31 +339,33 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             update: _update,
           ),
         if (widget.session.heldNotes.isNotEmpty) _HeldBanner(widget.session),
-        if (widget.session.driveNeedsSignIn && !_signInLater && _tab != 3)
+        if (widget.session.driveNeedsSignIn && !_signInLater && tab != 3)
           _SignInBanner(widget.session, later: () => setState(() => _signInLater = true)),
         // Settings has its own sign-in: never the same offer twice on one screen.
-        if (widget.session.calendarNudge && _tab != 3) _CalendarBanner(widget.session),
-        Expanded(
-          child: switch (_tab) {
-            0 => ChatScreen(widget.session),
-            1 => NotesScreen(widget.session),
-            2 => CalendarScreen(widget.session, toChat: () => select(0)),
-            _ => SettingsScreen(
-              widget.session,
-              checkForUpdates: widget.updater == null ? null : _checkNow,
-            ),
-          },
-        ),
+        if (widget.session.calendarNudge && tab != 3) _CalendarBanner(widget.session),
+        Expanded(child: _screen(tab, wide: wide)),
       ],
     );
     return Scaffold(
+      key: _scaffold,
+      drawer: wide
+          ? null
+          : _Menu(
+              widget.session,
+              open: (section) => openSettingsSection(
+                context,
+                widget.session,
+                section,
+                checkForUpdates: _checkByHand,
+              ),
+            ),
       body: SafeArea(
         child: wide
             ? Row(
                 children: [
                   _SideRail(
                     destinations,
-                    selected: _tab,
+                    selected: tab,
                     select: select,
                     extended: width >= Layout.roomy,
                   ),
@@ -350,18 +373,81 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   Expanded(child: page),
                 ],
               )
-            : page,
+            : AppMenu(open: () => _scaffold.currentState!.openDrawer(), child: page),
       ),
       bottomNavigationBar: wide
           ? null
           : NavigationBar(
-              selectedIndex: _tab,
+              selectedIndex: tab,
               onDestinationSelected: select,
               destinations: [
                 for (final (icon, chosen, label) in destinations)
                   NavigationDestination(icon: Icon(icon), selectedIcon: Icon(chosen), label: label),
               ],
             ),
+    );
+  }
+}
+
+/// The phone's menu, opened from a task screen's app bar: Settings' categories.
+class AppMenu extends InheritedWidget {
+  const AppMenu({required this.open, required super.child, super.key});
+
+  final VoidCallback open;
+
+  /// The app bar's menu button where there is a menu, else null: a wide
+  /// window has Settings in its side rail.
+  static Widget? button(BuildContext context) {
+    final menu = context.dependOnInheritedWidgetOfExactType<AppMenu>();
+    if (menu == null) return null;
+    return IconButton(
+      tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
+      icon: const Icon(Icons.menu),
+      onPressed: menu.open,
+    );
+  }
+
+  @override
+  bool updateShouldNotify(AppMenu oldWidget) => open != oldWidget.open;
+}
+
+class _Menu extends StatelessWidget {
+  const _Menu(this.session, {required this.open});
+
+  final Session session;
+  final ValueChanged<SettingsSection> open;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = session.strings;
+    final theme = Theme.of(context);
+    return Drawer(
+      child: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: Gap.s),
+          children: [
+            // The app's own menu, not a hidden list: its mark and name first.
+            ListTile(
+              leading: const NoteloreMark(size: 32, badge: false),
+              title: Text('Notelore', style: theme.textTheme.titleLarge),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, Gap.xs),
+              child: Text(
+                s.settings,
+                style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+              ),
+            ),
+            SettingsCategories(
+              session,
+              open: (section) {
+                Scaffold.of(context).closeDrawer();
+                open(section);
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

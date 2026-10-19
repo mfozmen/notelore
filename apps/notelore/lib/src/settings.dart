@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
 import 'package:notelore_core/notelore_core.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'lock.dart';
 import 'mark.dart';
@@ -13,10 +14,51 @@ import 'update.dart' show appVersion;
 import 'usage_page.dart';
 import 'whisper_speech.dart' show MicrophoneChoice;
 
+/// Settings' categories: the side list on a wide window, the phone's menu.
+enum SettingsSection {
+  model(Icons.auto_awesome_outlined),
+  voice(Icons.record_voice_over_outlined),
+  sync(Icons.cloud_outlined),
+  appearance(Icons.palette_outlined),
+  lock(Icons.lock_outline),
+  reminders(Icons.notifications_outlined),
+  about(Icons.info_outline);
+
+  const SettingsSection(this.icon);
+
+  final IconData icon;
+
+  String title(Strings s) => switch (this) {
+    model => s.model,
+    voice => s.voiceSection,
+    sync => s.syncSection,
+    appearance => s.appearance,
+    lock => s.appLock,
+    reminders => s.reminders,
+    about => s.aboutSection,
+  };
+
+  /// The ones this device has: Reminders only where it can notify at all (#431).
+  static List<SettingsSection> of(Session session) => [
+    for (final section in values)
+      if (section != reminders || session.remindersAllowed != null || session.calendarAvailable)
+        section,
+  ];
+}
+
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen(this.session, {this.checkForUpdates, this.version = appVersion, super.key});
+  const SettingsScreen(
+    this.session, {
+    this.checkForUpdates,
+    this.version = appVersion,
+    this.section,
+    super.key,
+  });
 
   final Session session;
+
+  /// The one category a phone shows on its own page; null shows them all.
+  final SettingsSection? section;
 
   /// This build's version ([appVersion]); empty in a development build.
   final String version;
@@ -53,69 +95,73 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final session = widget.session;
     final s = session.strings;
-    final model = _ModelCard(session);
-    final advanced = _AdvancedCard(session);
-    final language = _LanguageCard(session);
-    final look = _LookCard(session);
-    final drive = Card(child: _DriveSection(session));
-    final voice = _VoiceCard(
-      session,
-      microphones: _microphones,
-      listAgain: () => setState(() {
-        _microphones = session.listMicrophones();
-      }),
-    );
-    final lock = _LockCard(session);
-    // Only where this device can notify at all (#431).
-    final reminders = session.remindersAllowed == null && !session.calendarAvailable
-        ? null
-        : _RemindersCard(session);
-    final about = _AboutCard(
-      session,
-      version: widget.version,
-      check: switch (widget.checkForUpdates) {
-        final check? when !_checking => () => _checkForUpdates(check),
-        _ => null,
-      },
-      canCheck: widget.checkForUpdates != null,
-    );
+    final cards = {
+      SettingsSection.model: [_ModelCard(session), _AdvancedCard(session)],
+      SettingsSection.voice: [
+        _VoiceCard(
+          session,
+          microphones: _microphones,
+          listAgain: () => setState(() {
+            _microphones = session.listMicrophones();
+          }),
+        ),
+      ],
+      SettingsSection.sync: [Card(child: _DriveSection(session))],
+      SettingsSection.appearance: [_LanguageCard(session), _LookCard(session)],
+      SettingsSection.lock: [_LockCard(session)],
+      SettingsSection.reminders: [_RemindersCard(session)],
+      SettingsSection.about: [
+        _AboutCard(
+          session,
+          version: widget.version,
+          check: switch (widget.checkForUpdates) {
+            final check? when !_checking => () => _checkForUpdates(check),
+            _ => null,
+          },
+          canCheck: widget.checkForUpdates != null,
+        ),
+      ],
+    };
+    final sections = SettingsSection.of(session);
+    if (widget.section case final section?) {
+      return Scaffold(
+        appBar: AppBar(title: Text(section.title(s))),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: Layout.column),
+                child: _cards(cards[section]!),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: Text(s.settings)),
-      // Grouped in cards; a readable width on wide windows.
       body: Builder(
         builder: (context) => Layout.isWide(context)
             // A wide window: the sections on the left, one shown at a time, like
             // a desktop's own settings.
             ? _Sections(
-                [
-                  (Icons.auto_awesome_outlined, s.model, [model, advanced]),
-                  (Icons.record_voice_over_outlined, s.voiceSection, [voice]),
-                  (Icons.cloud_outlined, s.syncSection, [drive]),
-                  (Icons.palette_outlined, s.appearance, [language, look]),
-                  (Icons.lock_outline, s.appLock, [lock]),
-                  if (reminders != null) (Icons.notifications_outlined, s.reminders, [reminders]),
-                  (Icons.info_outline, s.aboutSection, [about]),
-                ],
-                shown: _section,
+                [for (final section in sections) (section.icon, section.title(s), cards[section]!)],
+                shown: _section.clamp(0, sections.length - 1),
                 show: (index) => setState(() => _section = index),
               )
+            // A narrow window: the same categories as the phone's menu.
             : ListView(
-                padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
+                padding: const EdgeInsets.symmetric(vertical: Gap.s),
                 children: [
-                  Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: Layout.column),
-                      child: _cards([
-                        model,
-                        language,
-                        look,
-                        drive,
-                        voice,
-                        lock,
-                        ?reminders,
-                        advanced,
-                        about,
-                      ]),
+                  SettingsCategories(
+                    session,
+                    open: (section) => openSettingsSection(
+                      context,
+                      session,
+                      section,
+                      version: widget.version,
+                      checkForUpdates: widget.checkForUpdates,
                     ),
                   ),
                 ],
@@ -124,6 +170,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
+
+/// Settings' categories as a list, each opening its own page: the phone's
+/// menu and a narrow Settings screen. ListTiles, so a long label at a large
+/// text size wraps instead of overflowing.
+class SettingsCategories extends StatelessWidget {
+  const SettingsCategories(this.session, {required this.open, super.key});
+
+  final Session session;
+  final ValueChanged<SettingsSection> open;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      for (final section in SettingsSection.of(session))
+        ListTile(
+          leading: Icon(section.icon),
+          title: Text(section.title(session.strings)),
+          onTap: () => open(section),
+        ),
+    ],
+  );
+}
+
+/// Opens [section] of Settings on its own page, as a phone shows it.
+Future<void> openSettingsSection(
+  BuildContext context,
+  Session session,
+  SettingsSection section, {
+  String version = appVersion,
+  Future<String> Function()? checkForUpdates,
+}) => Navigator.of(context).push(
+  MaterialPageRoute<void>(
+    builder: (_) => SettingsScreen(
+      session,
+      section: section,
+      version: version,
+      checkForUpdates: checkForUpdates,
+    ),
+  ),
+);
 
 /// The section list on the left of a wide window and the [shown] section's
 /// cards beside it.
@@ -387,6 +473,15 @@ class _ConnectionsState extends State<_Connections> {
             ],
           ),
         ),
+        // OpenAI's guidelines link the plan's usage; here rather than by the composer (#507).
+        if (session.spec?.name == 'chatgpt')
+          ListTile(
+            leading: const Icon(Icons.open_in_new),
+            title: Text(s.manageUsage),
+            subtitle: Text(s.usingChatGptPlan),
+            onTap: () =>
+                launchUrl(Uri.parse(chatGptUsageUrl), mode: LaunchMode.externalApplication),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, Gap.m),
           child: OutlinedButton.icon(
@@ -786,7 +881,11 @@ class _AboutCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: Gap.m),
               child: FilledButton.tonalIcon(
                 icon: const Icon(Icons.logout),
-                onPressed: session.logout,
+                onPressed: () {
+                  // Setup takes over: a phone's Settings page must not stay on top.
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                  session.logout();
+                },
                 label: Text(s.logOut),
               ),
             ),
@@ -925,7 +1024,11 @@ class _DriveSection extends StatelessWidget {
           IconButton(
             tooltip: session.strings.disconnectDrive,
             icon: const Icon(Icons.link_off),
-            onPressed: session.disconnectDrive,
+            onPressed: () {
+              // The Google step takes over: a phone's Settings page must not stay on top.
+              Navigator.of(context).popUntil((route) => route.isFirst);
+              session.disconnectDrive();
+            },
           ),
         ],
       ),

@@ -494,14 +494,7 @@ void main() {
 
   /// Opens Settings and brings the app lock card into view.
   Future<void> openLock(WidgetTester tester) async {
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('App lock'),
-      300,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.pumpAndSettle();
+    await openSettings(tester, 'App lock');
   }
 
   /// Closes the app and opens it again on the same folders and keystore.
@@ -759,7 +752,7 @@ void main() {
     await tester.tap(find.byTooltip('Send'));
     await tester.pumpAndSettle();
     expect(draft(), isEmpty);
-    await tester.tap(find.text('Settings'));
+    await tester.tap(find.text('Calendar'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Chat'));
     await tester.pumpAndSettle();
@@ -1448,14 +1441,15 @@ void main() {
     final harness = Harness();
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await openSettings(tester, 'About');
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));
     await tester.pumpAndSettle();
     expect(find.text('Notelore · development build'), findsOneWidget); // no release version
     expect(find.byType(NoteloreMark), findsOneWidget); // About wears the mark (#340)
     // A release build names its version.
     await tester.pumpWidget(MaterialApp(home: SettingsScreen(session, version: '0.7.0')));
+    await tester.tap(find.text('About')); // a narrow window lists the categories
+    await tester.pumpAndSettle();
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));
     await tester.pumpAndSettle();
     expect(find.text('Notelore 0.7.0'), findsOneWidget);
@@ -1466,8 +1460,7 @@ void main() {
     final harness = Harness();
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await openSettings(tester, 'Model');
     expect(find.textContaining('bills each search'), findsOneWidget); // Claude
     await tester.tap(find.text('Look things up on the web'));
     await tester.pumpAndSettle();
@@ -1479,8 +1472,7 @@ void main() {
     phone(tester);
     await pumpApp(tester, Harness());
     await connect(tester, provider: 'GPT (OpenAI)', key: 'sk');
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await openSettings(tester, 'Model');
     expect(find.textContaining('like the author of a book'), findsOneWidget);
   });
 
@@ -1488,8 +1480,7 @@ void main() {
     phone(tester);
     await pumpApp(tester, Harness());
     await connect(tester, provider: 'Ollama (local)');
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await openSettings(tester, 'Model');
     expect(find.text('Not available with this provider.'), findsOneWidget);
   });
 
@@ -1498,8 +1489,7 @@ void main() {
     final harness = Harness();
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await openSettings(tester, 'Appearance');
     await tester.scrollUntilVisible(
       find.byTooltip('Pine forest'),
       200,
@@ -1524,25 +1514,23 @@ void main() {
     final harness = Harness();
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await openSettings(tester, 'Appearance');
     await tester.tap(find.byKey(const Key('language')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Türkçe').last);
     await tester.pumpAndSettle();
-    expect(find.text('Sohbet'), findsOneWidget);
-    expect(find.text('Ayarlar'), findsWidgets);
+    expect(find.text('Görünüm'), findsOneWidget); // the page, in Turkish at once
     expect(find.text('Dil'), findsOneWidget);
-    await tester.tap(find.text('Sohbet'));
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
+    expect(find.text('Sohbet'), findsOneWidget);
     expect(find.text('Not almamı istediğin bir şey yaz ya da notlarına sor.'), findsOneWidget);
-    await tester.tap(find.text('Ayarlar').last);
-    await tester.pumpAndSettle();
+    await openSettings(tester, 'Görünüm');
     await tester.tap(find.byKey(const Key('language')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('English').last);
     await tester.pumpAndSettle();
-    expect(find.text('Chat'), findsOneWidget);
+    expect(find.text('Appearance'), findsOneWidget);
   });
 
   testWidgets('chat: the message box stays open while it works', (tester) async {
@@ -2179,8 +2167,7 @@ void main() {
     final harness = Harness();
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await openSettings(tester, 'Model');
     await tester.tap(find.byKey(const Key('model')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('model-b').last);
@@ -2228,17 +2215,17 @@ void main() {
     final harness = Harness();
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await openSettings(tester, 'Model');
     expect(find.byKey(const ValueKey('connection-anthropic')), findsOneWidget);
     // The model is picked from the list, never typed: nothing to save by hand.
     final picker = tester.widget<DropdownMenu<String?>>(find.byKey(const Key('model')));
     expect(picker.requestFocusOnTap, isFalse);
     expect(find.text('Save model'), findsNothing);
     expect(session.model, 'claude-sonnet-5-5');
-    // Log out sits at the end of Settings: scroll all the way down.
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
+    // Log out is in About.
+    await tester.pageBack();
     await tester.pumpAndSettle();
+    await openSettings(tester, 'About');
     expect(find.text(harness.paths.notes.path), findsNothing); // never shown (#207)
     await tester.tap(find.text('Log out'));
     await tester.pumpAndSettle();
