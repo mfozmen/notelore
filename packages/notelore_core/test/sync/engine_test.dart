@@ -86,8 +86,8 @@ void main() {
     ..parent.createSync(recursive: true)
     ..writeAsBytesSync(utf8.encode(text));
   String readRel(String rel) => read(at(rel));
-  Future<SyncReport> run([Resolver resolve = never]) =>
-      sync(root, manifest, drive, resolve, now: now);
+  Future<SyncReport> run({Resolver resolve = never, Set<String> remove = const {}}) =>
+      sync(root, manifest, drive, resolve, now: now, remove: remove);
 
   test('the first sync pushes everything and the second does nothing', () async {
     write('projects/a.md', note);
@@ -225,10 +225,12 @@ void main() {
     write('projects/a.md', note.replaceAll('one', 'laptop wording'));
     drive.put('projects/a.md', note.replaceAll('one', 'mac wording'));
     final asked = <Conflict>[];
-    final report = await run((conflict) async {
-      asked.add(conflict);
-      return conflict.remote;
-    });
+    final report = await run(
+      resolve: (conflict) async {
+        asked.add(conflict);
+        return conflict.remote;
+      },
+    );
     expect(asked, hasLength(1));
     expect(readRel('projects/a.md'), contains('mac wording'));
     expect(readRel('.notelore/history/$stamp/projects/a.local.md'), contains('laptop wording'));
@@ -245,7 +247,7 @@ void main() {
     final local = note.replaceAll('one', 'laptop');
     write('projects/a.md', local);
     drive.put('projects/a.md', note.replaceAll('one', 'mac'));
-    final report = await run((conflict) => null);
+    final report = await run(resolve: (conflict) => null);
     expect(report.skipped, ['projects/a.md']);
     expect(readRel('projects/a.md'), local);
     expect(drive.text('projects/a.md'), contains('mac'));
@@ -274,6 +276,48 @@ void main() {
     expect(readRel('.notelore/history/$stamp/topics/t.md'), note);
     expect(report.history, ['.notelore/history/$stamp/topics/t.md']);
     expect(manifest.get('topics/t.md'), isNull);
+  });
+
+  test('many notes gone from Drive at once are held, never removed here (#454)', () async {
+    for (final name in ['a', 'b', 'c', 'd', 'e']) {
+      write('topics/$name.md', note);
+    }
+    write('attachments/x.png', 'png');
+    await run();
+    // "Delete hidden app data" in Drive's settings, or a wiped folder.
+    drive.files.clear();
+    final report = await run();
+    expect(report.held, [
+      'attachments/x.png',
+      'topics/a.md',
+      'topics/b.md',
+      'topics/c.md',
+      'topics/d.md',
+      'topics/e.md',
+    ]);
+    expect(report.removedLocal, isEmpty);
+    expect(report.changed, 0);
+    expect(File(at('topics/a.md')).existsSync(), isTrue);
+    expect(manifest.get('topics/a.md'), isNotNull); // still held on the next pass
+    expect((await run()).held, hasLength(6));
+    // The person chose "Delete them here too" for these two only.
+    final removed = await run(remove: {'topics/a.md', 'attachments/x.png'});
+    expect(removed.removedLocal, ['attachments/x.png', 'topics/a.md']);
+    expect(removed.held, hasLength(4));
+    expect(readRel('.notelore/history/$stamp/topics/a.md'), note);
+  });
+
+  test('a few notes gone from many are removed as before (#454)', () async {
+    for (var i = 0; i < 10; i++) {
+      write('topics/n$i.md', note);
+    }
+    await run();
+    drive.files
+      ..remove('topics/n0.md')
+      ..remove('topics/n1.md');
+    final report = await run();
+    expect(report.held, isEmpty);
+    expect(report.removedLocal, ['topics/n0.md', 'topics/n1.md']);
   });
 
   test('deleted here but changed there keeps the change', () async {

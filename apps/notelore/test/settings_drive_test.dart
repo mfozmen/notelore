@@ -107,4 +107,53 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Syncing...'), findsNothing);
   });
+
+  group('many notes gone from Drive at once (#454)', () {
+    Future<Harness> wiped(WidgetTester tester) async {
+      phone(tester);
+      final harness = Harness(auth: FakeAuth()..granted = true);
+      for (final name in ['A', 'B', 'C', 'D']) {
+        createNote(harness.paths.notes.path, 'topic', name, today: today);
+      }
+      await pumpApp(tester, harness);
+      await connect(tester, key: 'k');
+      harness.remote.texts.removeWhere((rel, _) => rel.endsWith('.md'));
+      await openSettings(tester);
+      await tester.ensureVisible(find.byTooltip('Sync now'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Sync now'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('4 notes were removed from Google Drive at once. Notelore kept them here.'),
+        findsOneWidget,
+      );
+      return harness;
+    }
+
+    testWidgets('a banner offers Restore to Drive', (tester) async {
+      final harness = await wiped(tester);
+      await tester.tap(find.text('Restore to Drive'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('removed from Google Drive'), findsNothing);
+      expect(harness.remote.texts.keys.where((rel) => rel.endsWith('.md')), hasLength(4));
+    });
+
+    testWidgets('Delete here too asks first', (tester) async {
+      await wiped(tester);
+      await tester.tap(find.text('Delete here too'));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete 4 notes here too?'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('removed from Google Drive'), findsOneWidget);
+      await tester.tap(find.text('Delete here too'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('removed from Google Drive'), findsNothing);
+      await tester.tap(find.text('Notes'));
+      await tester.pumpAndSettle();
+      expect(find.text('A'), findsNothing);
+    });
+  });
 }

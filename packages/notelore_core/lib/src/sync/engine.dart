@@ -6,7 +6,8 @@
 /// state, lets [decide] pick the action and carries it out. Nothing is hard
 /// deleted: a file removed on the other device moves to `.notelore/history/`,
 /// and when the model had to settle a real conflict both original sides go there
-/// too. The manifest is updated file by file, so an interrupted sync keeps its
+/// too. Many notes gone from the remote at once (a wiped Drive folder) are held,
+/// not removed here, until the person decides (#454). The manifest is updated file by file, so an interrupted sync keeps its
 /// progress and simply continues next time.
 ///
 /// The remote is a small interface so the Drive client (and a fake in the tests)
@@ -60,6 +61,10 @@ class SyncReport {
   /// Copies kept under `.notelore/history/`.
   final history = <String>[];
 
+  /// Gone from the remote, with too many others at once to follow here
+  /// unasked: kept, and still in the manifest, so every pass holds them again.
+  final held = <String>[];
+
   int get changed =>
       pushed.length + pulled.length + merged.length + removedLocal.length + removedRemote.length;
 }
@@ -72,6 +77,7 @@ Future<SyncReport> sync(
   Remote remote,
   Resolver resolve, {
   DateTime? now,
+  Set<String> remove = const {},
 }) async {
   final t = (now ?? DateTime.now()).toUtc();
   final stamp =
@@ -90,7 +96,15 @@ Future<SyncReport> sync(
   for (final key in keys) {
     folded.update(key.toLowerCase(), (n) => n + 1, ifAbsent: () => 1);
   }
-  final run = _Pass(root, manifest, remote, resolve, stamp, report);
+  // More than one gone, and more than 3 or a fifth of what was synced: a wipe,
+  // not a tidy-up. Only those in [remove], the person's choice, go here too.
+  final gone = [
+    for (final rel in manifest.paths())
+      if (!remoteFiles.containsKey(rel) && local.containsKey(rel)) rel,
+  ];
+  final wiped = gone.length > 1 && (gone.length > 3 || gone.length * 5 > manifest.paths().length);
+  bool hold(String rel) => wiped && !remove.contains(rel);
+  final run = _Pass(root, manifest, remote, resolve, stamp, report, hold);
   for (final rel in keys) {
     if (!_safe(rel) || folded[rel.toLowerCase()]! > 1) {
       report.ignored.add(rel);
@@ -133,7 +147,7 @@ bool _synced(String rel) =>
     (rel.startsWith('$attachmentsFolder/') && !rel.split('/').last.startsWith('.'));
 
 class _Pass {
-  _Pass(this.root, this.manifest, this.remote, this.resolve, this.stamp, this.report);
+  _Pass(this.root, this.manifest, this.remote, this.resolve, this.stamp, this.report, this.hold);
 
   final String root;
   final Manifest manifest;
@@ -141,6 +155,7 @@ class _Pass {
   final Resolver resolve;
   final String stamp;
   final SyncReport report;
+  final bool Function(String rel) hold;
 
   String _path(String rel, [String? base]) => p.joinAll([base ?? root, ...rel.split('/')]);
 
@@ -179,13 +194,7 @@ class _Pass {
       case SyncAction.merge:
         await _merge(rel, path, meta!, localText!, remoteText!);
       case SyncAction.removeLocal:
-        final target = _history(rel);
-        Directory(p.dirname(target)).createSync(recursive: true);
-        moveWithRetry(path, target);
-        manifest.forget(rel);
-        report
-          ..removedLocal.add(rel)
-          ..history.add(_rel(target));
+        _removeLocal(rel, path);
       case SyncAction.removeRemote:
         await remote.trash(meta!.id);
         manifest.forget(rel);
@@ -228,18 +237,24 @@ class _Pass {
         report.history.add(_rel(target));
         _take(rel, path, meta!, downloaded!, recorded(meta, remoteHash!));
       case SyncAction.removeLocal:
-        final target = _history(rel);
-        Directory(p.dirname(target)).createSync(recursive: true);
-        moveWithRetry(path, target);
-        manifest.forget(rel);
-        report
-          ..removedLocal.add(rel)
-          ..history.add(_rel(target));
+        _removeLocal(rel, path);
       case SyncAction.removeRemote:
         await remote.trash(meta!.id);
         manifest.forget(rel);
         report.removedRemote.add(rel);
     }
+  }
+
+  /// Gone from the remote: the copy here moves to history, unless held.
+  void _removeLocal(String rel, String path) {
+    if (hold(rel)) return report.held.add(rel);
+    final target = _history(rel);
+    Directory(p.dirname(target)).createSync(recursive: true);
+    moveWithRetry(path, target);
+    manifest.forget(rel);
+    report
+      ..removedLocal.add(rel)
+      ..history.add(_rel(target));
   }
 
   /// Drive's copy of an attachment, written here and recorded.

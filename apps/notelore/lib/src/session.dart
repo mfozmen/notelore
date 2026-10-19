@@ -556,6 +556,17 @@ class Session extends ChangeNotifier {
   /// What the last sync did, for the settings screen; null before any.
   String? syncStatus;
 
+  /// Notes gone from Drive with too many others at once (#454): kept here
+  /// until the person restores them to Drive or deletes them here too.
+  List<String> heldNotes = const [];
+
+  /// Puts the [heldNotes] back on Drive.
+  Future<void> restoreHeld() => syncNow(restore: {...heldNotes});
+
+  /// Removes the [heldNotes] here too: they move to history, like one note
+  /// removed in Drive.
+  Future<void> deleteHeld() => syncNow(remove: {...heldNotes});
+
   /// Chat turns and syncs, one after the other.
   Future<void> _queue = Future.value();
 
@@ -1228,6 +1239,7 @@ class Session extends ChangeNotifier {
     driveConnected = false;
     _markGoogle(signedIn: false);
     syncStatus = null;
+    heldNotes = const [];
     notifyListeners();
   }
 
@@ -1342,7 +1354,9 @@ class Session extends ChangeNotifier {
     unawaited(_refreshQuietly()); // its model list
   }
 
-  Future<void> syncNow() async {
+  /// One sync; the notes in [restore] go back to Drive as new, those in
+  /// [remove] follow Drive's removal however many there are.
+  Future<void> syncNow({Set<String> restore = const {}, Set<String> remove = const {}}) async {
     if (!driveConnected) return;
     _pendingSyncs++;
     notifyListeners();
@@ -1350,12 +1364,15 @@ class Session extends ChangeNotifier {
       var completed = false;
       try {
         final resolver = _provider == null ? null : ModelResolver(askProvider(_provider!));
+        restore.forEach(manifest.forget); // never synced, as far as this pass knows: pushed
         final report = await sync(
           paths.notes.path,
           manifest,
           _remote ??= remoteFor(driveAuth!),
           resolver?.call ?? _unresolved, // no model connected: conflicts wait
+          remove: remove,
         );
+        heldNotes = report.held;
         _markSyncedNotes(report);
         completed = true;
         await _syncSettings(_remote!);

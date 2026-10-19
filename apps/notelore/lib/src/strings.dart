@@ -415,6 +415,13 @@ abstract class Strings {
   String noteInUse(String message);
   String synced(int sent, int received, int merged, int waiting);
 
+  // Many notes gone from Drive at once (#454).
+  String heldNotes(int count);
+  String get restoreToDrive;
+  String get deleteHereToo;
+  String deleteHeldQuestion(int count);
+  String get deleteHeldExplained;
+
   /// A text the core produced in English, in this language.
   String core(String english);
 
@@ -1206,6 +1213,19 @@ class EnglishStrings extends Strings {
     ];
     return parts.isEmpty ? 'Synced; nothing changed.' : 'Synced: ${parts.join(', ')}.';
   }
+
+  @override
+  String heldNotes(int count) =>
+      '$count notes were removed from Google Drive at once. Notelore kept them here.';
+  @override
+  String get restoreToDrive => 'Restore to Drive';
+  @override
+  String get deleteHereToo => 'Delete here too';
+  @override
+  String deleteHeldQuestion(int count) => 'Delete $count notes here too?';
+  @override
+  String get deleteHeldExplained =>
+      "They leave this device as they left Drive. A copy stays in Notelore's history.";
 
   @override
   String core(String english) => english;
@@ -2037,6 +2057,19 @@ class TurkishStrings extends Strings {
     ];
     return parts.isEmpty ? 'Eşitlendi; değişiklik yok.' : 'Eşitlendi: ${parts.join(', ')}.';
   }
+
+  @override
+  String heldNotes(int count) =>
+      "$count not Google Drive'dan bir anda kaldırıldı. Notelore onları burada tuttu.";
+  @override
+  String get restoreToDrive => "Drive'a geri yükle";
+  @override
+  String get deleteHereToo => 'Burada da sil';
+  @override
+  String deleteHeldQuestion(int count) => '$count not burada da silinsin mi?';
+  @override
+  String get deleteHeldExplained =>
+      "Drive'dan gittikleri gibi bu cihazdan da giderler. Bir kopyası Notelore'un geçmişinde kalır.";
 
   static const _core = {
     'Thinking': 'Düşünüyor',
