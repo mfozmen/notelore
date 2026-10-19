@@ -44,6 +44,10 @@ abstract interface class Remote {
 
   /// Moves to the remote trash: reversible, never a hard delete.
   Future<void> trash(String fileId);
+
+  /// Whether the last [list] moved the notes from an older place on the
+  /// remote (#454), for the app to say once.
+  bool get moved;
 }
 
 class SyncReport {
@@ -204,8 +208,9 @@ class _Pass {
     // The name on disk may be NFD; new files are written NFC.
     final path = found?.path ?? _path(rel);
     final entry = manifest.get(rel);
-    final baseHash = entry?.localHash;
-    final texts = await _texts(found, meta, entry);
+    final trusted = _trusted(entry, meta);
+    final baseHash = trusted?.localHash;
+    final texts = await _texts(found, meta, trusted);
     // Not UTF-8: one bad file never stops the rest.
     if (texts == null) return report.skipped.add(rel);
     final (localText, remoteText) = texts;
@@ -229,7 +234,8 @@ class _Pass {
         _record(rel, meta!, remoteText);
         report.pulled.add(rel);
       case SyncAction.merge:
-        await _merge(rel, path, meta!, localText!, remoteText!);
+        final base = trusted == null ? null : manifest.base(rel);
+        await _merge(rel, path, meta!, localText!, remoteText!, base ?? '');
       case SyncAction.removeLocal:
         _removeLocal(rel, path);
       case SyncAction.removeRemote:
@@ -243,7 +249,7 @@ class _Pass {
   /// on both sides, Drive's copy stays and this one goes to history.
   Future<void> binary(String rel, RemoteFile? meta, File? found) async {
     final path = found?.path ?? _path(rel);
-    final entry = manifest.get(rel);
+    final entry = _trusted(manifest.get(rel), meta);
     final local = found?.readAsBytesSync();
     final untouched = meta == null || (entry != null && meta.md5 == entry.md5);
     final downloaded = untouched ? null : await remote.download(meta.id);
@@ -281,6 +287,18 @@ class _Pass {
         report.removedRemote.add(rel);
     }
   }
+
+  /// The manifest's [entry], unless the remote file is another one with other
+  /// content: the last sync's base then says nothing about it (the notes moved
+  /// on the remote while another device still wrote to the old place, #454),
+  /// and taking Drive's copy over an edit here would lose the edit. The price:
+  /// a note another device changed after the move, and this one did not,
+  /// merges against nothing on this device's first sync after it, so it may
+  /// come up as one conflict for the model, never as a loss.
+  static ManifestEntry? _trusted(ManifestEntry? entry, RemoteFile? meta) =>
+      entry != null && meta != null && meta.id != entry.driveId && meta.md5 != entry.md5
+      ? null
+      : entry;
 
   /// Gone from the remote: the copy here moves to history, unless held.
   void _removeLocal(String rel, String path) {
@@ -338,16 +356,17 @@ class _Pass {
   void _record(String rel, RemoteFile meta, String text) =>
       manifest.record(rel, _entry(meta, text), text);
 
+  /// [base] is empty with none (first sync, a damaged copy, or one not trusted):
+  /// the whole file is then one conflict, which goes to the model or is
+  /// skipped, never guessed.
   Future<void> _merge(
     String rel,
     String path,
     RemoteFile meta,
     String localText,
     String remoteText,
+    String base,
   ) async {
-    // No base (first sync, or a damaged copy) merges against empty: the whole file is
-    // then one conflict, which goes to the model or is skipped, never guessed.
-    final base = manifest.base(rel) ?? '';
     var askedModel = false;
     final String text;
     try {

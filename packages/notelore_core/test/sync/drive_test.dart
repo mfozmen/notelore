@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:notelore_core/src/oauth.dart';
 import 'package:notelore_core/src/providers/http.dart';
 import 'package:notelore_core/src/store/notes.dart';
 import 'package:notelore_core/src/sync/drive.dart';
@@ -30,35 +31,31 @@ void main() {
     refreshWorks = true;
   });
 
+  var now = DateTime.utc(2026, 10, 19, 12);
+  setUp(() => now = DateTime.utc(2026, 10, 19, 12));
+
   DriveRemote remote() => DriveRemote(drive.client, ({bool refresh = false}) async {
     refreshes.add(refresh);
     if (refresh && refreshWorks) issued = drive.token;
     return issued;
-  });
+  }, clock: () => now);
 
   test('an empty Drive lists nothing and creates nothing', () async {
     expect(await remote().list(), isEmpty);
     expect(drive.files, isEmpty);
   });
 
-  test('upload creates the Notelore folder tree, then lists and downloads', () async {
+  test("files go into Drive's hidden app folder, named by their path (#454)", () async {
     final r = remote();
     await r.list();
     final created = await r.upload('projects/a.md', utf8.encode('# A\n'), null);
-    await r.upload('projects/b.md', utf8.encode('# B\n'), null); // the folder is reused
     await r.upload('_archive/2026-01-01/topics/c.md', utf8.encode('# C\n'), null);
     expect(drive.text('projects/a.md'), '# A\n');
+    expect(drive.file('projects/a.md')!['parents'], ['appDataFolder']);
     expect(drive.text('_archive/2026-01-01/topics/c.md'), '# C\n');
-    final folders = drive.files.values.where((f) => '${f['mimeType']}'.endsWith('folder'));
-    expect(
-      folders.map((f) => f['name']),
-      unorderedEquals(['Notelore', 'projects', '_archive', '2026-01-01', 'topics']),
-    );
+    expect(drive.files.values.where((f) => '${f['mimeType']}'.endsWith('folder')), isEmpty);
     final listed = await remote().list(); // a fresh client finds it all again
-    expect(
-      listed.keys,
-      unorderedEquals(['projects/a.md', 'projects/b.md', '_archive/2026-01-01/topics/c.md']),
-    );
+    expect(listed.keys, unorderedEquals(['projects/a.md', '_archive/2026-01-01/topics/c.md']));
     expect(listed['projects/a.md']!.id, created.id);
     expect(listed['projects/a.md']!.md5, created.md5);
     expect(utf8.decode(await r.download(created.id)), '# A\n');
@@ -74,22 +71,67 @@ void main() {
     expect(drive.text('topics/t.md'), 'two\n');
   });
 
-  test('trash moves the file out of the listing', () async {
+  test('a removal is marked, not deleted, and goes for good after 30 days (#454)', () async {
+    // Drive cannot trash a file in the app folder: the mark stands in for its trash.
     final r = remote();
     final file = await r.upload('topics/t.md', utf8.encode('x\n'), null);
     await r.trash(file.id);
     expect(await remote().list(), isEmpty);
-    expect(drive.files[file.id]!['trashed'], isTrue); // reversible, not deleted
+    expect(drive.files[file.id]!['appProperties'], {'removed': '2026-10-19T12:00:00.000Z'});
+    now = now.add(const Duration(days: 30));
+    expect(await remote().list(), isEmpty);
+    expect(drive.files, contains(file.id)); // 30 days to the minute: still kept
+    now = now.add(const Duration(minutes: 1));
+    expect(await remote().list(), isEmpty);
+    expect(drive.files, isNot(contains(file.id)));
   });
 
-  test('files outside the Notelore folder, folders and Google Docs are not notes', () async {
+  test("the 30 days count by Drive's clock, never by a device's that is off", () async {
+    final r = remote();
+    final file = await r.upload('topics/t.md', utf8.encode('x\n'), null);
+    drive.now = DateTime.utc(2026, 10, 1);
+    await r.trash(file.id); // marked when Drive says it is
+    now = DateTime.utc(2027, 3, 1); // months ahead
+    drive.now = DateTime.utc(2026, 10, 2);
+    expect(await remote().list(), isEmpty);
+    expect(drive.files, contains(file.id));
+  });
+
+  test('a Date header that does not read as a time is passed over', () async {
+    final r = remote();
+    final file = await r.upload('topics/t.md', utf8.encode('x\n'), null);
+    drive.dateHeader = 'not a date';
+    await r.trash(file.id); // the request worked: so does the mark, by this device's clock
+    expect(drive.files[file.id]!['appProperties'], {'removed': '2026-10-19T12:00:00.000Z'});
+  });
+
+  test('a mark that does not read as a time counts from now', () async {
+    final file = drive.add('topics/t.md', 'appDataFolder', text: 'x\n')
+      ..['appProperties'] = {'removed': 'yes'};
+    expect(await remote().list(), isEmpty);
+    expect(drive.files[file['id']]!['appProperties'], {'removed': '2026-10-19T12:00:00.000Z'});
+  });
+
+  test('a file another device removed meanwhile is no error; a Drive failure is', () async {
+    final old = drive.add('topics/a.md', 'appDataFolder', text: 'a\n')
+      ..['appProperties'] = {'removed': '2026-01-01T00:00:00Z'};
+    drive.gone.add(old['id']! as String);
+    expect(await remote().list(), isEmpty);
+    drive
+      ..gone.clear()
+      ..failing.add(old['id']! as String);
+    await expectLater(
+      remote().list(),
+      throwsA(isA<HttpError>().having((e) => e.status, 'status', 500)),
+    );
+  });
+
+  test('only the app folder holds notes: My Drive and Google Docs are not notes', () async {
     final r = remote();
     await r.upload('topics/t.md', utf8.encode('x\n'), null);
-    final root = drive.files.values.firstWhere((f) => f['name'] == 'Notelore')['id']! as String;
     drive
       ..add('elsewhere.md', 'some-other-folder', text: 'not ours')
-      ..add('doc', root)
-      ..add('empty-folder', root, folder: true);
+      ..add('doc', 'appDataFolder');
     expect((await remote().list()).keys, ['topics/t.md']);
   });
 
@@ -109,10 +151,15 @@ void main() {
     final r = remote();
     drive.token = 'token-2'; // the cached token-1 no longer works
     expect(await r.list(), isEmpty);
-    expect(refreshes, [false, true]);
+    expect(refreshes.take(2), [false, true]);
     drive.token = 'token-3';
     refreshWorks = false; // refreshing does not help: the error surfaces
     await expectLater(r.list(), throwsA(isA<HttpError>().having((e) => e.status, 'status', 401)));
+  });
+
+  test('a grant from before the app folder asks to sign in again (#454)', () async {
+    drive.appData = false;
+    await expectLater(remote().list(), throwsA(isA<NotSignedIn>()));
   });
 
   test('offline is a NetworkError, an API failure an HttpError', () async {
@@ -135,13 +182,67 @@ void main() {
     await expectLater(hanging.list(), throwsA(isA<NetworkError>()));
   });
 
-  test('two folders named Notelore: the first one created wins', () async {
-    final r = remote();
-    await r.upload('topics/t.md', utf8.encode('first\n'), null);
-    final other = drive.add('Notelore', 'root', folder: true);
-    other['appProperties'] = {'notelore': 'root'};
-    drive.add('topics', other['id']! as String, folder: true);
-    expect((await remote().list()).keys, ['topics/t.md']);
+  group('the visible Notelore folder moves into the app folder once (#454)', () {
+    test('its files are copied and go to the trash; the folder stays, marked', () async {
+      final root = drive.legacy({
+        'projects/a.md': '# A\n',
+        '_archive/2026-01-01/topics/c.md': '# C\n',
+        '.notelore/settings.json': '{}',
+      });
+      // A Google Doc put there by hand: not Notelore's to copy or throw away.
+      final doc = drive.add('doc', root['id']! as String);
+      final r = remote();
+      final listed = await r.list();
+      expect(
+        listed.keys,
+        unorderedEquals([
+          'projects/a.md',
+          '_archive/2026-01-01/topics/c.md',
+          '.notelore/settings.json',
+        ]),
+      );
+      expect(drive.text('projects/a.md'), '# A\n');
+      expect(drive.file('doc'), isNull);
+      final old = drive.files.values.where((f) => f['name'] == 'a.md').single;
+      expect(old['trashed'], isTrue); // reversible: in Drive's trash for 30 days
+      expect(doc['trashed'], isFalse);
+      expect(root['trashed'], isFalse);
+      expect(root['appProperties'], {'notelore': 'moved'});
+      expect(r.moved, isTrue);
+      await r.list();
+      expect(r.moved, isTrue); // for the app to say once, however often it lists
+      final again = remote();
+      expect((await again.list()).keys, hasLength(3));
+      expect(again.moved, isFalse);
+    });
+
+    test('a file another device moved meanwhile is skipped', () async {
+      drive.legacy({'topics/a.md': 'a\n', 'topics/b.md': 'b\n'});
+      final b = drive.files.values.firstWhere((f) => f['name'] == 'b.md');
+      drive.gone.add(b['id']! as String);
+      expect((await remote().list()).keys, ['topics/a.md']);
+    });
+
+    test('a move cut off, or made by two devices at once, keeps one copy of each', () async {
+      drive.legacy({'topics/a.md': 'a\n', 'topics/b.md': 'b\n'});
+      // Another device copied "a" already, and so did this one before either trashed.
+      final older = drive.add('topics/a.md', 'appDataFolder', text: 'a\n');
+      final newer = drive.add('topics/a.md', 'appDataFolder', text: 'a\n');
+      final listed = await remote().list();
+      expect(listed.keys, unorderedEquals(['topics/a.md', 'topics/b.md']));
+      expect(listed['topics/a.md']!.id, older['id']); // the first one made wins
+      expect((newer['appProperties']! as Map)['removed'], isNotNull); // the other marked
+      expect(drive.files.values.where((f) => f['name'] == 'topics/b.md'), hasLength(1));
+    });
+
+    test('two folders named Notelore: both move, the first one made wins a name', () async {
+      drive
+        ..legacy({'topics/t.md': 'first\n'})
+        ..legacy({'topics/t.md': 'second\n', 'topics/only-here.md': 'kept\n'});
+      expect((await remote().list()).keys, unorderedEquals(['topics/t.md', 'topics/only-here.md']));
+      expect(drive.text('topics/t.md'), 'first\n');
+      expect(drive.text('topics/only-here.md'), 'kept\n'); // none left in a folder marked moved
+    });
   });
 
   group('two devices syncing through one Drive', () {

@@ -245,6 +245,7 @@ void main() {
       'chooseNotes': s.chooseNotes,
       'next': s.next,
       'exported': s.exported(2),
+      'notesMoved': s.notesMoved,
       'heldNotes': s.heldNotes(4),
       'heldNote': s.heldNotes(1),
       'restoreToDrive': s.restoreToDrive,

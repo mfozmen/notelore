@@ -101,7 +101,7 @@ void main() {
     await a.signIn();
     final url = opened.single;
     expect(url.host, 'accounts.google.com');
-    expect(url.queryParameters['scope'], 'https://www.googleapis.com/auth/drive.file');
+    expect(url.queryParameters['scope'], driveScope);
     expect(url.queryParameters['access_type'], 'offline');
     expect(url.queryParameters['code_challenge_method'], 'S256');
     expect(url.queryParameters['redirect_uri'], startsWith('http://127.0.0.1:'));

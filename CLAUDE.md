@@ -12,7 +12,7 @@ These hold end-to-end. Any change that would break one needs explicit maintainer
 2. **Notes stay human-readable.** A person must be able to open any note in a plain text editor or Obsidian and understand it without Notelore. The format is specified in `docs/note-format.md`; the parser and writer must round-trip it losslessly.
 3. **The LLM never rewrites a file wholesale.** Every write goes through narrow tools over the store (`packages/notelore_core/lib/src/store/`) that append entries, mark decisions superseded, or move notes to the archive. There is no "overwrite file" tool.
 4. **Deterministic questions get deterministic answers.** "What is the current decision for X?" is answered by the parser/index, not by the model reading free text. The model only picks the parameters and phrases the result.
-5. **Every automated change is reversible.** Nothing is hard-deleted by the agent. (The person may still delete for good from the archive, after a confirmation, #438.) The one exception is the undo of its own create: a note a failed turn made and never wrote into is removed, so no empty note stays (#421). Cleanup moves notes to `_archive/`; sync conflicts keep the losing version under `.notelore/history/`; Drive files go to the trash.
+5. **Every automated change is reversible.** Nothing is hard-deleted by the agent. (The person may still delete for good from the archive, after a confirmation, #438.) The one exception is the undo of its own create: a note a failed turn made and never wrote into is removed, so no empty note stays (#421). Cleanup moves notes to `_archive/`; sync conflicts keep the losing version under `.notelore/history/`; a file removed on Drive is marked removed and kept 30 days before it is deleted (Drive's hidden app folder has no trash, #454), and a sync never mirrors a mass delete from Drive.
 6. **Every platform is first-class.** CI runs the full suite on Windows, macOS and Linux and builds the Android, Windows and macOS app. A change that is green on one OS only is not done.
 
 ## Commands
@@ -60,7 +60,7 @@ Core (`packages/notelore_core/lib/src/`):
 - `links.dart`: reading the web pages a message links to (http(s) only, size and time limits) and handing their text to the model as data.
 - `usage.dart`: the tokens each model call reported, per conversation and on this device, and the dated price table cost estimates come from.
 - `sync/merge.dart`: decision table and three-way merge (a port of difflib); `sync/resolve.dart`: the model as last resort for same-line conflicts; `sync/manifest.dart`: per-device record of the last synced state; `sync/engine.dart`: one sync pass against a `Remote`.
-- `sync/drive.dart`: Google Drive as the `Remote` (scope `drive.file` only); `sync/google_auth.dart`: `DriveAuth` and the desktop loopback sign-in.
+- `sync/drive.dart`: Google Drive as the `Remote`, in Drive's hidden app folder (scope `drive.appdata`; `drive.file` only to move the notes out of the old visible folder, #454); `sync/google_auth.dart`: `DriveAuth` and the desktop loopback sign-in.
 
 App (`apps/notelore/lib/`):
 
