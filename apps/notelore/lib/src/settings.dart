@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
 import 'package:notelore_core/notelore_core.dart';
@@ -877,7 +878,10 @@ class _DriveSection extends StatelessWidget {
     try {
       await session.connectDrive();
     } on SignInFailed catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text('$error')));
+      if (kDebugMode) debugPrint('Google sign-in failed: $error');
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(session.strings.signInFailedWhy(error))));
     }
   }
 

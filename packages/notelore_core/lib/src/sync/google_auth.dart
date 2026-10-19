@@ -92,6 +92,11 @@ class LoopbackAuth implements DriveAuth {
       'redirect_uri': redirect,
       'code_verifier': verifier,
     });
+    // A box left unticked on the consent screen: keep nothing, say so (#484).
+    if (tokens['scope'] case final String granted
+        when !scope.split(' ').every(granted.split(' ').contains)) {
+      throw const PartialGrant();
+    }
     await saveRefreshToken(tokens['refresh_token']! as String);
     _keep(tokens);
   }

@@ -437,6 +437,12 @@ abstract class Strings {
   String get offline;
   // Drive's status in plain words, never a provider's raw message (#480).
   String get drivePermissionAgain;
+  String get drivePermissionsAll;
+
+  /// A failed Google sign-in in plain words: a box left unticked says so (#484),
+  /// anything else that it did not finish.
+  String signInFailedWhy(Object error) =>
+      error is PartialGrant ? drivePermissionsAll : signInUnfinished;
   String get signedOutOfGoogle;
   String get driveUnreachable;
   String get driveFull;
@@ -1278,6 +1284,9 @@ class EnglishStrings extends Strings {
   String get offline => 'Offline; your notes will sync when the connection is back.';
   @override
   String get drivePermissionAgain => 'Sign in to Google again to keep syncing your notes.';
+  @override
+  String get drivePermissionsAll =>
+      'Notelore needs every permission it asked for. Sign in again and leave every box ticked.';
   @override
   String get signedOutOfGoogle => 'Signed out of Google. Connect again.';
   @override
@@ -2186,6 +2195,9 @@ class TurkishStrings extends Strings {
   @override
   String get drivePermissionAgain =>
       "Notlarının eşitlenmeye devam etmesi için Google'a yeniden giriş yap.";
+  @override
+  String get drivePermissionsAll =>
+      'Notelore\'un istediği izinlerin hepsi gerekiyor. Yeniden giriş yap ve kutuların hepsini işaretli bırak.';
   @override
   String get signedOutOfGoogle => 'Google oturumun kapandı. Yeniden bağlan.';
   @override

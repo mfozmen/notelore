@@ -417,12 +417,23 @@ String restoreArchived(String root, ArchivedNote archived, {DateTime? today}) {
     }
     writeNote(target, note, today: today); // the note first: a failure here loses nothing
     File(archived.path).deleteSync(); // now in the note
+    removeEmptyFolders(p.dirname(archived.path), within: p.join(root, archiveFolder));
     return target;
   }
   if (File(target).existsSync()) throw RestoreTaken(archived.original);
   Directory(p.dirname(target)).createSync(recursive: true);
   moveWithRetry(archived.path, target);
+  removeEmptyFolders(p.dirname(archived.path), within: p.join(root, archiveFolder));
   return target;
+}
+
+/// Removes [folder] and each parent that is left empty, below [within] (#490).
+void removeEmptyFolders(String folder, {required String within}) {
+  for (var dir = folder; p.isWithin(within, dir); dir = p.dirname(dir)) {
+    final here = Directory(dir);
+    if (!here.existsSync() || here.listSync().isNotEmpty) return;
+    here.deleteSync();
+  }
 }
 
 /// Moves numbered entries per section into the archive copy of the same note.

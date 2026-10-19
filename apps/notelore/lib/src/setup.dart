@@ -778,6 +778,8 @@ class _GoogleScreenState extends State<GoogleScreen> {
     });
     try {
       await widget.session.connectDrive();
+    } on PartialGrant {
+      if (mounted) setState(() => _problem = widget.session.strings.drivePermissionsAll);
     } on SignInFailed catch (error) {
       // Refused or cancelled: no account to go on with.
       if (mounted) {

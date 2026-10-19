@@ -16,7 +16,7 @@ export 'src/agent.dart'
 export 'src/i18n.dart' show sectionHeading, sectionHeadings, sectionKey;
 export 'src/links.dart' show LinkUnreadable, Resolve, WebPage, linksIn, readPage, withLinkedPages;
 export 'src/oauth.dart'
-    show MissingDriveGrant, NoChatGptPlan, NotSignedIn, OAuthSignIn, SignInFailed;
+    show MissingDriveGrant, NoChatGptPlan, NotSignedIn, OAuthSignIn, PartialGrant, SignInFailed;
 export 'src/paths.dart' show NotelorePaths;
 export 'src/providers/base.dart'
     show
@@ -71,14 +71,14 @@ export 'src/store/index.dart' show Hit, NoteIndex, NoteInfo, fts5Available;
 export 'src/store/move.dart' show moveNotes;
 export 'src/store/notes.dart'
     show
+        ArchivedNote,
         Pause,
         Rename,
+        RestoreTaken,
         activeDecision,
         addEntry,
         addReminder,
         addTodo,
-        ArchivedNote,
-        RestoreTaken,
         archiveEntries,
         archiveFolder,
         archiveNote,
@@ -93,8 +93,9 @@ export 'src/store/notes.dart'
         moveWithRetry,
         notePath,
         readNote,
-        restoreArchived,
         recordDecision,
+        removeEmptyFolders,
+        restoreArchived,
         slugify,
         writeNote;
 export 'src/store/stale.dart' show Stale, findStaleNotes;

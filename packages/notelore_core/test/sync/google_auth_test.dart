@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:notelore_core/src/oauth.dart' show PartialGrant;
 import 'package:notelore_core/src/providers/http.dart';
 import 'package:notelore_core/src/sync/calendar.dart' show calendarScope;
 import 'package:notelore_core/src/sync/drive.dart' show driveScope;
@@ -19,6 +20,10 @@ class FakeGoogle {
   var issued = 0;
   var failRevoke = false;
   String? verifier;
+
+  /// What the consent screen granted, as the token response's `scope`; null
+  /// leaves the field out.
+  String? granted;
 
   late final client = MockClient((request) async {
     if (request.url.path == '/revoke') {
@@ -47,6 +52,7 @@ class FakeGoogle {
       'access_token': 'access-${++issued}',
       'expires_in': 3600,
       if (withRefresh) 'refresh_token': refreshToken,
+      'scope': ?granted,
     }),
     200,
   );
@@ -114,6 +120,16 @@ void main() {
     expect(stored, 'refresh-1');
     expect(await a.signedIn(), isTrue);
     expect(await a.token(), 'access-1'); // from the sign-in itself
+  });
+
+  test('a consent with a box unticked fails the sign-in and keeps nothing (#484)', () async {
+    google.granted = 'https://www.googleapis.com/auth/drive.file';
+    await expectLater(auth().signIn(), throwsA(isA<PartialGrant>()));
+    expect(stored, isNull);
+    // Every scope granted, in any order: signed in.
+    google.granted = driveScope.split(' ').reversed.join(' ');
+    await auth().signIn();
+    expect(stored, 'refresh-1');
   });
 
   test("the calendar's sign-in asks for that scope alone (#432)", () async {

@@ -119,6 +119,7 @@ void main() {
   test('every entry exists in both languages, and the Turkish is Turkish', () {
     Map<String, String> all(Strings s) => {
       'chat': s.chat,
+      'drivePermissionsAll': s.drivePermissionsAll,
       'ollamaNoModel': s.ollamaNoModel,
       'calendar': s.calendar,
       'upcoming': s.upcoming,
