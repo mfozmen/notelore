@@ -257,6 +257,7 @@ abstract class Strings {
   String get byModel;
   String get perDay;
   String get tapDay;
+  String get usageAppears;
 
   /// The chart keeps fewer days than "all" totals.
   String chartKept(int days);
@@ -1036,6 +1037,8 @@ class EnglishStrings extends Strings {
   String get perDay => 'Per day';
   @override
   String get tapDay => 'Tap a day to see each model.';
+  @override
+  String get usageAppears => 'Usage shows here after your first message.';
   @override
   String chartKept(int days) => 'The chart shows the last $days days; the totals cover all time.';
   @override
@@ -1973,6 +1976,8 @@ class TurkishStrings extends Strings {
   String get perDay => 'Günlük';
   @override
   String get tapDay => 'Her modeli görmek için bir güne dokunun.';
+  @override
+  String get usageAppears => 'Kullanım, ilk mesajınızdan sonra burada görünür.';
   @override
   String chartKept(int days) => 'Grafik son $days günü gösterir; toplamlar tüm zamanı kapsar.';
   @override

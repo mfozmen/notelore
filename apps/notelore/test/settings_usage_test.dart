@@ -66,7 +66,7 @@ void main() {
     expect(find.text('1,000,000 read · 100,000 written'), findsWidgets);
     expect(find.text('Estimated cost: about \$3.00'), findsWidgets);
     expect(find.text('Last 14 days'), findsOneWidget);
-    expect(find.text('1,100,000'), findsOneWidget); // the amount in sight
+    expect(find.text('1,100,000'), findsWidgets); // the amount in sight
     expect(find.textContaining('Busiest day'), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp('Last 14 days: 1,100,000 in all')), findsOneWidget);
     await tester.scrollUntilVisible(
@@ -118,6 +118,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('750'), findsOneWidget);
       expect(find.text('250'), findsOneWidget);
+      // The same day again lets it go; a drag picks a day too, an empty one says so.
+      await tester.tapAt(tester.getBottomRight(chart) - const Offset(2, 30));
+      await tester.pumpAndSettle();
+      expect(find.text('Tap a day to see each model.'), findsOneWidget);
+      await tester.drag(chart, const Offset(-60, 0));
+      await tester.pumpAndSettle();
+      expect(find.text('Nothing yet.'), findsOneWidget);
       // Each model's share, with its own tokens and cost.
       await tester.scrollUntilVisible(
         find.text('Messages'),
@@ -148,6 +155,10 @@ void main() {
         -300,
         scrollable: find.byType(Scrollable).last,
       );
+      // Thirty bars are too narrow for day numbers: the first day and today are named.
+      await tester.tap(find.text('30 days'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining(RegExp(r'^[A-Z][a-z]{2} \d{1,2}$')), findsAtLeastNWidgets(2));
       await tester.tap(find.text('All'));
       await tester.pumpAndSettle();
       expect(find.text('All time'), findsOneWidget);
@@ -220,10 +231,7 @@ void main() {
     await openUsage(tester);
     expect(find.text('Nothing yet.'), findsNWidgets(2));
     expect(find.bySemanticsLabel(RegExp('Last 14 days: nothing used')), findsOneWidget);
-    // A drag along the chart picks a day too; an empty one says so.
-    await tester.drag(find.byKey(const Key('usage-chart')), const Offset(-60, 0));
-    await tester.pumpAndSettle();
-    expect(find.text('Nothing yet.'), findsNWidgets(3));
+    expect(find.text('Usage shows here after your first message.'), findsOneWidget);
     expect(find.textContaining('local model has no per-token charge'), findsOneWidget);
   });
 }

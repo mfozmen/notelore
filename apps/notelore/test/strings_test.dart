@@ -314,6 +314,7 @@ void main() {
       'byModel': s.byModel,
       'perDay': s.perDay,
       'tapDay': s.tapDay,
+      'usageAppears': s.usageAppears,
       'chartKept': s.chartKept(90),
       'messages': s.messages,
       'callsPerMessage': s.callsPerMessage,
