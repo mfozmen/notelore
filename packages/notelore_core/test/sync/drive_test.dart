@@ -159,7 +159,13 @@ void main() {
 
   test('a grant from before the app folder asks to sign in again (#454)', () async {
     drive.appData = false;
+    await expectLater(remote().list(), throwsA(isA<MissingDriveGrant>()));
+    // Nothing moved before the refusal: the old folder stays whole (#479).
+    final root = drive.legacy({'topics/t.md': 'x\n'});
     await expectLater(remote().list(), throwsA(isA<NotSignedIn>()));
+    expect(root['trashed'], isFalse);
+    expect(root['appProperties'], {'notelore': 'root'});
+    expect(drive.files.values.where((f) => f['space'] == 'appDataFolder'), isEmpty);
   });
 
   test('offline is a NetworkError, an API failure an HttpError', () async {

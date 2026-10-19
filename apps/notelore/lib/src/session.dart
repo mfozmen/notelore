@@ -698,6 +698,12 @@ class Session extends ChangeNotifier {
     }
     driveConnected = await driveAuth?.signedIn() ?? false;
     _loadGoogle();
+    // Signed in to Google before, and Drive's grant no longer holds: on a phone
+    // the grant lacks drive.appdata since v0.17.0 (#479). Say so, never stop
+    // syncing in silence.
+    if (_google && driveAuth != null && !driveConnected) {
+      _needSignIn(strings.drivePermissionAgain, 'no grant for the Drive scopes at start');
+    }
     await refreshReminders(ask: false); // nothing pops up at start, over the lock too
     notifyListeners();
     if (driveConnected) unawaited(syncNow());
@@ -1252,9 +1258,22 @@ class Session extends ChangeNotifier {
   }
 
   /// Interactive Google sign-in, then the first sync. Throws [SignInFailed].
+  /// This device signed in to Google before, but Drive needs a sign-in again:
+  /// its grant lacks a scope (#479), or was revoked. The app says so in a
+  /// banner and the Drive status, in plain words (#480).
+  var driveNeedsSignIn = false;
+
+  void _needSignIn(String status, String detail) {
+    debugPrint('Google Drive needs a sign-in: $detail'); // the detail, for the log only
+    driveConnected = false;
+    driveNeedsSignIn = true;
+    syncStatus = status;
+  }
+
   Future<void> connectDrive() async {
     await driveAuth!.signIn();
     driveConnected = true;
+    driveNeedsSignIn = false;
     _markGoogle(signedIn: true);
     notifyListeners();
     await syncNow();
@@ -1265,6 +1284,7 @@ class Session extends ChangeNotifier {
     driveConnected = false;
     _markGoogle(signedIn: false);
     syncStatus = null;
+    driveNeedsSignIn = false;
     heldNotes = const [];
     notifyListeners();
   }
@@ -1404,13 +1424,16 @@ class Session extends ChangeNotifier {
         await _syncSettings(_remote!);
         await refreshReminders(ask: false); // the notes' and the shared setting's
         syncStatus = _syncSummary(report, resolver);
+      } on MissingDriveGrant catch (error) {
+        _needSignIn(strings.drivePermissionAgain, error.message);
       } on NotSignedIn catch (error) {
-        driveConnected = false;
-        syncStatus = strings.signInAgain(error.message);
+        _needSignIn(strings.signedOutOfGoogle, error.message);
       } on NetworkError {
         syncStatus = strings.offline;
       } on HttpError catch (error) {
-        syncStatus = strings.driveError(error.message);
+        debugPrint('Google Drive: ${error.message}'); // the detail, for the log only
+        final full = error.message.toLowerCase().contains('quota');
+        syncStatus = full ? strings.driveFull : strings.driveUnreachable;
       } on FileSystemException catch (error) {
         // Windows: antivirus or an editor holds a note past the store's retries.
         syncStatus = strings.noteInUse(error.message);

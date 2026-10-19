@@ -37,6 +37,12 @@ class NotSignedIn implements Exception {
   String toString() => message;
 }
 
+/// Signed in, but the grant lacks what Drive now asks for (`drive.appdata`,
+/// #460): signing in again adds it (#479).
+class MissingDriveGrant extends NotSignedIn {
+  const MissingDriveGrant(super.message);
+}
+
 /// The interactive sign-in did not complete.
 class SignInFailed implements Exception {
   const SignInFailed(this.message, {this.service = 'Google'});

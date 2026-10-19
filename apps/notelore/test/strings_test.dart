@@ -349,7 +349,11 @@ void main() {
       'update': s.update,
       'allowInstalls': s.allowInstalls,
       'offline': s.offline,
-      'signInAgain': s.signInAgain('x'),
+      'drivePermissionAgain': s.drivePermissionAgain,
+      'signedOutOfGoogle': s.signedOutOfGoogle,
+      'driveUnreachable': s.driveUnreachable,
+      'driveFull': s.driveFull,
+      'driveSignInBanner': s.driveSignInBanner,
       'noteInUse': s.noteInUse('x'),
       'theme': s.theme,
       'devBuild': s.versionLine(''),
@@ -412,7 +416,6 @@ void main() {
       expect(s.model, 'Model');
       expect(s.lockPin, 'PIN');
       expect(s.drive, 'Google Drive');
-      expect(s.driveError('x'), 'Google Drive: x');
       expect(s.languageName(AppLanguage.en), 'English');
       expect(s.languageName(AppLanguage.tr), 'Türkçe');
     }

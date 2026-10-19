@@ -435,8 +435,14 @@ abstract class Strings {
 
   // Sync status.
   String get offline;
-  String driveError(String message);
-  String signInAgain(String message);
+  // Drive's status in plain words, never a provider's raw message (#480).
+  String get drivePermissionAgain;
+  String get signedOutOfGoogle;
+  String get driveUnreachable;
+  String get driveFull;
+
+  /// The banner when Drive needs a sign-in again (#479).
+  String get driveSignInBanner;
   String noteInUse(String message);
   String synced(int sent, int received, int merged, int waiting);
 
@@ -1271,9 +1277,17 @@ class EnglishStrings extends Strings {
   @override
   String get offline => 'Offline; your notes will sync when the connection is back.';
   @override
-  String driveError(String message) => 'Google Drive: $message';
+  String get drivePermissionAgain =>
+      'Notelore needs your permission again to keep your notes in Google Drive. Tap Connect.';
   @override
-  String signInAgain(String message) => '$message; connect again.';
+  String get signedOutOfGoogle => 'Signed out of Google. Connect again.';
+  @override
+  String get driveUnreachable => 'Google Drive could not be reached. Notelore tries again later.';
+  @override
+  String get driveFull => 'Your Google Drive is full: free some space and Notelore syncs again.';
+  @override
+  String get driveSignInBanner =>
+      'Google Drive needs you to sign in again to keep syncing your notes.';
   @override
   String noteInUse(String message) =>
       'A note is in use by another program ($message); the next sync retries.';
@@ -2171,9 +2185,18 @@ class TurkishStrings extends Strings {
   @override
   String get offline => 'Çevrimdışı; bağlantı gelince notların eşitlenecek.';
   @override
-  String driveError(String message) => 'Google Drive: $message';
+  String get drivePermissionAgain =>
+      "Notlarını Google Drive'da tutmaya devam etmek için Notelore'un iznine yeniden ihtiyacı var. "
+      "Bağlan'a dokun.";
   @override
-  String signInAgain(String message) => '$message; yeniden bağlan.';
+  String get signedOutOfGoogle => 'Google oturumun kapandı. Yeniden bağlan.';
+  @override
+  String get driveUnreachable => "Google Drive'a ulaşılamadı. Notelore daha sonra yeniden dener.";
+  @override
+  String get driveFull => "Google Drive'ın dolu: biraz yer aç, Notelore eşitlemeyi yeniden yapar.";
+  @override
+  String get driveSignInBanner =>
+      "Notlarının eşitlenmeye devam etmesi için Google Drive'a yeniden giriş yapman gerekiyor.";
   @override
   String noteInUse(String message) =>
       'Bir not başka bir program tarafından kullanılıyor ($message); sonraki eşitleme yeniden dener.';
