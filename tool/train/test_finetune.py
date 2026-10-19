@@ -16,7 +16,16 @@ sys.modules["torch"].bfloat16, sys.modules["torch"].float16 = "bfloat16", "float
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import finetune
-from finetune import assistant_labels, clean, fp32_logprobs, load, main, modelfile, precision
+from finetune import (
+    assistant_labels,
+    clean,
+    fp32_logprobs,
+    load,
+    main,
+    modelfile,
+    native_bf16,
+    precision,
+)
 
 failures = 0
 
@@ -27,6 +36,26 @@ def check(name, got, want):
     failures += not ok
     print(f"{'ok  ' if ok else 'FAIL'} {name}: got {got!r}, want {want!r}")
 
+
+
+
+def gpu(capability):
+    """torch.cuda for a GPU of this compute [capability], or none (None)."""
+    sys.modules["torch"].cuda = types.SimpleNamespace(
+        is_available=lambda: capability is not None,
+        get_device_capability=lambda: capability,
+        is_bf16_supported=lambda including_emulation=True: True,  # a T4 says yes, emulated
+    )
+
+
+# is_bf16_supported() counts emulation, so a T4 said yes and failed in bf16
+# (Kaggle v3 run 1): only Ampere (8.0) and later do it natively.
+gpu((7, 5))
+check("Kaggle's T4 has no native bf16", native_bf16(), False)
+gpu((8, 0))
+check("an A100 has it", native_bf16(), True)
+gpu(None)
+check("no GPU has none", native_bf16(), False)
 
 check("bf16 where the GPU has it", precision(True), ({"bf16": True, "fp16": False}, "bfloat16"))
 check("fp16 on a GPU without bf16 (Kaggle's T4)", precision(False), ({"bf16": False, "fp16": True}, "float16"))

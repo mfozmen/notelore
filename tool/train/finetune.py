@@ -93,6 +93,13 @@ def dataset(tokenizer, data, assistant_only):
     return Dataset.from_dict({"input_ids": ids, "labels": labels})
 
 
+def native_bf16():
+    """Whether the GPU computes in bf16 itself (Ampere, compute 8.0, and
+    later). torch.cuda.is_bf16_supported() also counts emulation, so a T4 said
+    yes and then failed in bf16 (Kaggle v3 run 1)."""
+    return torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8
+
+
 def precision(bf16):
     """The trainer's mixed-precision flags and the compute dtype: bf16 where the
     GPU has it, fp16 on older ones such as Kaggle's T4."""
@@ -129,7 +136,7 @@ def train(base, data, out, epochs, assistant_only=False):
     tokenizer = AutoTokenizer.from_pretrained(base)
     rows = dataset(tokenizer, data, assistant_only)
     print(f"{len(rows)} training turns")
-    bf16 = torch.cuda.is_bf16_supported()
+    bf16 = native_bf16()
     flags, dtype = precision(bf16)
     fp32_logprobs(bf16)
     model = load(base, dtype)
