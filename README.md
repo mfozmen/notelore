@@ -26,7 +26,7 @@ Download the app from the [releases page](https://github.com/mfozmen/notelore/re
 
 | Platform | File | Notes |
 |---|---|---|
-| Windows | `notelore-app-<version>-windows-x64-setup.exe` | Installs for all users by default, or only for you. Windows may warn about an unknown publisher (not code-signed yet). |
+| Windows | `notelore-app-<version>-windows-x64-setup.exe` | Installs for you only (your own folder, no admin rights), so each person on a shared computer has their own Notelore in their own Windows account; an update moves an earlier all-users install out of Program Files. Windows may warn about an unknown publisher (not code-signed yet). |
 | macOS | `notelore-app-<version>-macos.dmg` | Needs macOS 14 (Sonoma) or later. Drag `notelore.app` onto *Applications*. The first time, right-click it and choose *Open* (not notarized yet). |
 | Android | `notelore-app-<version>-android.apk` | Allow installing from your browser or file manager. |
 
