@@ -169,6 +169,9 @@ void main() {
       expect((first.single as Map)['content'], startsWith('Error:'));
       expect(flaky.failFirstCall, isTrue);
       expect(filing.failFirstCall, isFalse);
+      // The error was the case's own, and the recovery is what v4 should learn:
+      // the turn is kept for training. A real tool error still leaves a turn out.
+      expect(trainingIssues(result.messages), isEmpty);
     });
 
     test('naming the tool, or giving up to the user, fails', () async {
