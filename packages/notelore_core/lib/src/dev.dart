@@ -205,11 +205,7 @@ Future<void> _eval(
   final results = <EvalResult>[];
   // Per case: null when it failed, the reasons it was left out, or none when kept.
   final outcomes = <Set<TrainingIssue>?>[];
-  final all = loadCases(cases.readAsStringSync());
-  // A case that needs web search means nothing where the provider has none (#478).
-  final runnable = all.where((c) => c.runsWith(search: search)).toList();
-  final unsearched = all.length - runnable.length;
-  for (final evalCase in runnable) {
+  for (final evalCase in _runnable(loadCases(cases.readAsStringSync()), search, out)) {
     if (finished.contains(evalCase.id)) continue;
     final result = await runCase(evalCase, provider, slim: slim);
     results.add(result);
@@ -218,11 +214,6 @@ Future<void> _eval(
     if (keep != null) outcomes.add(_keepTurn(result, keep, done!));
   }
   out.writeln(summarize(results));
-  if (unsearched > 0) {
-    out.writeln(
-      'left out $unsearched ${unsearched == 1 ? 'case that needs' : 'cases that need'} web search',
-    );
-  }
   if (keep == null) return;
   if (finished.isNotEmpty) out.writeln('skipped ${finished.length} already done in ${done!.path}');
   final kept = outcomes.where((issues) => issues != null && issues.isEmpty).length;
@@ -235,6 +226,18 @@ Future<void> _eval(
     'repeated calls: ${count(TrainingIssue.repeatedCall)}; '
     'counts may overlap)',
   );
+}
+
+/// The cases that mean something for a provider that can [search] or not: a
+/// case that needs web search is left out where there is none (#478), and
+/// [out] says how many.
+List<EvalCase> _runnable(List<EvalCase> all, bool search, StringSink out) {
+  final runnable = all.where((c) => c.runsWith(search: search)).toList();
+  final left = all.length - runnable.length;
+  if (left > 0) {
+    out.writeln('left out $left ${left == 1 ? 'case that needs' : 'cases that need'} web search');
+  }
+  return runnable;
 }
 
 /// The case ids [done] marks finished (`<id>`, or `<id>\tkept` when it kept a
