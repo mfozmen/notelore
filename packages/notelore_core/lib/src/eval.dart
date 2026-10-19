@@ -204,7 +204,7 @@ class _Searches extends Toolbox {
 
   final List<String> found;
 
-  static final _search = Tool('web_search', 'Search the web: the results as text.', const {
+  static const _search = Tool('web_search', 'Search the web: the results as text.', {
     'type': 'object',
     'properties': {
       'query': {'type': 'string'},
