@@ -211,6 +211,13 @@ Map<String, Object?> trainingExample(EvalResult result) => {
 /// nothing, so it goes with its result, and with its step when it was the
 /// step's only call. A write, or a read that answered otherwise, stays.
 List<Message> collapseRepeatedReads(List<Message> messages) {
+  final dropped = _repeatedReads(messages);
+  return [for (final message in messages) ?_without(message, dropped)];
+}
+
+/// The ids of the reads [collapseRepeatedReads] drops. A write in between
+/// does not matter: the same result means the repeat still learned nothing.
+Set<Object?> _repeatedReads(List<Message> messages) {
   const equality = DeepCollectionEquality();
   final results = {
     for (final block in _trainingBlocks(messages))
@@ -219,31 +226,30 @@ List<Message> collapseRepeatedReads(List<Message> messages) {
   final seen = <List<Object?>>[];
   final dropped = <Object?>{};
   for (final block in _trainingBlocks(messages)) {
-    if (block['type'] != 'tool_use' || block['id'] == null) continue;
-    if (!results.containsKey(block['id'])) continue;
+    if (block['type'] != 'tool_use' || !results.containsKey(block['id'] ?? _noId)) continue;
     final call = [block['name'], block['input'], results[block['id']]];
-    if (!writingTools.contains(block['name']) && seen.any((s) => equality.equals(s, call))) {
-      dropped.add(block['id']);
-    }
+    final read = !writingTools.contains(block['name']);
+    if (read && seen.any((earlier) => equality.equals(earlier, call))) dropped.add(block['id']);
     seen.add(call);
   }
+  return dropped;
+}
+
+/// Matches no result: a call without an id is never dropped.
+const _noId = Object();
+
+/// [message] without the [dropped] calls and their results; none when nothing
+/// is left, or when every call of its step went (its words go with them).
+Message? _without(Message message, Set<Object?> dropped) {
+  final blocks = message['content'];
+  if (blocks is! List<Object?>) return message;
   bool gone(Object? block) =>
       block is Map &&
       dropped.contains(block['type'] == 'tool_use' ? block['id'] : block['tool_use_id']);
-  bool calls(Object? block) => block is Map && block['type'] == 'tool_use';
-  return [
-    for (final message in messages)
-      if (message['content'] case final List<Object?> blocks)
-        // A step whose every call went goes whole, its words with it.
-        if (blocks.any(calls) && blocks.where(calls).every(gone))
-          ...[]
-        else if (blocks.where((b) => !gone(b)).toList() case final left when left.isNotEmpty)
-          {...message, 'content': left}
-        else
-          ...[]
-      else
-        message,
-  ];
+  final calls = blocks.where((b) => b is Map && b['type'] == 'tool_use');
+  if (calls.isNotEmpty && calls.every(gone)) return null;
+  final left = blocks.where((b) => !gone(b)).toList();
+  return left.isEmpty ? null : {...message, 'content': left};
 }
 
 /// Reasons a scored-passing teacher turn is excluded from distillation.
