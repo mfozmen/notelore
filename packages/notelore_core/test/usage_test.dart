@@ -202,6 +202,7 @@ void main() {
       expect(two.errorShare, 0.5);
       expect(none.errorShare, 0);
       expect(one + one, TurnCount.fromJson((one + one).toJson()));
+      expect((one + one).hashCode, TurnCount.fromJson((one + one).toJson()).hashCode);
       expect(TurnCount.fromJson(const {'turns': 'x'}), const TurnCount()); // damaged: none
     });
 
