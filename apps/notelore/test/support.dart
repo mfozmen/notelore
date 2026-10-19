@@ -506,7 +506,14 @@ class FakeReminders implements ReminderNotifier {
   /// Thrown by every call, like a platform that cannot notify.
   Exception? fail;
 
+  /// Thrown by the next call only: a bug, not a missing platform.
+  Error? breakOnce;
+
   void _check() {
+    if (breakOnce case final error?) {
+      breakOnce = null;
+      throw error;
+    }
     if (fail case final error?) throw error;
   }
 

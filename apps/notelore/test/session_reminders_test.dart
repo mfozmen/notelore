@@ -125,6 +125,16 @@ void main() {
     expect(harness.reminders.pending.values, ['Pack']);
   });
 
+  test('a reminder run that broke never stops the next', () async {
+    final harness = Harness();
+    final session = harness.session();
+    harness.reminders.breakOnce = StateError('a bug in a run');
+    await expectLater(session.refreshReminders(), throwsStateError);
+    remindIn(harness, 'Health', 'Dentist');
+    await session.refreshReminders();
+    expect(harness.reminders.pending.values, ['Dentist']);
+  });
+
   test('without notifications on this device, nothing to allow', () async {
     final session = Harness().session(reminders: false);
     await session.load();
