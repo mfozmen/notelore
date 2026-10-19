@@ -560,6 +560,18 @@ class Session extends ChangeNotifier {
   /// until the person restores them to Drive or deletes them here too.
   List<String> heldNotes = const [];
 
+  /// The [heldNotes] as the person knows them: each note's title, or its file
+  /// name when it does not read as a note (an attachment, say).
+  List<String> get heldTitles => heldNotes.map(_titleOf).toList();
+
+  String _titleOf(String rel) {
+    try {
+      return parse(File(p.joinAll([paths.notes.path, ...rel.split('/')])).readAsStringSync()).title;
+    } on Exception {
+      return rel.split('/').last;
+    }
+  }
+
   /// Puts the [heldNotes] back on Drive.
   Future<void> restoreHeld() => syncNow(restore: {...heldNotes});
 

@@ -63,6 +63,9 @@ void main() {
       final (session, _, root) = await wiped();
       expect(session.heldNotes, ['topics/a.md', 'topics/b.md', 'topics/c.md', 'topics/d.md']);
       expect(File(p.join(root, 'topics', 'a.md')).existsSync(), isTrue);
+      // Named by their titles; one that no longer reads as a note, by its file.
+      File(p.join(root, 'topics', 'd.md')).writeAsStringSync('no longer a note');
+      expect(session.heldTitles, ['A', 'B', 'C', 'd.md']);
     });
 
     test('Restore puts them back on Drive', () async {
