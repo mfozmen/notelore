@@ -47,8 +47,10 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
   var _scrolledUnder = false;
 
   bool _scrolled(Notification event) {
+    // The list's own scrolling only, not a field's or a selectable text's inside it.
     final metrics = switch (event) {
-      ScrollNotification(:final metrics) || ScrollMetricsNotification(:final metrics) => metrics,
+      ScrollNotification(depth: 0, :final metrics) ||
+      ScrollMetricsNotification(depth: 0, :final metrics) => metrics,
       _ => null,
     };
     if (metrics == null) return false;

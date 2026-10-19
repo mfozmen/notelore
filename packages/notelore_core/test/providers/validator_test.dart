@@ -289,6 +289,11 @@ void main() {
       ]),
       'notelore-qwen3-4b-v3:latest',
     );
+    expect(
+      ollamaStartModel(['notelore-qwen3-4b-v9:latest', 'notelore-qwen3-4b-v10:latest']),
+      'notelore-qwen3-4b-v10:latest', // by version, not by letters
+    );
+    expect(ollamaStartModel(['notelore-b', 'notelore-a']), 'notelore-b');
     expect(ollamaStartModel(['llama3.2:3b', 'qwen3:8b', 'qwen3:4b-instruct']), 'qwen3:4b-instruct');
     expect(ollamaStartModel(['llama3.2:3b', 'qwen3:8b']), 'qwen3:8b');
     expect(ollamaStartModel(['llama3.2:3b', 'phi4-mini:latest']), 'llama3.2:3b');
