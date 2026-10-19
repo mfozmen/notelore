@@ -275,6 +275,77 @@ void main() {
     expect(lines, hasLength(1));
     expect(jsonDecode(lines.single), containsPair('tools', isNotEmpty));
     expect('$out', contains('kept 1 of 2'));
+    expect(
+      '$out',
+      contains('excluded 0 passing turns (tool errors: 0; repeated calls: 0; counts may overlap)'),
+    );
+  });
+
+  test('distill excludes passing turns with tool errors or repeated calls', () async {
+    File(p.join(temp.path, 'cases.json')).writeAsStringSync(
+      jsonEncode([
+        {
+          'id': 'recovered',
+          'kind': 'chat',
+          'lang': 'en',
+          'message': 'hi',
+          'expect': {
+            'answer': ['done'],
+          },
+        },
+        {
+          'id': 'repeated',
+          'kind': 'chat',
+          'lang': 'en',
+          'message': 'again',
+          'expect': {
+            'answer': ['done'],
+          },
+        },
+      ]),
+    );
+    var call = 0;
+    final anthropic = MockClient((_) async {
+      final step = call++;
+      return http.Response(
+        jsonEncode(switch (step) {
+          0 || 2 || 3 => {
+            'content': [
+              {
+                'type': 'tool_use',
+                'id': 't$step',
+                'name': 'list_notes',
+                'input': step == 0 ? {'bad': true} : <String, Object?>{},
+              },
+            ],
+            'stop_reason': 'tool_use',
+          },
+          _ => {
+            'content': [
+              {'type': 'text', 'text': 'done'},
+            ],
+            'stop_reason': 'end_turn',
+          },
+        }),
+        200,
+      );
+    });
+    expect(
+      await run(
+        ['distill', '--provider=anthropic', '--cases=cases.json', '--out=train.jsonl'],
+        client: anthropic,
+        environment: {'NOTELORE_HOME': 'home', 'NOTELORE_ANTHROPIC_API_KEY': 'k'},
+      ),
+      0,
+    );
+    expect('$out', contains('ok   recovered'));
+    expect('$out', contains('ok   repeated'));
+    expect('$out', contains('kept 0 of 2'));
+    expect(
+      '$out',
+      contains('excluded 2 passing turns (tool errors: 1; repeated calls: 1; counts may overlap)'),
+    );
+    expect(File(p.join(temp.path, 'train.jsonl')).readAsStringSync(), isEmpty);
   });
 
   test('a failing turn reports the error and where the trace is', () async {

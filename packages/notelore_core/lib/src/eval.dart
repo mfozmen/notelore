@@ -11,6 +11,7 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:path/path.dart' as p;
 
 import 'agent.dart';
@@ -204,6 +205,40 @@ Map<String, Object?> trainingExample(EvalResult result) => {
   ],
   'tools': functionTools(noteTools),
 };
+
+/// Reasons a scored-passing teacher turn is excluded from distillation.
+enum TrainingIssue { toolError, repeatedCall }
+
+/// Problems in a passing turn that would teach the student a bad tool path.
+/// [Toolbox.call] and [Agent] mark tool failures with an `Error:` prefix.
+Set<TrainingIssue> trainingIssues(List<Message> messages) {
+  final issues = <TrainingIssue>{};
+  final calls = <List<Object?>>[];
+  const equality = DeepCollectionEquality();
+  for (final block in _trainingBlocks(messages)) {
+    if (block['type'] == 'tool_result' &&
+        block['content'] is String &&
+        (block['content']! as String).toLowerCase().startsWith('error')) {
+      issues.add(TrainingIssue.toolError);
+    }
+    if (block['type'] == 'tool_use') {
+      final call = [block['name'], block['input']];
+      if (calls.any((seen) => equality.equals(seen, call))) {
+        issues.add(TrainingIssue.repeatedCall);
+      }
+      calls.add(call);
+    }
+  }
+  return issues;
+}
+
+Iterable<Map<Object?, Object?>> _trainingBlocks(List<Message> messages) sync* {
+  for (final message in messages) {
+    if (message['content'] case final List<Object?> blocks) {
+      yield* blocks.cast<Map<Object?, Object?>>();
+    }
+  }
+}
 
 bool _has(String text, String fact) => text.toLowerCase().contains(fact.toLowerCase());
 

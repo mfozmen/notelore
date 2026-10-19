@@ -56,6 +56,14 @@ void main() {
       });
       expect(summary.cost, 0);
       expect(summary.plan, isTrue);
+      expect(summary.billed, isFalse); // nothing per token at all (#436)
+      expect(
+        summarize({
+          'chatgpt/gpt-5': const UsageCount(calls: 1, input: 10, output: 1),
+          'anthropic/claude-sonnet-5-5': const UsageCount(calls: 1, input: 10, output: 1),
+        }).billed,
+        isTrue,
+      );
     });
 
     test('an unknown price or a call without usage leaves the cost unknown, never guessed', () {

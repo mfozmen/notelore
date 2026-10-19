@@ -112,6 +112,58 @@ void main() {
     jsonEncode(example); // one JSONL line
   });
 
+  test('training issues detect tool errors and repeated calls by arguments', () {
+    final messages = [
+      {
+        'role': 'assistant',
+        'content': [
+          {
+            'type': 'tool_use',
+            'name': 'list_notes',
+            'input': {'kind': 'topic', 'limit': 2},
+          },
+        ],
+      },
+      {
+        'role': 'user',
+        'content': [
+          {'type': 'tool_result', 'content': 'Error: invalid argument'},
+        ],
+      },
+      {
+        'role': 'assistant',
+        'content': [
+          {
+            'type': 'tool_use',
+            'name': 'list_notes',
+            'input': {'limit': 2, 'kind': 'topic'},
+          },
+          {
+            'type': 'tool_use',
+            'name': 'list_notes',
+            'input': {'kind': 'project'},
+          },
+        ],
+      },
+    ];
+    expect(trainingIssues(messages), {TrainingIssue.toolError, TrainingIssue.repeatedCall});
+    expect(trainingIssues([messages.last]), isEmpty);
+  });
+
+  test('training issues recognize tool error prefixes regardless of case', () {
+    expect(
+      trainingIssues([
+        {
+          'role': 'user',
+          'content': [
+            {'type': 'tool_result', 'content': 'error: invalid argument'},
+          ],
+        },
+      ]),
+      {TrainingIssue.toolError},
+    );
+  });
+
   test('a missing tool, a write elsewhere or a missing fact fails, saying why', () async {
     final provider = ScriptedProvider([
       toolUse('create_note', 't1', {'kind': 'topic', 'title': 'Hit rate'}),

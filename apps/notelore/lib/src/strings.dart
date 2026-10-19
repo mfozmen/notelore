@@ -262,6 +262,9 @@ abstract class Strings {
   String get usageCostUnavailable;
   String usageEstimate(String date);
   String get usagePlan;
+  String get usageInPlan;
+  String get usageNoCharge;
+  String get usagePlanPart;
   String get usageLocal;
   String get thousands;
   String get decimalPoint;
@@ -279,13 +282,20 @@ abstract class Strings {
       else
         usageTokensUnavailable,
       if (summary.unreported > 0) usageUnreported(summary.unreported),
-      switch (summary.cost) {
-        null => usageCostUnavailable,
-        final cost => usageCost(
-          cost.toStringAsFixed(cost == 0 || cost >= 0.01 ? 2 : 4).replaceFirst('.', decimalPoint),
-        ),
-      },
+      _costLine(summary),
+      if (summary.billed && summary.plan) usagePlanPart,
     ];
+  }
+
+  /// Nothing charged per token: where it went, never "$0.00" (#436).
+  String _costLine(UsageSummary summary) {
+    if (!summary.billed) return summary.plan ? usageInPlan : usageNoCharge;
+    return switch (summary.cost) {
+      null => usageCostUnavailable,
+      final cost => usageCost(
+        cost.toStringAsFixed(cost == 0 || cost >= 0.01 ? 2 : 4).replaceFirst('.', decimalPoint),
+      ),
+    };
   }
 
   String get archive;
@@ -959,6 +969,12 @@ class EnglishStrings extends Strings {
   String usageCost(String dollars) => 'Estimated cost: about \$$dollars';
   @override
   String get usageCostUnavailable => 'Estimated cost: not available';
+  @override
+  String get usageInPlan => 'Included in your ChatGPT plan';
+  @override
+  String get usageNoCharge => 'No per-token charge: a local model';
+  @override
+  String get usagePlanPart => 'What ran on the ChatGPT plan is included in it';
   @override
   String usageEstimate(String date) =>
       'Read and written are counted in tokens, pieces of words. Costs are estimates from list '
@@ -1784,12 +1800,18 @@ class TurkishStrings extends Strings {
   @override
   String get usageCostUnavailable => 'Tahmini maliyet: bilgi yok';
   @override
+  String get usageInPlan => 'ChatGPT planına dahil';
+  @override
+  String get usageNoCharge => 'Token başına ücret yok: yerel model';
+  @override
+  String get usagePlanPart => 'ChatGPT planında çalışan kısım plana dahil';
+  @override
   String usageEstimate(String date) =>
       'Okunan ve yazılan token ile, yani kelime parçalarıyla sayılır. Maliyetler $date tarihli '
-      'liste fiyatlarından tahmindir; geçerli olan sağlayıcınızın faturasıdır.';
+      'liste fiyatlarından tahmindir; geçerli olan sağlayıcının faturasıdır.';
   @override
   String get usagePlan =>
-      'ChatGPT planında token başına ücret yok: kullanım planınızın sınırlarından düşer.';
+      'ChatGPT planında token başına ücret yok: kullanım planının sınırlarından düşer.';
   @override
   String get usageLocal => 'Yerel modelde token başına ücret yok.';
   @override

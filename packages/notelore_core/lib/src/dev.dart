@@ -175,12 +175,20 @@ Future<void> _eval(
   }
   out.writeln(summarize(results));
   if (keep == null) return;
+  final passing = results.where((result) => result.passed);
+  final issues = {for (final result in passing) result: trainingIssues(result.messages)};
   final kept = [
-    for (final result in results)
-      if (result.passed) jsonEncode(trainingExample(result)),
+    for (final result in passing)
+      if (issues[result]!.isEmpty) jsonEncode(trainingExample(result)),
   ];
   keep.writeAsStringSync(kept.map((line) => '$line\n').join());
   out.writeln('kept ${kept.length} of ${results.length} in ${keep.path}');
+  out.writeln(
+    'excluded ${issues.length - kept.length} passing turns '
+    '(tool errors: ${issues.values.where((found) => found.contains(TrainingIssue.toolError)).length}; '
+    'repeated calls: ${issues.values.where((found) => found.contains(TrainingIssue.repeatedCall)).length}; '
+    'counts may overlap)',
+  );
 }
 
 /// The provider and model [options] name (the ChatGPT plan by default), said on [out].
