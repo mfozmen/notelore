@@ -953,7 +953,13 @@ class Session extends ChangeNotifier {
     _provider = MeteredProvider(_providerFor(chosen, key, chosenModel), chosen.name, usage);
     // A model switch keeps the conversation; logout has already dropped it.
     final history = _agent?.messages ?? const <Message>[];
-    _agent = Agent(_provider!, toolbox, today: today, timing: timing)..messages.addAll(history);
+    _agent = Agent(
+      _provider!,
+      toolbox,
+      today: today,
+      timing: timing,
+      slim: chosen.name == 'device', // every token is read on the phone first (#447)
+    )..messages.addAll(history);
     notifyListeners();
   }
 

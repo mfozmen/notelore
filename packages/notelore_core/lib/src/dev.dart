@@ -35,8 +35,9 @@ import 'tools.dart';
 
 const _usage =
     'usage: notelore_dev signin | models | chat [--provider=<name>] [--model=<id>] <message>'
-    ' | eval [--provider=<name>] [--model=<id>] [--cases=<file>]'
-    ' | distill [--provider=<name>] [--model=<id>] [--cases=<file>] [--out=<file>]';
+    ' | eval [--provider=<name>] [--model=<id>] [--cases=<file>] [--slim]'
+    ' | distill [--provider=<name>] [--model=<id>] [--cases=<file>] [--out=<file>] [--slim]'
+    ' (--slim: the prompt and tools of the model on the device)';
 
 /// A trace file's name for a run started at [time]: UTC to the microsecond,
 /// always six digits, so names sort in time order (`toIso8601String()` drops
@@ -68,6 +69,7 @@ Future<int> runDev(
         a.substring(2, a.indexOf('=')): a.substring(a.indexOf('=') + 1),
   };
   final words = args.where((a) => !a.startsWith('--')).toList();
+  final slim = args.contains('--slim');
   final command = words.firstOrNull;
   final message = words.skip(1).join(' ');
   if (command == null ||
@@ -114,7 +116,13 @@ Future<int> runDev(
         final keep = command == 'distill'
             ? File(p.join(currentDirectory.path, options['out'] ?? 'train.jsonl'))
             : null;
-        await _eval(cases, () => _provider(options, environment, auth, traced, out), out, keep);
+        await _eval(
+          cases,
+          () => _provider(options, environment, auth, traced, out),
+          out,
+          keep: keep,
+          slim: slim,
+        );
       default:
         await _chat(message, options, environment, paths, auth, traced, out);
     }
@@ -164,9 +172,10 @@ Future<void> _chat(
 Future<void> _eval(
   File cases,
   Future<LlmProvider> Function() open,
-  StringSink out, [
+  StringSink out, {
   File? keep,
-]) async {
+  bool slim = false,
+}) async {
   if (!cases.existsSync()) throw StateError('no cases file at ${cases.path}');
   final provider = await open();
   final done = keep == null ? null : File('${keep.path}.done');
@@ -176,7 +185,7 @@ Future<void> _eval(
   final outcomes = <Set<TrainingIssue>?>[];
   for (final evalCase in loadCases(cases.readAsStringSync())) {
     if (finished.contains(evalCase.id)) continue;
-    final result = await runCase(evalCase, provider);
+    final result = await runCase(evalCase, provider, slim: slim);
     results.add(result);
     final verdict = result.passed ? 'ok  ' : 'FAIL';
     out.writeln('$verdict ${evalCase.id} (${result.took.inMilliseconds} ms) ${result.tools}');

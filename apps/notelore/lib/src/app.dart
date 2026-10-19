@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'calendar.dart';
 import 'chat.dart';
 import 'lock.dart';
 import 'notes.dart';
@@ -291,6 +292,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final destinations = [
       (Icons.chat_bubble_outline, Icons.chat_bubble, s.chat),
       (Icons.description_outlined, Icons.description, s.notes),
+      (Icons.calendar_month_outlined, Icons.calendar_month, s.calendar),
       (Icons.settings_outlined, Icons.settings, s.settings),
     ];
     void select(int tab) => setState(() => _tab = tab);
@@ -317,6 +319,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           child: switch (_tab) {
             0 => ChatScreen(widget.session),
             1 => NotesScreen(widget.session),
+            2 => CalendarScreen(widget.session, toChat: () => select(0)),
             _ => SettingsScreen(
               widget.session,
               checkForUpdates: widget.updater == null ? null : _checkNow,

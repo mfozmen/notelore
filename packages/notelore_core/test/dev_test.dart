@@ -279,6 +279,18 @@ void main() {
       '$out',
       contains('excluded 0 passing turns (tool errors: 0; repeated calls: 0; counts may overlap)'),
     );
+
+    // --slim: the prompt and tools of the model on the device (#447).
+    expect(
+      await run(
+        ['distill', '--slim', '--provider=anthropic', '--cases=cases.json', '--out=slim.jsonl'],
+        client: anthropic,
+        environment: {'NOTELORE_HOME': 'home', 'NOTELORE_ANTHROPIC_API_KEY': 'k'},
+      ),
+      0,
+    );
+    final slim = jsonDecode(File(p.join(temp.path, 'slim.jsonl')).readAsLinesSync().single) as Map;
+    expect(((slim['messages']! as List).first as Map)['content'], contains('Dictated sound-alike'));
   });
 
   test('distill keeps each turn as it goes, and a rerun goes on where it stopped (#327)', () async {

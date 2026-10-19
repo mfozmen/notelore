@@ -80,4 +80,24 @@ void main() {
   test('no notes folder, no reminders', () {
     expect(upcomingReminders(p.join(tempDir(), 'none'), now: now), isEmpty);
   });
+
+  test('the calendar: reminders from today on and every open todo, by day (#453)', () {
+    final shed = p.join(root, 'projects', 'garden-shed.md');
+    addTodo(shed, 'Paint the door', due: d(2026, 10, 25), today: d(2026, 10, 1));
+    addTodo(shed, 'Late one', due: d(2026, 10, 10), today: d(2026, 10, 1));
+    addTodo(shed, 'Done one', due: d(2026, 10, 22), today: d(2026, 10, 1));
+    completeTodo(shed, 3, today: d(2026, 10, 2));
+    final items = calendarItems(root, today: DateTime(2026, 10, 19));
+    expect(items.map((i) => (i.day, i.time, i.text, i.note, i.todo)), [
+      (DateTime(2026, 10, 10), null, 'Late one', 'Garden Shed', true),
+      // "Gone by" earlier today still shows: the calendar is by day.
+      (DateTime(2026, 10, 19), '13:59', 'Gone by', 'Health', false),
+      (DateTime(2026, 10, 19), '14:30', 'Later today', 'Health', false),
+      (DateTime(2026, 10, 20), '10:00', 'Dentist', 'Health', false),
+      (DateTime(2026, 10, 21), null, 'Order the timber', 'Garden Shed', false),
+      (DateTime(2026, 10, 25), null, 'Paint the door', 'Garden Shed', true),
+    ]);
+    // Where it lives, to open it.
+    expect((items.first.kind, items.first.slug), ('project', 'garden-shed'));
+  });
 }

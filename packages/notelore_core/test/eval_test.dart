@@ -1,7 +1,9 @@
 import 'dart:convert';
 
+import 'package:notelore_core/src/agent.dart' show slimSystemPrompt;
 import 'package:notelore_core/src/eval.dart';
 import 'package:notelore_core/src/providers/base.dart' show Message;
+import 'package:notelore_core/src/tools.dart' show slimTools;
 import 'package:test/test.dart';
 
 import 'agent_test.dart' show ScriptedProvider, text, toolUse;
@@ -111,6 +113,21 @@ void main() {
       contains('add_note_entry'),
     );
     jsonEncode(example); // one JSONL line
+  });
+
+  test('a slim run asks with the slim prompt and tools, and trains on them (#447)', () async {
+    final provider = ScriptedProvider([
+      toolUse('add_note_entry', 't1', {'slug': 'mopsos', 'text': 'Hit rate is now daily.'}),
+      text('Saved to Mopsos.'),
+    ]);
+    final result = await runCase(filing, provider, slim: true);
+    expect(result.passed, isTrue, reason: '${result.problems}');
+    expect(provider.turns.first.$1, slimSystemPrompt(evalNow));
+    expect(provider.turns.first.$3, slimTools);
+    final example = trainingExample(result);
+    final messages = (example['messages']! as List).cast<Map<String, Object?>>();
+    expect(messages.first['content'], slimSystemPrompt(evalNow));
+    expect(example['tools'], hasLength(slimTools.length));
   });
 
   test('training issues detect tool errors and repeated calls by arguments', () {

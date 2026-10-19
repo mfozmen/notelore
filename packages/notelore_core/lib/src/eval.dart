@@ -89,6 +89,7 @@ class EvalResult {
     this.problems,
     this.took, {
     this.messages = const [],
+    this.slim = false,
   });
 
   final EvalCase evalCase;
@@ -101,11 +102,15 @@ class EvalResult {
   /// The whole exchange, for a training example of a passing turn (#327).
   final List<Message> messages;
 
+  /// Asked with the prompt and tools of the model on the device (#447).
+  final bool slim;
+
   bool get passed => problems.isEmpty;
 }
 
-/// Runs [evalCase] once with [provider] on a fresh temp notes folder.
-Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider) async {
+/// Runs [evalCase] once with [provider] on a fresh temp notes folder; [slim]
+/// as the model on the device asks (#447).
+Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider, {bool slim = false}) async {
   final dir = Directory.systemTemp.createTempSync('notelore_eval_');
   final root = p.join(dir.path, 'notes');
   final index = NoteIndex(p.join(dir.path, 'state', 'index.sqlite'), root);
@@ -113,7 +118,12 @@ Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider) async {
   try {
     _write(root, evalCase.notes);
     final before = _files(root);
-    final agent = Agent(provider, Toolbox(root, index, today: evalToday), today: evalNow);
+    final agent = Agent(
+      provider,
+      Toolbox(root, index, today: evalToday),
+      today: evalNow,
+      slim: slim,
+    );
     var answer = '';
     final problems = <String>[];
     try {
@@ -141,6 +151,7 @@ Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider) async {
       problems,
       watch.elapsed,
       messages: agent.messages,
+      slim: slim,
     );
   } finally {
     index.close();
@@ -200,10 +211,10 @@ Iterable<String> _missingFacts(
 /// and most open models' chat templates train on (#327).
 Map<String, Object?> trainingExample(EvalResult result) => {
   'messages': [
-    {'role': 'system', 'content': systemPrompt(evalNow)},
+    {'role': 'system', 'content': result.slim ? slimSystemPrompt(evalNow) : systemPrompt(evalNow)},
     ...toOllama(collapseRepeatedReads(result.messages)),
   ],
-  'tools': functionTools(noteTools),
+  'tools': functionTools(result.slim ? slimTools : noteTools),
 };
 
 /// [messages] without each read that repeats an earlier one, same tool, same

@@ -40,7 +40,8 @@ export 'src/providers/ollama.dart' show ollamaHost;
 export 'src/providers/providers.dart' show createProvider;
 export 'src/providers/validator.dart'
     show KeyValidationError, TransientValidationError, cheapestModel, currentModels, validateKey;
-export 'src/reminders.dart' show DueReminder, maxScheduledReminders, upcomingReminders;
+export 'src/reminders.dart'
+    show DayItem, DueReminder, calendarItems, maxScheduledReminders, upcomingReminders;
 export 'src/secret.dart' show defaultIterations, hashSecret, verifySecret;
 export 'src/store/format.dart'
     show
@@ -109,7 +110,7 @@ export 'src/sync/merge.dart'
         decide,
         threeWay;
 export 'src/sync/resolve.dart' show Ask, ModelResolver, askProvider;
-export 'src/tools.dart' show Toolbox, noteTools;
+export 'src/tools.dart' show Toolbox, noteTools, slimTools;
 export 'src/usage.dart'
     show
         MeteredProvider,
