@@ -1400,6 +1400,7 @@ class Session extends ChangeNotifier {
           strings.synced(counts.$1, counts.$2, counts.$3, counts.$4),
           // How the model settled conflicts; nothing to explain when nothing moved.
           if (changed) ...?resolver?.explanations,
+          if (_remote!.moved) strings.notesMoved,
         ].join(' ');
       } on NotSignedIn catch (error) {
         driveConnected = false;

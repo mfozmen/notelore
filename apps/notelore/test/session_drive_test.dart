@@ -45,6 +45,14 @@ void main() {
     expect(session.syncStatus, 'Synced; nothing changed.');
   });
 
+  test('a sync that moved the notes into hidden storage says so (#454)', () async {
+    final harness = Harness(auth: FakeAuth());
+    final session = harness.session();
+    harness.remote.moved = true;
+    await session.connectDrive();
+    expect(session.syncStatus, endsWith("the old Notelore folder is in Drive's trash."));
+  });
+
   group('many notes gone from Drive at once (#454)', () {
     Future<(Session, MemoryRemote, String)> wiped() async {
       final harness = Harness(auth: FakeAuth());

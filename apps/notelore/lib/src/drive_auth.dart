@@ -170,12 +170,15 @@ class GoogleSignInAuth implements DriveAuth {
   String? _last;
 
   @override
-  Future<bool> signedIn() async => await (await _client()).authorizationForScopes([scope]) != null;
+  Future<bool> signedIn() async => await (await _client()).authorizationForScopes(_scopes) != null;
+
+  /// Drive's grant is two scopes in one string (#454).
+  List<String> get _scopes => scope.split(' ');
 
   @override
   Future<void> signIn() async {
     try {
-      await (await _client()).authorizeScopes([scope]);
+      await (await _client()).authorizeScopes(_scopes);
     } on GoogleSignInException catch (error) {
       throw SignInFailed(error.description ?? error.code.name);
     }
@@ -185,7 +188,7 @@ class GoogleSignInAuth implements DriveAuth {
   Future<String> token({bool refresh = false}) async {
     final client = await _client();
     if (refresh && _last != null) await client.clearAuthorizationToken(accessToken: _last!);
-    final authorization = await client.authorizationForScopes([scope]);
+    final authorization = await client.authorizationForScopes(_scopes);
     if (authorization == null) throw const NotSignedIn();
     return _last = authorization.accessToken;
   }

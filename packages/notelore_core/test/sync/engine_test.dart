@@ -22,6 +22,8 @@ class FakeDrive implements Remote {
   final trashed = <String>[];
   var uploads = 0;
   var offline = false;
+  @override
+  var moved = false;
   var _next = 0;
 
   /// Runs during a download: the user saving the note in another editor meanwhile.

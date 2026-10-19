@@ -44,6 +44,10 @@ abstract interface class Remote {
 
   /// Moves to the remote trash: reversible, never a hard delete.
   Future<void> trash(String fileId);
+
+  /// Whether the last [list] moved the notes from an older place on the
+  /// remote (#454), for the app to say once.
+  bool get moved;
 }
 
 class SyncReport {
