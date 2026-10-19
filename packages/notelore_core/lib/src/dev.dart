@@ -113,15 +113,12 @@ Future<int> runDev(
       case 'models':
         out.writeln((await listChatGptModels(auth.token, client: traced)).join('\n'));
       case 'reprompt':
-        final from = File(p.join(currentDirectory.path, options['in'] ?? 'train.jsonl'));
-        final to = File(p.join(currentDirectory.path, options['out'] ?? 'train-reprompted.jsonl'));
-        final lines = [
-          for (final line in from.readAsLinesSync())
-            if (line.trim().isNotEmpty)
-              jsonEncode(reprompted((jsonDecode(line) as Map).cast(), slim: slim)),
-        ];
-        to.writeAsStringSync(lines.map((line) => '$line\n').join());
-        out.writeln('${lines.length} examples with the current prompt in ${to.path}');
+        _reprompt(
+          File(p.join(currentDirectory.path, options['in'] ?? 'train.jsonl')),
+          File(p.join(currentDirectory.path, options['out'] ?? 'train-reprompted.jsonl')),
+          out,
+          slim: slim,
+        );
       case 'eval' || 'distill':
         final cases = File(p.join(currentDirectory.path, options['cases'] ?? 'eval/cases.json'));
         final keep = command == 'distill'
@@ -145,6 +142,18 @@ Future<int> runDev(
     out.writeln('Trace: ${traceFile.path}');
     traced.close();
   }
+}
+
+/// Every example of [from] with today's prompt and tools ([slim] or full),
+/// written to [to] (#327).
+void _reprompt(File from, File to, StringSink out, {required bool slim}) {
+  final lines = [
+    for (final line in from.readAsLinesSync())
+      if (line.trim().isNotEmpty)
+        jsonEncode(reprompted((jsonDecode(line) as Map).cast(), slim: slim)),
+  ];
+  to.writeAsStringSync(lines.map((line) => '$line\n').join());
+  out.writeln('${lines.length} examples with the current prompt in ${to.path}');
 }
 
 /// One agent turn on [message] with the provider and model [options] name
