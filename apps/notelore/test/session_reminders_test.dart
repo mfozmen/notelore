@@ -106,11 +106,14 @@ void main() {
     await session.load();
     final note = session.listNotes().single;
     final archived = await session.deleteNote(note);
+    await pumpEventQueue(); // the reminders follow, the delete does not wait (#504)
     expect(harness.reminders.pending, isEmpty);
     await session.restoreNote(note, archived!);
+    await pumpEventQueue();
     expect(harness.reminders.pending.values, ['Dentist']);
     await session.deleteNote(note);
     await session.restoreArchived(session.listArchived().single);
+    await pumpEventQueue();
     expect(harness.reminders.pending.values, ['Dentist']);
   });
 
@@ -122,6 +125,7 @@ void main() {
     addReminder(shared, 'Pack', DateTime.utc(2099, 6, 1), today: today);
     harness.files.picked = [XFile(shared)];
     await session.importNotes();
+    await pumpEventQueue();
     expect(harness.reminders.pending.values, ['Pack']);
   });
 
