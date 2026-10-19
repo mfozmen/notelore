@@ -4,9 +4,11 @@ name: Release
 # release. Python Semantic Release then scans the Conventional Commits since
 # the last tag and bumps accordingly (feat -> minor, fix/perf -> patch,
 # BREAKING CHANGE -> major), writes CHANGELOG.md, tags vX.Y.Z and cuts a
-# GitHub Release. The app jobs build the Flutter app for Windows and macOS and a
-# signed Android APK, each with a .sha256 the app's updater checks, and `attach`
-# uploads them, the only job besides the release with a write token. (Assets are
+# draft GitHub Release. The app jobs build the Flutter app for Windows and macOS
+# and a signed Android APK, each with a .sha256 the app's updater checks, and
+# `attach` uploads them, the only job besides the release with a write token,
+# then publishes the release once every platform's files are up (#476): until
+# then it is a draft, which no updater sees. (Assets are
 # named notelore-app-*: the retired CLI's `notelore update` looked for
 # notelore-<v>-*.zip and must never pick one up.) Config: releaserc.toml.
 # Adapted from mfozmen/littlepress-ai.
@@ -101,6 +103,8 @@ jobs:
             echo "::warning::The usage price table is $age days old (pricesTaken $taken): re-check the prices in usage.dart."
           fi
 
+      # A draft until `attach` has every platform's files up (#476): published
+      # now, it would be the latest release before the app could update to it.
       # Re-runnable: an existing release for the tag is left as it is.
       - name: Create the GitHub Release
         if: steps.release.outputs.released == 'true'
@@ -108,7 +112,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.release.outputs.tag }}
           NOTES: ${{ steps.release.outputs.release_notes }}
-        run: gh release view "$TAG" > /dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes "$NOTES"
+        run: gh release view "$TAG" > /dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes "$NOTES" --draft
 
   app-desktop:
     name: App (${{ matrix.target }})
@@ -251,7 +255,8 @@ jobs:
 
   # The only job that writes to the release: no checkout, no build, nothing of
   # the repository runs here. It attaches what the builds uploaded, and runs
-  # even when one platform failed, so the others still ship (#315).
+  # even when one platform failed, so the files that built are there (#315);
+  # it publishes the release only when all did (#476).
   attach:
     name: Attach to the release
     needs: [release, app-desktop, app-android]
@@ -271,3 +276,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.release.outputs.tag }}
         run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
+      # Only when every platform built: a failed build leaves the release a
+      # draft, never a release some devices find no file in. A rebuild then
+      # publishes it; a rebuild of a release already out leaves it as it is,
+      # so an older tag never becomes the latest.
+      - name: Publish
+        if: needs.app-desktop.result == 'success' && needs.app-android.result == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.release.outputs.tag }}
+        run: |
+          draft=$(gh release view "$TAG" --json isDraft --jq .isDraft --repo "$GITHUB_REPOSITORY")
+          if [ "$draft" = true ]; then
+            gh release edit "$TAG" --draft=false --latest --repo "$GITHUB_REPOSITORY"
+          fi

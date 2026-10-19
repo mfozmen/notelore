@@ -115,14 +115,19 @@ Future<({String version, Map<String, String> assets})> latestRelease(Fetch fetch
 Future<String?> checkForUpdate({
   required String current,
   required Fetch fetch,
+  required String system,
   bool force = false,
-}) async => (await checkRelease(current: current, fetch: fetch, force: force))?.version;
+}) async =>
+    (await checkRelease(current: current, fetch: fetch, system: system, force: force))?.version;
 
 /// A newer release than [current], with what it brings and its page (#288);
-/// null when there is none. Offline or garbled is silent unless [force].
+/// null when there is none. Offline or garbled is silent unless [force]. A
+/// release without [system]'s file and its `.sha256` is not one yet: its
+/// builds are still running, and an update now would find nothing (#476).
 Future<({String version, List<String> highlights, String page})?> checkRelease({
   required String current,
   required Fetch fetch,
+  required String system,
   bool force = false,
 }) async {
   final Map<String, Object?> data;
@@ -134,6 +139,11 @@ Future<({String version, List<String> highlights, String page})?> checkRelease({
   }
   final version = '${data['tag_name']}'.replaceFirst(RegExp('^v'), '');
   if (!isNewer(version, current)) return null;
+  final assets = {
+    for (final asset in (data['assets'] as List?) ?? const []) '${(asset as Map)['name']}',
+  };
+  final file = assetName(version, system);
+  if (!assets.contains(file) || !assets.contains('$file.sha256')) return null;
   return (
     version: version,
     highlights: releaseHighlights(data['body'] as String?),

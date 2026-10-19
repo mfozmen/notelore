@@ -142,11 +142,13 @@ void main() {
   });
 
   testWidgets('a failed update says why and the app keeps running', (tester) async {
-    await pump(tester, updater({latestReleaseUrl: release(v, checksums: false)}));
+    // Offered, but its file cannot be downloaded (a release without a checksum
+    // is not offered at all, #476).
+    await pump(tester, updater({latestReleaseUrl: release(v)}));
     await tester.tap(find.text('Update and restart'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
     await tester.pumpAndSettle();
-    expect(find.textContaining('publishes no checksum'), findsOneWidget);
+    expect(find.textContaining('offline: https://dl/'), findsOneWidget);
     expect(exits, isEmpty);
   });
 

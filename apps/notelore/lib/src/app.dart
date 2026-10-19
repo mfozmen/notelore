@@ -222,6 +222,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final release = await checkRelease(
       current: updater.current,
       fetch: updater.fetch,
+      system: updater.system,
       force: force,
     );
     final newer = release?.version;
