@@ -150,6 +150,20 @@ void main() {
     expect(trainingIssues([messages.last]), isEmpty);
   });
 
+  test('training issues recognize tool error prefixes regardless of case', () {
+    expect(
+      trainingIssues([
+        {
+          'role': 'user',
+          'content': [
+            {'type': 'tool_result', 'content': 'error: invalid argument'},
+          ],
+        },
+      ]),
+      {TrainingIssue.toolError},
+    );
+  });
+
   test('a missing tool, a write elsewhere or a missing fact fails, saying why', () async {
     final provider = ScriptedProvider([
       toolUse('create_note', 't1', {'kind': 'topic', 'title': 'Hit rate'}),
