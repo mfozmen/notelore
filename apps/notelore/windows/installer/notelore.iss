@@ -71,6 +71,20 @@ Filename: "{app}\notelore.exe"; Flags: nowait runasoriginaluser; Check: LaunchAf
 const
   AllUsersKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{8F3C2A51-6E2B-4D7A-9C1E-5B0A7D3E9F42}_is1';
 
+function InProgramFiles(Path: String): Boolean;
+begin
+  Result := Pos(Lowercase(AddBackslash(ExpandConstant('{commonpf64}'))),
+                Lowercase(AddBackslash(Path))) = 1;
+end;
+
+// The 0.17 updater passes /DIR=<its Program Files folder>, which a setup
+// without admin rights cannot write to and silently gives up on.
+procedure InitializeWizard;
+begin
+  if not IsAdminInstallMode and InProgramFiles(WizardForm.DirEdit.Text) then
+    WizardForm.DirEdit.Text := ExpandConstant('{autopf}\Notelore');
+end;
+
 // An earlier all-users copy goes once this per-user one is in, after one UAC
 // prompt; declined, it stays. Only an uninstaller in Program Files is run
 // elevated: one in a folder the user can write to could be anything.
@@ -83,7 +97,7 @@ begin
      not RegQueryStringValue(HKLM, AllUsersKey, 'UninstallString', Uninstaller) then
     Exit;
   Uninstaller := RemoveQuotes(Uninstaller);
-  if Pos(Lowercase(AddBackslash(ExpandConstant('{commonpf64}'))), Lowercase(Uninstaller)) <> 1 then
+  if not InProgramFiles(Uninstaller) then
     Log('All-users copy left: its uninstaller is outside Program Files: ' + Uninstaller)
   else if not ShellExec('runas', Uninstaller, '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART', '',
                         SW_HIDE, ewWaitUntilTerminated, Code) then
