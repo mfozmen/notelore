@@ -390,7 +390,7 @@ class _SignInBannerState extends State<_SignInBanner> {
     } on Exception catch (error) {
       // Refused, cancelled, offline: said plainly, the detail in a debug log only.
       if (kDebugMode) debugPrint('Google sign-in failed: $error');
-      if (mounted) setState(() => _problem = widget.session.strings.signInUnfinished);
+      if (mounted) setState(() => _problem = widget.session.strings.signInFailedWhy(error));
     } finally {
       if (mounted) setState(() => _signingIn = false);
     }

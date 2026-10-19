@@ -206,6 +206,16 @@ void main() {
     expect(find.textContaining('OpenAI is not reachable'), findsOneWidget);
   });
 
+  testWidgets('setup: a Google consent with a box unticked says to tick them all (#484)', (
+    tester,
+  ) async {
+    phone(tester);
+    await pumpApp(tester, Harness(auth: FakeAuth()..failSignIn = const PartialGrant()));
+    await tester.tap(find.text('Sign in with Google'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('leave every box ticked'), findsOneWidget);
+  });
+
   testWidgets('setup: Google sign-in comes first, and without an account it stops (#208)', (
     tester,
   ) async {

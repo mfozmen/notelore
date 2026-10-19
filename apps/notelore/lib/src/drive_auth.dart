@@ -177,11 +177,14 @@ class GoogleSignInAuth implements DriveAuth {
 
   @override
   Future<void> signIn() async {
+    final client = await _client();
     try {
-      await (await _client()).authorizeScopes(_scopes);
+      await client.authorizeScopes(_scopes);
     } on GoogleSignInException catch (error) {
       throw SignInFailed(error.description ?? error.code.name);
     }
+    // A box left unticked: the grant does not hold every scope (#484).
+    if (await client.authorizationForScopes(_scopes) == null) throw const PartialGrant();
   }
 
   @override

@@ -16,6 +16,9 @@ import 'support.dart' show FakeAuth, FakeAwake, FakeLauncher;
 class FakeSignIn extends GoogleSignInPlatform with MockPlatformInterfaceMixin {
   var granted = false;
   var refused = false;
+
+  /// The consent screen with a box unticked: a token once, but no grant kept.
+  var partial = false;
   var issued = 0;
   final cleared = <String>[];
   var disconnected = false;
@@ -36,6 +39,7 @@ class FakeSignIn extends GoogleSignInPlatform with MockPlatformInterfaceMixin {
       if (refused) {
         throw const GoogleSignInException(code: GoogleSignInExceptionCode.canceled);
       }
+      if (partial) return ClientAuthorizationTokenData(accessToken: 'access-${++issued}');
       granted = true;
     }
     return granted ? ClientAuthorizationTokenData(accessToken: 'access-${++issued}') : null;
@@ -122,6 +126,14 @@ void main() {
       keySpace: 'n',
       webClientId: 'web',
     )!.signOut();
+  });
+
+  test('phone: a consent with a box unticked fails the sign-in (#484)', () async {
+    platform.partial = true;
+    await expectLater(
+      GoogleSignInAuth(serverClientId: 'web-client').signIn(),
+      throwsA(isA<PartialGrant>()),
+    );
   });
 
   test('phone: saying no is a failed sign-in', () async {
