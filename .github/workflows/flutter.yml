@@ -26,9 +26,18 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Flutter version from the root pubspec, read without yq (windows-latest lacks it, #469)
+        id: flutter
+        shell: bash
+        run: |
+          v=$(sed -n 's/^  flutter: *\([0-9.]*\).*/\1/p' pubspec.yaml)
+          # No exact pin found: stop, never build on whatever Flutter is newest.
+          [[ $v =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::no exact Flutter pin in pubspec.yaml"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
         with:
-          flutter-version-file: pubspec.yaml
+          flutter-version: ${{ steps.flutter.outputs.version }}
+          channel: stable
           cache: true
       - run: flutter pub get --enforce-lockfile
       - run: dart format --output=none --set-exit-if-changed .
@@ -44,9 +53,18 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Flutter version from the root pubspec, read without yq (windows-latest lacks it, #469)
+        id: flutter
+        shell: bash
+        run: |
+          v=$(sed -n 's/^  flutter: *\([0-9.]*\).*/\1/p' pubspec.yaml)
+          # No exact pin found: stop, never build on whatever Flutter is newest.
+          [[ $v =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::no exact Flutter pin in pubspec.yaml"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
         with:
-          flutter-version-file: pubspec.yaml
+          flutter-version: ${{ steps.flutter.outputs.version }}
+          channel: stable
           cache: true
       - run: flutter pub get --enforce-lockfile
       - name: Core tests with coverage
@@ -70,9 +88,18 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+      - name: Flutter version from the root pubspec, read without yq (windows-latest lacks it, #469)
+        id: flutter
+        shell: bash
+        run: |
+          v=$(sed -n 's/^  flutter: *\([0-9.]*\).*/\1/p' pubspec.yaml)
+          # No exact pin found: stop, never build on whatever Flutter is newest.
+          [[ $v =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::no exact Flutter pin in pubspec.yaml"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
         with:
-          flutter-version-file: pubspec.yaml
+          flutter-version: ${{ steps.flutter.outputs.version }}
+          channel: stable
           cache: true
       - run: flutter pub get --enforce-lockfile
       - name: Build the debug APK
@@ -98,9 +125,18 @@ jobs:
             target: macos
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Flutter version from the root pubspec, read without yq (windows-latest lacks it, #469)
+        id: flutter
+        shell: bash
+        run: |
+          v=$(sed -n 's/^  flutter: *\([0-9.]*\).*/\1/p' pubspec.yaml)
+          # No exact pin found: stop, never build on whatever Flutter is newest.
+          [[ $v =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::no exact Flutter pin in pubspec.yaml"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
         with:
-          flutter-version-file: pubspec.yaml
+          flutter-version: ${{ steps.flutter.outputs.version }}
+          channel: stable
           cache: true
       - run: flutter pub get --enforce-lockfile
       - name: Build ${{ matrix.target }}
