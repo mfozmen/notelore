@@ -49,8 +49,9 @@ def gpu(capability):
     )
 
 
-# is_bf16_supported() counts emulation, so a T4 said yes and failed in bf16
-# (Kaggle v3 run 1): only Ampere (8.0) and later do it natively.
+# is_bf16_supported() counts emulation: a T4 says yes. Its trainer flags take
+# that, but TRL's log-prob kernel failed in bf16 there (Kaggle v3 run 1): only
+# Ampere (8.0) and later do it natively.
 gpu((7, 5))
 check("Kaggle's T4 has no native bf16", native_bf16(), False)
 gpu((8, 0))
