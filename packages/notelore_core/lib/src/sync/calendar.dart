@@ -68,8 +68,12 @@ class GoogleCalendar implements ReminderCalendar {
   Future<void> sync(String calendarId, List<DueReminder> due, {required DateTime now}) async {
     final events = await _coming(calendarId, now);
     final wanted = {for (final reminder in due) _markOf(reminder): reminder};
-    for (final MapEntry(key: mark, value: event) in events.entries) {
-      if (!wanted.containsKey(mark)) await _delete(calendarId, event);
+    for (final MapEntry(key: mark, value: ids) in events.entries) {
+      // Gone from the notes: every one goes. Still wanted: one stays, and a
+      // twin (two devices wrote it at once) goes.
+      for (final id in wanted.containsKey(mark) ? ids.skip(1) : ids) {
+        await _delete(calendarId, id);
+      }
     }
     for (final MapEntry(key: mark, value: reminder) in wanted.entries) {
       if (!events.containsKey(mark)) {
@@ -84,14 +88,15 @@ class GoogleCalendar implements ReminderCalendar {
 
   @override
   Future<void> clear(String calendarId, {required DateTime now}) async {
-    for (final event in (await _coming(calendarId, now)).values) {
-      await _delete(calendarId, event);
+    for (final id in (await _coming(calendarId, now)).values.expand((ids) => ids)) {
+      await _delete(calendarId, id);
     }
   }
 
-  /// The calendar's events after [now], by their reminder's id.
-  Future<Map<String, String>> _coming(String calendarId, DateTime now) async {
-    final found = <String, String>{};
+  /// The ids of the calendar's events that start after [now], by their mark.
+  /// One that has started is left alone: it has just reminded, or is history.
+  Future<Map<String, List<String>>> _coming(String calendarId, DateTime now) async {
+    final found = <String, List<String>>{};
     String? page;
     do {
       final listed = await _call(
@@ -108,7 +113,11 @@ class GoogleCalendar implements ReminderCalendar {
           in (listed['items'] as List?)?.cast<Map<String, Object?>>() ??
               const <Map<String, Object?>>[]) {
         final mark = ((event['extendedProperties'] as Map?)?['private'] as Map?)?[_mark];
-        if ((mark, event['id']) case (final String mark, final String id)) found[mark] = id;
+        final start = DateTime.tryParse('${(event['start'] as Map?)?['dateTime']}');
+        if ((mark, event['id']) case (final String mark, final String id)
+            when start != null && start.isAfter(now)) {
+          (found[mark] ??= []).add(id);
+        }
       }
       page = listed['nextPageToken'] as String?;
     } while (page != null);

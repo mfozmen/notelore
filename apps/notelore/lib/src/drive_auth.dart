@@ -28,8 +28,11 @@ DriveAuth? driveAuthFor({
   String clientId = _clientId,
   String clientSecret = _clientSecret,
   String webClientId = _webClientId,
-}) =>
-    _googleAuth(driveScope, 'google', mobile, keys, keySpace, clientId, clientSecret, webClientId);
+}) => _googleAuth(driveScope, 'google', mobile, keys, keySpace, (
+  id: clientId,
+  secret: clientSecret,
+  web: webClientId,
+));
 
 /// The calendar's own grant (#432): its own scope and refresh token, so
 /// turning it on or off never touches Drive's.
@@ -40,16 +43,14 @@ OAuthSignIn? calendarAuthFor({
   String clientId = _clientId,
   String clientSecret = _clientSecret,
   String webClientId = _webClientId,
-}) => _googleAuth(
-  calendarScope,
-  'google.calendar',
-  mobile,
-  keys,
-  keySpace,
-  clientId,
-  clientSecret,
-  webClientId,
-);
+}) => _googleAuth(calendarScope, 'google.calendar', mobile, keys, keySpace, (
+  id: clientId,
+  secret: clientSecret,
+  web: webClientId,
+));
+
+/// The OAuth clients this build was made with.
+typedef _Clients = ({String id, String secret, String web});
 
 OAuthSignIn? _googleAuth(
   String scope,
@@ -57,19 +58,17 @@ OAuthSignIn? _googleAuth(
   bool mobile,
   FlutterSecureStorage keys,
   String keySpace,
-  String clientId,
-  String clientSecret,
-  String webClientId,
+  _Clients clients,
 ) {
   if (mobile) {
-    return webClientId.isEmpty ? null : GoogleSignInAuth(serverClientId: webClientId, scope: scope);
+    return clients.web.isEmpty ? null : GoogleSignInAuth(serverClientId: clients.web, scope: scope);
   }
-  if (clientId.isEmpty) return null;
+  if (clients.id.isEmpty) return null;
   final name = '$keySpace.$keyName.refresh_token';
   return LoopbackAuth(
     scope: scope,
-    clientId: clientId,
-    clientSecret: clientSecret,
+    clientId: clients.id,
+    clientSecret: clients.secret,
     openBrowser: (url) => launchUrl(url, mode: LaunchMode.externalApplication),
     readRefreshToken: () => keys.read(key: name),
     saveRefreshToken: (token) =>
@@ -196,7 +195,8 @@ class GoogleSignInAuth implements DriveAuth {
     final client = await _client();
     if (scope != driveScope) {
       // The plugin can only disconnect the whole account, which would take
-      // Drive too: the calendar just drops its token here.
+      // Drive too: the calendar drops its token here, and its grant stays
+      // with Google until the user removes it in their account settings.
       if (_last case final token?) await client.clearAuthorizationToken(accessToken: token);
       return;
     }

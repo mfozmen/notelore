@@ -1332,9 +1332,11 @@ class Session extends ChangeNotifier {
     }
     final anew = private != _scheduledPrivately;
     _scheduledPrivately = private;
-    // Google Calendar reminds while it is on: this device then none, never twice.
-    await _remindOnDevice(calendar ? const [] : due, ask: ask, anew: anew);
-    if (calendar) await _remindInCalendar(due, now);
+    // Google Calendar reminds while it is on: this device then none, never
+    // twice. A build that cannot reach the calendar at all keeps reminding.
+    final viaCalendar = calendar && calendarAuth != null;
+    await _remindOnDevice(viaCalendar ? const [] : due, ask: ask, anew: anew);
+    if (viaCalendar) await _remindInCalendar(due, now);
   }
 
   Future<void> _remindOnDevice(
@@ -1388,6 +1390,17 @@ class Session extends ChangeNotifier {
     }
   }
 
+  /// Off: the desktop forgets and revokes the calendar's refresh token; a
+  /// phone only drops its access token, since the plugin can revoke the whole
+  /// account alone, Drive with it. Drive's own grant is never touched.
+  Future<void> _signOutCalendar(OAuthSignIn auth) async {
+    try {
+      await auth.signOut();
+    } on Exception {
+      return; // offline: the token is gone from this device all the same
+    }
+  }
+
   /// Settings' sign-in on a device where the calendar is on (another device
   /// turned it on) but this one has no grant yet.
   Future<void> signInCalendar() async {
@@ -1416,9 +1429,8 @@ class Session extends ChangeNotifier {
     notifyListeners();
     try {
       if (on && !await auth.signedIn()) await auth.signIn();
-      if (!on && await auth.signedIn()) {
-        if (calendarId case final id?) await calendarFor(auth).clear(id, now: clock().toLocal());
-        await auth.signOut(); // no grant left behind (Drive's own is not touched)
+      if (!on && await auth.signedIn() && calendarId != null) {
+        await calendarFor(auth).clear(calendarId!, now: clock().toLocal());
       }
     } on Exception {
       if (on) {
@@ -1429,6 +1441,7 @@ class Session extends ChangeNotifier {
       }
       // Off all the same; the events that could not go stay in that calendar.
     }
+    if (!on) await _signOutCalendar(auth);
     calendar = on;
     _saveUi();
     _touch();

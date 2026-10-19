@@ -35,14 +35,8 @@ List<DueReminder> upcomingReminders(String root, {required DateTime now}) {
   final due = <DueReminder>[];
   for (final folder in kinds.values) {
     for (final file in markdownFiles(p.join(root, folder))) {
-      final Note note;
-      try {
-        note = readNote(file.path);
-      } on NotANote {
-        continue;
-      } on FileSystemException {
-        continue; // not UTF-8, or held by another app: the other notes still count
-      }
+      final note = _readable(file.path);
+      if (note == null) continue;
       final rel = p.posix.joinAll(p.split(p.relative(file.path, from: root)));
       for (final reminder
           in note.section('reminders')?.entries.whereType<Reminder>() ?? const <Reminder>[]) {
@@ -62,6 +56,18 @@ List<DueReminder> upcomingReminders(String root, {required DateTime now}) {
   }
   due.sort((a, b) => a.at.compareTo(b.at));
   return due.take(maxScheduledReminders).toList();
+}
+
+/// The note at [path], or null when it is none or cannot be read (not UTF-8,
+/// held by another app): the other notes still count.
+Note? _readable(String path) {
+  try {
+    return readNote(path);
+  } on NotANote {
+    return null;
+  } on FileSystemException {
+    return null;
+  }
 }
 
 DateTime _at(Reminder reminder) {

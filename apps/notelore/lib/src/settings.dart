@@ -666,87 +666,79 @@ class _RemindersCard extends StatelessWidget {
   final Session session;
 
   @override
-  Widget build(BuildContext context) {
-    final s = session.strings;
-    final theme = Theme.of(context);
-    final allowed = session.remindersAllowed ?? false;
-    // This device's notifications matter only while Google Calendar does not remind.
-    final device = !session.calendar && session.remindersAllowed != null;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: Gap.s),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (session.calendar)
-              ListTile(
-                leading: const Icon(Icons.notifications_off_outlined),
-                title: Text(s.reminders),
-                subtitle: Text(
-                  session.calendarHere == false ? s.calendarElsewhere : s.remindersInCalendar,
-                ),
-              )
-            else if (device)
-              ListTile(
-                leading: Icon(
-                  allowed ? Icons.notifications_outlined : Icons.notifications_off_outlined,
-                ),
-                title: Text(s.reminders),
-                subtitle: Text(allowed ? s.remindersOn : s.remindersOff),
-              ),
-            if (session.calendar && session.calendarHere == false)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.s),
-                child: FilledButton.tonalIcon(
-                  icon: const Icon(Icons.login),
-                  onPressed: session.signInCalendar,
-                  label: Text(s.signInCalendar),
-                ),
-              ),
-            if (device && !allowed)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.s),
-                child: FilledButton.tonalIcon(
-                  icon: const Icon(Icons.notifications_active_outlined),
-                  onPressed: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    // Refused before, the system asks no more: say where to turn them on.
-                    if (!await session.allowReminders()) {
-                      messenger.showSnackBar(SnackBar(content: Text(s.notificationsBlocked)));
-                    }
-                  },
-                  label: Text(s.allowNotifications),
-                ),
-              ),
-            if (session.calendarAvailable)
-              SwitchListTile(
-                // Busy while the sign-in runs: a second tap waits.
-                secondary: session.calendarBusy
-                    ? const SizedBox.square(
-                        dimension: 24,
-                        child: Padding(
-                          padding: EdgeInsets.all(2),
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                    : const Icon(Icons.calendar_month_outlined),
-                title: Text(s.addToCalendar),
-                // What went wrong stands under the switch it belongs to.
-                subtitle: switch (session.calendarProblem) {
-                  null => Text(s.addToCalendarHint),
-                  final problem => Text(
-                    problem == CalendarProblem.signIn
-                        ? s.calendarSignInFailed
-                        : s.calendarUpdateFailed,
-                    style: TextStyle(color: theme.colorScheme.error),
-                  ),
-                },
-                value: session.calendar,
-                onChanged: session.calendarBusy ? null : session.setCalendar,
-              ),
-          ],
-        ),
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.only(bottom: Gap.s),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [..._status(context), if (session.calendarAvailable) _calendarSwitch(context)],
       ),
+    ),
+  );
+
+  /// How reminders come now, and what this device may still need for it.
+  List<Widget> _status(BuildContext context) {
+    final s = session.strings;
+    if (session.calendar) {
+      final elsewhere = session.calendarHere == false;
+      return [
+        ListTile(
+          leading: const Icon(Icons.notifications_off_outlined),
+          title: Text(s.reminders),
+          subtitle: Text(elsewhere ? s.calendarElsewhere : s.remindersInCalendar),
+        ),
+        if (elsewhere) _action(Icons.login, s.signInCalendar, session.signInCalendar),
+      ];
+    }
+    // This device's notifications, where it has them at all.
+    final allowed = session.remindersAllowed;
+    if (allowed == null) return const [];
+    return [
+      ListTile(
+        leading: Icon(allowed ? Icons.notifications_outlined : Icons.notifications_off_outlined),
+        title: Text(s.reminders),
+        subtitle: Text(allowed ? s.remindersOn : s.remindersOff),
+      ),
+      if (!allowed)
+        _action(Icons.notifications_active_outlined, s.allowNotifications, () async {
+          final messenger = ScaffoldMessenger.of(context);
+          // Refused before, the system asks no more: say where to turn them on.
+          if (!await session.allowReminders()) {
+            messenger.showSnackBar(SnackBar(content: Text(s.notificationsBlocked)));
+          }
+        }),
+    ];
+  }
+
+  Widget _action(IconData icon, String label, VoidCallback onPressed) => Padding(
+    padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.s),
+    child: FilledButton.tonalIcon(icon: Icon(icon), onPressed: onPressed, label: Text(label)),
+  );
+
+  Widget _calendarSwitch(BuildContext context) {
+    final s = session.strings;
+    final problem = session.calendarProblem;
+    return SwitchListTile(
+      // Busy while the sign-in runs: a second tap waits.
+      secondary: session.calendarBusy
+          ? const SizedBox.square(
+              dimension: 24,
+              child: Padding(
+                padding: EdgeInsets.all(2),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          : const Icon(Icons.calendar_month_outlined),
+      title: Text(s.addToCalendar),
+      // What went wrong stands under the switch it belongs to.
+      subtitle: problem == null
+          ? Text(s.addToCalendarHint)
+          : Text(
+              problem == CalendarProblem.signIn ? s.calendarSignInFailed : s.calendarUpdateFailed,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+      value: session.calendar,
+      onChanged: session.calendarBusy ? null : session.setCalendar,
     );
   }
 }

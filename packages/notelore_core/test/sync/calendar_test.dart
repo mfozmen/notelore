@@ -50,10 +50,11 @@ class FakeCalendarApi {
       case ('GET', ['calendars', final id, 'events']):
         final all = events[id];
         if (all == null) return _missing();
+        // Like Google: an event is listed while its end is after timeMin.
         final min = DateTime.parse(request.url.queryParameters['timeMin']!);
         final coming = [
           for (final e in all.values)
-            if (DateTime.parse((e['start']! as Map)['dateTime']! as String).isAfter(min)) e,
+            if (DateTime.parse((e['end']! as Map)['dateTime']! as String).isAfter(min)) e,
         ];
         final from = int.parse(request.url.queryParameters['pageToken'] ?? '0');
         final page = coming.skip(from).take(pageSize).toList();
@@ -164,6 +165,26 @@ void main() {
       api.events[id]!.values.map((e) => e['summary']),
       unorderedEquals(['Dentist 1', 'Dentist 3', 'Dentist 4']),
     );
+  });
+
+  test('two devices writing at once: the twin event is removed', () async {
+    final cal = calendar();
+    final id = await cal.calendarId(null);
+    final one = [due(1, DateTime(2026, 10, 21, 9))];
+    await cal.sync(id, one, now: now);
+    final twin = api.events[id]!.values.single;
+    api.events[id]!['ev-twin'] = {...twin, 'id': 'ev-twin'};
+    await cal.sync(id, one, now: now);
+    expect(api.events[id], hasLength(1));
+  });
+
+  test('a reminder that has just come keeps its event', () async {
+    final cal = calendar();
+    final id = await cal.calendarId(null);
+    final at = now.subtract(const Duration(minutes: 5)); // still listed: it ends in 10
+    await cal.sync(id, [due(1, at)], now: at.subtract(const Duration(hours: 1)));
+    await cal.sync(id, const [], now: now);
+    expect(api.events[id], hasLength(1));
   });
 
   test('past events stay, and clearing removes only the coming ones', () async {

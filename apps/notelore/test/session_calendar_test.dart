@@ -80,6 +80,11 @@ void main() {
     expect(session.calendar, isFalse);
     // The calendar's grant goes with it; Drive's stays as it was.
     expect(harness.calendarAuth.signedOut, isTrue);
+    // Offline when signing out: off all the same.
+    await session.setCalendar(true);
+    harness.calendarAuth.failSignOut = const NetworkError('offline');
+    await session.setCalendar(false);
+    expect(session.calendar, isFalse);
   });
 
   test('with the app lock on, the calendar shows nothing of the notes either', () async {
@@ -160,6 +165,15 @@ void main() {
     expect(session.calendarHere, isTrue);
     expect(harness.calendar.made, 0);
     expect(harness.calendar.events.values, ['Dentist']);
+  });
+
+  test('a build without Google sign-in keeps reminding, whatever another device chose', () async {
+    final harness = Harness();
+    remindIn(harness, 'Health', 'Dentist');
+    final session = harness.session(calendar: false);
+    session.calendar = true; // as the shared settings bring it
+    await session.refreshReminders();
+    expect(harness.reminders.pending.values, ['Dentist']);
   });
 
   test('the real calendar is Google Calendar', () {
