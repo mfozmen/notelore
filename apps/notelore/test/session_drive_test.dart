@@ -31,6 +31,47 @@ void main() {
     expect(session.remoteFor(FakeAuth()), isA<DriveRemote>());
   });
 
+  group('a Google grant without the hidden folder asks to sign in again (#479)', () {
+    test('on a phone: the grant no longer covers both scopes at start', () async {
+      final auth = FakeAuth();
+      final harness = Harness(auth: auth);
+      final first = harness.session();
+      await first.connectDrive(); // signed in before, with the old grant
+      auth.granted = false; // v0.17.0 asks for drive.appdata too: not granted
+      final updated = harness.session();
+      await updated.load();
+      expect(updated.driveConnected, isFalse);
+      expect(updated.driveNeedsSignIn, isTrue); // never a silent no-sync
+      await updated.connectDrive();
+      expect(updated.driveNeedsSignIn, isFalse);
+      expect(updated.driveConnected, isTrue);
+    });
+
+    test('on the desktop: a sync refused for its scopes', () async {
+      final harness = Harness(auth: FakeAuth());
+      final session = harness.session();
+      await session.connectDrive();
+      expect(session.driveNeedsSignIn, isFalse);
+      harness.remote.failure = const NotSignedIn('Request had insufficient authentication scopes.');
+      await session.syncNow();
+      expect(session.driveNeedsSignIn, isTrue);
+      expect(session.driveConnected, isFalse);
+    });
+
+    test('a device never signed in, or one that signed out, is not asked', () async {
+      final auth = FakeAuth();
+      final harness = Harness(auth: auth);
+      final fresh = harness.session();
+      await fresh.load();
+      expect(fresh.driveNeedsSignIn, isFalse);
+      await fresh.connectDrive();
+      await fresh.disconnectDrive();
+      final after = harness.session();
+      await after.load();
+      expect(after.driveNeedsSignIn, isFalse);
+    });
+  });
+
   test('connecting Drive signs in and sends the notes up', () async {
     final harness = Harness(auth: FakeAuth());
     final session = harness.session();
@@ -339,7 +380,7 @@ void main() {
     expect(session.syncStatus, startsWith('Synced'));
   });
 
-  test('a Drive error is shown as it is', () async {
+  test("a Drive error is said in plain words, never Google's own (#480)", () async {
     final harness = Harness(auth: FakeAuth()..granted = true);
     harness.remote.failure = const HttpError(
       403,
@@ -348,7 +389,22 @@ void main() {
     final session = harness.session();
     await session.load();
     await session.syncDone;
-    expect(session.syncStatus, 'Google Drive: The user has exceeded their Drive storage quota');
+    expect(
+      session.syncStatus,
+      'Your Google Drive is full: free some space and Notelore syncs again.',
+    );
+    harness.remote.failure = const HttpError(500, 'Backend Error');
+    await session.syncNow();
+    expect(session.syncStatus, 'Google Drive could not be reached. Notelore tries again later.');
+    session.setLanguage(AppLanguage.tr);
+    await session.syncNow();
+    expect(session.syncStatus, "Google Drive'a ulaşılamadı. Notelore daha sonra yeniden dener.");
+    harness.remote.failure = const MissingDriveGrant(
+      'The granted scopes do not give access to all of the requested spaces.',
+    );
+    await session.syncNow();
+    expect(session.syncStatus, startsWith("Notlarını Google Drive'da tutmaya"));
+    expect(session.syncStatus, isNot(contains('scopes')));
   });
 
   test('a note another program holds is retried on the next sync', () async {
@@ -371,7 +427,7 @@ void main() {
     await session.load();
     await session.syncDone;
     expect(session.driveConnected, isFalse);
-    expect(session.syncStatus, 'Google Drive access was revoked or expired; connect again.');
+    expect(session.syncStatus, 'Signed out of Google. Connect again.');
   });
 
   test('a same-line conflict goes to the model, and its reason is reported', () async {

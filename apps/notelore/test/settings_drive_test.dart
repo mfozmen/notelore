@@ -75,7 +75,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Sign in with Google'), findsNothing); // still in the app
     await openSettings(tester);
-    expect(find.text('Google Drive access was revoked or expired; connect again.'), findsOneWidget);
+    expect(find.text('Signed out of Google. Connect again.'), findsOneWidget);
     auth.failSignIn = const SignInFailed('access_denied');
     await tester.ensureVisible(find.widgetWithText(FilledButton, 'Connect'));
     await tester.pumpAndSettle();
@@ -106,6 +106,44 @@ void main() {
     harness.remote.hold!.complete();
     await tester.pumpAndSettle();
     expect(find.text('Syncing...'), findsNothing);
+  });
+
+  group('Drive needs a sign-in again: a banner says so (#479)', () {
+    const banner = 'Google Drive needs you to sign in again to keep syncing your notes.';
+
+    /// A phone signed in before v0.17.0: its grant lacks the hidden folder's scope.
+    Future<FakeAuth> upgraded(WidgetTester tester) async {
+      phone(tester);
+      final auth = FakeAuth()..granted = true;
+      final harness = Harness(auth: auth);
+      final before = harness.session();
+      await before.load();
+      await before.connectDrive();
+      auth.granted = false;
+      await pumpApp(tester, harness);
+      await connect(tester, key: 'k');
+      return auth;
+    }
+
+    testWidgets('Connect signs in, and syncing goes on', (tester) async {
+      final auth = await upgraded(tester);
+      expect(find.text(banner), findsOneWidget);
+      await tester.tap(find.widgetWithText(TextButton, 'Connect'));
+      await tester.pumpAndSettle();
+      expect(auth.granted, isTrue);
+      expect(find.text(banner), findsNothing);
+    });
+
+    testWidgets('a sign-in that fails says so; Later puts it off', (tester) async {
+      final auth = await upgraded(tester);
+      auth.failSignIn = const SignInFailed('access_denied');
+      await tester.tap(find.widgetWithText(TextButton, 'Connect'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sign-in did not finish. Please try again.'), findsOneWidget);
+      await tester.tap(find.text('Later'));
+      await tester.pumpAndSettle();
+      expect(find.text(banner), findsNothing);
+    });
   });
 
   group('many notes gone from Drive at once (#454)', () {

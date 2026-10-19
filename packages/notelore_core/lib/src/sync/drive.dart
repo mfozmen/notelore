@@ -100,7 +100,7 @@ class DriveRemote implements Remote {
   /// to sign in again, which adds it.
   static Exception _failure(http.Response response) {
     final message = errorMessage(utf8.decode(response.bodyBytes));
-    if (response.statusCode == 403 && message.contains('scope')) return NotSignedIn(message);
+    if (response.statusCode == 403 && message.contains('scope')) return MissingDriveGrant(message);
     return HttpError(response.statusCode, message);
   }
 

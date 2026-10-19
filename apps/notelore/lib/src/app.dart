@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:notelore_core/notelore_core.dart' show SignInFailed;
 import 'package:url_launcher/url_launcher.dart';
 
 import 'calendar.dart';
@@ -146,6 +147,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   var _updating = false;
   var _installed = false; // installed, waiting for a manual restart
   String? _dismissed; // put off with Later: not shown again by the timer
+  var _signInLater = false; // Drive's sign-in banner put off for this run (#479)
   Timer? _recheck;
 
   @override
@@ -315,6 +317,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             update: _update,
           ),
         if (widget.session.heldNotes.isNotEmpty) _HeldBanner(widget.session),
+        if (widget.session.driveNeedsSignIn && !_signInLater)
+          _SignInBanner(widget.session, later: () => setState(() => _signInLater = true)),
         Expanded(
           child: switch (_tab) {
             0 => ChatScreen(widget.session),
@@ -355,6 +359,60 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   NavigationDestination(icon: Icon(icon), selectedIcon: Icon(chosen), label: label),
               ],
             ),
+    );
+  }
+}
+
+/// Drive needs a sign-in again (#479): since v0.17.0 its grant must cover the
+/// hidden app folder too. Connect asks for it; Later puts it off for this run.
+class _SignInBanner extends StatefulWidget {
+  const _SignInBanner(this.session, {required this.later});
+
+  final Session session;
+  final VoidCallback later;
+
+  @override
+  State<_SignInBanner> createState() => _SignInBannerState();
+}
+
+class _SignInBannerState extends State<_SignInBanner> {
+  var _signingIn = false;
+  String? _problem;
+
+  Future<void> _connect() async {
+    setState(() {
+      _signingIn = true;
+      _problem = null;
+    });
+    try {
+      await widget.session.connectDrive();
+    } on SignInFailed catch (error) {
+      debugPrint('Google sign-in failed: ${error.message}'); // the detail, for the log only
+      if (mounted) setState(() => _problem = widget.session.strings.signInUnfinished);
+    } finally {
+      if (mounted) setState(() => _signingIn = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.session.strings;
+    final colors = Theme.of(context).colorScheme;
+    return MaterialBanner(
+      leading: Icon(Icons.cloud_off_outlined, color: colors.onSecondaryContainer),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: Gap.s,
+        children: [
+          Text(s.driveSignInBanner),
+          if (_problem case final problem?) Text(problem, style: TextStyle(color: colors.error)),
+          if (_signingIn) const LinearProgressIndicator(),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: _signingIn ? null : widget.later, child: Text(s.later)),
+        TextButton(onPressed: _signingIn ? null : _connect, child: Text(s.connect)),
+      ],
     );
   }
 }
