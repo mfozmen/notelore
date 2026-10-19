@@ -49,7 +49,10 @@ jobs:
         id: flutter
         shell: bash
         run: |
-          echo "version=$(sed -n 's/^  flutter: *\([0-9.]*\).*/\1/p' pubspec.yaml)" >> "$GITHUB_OUTPUT"
+          v=$(sed -n 's/^  flutter: *\([0-9.]*\).*/\1/p' pubspec.yaml)
+          # No exact pin found: stop, never build on whatever Flutter is newest.
+          [[ $v =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::no exact Flutter pin in pubspec.yaml"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
         with:
           flutter-version: ${{ steps.flutter.outputs.version }}
@@ -94,7 +97,10 @@ jobs:
         id: flutter
         shell: bash
         run: |
-          echo "version=$(sed -n 's/^  flutter: *\([0-9.]*\).*/\1/p' pubspec.yaml)" >> "$GITHUB_OUTPUT"
+          v=$(sed -n 's/^  flutter: *\([0-9.]*\).*/\1/p' pubspec.yaml)
+          # No exact pin found: stop, never build on whatever Flutter is newest.
+          [[ $v =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::no exact Flutter pin in pubspec.yaml"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
         with:
           flutter-version: ${{ steps.flutter.outputs.version }}
