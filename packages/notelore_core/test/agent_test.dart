@@ -651,4 +651,48 @@ void failureTests() {
       {'role': 'user', 'content': 'second'},
     ]);
   });
+
+  group('the slim prompt and tools for the model on the device (#447)', () {
+    test('keep the rules a phone uses, in fewer words', () {
+      final slim = slimSystemPrompt(DateTime(2026, 10, 19, 14, 5));
+      expect(slim, contains('It is now 2026-10-19 14:05, local time.'));
+      for (final rule in [
+        'get_decision',
+        'related_notes',
+        'collection note',
+        'complete_todo',
+        'add_reminder',
+        'Never refuse',
+        '"deyta beys"',
+        'one short sentence',
+        '[[Yes]] [[No]]',
+        '<attached file=',
+        'archive only after',
+      ]) {
+        expect(slim, contains(rule));
+      }
+      // Nothing it cannot do: no web search, no pictures, no merging.
+      for (final gone in [
+        'search the web',
+        '<attached image=',
+        'merge_notes',
+        'decision_history',
+      ]) {
+        expect(slim, isNot(contains(gone)));
+      }
+      expect(slim.length, lessThan(systemPrompt(today).length * 2 / 3));
+      expect(slimSystemPrompt(), contains('It is now ${isoDate(DateTime.now())} '));
+    });
+
+    test('a slim agent sends them; a full one the full ones', () async {
+      final provider = ScriptedProvider([text('Hi.'), text('Hi.')]);
+      await Agent(provider, newBox(), today: today, slim: true).ask('hi');
+      await Agent(provider, newBox(), today: today).ask('hi');
+      final (slimTurn, fullTurn) = (provider.turns.first, provider.turns.last);
+      expect(slimTurn.$1, slimSystemPrompt(today));
+      expect(slimTurn.$3, slimTools);
+      expect(fullTurn.$1, systemPrompt(today));
+      expect(fullTurn.$3, noteTools);
+    });
+  });
 }

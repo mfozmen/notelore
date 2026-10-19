@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:notelore_core/src/providers/base.dart';
 import 'package:notelore_core/src/store/index.dart';
 import 'package:notelore_core/src/tools.dart';
 import 'package:path/path.dart' as p;
@@ -405,5 +406,31 @@ void main() {
 void schemaTests() {
   test('the tool list cannot be changed by a caller', () {
     expect(() => noteTools.add(noteTools.first), throwsUnsupportedError);
+  });
+
+  test('the slim tools leave out what a phone rarely needs, in fewer words (#447)', () {
+    final names = slimTools.map((t) => t.name).toSet();
+    expect(names, noteTools.map((t) => t.name).toSet().difference(slimLeftOut));
+    expect(slimLeftOut, {'merge_notes', 'find_stale_notes', 'decision_history'});
+    // The same arguments, so the toolbox checks a slim call as any other; only
+    // the words about them go.
+    for (final tool in slimTools) {
+      final full = noteTools.firstWhere((t) => t.name == tool.name);
+      expect(tool.inputSchema['required'], full.inputSchema['required']);
+      final properties = tool.inputSchema['properties']! as Map;
+      final fullProperties = full.inputSchema['properties']! as Map;
+      expect(properties.keys, fullProperties.keys);
+      for (final MapEntry(:key, :value) in properties.entries) {
+        final slug =
+            (fullProperties[key] as Map)['description'] == 'Note slug as listed by list_notes';
+        expect(value, slug ? {'type': 'string'} : fullProperties[key]);
+      }
+      expect(tool.description.length, lessThanOrEqualTo(full.description.length));
+    }
+    int size(List<Tool> tools) => jsonEncode([
+      for (final t in tools) [t.description, t.inputSchema],
+    ]).length;
+    expect(size(slimTools), lessThan(size(noteTools) * 3 / 4));
+    expect(() => slimTools.add(slimTools.first), throwsUnsupportedError);
   });
 }
