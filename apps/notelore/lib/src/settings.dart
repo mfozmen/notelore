@@ -750,7 +750,10 @@ class _RemindersCard extends StatelessWidget {
       final elsewhere = session.calendarHere == false;
       return [
         ListTile(
-          leading: const Icon(Icons.notifications_off_outlined),
+          // Without the grant here, this device still reminds.
+          leading: Icon(
+            elsewhere ? Icons.notifications_outlined : Icons.notifications_off_outlined,
+          ),
           title: Text(s.reminders),
           subtitle: Text(elsewhere ? s.calendarElsewhere : s.remindersInCalendar),
         ),

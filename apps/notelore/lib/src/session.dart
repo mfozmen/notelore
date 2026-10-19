@@ -162,6 +162,23 @@ class Session extends ChangeNotifier {
   /// Whether this device holds the calendar grant; null until looked at.
   bool? calendarHere;
 
+  /// A turn here just made a reminder while the calendar is on but this
+  /// device has no grant: the app offers the sign-in where it is seen.
+  var calendarNudge = false;
+
+  /// The offer was taken or put off; it is not made again on this device.
+  var _calendarNudged = false;
+
+  /// The reminders of the last pass, to tell one a turn just made; null
+  /// before the first.
+  Set<int>? _knownDue;
+
+  void calendarNudgeLater() {
+    calendarNudge = false;
+    _calendarNudged = true;
+    _saveUi();
+  }
+
   bool get calendarAvailable => calendarAuth != null;
 
   /// Asked once a run at most: a refusal is not asked again until Allow.
@@ -453,6 +470,7 @@ class Session extends ChangeNotifier {
           'microphone': ?microphone,
           if (setUpBefore) 'setUp': true,
           if (advanced) 'advanced': true,
+          if (_calendarNudged) 'calendarNudged': true,
         }),
       );
     } on FileSystemException {
@@ -469,6 +487,7 @@ class Session extends ChangeNotifier {
       appearance = _named(Appearance.values, saved['appearance']) ?? Appearance.system;
       webSearch = saved['webSearch'] != false;
       calendar = saved['calendar'] == true;
+      _calendarNudged = saved['calendarNudged'] == true;
       calendarId = switch (saved['calendarId']) {
         final String id => id,
         _ => null,
@@ -1526,11 +1545,39 @@ class Session extends ChangeNotifier {
     }
     final anew = private != _scheduledPrivately;
     _scheduledPrivately = private;
-    // Google Calendar reminds while it is on: this device then none, never
-    // twice. A build that cannot reach the calendar at all keeps reminding.
-    final viaCalendar = calendar && calendarAuth != null;
+    // Google Calendar reminds where this device holds its grant: this device
+    // then none, never twice. Without the grant here (another device turned
+    // the calendar on), or in a build that cannot reach it, this device keeps
+    // reminding; signed in later, the same pass cancels its own.
+    final viaCalendar = calendar && await _holdsCalendar();
     await _remindOnDevice(viaCalendar ? const [] : due, ask: ask, anew: anew);
     if (viaCalendar) await _remindInCalendar(due, now);
+    final known = _knownDue;
+    _knownDue = {for (final r in due) r.id};
+    final made = ask && known != null && due.any((r) => !known.contains(r.id));
+    // Only while it fits: it goes once the calendar is off or this device holds the grant.
+    final nudge = calendar && calendarHere == false && (calendarNudge || made && !_calendarNudged);
+    if (nudge != calendarNudge) {
+      calendarNudge = nudge;
+      notifyListeners();
+    }
+  }
+
+  /// Whether this device holds the calendar grant, kept in [calendarHere]
+  /// for Settings. A keystore that cannot tell keeps what was known, so a
+  /// passing error never makes this device remind beside Google; not known
+  /// yet, it counts as no grant and this device reminds.
+  Future<bool> _holdsCalendar() async {
+    final auth = calendarAuth;
+    if (auth == null) return false;
+    final before = calendarHere;
+    try {
+      calendarHere = await auth.signedIn();
+    } on Exception {
+      calendarHere = before ?? false;
+    }
+    if (calendarHere != before) notifyListeners();
+    return calendarHere!;
   }
 
   Future<void> _remindOnDevice(
@@ -1556,16 +1603,12 @@ class Session extends ChangeNotifier {
     }
   }
 
-  /// Writes the coming reminders as events in Notelore's calendar, where this
-  /// device holds the calendar grant (another device may hold it instead).
+  /// Writes the coming reminders as events in Notelore's calendar; only on a
+  /// device that holds the calendar grant.
   Future<void> _remindInCalendar(List<DueReminder> due, DateTime now) async {
-    final auth = calendarAuth;
-    if (auth == null) return;
-    final before = (calendarProblem, calendarHere);
+    final auth = calendarAuth!;
+    final before = calendarProblem;
     try {
-      // Without the grant here, another device writes: Settings offers it here.
-      calendarHere = await auth.signedIn();
-      if (!calendarHere!) return;
       final google = calendarFor(auth);
       final id = await google.calendarId(calendarId);
       if (id != calendarId) {
@@ -1580,7 +1623,7 @@ class Session extends ChangeNotifier {
     } on Exception {
       calendarProblem = CalendarProblem.update; // tried again at the next refresh
     } finally {
-      if ((calendarProblem, calendarHere) != before) notifyListeners();
+      if (calendarProblem != before) notifyListeners();
     }
   }
 
@@ -1608,6 +1651,7 @@ class Session extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    if (calendarNudge) calendarNudgeLater(); // taken: not offered again
     await refreshReminders(ask: false);
     notifyListeners();
   }
@@ -1700,7 +1744,7 @@ class Session extends ChangeNotifier {
     const news = {ImportOutcome.added, ImportOutcome.renamed};
     final changed = reports.any((r) => news.contains(r.imported?.outcome));
     if (changed) {
-      await refreshReminders(ask: false); // a shared note's reminders come too
+      unawaited(refreshReminders(ask: false)); // a shared note's reminders come too
       notifyListeners();
       if (driveConnected) unawaited(syncNow());
     }
@@ -1725,7 +1769,9 @@ class Session extends ChangeNotifier {
     if (!File(path).existsSync()) return null;
     final archived = archiveNote(paths.notes.path, path, today: today);
     index.markChanged(path);
-    await refreshReminders(ask: false); // an archived note's reminders go with it
+    unawaited(
+      refreshReminders(ask: false),
+    ); // the calendar's network never holds up a delete (#504)
     notifyListeners();
     return archived;
   });
@@ -1745,7 +1791,7 @@ class Session extends ChangeNotifier {
     } on RestoreTaken {
       return false;
     }
-    await refreshReminders(ask: false);
+    unawaited(refreshReminders(ask: false));
     notifyListeners();
     return true;
   });
@@ -1779,7 +1825,7 @@ class Session extends ChangeNotifier {
     if (File(path).existsSync()) return; // never overwrite; the archive copy stays
     moveWithRetry(archived, path);
     index.markChanged(path);
-    await refreshReminders(ask: false);
+    unawaited(refreshReminders(ask: false));
     notifyListeners();
   });
 
