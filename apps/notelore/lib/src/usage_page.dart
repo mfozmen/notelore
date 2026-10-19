@@ -18,15 +18,15 @@ class UsagePage extends StatefulWidget {
   State<UsagePage> createState() => _UsagePageState();
 }
 
-/// Okabe-Ito: told apart with every kind of colour blindness. Dark cards get
-/// the lighter blue first, for contrast.
+/// Okabe-Ito: told apart with every kind of colour blindness. On light cards
+/// its hues are darkened to 3:1 contrast, and grey takes sky blue's place.
 const _light = [
   Color(0xFF0072B2),
-  Color(0xFFE69F00),
-  Color(0xFF009E73),
-  Color(0xFFCC79A7),
-  Color(0xFF56B4E9),
-  Color(0xFFD55E00),
+  Color(0xFFB87A00),
+  Color(0xFF008A64),
+  Color(0xFFB05C8E),
+  Color(0xFF555555),
+  Color(0xFFC55500),
 ];
 const _dark = [
   Color(0xFF56B4E9),
@@ -51,7 +51,11 @@ class _UsagePageState extends State<UsagePage> {
     final usage = session.usage;
     final tokens = usage.tokensIn(_range);
     final turns = usage.turnsIn(_range).values.fold(const TurnCount(), (a, b) => a + b);
-    final days = usage.daysByModel(_range);
+    final kept = usage.daysByModel(_range);
+    // All time starts at the first day used, not with weeks of empty bars.
+    final days = _range.days != null || kept.every((d) => d.byModel.isEmpty)
+        ? kept
+        : kept.skipWhile((d) => d.byModel.isEmpty).toList();
     // A model keeps its colour whatever the range: its all-time rank picks it.
     final palette = theme.brightness == Brightness.dark ? _dark : _light;
     final ranked = usage.byModel.entries.toList()
@@ -62,10 +66,6 @@ class _UsagePageState extends State<UsagePage> {
       ..sort((a, b) => _used(tokens[b]!).compareTo(_used(tokens[a]!)));
     final total = summarize(tokens);
     String name(String key) => _modelName(s, key);
-    Widget lines(UsageSummary summary) => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [for (final line in s.usageLines(summary)) Text(line)],
-    );
     return Scaffold(
       appBar: AppBar(title: Text(s.usage)),
       body: ListView(
@@ -81,34 +81,48 @@ class _UsagePageState extends State<UsagePage> {
                   SegmentedButton<UsageRange>(
                     segments: [
                       for (final range in UsageRange.values)
-                        ButtonSegment(value: range, label: Text(s.rangeDays(range.days))),
+                        ButtonSegment(
+                          value: range,
+                          // Large text shrinks to fit rather than wrap in the 40 dp segment.
+                          label: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(s.rangeDays(range.days), maxLines: 1, softWrap: false),
+                          ),
+                        ),
                     ],
                     selected: {_range},
                     showSelectedIcon: false,
                     onSelectionChanged: (picked) => setState(() => _range = picked.single),
                   ),
                   Card(
-                    child: Column(
-                      children: [
-                        ListTile(
-                          title: Text(s.usageConversation),
-                          subtitle: lines(usage.conversation),
-                        ),
-                        ListTile(title: Text(s.lastDays(_range.days)), subtitle: lines(total)),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.all(Gap.m),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        spacing: Gap.m,
+                        children: [
+                          _Total(s.usageConversation, usage.conversation, strings: s),
+                          _Total(s.lastDays(_range.days), total, strings: s),
+                        ],
+                      ),
                     ),
                   ),
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(Gap.m),
-                      child: _DayBars(days, colors: colors, strings: s, name: name),
+                      child: _DayBars(
+                        days,
+                        colors: colors,
+                        strings: s,
+                        name: name,
+                        note: _range.days == null ? s.chartKept(kept.length) : null,
+                      ),
                     ),
                   ),
                   if (models.isNotEmpty)
                     _Shares(tokens, models: models, colors: colors, strings: s, name: name),
                   if (turns.turns > 0)
                     _Messages(turns, calls: total.calls, used: _used(total.count), strings: s),
-                  if (_range.days == null) Text(s.chartKept(days.length), style: small),
                   if (usage.device.plan || session.spec?.name == 'chatgpt')
                     Text(s.usagePlan, style: small),
                   if (session.spec?.name case 'ollama' || 'device')
@@ -132,6 +146,39 @@ class _UsagePageState extends State<UsagePage> {
   }
 }
 
+/// One total: its name and its tokens on a line, then what they were and cost.
+class _Total extends StatelessWidget {
+  const _Total(this.title, this.summary, {required this.strings});
+
+  final String title;
+  final UsageSummary summary;
+  final Strings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final quiet = theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: Gap.xs,
+      children: [
+        Row(
+          spacing: Gap.s,
+          children: [
+            Expanded(child: Text(title, style: theme.textTheme.titleMedium)),
+            if (summary.tokensKnown)
+              Text(
+                strings.number(summary.input + summary.output),
+                style: theme.textTheme.titleMedium,
+              ),
+          ],
+        ),
+        for (final line in strings.usageLines(summary)) Text(line, style: quiet),
+      ],
+    );
+  }
+}
+
 /// A small square in a model's colour, beside its name.
 class _Swatch extends StatelessWidget {
   const _Swatch(this.color);
@@ -150,12 +197,21 @@ class _Swatch extends StatelessWidget {
 /// A tap or a drag on the chart names each model's part of that day; a
 /// screen reader gets one sentence instead of the bars.
 class _DayBars extends StatefulWidget {
-  const _DayBars(this.days, {required this.colors, required this.strings, required this.name});
+  const _DayBars(
+    this.days, {
+    required this.colors,
+    required this.strings,
+    required this.name,
+    this.note,
+  });
 
   final List<({DateTime day, Map<String, UsageCount> byModel})> days;
   final Map<String, Color> colors;
   final Strings strings;
   final String Function(String key) name;
+
+  /// Why the chart's days are fewer than the range's.
+  final String? note;
 
   @override
   State<_DayBars> createState() => _DayBarsState();
@@ -167,9 +223,11 @@ class _DayBarsState extends State<_DayBars> {
   static int _dayUsed(Map<String, UsageCount> byModel) =>
       byModel.values.fold(0, (sum, count) => sum + _used(count));
 
-  void _pick(Offset at, double width) {
+  /// A tap on the picked day lets it go; a drag only ever picks.
+  void _pick(Offset at, double width, {bool toggle = false}) {
     final i = (at.dx / width * widget.days.length).floor().clamp(0, widget.days.length - 1);
-    setState(() => _picked = widget.days[i].day);
+    final day = widget.days[i].day;
+    setState(() => _picked = toggle && day == _picked ? null : day);
   }
 
   @override
@@ -178,7 +236,7 @@ class _DayBarsState extends State<_DayBars> {
     final days = widget.days;
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final small = theme.textTheme.labelSmall;
+    final small = theme.textTheme.bodySmall;
     final quiet = theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant);
     final total = days.fold(0, (sum, d) => sum + _dayUsed(d.byModel));
     final busiest = days.reduce((a, b) => _dayUsed(b.byModel) > _dayUsed(a.byModel) ? b : a);
@@ -186,7 +244,7 @@ class _DayBarsState extends State<_DayBars> {
     final picked = days.where((d) => d.day == _picked).firstOrNull;
     // Fourteen day numbers fit a phone; a longer range names only its first day and today.
     final labelled = days.length <= 14;
-    final today = small?.copyWith(color: colors.primary, fontWeight: FontWeight.w700);
+    final today = small?.copyWith(color: colors.primary, fontWeight: FontWeight.w500);
     final date = MaterialLocalizations.of(context).formatShortMonthDay;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,76 +253,86 @@ class _DayBarsState extends State<_DayBars> {
         Row(
           children: [
             Expanded(child: Text(strings.perDay, style: theme.textTheme.titleMedium)),
-            Text(strings.number(total), style: theme.textTheme.titleMedium),
+            // All time's totals are above; this one would be only the days charted.
+            if (total > 0 && widget.note == null)
+              Text(strings.number(total), style: theme.textTheme.titleMedium),
           ],
         ),
-        Semantics(
-          label: total == 0
-              ? strings.lastDaysNothing(days.length)
-              : strings.lastDaysSummary(days.length, strings.number(total)),
-          excludeSemantics: true,
-          child: Column(
+        if (total == 0)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             spacing: Gap.xs,
             children: [
-              LayoutBuilder(
-                builder: (context, constraints) => GestureDetector(
-                  key: const Key('usage-chart'),
-                  behavior: HitTestBehavior.opaque,
-                  onTapDown: (d) => _pick(d.localPosition, constraints.maxWidth),
-                  onHorizontalDragUpdate: (d) => _pick(d.localPosition, constraints.maxWidth),
-                  child: SizedBox(
-                    height: 136,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      spacing: days.length > 14 ? 1 : Gap.xs,
-                      children: [
-                        for (final (i, d) in days.indexed)
-                          Expanded(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              spacing: Gap.xs,
-                              children: [
-                                Flexible(
-                                  child: FractionallySizedBox(
-                                    widthFactor: 1,
-                                    heightFactor: most == 0 ? 0 : _dayUsed(d.byModel) / most,
-                                    child: _Stack(
-                                      d.byModel,
-                                      colors: widget.colors,
-                                      outline: d.day == _picked ? colors.onSurface : null,
+              Text(strings.lastDaysNothing(days.length), style: theme.textTheme.bodyMedium),
+              Text(strings.usageAppears, style: quiet),
+            ],
+          )
+        else
+          Semantics(
+            label: strings.lastDaysSummary(days.length, strings.number(total)),
+            excludeSemantics: true,
+            child: Column(
+              spacing: Gap.xs,
+              children: [
+                LayoutBuilder(
+                  builder: (context, constraints) => GestureDetector(
+                    key: const Key('usage-chart'),
+                    behavior: HitTestBehavior.opaque,
+                    onTapDown: (d) => _pick(d.localPosition, constraints.maxWidth, toggle: true),
+                    onHorizontalDragUpdate: (d) => _pick(d.localPosition, constraints.maxWidth),
+                    child: SizedBox(
+                      height: 136,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        spacing: days.length > 14 ? 1 : Gap.xs,
+                        children: [
+                          for (final (i, d) in days.indexed)
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                spacing: Gap.xs,
+                                children: [
+                                  Flexible(
+                                    child: FractionallySizedBox(
+                                      widthFactor: 1,
+                                      heightFactor: most == 0 ? 0 : _dayUsed(d.byModel) / most,
+                                      child: _Stack(
+                                        d.byModel,
+                                        colors: widget.colors,
+                                        outline: d.day == _picked ? colors.onSurface : null,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                // Never wraps on a narrow phone or with large text.
-                                if (labelled)
-                                  FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(
-                                      '${d.day.day}',
-                                      maxLines: 1,
-                                      softWrap: false,
-                                      style: i == days.length - 1 ? today : small,
+                                  // Never wraps on a narrow phone or with large text.
+                                  if (labelled)
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        '${d.day.day}',
+                                        maxLines: 1,
+                                        softWrap: false,
+                                        style: i == days.length - 1 ? today : small,
+                                      ),
                                     ),
-                                  ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              if (!labelled)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(date(days.first.day), style: small),
-                    Text(date(days.last.day), style: today),
-                  ],
-                ),
-            ],
+                if (!labelled)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(date(days.first.day), style: small),
+                      Text(date(days.last.day), style: today),
+                    ],
+                  ),
+              ],
+            ),
           ),
-        ),
         if (picked != null)
           _Split(
             picked.byModel,
@@ -273,10 +341,16 @@ class _DayBarsState extends State<_DayBars> {
             strings: strings,
             name: widget.name,
           )
-        else if (total > 0) ...[
-          Text(strings.busiestDay(strings.number(most), busiest.day.day), style: quiet),
-          Text(strings.tapDay, style: quiet),
-        ],
+        else if (total > 0)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: Gap.xs,
+            children: [
+              Text(strings.busiestDay(strings.number(most), busiest.day.day), style: quiet),
+              Text(strings.tapDay, style: quiet),
+            ],
+          ),
+        if (widget.note case final note?) Text(note, style: quiet),
       ],
     );
   }
@@ -381,6 +455,7 @@ class _Shares extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final all = tokens.values.fold(0, (sum, count) => sum + _used(count));
+    final shares = _percents([for (final key in models) _used(tokens[key]!)]);
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: Gap.m),
@@ -416,8 +491,10 @@ class _Shares extends StatelessWidget {
                   ),
                 ),
               ),
-            for (final key in models)
+            for (final (i, key) in models.indexed)
               ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                titleAlignment: ListTileTitleAlignment.top,
                 leading: _Swatch(colors[key]!),
                 minLeadingWidth: 12,
                 title: Text(name(key)),
@@ -429,7 +506,10 @@ class _Shares extends StatelessWidget {
                   ],
                 ),
                 trailing: Text(
-                  strings.percent(all == 0 ? 0 : _used(tokens[key]!) / all),
+                  // A sliver that rounds to nothing still reads "<1%".
+                  strings.percent(
+                    shares[i] > 0 || _used(tokens[key]!) == 0 ? shares[i] / 100 : 0.001,
+                  ),
                   style: theme.textTheme.titleMedium,
                 ),
               ),
@@ -438,6 +518,20 @@ class _Shares extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Whole percents of [values] that add up to 100: each rounds down, and the
+/// points left go to the largest remainders.
+List<int> _percents(List<int> values) {
+  final all = values.fold(0, (a, b) => a + b);
+  if (all == 0) return [for (final _ in values) 0];
+  final down = [for (final v in values) v * 100 ~/ all];
+  final order = [for (var i = 0; i < values.length; i++) i]
+    ..sort((a, b) => (values[b] * 100 % all).compareTo(values[a] * 100 % all));
+  for (final i in order.take(100 - down.fold(0, (a, b) => a + b))) {
+    down[i]++;
+  }
+  return down;
 }
 
 /// What the range's messages came to: the count beside the title, then each
