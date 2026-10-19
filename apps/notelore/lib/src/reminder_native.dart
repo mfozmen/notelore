@@ -13,8 +13,12 @@ import 'reminder_notifier.dart';
 
 // coverage:ignore-start
 /// This device's notifications where the app has them: Android, Windows, macOS.
+/// None under `flutter test`: the Windows plugin holds files a test must delete.
 ReminderNotifier? platformNotifier() =>
-    Platform.isAndroid || Platform.isWindows || Platform.isMacOS ? PluginNotifier() : null;
+    (Platform.isAndroid || Platform.isWindows || Platform.isMacOS) &&
+        !Platform.environment.containsKey('FLUTTER_TEST')
+    ? PluginNotifier()
+    : null;
 
 /// The platform's notifications, through flutter_local_notifications. Thin
 /// glue `flutter test` cannot load; everything around it is tested with a fake.
@@ -76,7 +80,7 @@ class PluginNotifier implements ReminderNotifier {
       id: reminder.id,
       title: reminder.note,
       body: reminder.text,
-      // The local minute as an instant: the timezone database is not needed.
+      // As a UTC instant, so no timezone database is shipped.
       scheduledDate: tz.TZDateTime.from(reminder.at.toUtc(), tz.UTC),
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(

@@ -12,7 +12,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        // flutter_local_notifications schedules with java.time on every Android (#431).
         isCoreLibraryDesugaringEnabled = true
     }
 
@@ -61,10 +60,8 @@ flutter {
 }
 
 dependencies {
+    // flutter_local_notifications needs java.time on every Android (#431).
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-}
-
-dependencies {
     // FileProvider, for handing a downloaded update to the installer.
     implementation("androidx.core:core-ktx:1.13.1")
     // The AppCompat launch theme the device lock prompt needs (local_auth, #295).
