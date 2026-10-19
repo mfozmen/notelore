@@ -25,6 +25,7 @@ dart analyze --fatal-infos                        # strict analysis
 (cd apps/notelore && flutter test --coverage)                         # app tests + lcov
 (cd packages/notelore_core && dart test -t live)                       # live provider tests (keys in env, opt-in)
 dart run tool/coverage_gate.dart packages/notelore_core/coverage/lcov.info apps/notelore/coverage/lcov.info
+python tool/check_comments.py origin/main...HEAD   # narrative comments this branch adds (commentie; CI warns, --strict fails)
 dart run notelore_core:notelore_dev chat "<message>"   # a real agent turn on .dev-home, traced to .dev-home/state/trace/ (also: signin, models)
 dart run notelore_core:notelore_dev eval --provider=ollama --model=qwen3:4b   # the model eval (eval/cases.json) on temp notes, accuracy per kind; `distill … --out=train.jsonl` keeps the passing turns as training data; `--slim` asks as the model on the device does
 (cd apps/notelore && flutter run --dart-define-from-file=../../.env)  # run the app, with Drive sign-in
@@ -144,3 +145,4 @@ Follow the `commentie:comments` skill. Clear code needs no comment. Comment only
 a non-obvious why, a trap, or a hidden coupling, in one or two short sentences.
 No narration, no history, no commented-out code, no bare issue refs.
 Reviewers: a narrative comment is a warning, reported once per branch, never a blocker.
+Before pushing, run `python tool/check_comments.py origin/main...HEAD`: it costs no tokens.

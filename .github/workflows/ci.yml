@@ -26,6 +26,18 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0  # the comment check diffs against the base branch
+      - run: python3 tool/check_comments.py --self-test
+      # A cheap gate before any review spends tokens: narrative comments the PR
+      # adds show as warnings on their lines; it never fails the job.
+      - name: Comments this PR adds (commentie, warning only)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          python3 tool/check_comments.py "origin/$BASE...HEAD" |
+            sed -E 's/^([^:]+):([0-9]+): (.*)$/::warning file=\1,line=\2::\3/'
       - run: python3 .github/scripts/test_review_verdict_gate.py
       - run: python3 .github/scripts/test_review_range.py
       - run: python3 .github/scripts/test_issue_priority.py
