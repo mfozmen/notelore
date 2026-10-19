@@ -137,9 +137,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: ${{ needs.release.outputs.tag }}
+      - name: Flutter version from the root pubspec, read without yq (windows-latest lacks it, #469)
+        id: flutter
+        shell: bash
+        run: |
+          echo "version=$(sed -n 's/^  flutter: *\([0-9.]*\).*/\1/p' pubspec.yaml)" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
         with:
-          flutter-version-file: pubspec.yaml
+          flutter-version: ${{ steps.flutter.outputs.version }}
+          channel: stable
           # No restored pub cache: native code from build hooks (llamadart, #328)
           # runs here beside the signing key, so only what the lock pins.
           cache: false
@@ -189,9 +195,15 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+      - name: Flutter version from the root pubspec, read without yq (windows-latest lacks it, #469)
+        id: flutter
+        shell: bash
+        run: |
+          echo "version=$(sed -n 's/^  flutter: *\([0-9.]*\).*/\1/p' pubspec.yaml)" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
         with:
-          flutter-version-file: pubspec.yaml
+          flutter-version: ${{ steps.flutter.outputs.version }}
+          channel: stable
           # No restored pub cache: native code from build hooks (llamadart, #328)
           # runs here beside the signing key, so only what the lock pins.
           cache: false
