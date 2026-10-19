@@ -287,6 +287,23 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     if (widget.updater!.system != 'android') widget.exitApp(0);
   }
 
+  Future<String> Function()? get _checkByHand => widget.updater == null ? null : _checkNow;
+
+  /// The screen of [tab].
+  Widget _screen(int tab, {required bool wide}) => switch (tab) {
+    // Below the menu, to find it.
+    0 when !wide => Builder(
+      builder: (context) => Scaffold(
+        appBar: AppBar(leading: AppMenu.button(context), title: const Text('Notelore')),
+        body: ChatScreen(widget.session),
+      ),
+    ),
+    0 => ChatScreen(widget.session),
+    1 => NotesScreen(widget.session),
+    2 => CalendarScreen(widget.session, toChat: () => setState(() => _tab = 0)),
+    _ => SettingsScreen(widget.session, checkForUpdates: _checkByHand),
+  };
+
   @override
   Widget build(BuildContext context) {
     final s = widget.session.strings;
@@ -326,24 +343,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           _SignInBanner(widget.session, later: () => setState(() => _signInLater = true)),
         // Settings has its own sign-in: never the same offer twice on one screen.
         if (widget.session.calendarNudge && tab != 3) _CalendarBanner(widget.session),
-        Expanded(
-          child: switch (tab) {
-            // Below the menu, to find it.
-            0 when !wide => Builder(
-              builder: (context) => Scaffold(
-                appBar: AppBar(leading: AppMenu.button(context), title: const Text('Notelore')),
-                body: ChatScreen(widget.session),
-              ),
-            ),
-            0 => ChatScreen(widget.session),
-            1 => NotesScreen(widget.session),
-            2 => CalendarScreen(widget.session, toChat: () => select(0)),
-            _ => SettingsScreen(
-              widget.session,
-              checkForUpdates: widget.updater == null ? null : _checkNow,
-            ),
-          },
-        ),
+        Expanded(child: _screen(tab, wide: wide)),
       ],
     );
     return Scaffold(
@@ -356,7 +356,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 context,
                 widget.session,
                 section,
-                checkForUpdates: widget.updater == null ? null : _checkNow,
+                checkForUpdates: _checkByHand,
               ),
             ),
       body: SafeArea(
