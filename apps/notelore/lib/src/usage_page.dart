@@ -112,6 +112,8 @@ class _UsagePageState extends State<UsagePage> {
                       padding: const EdgeInsets.all(Gap.m),
                       child: _DayBars(
                         days,
+                        // A new range starts with no day picked.
+                        key: ValueKey(_range),
                         colors: colors,
                         strings: s,
                         name: name,
@@ -203,6 +205,7 @@ class _DayBars extends StatefulWidget {
     required this.strings,
     required this.name,
     this.note,
+    super.key,
   });
 
   final List<({DateTime day, Map<String, UsageCount> byModel})> days;
@@ -230,6 +233,87 @@ class _DayBarsState extends State<_DayBars> {
     setState(() => _picked = toggle && day == _picked ? null : day);
   }
 
+  /// Day [i] of the range: its stacked bar, and its day number when there is room.
+  Widget _bar(int i, int most, {required bool labelled, TextStyle? small, TextStyle? today}) {
+    final d = widget.days[i];
+    final colors = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        spacing: Gap.xs,
+        children: [
+          Flexible(
+            child: FractionallySizedBox(
+              widthFactor: 1,
+              heightFactor: most == 0 ? 0 : _dayUsed(d.byModel) / most,
+              child: _Stack(
+                d.byModel,
+                colors: widget.colors,
+                outline: d.day == _picked ? colors.onSurface : null,
+              ),
+            ),
+          ),
+          // Never wraps on a narrow phone or with large text.
+          if (labelled)
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                '${d.day.day}',
+                maxLines: 1,
+                softWrap: false,
+                style: i == widget.days.length - 1 ? today : small,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// The bars, one sentence to a screen reader; a tap or drag picks a day.
+  Widget _chart(int total, int most, {TextStyle? small, TextStyle? today}) {
+    final days = widget.days;
+    // Fourteen day numbers fit a phone; a longer range names only its first day and today.
+    final labelled = days.length <= 14;
+    final date = MaterialLocalizations.of(context).formatShortMonthDay;
+    final strings = widget.strings;
+    return Semantics(
+      label: strings.lastDaysSummary(days.length, strings.number(total)),
+      excludeSemantics: true,
+      child: Column(
+        spacing: Gap.xs,
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) => GestureDetector(
+              key: const Key('usage-chart'),
+              behavior: HitTestBehavior.opaque,
+              onTapDown: (d) => _pick(d.localPosition, constraints.maxWidth, toggle: true),
+              onHorizontalDragUpdate: (d) => _pick(d.localPosition, constraints.maxWidth),
+              child: SizedBox(
+                height: 136,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  spacing: days.length > 14 ? 1 : Gap.xs,
+                  children: [
+                    for (var i = 0; i < days.length; i++)
+                      _bar(i, most, labelled: labelled, small: small, today: today),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (!labelled)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(date(days.first.day), style: small),
+                Text(date(days.last.day), style: today),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = widget.strings;
@@ -242,8 +326,6 @@ class _DayBarsState extends State<_DayBars> {
     final busiest = days.reduce((a, b) => _dayUsed(b.byModel) > _dayUsed(a.byModel) ? b : a);
     final most = _dayUsed(busiest.byModel);
     final picked = days.where((d) => d.day == _picked).firstOrNull;
-    // Fourteen day numbers fit a phone; a longer range names only its first day and today.
-    final labelled = days.length <= 14;
     final today = small?.copyWith(color: colors.primary, fontWeight: FontWeight.w500);
     final date = MaterialLocalizations.of(context).formatShortMonthDay;
     return Column(
@@ -268,71 +350,7 @@ class _DayBarsState extends State<_DayBars> {
             ],
           )
         else
-          Semantics(
-            label: strings.lastDaysSummary(days.length, strings.number(total)),
-            excludeSemantics: true,
-            child: Column(
-              spacing: Gap.xs,
-              children: [
-                LayoutBuilder(
-                  builder: (context, constraints) => GestureDetector(
-                    key: const Key('usage-chart'),
-                    behavior: HitTestBehavior.opaque,
-                    onTapDown: (d) => _pick(d.localPosition, constraints.maxWidth, toggle: true),
-                    onHorizontalDragUpdate: (d) => _pick(d.localPosition, constraints.maxWidth),
-                    child: SizedBox(
-                      height: 136,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        spacing: days.length > 14 ? 1 : Gap.xs,
-                        children: [
-                          for (final (i, d) in days.indexed)
-                            Expanded(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                spacing: Gap.xs,
-                                children: [
-                                  Flexible(
-                                    child: FractionallySizedBox(
-                                      widthFactor: 1,
-                                      heightFactor: most == 0 ? 0 : _dayUsed(d.byModel) / most,
-                                      child: _Stack(
-                                        d.byModel,
-                                        colors: widget.colors,
-                                        outline: d.day == _picked ? colors.onSurface : null,
-                                      ),
-                                    ),
-                                  ),
-                                  // Never wraps on a narrow phone or with large text.
-                                  if (labelled)
-                                    FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      child: Text(
-                                        '${d.day.day}',
-                                        maxLines: 1,
-                                        softWrap: false,
-                                        style: i == days.length - 1 ? today : small,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                if (!labelled)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(date(days.first.day), style: small),
-                      Text(date(days.last.day), style: today),
-                    ],
-                  ),
-              ],
-            ),
-          ),
+          _chart(total, most, small: small, today: today),
         if (picked != null)
           _Split(
             picked.byModel,
