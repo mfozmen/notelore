@@ -182,3 +182,44 @@ cannot be detected by a metadata audit.
 The query that triggers a five-second audit pays for that full metadata scan;
 on this Windows corpus it can still incur the earlier 711–825 ms refresh cost.
 If a watcher fails, every query uses the full scan until the index is reopened.
+
+## On-device model (#328)
+
+`apps/notelore/tool/device_model_probe.dart` measures the on-device model
+(Qwen3-4B-Instruct-2507, Q4_K_M, through llamadart) with Notelore's real system
+prompt and tools: the load, a cold turn, and a warm turn that reuses the cached
+prompt. It opens only the GGUF named by `--dart-define=MODEL`, never app state,
+keys or notes.
+
+```bash
+(cd apps/notelore && MSYS_NO_PATHCONV=1 flutter build apk --debug --target-platform android-x64 \
+  -t tool/device_model_probe.dart \
+  --dart-define=MODEL=/data/user/0/io.github.mfozmen.notelore/files/model.gguf)
+# Install first: run-as needs the app on the device.
+adb -s emulator-5554 install -r apps/notelore/build/app/outputs/flutter-apk/app-debug.apk
+adb -s emulator-5554 push model.gguf /data/local/tmp/model.gguf
+adb -s emulator-5554 shell run-as io.github.mfozmen.notelore cp /data/local/tmp/model.gguf files/model.gguf
+adb -s emulator-5554 shell monkey -p io.github.mfozmen.notelore -c android.intent.category.LAUNCHER 1
+adb -s emulator-5554 logcat -s flutter   # the probe: lines
+```
+
+On 2026-10-19 the x86_64 Android 15 emulator (`-memory 6144`, CPU only, on the
+maintainer's Windows PC) gave:
+
+| Step | Time | Tokens | Speed | Memory (RSS) |
+| --- | ---: | ---: | ---: | ---: |
+| Load | 11.2 s | | | 4,078 MB |
+| Cold turn | 552 s (first token after 541 s) | 3,237 in, 38 out | 6.0 tok/s prefill, 3.5 tok/s decode | 4,445 MB |
+| Warm turn | 6.2 s (first token after 4.6 s) | 3,259 in (3,237 cached), 6 out | 3.9 tok/s decode | 4,434 MB |
+
+Peak RSS was 4,509 MB. The time to the first token comes from the engine; the
+decode rate is the rest of the turn's wall time over the tokens out, so it
+slightly undercounts.
+
+This is only a rough guide: the emulator runs an x86_64 image on the PC's CPU,
+not a phone's ARM cores. What carries over is the shape:
+the system prompt and tools are about 3,200 tokens, so the first turn is
+dominated by prefill, while later turns reuse the cached prompt and start in
+seconds. A slimmer on-device prompt (#447) cuts the cold turn the most, and the
+model needs about 4.5 GB, which is why it is offered only on phones with at
+least 6 GB.
