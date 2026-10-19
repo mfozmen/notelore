@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/strings.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'app_test.dart' show connect, phone, pumpApp;
@@ -78,6 +79,122 @@ void main() {
     expect(find.textContaining('ChatGPT plan has no per-token charge'), findsNothing);
   });
 
+  testWidgets(
+    'usage page: a range, each model stacked by day, its share, and the messages (#481)',
+    (tester) async {
+      phone(tester);
+      final harness = Harness();
+      final session = await pumpApp(tester, harness);
+      await connect(tester, key: 'k');
+      session.usage
+        ..record('anthropic', 'claude-sonnet-5-5', const TokenUsage(600, 150))
+        ..record('gemini', 'gemini-2.5-flash', const TokenUsage(200, 50))
+        ..recordTurn(
+          'anthropic',
+          'claude-sonnet-5-5',
+          took: const Duration(milliseconds: 1500),
+          toolCalls: 3,
+          wrote: true,
+          failed: false,
+        )
+        ..recordTurn(
+          'anthropic',
+          'claude-sonnet-5-5',
+          took: const Duration(milliseconds: 2500),
+          toolCalls: 1,
+          wrote: false,
+          failed: true,
+        );
+      await openUsage(tester);
+      expect(find.text('Last 14 days'), findsOneWidget); // the range shown first
+      await tester.tap(find.text('7 days'));
+      await tester.pumpAndSettle();
+      expect(find.text('Last 7 days'), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('Last 7 days: 1,000 in all')), findsOneWidget);
+      // A tap on a day splits it by model, in words, not by colour alone.
+      expect(find.text('Tap a day to see each model.'), findsOneWidget);
+      final chart = find.byKey(const Key('usage-chart'));
+      await tester.tapAt(tester.getBottomRight(chart) - const Offset(2, 30)); // today
+      await tester.pumpAndSettle();
+      expect(find.text('750'), findsOneWidget);
+      expect(find.text('250'), findsOneWidget);
+      // Each model's share, with its own tokens and cost.
+      await tester.scrollUntilVisible(
+        find.text('Messages'),
+        300,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.text('75%'), findsOneWidget);
+      expect(find.text('25%'), findsOneWidget);
+      expect(find.text('Estimated cost: about \$0.0027'), findsOneWidget); // 600 read, 150 written
+      for (final (label, value) in [
+        ('Messages', '2'),
+        ('Model calls per message', '1.0'),
+        ('Tokens per message', '500'),
+        ('Average answer time', '2.0 s'),
+        ('Tool calls', '4'),
+        ('Messages that wrote notes', '1'),
+        ('Messages with an error', '50%'),
+      ]) {
+        expect(
+          find.descendant(of: find.byKey(Key('stat-$label')), matching: find.text(value)),
+          findsOneWidget,
+          reason: label,
+        );
+      }
+      // All time: the totals of everything, the chart of the days kept.
+      await tester.scrollUntilVisible(
+        find.text('All'),
+        -300,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(find.text('All'));
+      await tester.pumpAndSettle();
+      expect(find.text('All time'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.textContaining('The chart shows the last 90 days'),
+        300,
+        scrollable: find.byType(Scrollable).last,
+      );
+    },
+  );
+
+  testWidgets('usage page: in Turkish, the share and the time read as Turkish', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    session
+      ..setLanguage(AppLanguage.tr)
+      ..setAdvanced(true);
+    session.usage
+      ..record('anthropic', 'claude-sonnet-5-5', const TokenUsage(1, 0))
+      ..record('gemini', 'gemini-2.5-flash', const TokenUsage(999, 0))
+      ..recordTurn(
+        'anthropic',
+        'claude-sonnet-5-5',
+        took: const Duration(milliseconds: 1250),
+        toolCalls: 0,
+        wrote: false,
+        failed: false,
+      );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ayarlar'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('open-usage')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('open-usage')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Mesajlar'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.text('%100'), findsOneWidget);
+    expect(find.text('<%1'), findsOneWidget);
+    expect(find.text('1,3 sn'), findsOneWidget);
+  });
+
   testWidgets('usage page: on the ChatGPT plan, no per-token charge', (tester) async {
     phone(tester);
     final harness = Harness();
@@ -103,6 +220,10 @@ void main() {
     await openUsage(tester);
     expect(find.text('Nothing yet.'), findsNWidgets(2));
     expect(find.bySemanticsLabel(RegExp('Last 14 days: nothing used')), findsOneWidget);
+    // A drag along the chart picks a day too; an empty one says so.
+    await tester.drag(find.byKey(const Key('usage-chart')), const Offset(-60, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Nothing yet.'), findsNWidgets(3));
     expect(find.textContaining('local model has no per-token charge'), findsOneWidget);
   });
 }

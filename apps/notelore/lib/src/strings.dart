@@ -248,15 +248,33 @@ abstract class Strings {
   String get showAdvanced;
   String get showAdvancedWhy;
   String get usageWhat;
-  String get lastDays;
-  String get byModel;
 
-  /// What the last days chart says to a screen reader.
-  String lastDaysSummary(String total);
-  String get lastDaysNothing;
+  /// The last [days] days; null is all time.
+  String lastDays(int? days);
+
+  /// A range picker's choice: [days] days, or null for all.
+  String rangeDays(int? days);
+  String get byModel;
+  String get perDay;
+  String get tapDay;
+
+  /// The chart keeps fewer days than "all" totals.
+  String chartKept(int days);
+
+  /// What the per day chart says to a screen reader.
+  String lastDaysSummary(int days, String total);
+  String lastDaysNothing(int days);
   String busiestDay(String amount, int day);
   String get usageConversation;
-  String get usageDevice;
+  String get messages;
+  String get callsPerMessage;
+  String get tokensPerMessage;
+  String get averageAnswer;
+  String get toolCalls;
+  String get messagesWrote;
+  String get messagesFailed;
+  String percentText(String n);
+  String seconds(String n);
   String get usageNothing;
   String usageTokens(String input, String output);
   String get usageTokensUnavailable;
@@ -276,6 +294,15 @@ abstract class Strings {
   /// cost; "not available" where the provider gave nothing to go on.
   /// [n] with this language's thousands separator.
   String number(int n) => '$n'.replaceAllMapped(RegExp(r'\B(?=(\d{3})+$)'), (_) => thousands);
+
+  /// [x] with one decimal, in this language's way.
+  String decimal(double x) => x.toStringAsFixed(1).replaceFirst('.', decimalPoint);
+
+  /// [share] (0 to 1) as a whole percent; a sliver is "<1%", never "0%".
+  String percent(double share) {
+    final n = (share * 100).round();
+    return n == 0 && share > 0 ? '<${percentText('1')}' : percentText('$n');
+  }
 
   List<String> usageLines(UsageSummary summary) {
     if (summary.calls == 0) return [usageNothing];
@@ -1000,17 +1027,41 @@ class EnglishStrings extends Strings {
   @override
   String get usageWhat => 'What the model read and wrote, and what it cost';
   @override
-  String get lastDays => 'Last 14 days';
+  String lastDays(int? days) => days == null ? 'All time' : 'Last $days days';
+  @override
+  String rangeDays(int? days) => days == null ? 'All' : '$days days';
   @override
   String get byModel => 'By model';
   @override
-  String lastDaysSummary(String total) => 'Last 14 days: $total in all';
+  String get perDay => 'Per day';
   @override
-  String get lastDaysNothing => 'Last 14 days: nothing used';
+  String get tapDay => 'Tap a day to see each model.';
+  @override
+  String chartKept(int days) => 'The chart shows the last $days days; the totals cover all time.';
+  @override
+  String lastDaysSummary(int days, String total) => 'Last $days days: $total in all';
+  @override
+  String lastDaysNothing(int days) => 'Last $days days: nothing used';
   @override
   String get usageConversation => 'This conversation';
   @override
-  String get usageDevice => 'On this device';
+  String get messages => 'Messages';
+  @override
+  String get callsPerMessage => 'Model calls per message';
+  @override
+  String get tokensPerMessage => 'Tokens per message';
+  @override
+  String get averageAnswer => 'Average answer time';
+  @override
+  String get toolCalls => 'Tool calls';
+  @override
+  String get messagesWrote => 'Messages that wrote notes';
+  @override
+  String get messagesFailed => 'Messages with an error';
+  @override
+  String percentText(String n) => '$n%';
+  @override
+  String seconds(String n) => '$n s';
   @override
   String get usageNothing => 'Nothing yet.';
   @override
@@ -1913,17 +1964,41 @@ class TurkishStrings extends Strings {
   @override
   String get usageWhat => 'Modelin okuduğu, yazdığı ve maliyeti';
   @override
-  String get lastDays => 'Son 14 gün';
+  String lastDays(int? days) => days == null ? 'Tüm zamanlar' : 'Son $days gün';
+  @override
+  String rangeDays(int? days) => days == null ? 'Tümü' : '$days gün';
   @override
   String get byModel => 'Modele göre';
   @override
-  String lastDaysSummary(String total) => 'Son 14 gün: toplam $total';
+  String get perDay => 'Günlük';
   @override
-  String get lastDaysNothing => 'Son 14 gün: kullanım yok';
+  String get tapDay => 'Her modeli görmek için bir güne dokunun.';
+  @override
+  String chartKept(int days) => 'Grafik son $days günü gösterir; toplamlar tüm zamanı kapsar.';
+  @override
+  String lastDaysSummary(int days, String total) => 'Son $days gün: toplam $total';
+  @override
+  String lastDaysNothing(int days) => 'Son $days gün: kullanım yok';
   @override
   String get usageConversation => 'Bu konuşma';
   @override
-  String get usageDevice => 'Bu cihazda';
+  String get messages => 'Mesajlar';
+  @override
+  String get callsPerMessage => 'Mesaj başına model çağrısı';
+  @override
+  String get tokensPerMessage => 'Mesaj başına token';
+  @override
+  String get averageAnswer => 'Ortalama cevap süresi';
+  @override
+  String get toolCalls => 'Araç çağrıları';
+  @override
+  String get messagesWrote => 'Not yazan mesajlar';
+  @override
+  String get messagesFailed => 'Hata alan mesajlar';
+  @override
+  String percentText(String n) => '%$n';
+  @override
+  String seconds(String n) => '$n sn';
   @override
   String get usageNothing => 'Henüz yok.';
   @override
