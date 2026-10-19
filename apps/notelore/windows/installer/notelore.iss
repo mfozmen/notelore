@@ -62,8 +62,10 @@ Name: "{autodesktop}\Notelore"; Filename: "{app}\notelore.exe"; Tasks: desktopic
 
 [Run]
 ; A person installing gets the usual "Launch Notelore" box; the silent update starts it itself.
-Filename: "{app}\notelore.exe"; Description: "{cm:LaunchProgram,Notelore}"; Flags: nowait postinstall skipifsilent
-Filename: "{app}\notelore.exe"; Flags: nowait; Check: LaunchAfterSilentInstall
+; As the signed-in user, never as the elevated setup: started as admin after an
+; update, the app failed to start (#488).
+Filename: "{app}\notelore.exe"; Description: "{cm:LaunchProgram,Notelore}"; Flags: nowait postinstall skipifsilent runasoriginaluser
+Filename: "{app}\notelore.exe"; Flags: nowait runasoriginaluser; Check: LaunchAfterSilentInstall
 
 [Code]
 // /NOLAUNCH: a silent install that does not start the app (CI's install check).
