@@ -217,6 +217,29 @@ void main() {
     expect(harness.calendar.events.values, ['Dentist']);
   });
 
+  test(
+    'the offer goes once it no longer fits: the calendar off, or the grant here (#503)',
+    () async {
+      final harness = Harness();
+      final session = harness.session();
+      await session.load();
+      session.calendar = true;
+      remindIn(harness, 'Health', 'Dentist');
+      await session.refreshReminders();
+      expect(session.calendarNudge, isTrue);
+      session.calendar = false; // turned off on another device, brought by a sync
+      await session.refreshReminders(ask: false);
+      expect(session.calendarNudge, isFalse);
+      session.calendar = true;
+      remindIn(harness, 'Car', 'Tyres');
+      await session.refreshReminders();
+      expect(session.calendarNudge, isTrue);
+      harness.calendarAuth.granted = true; // signed in from Settings
+      await session.refreshReminders(ask: false);
+      expect(session.calendarNudge, isFalse);
+    },
+  );
+
   test('a keystore that cannot tell counts as no grant: this device reminds (#503)', () async {
     final harness = Harness();
     remindIn(harness, 'Health', 'Dentist');

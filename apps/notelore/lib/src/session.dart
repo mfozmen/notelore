@@ -1555,8 +1555,10 @@ class Session extends ChangeNotifier {
     final known = _knownDue;
     _knownDue = {for (final r in due) r.id};
     final made = ask && known != null && due.any((r) => !known.contains(r.id));
-    if (made && calendar && calendarHere == false && !_calendarNudged && !calendarNudge) {
-      calendarNudge = true;
+    // Only while it fits: it goes once the calendar is off or this device holds the grant.
+    final nudge = calendar && calendarHere == false && (calendarNudge || made && !_calendarNudged);
+    if (nudge != calendarNudge) {
+      calendarNudge = nudge;
       notifyListeners();
     }
   }
