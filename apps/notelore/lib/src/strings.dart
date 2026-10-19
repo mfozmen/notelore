@@ -305,6 +305,15 @@ abstract class Strings {
   String get notificationsBlocked;
   String get reminderHidden;
 
+  // Reminders through Google Calendar (#432).
+  String get addToCalendar;
+  String get addToCalendarHint;
+  String get remindersInCalendar;
+  String get calendarSignInFailed;
+  String get calendarUpdateFailed;
+  String get calendarElsewhere;
+  String get signInCalendar;
+
   /// The months, short, January first.
   List<String> get months;
 
@@ -969,6 +978,24 @@ class EnglishStrings extends Strings {
   String get notificationsBlocked => 'Turn on notifications for Notelore in the system settings.';
   @override
   String get reminderHidden => 'You have a reminder.';
+  @override
+  String get addToCalendar => 'Add to Google Calendar';
+  @override
+  String get addToCalendarHint =>
+      'Only a calendar of its own: your other calendars stay as they are.';
+  @override
+  String get remindersInCalendar =>
+      'Google Calendar reminds you on every device. Notelore sends no notifications of its own.';
+  @override
+  String get calendarSignInFailed => "Couldn't sign in to Google Calendar. Try again.";
+  @override
+  String get calendarUpdateFailed => "Couldn't update Google Calendar. Notelore tries again later.";
+  @override
+  String get calendarElsewhere =>
+      'Google Calendar reminds you, set up on another device. '
+      'Sign in here too, so the reminders you add on this device go there as well.';
+  @override
+  String get signInCalendar => 'Sign in to Google Calendar';
   @override
   List<String> get months => const [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', //
@@ -1749,6 +1776,24 @@ class TurkishStrings extends Strings {
   String get notificationsBlocked => 'Notelore için bildirimleri sistem ayarlarından aç.';
   @override
   String get reminderHidden => 'Bir hatırlatıcın var.';
+  @override
+  String get addToCalendar => "Google Takvim'e ekle";
+  @override
+  String get addToCalendarHint => 'Yalnızca kendi takvimi: diğer takvimlerine dokunulmaz.';
+  @override
+  String get remindersInCalendar =>
+      'Google Takvim her cihazda hatırlatır. Notelore ayrıca bildirim göndermez.';
+  @override
+  String get calendarSignInFailed => "Google Takvim'e giriş yapılamadı. Tekrar dene.";
+  @override
+  String get calendarUpdateFailed =>
+      'Google Takvim güncellenemedi. Notelore daha sonra yeniden dener.';
+  @override
+  String get calendarElsewhere =>
+      'Google Takvim hatırlatıyor, başka bir cihazda kuruldu. '
+      'Bu cihazda eklediğin hatırlatıcılar da oraya gitsin diye burada da giriş yap.';
+  @override
+  String get signInCalendar => "Google Takvim'e giriş yap";
   @override
   List<String> get months => const [
     'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara', //

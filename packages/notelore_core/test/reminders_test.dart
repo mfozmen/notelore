@@ -72,6 +72,11 @@ void main() {
     expect(text, endsWith('…'));
   });
 
+  test('a note that cannot be read is skipped, never the others', () {
+    File(p.join(root, 'topics', 'latin1.md')).writeAsBytesSync([0x2d, 0xff, 0xfe, 0x0a]);
+    expect(upcomingReminders(root, now: now), hasLength(3));
+  });
+
   test('no notes folder, no reminders', () {
     expect(upcomingReminders(p.join(tempDir(), 'none'), now: now), isEmpty);
   });

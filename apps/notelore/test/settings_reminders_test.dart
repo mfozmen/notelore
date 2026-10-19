@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore_core/notelore_core.dart' show HttpError, SignInFailed;
 
 import 'app_test.dart' show connect, phone, pumpApp;
 import 'support.dart';
@@ -65,7 +66,78 @@ void main() {
     expect(find.text("Notelore notifies you on this device at a reminder's time."), findsOneWidget);
   });
 
-  testWidgets('settings: a device that cannot notify shows no reminders card', (tester) async {
+  testWidgets('settings: Add to Google Calendar, then Google reminds on every device (#432)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness()..reminders.allowed = false;
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await openReminders(tester);
+    expect(find.text('Allow notifications'), findsOneWidget);
+    await tester.tap(find.text('Add to Google Calendar'));
+    await tester.pumpAndSettle();
+    expect(harness.calendarAuth.granted, isTrue);
+    expect(
+      find.text(
+        'Google Calendar reminds you on every device. Notelore sends no notifications of its own.',
+      ),
+      findsOneWidget,
+    );
+    // Google reminds: this device's permission is beside the point now.
+    expect(find.text('Allow notifications'), findsNothing);
+  });
+
+  testWidgets('settings: on through another device, this one offers its own sign-in', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    session.calendar = true; // as the shared settings bring it
+    await session.refreshReminders();
+    await openReminders(tester);
+    expect(find.textContaining('set up on another device'), findsOneWidget);
+    await tester.tap(find.text('Sign in to Google Calendar'));
+    await tester.pumpAndSettle();
+    expect(harness.calendarAuth.granted, isTrue);
+    expect(find.text('Sign in to Google Calendar'), findsNothing);
+  });
+
+  testWidgets('settings: a calendar that cannot be updated says it tries again', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await openReminders(tester);
+    await tester.tap(find.text('Add to Google Calendar'));
+    await tester.pumpAndSettle();
+    harness.calendar.fail = const HttpError(403, 'Calendar API has not been used');
+    await session.refreshReminders();
+    await tester.pumpAndSettle();
+    expect(
+      find.text("Couldn't update Google Calendar. Notelore tries again later."),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('settings: a refused calendar sign-in says why, and stays off', (tester) async {
+    phone(tester);
+    final harness = Harness()..calendarAuth.failSignIn = const SignInFailed('access_denied');
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await openReminders(tester);
+    await tester.tap(find.text('Add to Google Calendar'));
+    await tester.pumpAndSettle();
+    expect(find.text("Couldn't sign in to Google Calendar. Try again."), findsOneWidget);
+    expect(find.textContaining('access_denied'), findsNothing); // no raw error text
+    expect(find.text("Notelore notifies you on this device at a reminder's time."), findsOneWidget);
+  });
+
+  testWidgets('settings: a device that cannot notify offers nothing of its own notifications', (
+    tester,
+  ) async {
     phone(tester);
     final harness = Harness()..reminders.fail = Exception('no notifications here');
     await pumpApp(tester, harness);

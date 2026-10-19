@@ -4,6 +4,7 @@
 library;
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
@@ -34,19 +35,20 @@ List<DueReminder> upcomingReminders(String root, {required DateTime now}) {
   final due = <DueReminder>[];
   for (final folder in kinds.values) {
     for (final file in markdownFiles(p.join(root, folder))) {
-      final Note note;
-      try {
-        note = readNote(file.path);
-      } on NotANote {
-        continue;
-      }
+      final note = _readable(file.path);
+      if (note == null) continue;
       final rel = p.posix.joinAll(p.split(p.relative(file.path, from: root)));
       for (final reminder
           in note.section('reminders')?.entries.whereType<Reminder>() ?? const <Reminder>[]) {
         final at = _at(reminder);
         if (at.isAfter(now)) {
           due.add(
-            DueReminder(_id('$rel\n${reminder.render()}'), at, note.title, _flat(reminder.text)),
+            DueReminder(
+              stableId('$rel\n${reminder.render()}'),
+              at,
+              note.title,
+              _flat(reminder.text),
+            ),
           );
         }
       }
@@ -56,14 +58,27 @@ List<DueReminder> upcomingReminders(String root, {required DateTime now}) {
   return due.take(maxScheduledReminders).toList();
 }
 
+/// The note at [path], or null when it is none or cannot be read (not UTF-8,
+/// held by another app): the other notes still count.
+Note? _readable(String path) {
+  try {
+    return readNote(path);
+  } on NotANote {
+    return null;
+  } on FileSystemException {
+    return null;
+  }
+}
+
 DateTime _at(Reminder reminder) {
   final [hour, minute] = (reminder.time ?? '$_morning:00').split(':').map(int.parse).toList();
   final day = reminder.date;
   return DateTime(day.year, day.month, day.day, hour, minute);
 }
 
-/// FNV-1a over the UTF-8 bytes, kept to 31 bits: a platform's positive int32.
-int _id(String key) {
+/// FNV-1a over the UTF-8 bytes, kept to 31 bits: a platform's positive int32,
+/// the same on every device and run.
+int stableId(String key) {
   var hash = 0x811c9dc5;
   for (final byte in utf8.encode(key)) {
     hash = ((hash ^ byte) * 0x01000193) & 0xffffffff;

@@ -28,13 +28,47 @@ DriveAuth? driveAuthFor({
   String clientId = _clientId,
   String clientSecret = _clientSecret,
   String webClientId = _webClientId,
-}) {
-  if (mobile) return webClientId.isEmpty ? null : GoogleSignInAuth(serverClientId: webClientId);
-  if (clientId.isEmpty) return null;
-  final name = '$keySpace.google.refresh_token';
+}) => _googleAuth(driveScope, 'google', mobile, keys, keySpace, (
+  id: clientId,
+  secret: clientSecret,
+  web: webClientId,
+));
+
+/// The calendar's own grant (#432): its own scope and refresh token, so
+/// turning it on or off never touches Drive's.
+OAuthSignIn? calendarAuthFor({
+  required bool mobile,
+  required FlutterSecureStorage keys,
+  required String keySpace,
+  String clientId = _clientId,
+  String clientSecret = _clientSecret,
+  String webClientId = _webClientId,
+}) => _googleAuth(calendarScope, 'google.calendar', mobile, keys, keySpace, (
+  id: clientId,
+  secret: clientSecret,
+  web: webClientId,
+));
+
+/// The OAuth clients this build was made with.
+typedef _Clients = ({String id, String secret, String web});
+
+OAuthSignIn? _googleAuth(
+  String scope,
+  String keyName,
+  bool mobile,
+  FlutterSecureStorage keys,
+  String keySpace,
+  _Clients clients,
+) {
+  if (mobile) {
+    return clients.web.isEmpty ? null : GoogleSignInAuth(serverClientId: clients.web, scope: scope);
+  }
+  if (clients.id.isEmpty) return null;
+  final name = '$keySpace.$keyName.refresh_token';
   return LoopbackAuth(
-    clientId: clientId,
-    clientSecret: clientSecret,
+    scope: scope,
+    clientId: clients.id,
+    clientSecret: clients.secret,
     openBrowser: (url) => launchUrl(url, mode: LaunchMode.externalApplication),
     readRefreshToken: () => keys.read(key: name),
     saveRefreshToken: (token) =>
@@ -118,10 +152,15 @@ Future<void> _inFront() {
 /// Drive access through the google_sign_in plugin. The plugin keeps the grant;
 /// tokens are asked for silently and only [signIn] may show a sheet.
 class GoogleSignInAuth implements DriveAuth {
-  GoogleSignInAuth({required this.serverClientId});
+  GoogleSignInAuth({required this.serverClientId, this.scope = driveScope});
 
   final String serverClientId;
-  Future<void>? _initialized;
+
+  /// What it grants: Drive by default; the calendar has its own (#432).
+  final String scope;
+
+  /// Once per app: Drive's and the calendar's sign-ins share the plugin.
+  static Future<void>? _initialized;
 
   Future<GoogleSignInAuthorizationClient> _client() async {
     await (_initialized ??= GoogleSignIn.instance.initialize(serverClientId: serverClientId));
@@ -131,13 +170,12 @@ class GoogleSignInAuth implements DriveAuth {
   String? _last;
 
   @override
-  Future<bool> signedIn() async =>
-      await (await _client()).authorizationForScopes(const [driveScope]) != null;
+  Future<bool> signedIn() async => await (await _client()).authorizationForScopes([scope]) != null;
 
   @override
   Future<void> signIn() async {
     try {
-      await (await _client()).authorizeScopes(const [driveScope]);
+      await (await _client()).authorizeScopes([scope]);
     } on GoogleSignInException catch (error) {
       throw SignInFailed(error.description ?? error.code.name);
     }
@@ -147,14 +185,21 @@ class GoogleSignInAuth implements DriveAuth {
   Future<String> token({bool refresh = false}) async {
     final client = await _client();
     if (refresh && _last != null) await client.clearAuthorizationToken(accessToken: _last!);
-    final authorization = await client.authorizationForScopes(const [driveScope]);
+    final authorization = await client.authorizationForScopes([scope]);
     if (authorization == null) throw const NotSignedIn();
     return _last = authorization.accessToken;
   }
 
   @override
   Future<void> signOut() async {
-    await _client();
+    final client = await _client();
+    if (scope != driveScope) {
+      // The plugin can only disconnect the whole account, which would take
+      // Drive too: the calendar drops its token here, and its grant stays
+      // with Google until the user removes it in their account settings.
+      if (_last case final token?) await client.clearAuthorizationToken(accessToken: token);
+      return;
+    }
     await GoogleSignIn.instance.disconnect(); // revokes the grant, not just this device
   }
 }

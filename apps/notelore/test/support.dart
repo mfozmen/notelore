@@ -124,6 +124,10 @@ class Harness {
   /// The device's notifications for reminders (#431).
   final reminders = FakeReminders();
 
+  /// The Google Calendar grant and the calendar it reaches (#432).
+  final calendarAuth = FakeAuth();
+  final calendar = FakeCalendar();
+
   /// The device's own lock (#295): it answers as a test tells it.
   final deviceAuth = FakeDeviceAuth();
   final files = FakeFileSelector();
@@ -217,10 +221,13 @@ class Harness {
     Duration retryEvery = const Duration(hours: 1), // tests try again by hand
     void Function(String entry)? timing,
     bool reminders = true,
+    bool calendar = true,
   }) {
     final session = Session(
       paths,
       reminders: reminders ? this.reminders : null,
+      calendarAuth: calendar ? calendarAuth : null,
+      calendarFor: (_) => this.calendar,
       timing: timing,
       retryEvery: retryEvery,
       systemLanguage: systemLanguage,
@@ -492,6 +499,40 @@ class FakeFileSelector extends FileSelectorPlatform with MockPlatformInterfaceMi
 }
 
 /// The app kept out of the system's freezer (#409): what was asked, in order.
+/// Notelore's Google calendar, in memory: its id and its coming events.
+class FakeCalendar implements ReminderCalendar {
+  String? id;
+  final events = <int, String>{};
+  var made = 0;
+  var cleared = 0;
+
+  /// Thrown by every call while set.
+  Exception? fail;
+
+  @override
+  Future<String> calendarId(String? known) async {
+    if (fail case final error?) throw error;
+    if (known != null && known == id) return known;
+    events.clear();
+    return id = 'cal${++made}';
+  }
+
+  @override
+  Future<void> sync(String calendarId, List<DueReminder> due, {required DateTime now}) async {
+    if (fail case final error?) throw error;
+    events
+      ..clear()
+      ..addAll({for (final reminder in due) reminder.id: reminder.text});
+  }
+
+  @override
+  Future<void> clear(String calendarId, {required DateTime now}) async {
+    if (fail case final error?) throw error;
+    cleared++;
+    events.clear();
+  }
+}
+
 /// A device's notifications: what is pending, by id, and what was asked.
 class FakeReminders implements ReminderNotifier {
   final pending = <int, String>{};
