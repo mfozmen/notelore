@@ -313,7 +313,7 @@ class UsageMeter {
     _save(_turnsFile, {'total': _turns.total, 'days': _turns.days});
   }
 
-  /// The local dates of [range], newest last; all time is the days kept.
+  /// The last [n] local dates, newest last.
   List<DateTime> _dates(int n) {
     final now = _today();
     return [for (var i = n - 1; i >= 0; i--) DateTime(now.year, now.month, now.day - i)];
