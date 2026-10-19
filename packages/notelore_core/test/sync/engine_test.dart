@@ -176,10 +176,12 @@ void main() {
     drive.put('projects/a.md', '$note- [ ] 2026-10-01: local\n- [ ] 2026-10-02: remote\n');
     expect((await run()).pulled, ['projects/a.md']);
     expect(readRel('projects/a.md'), endsWith('- [ ] 2026-10-02: remote\n'));
-    expect(File(p.join(root, '.notelore', 'history')).existsSync(), isFalse); // nothing lost
+    expect(Directory(p.join(root, '.notelore', 'kept')).existsSync(), isFalse); // nothing lost
   });
 
-  group('a pull that would lose lines keeps this copy in history (#456)', () {
+  group('a pull that would lose lines keeps this copy on the device (#456)', () {
+    const kept = '.notelore/kept/$stamp/projects/a.md';
+
     test("Drive's copy without lines this one has", () async {
       write('projects/a.md', '$note- 2026-09-02: two\n');
       await run();
@@ -187,16 +189,49 @@ void main() {
       drive.put('projects/a.md', '---\ntitle: T\nupdated: 2026-09-01\n---\n# T\n');
       final report = await run();
       expect(report.pulled, ['projects/a.md']);
-      expect(report.history, ['.notelore/history/$stamp/projects/a.md']);
-      expect(readRel('.notelore/history/$stamp/projects/a.md'), '$note- 2026-09-02: two\n');
+      expect(report.history, [kept]);
+      expect(readRel(kept), '$note- 2026-09-02: two\n');
       expect(readRel('projects/a.md'), isNot(contains('two')));
+      // On this device only: never sent to Drive, so routine edits do not pile up there.
+      expect((await run()).changed, 0);
+      expect(drive.files.keys.where((rel) => rel.contains('kept')), isEmpty);
     });
 
-    test('a changed front matter alone loses nothing', () async {
-      write('projects/a.md', note);
+    test('one of two equal lines gone, or a front matter key, is a loss', () async {
+      write(
+        'projects/a.md',
+        '$note- [ ] 2026-09-02: call the bank\n- [ ] 2026-09-02: call the bank\n',
+      );
+      await run();
+      drive.put('projects/a.md', '$note- [ ] 2026-09-02: call the bank\n');
+      expect((await run()).history, [kept]);
+      write('topics/t.md', note);
+      await run();
+      drive.put('topics/t.md', note.replaceFirst('title: T', 'title: Other'));
+      expect((await run()).history.single, endsWith('topics/t.md'));
+    });
+
+    test('a changed updated date, line endings or Unicode form lose nothing', () async {
+      write('projects/a.md', note.replaceAll('\n', '\r\n'));
       await run();
       drive.put('projects/a.md', note.replaceFirst('updated: 2026-09-01', 'updated: 2026-10-01'));
       expect((await run()).history, isEmpty);
+      write('topics/cafe.md', '${unorm.nfd(note.replaceFirst('# T', '# Café'))}- 2026-09-02: x\n');
+      await run();
+      drive.put('topics/cafe.md', '${note.replaceFirst('# T', '# Café')}- 2026-09-02: x\n- y\n');
+      expect((await run()).history, isEmpty);
+    });
+
+    test('a second copy in the same second keeps the first', () async {
+      write('projects/a.md', '$note- 2026-09-02: one\n');
+      await run();
+      drive.put('projects/a.md', note);
+      await run();
+      write('projects/a.md', '$note- 2026-09-02: two\n');
+      await run();
+      drive.put('projects/a.md', note);
+      expect((await run()).history, ['.notelore/kept/$stamp-2/projects/a.md']);
+      expect(readRel(kept), contains('one'));
     });
 
     test('an attachment Drive changed keeps the bytes it replaces', () async {
@@ -206,11 +241,11 @@ void main() {
       await run();
       drive.putBytes('attachments/2026-10-18/memo.m4a', [3]);
       final report = await run();
-      expect(report.history, ['.notelore/history/$stamp/attachments/2026-10-18/memo.m4a']);
-      expect(
-        File(at('.notelore/history/$stamp/attachments/2026-10-18/memo.m4a')).readAsBytesSync(),
-        [1, 2],
-      );
+      expect(report.history, ['.notelore/kept/$stamp/attachments/2026-10-18/memo.m4a']);
+      expect(File(at('.notelore/kept/$stamp/attachments/2026-10-18/memo.m4a')).readAsBytesSync(), [
+        1,
+        2,
+      ]);
       expect(File(at('attachments/2026-10-18/memo.m4a')).readAsBytesSync(), [3]);
     });
   });

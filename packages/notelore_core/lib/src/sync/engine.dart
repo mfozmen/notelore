@@ -165,11 +165,15 @@ bool _safe(String rel) {
 String _relOf(String root, String path) =>
     unorm.nfc(p.split(p.relative(path, from: root)).join('/'));
 
+/// Where a pull keeps the copy it replaced (#456): on this device only.
+const keptFolder = '.notelore/kept';
+
 /// Notes, and the originals kept beside them (#279); nothing else in the folder,
-/// nor a write's temp file left by a crash (a dot file).
+/// nor a write's temp file left by a crash (a dot file), nor what a pull kept.
 bool _synced(String rel) =>
-    rel.endsWith('.md') ||
-    (rel.startsWith('$attachmentsFolder/') && !rel.split('/').last.startsWith('.'));
+    !rel.startsWith('$keptFolder/') &&
+    (rel.endsWith('.md') ||
+        (rel.startsWith('$attachmentsFolder/') && !rel.split('/').last.startsWith('.')));
 
 class _Pass {
   _Pass(
@@ -231,7 +235,9 @@ class _Pass {
         report.pushed.add(rel);
       case SyncAction.pull:
         if (!_unchanged(path, localText)) return report.skipped.add(rel);
-        if (localText != null && _loses(localText, remoteText!)) _keepCopy(rel, path);
+        if (localText != null && _loses(localText, remoteText!)) {
+          _keepCopy(rel, utf8.encode(localText));
+        }
         atomicWrite(path, remoteText!);
         _record(rel, meta!, remoteText);
         report.pulled.add(rel);
@@ -273,7 +279,7 @@ class _Pass {
         manifest.record(rel, recorded(uploaded, localHash!));
         report.pushed.add(rel);
       case SyncAction.pull:
-        if (local != null) _keepCopy(rel, path); // bytes cannot tell a loss: always kept
+        if (local != null) _keepCopy(rel, local); // bytes cannot tell a loss: always kept
         _take(rel, path, meta!, downloaded!, recorded(meta, remoteHash!));
       case SyncAction.merge:
         // Changed here too: this copy is kept apart before Drive's replaces it.
@@ -315,26 +321,36 @@ class _Pass {
       ..history.add(_rel(target));
   }
 
-  /// Copies the file here to history before Drive's copy replaces it (#456):
-  /// a damaged remote, or a buggy client, never takes the last good copy.
-  void _keepCopy(String rel, String path) {
-    final target = _history(rel);
-    Directory(p.dirname(target)).createSync(recursive: true);
-    File(path).copySync(target);
+  /// Keeps [bytes], what is here, under `.notelore/kept/` before Drive's copy
+  /// replaces it (#456): a damaged remote, or a buggy client, never takes the
+  /// last good copy. On this device only (never synced): every device that
+  /// had the lines keeps its own, and routine edits do not pile up on Drive.
+  void _keepCopy(String rel, List<int> bytes) {
+    var target = _path(rel, p.join(root, keptFolder, stamp));
+    // Two passes in one second: the first copy stays too.
+    for (var n = 2; File(target).existsSync(); n++) {
+      target = _path(rel, p.join(root, keptFolder, '$stamp-$n'));
+    }
+    atomicWriteBytes(target, bytes);
     report.history.add(_rel(target));
   }
 
-  /// Whether [remote] lacks a line of [local]'s body: a pull that only adds
-  /// (the usual edit, another device's entry) loses nothing and keeps no copy.
-  /// The front matter does not count: its updated date changes every time.
+  /// Whether [remote] lacks a line of [local] (counting repeats): a pull that
+  /// only adds (another device's entry, the usual edit) loses nothing and keeps
+  /// no copy. The updated date does not count: it changes every time.
   static bool _loses(String local, String remote) {
-    final there = splitLines(remote).toSet();
-    return splitLines(_body(local)).any((line) => line.trim().isNotEmpty && !there.contains(line));
-  }
-
-  static String _body(String text) {
-    final end = text.startsWith('---\n') ? text.indexOf('\n---\n', 3) : -1;
-    return end < 0 ? text : text.substring(end + 5);
+    List<String> lines(String text) => splitLines(unorm.nfc(text.replaceAll('\r\n', '\n')));
+    final there = <String, int>{};
+    for (final line in lines(remote)) {
+      there.update(line, (n) => n + 1, ifAbsent: () => 1);
+    }
+    for (final line in lines(local)) {
+      if (line.trim().isEmpty || line.startsWith('updated:')) continue;
+      final left = there[line] ?? 0;
+      if (left == 0) return true;
+      there[line] = left - 1;
+    }
+    return false;
   }
 
   /// Drive's copy of an attachment, written here and recorded.
