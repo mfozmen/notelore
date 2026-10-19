@@ -59,6 +59,7 @@ class EvalCase {
       message = json['message']! as String,
       notes = ((json['notes'] as Map?) ?? shared).cast<String, String>(),
       failFirstCall = json['fail_first_call'] == true,
+      search = (json['search'] as List?)?.cast<String>(),
       expect = Expectation.fromJson((json['expect']! as Map).cast());
 
   final String id;
@@ -72,6 +73,15 @@ class EvalCase {
   /// The turn's first tool call gets an error: the model must fix it and go
   /// on, in the user's language, never hand the error to the user (#474).
   final bool failFirstCall;
+
+  /// What a web search finds in this case's world (#478): the model gets a
+  /// `web_search` that answers with it, as a provider with search would, but
+  /// the same every run and on the eval's own day. Run only where the provider
+  /// can search ([runsWith]).
+  final List<String>? search;
+
+  /// Whether this case means anything for a provider that can [search] or not.
+  bool runsWith({required bool search}) => search || this.search == null;
   final Expectation expect;
 }
 
@@ -129,9 +139,11 @@ Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider, {bool slim =
     final before = _files(root);
     final agent = Agent(
       provider,
-      evalCase.failFirstCall
-          ? _FailsOnce(root, index, today: evalToday)
-          : Toolbox(root, index, today: evalToday),
+      switch (evalCase) {
+        EvalCase(failFirstCall: true) => _FailsOnce(root, index, today: evalToday),
+        EvalCase(search: final found?) => _Searches(root, index, found, today: evalToday),
+        _ => Toolbox(root, index, today: evalToday),
+      },
       today: evalNow,
       slim: slim,
     );
@@ -184,6 +196,28 @@ class _FailsOnce extends Toolbox {
     _failed = true;
     return 'Error: $name could not run this time. Call it again.';
   }
+}
+
+/// A toolbox with the web search a case's world answers ([EvalCase.search]).
+class _Searches extends Toolbox {
+  _Searches(super.root, super.index, this.found, {super.today});
+
+  final List<String> found;
+
+  static const _search = Tool('web_search', 'Search the web: the results as text.', {
+    'type': 'object',
+    'properties': {
+      'query': {'type': 'string'},
+    },
+    'required': ['query'],
+  });
+
+  @override
+  List<Tool> get tools => [...super.tools, _search];
+
+  @override
+  String call(String name, Map<String, Object?> args) =>
+      name == _search.name ? found.join('\n') : super.call(name, args);
 }
 
 /// The error a case injects ([EvalCase.failFirstCall]), which no real tool

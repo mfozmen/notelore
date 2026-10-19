@@ -412,6 +412,19 @@ void main() {
     expect(prompt, contains('If no open todo matches, add a dated entry'));
   });
 
+  test('a plan the user states becomes a reminder, never a question first (#478)', () {
+    // "haftaya fenerbahçe galatasaray maçını izleyeceğim" was only a note entry.
+    for (final prompt in [systemPrompt(today), slimSystemPrompt(today)]) {
+      expect(prompt, contains('a plan'));
+      expect(prompt, contains('add_reminder'));
+      expect(prompt, contains('whole day'));
+      expect(prompt, contains('without asking first'));
+    }
+    // Only a model that can search the web looks a public event's time up.
+    expect(systemPrompt(today), contains("a public event's date and time"));
+    expect(slimSystemPrompt(today), isNot(contains('search the web')));
+  });
+
   test('after a tool error the model fixes the call and goes on, in the user language', () {
     // v3: a failed related_notes ended in English, naming the tool, asking the
     // user what to do (#474).

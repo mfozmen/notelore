@@ -130,6 +130,7 @@ Future<int> runDev(
           out,
           keep: keep,
           slim: slim,
+          search: findProvider(options['provider'] ?? 'chatgpt').webSearch,
         );
       default:
         await _chat(message, options, environment, paths, auth, traced, out);
@@ -195,6 +196,7 @@ Future<void> _eval(
   StringSink out, {
   File? keep,
   bool slim = false,
+  bool search = false,
 }) async {
   if (!cases.existsSync()) throw StateError('no cases file at ${cases.path}');
   final provider = await open();
@@ -203,7 +205,7 @@ Future<void> _eval(
   final results = <EvalResult>[];
   // Per case: null when it failed, the reasons it was left out, or none when kept.
   final outcomes = <Set<TrainingIssue>?>[];
-  for (final evalCase in loadCases(cases.readAsStringSync())) {
+  for (final evalCase in _runnable(loadCases(cases.readAsStringSync()), search, out)) {
     if (finished.contains(evalCase.id)) continue;
     final result = await runCase(evalCase, provider, slim: slim);
     results.add(result);
@@ -224,6 +226,18 @@ Future<void> _eval(
     'repeated calls: ${count(TrainingIssue.repeatedCall)}; '
     'counts may overlap)',
   );
+}
+
+/// The cases that mean something for a provider that can [search] or not: a
+/// case that needs web search is left out where there is none (#478), and
+/// [out] says how many.
+List<EvalCase> _runnable(List<EvalCase> all, bool search, StringSink out) {
+  final runnable = all.where((c) => c.runsWith(search: search)).toList();
+  final left = all.length - runnable.length;
+  if (left > 0) {
+    out.writeln('left out $left ${left == 1 ? 'case that needs' : 'cases that need'} web search');
+  }
+  return runnable;
 }
 
 /// The case ids [done] marks finished (`<id>`, or `<id>\tkept` when it kept a
