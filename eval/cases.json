@@ -526,6 +526,26 @@
    }
   },
   {
+   "id": "rem-tr-title",
+   "kind": "reminder",
+   "lang": "tr",
+   "message": "Yarın akşam 21.30'da Fenerbahçe–Galatasaray maçını izleyeceğim, hatırlat.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2026-10-19 21:30",
+      "Galatasaray"
+     ]
+    },
+    "lines_not": [
+     "^- \\d{4}-\\d\\d-\\d\\d \\d\\d:\\d\\d: (.{50,}|.*\\d[.:]\\d\\d)"
+    ]
+   }
+  },
+  {
    "id": "coll-tr-empty",
    "kind": "collection",
    "lang": "tr",
@@ -567,7 +587,7 @@
    "message": "haftaya fenerbahçe galatasaray maçını izleyeceğim",
    "notes": {},
    "search": [
-    "Süper Lig 10. hafta: Fenerbahçe - Galatasaray, 25 Ekim 2026 Pazar, saat 20:00, Ülker Stadyumu."
+    "Süper Lig 10. hafta: Galatasaray - Fenerbahçe, 25 Ekim 2026 Pazar, saat 20:00, RAMS Park."
    ],
    "expect": {
     "tools": [
@@ -578,6 +598,9 @@
       "2026-10-25 20:00"
      ]
     },
+    "lines_not": [
+     "^- 2026-10-25 20:00: (.{50,}|.*\\d[.:]\\d\\d|.*Fenerbahçe.*Galatasaray)"
+    ],
     "answer": [
      "20:00"
     ]
