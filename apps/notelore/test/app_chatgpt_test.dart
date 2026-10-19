@@ -47,9 +47,9 @@ void main() {
     expect(find.text("You're using your ChatGPT plan"), findsNothing);
     // In the model chip, as OpenAI's guidelines allow; no button beside the
     // composer while the person writes (#507). The link is in the chip's menu.
-    expect(find.textContaining('Using ChatGPT plan · '), findsOneWidget);
+    expect(find.textContaining(' · Using ChatGPT plan'), findsOneWidget);
     expect(find.text('Manage usage'), findsNothing);
-    await tester.tap(find.textContaining('Using ChatGPT plan · '));
+    await tester.tap(find.textContaining(' · Using ChatGPT plan'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Manage usage'));
     await tester.pumpAndSettle();

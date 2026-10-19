@@ -474,18 +474,23 @@ class _ModelBar extends StatelessWidget {
             const PopupMenuDivider(),
             PopupMenuItem(
               value: _manageUsage,
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.open_in_new),
-                title: Text(s.manageUsage),
+              // As tall as a model's row, its label on the same edge.
+              child: Row(
+                children: [
+                  Expanded(child: Text(s.manageUsage)),
+                  const Icon(Icons.open_in_new, size: 18),
+                ],
               ),
             ),
           ],
         ],
         child: Chip(
           avatar: const Icon(Icons.auto_awesome_outlined, size: 16),
+          // The model first: a narrow chip cuts the plan's words, not its name.
           label: Text(
-            plan ? '${s.usingChatGptPlan} · ${session.model ?? ''}' : session.model ?? '',
+            plan ? '${session.model ?? ''} · ${s.usingChatGptPlan}' : session.model ?? '',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           visualDensity: VisualDensity.compact,
         ),

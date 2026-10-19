@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'calendar.dart';
 import 'chat.dart';
 import 'lock.dart';
+import 'mark.dart';
 import 'notes.dart';
 import 'session.dart';
 import 'settings.dart';
@@ -419,26 +420,31 @@ class _Menu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = session.strings;
-    // ListTiles, not NavigationDrawerDestination: a long label at a large
-    // text size wraps instead of overflowing.
+    final theme = Theme.of(context);
     return Drawer(
       child: SafeArea(
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: Gap.s),
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Gap.l, Gap.m, Gap.m, Gap.s),
-              child: Text(s.settings, style: Theme.of(context).textTheme.titleSmall),
+            // The app's own menu, not a hidden list: its mark and name first.
+            ListTile(
+              leading: const NoteloreMark(size: 32, badge: false),
+              title: Text('Notelore', style: theme.textTheme.titleLarge),
             ),
-            for (final section in SettingsSection.of(session))
-              ListTile(
-                leading: Icon(section.icon),
-                title: Text(section.title(s)),
-                onTap: () {
-                  Scaffold.of(context).closeDrawer();
-                  open(section);
-                },
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, Gap.xs),
+              child: Text(
+                s.settings,
+                style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
               ),
+            ),
+            SettingsCategories(
+              session,
+              open: (section) {
+                Scaffold.of(context).closeDrawer();
+                open(section);
+              },
+            ),
           ],
         ),
       ),

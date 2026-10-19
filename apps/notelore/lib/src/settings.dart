@@ -150,28 +150,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 shown: _section.clamp(0, sections.length - 1),
                 show: (index) => setState(() => _section = index),
               )
-            // A narrow window: the same categories, each on its own page.
+            // A narrow window: the same categories as the phone's menu.
             : ListView(
                 padding: const EdgeInsets.symmetric(vertical: Gap.s),
                 children: [
-                  for (final section in sections)
-                    ListTile(
-                      leading: Icon(section.icon),
-                      title: Text(section.title(s)),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => openSettingsSection(
-                        context,
-                        session,
-                        section,
-                        version: widget.version,
-                        checkForUpdates: widget.checkForUpdates,
-                      ),
+                  SettingsCategories(
+                    session,
+                    open: (section) => openSettingsSection(
+                      context,
+                      session,
+                      section,
+                      version: widget.version,
+                      checkForUpdates: widget.checkForUpdates,
                     ),
+                  ),
                 ],
               ),
       ),
     );
   }
+}
+
+/// Settings' categories as a list, each opening its own page: the phone's
+/// menu and a narrow Settings screen. ListTiles, so a long label at a large
+/// text size wraps instead of overflowing.
+class SettingsCategories extends StatelessWidget {
+  const SettingsCategories(this.session, {required this.open, super.key});
+
+  final Session session;
+  final ValueChanged<SettingsSection> open;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      for (final section in SettingsSection.of(session))
+        ListTile(
+          leading: Icon(section.icon),
+          title: Text(section.title(session.strings)),
+          onTap: () => open(section),
+        ),
+    ],
+  );
 }
 
 /// Opens [section] of Settings on its own page, as a phone shows it.
