@@ -1,12 +1,11 @@
-; The Windows setup (Inno Setup 6). It asks: for all users (the default; admin rights, into
-; Program Files) or only for me (no admin rights, %LOCALAPPDATA%\Programs\Notelore).
+; The Windows setup (Inno Setup 6). Notelore is one person's app: it installs for
+; the signed-in user only (%LOCALAPPDATA%\Programs\Notelore), never needing admin
+; rights; /ALLUSERS on the command line still installs for everyone (#493).
 ; The release workflow builds it with
 ;   iscc /DAppVersion=1.2.3 /DSourceDir=<flutter Release folder> /O<out> /F<name> notelore.iss
-; The in-app updater runs it with /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
-; /DIR=<the current folder>, after which it starts the app again. It keeps the
-; earlier install's choice (UsePreviousPrivileges), so an all-users install
-; updates after a UAC prompt.
-; Notes in ~/Notelore are never touched, not even by the uninstaller.
+; The in-app updater runs it with /VERYSILENT /SUPPRESSMSGBOXES /NORESTART, after
+; which it starts the app again. An earlier all-users copy is removed after one
+; UAC prompt. The notes, in the user's app data, are never touched.
 
 #ifndef AppVersion
   #define AppVersion "0.0.0"
@@ -25,10 +24,11 @@ AppPublisherURL=https://github.com/mfozmen/notelore
 ; {autopf}: Program Files for all users, %LOCALAPPDATA%\Programs for one.
 DefaultDirName={autopf}\Notelore
 DisableProgramGroupPage=yes
-; Default: all users. "Only for me" stays one click away, and an update keeps
-; whichever the earlier install chose (UsePreviousPrivileges).
-PrivilegesRequired=admin
-PrivilegesRequiredOverridesAllowed=dialog commandline
+; One person's app: no admin, for the signed-in user; an update never keeps an
+; earlier all-users choice (#493).
+PrivilegesRequired=lowest
+PrivilegesRequiredOverridesAllowed=commandline
+UsePreviousPrivileges=no
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayIcon={app}\notelore.exe
@@ -68,6 +68,28 @@ Filename: "{app}\notelore.exe"; Description: "{cm:LaunchProgram,Notelore}"; Flag
 Filename: "{app}\notelore.exe"; Flags: nowait runasoriginaluser; Check: LaunchAfterSilentInstall
 
 [Code]
+const
+  AllUsersKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{8F3C2A51-6E2B-4D7A-9C1E-5B0A7D3E9F42}_is1';
+
+// An earlier all-users copy goes once this per-user one is in, after one UAC
+// prompt; declined, it stays. Only an uninstaller in Program Files is run
+// elevated: one in a folder the user can write to could be anything.
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  Uninstaller: String;
+  Code: Integer;
+begin
+  if (CurStep <> ssPostInstall) or IsAdminInstallMode or
+     not RegQueryStringValue(HKLM, AllUsersKey, 'UninstallString', Uninstaller) then
+    Exit;
+  Uninstaller := RemoveQuotes(Uninstaller);
+  if Pos(Lowercase(AddBackslash(ExpandConstant('{commonpf64}'))), Lowercase(Uninstaller)) <> 1 then
+    Log('All-users copy left: its uninstaller is outside Program Files: ' + Uninstaller)
+  else if not ShellExec('runas', Uninstaller, '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART', '',
+                        SW_HIDE, ewWaitUntilTerminated, Code) then
+    Log('All-users copy left: ' + SysErrorMessage(Code));
+end;
+
 // /NOLAUNCH: a silent install that does not start the app (CI's install check).
 function LaunchAfterSilentInstall(): Boolean;
 var

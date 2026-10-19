@@ -187,7 +187,7 @@ void main() {
       ...download('notelore-app-$v-windows-x64-setup.exe', setup),
     };
 
-    test('download and verify the setup, then run it silently into this folder', () async {
+    test('download and verify the setup, then run it silently for this user (#493)', () async {
       final u = updater(good());
       expect(await u.apply(), v);
       expect(read(p.join(install, 'notelore.exe')), 'old exe'); // the setup replaces it
@@ -195,7 +195,7 @@ void main() {
       final [exe, ...args] = spawned.single;
       expect(File(exe).readAsBytesSync(), setup);
       expect(p.basename(exe), 'notelore-app-$v-windows-x64-setup.exe');
-      expect(args, ['/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/DIR=$install']);
+      expect(args, ['/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART']);
     });
 
     test('the download stays in its own temp folder, safe from another cleanup (#330)', () async {

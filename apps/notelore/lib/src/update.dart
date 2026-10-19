@@ -330,8 +330,8 @@ class Updater {
 
   /// Starts the new version; the caller then exits, except on Android, where
   /// the installer takes over (and cancelling it leaves this app running). On
-  /// Windows that is the setup, silent, into this app's folder; it starts the
-  /// app when done. Throws [InstallNotAllowed] on Android until allowed.
+  /// Windows that is the setup, silent, for this user; it starts the app when
+  /// done. Throws [InstallNotAllowed] on Android until allowed.
   Future<void> relaunch() async {
     if (system == 'android') {
       if (!await openInstaller(_setup!)) throw const InstallNotAllowed();
@@ -345,7 +345,8 @@ class Updater {
       '/VERYSILENT',
       '/SUPPRESSMSGBOXES',
       '/NORESTART',
-      '/DIR=$_installed',
+      // No /DIR: the setup installs for this user, where it was before or by
+      // default, and moves an all-users copy out of Program Files (#493).
     ]),
     _ => spawn(executable, const []),
   };
