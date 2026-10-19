@@ -445,44 +445,50 @@ class _ModelBar extends StatelessWidget {
   final Session session;
   final GlobalKey<PopupMenuButtonState<String>> menu;
 
+  /// The model menu's item that opens the plan's usage page.
+  static const _manageUsage = '#manage-usage';
+
   @override
   Widget build(BuildContext context) {
     final s = session.strings;
+    final plan = session.spec?.name == 'chatgpt';
     // At the composer's start, so it reads as a setting, not as a line of the chat.
     return Container(
       alignment: AlignmentDirectional.centerStart,
       padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, 0),
-      child: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: Gap.s,
-        children: [
-          // The models the connected provider listed; switching keeps the conversation.
-          PopupMenuButton<String>(
-            key: menu,
-            tooltip: s.changeTheModel,
-            enabled: !session.busy,
-            initialValue: session.model,
-            onSelected: session.setModel,
-            itemBuilder: (_) => [
-              for (final m in {...session.models, ?session.model})
-                PopupMenuItem(value: m, child: Text(m)),
-            ],
-            child: Chip(
-              avatar: const Icon(Icons.auto_awesome_outlined, size: 16),
-              label: Text(session.model ?? ''),
-              visualDensity: VisualDensity.compact,
-            ),
-          ),
-          if (session.spec?.name == 'chatgpt') ...[
-            // OpenAI asks plan-usage apps to show this near the composer.
-            Text(s.usingChatGptPlan),
-            TextButton(
-              onPressed: () =>
-                  launchUrl(Uri.parse(chatGptUsageUrl), mode: LaunchMode.externalApplication),
-              child: Text(s.manageUsage),
+      // The models the connected provider listed; switching keeps the conversation.
+      // On a ChatGPT plan the chip says so and its menu links the plan's usage,
+      // as OpenAI's guidelines ask, with no button by the composer (#507).
+      child: PopupMenuButton<String>(
+        key: menu,
+        tooltip: s.changeTheModel,
+        enabled: !session.busy,
+        initialValue: session.model,
+        onSelected: (choice) => choice == _manageUsage
+            ? launchUrl(Uri.parse(chatGptUsageUrl), mode: LaunchMode.externalApplication)
+            : session.setModel(choice),
+        itemBuilder: (_) => [
+          for (final m in {...session.models, ?session.model})
+            PopupMenuItem(value: m, child: Text(m)),
+          if (plan) ...[
+            const PopupMenuDivider(),
+            PopupMenuItem(
+              value: _manageUsage,
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.open_in_new),
+                title: Text(s.manageUsage),
+              ),
             ),
           ],
         ],
+        child: Chip(
+          avatar: const Icon(Icons.auto_awesome_outlined, size: 16),
+          label: Text(
+            plan ? '${s.usingChatGptPlan} · ${session.model ?? ''}' : session.model ?? '',
+          ),
+          visualDensity: VisualDensity.compact,
+        ),
       ),
     );
   }

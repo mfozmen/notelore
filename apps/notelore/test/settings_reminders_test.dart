@@ -8,14 +8,7 @@ import 'support.dart';
 void main() {
   /// Settings, scrolled to the Reminders card.
   Future<void> openReminders(WidgetTester tester) async {
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Reminders'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
+    await openSettings(tester, 'Reminders');
   }
 
   testWidgets('settings: reminders come as notifications on this device (#431)', (tester) async {
@@ -142,8 +135,7 @@ void main() {
     final harness = Harness()..reminders.fail = Exception('no notifications here');
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await openSettings(tester, 'Reminders');
     expect(find.text('Allow notifications'), findsNothing);
     expect(find.text("Notelore notifies you on this device at a reminder's time."), findsNothing);
   });

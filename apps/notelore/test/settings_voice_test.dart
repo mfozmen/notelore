@@ -10,8 +10,7 @@ import 'support.dart';
 void main() {
   /// Settings, scrolled to the Whisper card.
   Future<void> openVoice(WidgetTester tester) async {
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await openSettings(tester, 'Voice');
     await tester.scrollUntilVisible(
       find.text('Whisper speech recognition'),
       300,

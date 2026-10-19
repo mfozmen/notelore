@@ -10,10 +10,7 @@ import 'app_test.dart' show choose, connect, phone, pumpApp;
 import 'support.dart';
 
 void main() {
-  Future<void> openSettings(WidgetTester tester) async {
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
-  }
+  Future<void> openModel(WidgetTester tester) => openSettings(tester, 'Model');
 
   Finder row(String name) => find.byKey(ValueKey('connection-$name'));
 
@@ -23,7 +20,7 @@ void main() {
     phone(tester);
     final session = await pumpApp(tester, Harness());
     await connect(tester, key: 'sk-ant');
-    await openSettings(tester);
+    await openModel(tester);
     expect(find.text('Connected models'), findsOneWidget);
     expect(row('anthropic'), findsOneWidget);
     // Another model, through the wizard: back in Settings on it.
@@ -67,7 +64,7 @@ void main() {
       phone(tester);
       final session = await pumpApp(tester, Harness(answers: ['Saved.']));
       await connect(tester, key: 'sk-ant');
-      await openSettings(tester);
+      await openModel(tester);
       await tester.tap(find.descendant(of: row('anthropic'), matching: find.byTooltip('Remove')));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
@@ -77,6 +74,8 @@ void main() {
       expect(find.text('Connect another model'), findsOneWidget);
       expect(find.byKey(const Key('model')), findsNothing);
       // The chat asks for a model where the message box was; notes still open.
+      await tester.pageBack(); // the phone's Settings page
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Chat'));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('message')), findsNothing);
@@ -105,7 +104,7 @@ void main() {
     final harness = Harness();
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'sk-ant');
-    await openSettings(tester);
+    await openModel(tester);
     await tester.tap(find.text('Connect another model'));
     await tester.pumpAndSettle();
     await choose(tester, 'GPT (OpenAI)');
@@ -145,7 +144,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Got it'));
     await tester.pumpAndSettle();
-    await openSettings(tester);
+    await openModel(tester);
     await tester.tap(find.text('Connect another model'));
     await tester.pumpAndSettle();
     await choose(tester, 'Claude (Anthropic)');

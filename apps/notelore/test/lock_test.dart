@@ -8,14 +8,7 @@ import 'support.dart';
 
 void main() {
   Future<void> openLock(WidgetTester tester) async {
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('App lock'),
-      300,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.pumpAndSettle();
+    await openSettings(tester, 'App lock');
   }
 
   Future<void> restart(WidgetTester tester, Harness harness) async {
