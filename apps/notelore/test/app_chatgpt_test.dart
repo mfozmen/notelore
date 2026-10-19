@@ -54,6 +54,11 @@ void main() {
     await tester.tap(find.text('Manage usage'));
     await tester.pumpAndSettle();
     expect(launcher.opened, [chatGptUsageUrl]);
+    // And in Settings, beside the model choice (#507).
+    await openSettings(tester, 'Model');
+    await tester.tap(find.text('Manage usage'));
+    await tester.pumpAndSettle();
+    expect(launcher.opened, [chatGptUsageUrl, chatGptUsageUrl]);
   });
 
   for (final language in [AppLanguage.en, AppLanguage.tr]) {

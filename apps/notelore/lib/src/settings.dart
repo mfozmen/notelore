@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
 import 'package:notelore_core/notelore_core.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'lock.dart';
 import 'mark.dart';
@@ -453,6 +454,15 @@ class _ConnectionsState extends State<_Connections> {
             ],
           ),
         ),
+        // OpenAI's guidelines link the plan's usage; here rather than by the composer (#507).
+        if (session.spec?.name == 'chatgpt')
+          ListTile(
+            leading: const Icon(Icons.open_in_new),
+            title: Text(s.manageUsage),
+            subtitle: Text(s.usingChatGptPlan),
+            onTap: () =>
+                launchUrl(Uri.parse(chatGptUsageUrl), mode: LaunchMode.externalApplication),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, Gap.m),
           child: OutlinedButton.icon(

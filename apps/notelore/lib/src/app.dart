@@ -324,7 +324,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         if (widget.session.driveNeedsSignIn && !_signInLater && tab != 3)
           _SignInBanner(widget.session, later: () => setState(() => _signInLater = true)),
         // Settings has its own sign-in: never the same offer twice on one screen.
-        if (widget.session.calendarNudge && _tab != 3) _CalendarBanner(widget.session),
+        if (widget.session.calendarNudge && tab != 3) _CalendarBanner(widget.session),
         Expanded(
           child: switch (tab) {
             // Below the menu, to find it.

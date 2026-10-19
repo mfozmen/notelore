@@ -167,10 +167,9 @@ void main() {
     const offer = 'Reminders you add here only ring on this device for now.';
     expect(find.textContaining(offer), findsOneWidget);
     // Settings has its own sign-in: the offer is not shown twice there.
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await openSettings(tester, 'Reminders');
     expect(find.textContaining(offer), findsNothing);
-    await tester.tap(find.text('Chat'));
+    await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.textContaining(offer), findsOneWidget);
     // A refusal says so where the button was pressed.
@@ -211,13 +210,7 @@ void main() {
     await tester.tap(find.widgetWithText(TextButton, 'Later'));
     await tester.pumpAndSettle();
     expect(find.textContaining('only ring on this device for now'), findsNothing);
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Sign in to Google Calendar'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await openSettings(tester, 'Reminders');
     expect(
       find.textContaining('Until you sign in here, this device reminds you on its own.'),
       findsOneWidget,
