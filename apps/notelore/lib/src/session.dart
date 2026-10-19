@@ -28,6 +28,7 @@ import 'audio_native.dart';
 import 'device_auth.dart';
 import 'lock_state.dart';
 import 'pdf_native.dart';
+import 'reminder_notifier.dart';
 import 'strings.dart';
 import 'theme.dart';
 import 'transfer.dart';
@@ -106,6 +107,7 @@ class Session extends ChangeNotifier {
     this.offThread = Isolate.run,
     this._exchange,
     this.timing,
+    this.reminders,
   }) : clock = clock ?? DateTime.timestamp,
        deviceAuth = deviceAuth ?? LocalDeviceAuth(),
        // Time that only moves forward; a given clock stands in for it, unless told apart.
@@ -119,6 +121,28 @@ class Session extends ChangeNotifier {
   /// Hears how long a turn waited in the queue and each model and tool call
   /// took (#232); development runs only, never note text.
   final void Function(String entry)? timing;
+
+  /// This device's notifications for the notes' reminders (#431); none where
+  /// the platform has none (and in tests that do not ask for them).
+  final ReminderNotifier? reminders;
+
+  /// Whether Notelore may notify on this device; null where it cannot at all.
+  bool? remindersAllowed;
+
+  /// Asked once a run at most: a refusal is not asked again until Allow.
+  var _askedReminders = false;
+
+  /// Whether the scheduled reminders hide their words (the app lock was on);
+  /// null until scheduled this run, so the first time schedules them all anew.
+  bool? _scheduledPrivately;
+
+  /// The lock turned on or off: the notifications follow (#431).
+  void _lockChanged() {
+    notifyListeners();
+    if (_scheduledPrivately case final private? when private != lock.enabled) {
+      unawaited(refreshReminders(ask: false));
+    }
+  }
 
   /// Where exports go and imports come from (#215): the share sheet on a phone,
   /// save and open dialogs on the desktop.
@@ -514,7 +538,7 @@ class Session extends ChangeNotifier {
     uptime: uptime,
     iterations: lockIterations,
     offThread: offThread,
-    changed: notifyListeners,
+    changed: _lockChanged,
     device: deviceAuth,
   );
 
@@ -534,6 +558,7 @@ class Session extends ChangeNotifier {
     }
     driveConnected = await driveAuth?.signedIn() ?? false;
     _loadGoogle();
+    await refreshReminders(ask: false); // nothing pops up at start, over the lock too
     notifyListeners();
     if (driveConnected) unawaited(syncNow());
   }
@@ -896,6 +921,7 @@ class Session extends ChangeNotifier {
       transcript.add((role: ChatRole.assistant, text: strings.core(answer)));
       // Seen only once answered: a failed turn's notice goes out again.
       _lastNotes = _noteTitles(); // the agent's own changes included
+      if (asked.wroteNotes) await refreshReminders();
     } on Exception catch (error) {
       // The failed turn was taken back: what it had taken goes out again.
       _later.insertAll(0, taken);
@@ -1205,6 +1231,7 @@ class Session extends ChangeNotifier {
         );
         _markSyncedNotes(report);
         completed = true;
+        await refreshReminders(ask: false);
         await _syncSettings(_remote!);
         final counts = (
           report.pushed.length + report.removedRemote.length,
@@ -1234,6 +1261,63 @@ class Session extends ChangeNotifier {
         notifyListeners();
       }
     });
+  }
+
+  /// Schedules the notes' coming reminders on this device (#431): at start,
+  /// after a turn that wrote notes and after a sync, so the device's schedule
+  /// always equals the notes. After a turn (the user just asked for one) it
+  /// may [ask] for notifications, once a run. A device that cannot notify
+  /// changes nothing else.
+  Future<void> refreshReminders({bool ask = true}) => _reminderRuns = _reminderRuns
+      .catchError((Object _) {})
+      .then((_) => _refreshReminders(ask: ask));
+
+  /// One run at a time: a resume, a sync and a turn can all ask at once; a
+  /// run that broke never stops the next.
+  Future<void> _reminderRuns = Future.value();
+
+  Future<void> _refreshReminders({required bool ask}) async {
+    final device = reminders;
+    if (device == null) return;
+    final root = paths.notes.path;
+    final now = clock().toLocal();
+    // With the app lock on, a locked phone's screen shows nothing of the notes.
+    final private = lock.enabled;
+    final wasAllowed = remindersAllowed;
+    try {
+      var due = await offThread(() => upcomingReminders(root, now: now));
+      if (private) {
+        due = [for (final r in due) DueReminder(r.id, r.at, 'Notelore', strings.reminderHidden)];
+      }
+      var allowed = await device.isAllowed();
+      if (!allowed && ask && due.isNotEmpty && !_askedReminders) {
+        _askedReminders = true;
+        allowed = await device.ask();
+      }
+      remindersAllowed = allowed;
+      await scheduleReminders(device, due, anew: private != _scheduledPrivately);
+      _scheduledPrivately = private;
+    } on Exception {
+      return; // no notifications here: the reminders stay in the notes
+    } finally {
+      if (remindersAllowed != wasAllowed) notifyListeners(); // Settings shows it
+    }
+  }
+
+  /// Settings' Allow: asks for notifications again; whether they are allowed
+  /// now. The system may no longer show its question (asked twice already).
+  Future<bool> allowReminders() async {
+    final device = reminders;
+    if (device == null) return false;
+    try {
+      remindersAllowed = await device.ask();
+    } on Exception {
+      return false;
+    } finally {
+      notifyListeners();
+    }
+    await refreshReminders(ask: false);
+    return remindersAllowed ?? false;
   }
 
   void _markSyncedNotes(SyncReport report) {
@@ -1276,6 +1360,7 @@ class Session extends ChangeNotifier {
     const news = {ImportOutcome.added, ImportOutcome.renamed};
     final changed = reports.any((r) => news.contains(r.imported?.outcome));
     if (changed) {
+      await refreshReminders(ask: false); // a shared note's reminders come too
       notifyListeners();
       if (driveConnected) unawaited(syncNow());
     }
@@ -1300,6 +1385,7 @@ class Session extends ChangeNotifier {
     if (!File(path).existsSync()) return null;
     final archived = archiveNote(paths.notes.path, path, today: today);
     index.markChanged(path);
+    await refreshReminders(ask: false); // an archived note's reminders go with it
     notifyListeners();
     return archived;
   });
@@ -1319,6 +1405,7 @@ class Session extends ChangeNotifier {
     } on RestoreTaken {
       return false;
     }
+    await refreshReminders(ask: false);
     notifyListeners();
     return true;
   });
@@ -1356,6 +1443,7 @@ class Session extends ChangeNotifier {
     if (File(path).existsSync()) return; // never overwrite; the archive copy stays
     moveWithRetry(archived, path);
     index.markChanged(path);
+    await refreshReminders(ask: false);
     notifyListeners();
   });
 

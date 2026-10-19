@@ -65,6 +65,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }),
     );
     final lock = _LockCard(session);
+    // Only where this device can notify at all (#431).
+    final reminders = session.remindersAllowed == null ? null : _RemindersCard(session);
     final about = _AboutCard(
       session,
       version: widget.version,
@@ -88,6 +90,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   (Icons.cloud_outlined, s.syncSection, [drive]),
                   (Icons.palette_outlined, s.appearance, [language, look]),
                   (Icons.lock_outline, s.appLock, [lock]),
+                  if (reminders != null) (Icons.notifications_outlined, s.reminders, [reminders]),
                   (Icons.info_outline, s.aboutSection, [about]),
                 ],
                 shown: _section,
@@ -99,7 +102,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: Layout.column),
-                      child: _cards([model, language, look, drive, voice, lock, advanced, about]),
+                      child: _cards([
+                        model,
+                        language,
+                        look,
+                        drive,
+                        voice,
+                        lock,
+                        ?reminders,
+                        advanced,
+                        about,
+                      ]),
                     ),
                   ),
                 ],
@@ -636,6 +649,52 @@ class _LockCard extends StatelessWidget {
                       label: Text(s.turnOn),
                     ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// How reminders reach the user (#431): notifications on this device, or,
+/// while those are off, why none comes and a way to allow them.
+class _RemindersCard extends StatelessWidget {
+  const _RemindersCard(this.session);
+
+  final Session session;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = session.strings;
+    final allowed = session.remindersAllowed ?? false;
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.only(bottom: allowed ? 0 : Gap.m),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              leading: Icon(
+                allowed ? Icons.notifications_outlined : Icons.notifications_off_outlined,
+              ),
+              title: Text(s.reminders),
+              subtitle: Text(allowed ? s.remindersOn : s.remindersOff),
+            ),
+            if (!allowed)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                child: FilledButton.tonalIcon(
+                  icon: const Icon(Icons.notifications_active_outlined),
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    // Refused before, the system asks no more: say where to turn them on.
+                    if (!await session.allowReminders()) {
+                      messenger.showSnackBar(SnackBar(content: Text(s.notificationsBlocked)));
+                    }
+                  },
+                  label: Text(s.allowNotifications),
+                ),
+              ),
           ],
         ),
       ),

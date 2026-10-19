@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:notelore/src/device_auth.dart';
 import 'package:notelore/src/drive_auth.dart' show Awake;
+import 'package:notelore/src/reminder_notifier.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/transfer.dart';
 import 'package:notelore/src/voice.dart';
@@ -120,6 +121,9 @@ class Harness {
   var mobile = true;
   final share = FakeShare();
 
+  /// The device's notifications for reminders (#431).
+  final reminders = FakeReminders();
+
   /// The device's own lock (#295): it answers as a test tells it.
   final deviceAuth = FakeDeviceAuth();
   final files = FakeFileSelector();
@@ -212,9 +216,11 @@ class Harness {
     Duration Function()? uptime,
     Duration retryEvery = const Duration(hours: 1), // tests try again by hand
     void Function(String entry)? timing,
+    bool reminders = true,
   }) {
     final session = Session(
       paths,
+      reminders: reminders ? this.reminders : null,
       timing: timing,
       retryEvery: retryEvery,
       systemLanguage: systemLanguage,
@@ -486,6 +492,65 @@ class FakeFileSelector extends FileSelectorPlatform with MockPlatformInterfaceMi
 }
 
 /// The app kept out of the system's freezer (#409): what was asked, in order.
+/// A device's notifications: what is pending, by id, and what was asked.
+class FakeReminders implements ReminderNotifier {
+  final pending = <int, String>{};
+  final scheduled = <DueReminder>[];
+  final cancelled = <int>[];
+  var allowed = true;
+
+  /// What the user answers when asked.
+  var grant = false;
+  var asked = 0;
+
+  /// Thrown by every call, like a platform that cannot notify.
+  Exception? fail;
+
+  /// Thrown by the next call only: a bug, not a missing platform.
+  Error? breakOnce;
+
+  void _check() {
+    if (breakOnce case final error?) {
+      breakOnce = null;
+      throw error;
+    }
+    if (fail case final error?) throw error;
+  }
+
+  @override
+  Future<bool> isAllowed() async {
+    _check();
+    return allowed;
+  }
+
+  @override
+  Future<bool> ask() async {
+    _check();
+    asked++;
+    return allowed = grant;
+  }
+
+  @override
+  Future<Set<int>> ids() async {
+    _check();
+    return pending.keys.toSet();
+  }
+
+  @override
+  Future<void> schedule(DueReminder reminder) async {
+    _check();
+    scheduled.add(reminder);
+    pending[reminder.id] = reminder.text;
+  }
+
+  @override
+  Future<void> cancel(int id) async {
+    _check();
+    cancelled.add(id);
+    pending.remove(id);
+  }
+}
+
 class FakeAwake implements Awake {
   final calls = <String>[];
 

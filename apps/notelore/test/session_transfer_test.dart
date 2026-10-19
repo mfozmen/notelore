@@ -36,7 +36,7 @@ void main() {
 
   test('import: new notes come in, taken names get a number, nothing is overwritten', () async {
     final harness = Harness();
-    final session = harness.session();
+    final session = harness.session(reminders: false); // one change for the import alone
     final root = harness.paths.notes.path;
     final mine = createNote(root, 'project', 'Mopsos', today: today);
     final mineText = File(mine).readAsStringSync();

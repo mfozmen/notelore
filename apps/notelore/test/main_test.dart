@@ -40,7 +40,11 @@ void main() {
     File(p.join(root, 'Notelore', 'projects', 'a.md'))
       ..createSync(recursive: true)
       ..writeAsStringSync('A');
-    final session = await app.openSession(environment: {'HOME': root}, mobile: false);
+    final session = await app.openSession(
+      environment: {'HOME': root},
+      mobile: false,
+      reminders: () => null,
+    );
     addTearDown(session.dispose);
     expect(session.paths.notes.path, p.join(root, 'support', 'notes'));
     expect(session.paths.state.path, p.join(root, 'support'));
@@ -53,7 +57,7 @@ void main() {
     File(p.join(root, 'documents', 'Notelore', 'topics', 'b.md'))
       ..createSync(recursive: true)
       ..writeAsStringSync('B');
-    final session = await app.openSession(environment: {}, mobile: true);
+    final session = await app.openSession(environment: {}, mobile: true, reminders: () => null);
     addTearDown(session.dispose);
     expect(session.paths.notes.path, p.join(root, 'support', 'notes'));
     expect(File(p.join(root, 'support', 'notes', 'topics', 'b.md')).readAsStringSync(), 'B');
@@ -64,12 +68,19 @@ void main() {
   });
 
   test('NOTELORE_HOME overrides everything, the keystore included', () async {
-    final session = await app.openSession(environment: {'NOTELORE_HOME': root});
+    final session = await app.openSession(
+      environment: {'NOTELORE_HOME': root},
+      reminders: () => null,
+    );
     addTearDown(session.dispose);
     expect(session.paths.notes.path, p.join(root, 'notes'));
     expect(session.paths.state.path, p.join(root, 'state'));
     expect(session.keySpace, 'notelore-dev');
-    final real = await app.openSession(environment: {'HOME': root}, mobile: false);
+    final real = await app.openSession(
+      environment: {'HOME': root},
+      mobile: false,
+      reminders: () => null,
+    );
     addTearDown(real.dispose);
     expect(real.keySpace, 'notelore');
   });
