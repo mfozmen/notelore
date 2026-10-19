@@ -62,6 +62,7 @@ abstract class Strings {
   String get pasteKeyFirst;
   String get checkConnection;
   String get ollamaNoKey;
+  String get ollamaNoModel;
 
   // The model on the device (#328).
   String get downloadAndConnect;
@@ -626,6 +627,9 @@ class EnglishStrings extends Strings {
   String get cannotReach => 'Could not reach the service.';
   @override
   String get ollamaNoKey => 'No key is needed.';
+  @override
+  String get ollamaNoModel =>
+      'No model is installed in Ollama yet. In a terminal, run: ollama pull qwen3:4b';
   @override
   String get downloadAndConnect => 'Download and connect';
   @override
@@ -1480,6 +1484,9 @@ class TurkishStrings extends Strings {
   String get cannotReach => 'Hizmete ulaşılamadı.';
   @override
   String get ollamaNoKey => 'Anahtar gerekmez.';
+  @override
+  String get ollamaNoModel =>
+      'Ollama\'da henüz kurulu bir model yok. Terminalde şunu çalıştır: ollama pull qwen3:4b';
   @override
   String get downloadAndConnect => 'İndir ve bağlan';
   @override

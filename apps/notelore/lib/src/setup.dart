@@ -43,13 +43,23 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
   /// The phone's list goes on under the pinned action.
   var _moreBelow = false;
 
+  /// Some of the list has scrolled up under the header (#472).
+  var _scrolledUnder = false;
+
   bool _scrolled(Notification event) {
     final metrics = switch (event) {
       ScrollNotification(:final metrics) || ScrollMetricsNotification(:final metrics) => metrics,
       _ => null,
     };
-    final more = (metrics?.extentAfter ?? 0) > 0;
-    if (metrics != null && more != _moreBelow) setState(() => _moreBelow = more);
+    if (metrics == null) return false;
+    final more = metrics.extentAfter > 0;
+    final under = metrics.extentBefore > 0;
+    if (more != _moreBelow || under != _scrolledUnder) {
+      setState(() {
+        _moreBelow = more;
+        _scrolledUnder = under;
+      });
+    }
     return false;
   }
 
@@ -193,6 +203,8 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       }
     } on NoChatGptPlan {
       setState(() => _noPlan = true); // no retry helps: another way in does
+    } on NoLocalModel {
+      setState(() => _problem = widget.session.strings.ollamaNoModel);
     } on KeyValidationError catch (error) {
       setState(() => _keyRefused = error.message);
     } on TransientValidationError catch (error) {
@@ -463,6 +475,12 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     ],
   );
 
+  /// A hairline where the list runs on under the header or the action; the same
+  /// box either way, so nothing moves and the list beside it is never rebuilt
+  /// (its scroll offset would be lost).
+  static Widget _edge(String key, {required bool show}) =>
+      SizedBox(height: 1, child: show ? Divider(key: Key(key), height: 1) : null);
+
   /// A desk: one card of a readable width, like the sign-in's. A phone: the
   /// choices scroll and the action stays where the thumb is, above the keyboard
   /// too, when the window is tall enough; otherwise it all scrolls together.
@@ -491,15 +509,38 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
             child: Card(
               key: const Key('setup-card'),
               child: Padding(
-                padding: const EdgeInsets.all(Gap.l + Gap.s), // 32
+                // 32, but 16 at the right: the list's own 16 there is the scrollbar's gutter.
+                padding: const EdgeInsets.fromLTRB(
+                  Gap.l + Gap.s,
+                  Gap.l + Gap.s,
+                  Gap.m,
+                  Gap.l + Gap.s,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  spacing: Gap.l,
                   children: [
-                    header,
-                    Flexible(child: SingleChildScrollView(child: content)),
-                    action,
+                    Padding(
+                      padding: const EdgeInsets.only(right: Gap.m),
+                      child: header,
+                    ),
+                    const SizedBox(height: Gap.l),
+                    _edge('header-edge', show: _scrolledUnder),
+                    Flexible(
+                      child: NotificationListener<Notification>(
+                        onNotification: _scrolled,
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.only(right: Gap.m),
+                          child: content,
+                        ),
+                      ),
+                    ),
+                    _edge('action-edge', show: _moreBelow),
+                    const SizedBox(height: Gap.l),
+                    Padding(
+                      padding: const EdgeInsets.only(right: Gap.m),
+                      child: action,
+                    ),
                   ],
                 ),
               ),
@@ -522,6 +563,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(padding: const EdgeInsets.fromLTRB(Gap.s, Gap.s, Gap.l, 0), child: header),
+        _edge('header-edge', show: _scrolledUnder),
         Expanded(
           child: NotificationListener<Notification>(
             onNotification: _scrolled,
@@ -532,7 +574,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
           ),
         ),
         // An edge while the list runs on under the action (#352).
-        if (_moreBelow) const Divider(key: Key('action-edge'), height: 1),
+        _edge('action-edge', show: _moreBelow),
         Padding(padding: const EdgeInsets.fromLTRB(Gap.l, Gap.s, Gap.l, Gap.m), child: action),
       ],
     );

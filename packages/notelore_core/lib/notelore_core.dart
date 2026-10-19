@@ -39,7 +39,14 @@ export 'src/providers/local.dart' show LocalEngine, LocalModelFailed, LocalProvi
 export 'src/providers/ollama.dart' show ollamaHost;
 export 'src/providers/providers.dart' show createProvider;
 export 'src/providers/validator.dart'
-    show KeyValidationError, TransientValidationError, cheapestModel, currentModels, validateKey;
+    show
+        KeyValidationError,
+        NoLocalModel,
+        TransientValidationError,
+        cheapestModel,
+        currentModels,
+        ollamaStartModel,
+        validateKey;
 export 'src/reminders.dart'
     show DayItem, DueReminder, calendarItems, maxScheduledReminders, upcomingReminders;
 export 'src/secret.dart' show defaultIterations, hashSecret, verifySecret;

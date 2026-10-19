@@ -320,6 +320,18 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
   });
 
+  testWidgets('setup: Ollama with no model installed says which one to pull (#471)', (
+    tester,
+  ) async {
+    phone(tester);
+    await pumpApp(tester, Harness()..models = []);
+    await choose(tester, 'Ollama (local)');
+    await tester.tap(find.text('Connect'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('ollama pull qwen3:4b'), findsWidgets);
+    expect(find.textContaining('No model is installed in Ollama'), findsOneWidget);
+  });
+
   testWidgets('chat: a reply the background cut off arrives on return (#226)', (tester) async {
     phone(tester);
     final harness = Harness(answers: [const NetworkError('offline'), 'Geldi.']);

@@ -135,6 +135,24 @@ List<String> currentModels(String provider, List<String> models) {
   ];
 }
 
+/// Ollama runs, but has no model to talk with: the person pulls one first.
+class NoLocalModel implements Exception {
+  const NoLocalModel();
+}
+
+/// The installed Ollama model to start on (#471): Notelore's own fine-tune (the
+/// newest), else Qwen3 4B, else any Qwen3, else the first listed; null when
+/// none is installed. Never a fixed name Ollama may not have.
+String? ollamaStartModel(List<String> models) {
+  final tuned = models.where((m) => m.startsWith('notelore-')).toList()..sort();
+  if (tuned.isNotEmpty) return tuned.last;
+  for (final family in ['qwen3:4b', 'qwen3']) {
+    final hit = models.where((m) => m.startsWith(family)).toList()..sort();
+    if (hit.isNotEmpty) return hit.first;
+  }
+  return models.firstOrNull;
+}
+
 /// The cheapest of the [models] a provider listed, newest first within a tier;
 /// null when none is listed.
 String? cheapestModel(String provider, List<String> models) {

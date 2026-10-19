@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/setup.dart';
+import 'package:notelore/src/theme.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -420,6 +421,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('action-edge')), findsNothing); // at the end: none
   });
+
+  testWidgets(
+    'a short desk window: the list scrolls below the header, its bar in a gutter (#472)',
+    (tester) async {
+      tester.view
+        ..physicalSize = const Size(1056, 540)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await pumpApp(tester, Harness());
+      final card = find.byKey(const Key('setup-card'));
+      final list = find.descendant(of: card, matching: find.byType(SingleChildScrollView));
+      // The scrollbar has its own gutter: the cards never sit under it.
+      expect(
+        tester.widget<SingleChildScrollView>(list).padding,
+        const EdgeInsets.only(right: Gap.m),
+      );
+      expect(find.byKey(const Key('header-edge')), findsNothing);
+      expect(find.byKey(const Key('action-edge')), findsOneWidget); // more below
+      // Scrolled: an edge under the header, so the clipped text reads as scrolled away.
+      await tester.drag(list, const Offset(0, -120));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('header-edge')), findsOneWidget);
+      await tester.drag(list, const Offset(0, -5000));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('action-edge')), findsNothing);
+    },
+  );
 
   testWidgets('on this device: a checked download, then the model answers here (#328)', (
     tester,

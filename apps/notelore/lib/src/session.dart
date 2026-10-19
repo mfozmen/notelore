@@ -796,7 +796,8 @@ class Session extends ChangeNotifier {
     final chosen =
         model ??
         _startModel(spec, listed) ??
-        (spec.defaultModel.isNotEmpty ? spec.defaultModel : null);
+        (spec.defaultModel.isNotEmpty && spec.name != 'ollama' ? spec.defaultModel : null);
+    if (chosen == null && spec.name == 'ollama') throw const NoLocalModel();
     if (chosen == null) throw TransientValidationError('${spec.displayName} lists no models');
     // Every provider but the plan keeps its entry, Ollama an empty one: that is
     // how [connections] knows it.
@@ -846,19 +847,20 @@ class Session extends ChangeNotifier {
     }
   }
 
-  /// The model a blank choice goes back to: the cheapest listed one, else the
-  /// provider's fixed default (always for Ollama, whose list is local).
+  /// The model a blank choice goes back to: the one [_startModel] picks, else
+  /// the provider's fixed default.
   String get defaultModel {
     final current = spec!;
     return _startModel(current, models) ?? current.defaultModel;
   }
 
-  /// Which of [listed] a provider starts on. Ollama: its own default, the list
-  /// is local. Gemini: its default when listed, the model a free AI Studio key
-  /// has quota for; the cheapest listed is often a lite or preview one with
-  /// none (#400). Any other: the cheapest listed.
+  /// Which of [listed] a provider starts on. Ollama: one that is installed,
+  /// Notelore's own first (#471). Gemini: its default when listed, the model a
+  /// free AI Studio key has quota for; the cheapest listed is often a lite or
+  /// preview one with none (#400). Any other: the cheapest listed.
   static String? _startModel(ProviderSpec spec, List<String> listed) => switch (spec.name) {
-    'ollama' || 'device' => null,
+    'ollama' => ollamaStartModel(listed),
+    'device' => null,
     'gemini' when listed.contains(spec.defaultModel) => spec.defaultModel,
     _ => cheapestModel(spec.name, listed),
   };
