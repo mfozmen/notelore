@@ -217,7 +217,7 @@ void main() {
     expect(find.byType(NoteloreMark), findsOneWidget); // its own mark (#340)
     expect(find.bySemanticsLabel('Notelore'), findsWidgets);
     expect(find.textContaining('your own Google Drive'), findsOneWidget);
-    expect(find.textContaining('only see the files it creates'), findsOneWidget);
+    expect(find.textContaining('its own hidden space'), findsOneWidget);
     expect(find.textContaining('Google (Gmail) account'), findsOneWidget);
     expect(find.byType(AppBar), findsNothing);
     // Google's own button: its G, its words; in the thumb's reach on a phone.

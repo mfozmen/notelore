@@ -346,6 +346,8 @@ class FakeAuth implements DriveAuth {
 class MemoryRemote implements Remote {
   final texts = <String, String>{};
   Exception? failure;
+  @override
+  var moved = false;
 
   /// While set, listing waits for it: a sync that is still running.
   Completer<void>? hold;
