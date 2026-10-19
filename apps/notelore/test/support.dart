@@ -310,6 +310,7 @@ class Harness {
 /// A Google sign-in that grants at once (or fails as told).
 class FakeAuth implements DriveAuth {
   var granted = false;
+  Exception? failSignedIn;
   Exception? failSignIn;
   Exception? failToken;
   Exception? failSignOut;
@@ -319,7 +320,10 @@ class FakeAuth implements DriveAuth {
   Completer<void>? hold;
 
   @override
-  Future<bool> signedIn() async => granted;
+  Future<bool> signedIn() async {
+    if (failSignedIn case final error?) throw error;
+    return granted;
+  }
 
   @override
   Future<void> signIn() async {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:notelore_core/notelore_core.dart' show HttpError, SignInFailed;
+import 'package:notelore_core/notelore_core.dart'
+    show HttpError, SignInFailed, addReminder, createNote;
 
 import 'app_test.dart' show connect, phone, pumpApp;
 import 'support.dart';
@@ -146,5 +147,78 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Allow notifications'), findsNothing);
     expect(find.text("Notelore notifies you on this device at a reminder's time."), findsNothing);
+  });
+
+  testWidgets('set up elsewhere: the first reminder here offers the sign-in, one tap away (#503)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness()..calendarAuth.failSignIn = Exception('refused');
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    session.calendar = true; // turned on on another device
+    final note = createNote(
+      harness.paths.notes.path,
+      'topic',
+      'Health',
+      today: DateTime(2026, 10, 20),
+    );
+    addReminder(
+      note,
+      'Dentist',
+      DateTime.utc(2099, 5, 1),
+      time: '10:00',
+      today: DateTime(2026, 10, 20),
+    );
+    await session.refreshReminders(); // as after the turn that made it
+    await tester.pumpAndSettle();
+    const offer = 'This device reminds you itself for now.';
+    expect(find.textContaining(offer), findsOneWidget);
+    // A refusal says so where the button was pressed.
+    await tester.tap(find.widgetWithText(TextButton, 'Sign in to Google Calendar'));
+    await tester.pumpAndSettle();
+    expect(find.text("Couldn't sign in to Google Calendar. Try again."), findsOneWidget);
+    harness.calendarAuth.failSignIn = null;
+    await tester.tap(find.widgetWithText(TextButton, 'Sign in to Google Calendar'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining(offer), findsNothing);
+    expect(harness.calendar.events.values, ['Dentist']);
+    expect(harness.reminders.pending, isEmpty); // never twice
+  });
+
+  testWidgets('set up elsewhere: Later puts the offer away; Settings still has it (#503)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    session.calendar = true;
+    final note = createNote(
+      harness.paths.notes.path,
+      'topic',
+      'Health',
+      today: DateTime(2026, 10, 20),
+    );
+    addReminder(
+      note,
+      'Dentist',
+      DateTime.utc(2099, 5, 1),
+      time: '10:00',
+      today: DateTime(2026, 10, 20),
+    );
+    await session.refreshReminders();
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Later'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('This device reminds you itself for now.'), findsNothing);
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Sign in to Google Calendar'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.textContaining('This device reminds you itself until you sign in'), findsOneWidget);
   });
 }

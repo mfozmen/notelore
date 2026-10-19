@@ -320,6 +320,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         if (widget.session.heldNotes.isNotEmpty) _HeldBanner(widget.session),
         if (widget.session.driveNeedsSignIn && !_signInLater && _tab != 3)
           _SignInBanner(widget.session, later: () => setState(() => _signInLater = true)),
+        if (widget.session.calendarNudge) _CalendarBanner(widget.session),
         Expanded(
           child: switch (_tab) {
             0 => ChatScreen(widget.session),
@@ -418,6 +419,55 @@ class _SignInBannerState extends State<_SignInBanner> {
       actions: [
         TextButton(onPressed: _signingIn ? null : widget.later, child: Text(s.later)),
         TextButton(onPressed: _signingIn ? null : _connect, child: Text(s.connect)),
+      ],
+    );
+  }
+}
+
+/// The calendar is on, set up on another device, and a reminder was just made
+/// here: until this device signs in it reminds itself, and the sign-in is one
+/// tap away. A refusal is said under the words; Later puts it away for good.
+class _CalendarBanner extends StatefulWidget {
+  const _CalendarBanner(this.session);
+
+  final Session session;
+
+  @override
+  State<_CalendarBanner> createState() => _CalendarBannerState();
+}
+
+class _CalendarBannerState extends State<_CalendarBanner> {
+  var _signingIn = false;
+
+  Future<void> _signIn() async {
+    setState(() => _signingIn = true);
+    await widget.session.signInCalendar();
+    if (mounted) setState(() => _signingIn = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final session = widget.session;
+    final s = session.strings;
+    final colors = Theme.of(context).colorScheme;
+    return MaterialBanner(
+      leading: Icon(Icons.calendar_month_outlined, color: colors.onSecondaryContainer),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: Gap.s,
+        children: [
+          Text(s.calendarNudge),
+          if (session.calendarProblem == CalendarProblem.signIn && !_signingIn)
+            Semantics(
+              liveRegion: true, // a screen reader hears that it failed
+              child: Text(s.calendarSignInFailed, style: TextStyle(color: colors.error)),
+            ),
+          if (_signingIn) const LinearProgressIndicator(),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: _signingIn ? null : session.calendarNudgeLater, child: Text(s.later)),
+        TextButton(onPressed: _signingIn ? null : _signIn, child: Text(s.signInCalendar)),
       ],
     );
   }
