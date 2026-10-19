@@ -176,6 +176,96 @@ void main() {
     drive.put('projects/a.md', '$note- [ ] 2026-10-01: local\n- [ ] 2026-10-02: remote\n');
     expect((await run()).pulled, ['projects/a.md']);
     expect(readRel('projects/a.md'), endsWith('- [ ] 2026-10-02: remote\n'));
+    expect(Directory(p.join(root, '.notelore', 'kept')).existsSync(), isFalse); // nothing lost
+  });
+
+  group('a pull that would lose lines keeps this copy on the device (#456)', () {
+    const kept = '.notelore/kept/$stamp/projects/a.md';
+
+    test("Drive's copy without lines this one has", () async {
+      write('projects/a.md', '$note- 2026-09-02: two\n');
+      await run();
+      // A damaged copy, or a buggy client: the entries are gone on Drive.
+      drive.put('projects/a.md', '---\ntitle: T\nupdated: 2026-09-01\n---\n# T\n');
+      final report = await run();
+      expect(report.pulled, ['projects/a.md']);
+      expect(report.history, [kept]);
+      expect(readRel(kept), '$note- 2026-09-02: two\n');
+      expect(readRel('projects/a.md'), isNot(contains('two')));
+      // On this device only: never sent to Drive, so routine edits do not pile up there.
+      expect((await run()).changed, 0);
+      expect(drive.files.keys.where((rel) => rel.contains('kept')), isEmpty);
+    });
+
+    test('one of two equal lines gone, or a front matter key, is a loss', () async {
+      write(
+        'projects/a.md',
+        '$note- [ ] 2026-09-02: call the bank\n- [ ] 2026-09-02: call the bank\n',
+      );
+      await run();
+      drive.put('projects/a.md', '$note- [ ] 2026-09-02: call the bank\n');
+      expect((await run()).history, [kept]);
+      write('topics/t.md', note);
+      await run();
+      drive.put('topics/t.md', note.replaceFirst('title: T', 'title: Other'));
+      expect((await run()).history.single, endsWith('topics/t.md'));
+    });
+
+    test('a changed updated date, line endings or Unicode form lose nothing', () async {
+      write('projects/a.md', note.replaceAll('\n', '\r\n'));
+      await run();
+      drive.put('projects/a.md', note.replaceFirst('updated: 2026-09-01', 'updated: 2026-10-01'));
+      expect((await run()).history, isEmpty);
+      write('topics/cafe.md', '${unorm.nfd(note.replaceFirst('# T', '# Café'))}- 2026-09-02: x\n');
+      await run();
+      drive.put('topics/cafe.md', '${note.replaceFirst('# T', '# Café')}- 2026-09-02: x\n- y\n');
+      expect((await run()).history, isEmpty);
+    });
+
+    test('a second copy in the same second keeps the first', () async {
+      write('projects/a.md', '$note- 2026-09-02: one\n');
+      await run();
+      drive.put('projects/a.md', note);
+      await run();
+      write('projects/a.md', '$note- 2026-09-02: two\n');
+      await run();
+      drive.put('projects/a.md', note);
+      expect((await run()).history, ['.notelore/kept/$stamp-2/projects/a.md']);
+      expect(readRel(kept), contains('one'));
+    });
+
+    test('a copy goes after 30 days, so a phone that syncs often does not fill up', () async {
+      // now is 2026-10-01 09:30:05.
+      for (final name in [
+        '2026-08-31T093004Z',
+        '2026-08-31T093004Z-2',
+        '2026-09-01T093005Z',
+        'mine',
+      ]) {
+        write('.notelore/kept/$name/projects/a.md', note);
+      }
+      await run();
+      final left = Directory(p.join(root, '.notelore', 'kept'))
+          .listSync()
+          .map((d) => p.basename(d.path));
+      // Older than 30 days goes; 30 days to the second stays; a folder it did not make stays.
+      expect(left, unorderedEquals(['2026-09-01T093005Z', 'mine']));
+    });
+
+    test('an attachment Drive changed keeps the bytes it replaces', () async {
+      File(at('attachments/2026-10-18/memo.m4a'))
+        ..parent.createSync(recursive: true)
+        ..writeAsBytesSync([1, 2]);
+      await run();
+      drive.putBytes('attachments/2026-10-18/memo.m4a', [3]);
+      final report = await run();
+      expect(report.history, ['.notelore/kept/$stamp/attachments/2026-10-18/memo.m4a']);
+      expect(File(at('.notelore/kept/$stamp/attachments/2026-10-18/memo.m4a')).readAsBytesSync(), [
+        1,
+        2,
+      ]);
+      expect(File(at('attachments/2026-10-18/memo.m4a')).readAsBytesSync(), [3]);
+    });
   });
 
   test('edits on both sides in different places merge', () async {

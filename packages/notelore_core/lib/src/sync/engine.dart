@@ -22,6 +22,7 @@ import 'package:path/path.dart' as p;
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 
 import '../store/notes.dart';
+import '../text.dart';
 import 'manifest.dart';
 import 'merge.dart';
 
@@ -88,6 +89,7 @@ Future<SyncReport> sync(
   final t = (now ?? DateTime.now()).toUtc();
   final stamp =
       '${t.year}-${_two(t.month)}-${_two(t.day)}T${_two(t.hour)}${_two(t.minute)}${_two(t.second)}Z';
+  _pruneKept(root, t);
   final local = _localFiles(root);
   // Only notes: anything else in the remote folder (the shared app settings) is
   // not ours to pull, and pulling it would later read as deleted here and trash it.
@@ -164,11 +166,32 @@ bool _safe(String rel) {
 String _relOf(String root, String path) =>
     unorm.nfc(p.split(p.relative(path, from: root)).join('/'));
 
+/// Where a pull keeps the copy it replaced (#456): on this device only.
+const keptFolder = '.notelore/kept';
+
+/// A pass's folder under [keptFolder]: its UTC stamp, maybe "-2" after it.
+final _keptStamp = RegExp(r'^(\d{4})-(\d\d)-(\d\d)T(\d\d)(\d\d)(\d\d)Z(-\d+)?$');
+
+/// Removes the copies a pull kept more than 30 days before [now], so a phone
+/// that syncs often does not fill up; a folder by another name stays.
+void _pruneKept(String root, DateTime now) {
+  final kept = Directory(p.joinAll([root, ...keptFolder.split('/')]));
+  if (!kept.existsSync()) return;
+  for (final dir in kept.listSync().whereType<Directory>()) {
+    final m = _keptStamp.firstMatch(p.basename(dir.path));
+    if (m == null) continue;
+    final [y, mo, d, h, mi, s] = [for (var i = 1; i <= 6; i++) int.parse(m[i]!)];
+    final made = DateTime.utc(y, mo, d, h, mi, s);
+    if (now.difference(made) > const Duration(days: 30)) dir.deleteSync(recursive: true);
+  }
+}
+
 /// Notes, and the originals kept beside them (#279); nothing else in the folder,
-/// nor a write's temp file left by a crash (a dot file).
+/// nor a write's temp file left by a crash (a dot file), nor what a pull kept.
 bool _synced(String rel) =>
-    rel.endsWith('.md') ||
-    (rel.startsWith('$attachmentsFolder/') && !rel.split('/').last.startsWith('.'));
+    !rel.startsWith('$keptFolder/') &&
+    (rel.endsWith('.md') ||
+        (rel.startsWith('$attachmentsFolder/') && !rel.split('/').last.startsWith('.')));
 
 class _Pass {
   _Pass(
@@ -229,10 +252,7 @@ class _Pass {
         _record(rel, uploaded, localText);
         report.pushed.add(rel);
       case SyncAction.pull:
-        if (!_unchanged(path, localText)) return report.skipped.add(rel);
-        atomicWrite(path, remoteText!);
-        _record(rel, meta!, remoteText);
-        report.pulled.add(rel);
+        _pull(rel, path, meta!, localText, remoteText!);
       case SyncAction.merge:
         final base = trusted == null ? null : manifest.base(rel);
         await _merge(rel, path, meta!, localText!, remoteText!, base ?? '');
@@ -271,7 +291,8 @@ class _Pass {
         manifest.record(rel, recorded(uploaded, localHash!));
         report.pushed.add(rel);
       case SyncAction.pull:
-        _take(rel, path, meta!, downloaded!, recorded(meta, remoteHash!));
+        // Bytes cannot tell a loss: what is here is always kept.
+        _take(rel, path, meta!, downloaded!, recorded(meta, remoteHash!), kept: local);
       case SyncAction.merge:
         // Changed here too: this copy is kept apart before Drive's replaces it.
         final target = _history(rel);
@@ -312,8 +333,59 @@ class _Pass {
       ..history.add(_rel(target));
   }
 
-  /// Drive's copy of an attachment, written here and recorded.
-  void _take(String rel, String path, RemoteFile meta, List<int> bytes, ManifestEntry entry) {
+  /// Keeps [bytes], what is here, under `.notelore/kept/` before Drive's copy
+  /// replaces it (#456): a damaged remote, or a buggy client, never takes the
+  /// last good copy. On this device only (never synced): every device that
+  /// had the lines keeps its own, and routine edits do not pile up on Drive.
+  void _keepCopy(String rel, List<int> bytes) {
+    var target = _path(rel, p.join(root, keptFolder, stamp));
+    // Two passes in one second: the first copy stays too.
+    for (var n = 2; File(target).existsSync(); n++) {
+      target = _path(rel, p.join(root, keptFolder, '$stamp-$n'));
+    }
+    atomicWriteBytes(target, bytes);
+    report.history.add(_rel(target));
+  }
+
+  /// Whether [remote] lacks a line of [local] (counting repeats): a pull that
+  /// only adds (another device's entry, the usual edit) loses nothing and keeps
+  /// no copy. The updated date does not count: it changes every time.
+  static bool _loses(String local, String remote) {
+    List<String> lines(String text) => splitLines(unorm.nfc(text.replaceAll('\r\n', '\n')));
+    final there = <String, int>{};
+    for (final line in lines(remote)) {
+      there.update(line, (n) => n + 1, ifAbsent: () => 1);
+    }
+    for (final line in lines(local)) {
+      if (line.trim().isEmpty || line.startsWith('updated:')) continue;
+      final left = there[line] ?? 0;
+      if (left == 0) return true;
+      there[line] = left - 1;
+    }
+    return false;
+  }
+
+  /// Drive's copy of a note, written here and recorded; this one kept first
+  /// when Drive's lacks a line of it (#456).
+  void _pull(String rel, String path, RemoteFile meta, String? localText, String remoteText) {
+    if (!_unchanged(path, localText)) return report.skipped.add(rel);
+    if (localText != null && _loses(localText, remoteText)) _keepCopy(rel, utf8.encode(localText));
+    atomicWrite(path, remoteText);
+    _record(rel, meta, remoteText);
+    report.pulled.add(rel);
+  }
+
+  /// Drive's copy of an attachment, written here and recorded; the bytes it
+  /// replaces, [kept], go to [keptFolder] first.
+  void _take(
+    String rel,
+    String path,
+    RemoteFile meta,
+    List<int> bytes,
+    ManifestEntry entry, {
+    List<int>? kept,
+  }) {
+    if (kept != null) _keepCopy(rel, kept);
     atomicWriteBytes(path, bytes);
     manifest.record(rel, entry);
     report.pulled.add(rel);
