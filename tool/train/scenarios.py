@@ -57,7 +57,7 @@ def path(kind, title):
 # Collections: (lang, title, existing item, what is added, sentence templates).
 COLLECTIONS = [
     ("tr", "Okuduğum Kitaplar", "Tutunamayanlar — Oğuz Atay",
-     ["Saatleri Ayarlama Enstitüsü", "İnce Memed", "Masumiyet Müzesi", "Kuyucaklı Yusuf", "Aylak Adam", "Bereketli Topraklar Üzerinde"],
+     ["Sinekli Bakkal", "İnce Memed", "Masumiyet Müzesi", "Kuyucaklı Yusuf", "Aylak Adam", "Bereketli Topraklar Üzerinde"],
      ["{x} kitabına başladım.", "Şimdi {x} okuyorum.", "Elimde {x} var, onu okuyorum."]),
     ("en", "Books I'm Reading", "Klara and the Sun — Kazuo Ishiguro",
      ["The Overstory", "Piranesi", "A Gentleman in Moscow", "Educated", "The Remains of the Day", "Station Eleven"],
@@ -181,6 +181,21 @@ NEW_LISTS = [
     ("tr", "Dinlenecek podcast: Medyascope.", r"^topics/[^/]*podcast[^/]*\.md$", "Medyascope"),
 ]
 
+# A book or film read now, with no list for it yet (v4, #474): a list named
+# for its kind, never a note named after the book. (lang, message, pattern, item).
+FIRST_OF_KIND = [
+    ("tr", "Kürk Mantolu Madonna'yı okuyorum", r"^topics/[^/]*kitap[^/]*\.md$", "Kürk Mantolu Madonna"),
+    ("tr", "Şu an Beyaz Gemi okuyorum.", r"^topics/[^/]*kitap[^/]*\.md$", "Beyaz Gemi"),
+    ("tr", "Bu akşam Kelebeğin Rüyası'nı izleyeceğim.", r"^topics/[^/]*film[^/]*\.md$", "Kelebeğin Rüyası"),
+    ("en", "I'm reading Demon Copperhead.", r"^topics/[^/]*book[^/]*\.md$", "Demon Copperhead"),
+    ("en", "Watching Perfect Blue tonight.", r"^topics/[^/]*(film|movie)[^/]*\.md$", "Perfect Blue"),
+]
+
+# A turn whose first tool call fails (v4, #474): the call is fixed and the
+# turn goes on, in the user's language; the answer names no tool and no
+# error. Played with the eval's fail_first_call.
+NO_TOOL_WORDS = ["list_notes", "search_notes", "related_notes", "add_note_entry", "sorry", "error", "hata"]
+
 # Two lists of one kind (v3): what is read now and what is for later; the
 # sentence says which. (lang, now title, later title, [(message, now?, item)]).
 TWIN_LISTS = [
@@ -234,10 +249,16 @@ def cases(rng):
     def add(case_id, kind, lang, notes, message, expect):
         out.append({"id": case_id, "kind": kind, "lang": lang, "notes": dict(notes), "message": message, "expect": expect})
 
-    for lang, title, first, items, templates in COLLECTIONS:
+    for c, (lang, title, first, items, templates) in enumerate(COLLECTIONS):
         p = path("topic", title)
         notes = {p: note(title, "topic", lang, notes=[first])}
-        for i, item in enumerate(rng.sample(items, 3)):
+        picked = rng.sample(items, 3)
+        if c < 4:
+            item = next(x for x in items if x not in picked)
+            add(f"recover-{slug(title)}", "recovery", lang, notes, rng.choice(templates).format(x=item),
+                {"notes": {f"^{re.escape(p)}$": [item.split(" — ")[0]]}, "answer_not": NO_TOOL_WORDS})
+            out[-1]["fail_first_call"] = True
+        for i, item in enumerate(picked):
             # One sentence an item: lists were over half of v2's turns, and it overfit on them.
             for j, template in enumerate(rng.sample(templates, 1)):
                 add(f"coll-{slug(title)}-{i}-{j}", "collection", lang, notes, template.format(x=item),
@@ -286,6 +307,8 @@ def cases(rng):
         add(f"unclear-{i}", "unclear", lang, {}, msg, {"answer": ["?"]})
     for i, (lang, msg, pattern, item) in enumerate(NEW_LISTS):
         add(f"newlist-{i}", "collection", lang, {}, msg, {"tools": ["create_note"], "notes": {pattern: [item]}})
+    for i, (lang, msg, pattern, item) in enumerate(FIRST_OF_KIND):
+        add(f"newlist-first-{i}", "collection", lang, {}, msg, {"tools": ["create_note"], "notes": {pattern: [item]}})
     for lang, now, later, messages in TWIN_LISTS:
         notes = {path("topic", t): note(t, "topic", lang) for t in (now, later)}
         for i, (msg, is_now, item) in enumerate(messages):

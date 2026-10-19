@@ -141,6 +141,52 @@ void main() {
     expect((bare['messages']! as List).map((m) => (m as Map)['role']), ['system', 'user']);
   });
 
+  group('a tool that fails once, and words the answer must not have (#474)', () {
+    final flaky = _case({
+      'id': 'fail-1',
+      'kind': 'recovery',
+      'lang': 'en',
+      'notes': {'projects/mopsos.md': _mopsos},
+      'message': 'Mopsos: we switch the hit rate to daily.',
+      'fail_first_call': true,
+      'expect': {
+        'notes': {
+          r'^projects/mopsos\.md$': ['daily'],
+        },
+        'answer_not': ['add_note_entry', 'sorry'],
+      },
+    });
+
+    test('the first call gets an error; a retry works and passes', () async {
+      final provider = ScriptedProvider([
+        toolUse('add_note_entry', 't1', {'slug': 'mopsos', 'text': 'Hit rate is now daily.'}),
+        toolUse('add_note_entry', 't2', {'slug': 'mopsos', 'text': 'Hit rate is now daily.'}),
+        text('Saved to Mopsos.'),
+      ]);
+      final result = await runCase(flaky, provider);
+      expect(result.passed, isTrue, reason: '${result.problems}');
+      final first = provider.turns[1].$2.last['content']! as List;
+      expect((first.single as Map)['content'], startsWith('Error:'));
+      expect(flaky.failFirstCall, isTrue);
+      expect(filing.failFirstCall, isFalse);
+    });
+
+    test('naming the tool, or giving up to the user, fails', () async {
+      final result = await runCase(
+        flaky,
+        ScriptedProvider([
+          toolUse('add_note_entry', 't1', {'slug': 'mopsos', 'text': 'Daily.'}),
+          text("I'm sorry, add_note_entry failed. What should I do?"),
+        ]),
+      );
+      expect(result.problems, [
+        r'no changed note matching ^projects/mopsos\.md$ contains "daily"',
+        'the answer has "add_note_entry"',
+        'the answer has "sorry"',
+      ]);
+    });
+  });
+
   test('a slim run asks with the slim prompt and tools, and trains on them (#447)', () async {
     final provider = ScriptedProvider([
       toolUse('add_note_entry', 't1', {'slug': 'mopsos', 'text': 'Hit rate is now daily.'}),

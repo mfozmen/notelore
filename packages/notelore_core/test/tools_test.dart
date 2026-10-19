@@ -336,11 +336,27 @@ void main() {
       startsWith("Error: 'dup' exists as"),
     );
     expect(call('nonsense'), "Error: unknown tool 'nonsense'.");
-    expect(call('read_note'), "Error: read_note is missing the argument 'slug'.");
+    // The call's whole shape comes with it, so a small model fixes it in one step (#474).
+    const readNote = 'Call it as read_note({"slug": string, "kind"?: "project" | "topic"}).';
+    expect(call('read_note'), "Error: read_note is missing the argument 'slug'. $readNote");
     expect(
       call('read_note', {'slug': 'x', 'colour': 'red'}),
-      "Error: read_note got an unknown argument 'colour'.",
+      "Error: read_note got an unknown argument 'colour'. $readNote",
     );
+    expect(
+      call('related_notes', {'query': 'mobius'}),
+      "Error: related_notes is missing the argument 'title'. "
+      'Call it as related_notes({"title": string, "about"?: string}).',
+    );
+    expect(
+      call('create_note', {'kind': 'topic'}),
+      endsWith(
+        'create_note({"kind": "project" | "topic", "title": string, "tags"?: [string], '
+        '"lang"?: "en" | "tr"}).',
+      ),
+    );
+    expect(call('archive', {}), contains('"entries"?: object'));
+    expect(call('complete_todo', {}), contains('"number": integer'));
     expect(
       call('complete_todo', {'slug': 'dup', 'number': 'two', 'kind': 'topic'}),
       "Error: complete_todo expects 'number' to be integer, got string.",

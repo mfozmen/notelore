@@ -497,16 +497,34 @@ Map<String, Object?> _decision(Decision d) => {
 String? _checkArguments(Tool tool, Map<String, Object?> args) {
   final properties = tool.inputSchema['properties']! as Map<String, Object?>;
   for (final required in tool.inputSchema['required']! as List<String>) {
-    if (!args.containsKey(required)) return "${tool.name} is missing the argument '$required'.";
+    if (!args.containsKey(required)) {
+      return "${tool.name} is missing the argument '$required'. ${_callAs(tool)}";
+    }
   }
   for (final MapEntry(:key, :value) in args.entries) {
     final schema = properties[key];
-    if (schema == null) return "${tool.name} got an unknown argument '$key'.";
+    if (schema == null) return "${tool.name} got an unknown argument '$key'. ${_callAs(tool)}";
     if (_checkValue(tool.name, key, value, schema as Map<String, Object?>) case final problem?) {
       return problem;
     }
   }
   return null;
+}
+
+/// How [tool] is called, every argument with its type ("?" when optional): a
+/// small model fixes a wrong call in one step when the error shows it (#474).
+String _callAs(Tool tool) {
+  final required = tool.inputSchema['required']! as List<String>;
+  String type(Map<String, Object?> schema) => switch (schema) {
+    {'enum': final List<Object?> values} => values.map((v) => '"$v"').join(' | '),
+    {'type': 'array', 'items': final Map<String, Object?> items} => '[${type(items)}]',
+    _ => '${schema['type']}',
+  };
+  final arguments = [
+    for (final MapEntry(:key, :value) in (tool.inputSchema['properties']! as Map).entries)
+      '"$key"${required.contains(key) ? '' : '?'}: ${type((value as Map).cast())}',
+  ];
+  return 'Call it as ${tool.name}({${arguments.join(', ')}}).';
 }
 
 /// Type checks one value, descending into array items and object values.

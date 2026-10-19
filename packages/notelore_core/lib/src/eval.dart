@@ -31,6 +31,7 @@ class Expectation {
   Expectation.fromJson(Map<String, Object?> json)
     : tools = [...?(json['tools'] as List?)?.cast<String>()],
       answer = [...?(json['answer'] as List?)?.cast<String>()],
+      answerNot = [...?(json['answer_not'] as List?)?.cast<String>()],
       notes = {
         for (final MapEntry(:key, :value) in ((json['notes'] as Map?) ?? {}).entries)
           '$key': (value as List).cast<String>(),
@@ -41,6 +42,9 @@ class Expectation {
 
   /// Facts the final answer must contain (case-insensitive).
   final List<String> answer;
+
+  /// Words it must not (case-insensitive): a tool's name, an apology (#474).
+  final List<String> answerNot;
 
   /// Path pattern (relative, `/`) -> facts a changed note matching it must hold.
   /// Only notes matching one of these may change.
@@ -54,6 +58,7 @@ class EvalCase {
       lang = json['lang']! as String,
       message = json['message']! as String,
       notes = ((json['notes'] as Map?) ?? shared).cast<String, String>(),
+      failFirstCall = json['fail_first_call'] == true,
       expect = Expectation.fromJson((json['expect']! as Map).cast());
 
   final String id;
@@ -63,6 +68,10 @@ class EvalCase {
 
   /// Relative path (`/`) -> note text, written before the turn.
   final Map<String, String> notes;
+
+  /// The turn's first tool call gets an error: the model must fix it and go
+  /// on, in the user's language, never hand the error to the user (#474).
+  final bool failFirstCall;
   final Expectation expect;
 }
 
@@ -120,7 +129,9 @@ Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider, {bool slim =
     final before = _files(root);
     final agent = Agent(
       provider,
-      Toolbox(root, index, today: evalToday),
+      evalCase.failFirstCall
+          ? _FailsOnce(root, index, today: evalToday)
+          : Toolbox(root, index, today: evalToday),
       today: evalNow,
       slim: slim,
     );
@@ -141,6 +152,8 @@ Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider, {bool slim =
         ..._missingFacts(evalCase.expect, changed, after),
         for (final fact in evalCase.expect.answer)
           if (!_has(answer, fact)) 'the answer lacks "$fact"',
+        for (final word in evalCase.expect.answerNot)
+          if (_has(answer, word)) 'the answer has "$word"',
       ]);
     }
     return EvalResult(
@@ -156,6 +169,20 @@ Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider, {bool slim =
   } finally {
     index.close();
     dir.deleteSync(recursive: true);
+  }
+}
+
+/// A toolbox whose first call fails, as one would on a bad argument.
+class _FailsOnce extends Toolbox {
+  _FailsOnce(super.root, super.index, {super.today});
+
+  var _failed = false;
+
+  @override
+  String call(String name, Map<String, Object?> args) {
+    if (_failed) return super.call(name, args);
+    _failed = true;
+    return 'Error: $name could not run this time. Call it again.';
   }
 }
 

@@ -412,6 +412,17 @@ void main() {
     expect(prompt, contains('If no open todo matches, add a dated entry'));
   });
 
+  test('after a tool error the model fixes the call and goes on, in the user language', () {
+    // v3: a failed related_notes ended in English, naming the tool, asking the
+    // user what to do (#474).
+    for (final prompt in [systemPrompt(today), slimSystemPrompt(today)]) {
+      expect(prompt, contains('When a tool returns an error'));
+      expect(prompt, contains('fix the call'));
+      expect(prompt, contains('never name a tool'));
+      expect(prompt, contains("always in the user's language"));
+    }
+  });
+
   test('a choice the user says was made is recorded as a decision, not an entry', () {
     // "Garden Shed: we picked Concrete slab for the floor" became a note entry,
     // so get_decision never found it (the v3 distill's decision cases).

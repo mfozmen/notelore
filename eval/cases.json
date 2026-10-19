@@ -524,6 +524,41 @@
      ]
     }
    }
+  },
+  {
+   "id": "coll-tr-empty",
+   "kind": "collection",
+   "lang": "tr",
+   "message": "Saatleri Ayarlama Enstitüsü'nü okuyorum",
+   "notes": {},
+   "expect": {
+    "notes": {
+     "^topics/[^/]*kitap[^/]*\\.md$": [
+      "Saatleri Ayarlama Enstitüsü"
+     ]
+    }
+   }
+  },
+  {
+   "id": "recover-tr-1",
+   "kind": "recovery",
+   "lang": "tr",
+   "message": "okuduğum kitap mobius",
+   "fail_first_call": true,
+   "expect": {
+    "notes": {
+     "^topics/okumakta\\-oldugum\\-kitaplar\\.md$": [
+      "Mobius"
+     ]
+    },
+    "answer_not": [
+     "related_notes",
+     "list_notes",
+     "search_notes",
+     "sorry",
+     "error"
+    ]
+   }
   }
  ]
 }
