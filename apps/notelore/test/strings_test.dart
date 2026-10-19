@@ -269,7 +269,7 @@ void main() {
       'stopReading': s.stopReading,
       'waitingToSend': s.waitingToSend,
       'tryNow': s.tryNow,
-      'holdHint': s.holdHint,
+      'stopTalking': s.stopTalking,
       'listening': s.listening,
       'speaking': s.speaking,
       'voiceUnavailable': s.voiceUnavailable,

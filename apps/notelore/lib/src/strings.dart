@@ -186,10 +186,10 @@ abstract class Strings {
   /// What a screen reader hears while the assistant works (#290).
   String get working;
   String get talk;
+  String get stopTalking;
   String get stopReading;
   String get waitingToSend;
   String get tryNow;
-  String get holdHint;
   String get listening;
   String get speaking;
   String get voiceUnavailable;
@@ -835,15 +835,15 @@ class EnglishStrings extends Strings {
     'Writing it neatly this time…',
   ];
   @override
-  String get talk => 'Hold to talk';
+  String get talk => 'Tap or hold to talk';
+  @override
+  String get stopTalking => 'Stop and send';
   @override
   String get stopReading => 'Stop reading aloud';
   @override
   String get waitingToSend => 'Waiting to send';
   @override
   String get tryNow => 'Try now';
-  @override
-  String get holdHint => 'Hold the button while you talk.';
   @override
   String get listening => 'Listening…';
   @override
@@ -1687,15 +1687,15 @@ class TurkishStrings extends Strings {
     'Bu sefer temiz yazıyor…',
   ];
   @override
-  String get talk => 'Basılı tut, konuş';
+  String get talk => 'Dokun ya da basılı tut, konuş';
+  @override
+  String get stopTalking => 'Durdur ve gönder';
   @override
   String get stopReading => 'Sesli okumayı durdur';
   @override
   String get waitingToSend => 'Gönderilmeyi bekliyor';
   @override
   String get tryNow => 'Şimdi dene';
-  @override
-  String get holdHint => 'Konuşurken düğmeyi basılı tut.';
   @override
   String get listening => 'Dinliyorum…';
   @override
