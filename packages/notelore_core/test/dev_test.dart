@@ -318,17 +318,19 @@ void main() {
     train.writeAsStringSync('stale\n');
     expect(await distill(), 0);
     expect(train.readAsLinesSync(), hasLength(3));
-    expect(done.readAsLinesSync(), ['one', 'two', 'three']);
-    // Stopped after "one" (the machine ran short of memory, say): the rerun
-    // asks only for the rest and keeps what was written.
-    train.writeAsStringSync('{"kept": "one"}\n');
-    done.writeAsStringSync('one\n');
+    expect(done.readAsLinesSync(), ['one\tkept', 'two\tkept', 'three\tkept']);
+    // Stopped after "one" (the machine ran short of memory, say), and after
+    // "two" was kept but before it was marked done: the rerun asks only for
+    // the rest, keeps what "one" wrote and drops the half-finished line.
+    train.writeAsStringSync('{"kept": "one"}\n{"kept": "two, half"}\n');
+    done.writeAsStringSync('one\tkept\n');
     asked = 0;
     expect(await distill(), 0);
     expect(asked, 2);
     expect(train.readAsLinesSync(), hasLength(3));
     expect(train.readAsLinesSync().first, '{"kept": "one"}');
-    expect(done.readAsLinesSync(), ['one', 'two', 'three']);
+    expect(train.readAsStringSync(), isNot(contains('half')));
+    expect(done.readAsLinesSync(), ['one\tkept', 'two\tkept', 'three\tkept']);
     expect('$out', contains('skipped 1 already done'));
     expect('$out', contains('kept 2 of 2'));
   });
