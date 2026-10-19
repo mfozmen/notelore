@@ -129,7 +129,7 @@ const providerSpecs = [
     'Ollama (local)',
     group: ProviderGroup.local,
     requiresApiKey: false,
-    defaultModel: 'llama3.2',
+    defaultModel: 'qwen3:4b', // what its setup says to pull; connecting picks an installed one
     cost: 'Free: the model runs on this computer.',
     keyUrl: 'https://ollama.com/download',
     keySteps: [

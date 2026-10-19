@@ -278,4 +278,21 @@ void main() {
     expect(currentModels('ollama', ['llama3.2', 'llama3.1']), ['llama3.2', 'llama3.1']);
     expect(currentModels('openai', ['custom']), ['custom']);
   });
+
+  test("Ollama starts on an installed model: Notelore's own, the newest, else Qwen3 (#471)", () {
+    expect(
+      ollamaStartModel([
+        'llama3.2:3b',
+        'qwen3:4b',
+        'notelore-qwen3-4b-v2:latest',
+        'notelore-qwen3-4b-v3:latest',
+      ]),
+      'notelore-qwen3-4b-v3:latest',
+    );
+    expect(ollamaStartModel(['llama3.2:3b', 'qwen3:8b', 'qwen3:4b-instruct']), 'qwen3:4b-instruct');
+    expect(ollamaStartModel(['llama3.2:3b', 'qwen3:8b']), 'qwen3:8b');
+    expect(ollamaStartModel(['llama3.2:3b', 'phi4-mini:latest']), 'llama3.2:3b');
+    expect(ollamaStartModel([]), isNull);
+    expect(const NoLocalModel(), isA<Exception>()); // what the app says to pull then
+  });
 }

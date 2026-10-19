@@ -220,13 +220,19 @@ void main() {
     expect(session.ready, isFalse);
   });
 
-  test('Ollama needs no key', () async {
-    final harness = Harness();
+  test('Ollama needs no key, and starts on a model it has (#471)', () async {
+    final harness = Harness()..models = ['llama3.2:3b', 'notelore-qwen3-4b-v3:latest'];
     await harness.session().connect(findProvider('ollama'), '');
     final again = harness.session();
     await again.load();
     expect(again.ready, isTrue);
-    expect(harness.created.last, ('ollama', '', 'llama3.2'));
+    expect(harness.created.last, ('ollama', '', 'notelore-qwen3-4b-v3:latest'));
+    // None installed: says so, never a model Ollama does not have.
+    harness.models = [];
+    await expectLater(
+      harness.session().connect(findProvider('ollama'), ''),
+      throwsA(isA<NoLocalModel>()),
+    );
   });
 
   test('notes archived since the last turn are named to the model as unusable (#205)', () async {
@@ -719,10 +725,11 @@ void main() {
     expect(harness.created.last, ('anthropic', 'k', 'claude-x'));
     await session.setModel('');
     expect(session.model, 'claude-sonnet-5-5'); // blank goes back to the default
-    // Ollama's list is the machine's own: a blank goes back to its fixed default.
+    // Ollama: a blank goes back to an installed model, never a fixed name (#471).
+    harness.models = ['llama3.2:3b', 'qwen3:4b-instruct'];
     await session.connect(findProvider('ollama'), '');
     await session.setModel('');
-    expect(session.model, 'llama3.2');
+    expect(session.model, 'qwen3:4b-instruct');
   });
 
   test('an API key starts on the cheapest model it lists', () async {
