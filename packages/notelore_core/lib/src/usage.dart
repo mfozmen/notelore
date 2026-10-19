@@ -112,10 +112,12 @@ final class UsageSummary {
 /// [counts] ("provider/model" to count) as one summary.
 UsageSummary summarize(Map<String, UsageCount> counts) {
   double? cost = 0;
+  var billed = false;
   for (final MapEntry(:key, value: count) in counts.entries) {
     final cut = key.indexOf('/');
     final (provider, model) = (key.substring(0, cut), key.substring(cut + 1));
     if (_free.contains(provider)) continue;
+    billed = true;
     final price = prices[model];
     if (price == null || count.unreported > 0) {
       cost = null;
@@ -127,7 +129,7 @@ UsageSummary summarize(Map<String, UsageCount> counts) {
     counts.values.fold(const UsageCount(), (total, count) => total + count),
     cost: cost,
     plan: counts.keys.any((key) => key.startsWith('chatgpt/')),
-    billed: counts.keys.any((key) => !_free.contains(key.substring(0, key.indexOf('/')))),
+    billed: billed,
   );
 }
 

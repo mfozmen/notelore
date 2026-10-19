@@ -274,18 +274,20 @@ abstract class Strings {
       else
         usageTokensUnavailable,
       if (summary.unreported > 0) usageUnreported(summary.unreported),
-      // Nothing charged per token: where it went, never "$0.00" (#436).
-      if (!summary.billed)
-        summary.plan ? usageInPlan : usageNoCharge
-      else
-        switch (summary.cost) {
-          null => usageCostUnavailable,
-          final cost => usageCost(
-            cost.toStringAsFixed(cost == 0 || cost >= 0.01 ? 2 : 4).replaceFirst('.', decimalPoint),
-          ),
-        },
+      _costLine(summary),
       if (summary.billed && summary.plan) usagePlanPart,
     ];
+  }
+
+  /// Nothing charged per token: where it went, never "$0.00" (#436).
+  String _costLine(UsageSummary summary) {
+    if (!summary.billed) return summary.plan ? usageInPlan : usageNoCharge;
+    return switch (summary.cost) {
+      null => usageCostUnavailable,
+      final cost => usageCost(
+        cost.toStringAsFixed(cost == 0 || cost >= 0.01 ? 2 : 4).replaceFirst('.', decimalPoint),
+      ),
+    };
   }
 
   String get archive;
