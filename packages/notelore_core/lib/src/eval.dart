@@ -212,10 +212,56 @@ Iterable<String> _missingFacts(
 Map<String, Object?> trainingExample(EvalResult result) => {
   'messages': [
     {'role': 'system', 'content': result.slim ? slimSystemPrompt(evalNow) : systemPrompt(evalNow)},
-    ...toOllama(result.messages),
+    ...toOllama(collapseRepeatedReads(result.messages)),
   ],
   'tools': functionTools(result.slim ? slimTools : noteTools),
 };
+
+/// [messages] without each read that repeats an earlier one, same tool, same
+/// arguments, same result (a second identical list_notes, say): it taught
+/// nothing, so it goes with its result, and with its step when it was the
+/// step's only call. A write, or a read that answered otherwise, stays.
+List<Message> collapseRepeatedReads(List<Message> messages) {
+  final dropped = _repeatedReads(messages);
+  return [for (final message in messages) ?_without(message, dropped)];
+}
+
+/// The ids of the reads [collapseRepeatedReads] drops. A write in between
+/// does not matter: the same result means the repeat still learned nothing.
+Set<Object?> _repeatedReads(List<Message> messages) {
+  const equality = DeepCollectionEquality();
+  final results = {
+    for (final block in _trainingBlocks(messages))
+      if (block['type'] == 'tool_result') block['tool_use_id']: block['content'],
+  };
+  final seen = <List<Object?>>[];
+  final dropped = <Object?>{};
+  for (final block in _trainingBlocks(messages)) {
+    if (block['type'] != 'tool_use' || !results.containsKey(block['id'] ?? _noId)) continue;
+    final call = [block['name'], block['input'], results[block['id']]];
+    final read = !writingTools.contains(block['name']);
+    if (read && seen.any((earlier) => equality.equals(earlier, call))) dropped.add(block['id']);
+    seen.add(call);
+  }
+  return dropped;
+}
+
+/// Matches no result: a call without an id is never dropped.
+const _noId = Object();
+
+/// [message] without the [dropped] calls and their results; none when nothing
+/// is left, or when every call of its step went (its words go with them).
+Message? _without(Message message, Set<Object?> dropped) {
+  final blocks = message['content'];
+  if (blocks is! List<Object?>) return message;
+  bool gone(Object? block) =>
+      block is Map &&
+      dropped.contains(block['type'] == 'tool_use' ? block['id'] : block['tool_use_id']);
+  final calls = blocks.where((b) => b is Map && b['type'] == 'tool_use');
+  if (calls.isNotEmpty && calls.every(gone)) return null;
+  final left = blocks.where((b) => !gone(b)).toList();
+  return left.isEmpty ? null : {...message, 'content': left};
+}
 
 /// Reasons a scored-passing teacher turn is excluded from distillation.
 enum TrainingIssue { toolError, repeatedCall }
@@ -226,7 +272,7 @@ Set<TrainingIssue> trainingIssues(List<Message> messages) {
   final issues = <TrainingIssue>{};
   final calls = <List<Object?>>[];
   const equality = DeepCollectionEquality();
-  for (final block in _trainingBlocks(messages)) {
+  for (final block in _trainingBlocks(collapseRepeatedReads(messages))) {
     if (block['type'] == 'tool_result' &&
         block['content'] is String &&
         (block['content']! as String).toLowerCase().startsWith('error')) {

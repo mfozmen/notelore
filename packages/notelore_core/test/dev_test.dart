@@ -406,12 +406,16 @@ void main() {
     );
     expect('$out', contains('ok   recovered'));
     expect('$out', contains('ok   repeated'));
-    expect('$out', contains('kept 0 of 2'));
+    // A read repeated with the same result is dropped from the example, not
+    // the turn left out (a write repeated still is: eval_test).
+    expect('$out', contains('kept 1 of 2'));
     expect(
       '$out',
-      contains('excluded 2 passing turns (tool errors: 1; repeated calls: 1; counts may overlap)'),
+      contains('excluded 1 passing turns (tool errors: 1; repeated calls: 0; counts may overlap)'),
     );
-    expect(File(p.join(temp.path, 'train.jsonl')).readAsStringSync(), isEmpty);
+    final kept = File(p.join(temp.path, 'train.jsonl')).readAsLinesSync().single;
+    // Once in the tool list, once as the call, once as its result: one call left.
+    expect(RegExp('"list_notes"').allMatches(kept), hasLength(3));
   });
 
   test('a failing turn reports the error and where the trace is', () async {
