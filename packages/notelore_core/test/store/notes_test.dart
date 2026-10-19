@@ -535,6 +535,19 @@ void main() {
       expect(restoreArchived(root, listed.last), p.join(root, 'topics', 'kitaplar.md'));
     });
 
+    test('a restore leaves no empty folder in the archive (#490)', () {
+      final path = createNote(root, 'topic', 'Kitaplar', today: DateTime(2026, 10, 1));
+      addEntry(path, 'Dune', today: DateTime(2026, 10, 1));
+      archiveEntries(root, path, {
+        'notes': [1],
+      }, today: DateTime(2026, 10, 2));
+      restoreArchived(root, listArchived(root).single);
+      final other = createNote(root, 'project', 'Mopsos', today: DateTime(2026, 10, 1));
+      archiveNote(root, other, today: DateTime(2026, 10, 3));
+      restoreArchived(root, listArchived(root).single);
+      expect(Directory(p.join(root, archiveFolder)).listSync(), isEmpty);
+    });
+
     test('archived entries are listed as entries and go back into their note', () {
       final path = createNote(root, 'topic', 'Kitaplar', today: DateTime(2026, 10, 1));
       addEntry(path, 'Dune', today: DateTime(2026, 10, 1));

@@ -54,6 +54,12 @@ class SignInFailed implements Exception {
   String toString() => '$service sign-in failed: $message';
 }
 
+/// The consent screen granted less than was asked: a box left unticked
+/// (#484). Nothing is kept; signing in again with every box ticked works.
+class PartialGrant extends SignInFailed {
+  const PartialGrant() : super('not every permission was granted');
+}
+
 /// The ChatGPT account signed in, but has no plan it may share with other
 /// apps (only Plus and Pro can, #321): no retry helps, another way in does.
 class NoChatGptPlan extends SignInFailed {

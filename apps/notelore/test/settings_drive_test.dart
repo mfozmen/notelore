@@ -81,7 +81,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Connect'));
     await tester.pumpAndSettle();
-    expect(find.text('Google sign-in failed: access_denied'), findsOneWidget);
+    expect(find.text('Sign-in did not finish. Please try again.'), findsOneWidget); // never raw
+    // A box left unticked on Google's consent screen: says to tick them all (#484).
+    auth.failSignIn = const PartialGrant();
+    await tester.tap(find.widgetWithText(FilledButton, 'Connect'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('leave every box ticked'), findsOneWidget);
     auth.failSignIn = null;
     harness.remote.failure = null;
     await tester.tap(find.widgetWithText(FilledButton, 'Connect'));
@@ -140,6 +145,10 @@ void main() {
       await tester.tap(find.widgetWithText(TextButton, 'Connect'));
       await tester.pumpAndSettle();
       expect(find.text('Sign-in did not finish. Please try again.'), findsOneWidget);
+      auth.failSignIn = const PartialGrant();
+      await tester.tap(find.widgetWithText(TextButton, 'Connect'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('leave every box ticked'), findsOneWidget);
       await tester.tap(find.text('Later'));
       await tester.pumpAndSettle();
       expect(find.text(banner), findsNothing);
