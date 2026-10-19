@@ -296,7 +296,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull); // no overflow with the error card shown
     expect(find.byKey(const Key('google-problem')), findsOneWidget);
-    await tester.scrollUntilVisible(find.byKey(const Key('google-sign-in')), 100);
+    // The page's own list: the error's selectable text scrolls too.
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('google-sign-in')),
+      100,
+      scrollable: find.byType(Scrollable).first,
+    );
     // Busy, a screen reader hears that it is signing in.
     auth
       ..failSignIn = null

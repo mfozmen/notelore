@@ -494,17 +494,19 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     Widget action,
   ) {
     if (size.maxWidth >= Layout.wide) {
-      // Held near the top, so the card does not jump between steps.
+      // Held near the top, so the card does not jump between steps; nearer on
+      // a short window, where every line of the list counts (#472).
+      final top = size.maxHeight < 640 ? Gap.l : _cardTop;
       return Align(
         alignment: Alignment.topCenter,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(Gap.l, _cardTop, Gap.l, Gap.l),
+          padding: EdgeInsets.fromLTRB(Gap.l, top, Gap.l, Gap.l),
           child: ConstrainedBox(
             // Never taller than the window: the list scrolls, the action stays in view.
             constraints: BoxConstraints(
               maxWidth: 480,
               // Never negative, in a window shorter than the card's top.
-              maxHeight: max(0, size.maxHeight - _cardTop - Gap.l),
+              maxHeight: max(0, size.maxHeight - top - Gap.l),
             ),
             child: Card(
               key: const Key('setup-card'),
@@ -525,7 +527,11 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
                       child: header,
                     ),
                     const SizedBox(height: Gap.l),
-                    _edge('header-edge', show: _scrolledUnder),
+                    // As wide as the content: the gutter on the right is the scrollbar's.
+                    Padding(
+                      padding: const EdgeInsets.only(right: Gap.m),
+                      child: _edge('header-edge', show: _scrolledUnder),
+                    ),
                     Flexible(
                       child: NotificationListener<Notification>(
                         onNotification: _scrolled,
@@ -535,7 +541,10 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
                         ),
                       ),
                     ),
-                    _edge('action-edge', show: _moreBelow),
+                    Padding(
+                      padding: const EdgeInsets.only(right: Gap.m),
+                      child: _edge('action-edge', show: _moreBelow),
+                    ),
                     const SizedBox(height: Gap.l),
                     Padding(
                       padding: const EdgeInsets.only(right: Gap.m),
@@ -933,7 +942,8 @@ class _SignInProblem extends StatelessWidget {
             children: [
               Icon(Icons.error_outline, color: colors.onErrorContainer),
               Expanded(
-                child: Text(problem, style: TextStyle(color: colors.onErrorContainer)),
+                // Selectable: a command in it (ollama pull …) can be copied.
+                child: SelectableText(problem, style: TextStyle(color: colors.onErrorContainer)),
               ),
             ],
           ),
