@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:notelore_core/src/agent.dart' show slimSystemPrompt;
+import 'package:notelore_core/src/agent.dart' show slimSystemPrompt, systemPrompt;
 import 'package:notelore_core/src/eval.dart';
 import 'package:notelore_core/src/providers/base.dart' show Message;
-import 'package:notelore_core/src/tools.dart' show slimTools;
+import 'package:notelore_core/src/tools.dart' show noteTools, slimTools;
 import 'package:test/test.dart';
 
 import 'agent_test.dart' show ScriptedProvider, text, toolUse;
@@ -113,6 +113,32 @@ void main() {
       contains('add_note_entry'),
     );
     jsonEncode(example); // one JSONL line
+  });
+
+  test('an example gets the current prompt and tools, its turns kept as they were', () {
+    final old = {
+      'messages': [
+        {'role': 'system', 'content': 'an older prompt'},
+        {'role': 'user', 'content': 'hi'},
+        {'role': 'assistant', 'content': 'Hello.'},
+      ],
+      'tools': <Object?>[],
+    };
+    final now = reprompted(old);
+    final messages = (now['messages']! as List).cast<Map<String, Object?>>();
+    expect(messages.first, {'role': 'system', 'content': systemPrompt(evalNow)});
+    expect(messages.skip(1), (old['messages']! as List).skip(1));
+    expect(now['tools'], hasLength(noteTools.length));
+    final slim = reprompted(old, slim: true);
+    expect(((slim['messages']! as List).first as Map)['content'], slimSystemPrompt(evalNow));
+    expect(slim['tools'], hasLength(slimTools.length));
+    // An example without a system message gets one in front.
+    final bare = reprompted({
+      'messages': [
+        {'role': 'user', 'content': 'hi'},
+      ],
+    });
+    expect((bare['messages']! as List).map((m) => (m as Map)['role']), ['system', 'user']);
   });
 
   test('a slim run asks with the slim prompt and tools, and trains on them (#447)', () async {

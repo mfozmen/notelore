@@ -217,6 +217,21 @@ Map<String, Object?> trainingExample(EvalResult result) => {
   'tools': functionTools(result.slim ? slimTools : noteTools),
 };
 
+/// [example] (a line of a training file) with today's system prompt and tools,
+/// [slim] or full, and its turns as they were: one file then teaches one
+/// version of the rules, however its examples were made.
+Map<String, Object?> reprompted(Map<String, Object?> example, {bool slim = false}) {
+  final messages = (example['messages']! as List).cast<Map<String, Object?>>();
+  return {
+    ...example,
+    'messages': [
+      {'role': 'system', 'content': slim ? slimSystemPrompt(evalNow) : systemPrompt(evalNow)},
+      ...messages.where((m) => m['role'] != 'system'),
+    ],
+    'tools': functionTools(slim ? slimTools : noteTools),
+  };
+}
+
 /// [messages] without each read that repeats an earlier one, same tool, same
 /// arguments, same result (a second identical list_notes, say): it taught
 /// nothing, so it goes with its result, and with its step when it was the
