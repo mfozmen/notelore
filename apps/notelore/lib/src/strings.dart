@@ -191,6 +191,7 @@ abstract class Strings {
   String get waitingToSend;
   String get tryNow;
   String get listening;
+  String get listeningTapToSend;
   String get speaking;
   String get voiceUnavailable;
   String speechFailed(String code);
@@ -846,6 +847,8 @@ class EnglishStrings extends Strings {
   String get tryNow => 'Try now';
   @override
   String get listening => 'Listening…';
+  @override
+  String get listeningTapToSend => 'Listening… tap to send';
   @override
   String get speaking => 'Speaking…';
   @override
@@ -1698,6 +1701,8 @@ class TurkishStrings extends Strings {
   String get tryNow => 'Şimdi dene';
   @override
   String get listening => 'Dinliyorum…';
+  @override
+  String get listeningTapToSend => 'Dinliyorum… dokun, gönder';
   @override
   String get speaking => 'Okuyorum…';
   @override

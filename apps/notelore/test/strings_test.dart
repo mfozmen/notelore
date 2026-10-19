@@ -270,6 +270,7 @@ void main() {
       'waitingToSend': s.waitingToSend,
       'tryNow': s.tryNow,
       'stopTalking': s.stopTalking,
+      'listeningTapToSend': s.listeningTapToSend,
       'listening': s.listening,
       'speaking': s.speaking,
       'voiceUnavailable': s.voiceUnavailable,

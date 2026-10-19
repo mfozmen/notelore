@@ -1188,8 +1188,11 @@ void main() {
     expect(tester.widget<Semantics>(talk).properties.enabled, isTrue);
     tester.widget<Semantics>(talk).properties.onTap!();
     await tester.pump();
-    expect(find.text('Listening…'), findsOneWidget);
-    tester.widget<Semantics>(talk).properties.onTap!();
+    expect(find.text('Listening… tap to send'), findsOneWidget);
+    final stop = find.byWidgetPredicate(
+      (w) => w is Semantics && w.properties.label == 'Stop and send',
+    );
+    tester.widget<Semantics>(stop).properties.onTap!();
     await tester.pumpAndSettle();
     expect(harness.provider.asked, ['klavyeden', 'okuyucudan']);
   });
@@ -1240,9 +1243,9 @@ void main() {
     await tester.pump();
     await tap.up(timeStamp: const Duration(seconds: 13, milliseconds: 100));
     await tester.pump();
-    expect(find.text('Listening…'), findsOneWidget); // still on after the finger is up
+    expect(find.text('Listening… tap to send'), findsOneWidget); // on after the finger is up
     expect(find.byTooltip('Stop and send'), findsOneWidget);
-    expect(find.byIcon(Icons.stop), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_upward), findsOneWidget);
     final stop = await tester.createGesture();
     await stop.down(
       tester.getCenter(find.byTooltip('Stop and send')),
@@ -1265,6 +1268,20 @@ void main() {
     await tester.pump();
     await harness.speech.finish(); // the recognizer ended by itself (silence)
     await tester.pumpAndSettle();
+    expect(find.byTooltip('Tap or hold to talk'), findsOneWidget);
+    // A tap-started recording can be dropped: nothing is sent.
+    final asked = harness.provider.asked.length;
+    final drop = await tester.createGesture();
+    await drop.down(
+      tester.getCenter(find.byTooltip('Tap or hold to talk')),
+      timeStamp: const Duration(seconds: 18),
+    );
+    await tester.pump();
+    await drop.up(timeStamp: const Duration(seconds: 18, milliseconds: 50));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Cancel'));
+    await tester.pumpAndSettle();
+    expect(harness.provider.asked, hasLength(asked));
     expect(find.byTooltip('Tap or hold to talk'), findsOneWidget);
     // A hold the system takes away (a call, say) ends like a let-go.
     final taken = await tester.startGesture(

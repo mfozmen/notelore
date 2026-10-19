@@ -515,8 +515,21 @@ class _ComposerState extends State<_Composer> {
   bool get _stopShown => _latched && _voice.state == VoiceState.listening;
 
   /// A screen reader's tap: starts listening, or sends what was said.
-  void _toggleTalk() =>
-      _voice.state == VoiceState.listening ? _voice.release() : unawaited(_hold());
+  void _toggleTalk() {
+    if (_voice.state == VoiceState.listening) {
+      _latched = false;
+      _voice.release();
+    } else {
+      setState(() => _latched = true);
+      unawaited(_hold());
+    }
+  }
+
+  /// Drops a tap-started recording without sending it.
+  void _discard() {
+    setState(() => _latched = false);
+    _voice.end();
+  }
 
   /// Space or Enter held on the focused talk button: push to talk by keyboard.
   KeyEventResult _talkKey(KeyEvent event, {required bool busy}) {
@@ -580,6 +593,10 @@ class _ComposerState extends State<_Composer> {
             message: widget.message,
             send: widget.send,
             attach: widget.attach,
+            recording: _Recording(
+              _stopShown ? s.listeningTapToSend : s.listening,
+              discard: _stopShown ? (s.cancel, _discard) : null,
+            ),
             talk: _TalkButton(
               label: _stopShown ? s.stopTalking : s.talk,
               listening: _voice.state == VoiceState.listening,
@@ -608,6 +625,7 @@ class _ComposerRow extends StatelessWidget {
     required this.message,
     required this.send,
     required this.attach,
+    required this.recording,
     required this.talk,
   });
 
@@ -616,6 +634,7 @@ class _ComposerRow extends StatelessWidget {
   final TextEditingController message;
   final Future<void> Function() send;
   final Future<void> Function() attach;
+  final Widget recording;
   final Widget talk;
 
   @override
@@ -639,7 +658,7 @@ class _ComposerRow extends StatelessWidget {
               // While recording, the recording takes the field's place;
               // the field's text stays in its controller.
               child: voice.state == VoiceState.listening
-                  ? _Recording(s.listening)
+                  ? recording
                   : _MessageField(message, voice: voice, hint: s.message, send: send),
             ),
             if (voice.state == VoiceState.speaking)
@@ -696,7 +715,8 @@ class _MessageField extends StatelessWidget {
   );
 }
 
-/// Push to talk: held, it listens; let go, what was said is sent. The press
+/// Talk: held, it listens and let go sends; tapped, it keeps listening and
+/// turns into Stop and send ([stop]), and a tap on that sends (#452). The press
 /// stays with this Listener wherever the finger goes, even when the keyboard
 /// closing moves it (#212). A screen reader cannot hold: one tap starts, the
 /// next sends ([toggle]); the keyboard holds Space or Enter ([onKey]).
@@ -743,7 +763,7 @@ class _TalkButton extends StatelessWidget {
         onKeyEvent: (_, event) => onKey(event),
         child: IconButton.filled(
           tooltip: label,
-          icon: Icon(stop ? Icons.stop : (listening ? Icons.mic : Icons.mic_none)),
+          icon: Icon(stop ? Icons.arrow_upward : (listening ? Icons.mic : Icons.mic_none)),
           onPressed: busy ? null : () {},
         ),
       ),
@@ -753,9 +773,12 @@ class _TalkButton extends StatelessWidget {
 
 /// In the message box's place while recording: it listens.
 class _Recording extends StatelessWidget {
-  const _Recording(this.label);
+  const _Recording(this.label, {this.discard});
 
   final String label;
+
+  /// A tap-started recording can be dropped: the tooltip and what does it.
+  final (String, VoidCallback)? discard;
 
   @override
   Widget build(BuildContext context) {
@@ -771,20 +794,27 @@ class _Recording extends StatelessWidget {
         children: [
           Icon(Icons.mic, color: colors.onPrimaryContainer),
           const SizedBox(width: Gap.s),
-          Flexible(
+          Expanded(
             child: Text(
               label,
               key: const Key('voice-state'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(color: colors.onPrimaryContainer),
             ),
           ),
+          if (discard case (final tooltip, final drop)?)
+            IconButton(
+              tooltip: tooltip,
+              icon: Icon(Icons.close, color: colors.onPrimaryContainer),
+              onPressed: drop,
+            ),
         ],
       ),
     );
   }
 }
 
-/// A line above the message box: the answer is read aloud ([speaking]), or else
 /// Above the button while the answer is read aloud.
 class _VoiceStatus extends StatelessWidget {
   const _VoiceStatus(this.strings);
