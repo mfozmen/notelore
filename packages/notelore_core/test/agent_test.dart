@@ -412,6 +412,16 @@ void main() {
     expect(prompt, contains('If no open todo matches, add a dated entry'));
   });
 
+  test('a choice the user says was made is recorded as a decision, not an entry', () {
+    // "Garden Shed: we picked Concrete slab for the floor" became a note entry,
+    // so get_decision never found it (the v3 distill's decision cases).
+    for (final prompt in [systemPrompt(today), slimSystemPrompt(today)]) {
+      expect(prompt, contains('says a choice was made'));
+      expect(prompt, contains('"we picked X"'));
+      expect(prompt, contains('record_decision, not add_note_entry'));
+    }
+  });
+
   test('the system prompt states the rules', () {
     final prompt = systemPrompt(today);
     for (final rule in ['get_decision', 'language', 'ask', 'archive', '2026-09-30']) {
