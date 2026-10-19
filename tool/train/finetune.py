@@ -100,17 +100,25 @@ def native_bf16():
     return torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8
 
 
+def gpu_settings():
+    """The trainer's precision, and whether the GPU has bf16 natively. A T4
+    trains with the bf16 flags (emulated): with fp16 ones the grad scaler fails
+    on the LoRA's bf16 gradients (Kaggle v3.1 run 1). Only TRL's log-prob
+    kernel needs native bf16, so it keys on that ([fp32_logprobs])."""
+    return precision(torch.cuda.is_bf16_supported()), native_bf16()
+
+
 def precision(bf16):
     """The trainer's mixed-precision flags and the compute dtype: bf16 where the
     GPU has it, fp16 on older ones such as Kaggle's T4."""
     return {"bf16": bf16, "fp16": not bf16}, (torch.bfloat16 if bf16 else torch.float16)
 
 
-def fp32_logprobs(bf16):
-    """On a GPU without bf16, TRL's chunked log-prob kernel takes its plain fp32
-    matmul: its dtype-keeping one got a bf16 gradient on fp16 weights and failed
-    (Kaggle v2 runs 1-2; run 3 trained with this)."""
-    if bf16:
+def fp32_logprobs(native):
+    """On a GPU without native bf16, TRL's chunked log-prob kernel takes its
+    plain fp32 matmul: its dtype-keeping one failed on a T4 (Kaggle v2 runs
+    1-2; run 3 and v3 trained with this)."""
+    if native:
         return
     try:
         kernel = importlib.import_module("trl.kernels.chunked_logprob")
@@ -136,9 +144,8 @@ def train(base, data, out, epochs, assistant_only=False):
     tokenizer = AutoTokenizer.from_pretrained(base)
     rows = dataset(tokenizer, data, assistant_only)
     print(f"{len(rows)} training turns")
-    bf16 = native_bf16()
-    flags, dtype = precision(bf16)
-    fp32_logprobs(bf16)
+    (flags, dtype), native = gpu_settings()
+    fp32_logprobs(native)
     model = load(base, dtype)
     trainer = SFTTrainer(
         model=model,

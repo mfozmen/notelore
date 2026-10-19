@@ -23,6 +23,7 @@ from finetune import (
     load,
     main,
     modelfile,
+    gpu_settings,
     native_bf16,
     precision,
 )
@@ -56,6 +57,15 @@ gpu((8, 0))
 check("an A100 has it", native_bf16(), True)
 gpu(None)
 check("no GPU has none", native_bf16(), False)
+
+# What trains on a T4 (v2, v3): the bf16 trainer flags, emulated, with TRL's
+# plain fp32 log-prob matmul. fp16 flags made the grad scaler fail on the
+# LoRA's bf16 gradients (Kaggle v3.1 run 1).
+bf16_flags = ({"bf16": True, "fp16": False}, "bfloat16")
+gpu((7, 5))
+check("a T4 trains in bf16, the log-prob kernel in fp32", gpu_settings(), (bf16_flags, False))
+gpu((8, 0))
+check("an A100 trains in bf16 throughout", gpu_settings(), (bf16_flags, True))
 
 check("bf16 where the GPU has it", precision(True), ({"bf16": True, "fp16": False}, "bfloat16"))
 check("fp16 on a GPU without bf16 (Kaggle's T4)", precision(False), ({"bf16": False, "fp16": True}, "float16"))
