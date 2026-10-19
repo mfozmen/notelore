@@ -309,6 +309,29 @@ abstract class Strings {
   /// Under an image in a note that could not be shown.
   String get imageFailed;
 
+  // The calendar (#453).
+  String get calendar;
+  String get upcoming;
+  String get overdueGroup;
+  String get nothingPlanned;
+  String get nothingThatDay;
+  String get today;
+  String get tomorrow;
+  String get previousMonth;
+  String get nextMonth;
+
+  /// Monday first, short.
+  List<String> get weekdays;
+  List<String> get weekdayNames;
+  List<String> get monthNames;
+  String monthYear(DateTime month) => '${monthNames[month.month - 1]} ${month.year}';
+
+  /// A day's heading: "Sunday, 25 October" / "25 Ekim Pazar".
+  String dayHeading(DateTime day);
+  String get showAll;
+  String get calendarExample;
+  String get goToChat;
+
   // The note reader (#426).
   String noteKind(String kind);
   String updatedOn(String date);
@@ -1012,6 +1035,45 @@ class EnglishStrings extends Strings {
   String get tapToShow => 'Tap to show';
   @override
   String get imageFailed => "Couldn't load";
+  @override
+  String get calendar => 'Calendar';
+  @override
+  String get upcoming => 'Upcoming';
+  @override
+  String get overdueGroup => 'Overdue';
+  @override
+  String get nothingPlanned =>
+      'Nothing planned. Reminders and dated todos from your notes show here.';
+  @override
+  String get nothingThatDay => 'Nothing on this day.';
+  @override
+  String get today => 'Today';
+  @override
+  String get tomorrow => 'Tomorrow';
+  @override
+  String get previousMonth => 'Previous month';
+  @override
+  String get nextMonth => 'Next month';
+  @override
+  String dayHeading(DateTime day) =>
+      '${weekdayNames[day.weekday - 1]}, ${day.day} ${monthNames[day.month - 1]}';
+  @override
+  String get showAll => 'Show all';
+  @override
+  String get calendarExample => 'Try: "remind me Friday at 10 to call the dentist"';
+  @override
+  String get goToChat => 'Go to chat';
+  @override
+  List<String> get weekdays => const ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+  @override
+  List<String> get weekdayNames => const [
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', //
+  ];
+  @override
+  List<String> get monthNames => const [
+    'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', //
+    'September', 'October', 'November', 'December',
+  ];
   @override
   String noteKind(String kind) => switch (kind) {
     'project' => 'Project',
@@ -1872,6 +1934,45 @@ class TurkishStrings extends Strings {
   String get tapToShow => 'Göstermek için dokun';
   @override
   String get imageFailed => 'Yüklenemedi';
+  @override
+  String get calendar => 'Takvim';
+  @override
+  String get upcoming => 'Yaklaşan';
+  @override
+  String get overdueGroup => 'Gecikenler';
+  @override
+  String get nothingPlanned =>
+      'Planlanmış bir şey yok. Notlarındaki hatırlatıcılar ve tarihli yapılacaklar burada görünür.';
+  @override
+  String get nothingThatDay => 'Bu günde bir şey yok.';
+  @override
+  String get today => 'Bugün';
+  @override
+  String get tomorrow => 'Yarın';
+  @override
+  String get previousMonth => 'Önceki ay';
+  @override
+  String get nextMonth => 'Sonraki ay';
+  @override
+  String dayHeading(DateTime day) =>
+      '${day.day} ${monthNames[day.month - 1]} ${weekdayNames[day.weekday - 1]}';
+  @override
+  String get showAll => 'Tümünü göster';
+  @override
+  String get calendarExample => 'Örnek: "Cuma 10\'da dişçiyi aramamı hatırlat"';
+  @override
+  String get goToChat => 'Sohbete git';
+  @override
+  List<String> get weekdays => const ['Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct', 'Pz'];
+  @override
+  List<String> get weekdayNames => const [
+    'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar', //
+  ];
+  @override
+  List<String> get monthNames => const [
+    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', //
+    'Eylül', 'Ekim', 'Kasım', 'Aralık',
+  ];
   @override
   String noteKind(String kind) => switch (kind) {
     'project' => 'Proje',
