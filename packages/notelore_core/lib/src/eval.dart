@@ -203,9 +203,11 @@ Map<String, Object?> trainingExample(EvalResult result) => {
   'tools': functionTools(noteTools),
 };
 
+/// Reasons a scored-passing teacher turn is excluded from distillation.
 enum TrainingIssue { toolError, repeatedCall }
 
 /// Problems in a passing turn that would teach the student a bad tool path.
+/// [Toolbox.call] and [Agent] mark tool failures with an `Error:` prefix.
 Set<TrainingIssue> trainingIssues(List<Message> messages) {
   final issues = <TrainingIssue>{};
   final calls = <List<Object?>>[];
@@ -213,7 +215,7 @@ Set<TrainingIssue> trainingIssues(List<Message> messages) {
   for (final block in _trainingBlocks(messages)) {
     if (block['type'] == 'tool_result' &&
         block['content'] is String &&
-        (block['content']! as String).startsWith('Error')) {
+        (block['content']! as String).toLowerCase().startsWith('error')) {
       issues.add(TrainingIssue.toolError);
     }
     if (block['type'] == 'tool_use') {
