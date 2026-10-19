@@ -307,10 +307,25 @@ void main() {
       'showAdvanced': s.showAdvanced,
       'showAdvancedWhy': s.showAdvancedWhy,
       'usageWhat': s.usageWhat,
-      'lastDays': s.lastDays,
+      'lastDays': s.lastDays(14),
+      'allTime': s.lastDays(null),
+      'rangeDays': s.rangeDays(7),
+      'rangeAll': s.rangeDays(null),
       'byModel': s.byModel,
-      'lastDaysSummary': s.lastDaysSummary('1'),
-      'lastDaysNothing': s.lastDaysNothing,
+      'perDay': s.perDay,
+      'tapDay': s.tapDay,
+      'chartKept': s.chartKept(90),
+      'messages': s.messages,
+      'callsPerMessage': s.callsPerMessage,
+      'tokensPerMessage': s.tokensPerMessage,
+      'averageAnswer': s.averageAnswer,
+      'toolCalls': s.toolCalls,
+      'messagesWrote': s.messagesWrote,
+      'messagesFailed': s.messagesFailed,
+      'percent': s.percent(0.5),
+      'seconds': s.seconds('2'),
+      'lastDaysSummary': s.lastDaysSummary(14, '1'),
+      'lastDaysNothing': s.lastDaysNothing(14),
       'busiestDay': s.busiestDay('1', 2),
       'logOut': s.logOut,
       'logOutExplained': s.logOutExplained,
@@ -487,13 +502,7 @@ void main() {
     ]);
     expect(tr.usageLines(none), ['Henüz yok.']);
     for (final s in [en, tr]) {
-      expect([
-        s.usage,
-        s.usageConversation,
-        s.usageDevice,
-        s.usagePlan,
-        s.usageLocal,
-      ], everyElement(isNotEmpty));
+      expect([s.usage, s.usageConversation, s.usagePlan, s.usageLocal], everyElement(isNotEmpty));
       expect(s.usageEstimate('2026-10-17'), contains('2026-10-17'));
     }
   });
