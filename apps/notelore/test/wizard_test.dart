@@ -456,6 +456,29 @@ void main() {
     expect(session.ready, isFalse);
     expect(find.text('Step 2 of 3'), findsOneWidget);
     expect(find.textContaining('could not be downloaded'), findsOneWidget);
+    // The button says what it does now.
+    expect(find.text('Resume download'), findsOneWidget);
+  });
+
+  testWidgets('on this device: Back works during the download, and nothing connects behind it', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness()..deviceModels = true;
+    final served = Completer<String>();
+    harness.pages['https://models.test/q.gguf'] = served.future;
+    final session = await pumpApp(tester, harness);
+    await choose(tester, 'On this device (Qwen3 4B)');
+    await tester.tap(find.text('Download and connect'));
+    await tester.pump();
+    expect(session.deviceProgress, isNotNull);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Step 1 of 3'), findsOneWidget);
+    served.complete('model bytes');
+    await settleUntil(tester, () => session.deviceModel.ready);
+    expect(session.spec, isNull); // left before it finished: nothing chosen behind the user's back
+    expect(find.text('Step 1 of 3'), findsOneWidget);
   });
 
   testWidgets('step numbers grow with the text size (#352)', (tester) async {

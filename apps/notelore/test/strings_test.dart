@@ -168,6 +168,7 @@ void main() {
       'checkConnection': s.checkConnection,
       'ollamaNoKey': s.ollamaNoKey,
       'downloadAndConnect': s.downloadAndConnect,
+      'resumeDownload': s.resumeDownload,
       'deviceDownloadNote': s.deviceDownloadNote,
       'deviceModelHere': s.deviceModelHere,
       'downloadingModel': s.downloadingModel,

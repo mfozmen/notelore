@@ -65,6 +65,7 @@ abstract class Strings {
 
   // The model on the device (#328).
   String get downloadAndConnect;
+  String get resumeDownload;
   String get deviceDownloadNote;
   String get deviceModelHere;
   String get downloadingModel;
@@ -593,8 +594,9 @@ class EnglishStrings extends Strings {
   @override
   String get downloadAndConnect => 'Download and connect';
   @override
-  String get deviceDownloadNote =>
-      'No key is needed. Download it on Wi-Fi, with the app open; then it works offline.';
+  String get resumeDownload => 'Resume download';
+  @override
+  String get deviceDownloadNote => 'Use Wi-Fi and keep the app open while it downloads.';
   @override
   String get deviceModelHere => 'The model is on this device. No key is needed.';
   @override
@@ -1378,8 +1380,9 @@ class TurkishStrings extends Strings {
   @override
   String get downloadAndConnect => 'İndir ve bağlan';
   @override
-  String get deviceDownloadNote =>
-      'Anahtar gerekmez. Wi-Fi’dayken, uygulama açıkken indir; sonra çevrimdışı çalışır.';
+  String get resumeDownload => 'İndirmeye devam et';
+  @override
+  String get deviceDownloadNote => 'İnerken Wi-Fi kullan ve uygulamayı açık tut.';
   @override
   String get deviceModelHere => 'Model bu cihazda. Anahtar gerekmez.';
   @override

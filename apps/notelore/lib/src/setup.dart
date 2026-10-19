@@ -152,20 +152,20 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     }
     if (_spec.name == 'device' && !widget.session.deviceModel.ready) {
       final session = widget.session;
-      // Busy like any connect: the bar above says how far it is.
-      setState(() {
-        _problem = null;
-        _checking = true;
-      });
+      // Back stays open: minutes of downloading must never look like a hang.
+      // The download goes on in the session; leaving only skips the connect.
+      setState(() => _problem = null);
       await session.downloadDeviceModel();
-      if (!mounted) return;
-      setState(() => _checking = false);
+      if (!mounted || _step != _Step.connect || _spec.name != 'device') return;
       if (!session.deviceModel.ready) {
         return setState(() => _problem = session.strings.deviceDownloadFailed);
       }
     }
     await _attempt(() => widget.session.connect(_spec, _key.text));
   }
+
+  /// The model on the device is downloading: its button waits, Back does not.
+  bool get _downloading => _spec.name == 'device' && widget.session.deviceProgress != null;
 
   /// A model connected before: used again with its stored key, no key asked.
   Future<void> _useConnected() => _attempt(() => widget.session.switchTo(_spec));
@@ -215,7 +215,8 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
   // OpenAI's wording for its sign-in button; the model on the device downloads first.
   String _connectLabel(Strings s) => switch (_spec.name) {
     'chatgpt' => s.continueWithChatGpt,
-    'device' when !widget.session.deviceModel.ready => s.downloadAndConnect,
+    'device' when !widget.session.deviceModel.ready =>
+      _problem == null ? s.downloadAndConnect : s.resumeDownload,
     _ => s.connect,
   };
 
@@ -451,7 +452,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
         TextButton(onPressed: _checking ? null : _connect, child: Text(_connectLabel(s))),
       ] else
         FilledButton(
-          onPressed: _checking ? null : _connect,
+          onPressed: _checking || _downloading ? null : _connect,
           child: _checking
               ? SizedBox.square(
                   dimension: 18,
@@ -978,7 +979,7 @@ class _DeviceDownload extends StatelessWidget {
         children: [
           Text(
             session.deviceModel.ready ? s.deviceModelHere : s.deviceDownloadNote,
-            style: theme.textTheme.bodyMedium,
+            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
           if (progress != null) ...[
             LinearProgressIndicator(
@@ -986,10 +987,7 @@ class _DeviceDownload extends StatelessWidget {
               semanticsLabel: s.downloadingModel,
               semanticsValue: '${(progress * 100).floor()}%',
             ),
-            Text(
-              s.downloadedPercent((progress * 100).floor()),
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
+            Text(s.downloadedPercent((progress * 100).floor()), style: theme.textTheme.bodyMedium),
           ],
         ],
       );
@@ -1022,7 +1020,7 @@ class _OptionCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final muted = colors.onSurfaceVariant;
-    final local = spec.name == 'ollama';
+    final local = spec.name == 'ollama' || spec.name == 'device';
     return Semantics(
       key: ValueKey('option-${spec.name}'),
       inMutuallyExclusiveGroup: true,
