@@ -130,6 +130,7 @@ Future<int> runDev(
           out,
           keep: keep,
           slim: slim,
+          search: findProvider(options['provider'] ?? 'chatgpt').webSearch,
         );
       default:
         await _chat(message, options, environment, paths, auth, traced, out);
@@ -195,6 +196,7 @@ Future<void> _eval(
   StringSink out, {
   File? keep,
   bool slim = false,
+  bool search = false,
 }) async {
   if (!cases.existsSync()) throw StateError('no cases file at ${cases.path}');
   final provider = await open();
@@ -203,7 +205,11 @@ Future<void> _eval(
   final results = <EvalResult>[];
   // Per case: null when it failed, the reasons it was left out, or none when kept.
   final outcomes = <Set<TrainingIssue>?>[];
-  for (final evalCase in loadCases(cases.readAsStringSync())) {
+  final all = loadCases(cases.readAsStringSync());
+  // A case that needs web search means nothing where the provider has none (#478).
+  final runnable = all.where((c) => c.runsWith(search: search)).toList();
+  final unsearched = all.length - runnable.length;
+  for (final evalCase in runnable) {
     if (finished.contains(evalCase.id)) continue;
     final result = await runCase(evalCase, provider, slim: slim);
     results.add(result);
@@ -212,6 +218,11 @@ Future<void> _eval(
     if (keep != null) outcomes.add(_keepTurn(result, keep, done!));
   }
   out.writeln(summarize(results));
+  if (unsearched > 0) {
+    out.writeln(
+      'left out $unsearched ${unsearched == 1 ? 'case that needs' : 'cases that need'} web search',
+    );
+  }
   if (keep == null) return;
   if (finished.isNotEmpty) out.writeln('skipped ${finished.length} already done in ${done!.path}');
   final kept = outcomes.where((issues) => issues != null && issues.isEmpty).length;

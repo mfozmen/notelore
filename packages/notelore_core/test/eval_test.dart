@@ -141,6 +141,38 @@ void main() {
     expect((bare['messages']! as List).map((m) => (m as Map)['role']), ['system', 'user']);
   });
 
+  group('a case with web results gets a search that answers with them (#478)', () {
+    final derby = _case({
+      'id': 'plan-1',
+      'kind': 'plan',
+      'lang': 'tr',
+      'notes': <String, String>{},
+      'message': 'haftaya derbiyi izleyeceğim',
+      'search': ['Derbi: 25 Ekim 2026 Pazar, saat 20:00.'],
+      'expect': {
+        'tools': ['add_reminder'],
+      },
+    });
+
+    test('the search is offered and answers with the case results', () async {
+      final provider = ScriptedProvider([
+        toolUse('web_search', 't1', {'query': 'derbi tarihi'}),
+        text('25 Ekim 20:00.'),
+      ]);
+      final result = await runCase(derby, provider);
+      expect(provider.turns.first.$3.map((t) => t.name), contains('web_search'));
+      final found = provider.turns.last.$2.last['content']! as List;
+      expect((found.single as Map)['content'], contains('25 Ekim 2026 Pazar, saat 20:00'));
+      expect(result.problems, ['did not call add_reminder']);
+      expect(derby.search, hasLength(1));
+      expect(filing.search, isNull);
+      // A case without results offers no search.
+      final plain = ScriptedProvider([text('ok')]);
+      await runCase(filing, plain);
+      expect(plain.turns.first.$3.map((t) => t.name), isNot(contains('web_search')));
+    });
+  });
+
   group('a tool that fails once, and words the answer must not have (#474)', () {
     final flaky = _case({
       'id': 'fail-1',
