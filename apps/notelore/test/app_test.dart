@@ -347,6 +347,29 @@ void main() {
     expect(find.textContaining('No model is installed in Ollama'), findsOneWidget);
   });
 
+  testWidgets('chat: on a phone, sending closes the keyboard; the box opens it again (#497)', (
+    tester,
+  ) async {
+    phone(tester);
+    // An answer longer than the screen, so the conversation scrolls.
+    final harness = Harness(answers: [List.generate(40, (i) => 'Satır $i.').join('\n\n')]);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'selam');
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isTrue);
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    expect(tester.testTextInput.isVisible, isFalse); // the answer has the room
+    await tester.tap(find.byKey(const Key('message')));
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isTrue);
+    // Dragging the conversation puts it away too.
+    await tester.dragFrom(tester.getCenter(find.byType(Scaffold).first), const Offset(0, 200));
+    await tester.pumpAndSettle();
+    expect(tester.testTextInput.isVisible, isFalse);
+  });
+
   testWidgets('chat: a reply the background cut off arrives on return (#226)', (tester) async {
     phone(tester);
     final harness = Harness(answers: [const NetworkError('offline'), 'Geldi.']);
