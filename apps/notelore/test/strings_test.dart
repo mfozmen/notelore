@@ -397,6 +397,7 @@ void main() {
       'calendarUpdateFailed': s.calendarUpdateFailed,
       'calendarElsewhere': s.calendarElsewhere,
       'calendarNudge': s.calendarNudge,
+      'signIn': s.signIn,
       'signInCalendar': s.signInCalendar,
       'months': s.months.join(),
       'entriesFrom': s.entriesFrom('t'),

@@ -320,7 +320,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         if (widget.session.heldNotes.isNotEmpty) _HeldBanner(widget.session),
         if (widget.session.driveNeedsSignIn && !_signInLater && _tab != 3)
           _SignInBanner(widget.session, later: () => setState(() => _signInLater = true)),
-        if (widget.session.calendarNudge) _CalendarBanner(widget.session),
+        // Settings has its own sign-in: never the same offer twice on one screen.
+        if (widget.session.calendarNudge && _tab != 3) _CalendarBanner(widget.session),
         Expanded(
           child: switch (_tab) {
             0 => ChatScreen(widget.session),
@@ -451,7 +452,7 @@ class _CalendarBannerState extends State<_CalendarBanner> {
     final s = session.strings;
     final colors = Theme.of(context).colorScheme;
     return MaterialBanner(
-      leading: Icon(Icons.calendar_month_outlined, color: colors.onSecondaryContainer),
+      leading: Icon(Icons.event_available_outlined, color: colors.onSecondaryContainer),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Gap.s,
@@ -467,7 +468,7 @@ class _CalendarBannerState extends State<_CalendarBanner> {
       ),
       actions: [
         TextButton(onPressed: _signingIn ? null : session.calendarNudgeLater, child: Text(s.later)),
-        TextButton(onPressed: _signingIn ? null : _signIn, child: Text(s.signInCalendar)),
+        TextButton(onPressed: _signingIn ? null : _signIn, child: Text(s.signIn)),
       ],
     );
   }

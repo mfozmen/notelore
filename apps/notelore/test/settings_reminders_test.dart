@@ -172,14 +172,21 @@ void main() {
     );
     await session.refreshReminders(); // as after the turn that made it
     await tester.pumpAndSettle();
-    const offer = 'This device reminds you itself for now.';
+    const offer = 'Reminders you add here only ring on this device for now.';
+    expect(find.textContaining(offer), findsOneWidget);
+    // Settings has its own sign-in: the offer is not shown twice there.
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining(offer), findsNothing);
+    await tester.tap(find.text('Chat'));
+    await tester.pumpAndSettle();
     expect(find.textContaining(offer), findsOneWidget);
     // A refusal says so where the button was pressed.
-    await tester.tap(find.widgetWithText(TextButton, 'Sign in to Google Calendar'));
+    await tester.tap(find.widgetWithText(TextButton, 'Sign in'));
     await tester.pumpAndSettle();
     expect(find.text("Couldn't sign in to Google Calendar. Try again."), findsOneWidget);
     harness.calendarAuth.failSignIn = null;
-    await tester.tap(find.widgetWithText(TextButton, 'Sign in to Google Calendar'));
+    await tester.tap(find.widgetWithText(TextButton, 'Sign in'));
     await tester.pumpAndSettle();
     expect(find.textContaining(offer), findsNothing);
     expect(harness.calendar.events.values, ['Dentist']);
@@ -211,7 +218,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(TextButton, 'Later'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('This device reminds you itself for now.'), findsNothing);
+    expect(find.textContaining('only ring on this device for now'), findsNothing);
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
@@ -219,6 +226,9 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.textContaining('This device reminds you itself until you sign in'), findsOneWidget);
+    expect(
+      find.textContaining('Until you sign in here, this device reminds you on its own.'),
+      findsOneWidget,
+    );
   });
 }
