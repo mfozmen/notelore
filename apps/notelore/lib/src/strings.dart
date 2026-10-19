@@ -420,7 +420,7 @@ abstract class Strings {
   String get restoreToDrive;
   String get deleteHereToo;
   String deleteHeldQuestion(int count);
-  String get deleteHeldExplained;
+  String deleteHeldExplained(int count);
   String andMore(int count);
 
   /// A text the core produced in English, in this language.
@@ -1227,8 +1227,9 @@ class EnglishStrings extends Strings {
   String deleteHeldQuestion(int count) =>
       count == 1 ? 'Delete 1 note here too?' : 'Delete $count notes here too?';
   @override
-  String get deleteHeldExplained =>
-      "They leave this device as they left Drive. A copy stays in Notelore's history.";
+  String deleteHeldExplained(int count) => count == 1
+      ? "It leaves this device as it left Drive. A copy stays in Notelore's history."
+      : "They leave this device as they left Drive. A copy stays in Notelore's history.";
   @override
   String andMore(int count) => '+$count more';
 
@@ -2074,8 +2075,9 @@ class TurkishStrings extends Strings {
   @override
   String deleteHeldQuestion(int count) => '$count not burada da silinsin mi?';
   @override
-  String get deleteHeldExplained =>
-      "Drive'dan gittikleri gibi bu cihazdan da giderler. Bir kopyası Notelore'un geçmişinde kalır.";
+  String deleteHeldExplained(int count) => count == 1
+      ? "Drive'dan gittiği gibi bu cihazdan da gider. Bir kopyası Notelore'un geçmişinde kalır."
+      : "Drive'dan gittikleri gibi bu cihazdan da giderler. Bir kopyası Notelore'un geçmişinde kalır.";
   @override
   String andMore(int count) => '+$count tane daha';
 

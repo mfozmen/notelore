@@ -368,7 +368,7 @@ class _HeldBanner extends StatelessWidget {
 
   Future<void> _delete(BuildContext context) async {
     final s = session.strings;
-    final held = session.heldNotes;
+    final held = session.heldTitles;
     final sure = await showDialog<bool>(
       context: context,
       builder: (dialog) => AlertDialog(
@@ -379,10 +379,10 @@ class _HeldBanner extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           spacing: Gap.s,
           children: [
-            Text(s.deleteHeldExplained),
+            Text(s.deleteHeldExplained(held.length)),
             Text(
               [
-                for (final rel in held.take(_named)) rel.split('/').last.replaceAll('.md', ''),
+                ...held.take(_named),
                 if (held.length > _named) s.andMore(held.length - _named),
               ].join('\n'),
               style: Theme.of(dialog).textTheme.bodySmall
