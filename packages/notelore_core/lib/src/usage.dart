@@ -84,6 +84,106 @@ final class UsageCount {
   };
 }
 
+/// What the chat turns with one model came to (#481): counts only, never a
+/// word of what was said.
+final class TurnCount {
+  const TurnCount({
+    this.turns = 0,
+    this.failed = 0,
+    this.toolCalls = 0,
+    this.wrote = 0,
+    this.millis = 0,
+  });
+
+  /// Messages answered or failed, [failed] of them with an error.
+  final int turns;
+  final int failed;
+  final int toolCalls;
+
+  /// Turns that wrote notes.
+  final int wrote;
+
+  /// Answer time, all turns together.
+  final int millis;
+
+  TurnCount add({
+    required Duration took,
+    required int toolCalls,
+    required bool wrote,
+    required bool failed,
+  }) =>
+      this +
+      TurnCount(
+        turns: 1,
+        failed: failed ? 1 : 0,
+        toolCalls: toolCalls,
+        wrote: wrote ? 1 : 0,
+        millis: took.inMilliseconds,
+      );
+
+  TurnCount operator +(TurnCount other) => TurnCount(
+    turns: turns + other.turns,
+    failed: failed + other.failed,
+    toolCalls: toolCalls + other.toolCalls,
+    wrote: wrote + other.wrote,
+    millis: millis + other.millis,
+  );
+
+  Duration get averageAnswer =>
+      turns == 0 ? Duration.zero : Duration(milliseconds: millis ~/ turns);
+
+  double get toolCallsPerTurn => turns == 0 ? 0 : toolCalls / turns;
+
+  double get errorShare => turns == 0 ? 0 : failed / turns;
+
+  Map<String, int> toJson() => {
+    'turns': turns,
+    'failed': failed,
+    'toolCalls': toolCalls,
+    'wrote': wrote,
+    'millis': millis,
+  };
+
+  /// A damaged count is none.
+  static TurnCount fromJson(Map<Object?, Object?> json) {
+    try {
+      return TurnCount(
+        turns: json['turns']! as int,
+        failed: json['failed']! as int,
+        toolCalls: json['toolCalls']! as int,
+        wrote: json['wrote']! as int,
+        millis: json['millis']! as int,
+      );
+    } on Object {
+      return const TurnCount();
+    }
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is TurnCount &&
+      other.turns == turns &&
+      other.failed == failed &&
+      other.toolCalls == toolCalls &&
+      other.wrote == wrote &&
+      other.millis == millis;
+
+  @override
+  int get hashCode => Object.hash(turns, failed, toolCalls, wrote, millis);
+}
+
+/// The usage page's ranges (#481): the last [days], or all the device kept.
+enum UsageRange {
+  week(7),
+  twoWeeks(14),
+  month(30),
+  all(null);
+
+  const UsageRange(this.days);
+
+  final int? days;
+}
+
 /// Counts added up over provider and model, for the user to see.
 final class UsageSummary {
   const UsageSummary(this.count, {required this.cost, required this.plan, this.billed = true});
@@ -144,8 +244,12 @@ class UsageMeter {
   final _conversation = <String, UsageCount>{};
   late final _device = _counts(_read(file));
   late final _days = _loadDays();
+  late final _turns = _loadTurns();
 
   String get _daysFile => p.join(p.dirname(file), 'usage-days.json');
+
+  /// The turns, `{total: {model: count}, days: {date: {model: count}}}`.
+  String get _turnsFile => p.join(p.dirname(file), 'usage-turns.json');
 
   /// Days kept; older ones are dropped on the next record.
   static const _keep = 90;
@@ -185,6 +289,65 @@ class UsageMeter {
     _save(_daysFile, _days);
   }
 
+  /// One chat turn with [provider]'s [model] (#481), on today's date.
+  void recordTurn(
+    String provider,
+    String model, {
+    required Duration took,
+    required int toolCalls,
+    required bool wrote,
+    required bool failed,
+  }) {
+    final key = '$provider/$model';
+    TurnCount added(TurnCount? count) => (count ?? const TurnCount()).add(
+      took: took,
+      toolCalls: toolCalls,
+      wrote: wrote,
+      failed: failed,
+    );
+    _turns.total[key] = added(_turns.total[key]);
+    final day = _turns.days.putIfAbsent(isoDate(_today()), () => {});
+    day[key] = added(day[key]);
+    final oldest = isoDate(_today().subtract(const Duration(days: _keep)));
+    _turns.days.removeWhere((date, _) => date.compareTo(oldest) < 0);
+    _save(_turnsFile, {'total': _turns.total, 'days': _turns.days});
+  }
+
+  /// The local dates of [range], newest last; all time is the days kept.
+  List<DateTime> _dates(int n) {
+    final now = _today();
+    return [for (var i = n - 1; i >= 0; i--) DateTime(now.year, now.month, now.day - i)];
+  }
+
+  static Map<String, T> _sum<T>(Iterable<Map<String, T>> maps, T Function(T, T) plus) {
+    final sum = <String, T>{};
+    for (final map in maps) {
+      for (final MapEntry(:key, :value) in map.entries) {
+        sum[key] = sum.containsKey(key) ? plus(sum[key] as T, value) : value;
+      }
+    }
+    return sum;
+  }
+
+  /// Tokens per "provider/model" in [range].
+  Map<String, UsageCount> tokensIn(UsageRange range) => switch (range.days) {
+    null => Map.of(_device),
+    final n => _sum([for (final d in _dates(n)) ?_days[isoDate(d)]], (a, b) => a + b),
+  };
+
+  /// Turns per "provider/model" in [range].
+  Map<String, TurnCount> turnsIn(UsageRange range) => switch (range.days) {
+    null => Map.of(_turns.total),
+    final n => _sum([for (final d in _dates(n)) ?_turns.days[isoDate(d)]], (a, b) => a + b),
+  };
+
+  /// Each day of [range], oldest first, its tokens per model apart: the
+  /// chart's bars. All time charts the days kept.
+  List<({DateTime day, Map<String, UsageCount> byModel})> daysByModel(UsageRange range) => [
+    for (final day in _dates(range.days ?? _keep))
+      (day: day, byModel: Map.of(_days[isoDate(day)] ?? const {})),
+  ];
+
   void newConversation() => _conversation.clear();
 
   /// Bookkeeping never fails an answer: the next call saves it again.
@@ -205,6 +368,23 @@ class UsageMeter {
       }
     }
     return days;
+  }
+
+  ({Map<String, TurnCount> total, Map<String, Map<String, TurnCount>> days}) _loadTurns() {
+    Map<String, TurnCount> counts(Object? saved) => {
+      if (saved is Map)
+        for (final MapEntry(:key, :value) in saved.entries)
+          if (value is Map) '$key': TurnCount.fromJson(value),
+    };
+    final saved = _read(_turnsFile);
+    final days = saved['days'];
+    return (
+      total: counts(saved['total']),
+      days: {
+        if (days is Map)
+          for (final MapEntry(:key, :value) in days.entries) '$key': counts(value),
+      },
+    );
   }
 
   static Map<Object?, Object?> _read(String path) {

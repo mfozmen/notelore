@@ -175,4 +175,85 @@ void main() {
       expect(UsageMeter(file()).device.calls, 0);
     });
   });
+
+  group('turns and ranges, for the usage page (#481)', () {
+    const sonnet = 'anthropic/claude-sonnet-5-5';
+    const flash = 'gemini/gemini-2.5-flash';
+
+    test('a turn counts its answer time, tool calls, notes written and errors', () {
+      const none = TurnCount();
+      final one = none.add(
+        took: const Duration(milliseconds: 1500),
+        toolCalls: 3,
+        wrote: true,
+        failed: false,
+      );
+      final two = one.add(
+        took: const Duration(seconds: 2),
+        toolCalls: 0,
+        wrote: false,
+        failed: true,
+      );
+      expect((two.turns, two.failed, two.toolCalls, two.wrote, two.millis), (2, 1, 3, 1, 3500));
+      expect(two.averageAnswer, const Duration(milliseconds: 1750));
+      expect(none.averageAnswer, Duration.zero);
+      expect(two.toolCallsPerTurn, 1.5);
+      expect(none.toolCallsPerTurn, 0);
+      expect(two.errorShare, 0.5);
+      expect(none.errorShare, 0);
+      expect(one + one, TurnCount.fromJson((one + one).toJson()));
+      expect(TurnCount.fromJson(const {'turns': 'x'}), const TurnCount()); // damaged: none
+    });
+
+    test('a range sums each model by day; all time is the whole device', () {
+      var day = DateTime(2026, 10, 1);
+      final meter = UsageMeter(file(), today: () => day);
+      meter
+        ..record('anthropic', 'claude-sonnet-5-5', const TokenUsage(10, 2))
+        ..recordTurn(
+          'anthropic',
+          'claude-sonnet-5-5',
+          took: const Duration(seconds: 1),
+          toolCalls: 2,
+          wrote: true,
+          failed: false,
+        );
+      day = DateTime(2026, 10, 18);
+      meter
+        ..record('anthropic', 'claude-sonnet-5-5', const TokenUsage(5, 1))
+        ..record('gemini', 'gemini-2.5-flash', const TokenUsage(3, 3))
+        ..recordTurn(
+          'gemini',
+          'gemini-2.5-flash',
+          took: const Duration(seconds: 3),
+          toolCalls: 1,
+          wrote: false,
+          failed: true,
+        );
+      final again = UsageMeter(file(), today: () => day); // kept on disk
+      final week = again.tokensIn(UsageRange.week);
+      expect(week.keys, unorderedEquals([sonnet, flash]));
+      expect(week[sonnet]!.input, 5); // the 1st is outside the week
+      expect(again.tokensIn(UsageRange.all)[sonnet]!.input, 15);
+      expect(again.turnsIn(UsageRange.week).keys, [flash]);
+      expect(again.turnsIn(UsageRange.all)[sonnet]!.toolCalls, 2);
+      expect(again.turnsIn(UsageRange.month)[sonnet]!.wrote, 1);
+      expect(UsageRange.values.map((r) => r.days), [7, 14, 30, null]);
+      // The chart: each day, each model apart.
+      final days = again.daysByModel(UsageRange.twoWeeks);
+      expect(days, hasLength(14));
+      expect(days.last.day, DateTime(2026, 10, 18));
+      expect(days.last.byModel.keys, unorderedEquals([sonnet, flash]));
+      expect(days.first.byModel, isEmpty);
+      // All time charts the days kept.
+      expect(again.daysByModel(UsageRange.all), hasLength(90));
+    });
+
+    test('a damaged turns file starts again', () {
+      final meter = UsageMeter(file());
+      meter.recordTurn('x', 'm', took: Duration.zero, toolCalls: 0, wrote: false, failed: false);
+      File(p.join(dir.path, 'state', 'usage-turns.json')).writeAsStringSync('{broken');
+      expect(UsageMeter(file()).turnsIn(UsageRange.all), isEmpty);
+    });
+  });
 }

@@ -1066,10 +1066,17 @@ class Session extends ChangeNotifier {
   Future<void> _turn(String message, {required bool queued, required List<Block> images}) async {
     final taken = <String>[];
     Agent? asked; // the one that ran the turn, even if a logout replaced it since
+    // For the usage page (#481): counts only, never a word of the turn.
+    final watch = Stopwatch()..start();
+    final metered = _provider;
+    var before = 0;
+    var toolCalls = 0;
+    var failed = false;
     try {
       if (_stopped) throw const TurnStopped(); // stopped while queued behind a sync
       final withPages = await _withPages(message);
       if (_stopped) throw const TurnStopped(); // stopped while the pages loaded
+      before = _agent!.messages.length;
       final answer = await (asked = _agent!).ask(
         _withArchived(withPages),
         images: images,
@@ -1080,11 +1087,13 @@ class Session extends ChangeNotifier {
         },
       );
       if (queued) _sent(message);
+      toolCalls = _toolCalls(asked.messages.skip(before));
       transcript.add((role: ChatRole.assistant, text: strings.core(answer)));
       // Seen only once answered: a failed turn's notice goes out again.
       _lastNotes = _noteTitles(); // the agent's own changes included
       if (asked.wroteNotes) await refreshReminders();
     } on Exception catch (error) {
+      failed = !_stopped; // the person's own Stop is no error
       // The failed turn was taken back: what it had taken goes out again.
       _later.insertAll(0, taken);
       _failed(
@@ -1095,9 +1104,26 @@ class Session extends ChangeNotifier {
         images: images.isNotEmpty,
       );
     } finally {
+      if (metered is MeteredProvider) {
+        usage.recordTurn(
+          metered.name,
+          metered.model,
+          took: watch.elapsed,
+          toolCalls: toolCalls,
+          wrote: asked?.wroteNotes ?? false,
+          failed: failed,
+        );
+      }
       notifyListeners();
     }
   }
+
+  static int _toolCalls(Iterable<Message> messages) => [
+    for (final message in messages)
+      if (message['content'] case final List<Object?> blocks)
+        for (final block in blocks)
+          if (block is Map && block['type'] == 'tool_use') block,
+  ].length;
 
   /// A failed turn: offline or over the provider's usage limit, the message
   /// waits and goes out later by itself; anything else is an error line. Not

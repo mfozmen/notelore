@@ -123,8 +123,10 @@ export 'src/usage.dart'
     show
         MeteredProvider,
         Price,
+        TurnCount,
         UsageCount,
         UsageMeter,
+        UsageRange,
         UsageSummary,
         prices,
         pricesTaken,
