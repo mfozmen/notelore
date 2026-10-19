@@ -281,6 +281,60 @@ void main() {
     );
   });
 
+  test('distill keeps each turn as it goes, and a rerun goes on where it stopped (#327)', () async {
+    File(p.join(temp.path, 'cases.json')).writeAsStringSync(
+      jsonEncode([
+        for (final id in ['one', 'two', 'three'])
+          {
+            'id': id,
+            'kind': 'chat',
+            'lang': 'en',
+            'message': 'hi $id',
+            'expect': <String, Object?>{},
+          },
+      ]),
+    );
+    var asked = 0;
+    final anthropic = MockClient((_) async {
+      asked++;
+      return http.Response(
+        jsonEncode({
+          'content': [
+            {'type': 'text', 'text': 'Hello'},
+          ],
+          'stop_reason': 'end_turn',
+        }),
+        200,
+      );
+    });
+    final train = File(p.join(temp.path, 'train.jsonl'));
+    final done = File(p.join(temp.path, 'train.jsonl.done'));
+    Future<int> distill() => run(
+      ['distill', '--provider=anthropic', '--cases=cases.json', '--out=train.jsonl'],
+      client: anthropic,
+      environment: {'NOTELORE_HOME': 'home', 'NOTELORE_ANTHROPIC_API_KEY': 'k'},
+    );
+    // A fresh run starts the file over, whatever was there.
+    train.writeAsStringSync('stale\n');
+    expect(await distill(), 0);
+    expect(train.readAsLinesSync(), hasLength(3));
+    expect(done.readAsLinesSync(), ['one\tkept', 'two\tkept', 'three\tkept']);
+    // Stopped after "one" (the machine ran short of memory, say), and after
+    // "two" was kept but before it was marked done: the rerun asks only for
+    // the rest, keeps what "one" wrote and drops the half-finished line.
+    train.writeAsStringSync('{"kept": "one"}\n{"kept": "two, half"}\n');
+    done.writeAsStringSync('one\tkept\n');
+    asked = 0;
+    expect(await distill(), 0);
+    expect(asked, 2);
+    expect(train.readAsLinesSync(), hasLength(3));
+    expect(train.readAsLinesSync().first, '{"kept": "one"}');
+    expect(train.readAsStringSync(), isNot(contains('half')));
+    expect(done.readAsLinesSync(), ['one\tkept', 'two\tkept', 'three\tkept']);
+    expect('$out', contains('skipped 1 already done'));
+    expect('$out', contains('kept 2 of 2'));
+  });
+
   test('distill excludes passing turns with tool errors or repeated calls', () async {
     File(p.join(temp.path, 'cases.json')).writeAsStringSync(
       jsonEncode([
