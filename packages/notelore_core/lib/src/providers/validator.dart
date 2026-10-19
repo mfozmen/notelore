@@ -144,13 +144,24 @@ class NoLocalModel implements Exception {
 /// newest), else Qwen3 4B, else any Qwen3, else the first listed; null when
 /// none is installed. Never a fixed name Ollama may not have.
 String? ollamaStartModel(List<String> models) {
-  final tuned = models.where((m) => m.startsWith('notelore-')).toList()..sort();
+  final tuned = models.where((m) => m.startsWith('notelore-')).toList()..sort(_byVersion);
   if (tuned.isNotEmpty) return tuned.last;
   for (final family in ['qwen3:4b', 'qwen3']) {
     final hit = models.where((m) => m.startsWith(family)).toList()..sort();
     if (hit.isNotEmpty) return hit.first;
   }
   return models.firstOrNull;
+}
+
+/// By the fine-tune's version ("-v10" after "-v9"), then by name.
+int _byVersion(String a, String b) {
+  int? version(String m) => switch (RegExp(r'-v(\d+)').firstMatch(m)) {
+    final match? => int.parse(match[1]!),
+    null => null,
+  };
+  final (va, vb) = (version(a), version(b));
+  if (va != null && vb != null && va != vb) return va.compareTo(vb);
+  return a.compareTo(b);
 }
 
 /// The cheapest of the [models] a provider listed, newest first within a tier;
