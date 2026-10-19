@@ -123,40 +123,51 @@ final class DayItem {
 }
 
 /// The reminders from [today] on and every open todo under [root], by day and
-/// then by time (a whole day first). Late todos stay: they are still to do.
+/// then by time (a whole day first), then by note and text, so the order is
+/// the same on every build. Late todos stay: they are still to do.
 List<DayItem> calendarItems(String root, {required DateTime today}) {
   final from = DateTime(today.year, today.month, today.day);
-  final items = <DayItem>[];
-  for (final MapEntry(key: kind, value: folder) in kinds.entries) {
-    for (final file in markdownFiles(p.join(root, folder))) {
-      final note = _readable(file.path);
-      if (note == null) continue;
-      DayItem item(DateTime date, String? time, String text, {required bool todo}) => DayItem(
-        day: DateTime(date.year, date.month, date.day),
-        time: time,
-        text: _flat(text),
-        note: note.title,
-        kind: kind,
-        slug: p.basenameWithoutExtension(file.path),
-        todo: todo,
-      );
-      for (final entry in note.section('reminders')?.entries ?? const <NoteEntry>[]) {
-        if (entry case Reminder(:final date, :final time, :final text)
-            when !DateTime(date.year, date.month, date.day).isBefore(from)) {
-          items.add(item(date, time, text, todo: false));
-        }
-      }
-      for (final entry in note.section('todo')?.entries ?? const <NoteEntry>[]) {
-        if (entry case Todo(:final date, :final text, done: false)) {
-          items.add(item(date, null, text, todo: true));
-        }
-      }
+  final items = [
+    for (final MapEntry(key: kind, value: folder) in kinds.entries)
+      for (final file in markdownFiles(p.join(root, folder)))
+        if (_readable(file.path) case final note?)
+          ..._dayItems(note, kind, p.basenameWithoutExtension(file.path), from),
+  ];
+  return items..sort(_byDay);
+}
+
+/// [note]'s reminders from [from] on and its open todos.
+Iterable<DayItem> _dayItems(Note note, String kind, String slug, DateTime from) sync* {
+  DayItem item(DateTime date, String? time, String text, {required bool todo}) => DayItem(
+    day: DateTime(date.year, date.month, date.day),
+    time: time,
+    text: _flat(text),
+    note: note.title,
+    kind: kind,
+    slug: slug,
+    todo: todo,
+  );
+  for (final entry in note.section('reminders')?.entries ?? const <NoteEntry>[]) {
+    if (entry case Reminder(:final date, :final time, :final text)
+        when !DateTime(date.year, date.month, date.day).isBefore(from)) {
+      yield item(date, time, text, todo: false);
     }
   }
-  int order(DayItem a, DayItem b) {
-    final byDay = a.day.compareTo(b.day);
-    return byDay != 0 ? byDay : (a.time ?? '').compareTo(b.time ?? '');
+  for (final entry in note.section('todo')?.entries ?? const <NoteEntry>[]) {
+    if (entry case Todo(:final date, :final text, done: false)) {
+      yield item(date, null, text, todo: true);
+    }
   }
+}
 
-  return items..sort(order);
+int _byDay(DayItem a, DayItem b) {
+  for (final order in [
+    a.day.compareTo(b.day),
+    (a.time ?? '').compareTo(b.time ?? ''),
+    a.note.compareTo(b.note),
+    a.text.compareTo(b.text),
+  ]) {
+    if (order != 0) return order;
+  }
+  return 0;
 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
@@ -36,7 +38,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void _open(DayItem item) {
     final session = widget.session;
     final note = NoteInfo(item.slug, item.kind, item.note, null);
-    final text = session.readNote(note);
+    final String text;
+    try {
+      text = session.readNote(note);
+    } on FileSystemException {
+      setState(() {}); // archived or moved since the list was drawn
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => Scaffold(
@@ -64,34 +72,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
       final s = widget.session.strings;
       final today = _today;
       final items = calendarItems(widget.session.paths.notes.path, today: today);
-      final grid = _MonthGrid(
-        s,
-        month: _month,
-        today: today,
-        picked: _picked,
-        marked: {for (final item in items) item.day},
-        late: {
-          for (final item in items)
-            if (item.todo && item.day.isBefore(today)) item.day,
-        },
-        pick: (day) => setState(() => _picked = day == _picked ? null : day),
-        turn: (by) => setState(() => _month = DateTime(_month.year, _month.month + by)),
-      );
-      final list = items.isEmpty
-          ? _Empty(s, toChat: widget.toChat)
-          : _Agenda(
-              s,
-              items: _picked == null
-                  ? items
-                  : [
-                      for (final i in items)
-                        if (i.day == _picked) i,
-                    ],
-              today: today,
-              picked: _picked,
-              showAll: () => setState(() => _picked = null),
-              open: _open,
-            );
       return Scaffold(
         appBar: AppBar(
           title: Text(s.calendar),
@@ -107,39 +87,76 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ],
         ),
         body: LayoutBuilder(
-          builder: (context, box) => box.maxWidth >= Layout.wide
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 380,
-                      child: ListView(padding: const EdgeInsets.all(Gap.m), children: [grid]),
-                    ),
-                    const VerticalDivider(width: 1),
-                    Expanded(
-                      // Beside the grid, not floating off on a very wide window.
-                      child: Align(
-                        alignment: Alignment.topLeft,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: Layout.column),
-                          child: ListView(padding: const EdgeInsets.all(Gap.m), children: [list]),
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : ListView(
-                  padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.l),
-                  children: [
-                    grid,
-                    const SizedBox(height: Gap.m),
-                    list,
-                  ],
-                ),
+          builder: (context, box) => _layout(
+            wide: box.maxWidth >= Layout.wide,
+            grid: _grid(s, items, today),
+            list: _list(s, items, today),
+          ),
         ),
       );
     },
   );
+
+  Widget _grid(Strings s, List<DayItem> items, DateTime today) => _MonthGrid(
+    s,
+    month: _month,
+    today: today,
+    picked: _picked,
+    marked: {for (final item in items) item.day},
+    late: {
+      for (final item in items)
+        if (item.todo && item.day.isBefore(today)) item.day,
+    },
+    pick: (day) => setState(() => _picked = day == _picked ? null : day),
+    turn: (by) => setState(() => _month = DateTime(_month.year, _month.month + by)),
+  );
+
+  Widget _list(Strings s, List<DayItem> items, DateTime today) {
+    if (items.isEmpty) return _Empty(s, toChat: widget.toChat);
+    return _Agenda(
+      s,
+      items: [
+        for (final i in items)
+          if (_picked == null || i.day == _picked) i,
+      ],
+      today: today,
+      picked: _picked,
+      showAll: () => setState(() => _picked = null),
+      open: _open,
+    );
+  }
+
+  /// Side by side on a wide window, the list beside the grid; one below the
+  /// other on a phone.
+  Widget _layout({required bool wide, required Widget grid, required Widget list}) => wide
+      ? Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 380,
+              child: ListView(padding: const EdgeInsets.all(Gap.m), children: [grid]),
+            ),
+            const VerticalDivider(width: 1),
+            Expanded(
+              // Beside the grid, not floating off on a very wide window.
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: Layout.column),
+                  child: ListView(padding: const EdgeInsets.all(Gap.m), children: [list]),
+                ),
+              ),
+            ),
+          ],
+        )
+      : ListView(
+          padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.l),
+          children: [
+            grid,
+            const SizedBox(height: Gap.m),
+            list,
+          ],
+        );
 }
 
 /// A month, Monday first, in 48 dp rows: today ringed, the chosen day filled,
@@ -369,15 +386,15 @@ class _Agenda extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final groups = <String, List<DayItem>>{};
+    final groups = <(String, bool), List<DayItem>>{};
     for (final item in items) {
       final late = picked == null && item.todo && item.day.isBefore(today);
-      groups.putIfAbsent(late ? s.overdueGroup : _heading(item.day), () => []).add(item);
+      groups.putIfAbsent((late ? s.overdueGroup : _heading(item.day), late), () => []).add(item);
     }
-    Widget heading(String text) => Text(
-      text,
+    Widget heading((String, bool) group) => Text(
+      group.$1,
       style: theme.textTheme.titleSmall?.copyWith(
-        color: text == s.overdueGroup ? theme.colorScheme.error : theme.colorScheme.primary,
+        color: group.$2 ? theme.colorScheme.error : theme.colorScheme.primary,
       ),
     );
     return Column(

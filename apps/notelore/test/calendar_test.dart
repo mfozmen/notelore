@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/note_view.dart';
 import 'package:notelore_core/notelore_core.dart';
+import 'package:path/path.dart' as p;
 
 import 'app_test.dart' show connect, phone, pumpApp;
 import 'support.dart';
@@ -27,7 +30,7 @@ void main() {
     tester,
   ) async {
     phone(tester);
-    await withPlans(tester);
+    final harness = await withPlans(tester);
     await tester.tap(find.text('Calendar'));
     await tester.pumpAndSettle();
     expect(find.text('October 2026'), findsOneWidget);
@@ -39,6 +42,12 @@ void main() {
     expect(find.text('10 Oct · Garden Shed'), findsOneWidget); // under Overdue, said once
     expect(find.text('10:00 · Health'), findsOneWidget);
     expect(find.text('Sunday, 25 October'), findsOneWidget);
+    // A note gone since the list was drawn: nothing opens, the list is drawn again.
+    File(p.join(harness.paths.notes.path, 'projects', 'garden-shed.md')).deleteSync();
+    await tester.tap(find.text('Paint the door'));
+    await tester.pumpAndSettle();
+    expect(find.byType(NoteView), findsNothing);
+    expect(find.text('Paint the door'), findsNothing);
     await tester.tap(find.text('Dentist'));
     await tester.pumpAndSettle();
     expect(find.byType(NoteView), findsOneWidget);
