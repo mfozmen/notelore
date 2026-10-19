@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore_core/notelore_core.dart';
@@ -163,6 +164,21 @@ void main() {
     await tester.tap(find.byTooltip('Refresh'));
     await tester.pumpAndSettle();
     expect(find.text('Pick a note to read it here.'), findsOneWidget);
+  });
+
+  testWidgets('on the desktop, Enter sends and the box keeps the focus (#497)', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    desktop(tester, 1600);
+    final harness = Harness(answers: ['Tamam.']);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'selam');
+    await tester.testTextInput.receiveAction(TextInputAction.send);
+    await tester.pumpAndSettle();
+    expect(harness.provider.asked, ['selam']);
+    expect(tester.testTextInput.isVisible, isTrue); // the next message needs no click
+    debugDefaultTargetPlatformOverride = null;
   });
 
   testWidgets('the side rail and the side-by-side panes start at the same window width', (

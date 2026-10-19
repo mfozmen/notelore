@@ -63,6 +63,10 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _send() async {
     final text = _message.text;
     _message.clear();
+    // A phone's keyboard would cover half the answer; a desktop keeps typing.
+    if (Theme.of(context).platform case TargetPlatform.android || TargetPlatform.iOS) {
+      FocusScope.of(context).unfocus();
+    }
     await widget.session.send(text);
   }
 
@@ -361,6 +365,7 @@ class _Lines extends StatelessWidget {
     };
     return ListView.builder(
       reverse: true,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
       itemCount: lines.length + (session.busy ? 1 : 0),
       itemBuilder: (context, index) {
@@ -721,6 +726,8 @@ class _MessageField extends StatelessWidget {
       if (voice.state == VoiceState.speaking && text.isNotEmpty) voice.hush();
     },
     onSubmitted: (_) => send(),
+    // Sending decides about the keyboard; by default "send" would drop the focus everywhere.
+    onEditingComplete: () {},
     decoration: InputDecoration(hintText: hint),
   );
 }
