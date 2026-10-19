@@ -22,6 +22,7 @@ import 'package:path/path.dart' as p;
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 
 import '../store/notes.dart';
+import '../text.dart';
 import 'manifest.dart';
 import 'merge.dart';
 
@@ -230,6 +231,7 @@ class _Pass {
         report.pushed.add(rel);
       case SyncAction.pull:
         if (!_unchanged(path, localText)) return report.skipped.add(rel);
+        if (localText != null && _loses(localText, remoteText!)) _keepCopy(rel, path);
         atomicWrite(path, remoteText!);
         _record(rel, meta!, remoteText);
         report.pulled.add(rel);
@@ -271,6 +273,7 @@ class _Pass {
         manifest.record(rel, recorded(uploaded, localHash!));
         report.pushed.add(rel);
       case SyncAction.pull:
+        if (local != null) _keepCopy(rel, path); // bytes cannot tell a loss: always kept
         _take(rel, path, meta!, downloaded!, recorded(meta, remoteHash!));
       case SyncAction.merge:
         // Changed here too: this copy is kept apart before Drive's replaces it.
@@ -310,6 +313,28 @@ class _Pass {
     report
       ..removedLocal.add(rel)
       ..history.add(_rel(target));
+  }
+
+  /// Copies the file here to history before Drive's copy replaces it (#456):
+  /// a damaged remote, or a buggy client, never takes the last good copy.
+  void _keepCopy(String rel, String path) {
+    final target = _history(rel);
+    Directory(p.dirname(target)).createSync(recursive: true);
+    File(path).copySync(target);
+    report.history.add(_rel(target));
+  }
+
+  /// Whether [remote] lacks a line of [local]'s body: a pull that only adds
+  /// (the usual edit, another device's entry) loses nothing and keeps no copy.
+  /// The front matter does not count: its updated date changes every time.
+  static bool _loses(String local, String remote) {
+    final there = splitLines(remote).toSet();
+    return splitLines(_body(local)).any((line) => line.trim().isNotEmpty && !there.contains(line));
+  }
+
+  static String _body(String text) {
+    final end = text.startsWith('---\n') ? text.indexOf('\n---\n', 3) : -1;
+    return end < 0 ? text : text.substring(end + 5);
   }
 
   /// Drive's copy of an attachment, written here and recorded.

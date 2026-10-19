@@ -176,6 +176,43 @@ void main() {
     drive.put('projects/a.md', '$note- [ ] 2026-10-01: local\n- [ ] 2026-10-02: remote\n');
     expect((await run()).pulled, ['projects/a.md']);
     expect(readRel('projects/a.md'), endsWith('- [ ] 2026-10-02: remote\n'));
+    expect(File(p.join(root, '.notelore', 'history')).existsSync(), isFalse); // nothing lost
+  });
+
+  group('a pull that would lose lines keeps this copy in history (#456)', () {
+    test("Drive's copy without lines this one has", () async {
+      write('projects/a.md', '$note- 2026-09-02: two\n');
+      await run();
+      // A damaged copy, or a buggy client: the entries are gone on Drive.
+      drive.put('projects/a.md', '---\ntitle: T\nupdated: 2026-09-01\n---\n# T\n');
+      final report = await run();
+      expect(report.pulled, ['projects/a.md']);
+      expect(report.history, ['.notelore/history/$stamp/projects/a.md']);
+      expect(readRel('.notelore/history/$stamp/projects/a.md'), '$note- 2026-09-02: two\n');
+      expect(readRel('projects/a.md'), isNot(contains('two')));
+    });
+
+    test('a changed front matter alone loses nothing', () async {
+      write('projects/a.md', note);
+      await run();
+      drive.put('projects/a.md', note.replaceFirst('updated: 2026-09-01', 'updated: 2026-10-01'));
+      expect((await run()).history, isEmpty);
+    });
+
+    test('an attachment Drive changed keeps the bytes it replaces', () async {
+      File(at('attachments/2026-10-18/memo.m4a'))
+        ..parent.createSync(recursive: true)
+        ..writeAsBytesSync([1, 2]);
+      await run();
+      drive.putBytes('attachments/2026-10-18/memo.m4a', [3]);
+      final report = await run();
+      expect(report.history, ['.notelore/history/$stamp/attachments/2026-10-18/memo.m4a']);
+      expect(
+        File(at('.notelore/history/$stamp/attachments/2026-10-18/memo.m4a')).readAsBytesSync(),
+        [1, 2],
+      );
+      expect(File(at('attachments/2026-10-18/memo.m4a')).readAsBytesSync(), [3]);
+    });
   });
 
   test('edits on both sides in different places merge', () async {
