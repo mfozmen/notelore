@@ -1562,7 +1562,9 @@ class Session extends ChangeNotifier {
   }
 
   /// Whether this device holds the calendar grant, kept in [calendarHere]
-  /// for Settings; a keystore that cannot tell counts as not.
+  /// for Settings. A keystore that cannot tell keeps what was known, so a
+  /// passing error never makes this device remind beside Google; not known
+  /// yet, it counts as no grant and this device reminds.
   Future<bool> _holdsCalendar() async {
     final auth = calendarAuth;
     if (auth == null) return false;
@@ -1570,7 +1572,7 @@ class Session extends ChangeNotifier {
     try {
       calendarHere = await auth.signedIn();
     } on Exception {
-      calendarHere = false;
+      calendarHere = before ?? false;
     }
     if (calendarHere != before) notifyListeners();
     return calendarHere!;
