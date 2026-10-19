@@ -246,7 +246,11 @@ void main() {
     late String bundle;
     late List<List<String>> spawned;
     late List<List<String>> ran;
+
+    /// The macOS the new bundle needs, written into its Info.plist when set.
+    String? needs;
     setUp(() {
+      needs = null;
       bundle = p.join(dir, 'Applications', 'notelore.app');
       write(p.join(bundle, 'Contents', 'MacOS', 'notelore'), 'old binary');
       spawned = [];
@@ -261,19 +265,27 @@ void main() {
         write(p.join(mount, 'notelore.app', 'Contents', 'MacOS', 'notelore'), 'new binary');
       } else if (command == 'ditto' && Directory(args[0]).existsSync()) {
         write(p.join(args[1], 'Contents', 'MacOS', 'notelore'), 'new binary');
+        if (needs case final version?) {
+          write(
+            p.join(args[1], 'Contents', 'Info.plist'),
+            '<dict>\n\t<key>LSMinimumSystemVersion</key>\n\t<string>$version</string>\n</dict>',
+          );
+        }
       }
       return ProcessResult(0, 0, '', '');
     }
 
-    Updater updater(Map<String, List<int>> pages, {Run? run}) => Updater(
-      system: 'macos',
-      executable: p.join(bundle, 'Contents', 'MacOS', 'notelore'),
-      current: '0.2.0',
-      temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
-      fetch: Pages(pages).call,
-      run: run ?? tools,
-      spawn: (exe, args) async => spawned.add([exe, ...args]),
-    );
+    Updater updater(Map<String, List<int>> pages, {Run? run, String os = 'Version 15.1'}) =>
+        Updater(
+          system: 'macos',
+          osVersion: os,
+          executable: p.join(bundle, 'Contents', 'MacOS', 'notelore'),
+          current: '0.2.0',
+          temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
+          fetch: Pages(pages).call,
+          run: run ?? tools,
+          spawn: (exe, args) async => spawned.add([exe, ...args]),
+        );
 
     final dmg = utf8.encode('dmg bytes');
     Map<String, List<int>> good() => {
@@ -301,6 +313,24 @@ void main() {
       expect(Directory('$bundle.old').existsSync(), isFalse);
       u.cleanup(); // nothing left: fine
     });
+
+    test(
+      'a release that needs a newer macOS is not installed: this app keeps working (#328)',
+      () async {
+        needs = '14.0';
+        await expectLater(
+          updater(good(), os: 'Version 13.6.1 (Build 22G313)').apply(),
+          throwsA(
+            isA<UpdateFailed>().having((e) => e.message, 'message', contains('needs macOS 14.0')),
+          ),
+        );
+        expect(read(p.join(bundle, 'Contents', 'MacOS', 'notelore')), 'old binary');
+        expect(Directory(p.join(dir, 'Applications', '.notelore-update')).existsSync(), isFalse);
+        // On a new enough Mac it goes in as before.
+        expect(await updater(good(), os: 'Version 14.5 (Build 23F79)').apply(), v);
+        expect(read(p.join(bundle, 'Contents', 'MacOS', 'notelore')), 'new binary');
+      },
+    );
 
     test('a bundle swap that fails halfway puts the old app back', () async {
       final u = Updater(

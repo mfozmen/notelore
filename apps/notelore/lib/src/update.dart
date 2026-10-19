@@ -168,6 +168,7 @@ Updater? updaterFor({required String system, required String version, required S
     fetch: httpFetch,
     run: Process.run,
     spawn: startDetached,
+    osVersion: Platform.operatingSystemVersion,
   );
 }
 
@@ -182,7 +183,11 @@ class Updater {
     required this.spawn,
     this.renameDirectory = _renameDirectory,
     this.openInstaller = androidInstaller,
+    this.osVersion = '',
   });
+
+  /// This machine's OS as the platform says it ("Version 14.5 (Build 23F79)").
+  final String osVersion;
 
   /// 'windows', 'macos' or 'android'.
   final String system;
@@ -273,11 +278,25 @@ class Updater {
       } finally {
         await run('hdiutil', ['detach', mount, '-force']);
       }
+      _runsHere(bundle);
       _swapBundle(bundle, _installed, renameDirectory);
     } finally {
       staging.deleteSync(recursive: true);
     }
     return version;
+  }
+
+  /// A bundle that needs a newer macOS than this one would not start, and the
+  /// working app would be left only as `.old` (#328: the floor went 12 → 14).
+  void _runsHere(String bundle) {
+    final plist = File(p.join(bundle, 'Contents', 'Info.plist'));
+    if (!plist.existsSync()) return;
+    final needs = RegExp(r'<key>LSMinimumSystemVersion</key>\s*<string>([\d.]+)</string>')
+        .firstMatch(plist.readAsStringSync())?[1];
+    final here = RegExp(r'\d+(\.\d+)*').firstMatch(osVersion)?[0];
+    if (needs != null && here != null && isNewer(needs, here)) {
+      throw UpdateFailed('this release needs macOS $needs; this Mac has $here');
+    }
   }
 
   /// Puts the bundle at [from] in place of [to]; the old one is kept as `.old`
