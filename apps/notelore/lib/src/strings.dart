@@ -1277,8 +1277,7 @@ class EnglishStrings extends Strings {
   @override
   String get offline => 'Offline; your notes will sync when the connection is back.';
   @override
-  String get drivePermissionAgain =>
-      'Notelore needs your permission again to keep your notes in Google Drive. Tap Connect.';
+  String get drivePermissionAgain => 'Sign in to Google again to keep syncing your notes.';
   @override
   String get signedOutOfGoogle => 'Signed out of Google. Connect again.';
   @override
@@ -2186,8 +2185,7 @@ class TurkishStrings extends Strings {
   String get offline => 'Çevrimdışı; bağlantı gelince notların eşitlenecek.';
   @override
   String get drivePermissionAgain =>
-      "Notlarını Google Drive'da tutmaya devam etmek için Notelore'un iznine yeniden ihtiyacı var. "
-      "Bağlan'a dokun.";
+      "Notlarının eşitlenmeye devam etmesi için Google'a yeniden giriş yap.";
   @override
   String get signedOutOfGoogle => 'Google oturumun kapandı. Yeniden bağlan.';
   @override

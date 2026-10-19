@@ -1263,8 +1263,20 @@ class Session extends ChangeNotifier {
   /// banner and the Drive status, in plain words (#480).
   var driveNeedsSignIn = false;
 
+  /// Drive refused the sync: a 401 even after a fresh token is a sign-in
+  /// again; a full Drive says so (only Drive's storage quota, never a rate
+  /// limit, which would have the person delete things for nothing).
+  void _driveFailed(HttpError error) {
+    if (error.status == 401) return _needSignIn(strings.signedOutOfGoogle, error.message);
+    if (kDebugMode) debugPrint('Google Drive: ${error.message}'); // the log only
+    final full = error.message.toLowerCase().contains('storage quota');
+    syncStatus = full ? strings.driveFull : strings.driveUnreachable;
+  }
+
   void _needSignIn(String status, String detail) {
-    debugPrint('Google Drive needs a sign-in: $detail'); // the detail, for the log only
+    // A sync still running when the user signed out never asks them back in.
+    if (!_google) return;
+    if (kDebugMode) debugPrint('Google Drive needs a sign-in: $detail'); // the log only
     driveConnected = false;
     driveNeedsSignIn = true;
     syncStatus = status;
@@ -1431,9 +1443,7 @@ class Session extends ChangeNotifier {
       } on NetworkError {
         syncStatus = strings.offline;
       } on HttpError catch (error) {
-        debugPrint('Google Drive: ${error.message}'); // the detail, for the log only
-        final full = error.message.toLowerCase().contains('quota');
-        syncStatus = full ? strings.driveFull : strings.driveUnreachable;
+        _driveFailed(error);
       } on FileSystemException catch (error) {
         // Windows: antivirus or an editor holds a note past the store's retries.
         syncStatus = strings.noteInUse(error.message);
