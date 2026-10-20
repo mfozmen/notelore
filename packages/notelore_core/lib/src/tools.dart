@@ -20,8 +20,8 @@
 /// - `archive(slug, entries?, kind?)`: moves numbered entries per section, or the
 ///   whole file when `entries` is omitted, under `_archive/`.
 /// - `related_notes(title, about?)`: notes in either category a new note may belong
-///   with: `[{slug, kind, title, shares_title_words, matching_lines}]`, best first;
-///   none found, a sentence on where one item of a kind goes instead.
+///   with: `[{slug, kind, title, shares_title_words, matching_lines}]`, best first.
+///   With none found, a sentence on where one item of a kind goes instead.
 /// - `merge_notes(from, into, from_kind?, into_kind?)`: appends what `into` lacks of
 ///   `from`, then moves `from` under `_archive/`:
 ///   `{merged_into, archived_to, added, already_there}`.
