@@ -201,7 +201,12 @@ void main() {
         'matching_lines': 2,
       },
     ]);
-    expect(call('related_notes', {'title': 'Gardening'}), <Object?>[]);
+    // Nothing fits: the result says where one item of a kind goes, since a
+    // small model otherwise names a new note after the item (#532).
+    expect(
+      call('related_notes', {'title': 'Perfect Days'}),
+      allOf(startsWith('No existing note fits.'), contains('collection note for its kind')),
+    );
     expect(call('merge_notes', {'from': 'raspberry-pi', 'into': 'home-server'}), {
       'merged_into': 'projects/home-server.md',
       'archived_to': '_archive/2026-09-30/topics/raspberry-pi.md',
