@@ -80,7 +80,8 @@ const sharedSettings = '.notelore/settings.json';
 
 /// What went wrong with Google Calendar (#432): its sign-in, or a write the
 /// next refresh tries again.
-enum CalendarProblem { signIn, update }
+/// [revoked]: the person removed Notelore's access on Google's side.
+enum CalendarProblem { signIn, update, revoked }
 
 class Session extends ChangeNotifier {
   Session(
@@ -1557,12 +1558,20 @@ class Session extends ChangeNotifier {
     // reminding; signed in later, the same pass cancels its own.
     final viaCalendar = calendar && await _holdsCalendar();
     await _remindOnDevice(viaCalendar ? const [] : due, ask: ask, anew: anew);
-    if (viaCalendar) await _remindInCalendar(due, now);
+    // A grant gone on Google's side shows only now: this device, which just
+    // cancelled its own, reminds again in this same pass.
+    if (viaCalendar && !await _remindInCalendar(due, now)) {
+      await _remindOnDevice(due, ask: false, anew: false);
+    }
     final known = _knownDue;
     _knownDue = {for (final r in due) r.id};
     final made = ask && known != null && due.any((r) => !known.contains(r.id));
     // Only while it fits: it goes once the calendar is off or this device holds the grant.
-    final nudge = calendar && calendarHere == false && (calendarNudge || made && !_calendarNudged);
+    final revoked = calendarProblem == CalendarProblem.revoked;
+    final nudge =
+        calendar &&
+        calendarHere == false &&
+        (calendarNudge || (made || revoked) && !_calendarNudged);
     if (nudge != calendarNudge) {
       calendarNudge = nudge;
       notifyListeners();
@@ -1611,7 +1620,9 @@ class Session extends ChangeNotifier {
 
   /// Writes the coming reminders as events in Notelore's calendar; only on a
   /// device that holds the calendar grant.
-  Future<void> _remindInCalendar(List<DueReminder> due, DateTime now) async {
+  /// False when the grant turned out to be gone (revoked on Google's side):
+  /// this device then has no grant, and its token is dropped.
+  Future<bool> _remindInCalendar(List<DueReminder> due, DateTime now) async {
     final auth = calendarAuth!;
     final before = calendarProblem;
     try {
@@ -1625,12 +1636,26 @@ class Session extends ChangeNotifier {
       await google.sync(id, due, now: now);
       calendarProblem = null;
     } on NetworkError {
-      return; // offline: the next refresh catches up
+      return true; // offline: the next refresh catches up
+    } on NotSignedIn {
+      return _revoked(auth);
+    } on HttpError catch (error) {
+      // Still refused after the one refresh: the grant is gone, not a passing fault.
+      if (error.status == 401) return _revoked(auth);
+      calendarProblem = CalendarProblem.update;
     } on Exception {
       calendarProblem = CalendarProblem.update; // tried again at the next refresh
     } finally {
       if (calendarProblem != before) notifyListeners();
     }
+    return true;
+  }
+
+  Future<bool> _revoked(OAuthSignIn auth) async {
+    calendarProblem = CalendarProblem.revoked;
+    calendarHere = false;
+    await _signOutCalendar(auth);
+    return false;
   }
 
   /// Off: the desktop forgets and revokes the calendar's refresh token; a

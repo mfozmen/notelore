@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore_core/notelore_core.dart'
-    show HttpError, SignInFailed, addReminder, createNote;
+    show HttpError, NotSignedIn, SignInFailed, addReminder, createNote;
 
 import 'app_test.dart' show connect, phone, pumpApp;
 import 'support.dart';
@@ -215,5 +215,21 @@ void main() {
       find.textContaining('Until you sign in here, this device reminds you on its own.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('access removed on Google: Settings says so and offers the sign-in (#510)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await session.setCalendar(true);
+    harness.calendar.fail = const NotSignedIn('revoked');
+    await session.refreshReminders(ask: false);
+    await tester.pumpAndSettle();
+    await openSettings(tester, 'Reminders');
+    expect(find.textContaining("Notelore's access to Google Calendar was removed"), findsOneWidget);
+    expect(find.text('Sign in to Google Calendar'), findsOneWidget);
   });
 }
