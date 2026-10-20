@@ -1710,6 +1710,27 @@ void main() {
     expect(find.text('Kitaplar'), findsOneWidget); // back in the notes
   });
 
+  testWidgets('notes: an archive folder that is not a date still lists, as it is named (#508)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    // Put there by hand, or by an older app: the folder is not a date.
+    final odd = Directory(p.join(harness.paths.notes.path, '_archive', 'old stuff', 'topics'))
+      ..createSync(recursive: true);
+    createNote(odd.parent.parent.parent.path, 'topic', 'Kitaplar', today: today);
+    File(p.join(harness.paths.notes.path, 'topics', 'kitaplar.md'))
+        .renameSync(p.join(odd.path, 'kitaplar.md'));
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Archive'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kitaplar'), findsOneWidget);
+    expect(find.text('archived old stuff'), findsOneWidget);
+  });
+
   testWidgets('notes: the archive deletes a note for good, or all of it, after asking (#438)', (
     tester,
   ) async {
