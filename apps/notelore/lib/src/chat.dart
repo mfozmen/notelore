@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:notelore_core/notelore_core.dart';
@@ -361,16 +363,25 @@ class _Lines extends StatelessWidget {
       ChatRole.error => 0,
       _ => lines.indexWhere((l) => l.role == ChatRole.user),
     };
+    // Copy and resend show under the newest message and answer; older ones on a tap.
+    final newest = {
+      lines.indexWhere((l) => l.role == ChatRole.assistant),
+      lines.indexWhere((l) => l.role == ChatRole.user),
+    };
     return ListView.builder(
       reverse: true,
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
       itemCount: lines.length + (session.busy ? 1 : 0),
       itemBuilder: (context, index) {
-        if (session.busy) return index == 0 ? _Thinking(s) : _Bubble(lines[index - 1], s);
+        if (session.busy) {
+          if (index == 0) return _Thinking(s);
+          return _Bubble(lines[index - 1], s, newest: newest.contains(index - 1));
+        }
         return _Bubble(
           lines[index],
           s,
+          newest: newest.contains(index),
           resend: index == resendable ? session.resend : null,
           retry: session.retryNow,
           answer: index == 0 && session.ready ? (a) => _answer(context, lines.length, a) : null,
@@ -700,10 +711,18 @@ class _ComposerRow extends StatelessWidget {
                 icon: const Icon(Icons.volume_off_outlined),
                 onPressed: voice.end,
               ),
+            // Keyed: Stop slots in while a turn runs, and must not take over
+            // the state (ink, hover) of the button that was in its place.
             if (session.busy)
-              IconButton(tooltip: s.stop, icon: const Icon(Icons.stop), onPressed: session.stop),
+              IconButton(
+                key: const Key('stop'),
+                tooltip: s.stop,
+                icon: const Icon(Icons.stop),
+                onPressed: session.stop,
+              ),
             if (typed.text.trim().isNotEmpty)
               IconButton.filled(
+                key: const Key('send'),
                 tooltip: s.send,
                 icon: const Icon(Icons.arrow_upward),
                 onPressed: send,
@@ -949,14 +968,70 @@ class _ThinkingState extends State<_Thinking> {
   }
 }
 
-/// One line of the conversation. Messages and answers have a Copy button under
-/// them; the last message also one that sends it again ([resend]). The answers
-/// the newest question suggests are buttons that send one of them ([answer]).
+/// [content], with [actions] under it while [shown], or after a tap or while
+/// the pointer is over it: quiet older lines, their buttons at hand.
+class _Reveal extends StatefulWidget {
+  const _Reveal({
+    required this.shown,
+    required this.end,
+    required this.content,
+    required this.actions,
+  });
+
+  final bool shown;
+
+  /// On the right, as the person's own lines are.
+  final bool end;
+  final List<Widget> content;
+  final Widget actions;
+
+  @override
+  State<_Reveal> createState() => _RevealState();
+}
+
+class _RevealState extends State<_Reveal> {
+  var _open = false;
+  Offset? _down;
+
+  @override
+  Widget build(BuildContext context) => MouseRegion(
+    onEnter: (_) => setState(() => _open = true),
+    onExit: (_) => setState(() => _open = false),
+    // A raw pointer, not a tap: selectable text keeps its own taps, and a
+    // scroll that started here does not count.
+    child: Listener(
+      onPointerDown: (event) => _down = event.position,
+      onPointerUp: (event) {
+        if (_down case final down? when (event.position - down).distance < kTouchSlop) {
+          setState(() => _open = !_open);
+        }
+      },
+      child: Column(
+        crossAxisAlignment: widget.end ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [...widget.content, if (widget.shown || _open) widget.actions],
+      ),
+    ),
+  );
+}
+
+/// One line of the conversation. The [newest] message and answer have a Copy
+/// button under them, the last message also one that sends it again
+/// ([resend]); an older line shows them on a tap or a hover, and a screen
+/// reader can copy any line. The answers the newest question suggests are
+/// buttons that send one of them ([answer]).
 class _Bubble extends StatelessWidget {
-  const _Bubble(this.line, this.strings, {this.resend, this.answer, this.retry});
+  const _Bubble(
+    this.line,
+    this.strings, {
+    this.newest = false,
+    this.resend,
+    this.answer,
+    this.retry,
+  });
 
   final ChatLine line;
   final Strings strings;
+  final bool newest;
   final VoidCallback? resend;
 
   /// For a message that waits (offline, or the usage limit): send what waits now.
@@ -1016,35 +1091,36 @@ class _Bubble extends StatelessWidget {
     }
     Widget button(String tooltip, IconData icon, VoidCallback onPressed) =>
         IconButton(tooltip: tooltip, icon: Icon(icon, size: 20), onPressed: onPressed);
-    return Column(
-      crossAxisAlignment: mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-      children: [
-        bubble,
-        if (answer case final answer? when answers.isNotEmpty)
-          Wrap(
-            spacing: Gap.s,
-            runSpacing: Gap.xs,
-            children: [
-              for (final a in answers) OutlinedButton(onPressed: () => answer(a), child: Text(a)),
-            ],
-          ),
+    // An answer as plain words (#335); the user's message as typed.
+    void copy() => _copy(context, line.role == ChatRole.assistant ? plainText(text) : text);
+    return Semantics(
+      customSemanticsActions: {CustomSemanticsAction(label: strings.copy): copy},
+      child: _Reveal(
+        shown: newest || resend != null,
+        end: mine,
+        content: [
+          bubble,
+          if (answer case final answer? when answers.isNotEmpty)
+            Wrap(
+              spacing: Gap.s,
+              runSpacing: Gap.xs,
+              children: [
+                for (final a in answers) OutlinedButton(onPressed: () => answer(a), child: Text(a)),
+              ],
+            ),
+        ],
         // Close under its bubble (full-size targets, pulled up a little).
-        Transform.translate(
+        actions: Transform.translate(
           offset: const Offset(0, -Gap.s),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // An answer as plain words (#335); the user's message as typed.
-              button(
-                strings.copy,
-                Icons.copy,
-                () => _copy(context, line.role == ChatRole.assistant ? plainText(text) : text),
-              ),
+              button(strings.copy, Icons.copy, copy),
               if (resend case final resend?) button(strings.resend, Icons.replay, resend),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -1057,10 +1133,10 @@ class _Bubble extends StatelessWidget {
           // An answer's first paragraph brings its own small step at the top (#335).
           padding: EdgeInsets.fromLTRB(Gap.m, mine ? Gap.m - Gap.xs : Gap.s, Gap.m, Gap.m - Gap.xs),
           // A gutter on the other side on a phone; a readable line on wide windows.
-          constraints: BoxConstraints(maxWidth: min(560, size.maxWidth * 0.85)),
+          constraints: BoxConstraints(maxWidth: Layout.bubble(size.maxWidth)),
           decoration: BoxDecoration(
             color: background,
-            borderRadius: _bubbleRadius(mine: mine),
+            borderRadius: bubbleRadius(mine: mine),
           ),
           child: content,
         ),
@@ -1275,11 +1351,3 @@ class _AttachmentLine extends StatelessWidget {
     ),
   );
 }
-
-/// Rounded, with a smaller corner on the speaker's side, like a speech bubble.
-BorderRadius _bubbleRadius({required bool mine}) => BorderRadius.only(
-  topLeft: const Radius.circular(18),
-  topRight: const Radius.circular(18),
-  bottomLeft: Radius.circular(mine ? 18 : 4),
-  bottomRight: Radius.circular(mine ? 4 : 18),
-);

@@ -12,7 +12,7 @@ void main() {
   Future<void> openVoice(WidgetTester tester) async {
     await openSettings(tester, 'Voice');
     await tester.scrollUntilVisible(
-      find.text('Whisper speech recognition'),
+      find.text('Speech recognition on this device'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
@@ -46,7 +46,7 @@ void main() {
     final session = await pumpApp(tester, harness); // opening the app starts the download
     await connect(tester, key: 'k');
     await openVoice(tester);
-    expect(find.text('Whisper speech recognition'), findsOneWidget);
+    expect(find.text('Speech recognition on this device'), findsOneWidget);
     expect(find.textContaining('375 MB'), findsNothing); // no explanation, just the setting
     await settle(tester, session);
     expect(session.whisper.ready, isTrue);
@@ -70,7 +70,9 @@ void main() {
     await connect(tester, key: 'k');
     await openVoice(tester);
     await settle(tester, session);
-    expect(find.textContaining('The download failed: w.onnx: HTTP 404'), findsOneWidget);
+    // In plain words: never the file, the code or the server's text (#508).
+    expect(find.text('The download did not finish. Try again in a while.'), findsOneWidget);
+    expect(find.textContaining('HTTP'), findsNothing);
 
     harness.modelPage = 'whisper bytes';
     await tester.tap(find.text('Try again'));

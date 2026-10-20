@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart' show XFile;
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -1067,6 +1068,51 @@ void main() {
     );
   });
 
+  testWidgets(
+    'chat: Copy under the newest message and answer; an older one shows it on a tap (#508)',
+    (tester) async {
+      phone(tester);
+      await pumpApp(tester, Harness(answers: ['Eski cevap.', 'Yeni cevap.']));
+      await connect(tester, key: 'k');
+      for (final message in ['ilk', 'ikinci']) {
+        await tester.enterText(find.byKey(const Key('message')), message);
+        await tester.pump();
+        await tester.tap(find.byTooltip('Send'));
+        await tester.pumpAndSettle();
+      }
+      expect(find.byTooltip('Copy'), findsNWidgets(2)); // not under every bubble
+      await tester.tap(find.text('Eski cevap.'));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Copy'), findsNWidgets(3)); // the tapped one has its own now
+    await tester.tap(find.text('Eski cevap.')); // a second tap puts them away
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Copy'), findsNWidgets(2));
+    // On a desktop, a pointer over it shows them, and they go when it leaves.
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: Offset.zero);
+    await mouse.moveTo(tester.getCenter(find.text('ilk')));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Copy'), findsNWidgets(3));
+    await mouse.moveTo(Offset.zero);
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Copy'), findsNWidgets(2));
+      // A screen reader can copy any of them, shown or not.
+      for (final text in ['ilk', 'Eski cevap.', 'ikinci', 'Yeni cevap.']) {
+        expect(
+          find.ancestor(
+            of: find.text(text),
+            matching: find.byWidgetPredicate(
+              (w) => w is Semantics && (w.properties.customSemanticsActions?.isNotEmpty ?? false),
+            ),
+          ),
+          findsOneWidget,
+          reason: text,
+        );
+      }
+    },
+  );
+
   testWidgets('chat: an error is a status row with Try again beside it, not an answer (#306)', (
     tester,
   ) async {
@@ -1167,6 +1213,8 @@ void main() {
     ); // open: writing meanwhile joins the turn
     await tester.pump(const Duration(seconds: 4));
     expect(waiting(), allOf(isNotNull, isNot(first)));
+    // Its own button, never another one's state reused in its place (#508).
+    expect(find.byKey(const Key('stop')), findsOneWidget);
     await tester.tap(find.byTooltip('Stop'));
     await tester.pumpAndSettle();
     expect(find.text('Stopped.'), findsOneWidget);
@@ -1431,7 +1479,7 @@ void main() {
 
     await tester.tap(section('Voice'));
     await tester.pumpAndSettle();
-    expect(find.text('Whisper speech recognition'), findsOneWidget);
+    expect(find.text('Speech recognition on this device'), findsOneWidget);
 
     await tester.tap(section('Sync'));
     await tester.pumpAndSettle();

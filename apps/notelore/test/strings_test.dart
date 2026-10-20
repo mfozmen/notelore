@@ -3,6 +3,7 @@ import 'package:notelore/src/lock_state.dart';
 import 'package:notelore/src/strings.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore/src/transfer.dart';
+import 'package:notelore/src/whisper_model.dart' show DownloadProblem;
 import 'package:notelore_core/notelore_core.dart';
 
 void main() {
@@ -420,7 +421,8 @@ void main() {
       'whisper': s.whisper,
       'tryAgain': s.tryAgain,
       'whisperDownloading': s.whisperDownloading(42),
-      'whisperFailed': s.whisperFailed('x'),
+      for (final problem in DownloadProblem.values)
+        'download-${problem.name}': s.downloadFailed(problem),
       'microphone': s.microphone,
       'systemMicrophone': s.systemMicrophone,
       'listMicrophones': s.listMicrophones,

@@ -46,9 +46,12 @@ const whisperSmall = [
 
 /// A download did not complete or did not match its checksum; nothing is kept.
 class ModelDownloadFailed implements Exception {
-  const ModelDownloadFailed(this.message);
+  const ModelDownloadFailed(this.message, {this.cause});
 
   final String message;
+
+  /// What broke it mid-way (the network, the disk), to say what to do.
+  final Object? cause;
 
   @override
   String toString() => message;
@@ -166,7 +169,7 @@ class WhisperModel {
       // What arrived stays, for the next try to go on from; the download's
       // error says more than one from closing the file.
       await sink.close().then<void>((_) {}, onError: (Object _) {});
-      throw ModelDownloadFailed('${file.name}: $error');
+      throw ModelDownloadFailed('${file.name}: $error', cause: error);
     }
     hashing.close();
     await sink.close();
@@ -195,3 +198,16 @@ class _Digest implements Sink<Digest> {
   @override
   void close() {}
 }
+
+/// What a failed model download comes to for the person, who never sees a raw
+/// error: the network, the disk, or anything else.
+enum DownloadProblem { offline, space, failed }
+
+/// [error], from a model download, as one of [DownloadProblem].
+DownloadProblem downloadProblem(Object error) => switch (error) {
+  ModelDownloadFailed(cause: final cause?) => downloadProblem(cause),
+  SocketException() || http.ClientException() => DownloadProblem.offline,
+  // ENOSPC (Linux, macOS, Android) and ERROR_DISK_FULL (Windows).
+  FileSystemException(osError: OSError(errorCode: 28 || 112)) => DownloadProblem.space,
+  _ => DownloadProblem.failed,
+};

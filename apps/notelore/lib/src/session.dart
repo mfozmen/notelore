@@ -277,7 +277,7 @@ class Session extends ChangeNotifier {
   double? deviceProgress;
 
   /// Why the last device model download failed, if it did.
-  String? deviceProblem;
+  DownloadProblem? deviceProblem;
 
   /// One download at a time; a second call waits for the one running.
   Future<void> downloadDeviceModel() => _deviceDownload ??= _fetch(
@@ -343,7 +343,7 @@ class Session extends ChangeNotifier {
   double? whisperProgress;
 
   /// Why the last download failed.
-  String? whisperProblem;
+  DownloadProblem? whisperProblem;
 
   Future<void> downloadWhisper() async {
     if (whisperProgress != null) return;
@@ -354,7 +354,7 @@ class Session extends ChangeNotifier {
   Future<void> _fetch(
     WhisperModel model,
     void Function(double? done) progress,
-    void Function(String? why) problem,
+    void Function(DownloadProblem? why) problem,
   ) async {
     var shown = 0.0;
     problem(null);
@@ -374,7 +374,9 @@ class Session extends ChangeNotifier {
         },
       );
     } on Object catch (error) {
-      problem('$error'); // whatever it was, said rather than lost
+      // Said in plain words; the detail only in a debug build's log.
+      if (kDebugMode) debugPrint('Model download failed: $error');
+      problem(downloadProblem(error));
     } finally {
       client.close();
       progress(null);

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/session.dart';
+import 'package:notelore/src/whisper_model.dart' show DownloadProblem;
 
 import 'support.dart';
 
@@ -59,7 +60,7 @@ void main() {
     final first = session.downloadWhisper();
     await session.downloadWhisper(); // already running: nothing more
     await first;
-    expect(session.whisperProblem, contains('HTTP 404'));
+    expect(session.whisperProblem, DownloadProblem.failed);
     expect(session.whisper.ready, isFalse);
     expect(Directory(session.whisper.dir).listSync(), isEmpty);
 
@@ -73,7 +74,7 @@ void main() {
     final harness = Harness()..modelFailure = StateError('broken client');
     final session = harness.session();
     await session.downloadWhisper();
-    expect(session.whisperProblem, contains('broken client'));
+    expect(session.whisperProblem, DownloadProblem.failed);
     expect(session.whisperProgress, isNull);
   });
 }
