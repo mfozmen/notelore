@@ -76,7 +76,7 @@ Findings:
 - Data: 223 turns on the slim prompt and tools (`distill --slim`, then `reprompt --slim`). 122 came from qwen3:4b and 101 from qwen3-coder:30b; 209 scenarios, none overlapping the eval. The teachers rarely passed `plan` (3 of 12), `recovery` (3 of 8) or `todo-done` (10 of 32), so those kinds are thin.
 - Eval: the 44 cases of `eval/cases.json` on main after #500 (one web-search case is left out on Ollama). v3 was measured again on the same cases.
 
-| Model | Slim (as on the device) | Full prompt |
+| Model | Slim (as on the device), two runs | Full prompt, one run |
 |---|---|---|
 | notelore-qwen3-4b-v3 | 23/44, 22/44 | 28/44 (64%) |
 | notelore-qwen3-4b-v4 | 21/44, 24/44 | 18/44 (41%) |
