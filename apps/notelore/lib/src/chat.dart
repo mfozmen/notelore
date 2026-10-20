@@ -382,6 +382,8 @@ class _Lines extends StatelessWidget {
           lines[index],
           s,
           newest: newest.contains(index),
+          // The line that just arrived is read out; the history stays quiet.
+          live: index == 0,
           resend: index == resendable ? session.resend : null,
           retry: session.retryNow,
           answer: index == 0 && session.ready ? (a) => _answer(context, lines.length, a) : null,
@@ -1056,6 +1058,7 @@ class _Bubble extends StatelessWidget {
     this.line,
     this.strings, {
     this.newest = false,
+    this.live = false,
     this.resend,
     this.answer,
     this.retry,
@@ -1064,6 +1067,9 @@ class _Bubble extends StatelessWidget {
   final ChatLine line;
   final Strings strings;
   final bool newest;
+
+  /// The newest line: a screen reader announces it when it appears.
+  final bool live;
   final VoidCallback? resend;
 
   /// For a message that waits (offline, or the usage limit): send what waits now.
@@ -1081,7 +1087,12 @@ class _Bubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // A failed turn is a status, not an answer: no bubble (#306).
-    if (line.role == ChatRole.error) return _ErrorRow(line.text, strings, retry: resend);
+    if (line.role == ChatRole.error) {
+      return Semantics(
+        liveRegion: live,
+        child: _ErrorRow(line.text, strings, retry: resend),
+      );
+    }
     final colors = Theme.of(context).colorScheme;
     final mine = line.role == ChatRole.user || line.role == ChatRole.pending;
     final (background, foreground) = switch (line.role) {
@@ -1091,17 +1102,20 @@ class _Bubble extends StatelessWidget {
       ChatRole.assistant || ChatRole.error => (colors.surfaceContainerHigh, colors.onSurface),
     };
     final (:text, :answers, :files, :images) = _shown(line);
-    final bubble = _bubble(
-      _BubbleText(
-        text,
-        files: files,
-        images: images,
-        color: foreground,
-        strings: strings,
-        markdown: line.role == ChatRole.assistant,
+    final bubble = Semantics(
+      liveRegion: live && line.role == ChatRole.assistant,
+      child: _bubble(
+        _BubbleText(
+          text,
+          files: files,
+          images: images,
+          color: foreground,
+          strings: strings,
+          markdown: line.role == ChatRole.assistant,
+        ),
+        mine,
+        background,
       ),
-      mine,
-      background,
     );
     if (line.role == ChatRole.pending) {
       return Column(

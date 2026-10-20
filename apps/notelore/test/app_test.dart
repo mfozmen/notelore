@@ -1123,6 +1123,35 @@ void main() {
     }
   });
 
+  testWidgets('chat: a screen reader hears the new answer or failure as it arrives (#502)', (
+    tester,
+  ) async {
+    phone(tester);
+    final semantics = tester.ensureSemantics();
+    final harness = Harness(
+      answers: [const HttpError(500, 'down'), 'Birinci cevap.', 'İkinci cevap.'],
+    );
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    bool live(Finder finder) => tester.getSemantics(finder).flagsCollection.isLiveRegion;
+    Future<void> say(String message) async {
+      await tester.enterText(find.byKey(const Key('message')), message);
+      await tester.pump();
+      await tester.tap(find.byTooltip('Send'));
+      await tester.pumpAndSettle();
+    }
+
+    await say('bir');
+    expect(live(find.textContaining('having trouble')), isTrue); // the failure, read out
+    await tester.tap(find.text('Try again'));
+    await tester.pumpAndSettle();
+    expect(live(find.text('Birinci cevap.')), isTrue); // the answer that replaced it
+    await say('iki');
+    expect(live(find.text('İkinci cevap.')), isTrue);
+    expect(live(find.text('Birinci cevap.')), isFalse); // the earlier one stays quiet
+    semantics.dispose();
+  });
+
   testWidgets('chat: an error is a status row with Try again beside it, not an answer (#306)', (
     tester,
   ) async {
