@@ -310,8 +310,8 @@ void main() {
     hello.complete('Hello, ready to take notes.');
     await tester.pumpAndSettle();
     expect(find.text('Hello, ready to take notes.'), findsOneWidget);
-    // The model's words as an answer, not in a card that looks like a field (#508);
-    // what it cost is the usage page's to say.
+    // The model's words read as an answer, not as a field; the usage page says what
+    // it cost (#508).
     expect(
       find.ancestor(of: find.text('Hello, ready to take notes.'), matching: find.byType(Card)),
       findsNothing,
