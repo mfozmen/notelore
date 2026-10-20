@@ -661,10 +661,11 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                       title: Text(s.archivedTitle(archived[index])),
                       subtitle: Text(
                         s.archivedOn(
-                          s.shortDate(
-                            DateTime.parse(archived[index].archivedOn),
-                            widget.session.clock().toLocal(),
-                          ),
+                          // A folder that is not a date (made by hand) shows as named.
+                          switch (DateTime.tryParse(archived[index].archivedOn)) {
+                            null => archived[index].archivedOn,
+                            final day => s.shortDate(day, widget.session.clock().toLocal()),
+                          },
                         ),
                       ),
                       onTap: () => _open(archived[index]),
