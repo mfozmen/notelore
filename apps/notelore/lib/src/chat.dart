@@ -688,49 +688,56 @@ class _ComposerRow extends StatelessWidget {
       child: ValueListenableBuilder(
         valueListenable: message,
         // Apart, and level with the box's last line as it grows.
-        builder: (context, typed, _) => Row(
-          spacing: Gap.s,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            IconButton(
-              tooltip: s.attachFile,
-              icon: const Icon(Icons.attach_file),
-              onPressed: attach,
-            ),
-            Expanded(
-              // While recording, the recording takes the field's place;
-              // the field's text stays in its controller.
-              child: voice.state == VoiceState.listening
-                  ? recording
-                  : _MessageField(message, voice: voice, hint: s.message, send: send),
-            ),
-            if (voice.state == VoiceState.speaking)
+        builder: (context, typed, _) {
+          final listening = voice.state == VoiceState.listening;
+          return Row(
+            spacing: Gap.s,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
               IconButton(
-                tooltip: s.stopReading,
-                icon: const Icon(Icons.volume_off_outlined),
-                onPressed: voice.end,
+                tooltip: s.attachFile,
+                icon: const Icon(Icons.attach_file),
+                onPressed: attach,
               ),
-            // While a turn runs, Stop is the thing to do: filled in the talk
-            // button's place, or tonal before Send when something is typed.
-            // Keyed, so it never takes over another button's state (ink, hover).
-            if (session.busy)
-              (typed.text.trim().isEmpty ? IconButton.filled : IconButton.filledTonal)(
-                key: const Key('stop'),
-                tooltip: s.stop,
-                icon: const Icon(Icons.stop),
-                onPressed: session.stop,
+              Expanded(
+                // While recording, the recording takes the field's place;
+                // the field's text stays in its controller.
+                child: voice.state == VoiceState.listening
+                    ? recording
+                    : _MessageField(message, voice: voice, hint: s.message, send: send),
               ),
-            if (typed.text.trim().isNotEmpty)
-              IconButton.filled(
-                key: const Key('send'),
-                tooltip: s.send,
-                icon: const Icon(Icons.arrow_upward),
-                onPressed: send,
-              )
-            else if (!session.busy)
-              talk,
-          ],
-        ),
+              if (voice.state == VoiceState.speaking)
+                IconButton(
+                  tooltip: s.stopReading,
+                  icon: const Icon(Icons.volume_off_outlined),
+                  onPressed: voice.end,
+                ),
+              // While a turn runs, Stop is the thing to do: filled in the talk
+              // button's place, or tonal beside the primary when there is one
+              // (Send with text typed, or a hold still going on).
+              // Keyed, so it never takes over another button's state (ink, hover).
+              if (session.busy)
+                (typed.text.trim().isEmpty && !listening
+                    ? IconButton.filled
+                    : IconButton.filledTonal)(
+                  key: const Key('stop'),
+                  tooltip: s.stop,
+                  icon: const Icon(Icons.stop),
+                  onPressed: session.stop,
+                ),
+              if (typed.text.trim().isNotEmpty)
+                IconButton.filled(
+                  key: const Key('send'),
+                  tooltip: s.send,
+                  icon: const Icon(Icons.arrow_upward),
+                  onPressed: send,
+                )
+              // A hold that a turn interrupts keeps its button, so the let-go still sends.
+              else if (!session.busy || listening)
+                talk,
+            ],
+          );
+        },
       ),
     );
   }

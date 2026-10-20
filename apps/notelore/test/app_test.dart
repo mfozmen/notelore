@@ -1176,7 +1176,7 @@ void main() {
       findsNothing,
     );
     expect(find.descendant(of: status, matching: find.byIcon(Icons.more_horiz)), findsOneWidget);
-    await tester.tap(find.byTooltip('Stop')); // end the turn and its deadline
+    await tester.tap(find.byTooltip('Stop the answer')); // end the turn and its deadline
     await tester.pumpAndSettle();
   });
 
@@ -1240,7 +1240,7 @@ void main() {
     );
     await tester.enterText(find.byKey(const Key('message')), '');
     await tester.pump();
-    await tester.tap(find.byTooltip('Stop'));
+    await tester.tap(find.byTooltip('Stop the answer'));
     await tester.pumpAndSettle();
     expect(find.text('Stopped.'), findsOneWidget);
     expect(waiting(), isNull);
@@ -1283,6 +1283,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(harness.provider.asked, ['sesli not']);
     expect(find.byKey(const Key('message')), findsOneWidget);
+  });
+
+  testWidgets('chat: a turn that starts during a hold does not strand the recording (#525)', (
+    tester,
+  ) async {
+    phone(tester);
+    // The shared text's turn stays open; the spoken note gets its own answer.
+    final harness = Harness(answers: [Completer<AgentResponse>().future, 'Tamam.']);
+    harness.speech.phrases.add('sesli not');
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final hold = await tester.createGesture();
+    await hold.down(
+      tester.getCenter(find.byTooltip('Tap or hold to talk')),
+      timeStamp: const Duration(seconds: 10),
+    );
+    await tester.pump();
+    expect(find.text('Listening…'), findsOneWidget);
+    // A turn starts by itself meanwhile: a shared text, or a waiting message's retry.
+    unawaited(session.send('paylaşılan'));
+    await tester.pump();
+    expect(session.busy, isTrue);
+    // The held button is still there, so the let-go reaches it.
+    expect(find.byTooltip('Tap or hold to talk'), findsOneWidget);
+    await hold.up(timeStamp: const Duration(seconds: 12));
+    await tester.pump();
+    expect(find.text('Listening…'), findsNothing); // the recording ended with the let-go
+    await tester.tap(find.byTooltip('Stop the answer'));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('chat: a hold that starts while an answer is read aloud still sends', (tester) async {
@@ -1662,7 +1691,7 @@ void main() {
       tester.widget<PopupMenuButton<String>>(find.byType(PopupMenuButton<String>)).enabled,
       isFalse,
     );
-    await tester.tap(find.byTooltip('Stop'));
+    await tester.tap(find.byTooltip('Stop the answer'));
     await tester.pumpAndSettle();
   });
 
