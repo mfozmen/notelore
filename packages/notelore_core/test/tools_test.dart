@@ -205,7 +205,13 @@ void main() {
     // small model otherwise names a new note after the item (#532).
     expect(
       call('related_notes', {'title': 'Perfect Days'}),
-      allOf(startsWith('No existing note fits.'), contains('collection note for its kind')),
+      allOf(
+        startsWith('No existing note fits.'),
+        contains('collection note for its kind'),
+        contains("in the user's language"),
+        // The topics there are, to add to one rather than open a second list.
+        contains('Topics now: Raspberry Pi (raspberry-pi).'),
+      ),
     );
     expect(call('merge_notes', {'from': 'raspberry-pi', 'into': 'home-server'}), {
       'merged_into': 'projects/home-server.md',
