@@ -1636,6 +1636,7 @@ void main() {
     final books = createNote(harness.paths.notes.path, 'topic', 'Books', today: today);
     addEntry(books, 'Sinekli Bakkal by Halide Edib', today: today);
     createNote(harness.paths.notes.path, 'project', 'Garden shed', today: today);
+    createNote(harness.paths.notes.path, 'project', 'İş planı', today: today);
     session.notifyListeners();
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
@@ -1648,6 +1649,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Garden shed'), findsOneWidget);
     expect(find.text('Books'), findsNothing);
+    // More words narrow it: every word, in the title or the words.
+    await tester.enterText(search, 'shed garden');
+    await tester.pumpAndSettle();
+    expect(find.text('Garden shed'), findsOneWidget);
+    await tester.enterText(search, 'garden sinekli');
+    await tester.pumpAndSettle();
+    expect(find.text('Garden shed'), findsNothing);
+    expect(find.text('Books'), findsNothing);
+    await tester.enterText(search, 'iş'); // Turkish capitals fold too
+    await tester.pumpAndSettle();
+    expect(find.text('İş planı'), findsOneWidget);
     await tester.enterText(search, 'zeppelin');
     await tester.pumpAndSettle();
     expect(find.textContaining('No note mentions "zeppelin"'), findsOneWidget);
@@ -1683,6 +1695,12 @@ void main() {
     expect(find.textContaining('topics/'), findsNothing);
     await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
+    // Its heading names it, once; Restore is in the bar, clear of any notice.
+    expect(find.text('Kitaplar'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.text('Restore')),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Restore'));
     await tester.pumpAndSettle();
     expect(find.text('Restored "Kitaplar".'), findsOneWidget);

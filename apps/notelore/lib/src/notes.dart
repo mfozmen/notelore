@@ -226,7 +226,7 @@ class _NotesScreenState extends State<NotesScreen> {
     final s = widget.session.strings;
     final colors = Theme.of(context).colorScheme;
     if (all.isEmpty) return _shown(context, all, wide: wide);
-    final notes = _search.text.trim().isEmpty ? all : widget.session.findNotes(_search.text);
+    final notes = _search.text.trim().isEmpty ? all : widget.session.findNotes(_search.text, all);
     return Column(
       children: [
         Padding(
@@ -251,9 +251,11 @@ class _NotesScreenState extends State<NotesScreen> {
         ),
         Expanded(
           child: notes.isEmpty
-              ? Center(
+              // Right under the field, where the eye is after typing.
+              ? Align(
+                  alignment: Alignment.topCenter,
                   child: Padding(
-                    padding: const EdgeInsets.all(Gap.l),
+                    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, 0),
                     child: Text(
                       s.noNoteMentions(_search.text.trim()),
                       textAlign: TextAlign.center,
@@ -484,7 +486,10 @@ class ArchiveScreen extends StatefulWidget {
 }
 
 class _ArchiveScreenState extends State<ArchiveScreen> {
-  Future<void> _restore(BuildContext reader, ArchivedNote archived) async {
+  /// The archived note open in the pane, on a wide window; read once.
+  (ArchivedNote, String)? _reading;
+
+  Future<void> _restore(ArchivedNote archived, VoidCallback close) async {
     final s = widget.session.strings;
     final messenger = ScaffoldMessenger.of(context);
     final done = await widget.session.restoreArchived(archived);
@@ -493,7 +498,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       ..showSnackBar(
         SnackBar(content: Text(done ? s.restored(archived.title) : s.restoreTaken(archived.title))),
       );
-    if (done && reader.mounted) Navigator.of(reader).pop();
+    if (done) close();
     if (mounted) setState(() {});
   }
 
@@ -551,47 +556,74 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
   }
 
   // Read once: a restore moves the file while the app rebuilds this route.
-  void _open(ArchivedNote archived) => _show(archived, widget.session.readArchived(archived));
+  void _open(ArchivedNote archived) {
+    final text = widget.session.readArchived(archived);
+    if (widget.back != null) return setState(() => _reading = (archived, text));
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (reader) => _reader(archived, text, () => Navigator.of(reader).pop()),
+      ),
+    );
+  }
 
-  void _show(ArchivedNote archived, String text) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (reader) => Scaffold(
-        appBar: AppBar(
-          title: Text(widget.session.strings.archivedTitle(archived)),
-          actions: [
-            IconButton(
-              tooltip: widget.session.strings.deleteForever,
-              icon: const Icon(Icons.delete_forever_outlined),
-              onPressed: () async {
-                if (await _deleteForever(archived) && reader.mounted) Navigator.of(reader).pop();
-              },
-            ),
-          ],
-        ),
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: Layout.column),
-            child: NoteView(
-              text,
-              // As it was: its images were linked from where it lived.
-              folder: p.dirname(p.join(widget.session.paths.notes.path, archived.original)),
-              strings: widget.session.strings,
-              today: widget.session.clock().toLocal(),
-            ),
+  /// [archived], read-only, with Restore and Delete forever in its bar, clear
+  /// of the notices they leave. Its heading is its title; the bar names only
+  /// archived entries, which the heading alone would not say.
+  Widget _reader(ArchivedNote archived, String text, VoidCallback close) {
+    final s = widget.session.strings;
+    return Scaffold(
+      appBar: AppBar(
+        leading: widget.back == null ? null : BackButton(onPressed: close),
+        title: archived.entries ? Text(s.archivedTitle(archived)) : null,
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.restore),
+            label: Text(s.restore),
+            onPressed: () => _restore(archived, close),
+          ),
+          IconButton(
+            tooltip: s.deleteForever,
+            icon: const Icon(Icons.delete_forever_outlined),
+            onPressed: () async {
+              if (await _deleteForever(archived)) close();
+            },
+          ),
+        ],
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: Layout.column),
+          child: NoteView(
+            text,
+            // As it was: its images were linked from where it lived.
+            folder: p.dirname(p.join(widget.session.paths.notes.path, archived.original)),
+            strings: s,
+            today: widget.session.clock().toLocal(),
           ),
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          icon: const Icon(Icons.restore),
-          label: Text(widget.session.strings.restore),
-          onPressed: () => _restore(reader, archived),
-        ),
       ),
-    ),
-  );
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final s = widget.session.strings;
+    if (widget.back case final back?) {
+      // In a pane, not a route: the system's back steps out of it too.
+      void close() => setState(() => _reading = null);
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (_, _) => _reading == null ? back() : close(),
+        child: switch (_reading) {
+          (final archived, final text) => _reader(archived, text, close),
+          null => _list(context, s),
+        },
+      );
+    }
+    return _list(context, s);
+  }
+
+  Widget _list(BuildContext context, Strings s) {
     final archived = widget.session.listArchived();
     return Scaffold(
       appBar: AppBar(
@@ -606,9 +638,10 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
             ),
         ],
       ),
-      // A readable width on a wide window, like the reader's.
+      // A readable width on a wide window, like the reader's; in a pane, from
+      // the left edge, under its title.
       body: Align(
-        alignment: Alignment.topCenter,
+        alignment: widget.back == null ? Alignment.topCenter : Alignment.topLeft,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: Layout.column),
           child: archived.isEmpty
