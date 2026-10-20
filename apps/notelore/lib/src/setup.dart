@@ -10,6 +10,7 @@ import 'mark.dart';
 import 'session.dart';
 import 'strings.dart';
 import 'theme.dart';
+import 'whisper_model.dart' show DownloadProblem;
 
 /// First run (and after logging out): pick a provider, paste its key, connect.
 /// Connecting a model, one step at a time (#357): Choose, Connect, Done. The
@@ -170,7 +171,8 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       await session.downloadDeviceModel();
       if (!mounted || _step != _Step.connect || _spec.name != 'device') return;
       if (!session.deviceModel.ready) {
-        return setState(() => _problem = session.strings.deviceDownloadFailed);
+        final problem = session.deviceProblem ?? DownloadProblem.failed;
+        return setState(() => _problem = session.strings.deviceDownloadFailed(problem));
       }
     }
     await _attempt(() => widget.session.connect(_spec, _key.text));

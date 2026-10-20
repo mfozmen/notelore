@@ -72,6 +72,8 @@ void main() {
     await settle(tester, session);
     // In plain words: never the file, the code or the server's text (#508).
     expect(find.text('The download did not finish. Try again in a while.'), findsOneWidget);
+    // What the download is for, and how big, before the person tries again.
+    expect(find.textContaining(RegExp(r'nothing is sent anywhere\. About \d+ MB')), findsOneWidget);
     expect(find.textContaining('HTTP'), findsNothing);
 
     harness.modelPage = 'whisper bytes';

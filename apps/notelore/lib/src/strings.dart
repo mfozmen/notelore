@@ -71,7 +71,13 @@ abstract class Strings {
   String get deviceModelHere;
   String get downloadingModel;
   String downloadedPercent(int percent);
-  String get deviceDownloadFailed;
+
+  /// The model on the device did not download: why, and, when a retry helps,
+  /// that it goes on from where it stopped.
+  String deviceDownloadFailed(DownloadProblem problem) => problem == DownloadProblem.space
+      ? downloadFailed(problem)
+      : '${downloadFailed(problem)} $downloadResumes';
+  String get downloadResumes;
   String providerName(ProviderSpec spec);
   String groupHeading(ProviderGroup group);
   String cost(ProviderSpec spec);
@@ -429,6 +435,9 @@ abstract class Strings {
   String get tryAgain;
   String whisperDownloading(int percent);
   String downloadFailed(DownloadProblem problem);
+
+  /// What the speech model is for, and its download in megabytes.
+  String whisperWhy(int megabytes);
   String get microphone;
   String get systemMicrophone;
   String get listMicrophones;
@@ -689,9 +698,7 @@ class EnglishStrings extends Strings {
   @override
   String downloadedPercent(int percent) => 'Downloading… $percent%';
   @override
-  String get deviceDownloadFailed =>
-      'The model could not be downloaded. Check the connection and try again: '
-      'it continues where it stopped.';
+  String get downloadResumes => 'It goes on where it stopped.';
   @override
   String providerName(ProviderSpec spec) => spec.displayName;
   @override
@@ -1262,15 +1269,18 @@ class EnglishStrings extends Strings {
   @override
   String get whisper => 'Speech recognition on this device';
   @override
+  String whisperWhy(int megabytes) =>
+      'Turns your speech into text here; nothing is sent anywhere. About $megabytes MB, once.';
+  @override
   String get tryAgain => 'Try again';
   @override
   String whisperDownloading(int percent) => 'Downloading… $percent%';
   @override
   String downloadFailed(DownloadProblem problem) => switch (problem) {
     DownloadProblem.offline =>
-      'Notelore cannot reach the download. Check the connection, then try again.',
+      'Notelore could not download it. Check your connection, then try again.',
     DownloadProblem.space =>
-      'There is not enough space on this device for it. Free some space, then try again.',
+      'There is not enough space on this device. Free some space, then try again.',
     DownloadProblem.failed => 'The download did not finish. Try again in a while.',
   };
   @override
@@ -1600,9 +1610,7 @@ class TurkishStrings extends Strings {
   @override
   String downloadedPercent(int percent) => 'İndiriliyor… %$percent';
   @override
-  String get deviceDownloadFailed =>
-      'Model indirilemedi. Bağlantını kontrol edip yeniden dene: '
-      'kaldığı yerden devam eder.';
+  String get downloadResumes => 'Kaldığı yerden devam eder.';
   @override
   String providerName(ProviderSpec spec) => switch (spec.name) {
     'chatgpt' => 'ChatGPT planı (OpenAI)',
@@ -2215,15 +2223,17 @@ class TurkishStrings extends Strings {
   @override
   String get whisper => 'Bu cihazda konuşma tanıma';
   @override
+  String whisperWhy(int megabytes) =>
+      'Konuşmanı burada yazıya çevirir; hiçbir yere gönderilmez. Bir kez, yaklaşık $megabytes MB.';
+  @override
   String get tryAgain => 'Tekrar dene';
   @override
   String whisperDownloading(int percent) => 'İndiriliyor… %$percent';
   @override
   String downloadFailed(DownloadProblem problem) => switch (problem) {
-    DownloadProblem.offline =>
-      'Notelore indirmeye ulaşamıyor. Bağlantıyı kontrol edip tekrar dene.',
-    DownloadProblem.space => 'Bu cihazda bunun için yeterli yer yok. Biraz yer açıp tekrar dene.',
-    DownloadProblem.failed => 'İndirme tamamlanamadı. Biraz sonra tekrar dene.',
+    DownloadProblem.offline => 'İndirilemedi. Bağlantını kontrol edip yeniden dene.',
+    DownloadProblem.space => 'Bu cihazda yeterli yer yok. Biraz yer açıp yeniden dene.',
+    DownloadProblem.failed => 'İndirme tamamlanamadı. Biraz sonra yeniden dene.',
   };
   @override
   String get microphone => 'Mikrofon';

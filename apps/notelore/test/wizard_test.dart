@@ -514,13 +514,14 @@ void main() {
     final session = await pumpApp(tester, harness);
     await choose(tester, 'On this device (Qwen3 4B)');
     await tester.tap(find.text('Download and connect'));
-    await settleUntil(
-      tester,
-      () => find.textContaining('could not be downloaded').evaluate().isNotEmpty,
-    );
+    await settleUntil(tester, () => find.textContaining('did not finish').evaluate().isNotEmpty);
     expect(session.ready, isFalse);
     expect(find.text('Step 2 of 3'), findsOneWidget);
-    expect(find.textContaining('could not be downloaded'), findsOneWidget);
+    // Why, in plain words, and that a retry goes on from where it stopped (#508).
+    expect(
+      find.text('The download did not finish. Try again in a while. It goes on where it stopped.'),
+      findsOneWidget,
+    );
     // The button says what it does now.
     expect(find.text('Resume download'), findsOneWidget);
   });

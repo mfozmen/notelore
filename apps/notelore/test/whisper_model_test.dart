@@ -221,7 +221,7 @@ void main() {
       downloadProblem(const ModelDownloadFailed('w.onnx', cause: SocketException('gone'))),
       DownloadProblem.offline,
     );
-    for (final code in [28, 112]) {
+    for (final code in [28, 39, 112]) {
       expect(
         downloadProblem(
           ModelDownloadFailed(
