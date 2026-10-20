@@ -1615,6 +1615,48 @@ void main() {
     expect(find.text('Change model'), findsNothing);
   });
 
+  testWidgets('notes: a note opened on a phone names itself once (#508)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kitaplar'), findsOneWidget); // its heading, not the bar as well
+  });
+
+  testWidgets('notes: search by title or by what a note says; none says so (#508)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final books = createNote(harness.paths.notes.path, 'topic', 'Books', today: today);
+    addEntry(books, 'Sinekli Bakkal by Halide Edib', today: today);
+    createNote(harness.paths.notes.path, 'project', 'Garden shed', today: today);
+    session.notifyListeners();
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    final search = find.byKey(const Key('notes-search'));
+    await tester.enterText(search, 'sinekli'); // in a note's words
+    await tester.pumpAndSettle();
+    expect(find.text('Books'), findsOneWidget);
+    expect(find.text('Garden shed'), findsNothing);
+    await tester.enterText(search, 'GARDEN'); // in a title, any case
+    await tester.pumpAndSettle();
+    expect(find.text('Garden shed'), findsOneWidget);
+    expect(find.text('Books'), findsNothing);
+    await tester.enterText(search, 'zeppelin');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('No note mentions "zeppelin"'), findsOneWidget);
+    await tester.tap(find.byTooltip('Clear'));
+    await tester.pumpAndSettle();
+    expect(find.text('Books'), findsOneWidget);
+    expect(find.text('Garden shed'), findsOneWidget);
+  });
+
   testWidgets('notes: the archive lists what was deleted and restores it', (tester) async {
     phone(tester);
     final harness = Harness();
@@ -1636,7 +1678,9 @@ void main() {
     await tester.tap(find.byTooltip('Archive'));
     await tester.pumpAndSettle();
     expect(find.text('Kitaplar'), findsOneWidget);
-    expect(find.textContaining('archived 2026-09-30'), findsOneWidget);
+    // A date as people say it, and no file path (#508).
+    expect(find.text('archived 30 Sep'), findsOneWidget);
+    expect(find.textContaining('topics/'), findsNothing);
     await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Restore'));
@@ -2016,7 +2060,7 @@ void main() {
     await tester.tap(find.text('Mopsos'));
     await tester.pumpAndSettle();
     expect(find.byType(NoteView), findsOneWidget);
-    expect(find.text('Decisions'), findsOneWidget);
+    expect(find.text('Decisions'), findsNothing); // a new note's empty sections have no heading
     await tester.pageBack();
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Refresh'));

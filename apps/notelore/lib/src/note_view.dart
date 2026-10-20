@@ -54,16 +54,21 @@ class NoteView extends StatelessWidget {
             const SizedBox(height: Gap.m),
             _markdown(intro),
           ],
-          for (final section in _ordered(note.sections)) ...[
-            const SizedBox(height: Gap.l),
-            _Heading(section.heading),
-            const SizedBox(height: Gap.s),
-            ..._section(context, section),
-          ],
+          for (final section in _ordered(note.sections))
+            if (_hasContent(section)) ...[
+              const SizedBox(height: Gap.l),
+              _Heading(section.heading),
+              const SizedBox(height: Gap.s),
+              ..._section(context, section),
+            ],
         ],
       ),
     );
   }
+
+  /// Whether [section] has anything to read: a heading alone says nothing.
+  static bool _hasContent(Section section) =>
+      section.entries.any((e) => e is! Raw || e.text.trim().isNotEmpty);
 
   /// The sections as the file has them, but Reminders and Todo right before
   /// Notes: what is coming first, what happened after.

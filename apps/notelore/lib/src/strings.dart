@@ -403,6 +403,11 @@ abstract class Strings {
   String entriesFrom(String title);
   String get archiveEmpty;
   String archivedOn(String date);
+  String get searchNotes;
+  String get clearSearch;
+
+  /// A search that found nothing, and what to try instead.
+  String noNoteMentions(String query);
   String get restore;
   String restored(String title);
 
@@ -1209,6 +1214,13 @@ class EnglishStrings extends Strings {
   String get archiveEmpty => 'The archive is empty. Deleted notes go here.';
   @override
   String archivedOn(String date) => 'archived $date';
+  @override
+  String get searchNotes => 'Search notes';
+  @override
+  String get clearSearch => 'Clear';
+  @override
+  String noNoteMentions(String query) =>
+      'No note mentions "$query". Try other words, or ask in the chat.';
   @override
   String get restore => 'Restore';
   @override
@@ -2152,6 +2164,13 @@ class TurkishStrings extends Strings {
   String get archiveEmpty => 'Arşiv boş. Silinen notlar buraya gelir.';
   @override
   String archivedOn(String date) => '$date tarihinde arşivlendi';
+  @override
+  String get searchNotes => 'Notlarda ara';
+  @override
+  String get clearSearch => 'Temizle';
+  @override
+  String noNoteMentions(String query) =>
+      '"$query" geçen bir not yok. Başka kelimeler dene ya da sohbette sor.';
   @override
   String get restore => 'Geri getir';
   @override

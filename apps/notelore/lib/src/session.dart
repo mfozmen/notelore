@@ -1714,6 +1714,20 @@ class Session extends ChangeNotifier {
 
   List<NoteInfo> listNotes() => (index..rebuild()).listNotes();
 
+  /// The notes whose title has [query] in it, or whose words do (the index's
+  /// search); every note for an empty query.
+  List<NoteInfo> findNotes(String query) {
+    final notes = listNotes();
+    final wanted = query.trim().toLowerCase();
+    if (wanted.isEmpty) return notes;
+    final found = {for (final hit in index.search(wanted)) (hit.kind, hit.slug)};
+    return [
+      for (final note in notes)
+        if (note.title.toLowerCase().contains(wanted) || found.contains((note.kind, note.slug)))
+          note,
+    ];
+  }
+
   /// The note file as it is on disk: what a Markdown export sends.
   String noteFile(NoteInfo note) =>
       File(notePath(paths.notes.path, note.kind, note.slug)).readAsStringSync();
