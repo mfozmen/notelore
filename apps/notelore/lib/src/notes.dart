@@ -25,6 +25,18 @@ class _NotesScreenState extends State<NotesScreen> {
   /// The note open beside the list on a wide window, read once.
   (NoteInfo, String)? _reading;
 
+  /// What the list is narrowed to; empty shows every note.
+  final _search = TextEditingController();
+
+  /// The archive open in the content pane, on a wide window.
+  var _archive = false;
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
   bool _isOpen(NoteInfo note) => _reading?.$1.kind == note.kind && _reading?.$1.slug == note.slug;
 
   /// Asks, then archives [note] with an Undo; true when it was deleted.
@@ -151,6 +163,10 @@ class _NotesScreenState extends State<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     final s = widget.session.strings;
+    if (_archive && Layout.isWide(context)) {
+      // Beside the rail, like the notes; Back returns to them.
+      return ArchiveScreen(widget.session, back: () => setState(() => _archive = false));
+    }
     final notes = widget.session.listNotes();
     // The open note follows the files: archived elsewhere, it closes; else it
     // is read again (one file), so a sync or the assistant shows at once.
@@ -176,9 +192,10 @@ class _NotesScreenState extends State<NotesScreen> {
           IconButton(
             tooltip: s.archive,
             icon: const Icon(Icons.inventory_2_outlined),
-            onPressed: () =>
-                Navigator.of(context)
-                    .push(MaterialPageRoute<void>(builder: (_) => ArchiveScreen(widget.session))),
+            onPressed: () => Layout.isWide(context)
+                ? setState(() => _archive = true)
+                : Navigator.of(context)
+                      .push(MaterialPageRoute<void>(builder: (_) => ArchiveScreen(widget.session))),
           ),
           IconButton(
             tooltip: s.refresh,
@@ -205,7 +222,53 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
-  Widget _list(BuildContext context, List<NoteInfo> notes, {required bool wide}) {
+  Widget _list(BuildContext context, List<NoteInfo> all, {required bool wide}) {
+    final s = widget.session.strings;
+    final colors = Theme.of(context).colorScheme;
+    if (all.isEmpty) return _shown(context, all, wide: wide);
+    final notes = _search.text.trim().isEmpty ? all : widget.session.findNotes(_search.text);
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, 0),
+          child: TextField(
+            key: const Key('notes-search'),
+            controller: _search,
+            onChanged: (_) => setState(() {}),
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: s.searchNotes,
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _search.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: s.clearSearch,
+                      icon: const Icon(Icons.close),
+                      onPressed: () => setState(_search.clear),
+                    ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: notes.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(Gap.l),
+                    child: Text(
+                      s.noNoteMentions(_search.text.trim()),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: colors.onSurfaceVariant),
+                    ),
+                  ),
+                )
+              : _shown(context, notes, wide: wide),
+        ),
+      ],
+    );
+  }
+
+  /// [notes] as cards, or the first-run hint when there are none at all.
+  Widget _shown(BuildContext context, List<NoteInfo> notes, {required bool wide}) {
     final s = widget.session.strings;
     final colors = Theme.of(context).colorScheme;
     return notes.isEmpty
@@ -324,8 +387,8 @@ class _NotesScreenState extends State<NotesScreen> {
   void _open(NoteInfo note, String text) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (reader) => Scaffold(
+        // The note's own heading is its title: the bar only holds its actions.
         appBar: AppBar(
-          title: Text(note.title),
           actions: [
             IconButton(
               tooltip: widget.session.strings.export,
@@ -409,9 +472,12 @@ class _ChooseNotesState extends State<_ChooseNotes> {
 
 /// What was deleted, newest first; each opens read-only with Restore.
 class ArchiveScreen extends StatefulWidget {
-  const ArchiveScreen(this.session, {super.key});
+  const ArchiveScreen(this.session, {this.back, super.key});
 
   final Session session;
+
+  /// In a pane rather than a page of its own: what its Back does.
+  final VoidCallback? back;
 
   @override
   State<ArchiveScreen> createState() => _ArchiveScreenState();
@@ -529,6 +595,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     final archived = widget.session.listArchived();
     return Scaffold(
       appBar: AppBar(
+        leading: widget.back == null ? null : BackButton(onPressed: widget.back),
         title: Text(s.archive),
         actions: [
           if (archived.isNotEmpty)
@@ -539,34 +606,46 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
             ),
         ],
       ),
-      body: archived.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(Gap.l),
-                child: Text(s.archiveEmpty, textAlign: TextAlign.center),
-              ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
-              itemCount: archived.length,
-              separatorBuilder: (_, _) => const SizedBox(height: Gap.s),
-              itemBuilder: (context, index) => Card(
-                child: ListTile(
-                  leading: const Icon(Icons.inventory_2_outlined),
-                  title: Text(s.archivedTitle(archived[index])),
-                  subtitle: Text(
-                    '${s.archivedOn(archived[index].archivedOn)} · ${archived[index].original}',
+      // A readable width on a wide window, like the reader's.
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: Layout.column),
+          child: archived.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(Gap.l),
+                    child: Text(s.archiveEmpty, textAlign: TextAlign.center),
                   ),
-                  onTap: () => _open(archived[index]),
-                  onLongPress: () => _deleteForever(archived[index]),
-                  trailing: IconButton(
-                    tooltip: s.deleteForever,
-                    icon: const Icon(Icons.delete_forever_outlined),
-                    onPressed: () => _deleteForever(archived[index]),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
+                  itemCount: archived.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: Gap.s),
+                  itemBuilder: (context, index) => Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.inventory_2_outlined),
+                      title: Text(s.archivedTitle(archived[index])),
+                      subtitle: Text(
+                        s.archivedOn(
+                          s.shortDate(
+                            DateTime.parse(archived[index].archivedOn),
+                            widget.session.clock().toLocal(),
+                          ),
+                        ),
+                      ),
+                      onTap: () => _open(archived[index]),
+                      onLongPress: () => _deleteForever(archived[index]),
+                      trailing: IconButton(
+                        tooltip: s.deleteForever,
+                        icon: const Icon(Icons.delete_forever_outlined),
+                        onPressed: () => _deleteForever(archived[index]),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
+        ),
+      ),
     );
   }
 }

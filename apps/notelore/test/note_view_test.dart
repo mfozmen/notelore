@@ -67,6 +67,12 @@ void main() {
     expect(find.text('Stock picks, scored weekly.'), findsOneWidget);
   });
 
+  testWidgets('a section with nothing in it shows no heading (#508)', (tester) async {
+    await show(tester, '$_mopsos\n## Questions\n\n');
+    expect(find.text('Questions'), findsNothing);
+    expect(find.text('Links'), findsOneWidget); // one with something in it still has its own
+  });
+
   testWidgets('decisions: the current ones as cards, earlier ones folded away (#426)', (
     tester,
   ) async {
