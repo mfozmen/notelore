@@ -237,6 +237,7 @@ class Harness {
     DateTime Function()? clock,
     Duration Function()? uptime,
     Duration retryEvery = const Duration(hours: 1), // tests try again by hand
+    Timer Function(Duration period, void Function(Timer) onTick) every = Timer.periodic,
     void Function(String entry)? timing,
     bool reminders = true,
     bool calendar = true,
@@ -255,6 +256,7 @@ class Harness {
       calendarFor: (_) => this.calendar,
       timing: timing,
       retryEvery: retryEvery,
+      every: every,
       systemLanguage: systemLanguage,
       keySpace: keySpace,
       clock: clock,
