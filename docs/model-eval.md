@@ -68,3 +68,22 @@ Findings:
   - Each training turn is 2.7–3.1k tokens, mostly the system prompt and the tool schemas.
   - 45 steps took about 5 h 20 min (about 7 min a step) at 7.9 of 8 GB. That points to spilling into shared memory.
 - **Ollama on Windows** cannot import or quantize safetensors: that path needs its MLX runtime. The working route is llama.cpp's `convert_hf_to_gguf.py`, then `llama-quantize` to Q4_K_M, then `ollama create` with the template the base model ships with. `finetune.py`'s docstring has the steps.
+
+## Fine-tune v4, 2026-10-20 (#447)
+
+**Setup**
+- Student: Qwen3-4B-Instruct-2507, QLoRA, one epoch, loss on the assistant's tokens only (as v3), trained on Kaggle's T4.
+- Data: 223 turns on the slim prompt and tools (`distill --slim`, then `reprompt --slim`). 122 came from qwen3:4b and 101 from qwen3-coder:30b; 209 scenarios, none overlapping the eval. The teachers rarely passed `plan` (3 of 12), `recovery` (3 of 8) or `todo-done` (10 of 32), so those kinds are thin.
+- Eval: the 44 cases of `eval/cases.json` on main after #500 (one web-search case is left out on Ollama). v3 was measured again on the same cases.
+
+| Model | Slim (as on the device) | Full prompt |
+|---|---|---|
+| notelore-qwen3-4b-v3 | 23/44, 22/44 | 28/44 (64%) |
+| notelore-qwen3-4b-v4 | 21/44, 24/44 | 18/44 (41%) |
+
+Findings:
+
+- **On the slim prompt v4 is no better than v3.** Both average 22.5/44 over two runs. Between v3 and v4, 18 cases flip one way or the other, so one run carries a noise of about ±2 cases. One run of 44 cannot tell models apart that are a few cases apart.
+- **On the full prompt v4 falls from 28 to 18.** It was trained only on the slim prompt and tools. v3 stays the better model for a desktop that sends the full prompt.
+- **Collection notes stay the main failure for both** (2–4 of 10). The model calls `related_notes`, sees the list note, and still runs `create_note` with the item's own title ("Perfect Days", "Kürk Mantolu Madonna"). More distilled turns of the same kind did not teach it. The next step is on the tool side, not v5: steer `create_note` toward the collection that `related_notes` found.
+- **v3 stays the on-device candidate.** v4 is kept in Ollama as `notelore-qwen3-4b-v4` for comparison and is not published.
