@@ -1218,7 +1218,8 @@ class EnglishStrings extends Strings {
   @override
   String get calendarRevoked =>
       "Notelore's access to Google Calendar was removed. This device reminds you on its own; "
-      'sign in to send reminders there again.';
+      'sign in to send reminders there again. The reminders already in Google Calendar stay '
+      'there: delete its "Notelore" calendar to stop them.';
   @override
   String get calendarUpdateFailed => "Couldn't update Google Calendar. Notelore tries again later.";
   @override
@@ -2180,7 +2181,8 @@ class TurkishStrings extends Strings {
   @override
   String get calendarRevoked =>
       "Notelore'un Google Takvim erişimi kaldırıldı. Bu cihaz sana kendi bildirimiyle hatırlatıyor; "
-      'hatırlatıcılar yeniden oraya gitsin diye giriş yap.';
+      "hatırlatıcılar yeniden oraya gitsin diye giriş yap. Google Takvim'deki hatırlatıcılar "
+      'orada kalır: durmaları için oradaki "Notelore" takvimini sil.';
   @override
   String get calendarUpdateFailed =>
       'Google Takvim güncellenemedi. Notelore daha sonra yeniden dener.';
