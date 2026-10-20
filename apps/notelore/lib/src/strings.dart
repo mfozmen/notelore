@@ -855,7 +855,7 @@ class EnglishStrings extends Strings {
       'Some notes may already have been saved before this failed. Check them before you '
       'resend, so nothing is saved twice.';
   @override
-  String get stop => 'Stop';
+  String get stop => 'Stop the answer';
   @override
   String get changeTheModel => 'Change the model';
   @override
@@ -1813,7 +1813,7 @@ class TurkishStrings extends Strings {
       'Bu hatadan önce bazı notlar kaydedilmiş olabilir. Bir şey iki kez kaydedilmesin diye '
       'yeniden göndermeden önce onlara bak.';
   @override
-  String get stop => 'Durdur';
+  String get stop => 'Cevabı durdur';
   @override
   String get changeTheModel => 'Modeli değiştir';
   @override
