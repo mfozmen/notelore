@@ -13,6 +13,29 @@ import 'desktop_test.dart' show desktop;
 import 'support.dart';
 
 void main() {
+  for (final wide in [false, true]) {
+    testWidgets('the step bar spans the content, on a ${wide ? 'desk' : 'phone'} (#508)', (
+      tester,
+    ) async {
+      wide ? desktop(tester, 1280) : phone(tester);
+      await pumpApp(tester, Harness());
+      expect(
+        tester.getTopLeft(find.byKey(const Key('step-bar'))).dx,
+        tester.getTopLeft(find.text('Choose a model provider')).dx,
+      );
+      // The step's words start the line, next to the button's place.
+      expect(
+        tester.getTopLeft(find.text('Step 1 of 3')).dx,
+        lessThan(tester.getCenter(find.byKey(const Key('step-bar'))).dx),
+      );
+      // Its right end too: the step's words sit above it, not beside it.
+      expect(
+        tester.getTopRight(find.byKey(const Key('step-bar'))).dx,
+        tester.getTopRight(find.byKey(const ValueKey('option-anthropic'))).dx,
+      );
+    });
+  }
+
   testWidgets('first run: Choose, Connect, Done, each step said, back keeps the choice (#357)', (
     tester,
   ) async {
@@ -150,6 +173,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(on('ollama', 'stay on this computer'), findsOneWidget);
     expect(on('chatgpt', 'Your notes go to OpenAI'), findsNothing);
+    // Opened, its details say what the tags said: nothing twice (#508).
+    expect(on('ollama', 'Stays on this computer'), findsNothing);
+    expect(on('ollama', 'Free'), findsOneWidget);
     // The choice is marked by an icon, not by colour alone.
     expect(
       find.descendant(of: card('ollama'), matching: find.byIcon(Icons.check_circle)),
@@ -282,6 +308,7 @@ void main() {
     await tester.pump();
     // On its way: said so, and Start waits for it.
     expect(find.text('Saying hello to the model…'), findsOneWidget);
+    expect(find.byKey(const Key('hello-bubble')), findsNothing); // a status is never a bubble
     expect(
       tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Start')).onPressed,
       isNull,
@@ -289,8 +316,18 @@ void main() {
     hello.complete('Hello, ready to take notes.');
     await tester.pumpAndSettle();
     expect(find.text('Hello, ready to take notes.'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('hello-bubble'))).width,
+      lessThanOrEqualTo(tester.getSize(find.byType(Scaffold)).width * 0.85),
+    );
+    // The model's words read as an answer, not as a field; the usage page says what
+    // it cost (#508).
+    expect(
+      find.ancestor(of: find.text('Hello, ready to take notes.'), matching: find.byType(Card)),
+      findsNothing,
+    );
     expect(session.usage.device.calls, 0); // a hello is not the conversation's use
-    expect(find.textContaining('This one message went to the provider'), findsOneWidget);
+    expect(find.textContaining('This one message went to the provider'), findsNothing);
     expect(harness.provider.asked, isEmpty); // the test turn is not a chat turn
     expect(find.text('Start'), findsOneWidget);
   });
@@ -514,6 +551,8 @@ void main() {
     tester.platformDispatcher.textScaleFactorTestValue = 2;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await pumpApp(tester, Harness());
+    await tester.ensureVisible(find.text('Claude (Anthropic)')); // big text: further down
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Claude (Anthropic)'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Next'));

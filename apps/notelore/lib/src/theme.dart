@@ -115,6 +115,15 @@ ThemeData noteloreTheme(Brightness brightness, [Palette palette = Palette.lagoon
         borderRadius: BorderRadius.circular(_field),
         borderSide: BorderSide(color: colors.primary, width: 2),
       ),
+      // The borderless field would otherwise show an error only in the line under it.
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(_field),
+        borderSide: BorderSide(color: colors.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(_field),
+        borderSide: BorderSide(color: colors.error, width: 2),
+      ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(minimumSize: tap, shape: const StadiumBorder()),

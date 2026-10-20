@@ -65,9 +65,12 @@ void main() {
     expect(find.text('1,000,000 read · 100,000 written'), findsWidgets);
     expect(find.text('Estimated cost: about \$3.00'), findsWidgets);
     expect(find.text('Last 14 days'), findsOneWidget);
-    expect(find.text('1,100,000'), findsWidgets); // the amount in sight
+    // The amount in sight with its unit, once for the conversation and once for
+    // the range: the chart below does not say it a third time (#508).
+    expect(find.text('1,100,000 tokens'), findsNWidgets(2));
+    expect(find.textContaining(RegExp(r'^Busiest day: .*tokens$')), findsOneWidget);
     expect(find.textContaining('Busiest day'), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('Last 14 days: 1,100,000 in all')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('Last 14 days: 1,100,000 tokens in all')), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Claude (Anthropic) · claude-sonnet-5-5'),
       300,
@@ -109,7 +112,7 @@ void main() {
       await tester.tap(find.text('7 days'));
       await tester.pumpAndSettle();
       expect(find.text('Last 7 days'), findsOneWidget);
-      expect(find.bySemanticsLabel(RegExp('Last 7 days: 1,000 in all')), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('Last 7 days: 1,000 tokens in all')), findsOneWidget);
       // A tap on a day splits it by model, in words, not by colour alone.
       expect(find.text('Tap a day to see each model.'), findsOneWidget);
       final chart = find.byKey(const Key('usage-chart'));
@@ -231,5 +234,23 @@ void main() {
     expect(find.bySemanticsLabel(RegExp('Last 14 days: nothing used')), findsOneWidget);
     expect(find.text('Usage shows here after your first message.'), findsOneWidget);
     expect(find.textContaining('local model has no per-token charge'), findsOneWidget);
+  });
+
+  testWidgets('usage page: with big text a title keeps its words whole (#508)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    session.usage.record('anthropic', 'claude-sonnet-5-5', const TokenUsage(1000000, 100000));
+    await openUsage(tester);
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.pumpAndSettle();
+    for (final title in ['This conversation', 'Last 14 days']) {
+      final text = tester.renderObject<RenderBox>(find.text(title));
+      // Laid out at least as wide as its longest word: never cut inside one.
+      final longest = title.split(' ').map((w) => w.length).reduce((a, b) => a > b ? a : b);
+      expect(text.size.width, greaterThan(longest * 2 * 8.0), reason: title);
+    }
   });
 }

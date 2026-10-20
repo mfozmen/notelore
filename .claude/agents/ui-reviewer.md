@@ -42,6 +42,7 @@ Go through the skills' checklists. These matter most here:
 - **Consistency:** the same component looks the same everywhere. It uses the theme's colours, never hard-coded ones. Turkish strings are often longer, so check for overflow.
 - **Phone and desktop:** content keeps a readable width on wide windows, and nothing stretches edge to edge.
 - **Feel:** first impressions (the Google sign-in, setup) look trustworthy and finished.
+- **Purpose:** every control helps the task the person came to this screen for. One that does not moves to Settings, an overflow menu or a detail page, or goes. Nothing is said twice on one screen. A product question is flagged as `needs-decision`, not decided in the review.
 
 ## 5. Report
 

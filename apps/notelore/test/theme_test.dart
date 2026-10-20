@@ -16,6 +16,13 @@ void main() {
       // The focused field stays visible for keyboard users.
       final focused = theme.inputDecorationTheme.focusedBorder! as OutlineInputBorder;
       expect(focused.borderSide.color, theme.colorScheme.primary);
+      // A field in error says so with its border, not only the line under it.
+      for (final error in [
+        theme.inputDecorationTheme.errorBorder!,
+        theme.inputDecorationTheme.focusedErrorBorder!,
+      ]) {
+        expect((error as OutlineInputBorder).borderSide.color, theme.colorScheme.error);
+      }
     }
     expect(Gap.s * 2, Gap.m);
   });

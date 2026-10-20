@@ -312,7 +312,8 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       },
     );
     final action = _action(s);
-    final header = _StepHeader(
+    Widget header([double inset = 0]) => _StepHeader(
+      inset: inset,
       step: _step.index + 1,
       of: _Step.values.length,
       label: s.stepOf(_step.index + 1, _Step.values.length),
@@ -377,31 +378,42 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       textAlign: TextAlign.center,
     ),
     const SizedBox(height: Gap.l),
-    // The model's own hello: the proof it works (#361).
-    Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(Gap.m),
-        child: Semantics(
-          liveRegion: true,
-          child: switch (_tried) {
-            null => Row(
-              spacing: Gap.s,
-              children: [
-                const SizedBox.square(
-                  dimension: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                Expanded(child: Text(s.trying, style: theme.textTheme.bodyMedium)),
-              ],
+    // The model's own hello, the proof it works: shaped like an answer in the
+    // chat, with the chat's gutter; until it comes, a status line, never a bubble.
+    Semantics(
+      liveRegion: true,
+      child: switch (_tried) {
+        null => Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          spacing: Gap.s,
+          children: [
+            const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+            Flexible(
+              child: Text(s.trying, style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
             ),
-            final answer => Text(answer, style: theme.textTheme.bodyLarge),
-          },
+          ],
         ),
-      ),
+        final answer => LayoutBuilder(
+          builder: (context, size) => Center(
+            child: Container(
+              key: const Key('hello-bubble'),
+              constraints: BoxConstraints(maxWidth: min(560, size.maxWidth * 0.85)),
+              padding: const EdgeInsets.all(Gap.m),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHigh,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  topRight: Radius.circular(18),
+                  bottomLeft: Radius.circular(4),
+                  bottomRight: Radius.circular(18),
+                ),
+              ),
+              child: Text(answer, style: theme.textTheme.bodyLarge),
+            ),
+          ),
+        ),
+      },
     ),
-    const SizedBox(height: Gap.s),
-    Text(s.tryCost, style: theme.textTheme.bodySmall?.copyWith(color: muted)),
   ];
 
   /// Which provider: the plan first, keys and local models under Advanced.
@@ -491,7 +503,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
   Widget _layout(
     BuildContext context,
     BoxConstraints size,
-    Widget header,
+    Widget Function([double inset]) header,
     Widget content,
     Widget action,
   ) {
@@ -526,7 +538,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
                   children: [
                     Padding(
                       padding: const EdgeInsets.only(right: Gap.m),
-                      child: header,
+                      child: header(),
                     ),
                     const SizedBox(height: Gap.l),
                     // As wide as the content: the gutter on the right is the scrollbar's.
@@ -566,14 +578,18 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           spacing: Gap.l,
-          children: [header, content, action],
+          children: [header(), content, action],
         ),
       );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(padding: const EdgeInsets.fromLTRB(Gap.s, Gap.s, Gap.l, 0), child: header),
+        // The back button sits nearer the edge; the bar lines up with the content.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(Gap.s, Gap.s, Gap.l, 0),
+          child: header(Gap.l - Gap.s),
+        ),
         _edge('header-edge', show: _scrolledUnder),
         Expanded(
           child: NotificationListener<Notification>(
@@ -596,12 +612,15 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
 /// filled, with the step said for screen readers and in a small label.
 class _StepHeader extends StatelessWidget {
   const _StepHeader({
+    required this.inset,
     required this.step,
     required this.of,
     required this.label,
     required this.leading,
   });
 
+  /// How far the bar starts right of the button's slot, to line up with the content.
+  final double inset;
   final int step;
   final int of;
   final String label;
@@ -610,14 +629,27 @@ class _StepHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Row(
-      spacing: Gap.s,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: Gap.xs,
       children: [
-        // The same room with or without a button, so the bar never shifts.
-        SizedBox.square(dimension: 48, child: leading),
-        Expanded(
+        Row(
+          spacing: Gap.s,
+          children: [
+            // The same room with or without a button, so nothing below shifts.
+            SizedBox.square(dimension: 48, child: leading),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelMedium
+                  ?.copyWith(color: colors.onSurfaceVariant),
+            ),
+          ],
+        ),
+        Padding(
+          padding: EdgeInsets.only(left: inset),
           child: ExcludeSemantics(
             child: Row(
+              key: const Key('step-bar'),
               spacing: Gap.xs,
               children: [
                 for (var i = 1; i <= of; i++)
@@ -633,10 +665,6 @@ class _StepHeader extends StatelessWidget {
               ],
             ),
           ),
-        ),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(color: colors.onSurfaceVariant),
         ),
       ],
     );
@@ -1111,15 +1139,11 @@ class _OptionCard extends StatelessWidget {
                 ),
                 // Who it suits: what decides, so it comes first.
                 Text(s.optionFit(spec), style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
-                const SizedBox(height: Gap.s),
-                Wrap(
-                  spacing: Gap.xs,
-                  runSpacing: Gap.xs,
-                  children: [
-                    if (connected) _Tag(s.connectedBadge, strong: true),
-                    for (final text in s.optionTags(spec)) _Tag(text),
-                  ],
-                ),
+                if (connected) ...[
+                  const SizedBox(height: Gap.s),
+                  _Tag(s.connectedBadge, strong: true),
+                ],
+                // Opened, the details say what the tags did: they swap in one motion.
                 AnimatedSize(
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeOut,
@@ -1144,7 +1168,17 @@ class _OptionCard extends StatelessWidget {
                             ],
                           ),
                         )
-                      : const SizedBox(width: double.infinity),
+                      : Padding(
+                          padding: const EdgeInsets.only(top: Gap.s),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: Wrap(
+                              spacing: Gap.xs,
+                              runSpacing: Gap.xs,
+                              children: [for (final text in s.optionTags(spec)) _Tag(text)],
+                            ),
+                          ),
+                        ),
                 ),
               ],
             ),

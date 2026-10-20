@@ -23,4 +23,4 @@ coverage/
 zz_ui_review*
 
 # flutter_test golden-comparison failure output
-test/failures/
+**/test/failures/
