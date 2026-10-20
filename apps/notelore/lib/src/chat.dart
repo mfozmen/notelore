@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:flutter/gestures.dart' show kTouchSlop;
+import 'package:flutter/gestures.dart' show PointerDeviceKind, kLongPressTimeout, kTouchSlop;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/services.dart';
@@ -991,24 +991,51 @@ class _Reveal extends StatefulWidget {
 
 class _RevealState extends State<_Reveal> {
   var _open = false;
-  Offset? _down;
+  PointerDownEvent? _down;
+
+  /// Runs out while a press is held: a long press is text selection's.
+  Timer? _press;
+
+  @override
+  void dispose() {
+    _press?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => MouseRegion(
     onEnter: (_) => setState(() => _open = true),
     onExit: (_) => setState(() => _open = false),
-    // A raw pointer, not a tap: selectable text keeps its own taps, and a
-    // scroll that started here does not count.
+    // A raw pointer, not a tap: selectable text keeps its own taps. Only a
+    // quick touch toggles: not a scroll, not a long press (that selects
+    // text), not a mouse (its hover shows them).
     child: Listener(
-      onPointerDown: (event) => _down = event.position,
+      onPointerDown: (event) {
+        _down = event;
+        _press?.cancel();
+        _press = Timer(kLongPressTimeout, () => _down = null);
+      },
       onPointerUp: (event) {
-        if (_down case final down? when (event.position - down).distance < kTouchSlop) {
+        _press?.cancel();
+        if (_down case final down?
+            when down.kind != PointerDeviceKind.mouse &&
+                (event.position - down.position).distance < kTouchSlop) {
           setState(() => _open = !_open);
         }
       },
       child: Column(
         crossAxisAlignment: widget.end ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        children: [...widget.content, if (widget.shown || _open) widget.actions],
+        children: [
+          ...widget.content,
+          // Laid out even while hidden, so nothing above moves when it shows.
+          Visibility(
+            visible: widget.shown || _open,
+            maintainSize: true,
+            maintainAnimation: true,
+            maintainState: true,
+            child: widget.actions,
+          ),
+        ],
       ),
     ),
   );
@@ -1096,7 +1123,8 @@ class _Bubble extends StatelessWidget {
     return Semantics(
       customSemanticsActions: {CustomSemanticsAction(label: strings.copy): copy},
       child: _Reveal(
-        shown: newest || resend != null,
+        // Answers are what one copies; one's own older lines keep quiet.
+        shown: newest || resend != null || line.role == ChatRole.assistant,
         end: mine,
         content: [
           bubble,

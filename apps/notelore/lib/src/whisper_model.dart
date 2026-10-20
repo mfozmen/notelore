@@ -207,7 +207,7 @@ enum DownloadProblem { offline, space, failed }
 DownloadProblem downloadProblem(Object error) => switch (error) {
   ModelDownloadFailed(cause: final cause?) => downloadProblem(cause),
   SocketException() || http.ClientException() => DownloadProblem.offline,
-  // ENOSPC (Linux, macOS, Android) and ERROR_DISK_FULL (Windows).
-  FileSystemException(osError: OSError(errorCode: 28 || 112)) => DownloadProblem.space,
+  // ENOSPC (Linux, macOS, Android); ERROR_HANDLE_DISK_FULL and ERROR_DISK_FULL (Windows).
+  FileSystemException(osError: OSError(errorCode: 28 || 39 || 112)) => DownloadProblem.space,
   _ => DownloadProblem.failed,
 };

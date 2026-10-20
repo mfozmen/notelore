@@ -1068,50 +1068,60 @@ void main() {
     );
   });
 
-  testWidgets(
-    'chat: Copy under the newest message and answer; an older one shows it on a tap (#508)',
-    (tester) async {
-      phone(tester);
-      await pumpApp(tester, Harness(answers: ['Eski cevap.', 'Yeni cevap.']));
-      await connect(tester, key: 'k');
-      for (final message in ['ilk', 'ikinci']) {
-        await tester.enterText(find.byKey(const Key('message')), message);
-        await tester.pump();
-        await tester.tap(find.byTooltip('Send'));
-        await tester.pumpAndSettle();
-      }
-      expect(find.byTooltip('Copy'), findsNWidgets(2)); // not under every bubble
-      await tester.tap(find.text('Eski cevap.'));
+  testWidgets('chat: Copy under every answer; an older message shows it on a tap (#508)', (
+    tester,
+  ) async {
+    phone(tester);
+    await pumpApp(tester, Harness(answers: ['Eski cevap.', 'Yeni cevap.']));
+    await connect(tester, key: 'k');
+    for (final message in ['ilk', 'ikinci']) {
+      await tester.enterText(find.byKey(const Key('message')), message);
+      await tester.pump();
+      await tester.tap(find.byTooltip('Send'));
       await tester.pumpAndSettle();
-      expect(find.byTooltip('Copy'), findsNWidgets(3)); // the tapped one has its own now
-    await tester.tap(find.text('Eski cevap.')); // a second tap puts them away
+    }
+    final copies = find.byTooltip('Copy').hitTestable();
+    // Every answer, which is what one copies; of the person's own, the newest.
+    expect(copies, findsNWidgets(3));
+    final before = tester.getTopLeft(find.text('ilk'));
+    await tester.tap(find.text('ilk'));
     await tester.pumpAndSettle();
-    expect(find.byTooltip('Copy'), findsNWidgets(2));
+    expect(copies, findsNWidgets(4)); // the tapped message has its own now
+    expect(tester.getTopLeft(find.text('ilk')), before); // and nothing moved
+    await tester.tap(find.text('ilk')); // a second tap puts it away
+    await tester.pumpAndSettle();
+    expect(copies, findsNWidgets(3));
+    await tester.longPress(find.text('ilk')); // a long press selects text: no toggle
+    await tester.pumpAndSettle();
+    expect(copies, findsNWidgets(3));
     // On a desktop, a pointer over it shows them, and they go when it leaves.
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     addTearDown(mouse.removePointer);
     await mouse.addPointer(location: Offset.zero);
     await mouse.moveTo(tester.getCenter(find.text('ilk')));
     await tester.pumpAndSettle();
-    expect(find.byTooltip('Copy'), findsNWidgets(3));
+    expect(copies, findsNWidgets(4));
+    await mouse.down(tester.getCenter(find.text('ilk'))); // a click does not close it
+    await mouse.up();
+    await tester.pumpAndSettle();
+    expect(copies, findsNWidgets(4));
     await mouse.moveTo(Offset.zero);
     await tester.pumpAndSettle();
-    expect(find.byTooltip('Copy'), findsNWidgets(2));
-      // A screen reader can copy any of them, shown or not.
-      for (final text in ['ilk', 'Eski cevap.', 'ikinci', 'Yeni cevap.']) {
-        expect(
-          find.ancestor(
-            of: find.text(text),
-            matching: find.byWidgetPredicate(
-              (w) => w is Semantics && (w.properties.customSemanticsActions?.isNotEmpty ?? false),
-            ),
+    expect(copies, findsNWidgets(3));
+    // A screen reader can copy any of them, shown or not.
+    for (final text in ['ilk', 'Eski cevap.', 'ikinci', 'Yeni cevap.']) {
+      expect(
+        find.ancestor(
+          of: find.text(text),
+          matching: find.byWidgetPredicate(
+            (w) => w is Semantics && (w.properties.customSemanticsActions?.isNotEmpty ?? false),
           ),
-          findsOneWidget,
-          reason: text,
-        );
-      }
-    },
-  );
+        ),
+        findsOneWidget,
+        reason: text,
+      );
+    }
+  });
 
   testWidgets('chat: an error is a status row with Try again beside it, not an answer (#306)', (
     tester,
