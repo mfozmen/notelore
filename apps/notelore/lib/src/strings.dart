@@ -263,6 +263,9 @@ abstract class Strings {
   String get byModel;
   String get perDay;
   String get tapDay;
+
+  /// The answers a question offers, said after it to a screen reader.
+  String suggestedAnswers(String answers);
   String get usageAppears;
 
   /// The chart keeps fewer days than "all" totals.
@@ -1050,6 +1053,8 @@ class EnglishStrings extends Strings {
   String get perDay => 'Per day';
   @override
   String get tapDay => 'Tap a day to see each model.';
+  @override
+  String suggestedAnswers(String answers) => 'Answers: $answers.';
   @override
   String get usageAppears => 'Usage shows here after your first message.';
   @override
@@ -2008,6 +2013,8 @@ class TurkishStrings extends Strings {
   String get perDay => 'Günlük';
   @override
   String get tapDay => 'Her modeli görmek için bir güne dokunun.';
+  @override
+  String suggestedAnswers(String answers) => 'Cevaplar: $answers.';
   @override
   String get usageAppears => 'Kullanım, ilk mesajınızdan sonra burada görünür.';
   @override

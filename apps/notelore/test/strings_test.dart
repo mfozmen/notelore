@@ -316,6 +316,7 @@ void main() {
       'byModel': s.byModel,
       'perDay': s.perDay,
       'tapDay': s.tapDay,
+      'suggestedAnswers': s.suggestedAnswers('x'),
       'usageAppears': s.usageAppears,
       'chartKept': s.chartKept(90),
       'messages': s.messages,

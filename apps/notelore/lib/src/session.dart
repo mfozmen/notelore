@@ -643,6 +643,10 @@ class Session extends ChangeNotifier {
 
   final transcript = <ChatLine>[];
 
+  /// The answer or failure a turn just added, for a screen reader to hear
+  /// once; the chat takes it. Never a line loaded from history.
+  ChatLine? fresh;
+
   /// What is written in the message box and not sent yet; it outlives the chat
   /// screen, so a trip to another tab (or a new window layout) keeps it.
   var draft = '';
@@ -1113,7 +1117,7 @@ class Session extends ChangeNotifier {
       );
       if (queued) _sent(message);
       toolCalls = _toolCalls(asked.messages.skip(before));
-      transcript.add((role: ChatRole.assistant, text: strings.core(answer)));
+      transcript.add(fresh = (role: ChatRole.assistant, text: strings.core(answer)));
       // Seen only once answered: a failed turn's notice goes out again.
       _lastNotes = _noteTitles(); // the agent's own changes included
       if (asked.wroteNotes) await refreshReminders();
@@ -1167,14 +1171,16 @@ class Session extends ChangeNotifier {
     final later = error is NetworkError || (error is HttpError && error.status == 429);
     if (later && !wrote && !images) return _hold(message, fresh: !queued);
     if (queued) _sent(message); // it reached the model: no longer waiting
-    transcript.add((
-      role: ChatRole.error,
-      text: [
-        strings.chatError(error),
-        if (wrote) strings.notesMayBeSaved,
-        if (later && images) strings.imagesCannotWait,
-      ].join('\n\n'),
-    ));
+    transcript.add(
+      fresh = (
+        role: ChatRole.error,
+        text: [
+          strings.chatError(error),
+          if (wrote) strings.notesMayBeSaved,
+          if (later && images) strings.imagesCannotWait,
+        ].join('\n\n'),
+      ),
+    );
   }
 
   /// Messages waiting to go out, oldest first; kept in the state folder, so a
