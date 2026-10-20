@@ -20,7 +20,8 @@
 /// - `archive(slug, entries?, kind?)`: moves numbered entries per section, or the
 ///   whole file when `entries` is omitted, under `_archive/`.
 /// - `related_notes(title, about?)`: notes in either category a new note may belong
-///   with: `[{slug, kind, title, shares_title_words, matching_lines}]`, best first.
+///   with: `[{slug, kind, title, shares_title_words, matching_lines}]`, best first;
+///   none found, a sentence on where one item of a kind goes instead.
 /// - `merge_notes(from, into, from_kind?, into_kind?)`: appends what `into` lacks of
 ///   `from`, then moves `from` under `_archive/`:
 ///   `{merged_into, archived_to, added, already_there}`.
@@ -343,9 +344,7 @@ class Toolbox {
       'decision_history' => _decisionHistory(arg('slug'), optional('topic'), kind),
       'search_notes' => [for (final h in _fresh().search(arg('query'), kind: kind)) _hit(h)],
       'find_stale_notes' => [for (final s in findStaleNotes(root, today: today)) _stale(s)],
-      'related_notes' => [
-        for (final r in _fresh().related(arg('title'), about: optional('about'))) _related(r),
-      ],
+      'related_notes' => _relatedNotes(arg('title'), optional('about')),
       'merge_notes' => _merge(
         _path(arg('from'), optional('from_kind')),
         _path(arg('into'), optional('into_kind')),
@@ -409,6 +408,11 @@ class Toolbox {
 
   // ------------------------------------------------------------ tools
 
+  Object _relatedNotes(String title, String? about) {
+    final found = [for (final r in _fresh().related(title, about: about)) _related(r)];
+    return found.isEmpty ? _noneRelated : found;
+  }
+
   Map<String, Object?> _createNote(String kind, String title, List<String>? tags, String lang) {
     final path = notes.createNote(root, kind, title, tags: tags, lang: lang, today: today);
     _created[path] = File(path).readAsStringSync();
@@ -470,6 +474,13 @@ Map<String, Object?> _hit(Hit h) => {
   'text': h.text,
   'superseded': h.superseded,
 };
+
+/// What an empty related_notes says: a small model otherwise names a new note
+/// after the one book or film it was told about (#532).
+const _noneRelated =
+    'No existing note fits. One item of a kind (a book, film, recipe, place or gift) is an '
+    'entry in a collection note for its kind, such as "Movies to watch": find or create that '
+    'note, not one named after the item. A new project or subject gets a note of its own.';
 
 Map<String, Object?> _related(Related r) => {
   'slug': r.slug,
