@@ -215,5 +215,22 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     expect(find.text('Kitaplar'), findsOneWidget);
+    // An archived note reads in the pane too; Back and the system's back step out.
+    await tester.tap(find.byTooltip('Delete').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Archive'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.text('Restore'), findsOneWidget);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.text('Restore'), findsNothing); // the archive's list again
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Archive'), findsOneWidget); // back in the notes
   });
 }

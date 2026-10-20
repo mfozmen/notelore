@@ -261,6 +261,15 @@ void main() {
         }
       });
 
+      test('notesWith: every word, in the title or the text, folded (#508)', () {
+        Iterable<String> slugs(String query) => idx.notesWith(query).map((n) => n.$2);
+        expect(slugs('mopsos'), ['mopsos']); // the title
+        expect(slugs('mopsos crypto'), ['mopsos']); // the title and the text
+        expect(slugs('crypto muhasebeci'), isEmpty); // no note says both
+        expect(slugs('GORUSULDU'), ['sirket-kurulusu']); // case and accents
+        expect(idx.notesWith('  '), isEmpty);
+      });
+
       test('search tolerates query syntax', () {
         expect(
           idx.search('crypto "quoted" -x AND OR NOT ('),

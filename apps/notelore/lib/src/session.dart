@@ -1714,17 +1714,13 @@ class Session extends ChangeNotifier {
 
   List<NoteInfo> listNotes() => (index..rebuild()).listNotes();
 
-  /// The notes whose title has [query] in it, or whose words do (the index's
-  /// search); every note for an empty query.
-  List<NoteInfo> findNotes(String query) {
-    final notes = listNotes();
-    final wanted = query.trim().toLowerCase();
-    if (wanted.isEmpty) return notes;
-    final found = {for (final hit in index.search(wanted)) (hit.kind, hit.slug)};
+  /// Of [notes], those with every word of [query] in their title or their
+  /// words, folded like the index's search.
+  List<NoteInfo> findNotes(String query, List<NoteInfo> notes) {
+    final found = index.notesWith(query);
     return [
       for (final note in notes)
-        if (note.title.toLowerCase().contains(wanted) || found.contains((note.kind, note.slug)))
-          note,
+        if (found.contains((note.kind, note.slug))) note,
     ];
   }
 

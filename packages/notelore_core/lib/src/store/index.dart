@@ -475,6 +475,32 @@ class NoteIndex {
       _decision(row),
   ];
 
+  /// The notes (kind, slug) where every word of [query] is in the title or
+  /// the text, case and accents folded: the notes list's filter, which narrows
+  /// as words are added, unlike [search]'s ranked recall.
+  // shortcut: folds every note's text per call; an index column if notes grow to thousands.
+  Set<(String, String)> notesWith(String query) {
+    final words = _fold(query).split(_nonWord).where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) return {};
+    final texts = <String, (String, String, StringBuffer)>{
+      for (final row in _db.select(
+        'SELECT path, kind, slug, title FROM files WHERE title IS NOT NULL',
+      ))
+        row.columnAt(0) as String: (
+          row.columnAt(1) as String,
+          row.columnAt(2) as String,
+          StringBuffer(_fold(row.columnAt(3) as String)),
+        ),
+    };
+    for (final row in _db.select('SELECT path, text FROM content')) {
+      texts[row.columnAt(0)]?.$3.write('\n${_fold(row.columnAt(1) as String)}');
+    }
+    return {
+      for (final (kind, slug, text) in texts.values)
+        if (words.every(text.toString().contains)) (kind, slug),
+    };
+  }
+
   /// Hits for [query], best first: any search term is enough, and a line
   /// matching more terms ranks higher, so a whole question still finds the
   /// note ("which book was I going to buy" finds the todo about the book).
