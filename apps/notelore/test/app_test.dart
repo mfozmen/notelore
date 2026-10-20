@@ -1225,6 +1225,21 @@ void main() {
     expect(waiting(), allOf(isNotNull, isNot(first)));
     // Its own button, never another one's state reused in its place (#508).
     expect(find.byKey(const Key('stop')), findsOneWidget);
+    // Stop is the one thing to do now: in the talk button's place, not beside a
+    // talk button that does nothing meanwhile (#525).
+    expect(find.byTooltip('Tap or hold to talk'), findsNothing);
+    final stopAt = tester.getTopRight(find.byKey(const Key('stop'))).dx;
+    expect(stopAt, greaterThanOrEqualTo(tester.getTopRight(find.byKey(const Key('message'))).dx));
+    expect(tester.getSize(find.byKey(const Key('stop'))), const Size(48, 48));
+    // Something typed meanwhile: Send leads, Stop stays at hand before it.
+    await tester.enterText(find.byKey(const Key('message')), 've bir de');
+    await tester.pump();
+    expect(
+      tester.getCenter(find.byKey(const Key('stop'))).dx,
+      lessThan(tester.getCenter(find.byKey(const Key('send'))).dx),
+    );
+    await tester.enterText(find.byKey(const Key('message')), '');
+    await tester.pump();
     await tester.tap(find.byTooltip('Stop'));
     await tester.pumpAndSettle();
     expect(find.text('Stopped.'), findsOneWidget);
