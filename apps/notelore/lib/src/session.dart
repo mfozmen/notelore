@@ -78,9 +78,8 @@ T? _named<T extends Enum>(List<T> values, Object? name) =>
 /// engine leaves it alone).
 const sharedSettings = '.notelore/settings.json';
 
-/// What went wrong with Google Calendar (#432): its sign-in, or a write the
-/// next refresh tries again.
-/// [revoked]: the person removed Notelore's access on Google's side.
+/// What went wrong with Google Calendar (#432): its sign-in, a write the next
+/// refresh tries again, or access the person removed on Google's side.
 enum CalendarProblem { signIn, update, revoked }
 
 class Session extends ChangeNotifier {
@@ -1644,13 +1643,11 @@ class Session extends ChangeNotifier {
       calendarProblem = null;
     } on NetworkError {
       return true; // offline: the next refresh catches up
-    } on NotSignedIn {
-      return _revoked(auth);
-    } on HttpError catch (error) {
-      // Still refused after the one refresh: the grant is gone, not a passing fault.
-      if (error.status == 401) return _revoked(auth);
-      calendarProblem = CalendarProblem.update;
-    } on Exception {
+    } on Exception catch (error) {
+      // No grant, or still refused after the one refresh: gone, not a passing fault.
+      if (error is NotSignedIn || error is HttpError && error.status == 401) {
+        return _revoked(auth);
+      }
       calendarProblem = CalendarProblem.update; // tried again at the next refresh
     } finally {
       if (calendarProblem != before) notifyListeners();
