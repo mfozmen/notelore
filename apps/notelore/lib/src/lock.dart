@@ -70,8 +70,13 @@ class _LockScreenState extends State<LockScreen> {
   void dispose() {
     _tick?.cancel();
     _secret.dispose();
+    _focus.dispose();
     super.dispose();
   }
+
+  /// The PIN field's focus: kept while a PIN is checked and after a wrong one,
+  /// so the next try needs no tap.
+  final _focus = FocusNode();
 
   Future<void> _unlockWith(String secret) async {
     setState(() {
@@ -86,6 +91,7 @@ class _LockScreenState extends State<LockScreen> {
       _checking = false;
       _wrong = true;
     });
+    _focus.requestFocus();
     _waitIfNeeded();
   }
 
@@ -198,9 +204,12 @@ class _LockScreenState extends State<LockScreen> {
     TextField(
       key: const Key('unlock'),
       controller: _secret,
+      focusNode: _focus,
       obscureText: true,
       autofocus: true,
-      enabled: !_checking && !waiting,
+      // Read-only, not disabled, while it is checked: a disabled field drops its focus.
+      readOnly: _checking,
+      enabled: !waiting,
       keyboardType: pin ? TextInputType.number : TextInputType.visiblePassword,
       inputFormatters: [if (pin) FilteringTextInputFormatter.digitsOnly],
       textInputAction: TextInputAction.done,

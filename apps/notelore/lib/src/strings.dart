@@ -39,7 +39,6 @@ abstract class Strings {
   String get useThisModel;
   String get tryPrompt;
   String get trying;
-  String get tryCost;
 
   /// The test turn got no answer in time (#376).
   String tryTimedOut(int seconds);
@@ -275,6 +274,9 @@ abstract class Strings {
   String get messagesWrote;
   String get messagesFailed;
   String percentText(String n);
+
+  /// [n] (already a number in this language's way) with its unit.
+  String tokens(String n);
   String seconds(String n);
   String get usageNothing;
   String usageTokens(String input, String output);
@@ -556,9 +558,9 @@ class EnglishStrings extends Strings {
   @override
   String optionCost(ProviderSpec spec) => switch (spec.name) {
     'chatgpt' => 'Your ChatGPT Plus or Pro plan, no extra charge',
-    'anthropic' => 'Pay per use, billed by Anthropic',
-    'openai' => 'Pay per use, billed by OpenAI',
-    'gemini' => 'Free tier, or pay per use',
+    'anthropic' => 'Billed by Anthropic for what you use',
+    'openai' => 'Billed by OpenAI for what you use',
+    'gemini' => "Free up to Google's daily limit",
     'device' => 'Free, and works offline',
     _ => 'Free',
   };
@@ -618,10 +620,6 @@ class EnglishStrings extends Strings {
   @override
   String tryTimedOut(int seconds) =>
       'The model did not answer within $seconds seconds. Check the connection, then connect again.';
-  @override
-  String get tryCost =>
-      'This one message went to the provider and counts against your plan or key, a few '
-      'tokens.';
   @override
   String get noModel => 'Connect a model to start';
   @override
@@ -832,7 +830,7 @@ class EnglishStrings extends Strings {
   String get lockedTitle => 'Notelore is locked';
   @override
   String get lockedHint =>
-      'Forgot it? Your notes are safe: they stay as files in the notes folder and on Drive.';
+      'Forgot it? Your notes are safe: they stay as files on this device and on Drive.';
   @override
   String get unlock => 'Unlock';
   @override
@@ -1065,6 +1063,8 @@ class EnglishStrings extends Strings {
   String get messagesFailed => 'Messages with an error';
   @override
   String percentText(String n) => '$n%';
+  @override
+  String tokens(String n) => '$n tokens';
   @override
   String seconds(String n) => '$n s';
   @override
@@ -1456,9 +1456,9 @@ class TurkishStrings extends Strings {
   @override
   String optionCost(ProviderSpec spec) => switch (spec.name) {
     'chatgpt' => 'ChatGPT Plus ya da Pro planın, ek ücret yok',
-    'anthropic' => 'Kullandıkça öde, Anthropic faturalar',
-    'openai' => 'Kullandıkça öde, OpenAI faturalar',
-    'gemini' => 'Ücretsiz katman ya da kullandıkça öde',
+    'anthropic' => 'Kullandığın kadarını Anthropic faturalar',
+    'openai' => 'Kullandığın kadarını OpenAI faturalar',
+    'gemini' => 'Google’ın günlük sınırına kadar ücretsiz',
     'device' => 'Ücretsiz, çevrimdışı da çalışır',
     _ => _free,
   };
@@ -1517,9 +1517,6 @@ class TurkishStrings extends Strings {
   @override
   String tryTimedOut(int seconds) =>
       'Model $seconds saniye içinde cevap vermedi. Bağlantıyı kontrol edip yeniden bağlan.';
-  @override
-  String get tryCost =>
-      'Bu tek mesaj sağlayıcıya gitti ve planından ya da anahtarından birkaç token düştü.';
   @override
   String get noModel => 'Başlamak için bir model bağla';
   @override
@@ -1777,7 +1774,7 @@ class TurkishStrings extends Strings {
   String get lockedTitle => 'Notelore kilitli';
   @override
   String get lockedHint =>
-      'Unuttun mu? Notların güvende: not klasöründe ve Drive’da dosya olarak duruyorlar.';
+      'Unuttun mu? Notların güvende: bu cihazda ve Drive’da dosya olarak duruyorlar.';
   @override
   String get unlock => 'Kilidi aç';
   @override
@@ -2010,6 +2007,8 @@ class TurkishStrings extends Strings {
   String get messagesFailed => 'Hata alan mesajlar';
   @override
   String percentText(String n) => '%$n';
+  @override
+  String tokens(String n) => '$n token';
   @override
   String seconds(String n) => '$n sn';
   @override

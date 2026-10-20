@@ -170,7 +170,7 @@ class _Total extends StatelessWidget {
             Expanded(child: Text(title, style: theme.textTheme.titleMedium)),
             if (summary.tokensKnown)
               Text(
-                strings.number(summary.input + summary.output),
+                strings.tokens(strings.number(summary.input + summary.output)),
                 style: theme.textTheme.titleMedium,
               ),
           ],
@@ -337,7 +337,7 @@ class _DayBarsState extends State<_DayBars> {
             Expanded(child: Text(strings.perDay, style: theme.textTheme.titleMedium)),
             // All time's totals are above; this one would be only the days charted.
             if (total > 0 && widget.note == null)
-              Text(strings.number(total), style: theme.textTheme.titleMedium),
+              Text(strings.tokens(strings.number(total)), style: theme.textTheme.titleMedium),
           ],
         ),
         if (total == 0)

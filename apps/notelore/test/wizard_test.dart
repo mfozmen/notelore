@@ -289,8 +289,14 @@ void main() {
     hello.complete('Hello, ready to take notes.');
     await tester.pumpAndSettle();
     expect(find.text('Hello, ready to take notes.'), findsOneWidget);
+    // The model's words as an answer, not in a card that looks like a field (#508);
+    // what it cost is the usage page's to say.
+    expect(
+      find.ancestor(of: find.text('Hello, ready to take notes.'), matching: find.byType(Card)),
+      findsNothing,
+    );
     expect(session.usage.device.calls, 0); // a hello is not the conversation's use
-    expect(find.textContaining('This one message went to the provider'), findsOneWidget);
+    expect(find.textContaining('This one message went to the provider'), findsNothing);
     expect(harness.provider.asked, isEmpty); // the test turn is not a chat turn
     expect(find.text('Start'), findsOneWidget);
   });

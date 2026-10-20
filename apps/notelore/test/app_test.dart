@@ -540,9 +540,17 @@ void main() {
     expect(find.byKey(const Key('message')), findsNothing);
     await tester.enterText(find.byKey(const Key('unlock')), '1357');
     await tester.tap(find.text('Unlock'));
+    await tester.pump(); // while the PIN is checked: the field keeps the focus
+    final checking = tester.widget<TextField>(find.byKey(const Key('unlock')));
+    expect(checking.enabled, isNot(false)); // a disabled field drops its focus
+    expect(checking.focusNode!.hasFocus, isTrue);
     await tester.pumpAndSettle();
     expect(find.text("That's not it. Try again."), findsOneWidget);
     expect(find.byKey(const Key('message')), findsNothing);
+    // The field keeps the focus, so the next try needs no tap (#508).
+    final unlock = tester.widget<TextField>(find.byKey(const Key('unlock')));
+    expect(unlock.focusNode!.hasFocus, isTrue);
+    expect(unlock.decoration!.errorText, "That's not it. Try again.");
     await tester.enterText(find.byKey(const Key('unlock')), '2468');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();

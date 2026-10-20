@@ -65,7 +65,7 @@ void main() {
     expect(find.text('1,000,000 read · 100,000 written'), findsWidgets);
     expect(find.text('Estimated cost: about \$3.00'), findsWidgets);
     expect(find.text('Last 14 days'), findsOneWidget);
-    expect(find.text('1,100,000'), findsWidgets); // the amount in sight
+    expect(find.text('1,100,000 tokens'), findsWidgets); // the amount in sight, with its unit
     expect(find.textContaining('Busiest day'), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp('Last 14 days: 1,100,000 in all')), findsOneWidget);
     await tester.scrollUntilVisible(

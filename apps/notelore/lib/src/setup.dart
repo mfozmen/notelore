@@ -377,11 +377,20 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       textAlign: TextAlign.center,
     ),
     const SizedBox(height: Gap.l),
-    // The model's own hello: the proof it works (#361).
-    Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
+    // The model's own hello, shaped like an answer in the chat: the proof it works.
+    Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
         padding: const EdgeInsets.all(Gap.m),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHigh,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(18),
+            topRight: Radius.circular(18),
+            bottomLeft: Radius.circular(4),
+            bottomRight: Radius.circular(18),
+          ),
+        ),
         child: Semantics(
           liveRegion: true,
           child: switch (_tried) {
@@ -400,8 +409,6 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
         ),
       ),
     ),
-    const SizedBox(height: Gap.s),
-    Text(s.tryCost, style: theme.textTheme.bodySmall?.copyWith(color: muted)),
   ];
 
   /// Which provider: the plan first, keys and local models under Advanced.
