@@ -212,4 +212,28 @@ void main() {
     }
     expect(WhisperModel(dir.path).files, whisperSmall);
   });
+
+  test('a failed download comes to offline, no space or failed; never a raw error (#508)', () {
+    expect(downloadProblem(const SocketException('no route')), DownloadProblem.offline);
+    expect(downloadProblem(http.ClientException('reset')), DownloadProblem.offline);
+    // Wrapped mid-download, the cause still decides.
+    expect(
+      downloadProblem(const ModelDownloadFailed('w.onnx', cause: SocketException('gone'))),
+      DownloadProblem.offline,
+    );
+    for (final code in [28, 112]) {
+      expect(
+        downloadProblem(
+          ModelDownloadFailed(
+            'w.onnx',
+            cause: FileSystemException('write', 'w', OSError('', code)),
+          ),
+        ),
+        DownloadProblem.space,
+        reason: '$code',
+      );
+    }
+    expect(downloadProblem(const ModelDownloadFailed('w.onnx: HTTP 404')), DownloadProblem.failed);
+    expect(downloadProblem(StateError('broken')), DownloadProblem.failed);
+  });
 }

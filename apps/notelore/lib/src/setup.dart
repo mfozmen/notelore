@@ -397,16 +397,12 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
           builder: (context, size) => Center(
             child: Container(
               key: const Key('hello-bubble'),
-              constraints: BoxConstraints(maxWidth: min(560, size.maxWidth * 0.85)),
+              constraints: BoxConstraints(maxWidth: Layout.bubble(size.maxWidth)),
               padding: const EdgeInsets.all(Gap.m),
+              // The chat's answer bubble: the same shape the model speaks in there.
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerHigh,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(18),
-                  topRight: Radius.circular(18),
-                  bottomLeft: Radius.circular(4),
-                  bottomRight: Radius.circular(18),
-                ),
+                borderRadius: bubbleRadius(mine: false),
               ),
               child: Text(answer, style: theme.textTheme.bodyLarge),
             ),

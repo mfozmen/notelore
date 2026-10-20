@@ -664,7 +664,7 @@ class _VoiceCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.s),
                 child: Text(
-                  s.whisperFailed(problem),
+                  s.downloadFailed(problem),
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ),

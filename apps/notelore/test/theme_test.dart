@@ -25,6 +25,11 @@ void main() {
       }
     }
     expect(Gap.s * 2, Gap.m);
+    // A bubble's small corner is on its speaker's side; its width leaves a gutter.
+    expect(bubbleRadius(mine: true).bottomRight, const Radius.circular(4));
+    expect(bubbleRadius(mine: false).bottomLeft, const Radius.circular(4));
+    expect(Layout.bubble(400), 340);
+    expect(Layout.bubble(1000), 560);
   });
 
   test('every nature palette has a light and a dark theme from its own colour', () {

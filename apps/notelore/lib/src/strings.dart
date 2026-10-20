@@ -9,6 +9,7 @@ import 'package:notelore_core/notelore_core.dart';
 import 'lock_state.dart' show LockKind;
 import 'theme.dart';
 import 'transfer.dart' show ExportFormat;
+import 'whisper_model.dart' show DownloadProblem;
 
 /// The language the app speaks: the device's, or a fixed one.
 enum AppLanguage { system, en, tr }
@@ -427,7 +428,7 @@ abstract class Strings {
   String get whisper;
   String get tryAgain;
   String whisperDownloading(int percent);
-  String whisperFailed(String why);
+  String downloadFailed(DownloadProblem problem);
   String get microphone;
   String get systemMicrophone;
   String get listMicrophones;
@@ -1259,13 +1260,19 @@ class EnglishStrings extends Strings {
   @override
   String get webSearchUnavailable => 'Not available with this provider.';
   @override
-  String get whisper => 'Whisper speech recognition';
+  String get whisper => 'Speech recognition on this device';
   @override
   String get tryAgain => 'Try again';
   @override
   String whisperDownloading(int percent) => 'Downloading… $percent%';
   @override
-  String whisperFailed(String why) => 'The download failed: $why';
+  String downloadFailed(DownloadProblem problem) => switch (problem) {
+    DownloadProblem.offline =>
+      'Notelore cannot reach the download. Check the connection, then try again.',
+    DownloadProblem.space =>
+      'There is not enough space on this device for it. Free some space, then try again.',
+    DownloadProblem.failed => 'The download did not finish. Try again in a while.',
+  };
   @override
   String get microphone => 'Microphone';
   @override
@@ -2206,13 +2213,18 @@ class TurkishStrings extends Strings {
   @override
   String get webSearchUnavailable => 'Bu sağlayıcıda kullanılamıyor.';
   @override
-  String get whisper => 'Whisper ses tanıma';
+  String get whisper => 'Bu cihazda konuşma tanıma';
   @override
   String get tryAgain => 'Tekrar dene';
   @override
   String whisperDownloading(int percent) => 'İndiriliyor… %$percent';
   @override
-  String whisperFailed(String why) => 'İndirme başarısız oldu: $why';
+  String downloadFailed(DownloadProblem problem) => switch (problem) {
+    DownloadProblem.offline =>
+      'Notelore indirmeye ulaşamıyor. Bağlantıyı kontrol edip tekrar dene.',
+    DownloadProblem.space => 'Bu cihazda bunun için yeterli yer yok. Biraz yer açıp tekrar dene.',
+    DownloadProblem.failed => 'İndirme tamamlanamadı. Biraz sonra tekrar dene.',
+  };
   @override
   String get microphone => 'Mikrofon';
   @override

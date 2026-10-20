@@ -61,6 +61,15 @@ abstract final class AnswerStyle {
 }
 
 /// The sizes the screens lay out by.
+/// Rounded, with a smaller corner on the speaker's side, like a speech bubble:
+/// the person's on the right ([mine]), the model's on the left.
+BorderRadius bubbleRadius({required bool mine}) => BorderRadius.only(
+  topLeft: const Radius.circular(18),
+  topRight: const Radius.circular(18),
+  bottomLeft: Radius.circular(mine ? 18 : 4),
+  bottomRight: Radius.circular(mine ? 4 : 18),
+);
+
 abstract final class Layout {
   /// From this window width the app is laid out for a desk: a side rail, and
   /// panes side by side. The screens all go by the window, so they switch together.
@@ -74,6 +83,10 @@ abstract final class Layout {
 
   /// The widest the conversation gets.
   static const double chat = 840;
+
+  /// The widest a speech bubble gets in [width]: a gutter on the other side
+  /// on a phone, a readable line on a wide window.
+  static double bubble(double width) => width * 0.85 < 560 ? width * 0.85 : 560;
 
   static bool isWide(BuildContext context) => MediaQuery.sizeOf(context).width >= wide;
 }
