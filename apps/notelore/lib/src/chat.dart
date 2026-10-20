@@ -566,12 +566,12 @@ class _ComposerState extends State<_Composer> {
   }
 
   /// Space or Enter held on the focused talk button: push to talk by keyboard.
-  KeyEventResult _talkKey(KeyEvent event, {required bool busy}) {
+  KeyEventResult _talkKey(KeyEvent event) {
     if (event.logicalKey != LogicalKeyboardKey.space &&
         event.logicalKey != LogicalKeyboardKey.enter) {
       return KeyEventResult.ignored;
     }
-    if (event is KeyDownEvent && !busy) {
+    if (event is KeyDownEvent) {
       setState(() => _latched = false); // a key is held: never a tap's Stop
       unawaited(_hold());
     }
@@ -645,12 +645,11 @@ class _ComposerState extends State<_Composer> {
               label: _stopShown ? s.stopTalking : s.talk,
               listening: _voice.state == VoiceState.listening,
               stop: _stopShown,
-              busy: session.busy,
               pressed: _pressed,
               released: _released,
               cancelled: _cancelled,
               toggle: _toggleTalk,
-              onKey: (event) => _talkKey(event, busy: session.busy),
+              onKey: _talkKey,
             ),
           ),
         ],
@@ -711,10 +710,11 @@ class _ComposerRow extends StatelessWidget {
                 icon: const Icon(Icons.volume_off_outlined),
                 onPressed: voice.end,
               ),
-            // Keyed: Stop slots in while a turn runs, and must not take over
-            // the state (ink, hover) of the button that was in its place.
+            // While a turn runs, Stop is the thing to do: filled in the talk
+            // button's place, or tonal before Send when something is typed.
+            // Keyed, so it never takes over another button's state (ink, hover).
             if (session.busy)
-              IconButton(
+              (typed.text.trim().isEmpty ? IconButton.filled : IconButton.filledTonal)(
                 key: const Key('stop'),
                 tooltip: s.stop,
                 icon: const Icon(Icons.stop),
@@ -727,7 +727,7 @@ class _ComposerRow extends StatelessWidget {
                 icon: const Icon(Icons.arrow_upward),
                 onPressed: send,
               )
-            else
+            else if (!session.busy)
               talk,
           ],
         ),
@@ -779,7 +779,6 @@ class _TalkButton extends StatelessWidget {
     required this.label,
     required this.listening,
     required this.stop,
-    required this.busy,
     required this.pressed,
     required this.released,
     required this.cancelled,
@@ -792,7 +791,6 @@ class _TalkButton extends StatelessWidget {
 
   /// A tap started it: the button ends it.
   final bool stop;
-  final bool busy;
   final ValueChanged<PointerDownEvent> pressed;
   final ValueChanged<PointerUpEvent> released;
   final VoidCallback cancelled;
@@ -801,16 +799,16 @@ class _TalkButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Listener(
-    onPointerDown: busy ? null : pressed,
+    onPointerDown: pressed,
     onPointerUp: released,
     onPointerCancel: (_) => cancelled(),
     child: Semantics(
       label: label,
       button: true,
-      enabled: !busy,
+      enabled: true,
       focusable: true,
       excludeSemantics: true,
-      onTap: busy ? null : toggle,
+      onTap: toggle,
       child: Focus(
         canRequestFocus: false,
         skipTraversal: true,
@@ -818,7 +816,7 @@ class _TalkButton extends StatelessWidget {
         child: IconButton.filled(
           tooltip: label,
           icon: Icon(stop ? Icons.arrow_upward : (listening ? Icons.mic : Icons.mic_none)),
-          onPressed: busy ? null : () {},
+          onPressed: () {},
         ),
       ),
     ),
