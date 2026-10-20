@@ -1037,7 +1037,18 @@ class EnglishStrings extends Strings {
   @override
   String get showAdvancedWhy => 'Extra pages for checking how the app works.';
   @override
-  String busiestDay(String amount, int day) => 'Busiest day: the ${day}th, $amount';
+  String busiestDay(String amount, int day) => 'Busiest day: the ${_ordinal(day)}, $amount';
+
+  /// 1st, 2nd, 3rd, 4th; 11th to 13th; 21st.
+  static String _ordinal(int n) => switch (n % 100) {
+    11 || 12 || 13 => '${n}th',
+    _ => switch (n % 10) {
+      1 => '${n}st',
+      2 => '${n}nd',
+      3 => '${n}rd',
+      _ => '${n}th',
+    },
+  };
   @override
   String get usageWhat => 'What the model read and wrote, and what it cost';
   @override
