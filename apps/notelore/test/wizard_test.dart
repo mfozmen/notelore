@@ -13,6 +13,24 @@ import 'desktop_test.dart' show desktop;
 import 'support.dart';
 
 void main() {
+  for (final wide in [false, true]) {
+    testWidgets('the step bar spans the content, on a ${wide ? 'desk' : 'phone'} (#508)', (
+      tester,
+    ) async {
+      wide ? desktop(tester, 1280) : phone(tester);
+      await pumpApp(tester, Harness());
+      expect(
+        tester.getTopLeft(find.byKey(const Key('step-bar'))).dx,
+        tester.getTopLeft(find.text('Choose a model provider')).dx,
+      );
+      // Its right end too: the step's words sit above it, not beside it.
+      expect(
+        tester.getTopRight(find.byKey(const Key('step-bar'))).dx,
+        tester.getTopRight(find.byKey(const ValueKey('option-anthropic'))).dx,
+      );
+    });
+  }
+
   testWidgets('first run: Choose, Connect, Done, each step said, back keeps the choice (#357)', (
     tester,
   ) async {
@@ -150,6 +168,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(on('ollama', 'stay on this computer'), findsOneWidget);
     expect(on('chatgpt', 'Your notes go to OpenAI'), findsNothing);
+    // Opened, its details say what the tags said: nothing twice (#508).
+    expect(on('ollama', 'Stays on this computer'), findsNothing);
+    expect(on('ollama', 'Free'), findsOneWidget);
     // The choice is marked by an icon, not by colour alone.
     expect(
       find.descendant(of: card('ollama'), matching: find.byIcon(Icons.check_circle)),
@@ -520,6 +541,8 @@ void main() {
     tester.platformDispatcher.textScaleFactorTestValue = 2;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await pumpApp(tester, Harness());
+    await tester.ensureVisible(find.text('Claude (Anthropic)')); // big text: further down
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Claude (Anthropic)'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Next'));

@@ -312,7 +312,8 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       },
     );
     final action = _action(s);
-    final header = _StepHeader(
+    Widget header([double inset = 0]) => _StepHeader(
+      inset: inset,
       step: _step.index + 1,
       of: _Step.values.length,
       label: s.stepOf(_step.index + 1, _Step.values.length),
@@ -498,7 +499,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
   Widget _layout(
     BuildContext context,
     BoxConstraints size,
-    Widget header,
+    Widget Function([double inset]) header,
     Widget content,
     Widget action,
   ) {
@@ -533,7 +534,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
                   children: [
                     Padding(
                       padding: const EdgeInsets.only(right: Gap.m),
-                      child: header,
+                      child: header(),
                     ),
                     const SizedBox(height: Gap.l),
                     // As wide as the content: the gutter on the right is the scrollbar's.
@@ -573,14 +574,18 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           spacing: Gap.l,
-          children: [header, content, action],
+          children: [header(), content, action],
         ),
       );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(padding: const EdgeInsets.fromLTRB(Gap.s, Gap.s, Gap.l, 0), child: header),
+        // The back button sits nearer the edge; the bar lines up with the content.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(Gap.s, Gap.s, Gap.l, 0),
+          child: header(Gap.l - Gap.s),
+        ),
         _edge('header-edge', show: _scrolledUnder),
         Expanded(
           child: NotificationListener<Notification>(
@@ -603,12 +608,15 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
 /// filled, with the step said for screen readers and in a small label.
 class _StepHeader extends StatelessWidget {
   const _StepHeader({
+    required this.inset,
     required this.step,
     required this.of,
     required this.label,
     required this.leading,
   });
 
+  /// How far the bar starts right of the button's slot, to line up with the content.
+  final double inset;
   final int step;
   final int of;
   final String label;
@@ -617,14 +625,27 @@ class _StepHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Row(
-      spacing: Gap.s,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: Gap.xs,
       children: [
-        // The same room with or without a button, so the bar never shifts.
-        SizedBox.square(dimension: 48, child: leading),
-        Expanded(
+        Row(
+          children: [
+            // The same room with or without a button, so nothing below shifts.
+            SizedBox.square(dimension: 48, child: leading),
+            const Spacer(),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelMedium
+                  ?.copyWith(color: colors.onSurfaceVariant),
+            ),
+          ],
+        ),
+        Padding(
+          padding: EdgeInsets.only(left: inset),
           child: ExcludeSemantics(
             child: Row(
+              key: const Key('step-bar'),
               spacing: Gap.xs,
               children: [
                 for (var i = 1; i <= of; i++)
@@ -640,10 +661,6 @@ class _StepHeader extends StatelessWidget {
               ],
             ),
           ),
-        ),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(color: colors.onSurfaceVariant),
         ),
       ],
     );
@@ -1118,15 +1135,19 @@ class _OptionCard extends StatelessWidget {
                 ),
                 // Who it suits: what decides, so it comes first.
                 Text(s.optionFit(spec), style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
-                const SizedBox(height: Gap.s),
-                Wrap(
-                  spacing: Gap.xs,
-                  runSpacing: Gap.xs,
-                  children: [
-                    if (connected) _Tag(s.connectedBadge, strong: true),
-                    for (final text in s.optionTags(spec)) _Tag(text),
-                  ],
-                ),
+                // Opened, the details say what the tags would: nothing twice.
+                if (connected || !chosen) ...[
+                  const SizedBox(height: Gap.s),
+                  Wrap(
+                    spacing: Gap.xs,
+                    runSpacing: Gap.xs,
+                    children: [
+                      if (connected) _Tag(s.connectedBadge, strong: true),
+                      if (!chosen)
+                        for (final text in s.optionTags(spec)) _Tag(text),
+                    ],
+                  ),
+                ],
                 AnimatedSize(
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeOut,
