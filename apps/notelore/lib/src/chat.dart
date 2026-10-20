@@ -700,7 +700,7 @@ class _ComposerRow extends StatelessWidget {
                 onPressed: attach,
               ),
               Expanded(
-                // While recording, the recording takes the field's place;
+                // While recording, the recording takes the field's place, and
                 // the field's text stays in its controller.
                 child: voice.state == VoiceState.listening
                     ? recording
