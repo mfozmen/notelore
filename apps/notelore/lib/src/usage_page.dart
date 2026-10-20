@@ -164,10 +164,12 @@ class _Total extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: Gap.xs,
       children: [
-        Row(
+        // With big text the value takes a line of its own, never squeezing the title.
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
           spacing: Gap.s,
           children: [
-            Expanded(child: Text(title, style: theme.textTheme.titleMedium)),
+            Text(title, style: theme.textTheme.titleMedium),
             if (summary.tokensKnown)
               Text(
                 strings.tokens(strings.number(summary.input + summary.output)),
@@ -277,7 +279,7 @@ class _DayBarsState extends State<_DayBars> {
     final date = MaterialLocalizations.of(context).formatShortMonthDay;
     final strings = widget.strings;
     return Semantics(
-      label: strings.lastDaysSummary(days.length, strings.number(total)),
+      label: strings.lastDaysSummary(days.length, strings.tokens(strings.number(total))),
       excludeSemantics: true,
       child: Column(
         spacing: Gap.xs,
@@ -332,14 +334,8 @@ class _DayBarsState extends State<_DayBars> {
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: Gap.m,
       children: [
-        Row(
-          children: [
-            Expanded(child: Text(strings.perDay, style: theme.textTheme.titleMedium)),
-            // All time's totals are above; this one would be only the days charted.
-            if (total > 0 && widget.note == null)
-              Text(strings.tokens(strings.number(total)), style: theme.textTheme.titleMedium),
-          ],
-        ),
+        // The range's total is in the card above: said once.
+        Text(strings.perDay, style: theme.textTheme.titleMedium),
         if (total == 0)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -364,7 +360,10 @@ class _DayBarsState extends State<_DayBars> {
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: Gap.xs,
             children: [
-              Text(strings.busiestDay(strings.number(most), busiest.day.day), style: quiet),
+              Text(
+                strings.busiestDay(strings.tokens(strings.number(most)), busiest.day.day),
+                style: quiet,
+              ),
               Text(strings.tapDay, style: quiet),
             ],
           ),

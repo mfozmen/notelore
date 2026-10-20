@@ -79,6 +79,7 @@ class _LockScreenState extends State<LockScreen> {
   final _focus = FocusNode();
 
   Future<void> _unlockWith(String secret) async {
+    if (_checking) return; // a second Enter while it is checked
     setState(() {
       _checking = true;
       _wrong = false;
@@ -207,8 +208,8 @@ class _LockScreenState extends State<LockScreen> {
       focusNode: _focus,
       obscureText: true,
       autofocus: true,
-      // Read-only, not disabled, while it is checked: a disabled field drops its focus.
-      readOnly: _checking,
+      // Never disabled or read-only while it is checked: either drops the
+      // keyboard for a moment, and the screen jumps.
       enabled: !waiting,
       keyboardType: pin ? TextInputType.number : TextInputType.visiblePassword,
       inputFormatters: [if (pin) FilteringTextInputFormatter.digitsOnly],

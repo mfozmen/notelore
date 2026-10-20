@@ -543,6 +543,7 @@ void main() {
     await tester.pump(); // while the PIN is checked: the field keeps the focus
     final checking = tester.widget<TextField>(find.byKey(const Key('unlock')));
     expect(checking.enabled, isNot(false)); // a disabled field drops its focus
+    expect(checking.readOnly, isFalse); // read-only would close the keyboard for a moment
     expect(checking.focusNode!.hasFocus, isTrue);
     await tester.pumpAndSettle();
     expect(find.text("That's not it. Try again."), findsOneWidget);

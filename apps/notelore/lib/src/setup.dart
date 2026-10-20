@@ -378,37 +378,41 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       textAlign: TextAlign.center,
     ),
     const SizedBox(height: Gap.l),
-    // The model's own hello, shaped like an answer in the chat: the proof it works.
-    Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.all(Gap.m),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHigh,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(18),
-            topRight: Radius.circular(18),
-            bottomLeft: Radius.circular(4),
-            bottomRight: Radius.circular(18),
+    // The model's own hello, the proof it works: shaped like an answer in the
+    // chat, with the chat's gutter; until it comes, a status line, never a bubble.
+    Semantics(
+      liveRegion: true,
+      child: switch (_tried) {
+        null => Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          spacing: Gap.s,
+          children: [
+            const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+            Flexible(
+              child: Text(s.trying, style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
+            ),
+          ],
+        ),
+        final answer => LayoutBuilder(
+          builder: (context, size) => Center(
+            child: Container(
+              key: const Key('hello-bubble'),
+              constraints: BoxConstraints(maxWidth: min(560, size.maxWidth * 0.85)),
+              padding: const EdgeInsets.all(Gap.m),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHigh,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  topRight: Radius.circular(18),
+                  bottomLeft: Radius.circular(4),
+                  bottomRight: Radius.circular(18),
+                ),
+              ),
+              child: Text(answer, style: theme.textTheme.bodyLarge),
+            ),
           ),
         ),
-        child: Semantics(
-          liveRegion: true,
-          child: switch (_tried) {
-            null => Row(
-              spacing: Gap.s,
-              children: [
-                const SizedBox.square(
-                  dimension: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                Expanded(child: Text(s.trying, style: theme.textTheme.bodyMedium)),
-              ],
-            ),
-            final answer => Text(answer, style: theme.textTheme.bodyLarge),
-          },
-        ),
-      ),
+      },
     ),
   ];
 
@@ -630,10 +634,10 @@ class _StepHeader extends StatelessWidget {
       spacing: Gap.xs,
       children: [
         Row(
+          spacing: Gap.s,
           children: [
             // The same room with or without a button, so nothing below shifts.
             SizedBox.square(dimension: 48, child: leading),
-            const Spacer(),
             Text(
               label,
               style: Theme.of(context).textTheme.labelMedium
@@ -1135,19 +1139,11 @@ class _OptionCard extends StatelessWidget {
                 ),
                 // Who it suits: what decides, so it comes first.
                 Text(s.optionFit(spec), style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
-                // Opened, the details say what the tags would: nothing twice.
-                if (connected || !chosen) ...[
+                if (connected) ...[
                   const SizedBox(height: Gap.s),
-                  Wrap(
-                    spacing: Gap.xs,
-                    runSpacing: Gap.xs,
-                    children: [
-                      if (connected) _Tag(s.connectedBadge, strong: true),
-                      if (!chosen)
-                        for (final text in s.optionTags(spec)) _Tag(text),
-                    ],
-                  ),
+                  _Tag(s.connectedBadge, strong: true),
                 ],
+                // Opened, the details say what the tags did: they swap in one motion.
                 AnimatedSize(
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeOut,
@@ -1172,7 +1168,17 @@ class _OptionCard extends StatelessWidget {
                             ],
                           ),
                         )
-                      : const SizedBox(width: double.infinity),
+                      : Padding(
+                          padding: const EdgeInsets.only(top: Gap.s),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: Wrap(
+                              spacing: Gap.xs,
+                              runSpacing: Gap.xs,
+                              children: [for (final text in s.optionTags(spec)) _Tag(text)],
+                            ),
+                          ),
+                        ),
                 ),
               ],
             ),

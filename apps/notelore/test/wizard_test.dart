@@ -23,6 +23,11 @@ void main() {
         tester.getTopLeft(find.byKey(const Key('step-bar'))).dx,
         tester.getTopLeft(find.text('Choose a model provider')).dx,
       );
+      // The step's words start the line, next to the button's place.
+      expect(
+        tester.getTopLeft(find.text('Step 1 of 3')).dx,
+        lessThan(tester.getCenter(find.byKey(const Key('step-bar'))).dx),
+      );
       // Its right end too: the step's words sit above it, not beside it.
       expect(
         tester.getTopRight(find.byKey(const Key('step-bar'))).dx,
@@ -303,6 +308,7 @@ void main() {
     await tester.pump();
     // On its way: said so, and Start waits for it.
     expect(find.text('Saying hello to the model…'), findsOneWidget);
+    expect(find.byKey(const Key('hello-bubble')), findsNothing); // a status is never a bubble
     expect(
       tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Start')).onPressed,
       isNull,
@@ -310,6 +316,10 @@ void main() {
     hello.complete('Hello, ready to take notes.');
     await tester.pumpAndSettle();
     expect(find.text('Hello, ready to take notes.'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('hello-bubble'))).width,
+      lessThanOrEqualTo(tester.getSize(find.byType(Scaffold)).width * 0.85),
+    );
     // The model's words read as an answer, not as a field; the usage page says what
     // it cost (#508).
     expect(
