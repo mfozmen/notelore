@@ -314,4 +314,45 @@ void main() {
     // The calendar still follows the notes once it answers.
     expect(harness.calendar.events.values, ['Dentist']);
   });
+
+  for (final (name, revoked) in [
+    ('NotSignedIn', const NotSignedIn('revoked')),
+    ('a 401', const HttpError(401, 'invalid credentials')),
+  ]) {
+    test('access removed on Google ($name): this device reminds again at once (#510)', () async {
+      final harness = Harness();
+      remindIn(harness, 'Health', 'Dentist');
+      final session = harness.session();
+      await session.load();
+      await session.setCalendar(true);
+      expect(harness.reminders.pending, isEmpty); // Google reminds
+      harness.calendar.fail = revoked; // the person removed Notelore's access
+      await session.refreshReminders(ask: false);
+      // In the same pass, not at the next one: no reminder falls in a gap.
+      expect(harness.reminders.pending.values, ['Dentist']);
+      expect(session.calendarHere, isFalse);
+      expect(session.calendarProblem, CalendarProblem.revoked);
+      expect(harness.calendarAuth.signedOut, isTrue); // the dead token is gone
+      expect(session.calendarNudge, isTrue); // the sign-in is offered where it is seen
+      // Signed in again: Google takes over, and this device's own go.
+      harness.calendar.fail = null;
+      await session.signInCalendar();
+      expect(session.calendarProblem, isNull);
+      expect(harness.reminders.pending, isEmpty);
+      expect(harness.calendar.events.values, ['Dentist']);
+    });
+  }
+
+  test('offline is not revoked: the calendar keeps reminding (#510)', () async {
+    final harness = Harness();
+    remindIn(harness, 'Health', 'Dentist');
+    final session = harness.session();
+    await session.load();
+    await session.setCalendar(true);
+    harness.calendar.fail = const NetworkError('offline');
+    await session.refreshReminders(ask: false);
+    expect(harness.reminders.pending, isEmpty);
+    expect(session.calendarHere, isTrue);
+    expect(session.calendarProblem, isNull);
+  });
 }

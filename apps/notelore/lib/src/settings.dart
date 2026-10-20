@@ -837,10 +837,11 @@ class _RemindersCard extends StatelessWidget {
       // What went wrong stands under the switch it belongs to.
       subtitle: problem == null
           ? Text(s.addToCalendarHint)
-          : Text(
-              problem == CalendarProblem.signIn ? s.calendarSignInFailed : s.calendarUpdateFailed,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
+          : Text(switch (problem) {
+              CalendarProblem.signIn => s.calendarSignInFailed,
+              CalendarProblem.update => s.calendarUpdateFailed,
+              CalendarProblem.revoked => s.calendarRevoked,
+            }, style: TextStyle(color: Theme.of(context).colorScheme.error)),
       value: session.calendar,
       onChanged: session.calendarBusy ? null : session.setCalendar,
     );

@@ -394,6 +394,7 @@ abstract class Strings {
   String get addToCalendarHint;
   String get remindersInCalendar;
   String get calendarSignInFailed;
+  String get calendarRevoked;
   String get calendarUpdateFailed;
   String get calendarElsewhere;
   String get calendarNudge;
@@ -1214,6 +1215,10 @@ class EnglishStrings extends Strings {
       'Google Calendar reminds you on every device. Notelore sends no notifications of its own.';
   @override
   String get calendarSignInFailed => "Couldn't sign in to Google Calendar. Try again.";
+  @override
+  String get calendarRevoked =>
+      "Notelore's access to Google Calendar was removed. This device reminds you on its own; "
+      'sign in to send reminders there again.';
   @override
   String get calendarUpdateFailed => "Couldn't update Google Calendar. Notelore tries again later.";
   @override
@@ -2172,6 +2177,10 @@ class TurkishStrings extends Strings {
       'Google Takvim her cihazda hatırlatır. Notelore ayrıca bildirim göndermez.';
   @override
   String get calendarSignInFailed => "Google Takvim'e giriş yapılamadı. Tekrar dene.";
+  @override
+  String get calendarRevoked =>
+      "Notelore'un Google Takvim erişimi kaldırıldı. Bu cihaz sana kendi bildirimiyle hatırlatıyor; "
+      'hatırlatıcılar yeniden oraya gitsin diye giriş yap.';
   @override
   String get calendarUpdateFailed =>
       'Google Takvim güncellenemedi. Notelore daha sonra yeniden dener.';

@@ -404,6 +404,7 @@ void main() {
       'calendarUpdateFailed': s.calendarUpdateFailed,
       'calendarElsewhere': s.calendarElsewhere,
       'calendarNudge': s.calendarNudge,
+      'calendarRevoked': s.calendarRevoked,
       'signIn': s.signIn,
       'signInCalendar': s.signInCalendar,
       'months': s.months.join(),
