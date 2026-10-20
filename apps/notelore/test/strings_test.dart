@@ -529,4 +529,26 @@ void main() {
     }
     expect(en.errorNoQuota, contains('another model'));
   });
+
+  test('the busiest day says 1st, 2nd, 3rd, 11th to 13th and 21st right (#521)', () {
+    final en = EnglishStrings();
+    final days = {
+      1: '1st',
+      2: '2nd',
+      3: '3rd',
+      4: '4th',
+      11: '11th',
+      12: '12th',
+      13: '13th',
+      21: '21st',
+      22: '22nd',
+      23: '23rd',
+      30: '30th',
+      31: '31st',
+    };
+    for (final MapEntry(key: day, value: said) in days.entries) {
+      expect(en.busiestDay('5', day), 'Busiest day: the $said, 5', reason: '$day');
+    }
+    expect(TurkishStrings().busiestDay('5', 21), 'En yoğun gün: 21, 5'); // no suffix in Turkish
+  });
 }
