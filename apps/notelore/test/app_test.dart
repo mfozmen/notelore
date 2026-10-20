@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart' show XFile;
+import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -1123,7 +1124,7 @@ void main() {
     }
   });
 
-  testWidgets('chat: a screen reader hears the new answer or failure as it arrives (#502)', (
+  testWidgets('chat: on Android the new answer or failure is a live region, once (#502)', (
     tester,
   ) async {
     phone(tester);
@@ -1149,7 +1150,57 @@ void main() {
     await say('iki');
     expect(live(find.text('İkinci cevap.')), isTrue);
     expect(live(find.text('Birinci cevap.')), isFalse); // the earlier one stays quiet
+    // Read once: back on the tab, it is history, not news.
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Chat'));
+    await tester.pumpAndSettle();
+    expect(live(find.text('İkinci cevap.')), isFalse);
     semantics.dispose();
+  });
+
+  testWidgets('chat: elsewhere the new answer is announced, with its suggested answers (#502)', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    phone(tester);
+    final semantics = tester.ensureSemantics();
+    final announced = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockDecodedMessageHandler<Object?>(
+      SystemChannels.accessibility,
+      (message) async {
+        if (message case {'type': 'announce', 'data': {'message': final String text}}) {
+          announced.add(text);
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockDecodedMessageHandler<Object?>(
+        SystemChannels.accessibility,
+        null,
+      ),
+    );
+    final harness = Harness(answers: ['**Hangi** proje?\n[[Mopsos]] [[Atlas]]']);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'not al');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    // The whole answer as words, and the answers it offers: once.
+    expect(announced, ['Hangi proje? Answers: Mopsos, Atlas.']);
+    expect(
+      tester.getSemantics(find.text('Hangi proje?')).flagsCollection.isLiveRegion,
+      isFalse, // not twice: no live region where the announcement already spoke
+    );
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Chat'));
+    await tester.pumpAndSettle();
+    expect(announced, hasLength(1));
+    semantics.dispose();
+    debugDefaultTargetPlatformOverride = null;
   });
 
   testWidgets('chat: an error is a status row with Try again beside it, not an answer (#306)', (

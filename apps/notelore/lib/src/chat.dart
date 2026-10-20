@@ -2,9 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/gestures.dart' show PointerDeviceKind, kLongPressTimeout, kTouchSlop;
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart' show CustomSemanticsAction;
+import 'package:flutter/semantics.dart' show CustomSemanticsAction, SemanticsService;
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:notelore_core/notelore_core.dart';
@@ -30,6 +31,33 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  /// The line a screen reader hears now, on Android; for one frame only.
+  ChatLine? _live;
+
+  /// A line a turn just added, once (#502). Android's TalkBack reads it as a
+  /// live region (an announcement would cut its speech short); elsewhere it is
+  /// announced, the whole answer as words and the answers it offers, since a
+  /// live region says nothing on the desktops and only part of it on iOS.
+  void _announce() {
+    final session = widget.session;
+    final line = session.fresh;
+    if (line == null || session.busy) return;
+    session.fresh = null;
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      setState(() => _live = line);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _live = null);
+      return;
+    }
+    final (:text, :answers, files: _, images: _) = _shown(line);
+    final message = [
+      plainText(text),
+      if (answers.isNotEmpty) session.strings.suggestedAnswers(answers.join(', ')),
+    ].join(' ');
+    unawaited(
+      SemanticsService.sendAnnouncement(View.of(context), message, Directionality.of(context)),
+    );
+  }
+
   late final TextEditingController _message = TextEditingController(text: widget.session.draft)
     ..addListener(() => widget.session.draft = _message.text);
   final _modelMenu = GlobalKey<PopupMenuButtonState<String>>();
@@ -40,7 +68,9 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    widget.session.addListener(_syncDraft);
+    widget.session
+      ..addListener(_syncDraft)
+      ..addListener(_announce);
   }
 
   void _syncDraft() {
@@ -54,7 +84,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    widget.session.removeListener(_syncDraft);
+    widget.session
+      ..removeListener(_syncDraft)
+      ..removeListener(_announce);
     _voice
       ..end()
       ..dispose();
@@ -268,7 +300,7 @@ class _ChatScreenState extends State<ChatScreen> {
             Expanded(
               child: session.transcript.isEmpty
                   ? _Empty(s, example: session.ready ? _example : null)
-                  : _Lines(session),
+                  : _Lines(session, live: _live),
             ),
             if (session.modelGone)
               MaterialBanner(
@@ -348,7 +380,10 @@ class _Empty extends StatelessWidget {
 
 /// The conversation, newest at the bottom; while a turn runs, its waiting line.
 class _Lines extends StatelessWidget {
-  const _Lines(this.session);
+  const _Lines(this.session, {this.live});
+
+  /// The newest line, when a screen reader is to hear it now.
+  final ChatLine? live;
 
   final Session session;
 
@@ -382,8 +417,8 @@ class _Lines extends StatelessWidget {
           lines[index],
           s,
           newest: newest.contains(index),
-          // The line that just arrived is read out; the history stays quiet.
-          live: index == 0,
+          // The line a turn just added is read out once; the history stays quiet.
+          live: index == 0 && lines[0] == live,
           resend: index == resendable ? session.resend : null,
           retry: session.retryNow,
           answer: index == 0 && session.ready ? (a) => _answer(context, lines.length, a) : null,
