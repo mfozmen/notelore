@@ -329,15 +329,24 @@ void main() {
     final harness = Harness(
       answers: [const NetworkError('offline'), const NetworkError('offline'), 'Geldi.'],
     );
-    // Slow enough that no tick lands before the first check, even on a busy CI runner.
-    final session = harness.session(retryEvery: const Duration(milliseconds: 500));
+    // The timer ticks when the test says: no real time to race on a busy machine (#524).
+    Duration? every;
+    void Function()? tick;
+    final session = harness.session(
+      every: (period, onTick) {
+        every = period;
+        tick = () => onTick(_Ticker());
+        return _Ticker();
+      },
+    );
     await session.connect(findProvider('anthropic'), 'k');
     session.setForeground(false); // the phone put Notelore away mid-reply
     await session.send('selam');
     session.setForeground(true); // back: tried again, still offline
     await settled(session);
     expect(harness.provider.asked, ['selam', 'selam']);
-    await Future<void>.delayed(const Duration(milliseconds: 600)); // the timer tries once more
+    expect(every, const Duration(hours: 1)); // the harness's; the app's is a minute
+    tick!(); // the timer tries once more
     await settled(session);
     expect(session.transcript.last.text, 'Geldi.');
     expect(harness.provider.asked, ['selam', 'selam', 'selam']);
@@ -1439,4 +1448,16 @@ class _BrokenDelete extends FlutterSecureStorage {
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
   }) => throw Exception('keystore locked');
+}
+
+/// A periodic timer that never fires by itself: the test calls its tick.
+class _Ticker implements Timer {
+  @override
+  void cancel() {}
+
+  @override
+  bool get isActive => true;
+
+  @override
+  int get tick => 0;
 }

@@ -112,6 +112,7 @@ class Session extends ChangeNotifier {
     this.deviceFiles = deviceModelFiles,
     this.makeDeviceEngine = nativeDeviceEngine,
     this.retryEvery = const Duration(minutes: 1),
+    this.every = Timer.periodic,
     this.lockIterations = defaultIterations,
     DeviceAuth? deviceAuth,
     this.offThread = Isolate.run,
@@ -529,6 +530,9 @@ class Session extends ChangeNotifier {
 
   /// How often messages that wait are tried again by themselves.
   final Duration retryEvery;
+
+  /// The periodic timer that tries them; tests tick it by hand.
+  final Timer Function(Duration period, void Function(Timer) onTick) every;
 
   /// Tests pin it; the app uses the local date.
   final DateTime? today;
@@ -1205,7 +1209,7 @@ class Session extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _startRetrying() => _retry ??= Timer.periodic(retryEvery, (_) => unawaited(retryNow()));
+  void _startRetrying() => _retry ??= every(retryEvery, (_) => unawaited(retryNow()));
 
   /// The first waiting [message] reached the model.
   void _sent(String message) {
