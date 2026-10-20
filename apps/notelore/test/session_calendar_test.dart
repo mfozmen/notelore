@@ -343,6 +343,18 @@ void main() {
     });
   }
 
+  test('taken back after a turn, the reminders may ask for notifications (#510)', () async {
+    final harness = Harness();
+    remindIn(harness, 'Health', 'Dentist');
+    harness.reminders.allowed = false; // never asked: the calendar reminded until now
+    final session = harness.session();
+    await session.load();
+    await session.setCalendar(true);
+    harness.calendar.fail = const NotSignedIn('revoked');
+    await session.refreshReminders(); // as after a turn
+    expect(harness.reminders.asked, 1); // or they would be scheduled and never seen
+  });
+
   test('offline is not revoked: the calendar keeps reminding (#510)', () async {
     final harness = Harness();
     remindIn(harness, 'Health', 'Dentist');

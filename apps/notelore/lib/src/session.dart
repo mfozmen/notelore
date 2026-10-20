@@ -1561,7 +1561,8 @@ class Session extends ChangeNotifier {
     // A grant gone on Google's side shows only now: this device, which just
     // cancelled its own, reminds again in this same pass.
     if (viaCalendar && !await _remindInCalendar(due, now)) {
-      await _remindOnDevice(due, ask: false, anew: false);
+      // It may never have asked for notifications: the calendar reminded until now.
+      await _remindOnDevice(due, ask: ask, anew: false);
     }
     final known = _knownDue;
     _knownDue = {for (final r in due) r.id};
