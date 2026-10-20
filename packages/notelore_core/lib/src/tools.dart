@@ -409,8 +409,14 @@ class Toolbox {
   // ------------------------------------------------------------ tools
 
   Object _relatedNotes(String title, String? about) {
-    final found = [for (final r in _fresh().related(title, about: about)) _related(r)];
-    return found.isEmpty ? _noneRelated : found;
+    final index = _fresh();
+    final found = [for (final r in index.related(title, about: about)) _related(r)];
+    if (found.isNotEmpty) return found;
+    // The collections there are by name: an item's own title shares no word with them.
+    final topics = [
+      for (final n in index.listNotes(kind: 'topic').take(_topicsShown)) '${n.title} (${n.slug})',
+    ];
+    return [_noneRelated, if (topics.isNotEmpty) 'Topics now: ${topics.join(', ')}.'].join(' ');
   }
 
   Map<String, Object?> _createNote(String kind, String title, List<String>? tags, String lang) {
@@ -479,8 +485,12 @@ Map<String, Object?> _hit(Hit h) => {
 /// after the one book or film it was told about (#532).
 const _noneRelated =
     'No existing note fits. One item of a kind (a book, film, recipe, place or gift) is an '
-    'entry in a collection note for its kind, such as "Movies to watch": find or create that '
-    'note, not one named after the item. A new project or subject gets a note of its own.';
+    'entry in a collection note for its kind, such as "Movies to watch": add it to that note '
+    "if it is among the topics, else create it, named in the user's language; never a note "
+    'named after the item. A new project or subject gets a note of its own.';
+
+/// The most recently updated topics an empty related_notes names.
+const _topicsShown = 20;
 
 Map<String, Object?> _related(Related r) => {
   'slug': r.slug,
