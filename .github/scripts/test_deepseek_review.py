@@ -1,4 +1,4 @@
-"""Tests for deepseek_review: the emergency OpenCode Zen fallback reviewer.
+"""Tests for deepseek_review: the emergency OpenCode Go fallback reviewer.
 No network. Run by ci.yml:
 
     python3 .github/scripts/test_deepseek_review.py
@@ -24,6 +24,7 @@ from deepseek_review import (
     format_body,
     parse_verdict,
     post_comment,
+    unchanged_review,
 )
 
 failures = 0
@@ -118,7 +119,13 @@ def fake_run(args, **kwargs):
 check("full mode asks gh for the PR diff", collect_diff(12, "full", "", fake_run), "full diff")
 check("incremental mode shows each commit", collect_diff(12, "incremental", "abc fix\ndef two", fake_run),
       "show abc\nshow def")
-check("unchanged still reviews the whole diff", collect_diff(12, "unchanged", "", fake_run), "full diff")
+check("unchanged asks for no diff", collect_diff(12, "unchanged", "", fake_run), "")
+check("an unchanged review keeps the previous critical",
+      parse_verdict(unchanged_review("REVIEW-VERDICT: CRITICAL")), "CRITICAL")
+no_new = unchanged_review("(none)")
+check("an unchanged review says no new commits",
+      no_new.splitlines()[0], "No new commits since the last review. The previous findings stand.")
+check("an unchanged review without a previous verdict warns", parse_verdict(no_new), "WARNING")
 
 bad_run = lambda args, **kwargs: CompletedProcess(args, 1, "", "boom")
 check_true("a failed diff command raises", raises(lambda: collect_diff(12, "full", "", bad_run)))
