@@ -580,6 +580,7 @@ class EnglishStrings extends Strings {
     'anthropic' => 'Billed by Anthropic for what you use',
     'openai' => 'Billed by OpenAI for what you use',
     'gemini' => "Free up to Google's daily limit",
+    'deepseek' => 'Billed by DeepSeek for what you use',
     'device' => 'Free, and works offline',
     _ => 'Free',
   };
@@ -590,6 +591,7 @@ class EnglishStrings extends Strings {
     'openai' => 'Your notes go to OpenAI.',
     'gemini' =>
       'Your notes go to Google; on the free tier it may use them to improve its products.',
+    'deepseek' => 'Your notes go to DeepSeek.',
     'device' => 'The model runs on this device: your notes go to no AI provider.',
     _ => 'Your notes stay on this computer.',
   };
@@ -599,6 +601,7 @@ class EnglishStrings extends Strings {
     'openai' => 'Very strong answers',
     'chatgpt' => 'Strong answers',
     'gemini' => 'Strong answers',
+    'deepseek' => 'Strong answers at a low price',
     'device' => 'Simpler answers, and slow on a phone',
     _ => 'Depends on the model; usually weaker',
   };
@@ -608,6 +611,7 @@ class EnglishStrings extends Strings {
     'anthropic' => 'A key from the Anthropic Console, with billing set up',
     'openai' => 'A key from the OpenAI platform, with billing set up',
     'gemini' => 'A free key from Google AI Studio, about a minute',
+    'deepseek' => 'A key from the DeepSeek Platform, with a little credit',
     'device' => 'A 2.5 GB download, once',
     _ => 'Install Ollama and a model first',
   };
@@ -617,6 +621,7 @@ class EnglishStrings extends Strings {
     'anthropic' => 'You want the best answers and pay as you go',
     'openai' => 'You already use the OpenAI API',
     'gemini' => 'You want to start for free',
+    'deepseek' => 'You want strong answers at a low price',
     'device' => 'No AI provider should see your notes',
     _ => 'Nothing should leave this computer',
   };
@@ -625,7 +630,7 @@ class EnglishStrings extends Strings {
   @override
   List<String> optionTags(ProviderSpec spec) => switch (spec.name) {
     'chatgpt' => ['Your plan', 'One tap'],
-    'anthropic' || 'openai' => ['Pay per use', apiKey],
+    'anthropic' || 'openai' || 'deepseek' => ['Pay per use', apiKey],
     'gemini' => ['Free tier', apiKey],
     'device' => ['Free', 'Offline'],
     _ => ['Free', 'Stays on this computer'],
@@ -1510,6 +1515,7 @@ class TurkishStrings extends Strings {
     'anthropic' => 'Kullandığın kadarını Anthropic faturalar',
     'openai' => 'Kullandığın kadarını OpenAI faturalar',
     'gemini' => 'Google’ın günlük sınırına kadar ücretsiz',
+    'deepseek' => 'Kullandığın kadarını DeepSeek faturalar',
     'device' => 'Ücretsiz, çevrimdışı da çalışır',
     _ => _free,
   };
@@ -1519,6 +1525,7 @@ class TurkishStrings extends Strings {
     'anthropic' => "Notların Anthropic'e gider.",
     'openai' => "Notların OpenAI'ye gider.",
     'gemini' => "Notların Google'a gider; ücretsiz katmanda Google bunları ürünlerini geliştirmek için kullanabilir.",
+    'deepseek' => "Notların DeepSeek'e gider.",
     'device' => 'Model bu cihazda çalışır: notların hiçbir yapay zekâ sağlayıcısına gitmez.',
     _ => 'Notların bu bilgisayarda kalır.',
   };
@@ -1528,6 +1535,7 @@ class TurkishStrings extends Strings {
     'openai' => 'Çok güçlü cevaplar',
     'chatgpt' => 'Güçlü cevaplar',
     'gemini' => 'Güçlü cevaplar',
+    'deepseek' => 'Düşük fiyata güçlü cevaplar',
     'device' => 'Daha basit cevaplar; telefonda yavaş',
     _ => 'Modele bağlı; genelde daha zayıf',
   };
@@ -1537,6 +1545,7 @@ class TurkishStrings extends Strings {
     'anthropic' => "Anthropic Console'dan, faturalandırması açık bir anahtar",
     'openai' => 'OpenAI platformundan, faturalandırması açık bir anahtar',
     'gemini' => "Google AI Studio'dan ücretsiz bir anahtar, yaklaşık bir dakika",
+    'deepseek' => "DeepSeek Platform'dan, biraz bakiyeli bir anahtar",
     'device' => 'Bir kez 2,5 GB indirme',
     _ => "Önce Ollama'yı ve bir modeli kur",
   };
@@ -1546,6 +1555,7 @@ class TurkishStrings extends Strings {
     'anthropic' => 'En iyi cevapları istiyor, kullandıkça ödemeye razıysan',
     'openai' => 'Zaten OpenAI API kullanıyorsan',
     'gemini' => 'Ücretsiz başlamak istiyorsan',
+    'deepseek' => 'Düşük fiyata güçlü cevaplar istiyorsan',
     'device' => 'Notlarını hiçbir yapay zekâ sağlayıcısı görmesin istiyorsan',
     _ => 'Hiçbir şey bu bilgisayardan çıkmasın istiyorsan',
   };
@@ -1554,7 +1564,7 @@ class TurkishStrings extends Strings {
   @override
   List<String> optionTags(ProviderSpec spec) => switch (spec.name) {
     'chatgpt' => ['Planın', 'Tek dokunuş'],
-    'anthropic' || 'openai' => ['Kullandıkça öde', apiKey],
+    'anthropic' || 'openai' || 'deepseek' => ['Kullandıkça öde', apiKey],
     'gemini' => ['Ücretsiz katman', apiKey],
     'device' => [_free, 'Çevrimdışı'],
     _ => [_free, 'Bu bilgisayarda kalır'],
@@ -1660,6 +1670,11 @@ class TurkishStrings extends Strings {
       'Faturalandırması olmayan bir Google AI Studio projesinin anahtarıyla ücretsiz: hız '
           'sınırlıdır ve Google ücretsiz istekleri ürünlerini geliştirmek için kullanabilir. '
           'Aksi halde kullandıkça ücretlendirilir.',
+    'deepseek' =>
+      'Kendi API anahtarınla DeepSeek tarafından kullandıkça ücretlendirilir: milyon giriş '
+          'tokenı için yaklaşık \$0,15, milyon çıkış tokenı için \$0,60 (yoğun olmayan '
+          'saatlerde; yoğun saatlerde iki katı). DeepSeek web aboneliği başka uygulamalarda '
+          'kullanılamaz.',
     _ => 'Ücretsiz: model bu bilgisayarda çalışır.',
   };
   @override
@@ -1677,6 +1692,11 @@ class TurkishStrings extends Strings {
     'gemini' => [
       'Google AI Studio’ya giriş yap.',
       'Create API key’i seç ve anahtarı kopyala.',
+      'Anahtarı aşağıya yapıştır.',
+    ],
+    'deepseek' => [
+      'DeepSeek Platform’a giriş yap ve küçük bir bakiye ekle.',
+      'Create new API key’i seç, notelore gibi bir ad ver ve anahtarı kopyala.',
       'Anahtarı aşağıya yapıştır.',
     ],
     'ollama' => [

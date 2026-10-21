@@ -12,6 +12,7 @@ library;
 
 import 'anthropic.dart';
 import 'base.dart';
+import 'deepseek.dart';
 import 'gemini.dart';
 import 'http.dart';
 import 'ollama.dart' as ollama;
@@ -43,6 +44,7 @@ final _listings = <String, (String, Map<String, String> Function(String), String
   'anthropic': ('$anthropicModels?limit=1000', anthropicHeaders, 'Anthropic'),
   'openai': (openAIModels, openAIHeaders, 'OpenAI'),
   'gemini': ('$geminiModels?pageSize=1000', geminiHeaders, 'Google'),
+  'deepseek': (deepSeekModels, deepSeekHeaders, 'DeepSeek'),
 };
 
 // OpenAI lists every model the key can use; these are not chat models.
@@ -56,10 +58,23 @@ List<String> chatModels(String provider, Object? answer) {
   final listed = items.whereType<Map<Object?, Object?>>();
   return switch (provider) {
     'gemini' => _geminiChat(listed),
+    'deepseek' => _deepSeekChat(listed),
     'ollama' => [for (final m in listed) '${m['name']}'],
     'openai' => _openAIChat(listed),
     _ => [for (final m in listed) '${m['id']}'],
   };
+}
+
+/// DeepSeek's chat models; its listing also has embeddings and may omit the
+/// shipped default, which stays offered.
+List<String> _deepSeekChat(Iterable<Map<Object?, Object?>> listed) {
+  final models = [
+    for (final m in listed)
+      if ('${m['id']}'.startsWith('deepseek-') && !RegExp('embed|rerank').hasMatch('${m['id']}'))
+        '${m['id']}',
+  ];
+  if (listed.isNotEmpty && !models.contains('deepseek-flash')) models.add('deepseek-flash');
+  return models;
 }
 
 /// Gemini models that can chat (generateContent), without the `models/` prefix.

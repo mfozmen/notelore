@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'anthropic.dart';
 import 'base.dart';
 import 'chatgpt.dart';
+import 'deepseek.dart';
 import 'gemini.dart';
 import 'http.dart';
 import 'ollama.dart';
@@ -37,6 +38,7 @@ LlmProvider createProvider(
       webSearch: webSearch,
     ),
     'gemini' => GeminiProvider(apiKey ?? '', chosen, transport: transport),
+    'deepseek' => DeepSeekProvider(apiKey ?? '', chosen, transport: transport),
     _ => OllamaProvider(chosen, transport: transport),
   };
 }

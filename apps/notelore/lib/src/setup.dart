@@ -102,6 +102,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     'anthropic': RegExp(r'^sk-ant-[0-9A-Za-z_\-]{20,}$'),
     'openai': RegExp(r'^sk-(?!ant-)[0-9A-Za-z_\-]{20,}$'),
     'gemini': RegExp(r'^AIza[0-9A-Za-z_\-]{35}$'),
+    'deepseek': RegExp(r'^sk-(?!ant-)[0-9A-Za-z_\-]{20,}$'),
   };
 
   @override

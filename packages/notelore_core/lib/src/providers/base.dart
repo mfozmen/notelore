@@ -125,6 +125,24 @@ const providerSpecs = [
     ],
   ),
   ProviderSpec(
+    'deepseek',
+    'DeepSeek',
+    group: ProviderGroup.apiKey,
+    images: true,
+    requiresApiKey: true,
+    defaultModel: 'deepseek-flash',
+    cost:
+        'Billed per use by DeepSeek through your own API key: about \$0.15 per million input '
+        'tokens and \$0.60 per million output at off-peak, double at peak. A DeepSeek web '
+        'subscription cannot be used in other apps.',
+    keyUrl: 'https://platform.deepseek.com/api_keys',
+    keySteps: [
+      'Sign in to the DeepSeek Platform and add a little credit.',
+      'Choose Create new API key, give it a name such as notelore, and copy it.',
+      'Paste the key below.',
+    ],
+  ),
+  ProviderSpec(
     'ollama',
     'Ollama (local)',
     group: ProviderGroup.local,

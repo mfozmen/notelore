@@ -48,6 +48,14 @@ void main() {
       expect(summary.plan, isFalse);
     });
 
+    test('DeepSeek is priced from its off-peak list price', () {
+      final summary = summarize({
+        'deepseek/deepseek-flash': const UsageCount(calls: 1, input: 1000000, output: 1000000),
+      });
+      expect(summary.cost, closeTo(0.15 + 0.60, 1e-9));
+      expect(summary.billed, isTrue);
+    });
+
     test('the ChatGPT plan and a local model cost nothing per token', () {
       final summary = summarize({
         'chatgpt/gpt-5': const UsageCount(calls: 1, input: 10, output: 1),

@@ -5,6 +5,7 @@ import 'package:http/testing.dart';
 import 'package:notelore_core/src/providers/anthropic.dart';
 import 'package:notelore_core/src/providers/base.dart';
 import 'package:notelore_core/src/providers/chatgpt.dart';
+import 'package:notelore_core/src/providers/deepseek.dart';
 import 'package:notelore_core/src/providers/gemini.dart';
 import 'package:notelore_core/src/providers/ollama.dart';
 import 'package:notelore_core/src/providers/providers.dart';
@@ -46,6 +47,7 @@ void main() {
       'anthropic',
       'openai',
       'gemini',
+      'deepseek',
       'ollama',
       'device',
     ]);
@@ -66,6 +68,7 @@ void main() {
         'anthropic': ProviderGroup.apiKey,
         'openai': ProviderGroup.apiKey,
         'gemini': ProviderGroup.apiKey,
+        'deepseek': ProviderGroup.apiKey,
         'ollama': ProviderGroup.local,
         'device': ProviderGroup.device,
       },
@@ -80,12 +83,18 @@ void main() {
     expect(findProvider('anthropic').cost, contains('Pro or Max subscription cannot'));
     expect(findProvider('openai').cost, contains('per use'));
     expect(findProvider('gemini').cost, contains('without billing'));
+    expect(findProvider('deepseek').cost, contains('DeepSeek'));
+    expect(findProvider('deepseek').cost, contains('per use'));
     expect(findProvider('ollama').cost, startsWith('Free'));
     expect(findProvider('device').cost, contains('2.5 GB download'));
     expect(findProvider('ollama').requiresApiKey, isFalse);
     // No key, but steps: install it and pull a model (#360).
     expect(findProvider('ollama').keyUrl, 'https://ollama.com/download');
     expect(findProvider('ollama').keySteps.join(), contains('ollama pull'));
+    expect(findProvider('deepseek').keyUrl, 'https://platform.deepseek.com/api_keys');
+    expect(findProvider('deepseek').defaultModel, 'deepseek-flash');
+    expect(findProvider('deepseek').images, isTrue);
+    expect(findProvider('deepseek').keySteps, isNotEmpty);
     expect(
       () => findProvider('bard'),
       throwsA(isA<ArgumentError>().having((e) => '$e', 'message', contains('unknown provider'))),
@@ -96,6 +105,7 @@ void main() {
     'anthropic': isA<AnthropicProvider>(),
     'openai': isA<ChatGptProvider>(), // the Responses API, with the key as token
     'gemini': isA<GeminiProvider>(),
+    'deepseek': isA<DeepSeekProvider>(),
     'ollama': isA<OllamaProvider>(),
   };
   for (final MapEntry(key: name, value: matcher) in kinds.entries) {
@@ -230,7 +240,7 @@ void main() {
         for (final s in providerSpecs)
           if (s.images) s.name,
       },
-      {'chatgpt', 'anthropic', 'openai', 'gemini'},
+      {'chatgpt', 'anthropic', 'openai', 'gemini', 'deepseek'},
     );
   });
 

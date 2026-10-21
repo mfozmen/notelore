@@ -19,6 +19,7 @@ void main() {
       'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000',
       {'x-goog-api-key': 'key'},
     ),
+    'deepseek': ('https://api.deepseek.com/models', {'Authorization': 'Bearer key'}),
   };
   for (final MapEntry(key: name, value: (url, headers)) in listings.entries) {
     test('a good $name key lists the models and spends no tokens', () async {
@@ -76,6 +77,12 @@ void main() {
         ],
       },
       {
+        'data': [
+          {'id': 'deepseek-v4-pro'},
+          {'id': 'deepseek-embedding'},
+        ],
+      },
+      {
         'models': [
           {'name': 'llama3.2:latest'},
           {'name': 'qwen3:8b'},
@@ -88,6 +95,7 @@ void main() {
     expect(await models('anthropic'), ['claude-opus-5-5', 'claude-sonnet-5-5']);
     expect(await models('openai'), ['o3', 'gpt-5', 'gpt-4o-mini']);
     expect(await models('gemini'), ['gemini-2.5-pro']);
+    expect(await models('deepseek'), ['deepseek-v4-pro', 'deepseek-flash']);
     expect(await models('ollama'), ['llama3.2:latest', 'qwen3:8b']);
   });
 
@@ -109,7 +117,7 @@ void main() {
     (const HttpError(500, 'overloaded'), throwsA(isA<TransientValidationError>())),
     (const NetworkError('no route to host'), throwsA(isA<TransientValidationError>())),
   ];
-  for (final name in ['anthropic', 'openai', 'gemini']) {
+  for (final name in ['anthropic', 'openai', 'gemini', 'deepseek']) {
     for (final (error, matcher) in failures) {
       test('$name: $error', () async {
         api.answers.add(error);
@@ -215,6 +223,7 @@ void main() {
       ]),
       'claude-haiku-5-0-20260601',
     );
+    expect(cheapestModel('deepseek', ['deepseek-v4-pro', 'deepseek-flash']), 'deepseek-flash');
     // No known family: the first listed; nothing listed: none.
     expect(cheapestModel('anthropic', ['claude-x', 'claude-y']), 'claude-x');
     expect(cheapestModel('openai', []), isNull);
