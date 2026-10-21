@@ -315,11 +315,21 @@ class Session extends ChangeNotifier {
   /// Removes an original kept for a message that never reached the model, and
   /// the marker that pointed at it, so a retry cannot link a missing file.
   void discardOriginal(String rel) {
+    if (!rel.startsWith('$attachmentsFolder/') ||
+        rel.split('/').any((part) => part.isEmpty || part == '.' || part == '..')) {
+      return;
+    }
     final marker = ' original="$rel"';
     for (var i = 0; i < transcript.length; i++) {
       final line = transcript[i];
-      if (!line.text.contains(marker)) continue;
+      if (line.role == ChatRole.assistant || !line.text.contains(marker)) continue;
       transcript[i] = (role: line.role, text: line.text.replaceAll(marker, ''));
+    }
+    for (var i = 0; i < _later.length; i++) {
+      _later[i] = _later[i].replaceAll(marker, '');
+    }
+    for (var i = 0; i < _outbox.length; i++) {
+      _outbox[i] = _outbox[i].replaceAll(marker, '');
     }
     try {
       File(p.joinAll([paths.notes.path, ...rel.split('/')])).deleteSync();
@@ -1067,13 +1077,13 @@ class Session extends ChangeNotifier {
     if (_outbox.isNotEmpty) {
       _enqueue(message);
       await retryNow();
-      return true;
+      return false;
     }
     transcript.add((role: ChatRole.user, text: message));
     if (busy) {
       _later.add(message); // joins the running turn at its next step
       notifyListeners();
-      return true;
+      return false;
     }
     return _turns(message, images: images);
   }
@@ -1085,6 +1095,7 @@ class Session extends ChangeNotifier {
     _halted = false;
     notifyListeners();
     var delivered = true;
+    var firstTurn = true;
     String? message = first;
     var fromQueue = queued;
     var pictures = images;
@@ -1092,12 +1103,14 @@ class Session extends ChangeNotifier {
       _stopped = false; // before the queue: a Stop while it waits behind a sync still counts
       final (current, wasQueued, withImages) = (message, fromQueue, pictures);
       final waiting = Stopwatch()..start();
-      delivered =
-          await _exclusive(() {
-            timing?.call('queue ${waiting.elapsedMilliseconds} ms');
-            return _turn(current, queued: wasQueued, images: withImages);
-          }) &&
-          delivered;
+      final turnDelivered = await _exclusive(() {
+        timing?.call('queue ${waiting.elapsedMilliseconds} ms');
+        return _turn(current, queued: wasQueued, images: withImages);
+      });
+      if (firstTurn) {
+        delivered = turnDelivered; // only this message's turn owns its image original
+        firstTurn = false;
+      }
       (message, fromQueue) = _next();
       pictures = const [];
     }

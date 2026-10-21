@@ -83,6 +83,7 @@ export 'src/store/notes.dart'
         archiveFolder,
         archiveNote,
         atomicWrite,
+        attachmentsFolder,
         completeTodo,
         createNote,
         keepAttachment,

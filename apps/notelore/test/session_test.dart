@@ -1459,6 +1459,28 @@ void main() {
     expect(File(p.joinAll([harness.paths.notes.path, ...path.split('/')])).existsSync(), isFalse);
     expect(session.transcript.first.text, '$start/>');
   });
+
+  test('a later failed message does not drop a delivered image original (#534)', () async {
+    final first = Completer<AgentResponse>();
+    final harness = Harness(answers: [first.future, const NetworkError('offline')]);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    final path = session.keepOriginal('r.png', [1, 2, 3])!;
+    final sent = session.send(
+      'what is it\n\n<attached image="r.png" original="$path"/>',
+      images: [
+        imageBlock('image/png', [1, 2, 3]),
+      ],
+    );
+    await session.send('follow-up'); // joins while the image turn runs
+    first.complete(
+      const AgentResponse([
+        {'type': 'text', 'text': 'A receipt.'},
+      ], 'end_turn'),
+    );
+    expect(await sent, isTrue);
+    expect(File(p.joinAll([harness.paths.notes.path, ...path.split('/')])).existsSync(), isTrue);
+  });
 }
 
 /// A keystore whose delete fails, like a locked one.
