@@ -137,19 +137,28 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
     if (!mounted) return; // listening to audio takes a while: the screen may be gone (#387)
-    // A recording's or a PDF's original is kept beside the notes, for the note to link (#279).
-    final originals = {
-      for (final file in picked)
-        if (isAudio(file.bytes) || _isPdf(file.bytes))
-          file.name: ?widget.session.keepOriginal(file.name, file.bytes),
-    };
+    // A recording's, a PDF's or an image's original is kept beside the notes, for the note to link (#279, #534).
+    final originals = <String, String>{};
+    final imageOriginals = <String, String>{};
+    for (final file in picked) {
+      final image = imageType(file.bytes) != null;
+      if (!image && !isAudio(file.bytes) && !_isPdf(file.bytes)) continue;
+      final path = widget.session.keepOriginal(file.name, file.bytes);
+      if (path == null) continue;
+      originals[file.name] = path;
+      if (image) imageOriginals[file.name] = path;
+    }
     final typed = _message.text.trim();
     _message.clear();
     _keyboardAway(context);
-    await widget.session.send(
+    final sent = await widget.session.send(
       withAttachments(typed, files, images: names, originals: originals),
       images: images,
     );
+    if (sent) return;
+    for (final path in imageOriginals.values) {
+      widget.session.discardOriginal(path);
+    }
   }
 
   /// [picked] as text attachments and images (with their names), or why they

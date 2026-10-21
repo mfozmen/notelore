@@ -1441,6 +1441,76 @@ void main() {
       ..writeAsStringSync('in the way'); // a file where the folder would go
     expect(session.keepOriginal('memo.wav', [1]), isNull);
   });
+
+  test('a failed image send discards its original and its marker (#534)', () async {
+    final harness = Harness(answers: [const NetworkError('offline')]);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    final path = session.keepOriginal('r.png', [1, 2, 3])!;
+    const start = 'what is it\n\n<attached image="r.png"';
+    final sent = await session.send(
+      '$start original="$path"/>',
+      images: [
+        imageBlock('image/png', [1, 2, 3]),
+      ],
+    );
+    expect(sent, isFalse);
+    session.discardOriginal(path);
+    expect(File(p.joinAll([harness.paths.notes.path, ...path.split('/')])).existsSync(), isFalse);
+    expect(session.transcript.first.text, '$start/>');
+  });
+
+  test('discarding an original that is already gone is harmless (#534)', () {
+    final session = Harness().session();
+    session.discardOriginal('attachments/2026-10-22/missing.png');
+  });
+
+  test('a later failed message does not drop a delivered image original (#534)', () async {
+    final first = Completer<AgentResponse>();
+    final harness = Harness(answers: [first.future, const NetworkError('offline')]);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    final path = session.keepOriginal('r.png', [1, 2, 3])!;
+    final sent = session.send(
+      'what is it\n\n<attached image="r.png" original="$path"/>',
+      images: [
+        imageBlock('image/png', [1, 2, 3]),
+      ],
+    );
+    await session.send('follow-up'); // joins while the image turn runs
+    first.complete(
+      const AgentResponse([
+        {'type': 'text', 'text': 'A receipt.'},
+      ], 'end_turn'),
+    );
+    expect(await sent, isTrue);
+    expect(session.transcript.first.text, contains('original="$path"'));
+    expect(File(p.joinAll([harness.paths.notes.path, ...path.split('/')])).existsSync(), isTrue);
+  });
+
+  test('images do not join a running turn or the queue (#278)', () async {
+    final first = Completer<AgentResponse>();
+    final harness = Harness(answers: [first.future]);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    final running = session.send('one');
+    const message = 'what is it\n\n<attached image="r.png"/>';
+    final sent = await session.send(
+      message,
+      images: [
+        imageBlock('image/png', [1, 2, 3]),
+      ],
+    );
+    expect(sent, isFalse);
+    expect(session.transcript.map((l) => l.text), ['one']);
+    first.complete(
+      const AgentResponse([
+        {'type': 'text', 'text': 'Done.'},
+      ], 'end_turn'),
+    );
+    await running;
+    expect(session.transcript.map((l) => l.role), [ChatRole.user, ChatRole.assistant]);
+  });
 }
 
 /// A keystore whose delete fails, like a locked one.

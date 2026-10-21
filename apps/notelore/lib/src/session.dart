@@ -312,6 +312,29 @@ class Session extends ChangeNotifier {
     }
   }
 
+  /// Removes an original kept for a message that never reached the model, and
+  /// the marker that pointed at it, so a retry cannot link a missing file.
+  void discardOriginal(String rel) {
+    if (!rel.startsWith('$attachmentsFolder/') ||
+        rel
+            .split('/')
+            .any((part) => part.isEmpty || part == '.' || part == '..' || part.contains(r'\'))) {
+      return;
+    }
+    final marker = ' original="$rel"';
+    for (var i = 0; i < transcript.length; i++) {
+      final line = transcript[i];
+      if (line.role == ChatRole.assistant || !line.text.contains(marker)) continue;
+      transcript[i] = (role: line.role, text: line.text.replaceAll(marker, ''));
+    }
+    try {
+      File(p.joinAll([paths.notes.path, ...rel.split('/')])).deleteSync();
+    } on FileSystemException {
+      // Already gone, or held: the marker is gone either way.
+    }
+    notifyListeners();
+  }
+
   /// An attached audio file's words, heard on this device (#285); null when no
   /// words are heard. Throws [AudioUnavailable] before Whisper is here, and
   /// [AudioUnreadable] for a format this device cannot open.
@@ -1038,32 +1061,39 @@ class Session extends ChangeNotifier {
   /// Sent while a turn runs, a message joins that turn instead (see [_later]).
   /// [images] go with this turn only, never into the queue or a saved file:
   /// the chat sends them only when nothing runs or waits ([acceptsImages]).
-  Future<void> send(String text, {List<Block> images = const []}) async {
+  /// Returns whether the turn delivered an answer or wrote notes; a failed
+  /// image send returns false so the caller can drop its kept original.
+  Future<bool> send(String text, {List<Block> images = const []}) async {
     final message = text.trim();
     // No model to answer (#363): the chat asks for one; nothing to send with.
-    if (message.isEmpty || !ready) return;
+    if (message.isEmpty || !ready) return false;
+    // Images never join a running turn or the queue: there is no copy to keep.
+    if (images.isNotEmpty && (_outbox.isNotEmpty || busy)) return false;
     _lastImages = images;
     // Behind a waiting message, a new one waits too (kept, in order), even while
     // the waiting ones are being tried.
     if (_outbox.isNotEmpty) {
       _enqueue(message);
-      return retryNow();
+      await retryNow();
+      return false;
     }
     transcript.add((role: ChatRole.user, text: message));
     if (busy) {
       _later.add(message); // joins the running turn at its next step
       notifyListeners();
-      return;
+      return false;
     }
-    await _turns(message, images: images);
+    return _turns(message, images: images);
   }
 
   /// Turns until nothing written meanwhile is left; busy throughout. [images]
   /// go with the first.
-  Future<void> _turns(String first, {bool queued = false, List<Block> images = const []}) async {
+  Future<bool> _turns(String first, {bool queued = false, List<Block> images = const []}) async {
     busy = true;
     _halted = false;
     notifyListeners();
+    var delivered = true;
+    var firstTurn = true;
     String? message = first;
     var fromQueue = queued;
     var pictures = images;
@@ -1071,16 +1101,21 @@ class Session extends ChangeNotifier {
       _stopped = false; // before the queue: a Stop while it waits behind a sync still counts
       final (current, wasQueued, withImages) = (message, fromQueue, pictures);
       final waiting = Stopwatch()..start();
-      await _exclusive(() {
+      final turnDelivered = await _exclusive(() {
         timing?.call('queue ${waiting.elapsedMilliseconds} ms');
         return _turn(current, queued: wasQueued, images: withImages);
       });
+      if (firstTurn) {
+        delivered = turnDelivered; // only this message's turn owns its image original
+        firstTurn = false;
+      }
       (message, fromQueue) = _next();
       pictures = const [];
     }
     busy = false;
     notifyListeners();
     if (driveConnected) unawaited(syncNow());
+    return delivered;
   }
 
   /// The next message to run and whether it comes from the queue: none once
@@ -1092,7 +1127,7 @@ class Session extends ChangeNotifier {
   }
 
   /// One chat turn: the answer, or what its failure means.
-  Future<void> _turn(String message, {required bool queued, required List<Block> images}) async {
+  Future<bool> _turn(String message, {required bool queued, required List<Block> images}) async {
     final taken = <String>[];
     Agent? asked; // the one that ran the turn, even if a logout replaced it since
     // For the usage page (#481): counts only, never a word of the turn.
@@ -1101,6 +1136,7 @@ class Session extends ChangeNotifier {
     var before = 0;
     var toolCalls = 0;
     var failed = false;
+    var delivered = false;
     try {
       if (_stopped) throw const TurnStopped(); // stopped while queued behind a sync
       final withPages = await _withPages(message);
@@ -1116,6 +1152,7 @@ class Session extends ChangeNotifier {
         },
       );
       if (queued) _sent(message);
+      delivered = true;
       toolCalls = _toolCalls(asked.messages.skip(before));
       transcript.add(fresh = (role: ChatRole.assistant, text: strings.core(answer)));
       // Seen only once answered: a failed turn's notice goes out again.
@@ -1145,6 +1182,7 @@ class Session extends ChangeNotifier {
       }
       notifyListeners();
     }
+    return delivered || (asked?.wroteNotes ?? false);
   }
 
   static int _toolCalls(Iterable<Message> messages) => [

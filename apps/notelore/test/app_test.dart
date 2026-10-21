@@ -851,6 +851,15 @@ void main() {
     await tester.tap(find.byTooltip('Attach a file'));
     await tester.pump();
     expect(harness.provider.asked.single, allOf(contains('what is it'), contains('image/gif')));
+    expect(
+      harness.provider.asked.single,
+      contains(RegExp(r'<attached image="r\.gif" original="attachments/[\d-]+/r\.gif"/>')),
+    );
+    final kept = Directory(p.join(harness.paths.notes.path, 'attachments'))
+        .listSync(recursive: true)
+        .whereType<File>()
+        .single;
+    expect(kept.readAsBytesSync(), gif);
     expect(find.text('r.gif'), findsOneWidget); // its name in the bubble, not its bytes
     expect(find.bySemanticsLabel('Image: r.gif'), findsOneWidget); // told apart from a file
     // While that turn runs, another image cannot join it.
@@ -865,6 +874,24 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('A chart.'), findsOneWidget);
+  });
+
+  testWidgets('chat: an image that fails offline leaves no original (#534)', (tester) async {
+    phone(tester);
+    final harness = Harness(answers: [const NetworkError('offline')]);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final gif = [...'GIF89a'.codeUnits, 1, 0, 1, 0];
+    harness.files.picked = [XFile.fromData(Uint8List.fromList(gif), path: 'r.gif')];
+    await tester.enterText(find.byKey(const Key('message')), 'what is it');
+    await tester.tap(find.byTooltip('Attach a file'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Images cannot wait'), findsOneWidget);
+    final folder = Directory(p.join(harness.paths.notes.path, 'attachments'));
+    final kept = folder.existsSync()
+        ? folder.listSync(recursive: true).whereType<File>()
+        : <File>[];
+    expect(kept, isEmpty);
   });
 
   testWidgets('chat: a provider that cannot see images says so (#278)', (tester) async {
