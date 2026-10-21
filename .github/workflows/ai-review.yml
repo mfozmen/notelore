@@ -5,7 +5,7 @@ name: AI Review
 #
 # Auth: the Claude subscription via claude_code_oauth_token, NOT an API key.
 # Reviews draw from the subscription quota rather than pay-as-you-go billing.
-# If Claude cannot run (quota, auth, outage), an OpenCode Zen fallback reviews
+# If Claude cannot run (quota, auth, outage), an OpenCode Go fallback reviews
 # the same range with the same verdict contract. It is a plain HTTP call over
 # the diff, not an agent, so the PR's code is never executed.
 #
@@ -249,7 +249,7 @@ jobs:
             start and prefixed commands are denied.
 
       # Claude's quota is the only thing standing between a PR and a review, so
-      # a failed action gets one OpenCode Zen attempt before the check fails.
+      # a failed action gets one OpenCode Go attempt before the check fails.
       # The script posts the same REVIEWED-HEAD / REVIEW-VERDICT contract as a
       # comment from this run; the gate below accepts either reviewer.
       - name: DeepSeek fallback review
@@ -257,7 +257,7 @@ jobs:
         if: steps.review.outcome == 'failure'
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          REVIEW_MODEL: ${{ vars.OPENCODE_REVIEW_MODEL || 'deepseek-v4.1-flash-free' }}
+          REVIEW_MODEL: ${{ vars.OPENCODE_REVIEW_MODEL || 'deepseek-v4.1-flash' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
           REVIEW_HEAD: ${{ steps.range.outputs.head }}
@@ -396,7 +396,7 @@ jobs:
         if: steps.paths.outputs.touched == 'true' && steps.security.outcome == 'failure'
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          REVIEW_MODEL: ${{ vars.OPENCODE_REVIEW_MODEL || 'deepseek-v4.1-flash-free' }}
+          REVIEW_MODEL: ${{ vars.OPENCODE_REVIEW_MODEL || 'deepseek-v4.1-flash' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REVIEW_KIND: security

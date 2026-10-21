@@ -1,4 +1,4 @@
-"""Emergency code/security review through OpenCode Zen when Claude cannot run.
+"""Emergency code/security review through OpenCode Go when Claude cannot run.
 
 Called by .github/workflows/ai-review.yml only after the Claude action
 fails (quota, auth, service outage). It sends the diff to an OpenAI-compatible
@@ -21,8 +21,10 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-API_URL = "https://opencode.ai/inference/openai/v1/chat/completions"
-DEFAULT_MODEL = "deepseek-v4.1-flash-free"
+API_URL = os.environ.get(
+    "OPENCODE_API_URL", "https://opencode.ai/inference/go/openai/v1/chat/completions"
+)
+DEFAULT_MODEL = "deepseek-v4.1-flash"
 MAX_DIFF_CHARS = 120_000
 
 CODE_SIGNATURE = "**DeepSeek review finished**"
@@ -146,6 +148,9 @@ def call_model(api_key, model, messages, opener=urllib.request.urlopen, timeout=
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
             "Accept": "application/json",
+            "User-Agent": "notelore-ai-review/1.0",
+            "x-opencode-session": os.environ.get("REVIEW_SESSION")
+            or os.environ.get("GITHUB_RUN_ID", "local"),
         },
         method="POST",
     )
@@ -154,15 +159,15 @@ def call_model(api_key, model, messages, opener=urllib.request.urlopen, timeout=
             answer = json.load(response)
     except urllib.error.HTTPError as error:
         detail = error.read().decode("utf-8", "replace")[:500]
-        raise ReviewError(f"OpenCode Zen returned HTTP {error.code}: {detail}") from error
+        raise ReviewError(f"OpenCode Go returned HTTP {error.code}: {detail}") from error
     except (urllib.error.URLError, OSError, ValueError) as error:
-        raise ReviewError(f"OpenCode Zen call failed: {error}") from error
+        raise ReviewError(f"OpenCode Go call failed: {error}") from error
     try:
         content = answer["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as error:
-        raise ReviewError("OpenCode Zen returned no review text") from error
+        raise ReviewError("OpenCode Go returned no review text") from error
     if not isinstance(content, str):
-        raise ReviewError("OpenCode Zen returned a non-text review")
+        raise ReviewError("OpenCode Go returned a non-text review")
     return content
 
 

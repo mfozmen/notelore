@@ -130,13 +130,17 @@ def model_opener(request, timeout):
     return FakeResponse({"choices": [{"message": {"content": "finding\nVERDICT: CLEAN"}}]})
 
 
-content = call_model("key", "deepseek-v4.1-flash-free", [{"role": "user", "content": "x"}], model_opener)
+content = call_model("key", "deepseek-v4.1-flash", [{"role": "user", "content": "x"}], model_opener)
 check("the model answer is returned", content, "finding\nVERDICT: CLEAN")
-check("the API URL is the OpenCode Zen endpoint", model_opener.request.full_url, API_URL)
+check("the API URL is the OpenCode Go endpoint", model_opener.request.full_url,
+      "https://opencode.ai/inference/go/openai/v1/chat/completions")
 check("the key goes in the Authorization header",
       model_opener.request.get_header("Authorization"), "Bearer key")
+check("the review identifies itself",
+      model_opener.request.get_header("User-agent"), "notelore-ai-review/1.0")
+check_true("the review sends a session id", bool(model_opener.request.get_header("X-opencode-session")))
 sent = json.loads(model_opener.request.data)
-check("the model id is sent", sent["model"], "deepseek-v4.1-flash-free")
+check("the model id is sent", sent["model"], "deepseek-v4.1-flash")
 check("the messages are sent", sent["messages"][0]["content"], "x")
 check_true("the call has a timeout", model_opener.timeout > 0)
 
