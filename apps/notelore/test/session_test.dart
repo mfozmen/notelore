@@ -1479,7 +1479,31 @@ void main() {
       ], 'end_turn'),
     );
     expect(await sent, isTrue);
+    expect(session.transcript.first.text, contains('original="$path"'));
     expect(File(p.joinAll([harness.paths.notes.path, ...path.split('/')])).existsSync(), isTrue);
+  });
+
+  test('images do not join a running turn or the queue (#278)', () async {
+    final first = Completer<AgentResponse>();
+    final harness = Harness(answers: [first.future]);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    final running = session.send('one');
+    const message = 'what is it\n\n<attached image="r.png"/>';
+    final sent = await session.send(
+      message,
+      images: [
+        imageBlock('image/png', [1, 2, 3]),
+      ],
+    );
+    expect(sent, isFalse);
+    expect(session.transcript.map((l) => l.text), ['one']);
+    first.complete(
+      const AgentResponse([
+        {'type': 'text', 'text': 'Done.'},
+      ], 'end_turn'),
+    );
+    await running;
   });
 }
 

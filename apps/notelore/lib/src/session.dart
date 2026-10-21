@@ -316,7 +316,9 @@ class Session extends ChangeNotifier {
   /// the marker that pointed at it, so a retry cannot link a missing file.
   void discardOriginal(String rel) {
     if (!rel.startsWith('$attachmentsFolder/') ||
-        rel.split('/').any((part) => part.isEmpty || part == '.' || part == '..')) {
+        rel
+            .split('/')
+            .any((part) => part.isEmpty || part == '.' || part == '..' || part.contains(r'\'))) {
       return;
     }
     final marker = ' original="$rel"';
@@ -1072,6 +1074,8 @@ class Session extends ChangeNotifier {
     // No model to answer (#363): the chat asks for one; nothing to send with.
     if (message.isEmpty || !ready) return false;
     _lastImages = images;
+    // Images never join a running turn or the queue: there is no copy to keep.
+    if (images.isNotEmpty && (_outbox.isNotEmpty || busy)) return false;
     // Behind a waiting message, a new one waits too (kept, in order), even while
     // the waiting ones are being tried.
     if (_outbox.isNotEmpty) {

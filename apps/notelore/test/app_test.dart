@@ -887,6 +887,7 @@ void main() {
     await tester.tap(find.byTooltip('Attach a file'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Images cannot wait'), findsOneWidget);
+    expect(harness.provider.asked, hasLength(1)); // the send was attempted
     final folder = Directory(p.join(harness.paths.notes.path, 'attachments'));
     final kept = folder.existsSync()
         ? folder.listSync(recursive: true).whereType<File>()
