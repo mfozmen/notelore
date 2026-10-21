@@ -1504,6 +1504,7 @@ void main() {
       ], 'end_turn'),
     );
     await running;
+    expect(session.transcript.map((l) => l.role), [ChatRole.user, ChatRole.assistant]);
   });
 }
 

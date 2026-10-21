@@ -327,12 +327,6 @@ class Session extends ChangeNotifier {
       if (line.role == ChatRole.assistant || !line.text.contains(marker)) continue;
       transcript[i] = (role: line.role, text: line.text.replaceAll(marker, ''));
     }
-    for (var i = 0; i < _later.length; i++) {
-      _later[i] = _later[i].replaceAll(marker, '');
-    }
-    for (var i = 0; i < _outbox.length; i++) {
-      _outbox[i] = _outbox[i].replaceAll(marker, '');
-    }
     try {
       File(p.joinAll([paths.notes.path, ...rel.split('/')])).deleteSync();
     } on FileSystemException {
@@ -1073,9 +1067,9 @@ class Session extends ChangeNotifier {
     final message = text.trim();
     // No model to answer (#363): the chat asks for one; nothing to send with.
     if (message.isEmpty || !ready) return false;
-    _lastImages = images;
     // Images never join a running turn or the queue: there is no copy to keep.
     if (images.isNotEmpty && (_outbox.isNotEmpty || busy)) return false;
+    _lastImages = images;
     // Behind a waiting message, a new one waits too (kept, in order), even while
     // the waiting ones are being tried.
     if (_outbox.isNotEmpty) {
