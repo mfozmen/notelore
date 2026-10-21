@@ -1,6 +1,6 @@
 """Decides what the AI reviewer looks at: only what changed since its last review.
 
-Called by .github/workflows/claude-review.yml before the review step. The
+Called by .github/workflows/ai-review.yml before the review step. The
 reviewer's own finished comment ends with a `REVIEWED-HEAD: <sha>` line, so the
 PR thread is the reviewer's notebook. This script finds the newest such line,
 checks the sha is still an ancestor of the PR head (a rebase or force-push makes

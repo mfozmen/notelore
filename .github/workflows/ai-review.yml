@@ -1,4 +1,4 @@
-name: Claude Review
+name: AI Review
 
 # AI code review using anthropics/claude-code-action@v1, adapted from
 # mfozmen/conflict.
@@ -26,11 +26,12 @@ on:
 # Scoped by event type too, so a comment-triggered run never cancels a
 # pull_request review of the same PR.
 concurrency:
-  group: claude-review-${{ github.event.pull_request.number || github.event.issue.number }}-${{ github.event_name }}
+  group: ai-review-${{ github.event.pull_request.number || github.event.issue.number }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
-  claude-review:
+  ai-review:
+    name: AI review
     # Fork safety: `pull_request` (never `pull_request_target`) and only when
     # the PR head repo is THIS repo, so the token is never exposed to forks.
     # Comment-triggered runs need @claude from a collaborator or above.
@@ -283,6 +284,7 @@ jobs:
   # through its own SECURITY-VERDICT line and gate (#299), so it never mixes
   # with the code review's REVIEW-VERDICT or REVIEWED-HEAD.
   security-review:
+    name: AI security review
     if: >
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.full_name == github.repository &&

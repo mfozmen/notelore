@@ -1,6 +1,6 @@
-"""Turns the AI reviewer's verdict line into the claude-review check result.
+"""Turns the AI reviewer's verdict line into the AI review check result.
 
-Called by .github/workflows/claude-review.yml after the review step. Reads the
+Called by .github/workflows/ai-review.yml after the review step. Reads the
 reviewer's own finished comment on the PR, finds its REVIEW-VERDICT line and
 exits non-zero on CRITICAL (or on no verdict at all), so a Critical finding
 fails the check instead of hiding behind a green tick.

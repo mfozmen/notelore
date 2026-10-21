@@ -2,7 +2,7 @@ name: CI
 
 # The CI helper scripts' tests, Dart coverage for SonarCloud, and the SonarCloud
 # quality gate. The app's analysis, tests and builds run in flutter.yml.
-# Claude Review (claude-review.yml) is advisory except on a Critical.
+# AI Review (ai-review.yml) is advisory except on a Critical.
 
 on:
   push:
@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 jobs:
-  # The CI helper scripts (claude-review uses them) are plain Python 3 with
+  # The CI helper scripts (ai-review uses them) are plain Python 3 with
   # their own tests; the app itself is tested in flutter.yml.
   scripts:
     name: CI scripts
