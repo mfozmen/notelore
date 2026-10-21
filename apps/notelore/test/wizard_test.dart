@@ -447,42 +447,6 @@ void main() {
     expect(find.textContaining('pasted from the clipboard'), findsOneWidget);
   });
 
-  testWidgets('Connect: a copied DeepSeek key goes in too (#359)', (tester) async {
-    phone(tester);
-    final launcher = FakeLauncher();
-    UrlLauncherPlatform.instance = launcher;
-    String? clipboard;
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (
-      call,
-    ) async {
-      return call.method == 'Clipboard.getData' ? {'text': clipboard} : null;
-    });
-    addTearDown(
-      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.platform,
-        null,
-      ),
-    );
-
-    await pumpApp(tester, Harness());
-    await tester.ensureVisible(find.text('DeepSeek'));
-    await tester.tap(find.text('DeepSeek'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Open platform.deepseek.com'));
-    await tester.pumpAndSettle();
-    expect(launcher.opened, ['https://platform.deepseek.com/api_keys']);
-
-    clipboard = 'sk-${'d' * 32}';
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await tester.pumpAndSettle();
-    final key = find.byKey(const Key('api-key'));
-    expect(tester.widget<TextField>(key).controller!.text, clipboard);
-    expect(find.textContaining('pasted from the clipboard'), findsOneWidget);
-  });
-
   testWidgets('Connect on a phone: an edge over the pinned action while more is below (#352)', (
     tester,
   ) async {

@@ -15,9 +15,9 @@ Map<String, String> deepSeekHeaders(String apiKey) => {'Authorization': 'Bearer 
 const _timeout = Duration(seconds: 120);
 
 class DeepSeekProvider implements LlmProvider {
-  DeepSeekProvider(this.apiKey, this.model, {this.transport = defaultTransport});
+  DeepSeekProvider(this._apiKey, this.model, {this.transport = defaultTransport});
 
-  final String apiKey;
+  final String _apiKey;
 
   @override
   final String model;
@@ -28,7 +28,7 @@ class DeepSeekProvider implements LlmProvider {
     final answer = await transport(
       'POST',
       deepSeekChat,
-      headers: deepSeekHeaders(apiKey),
+      headers: deepSeekHeaders(_apiKey),
       body: {
         'model': model,
         'messages': [
@@ -106,7 +106,9 @@ AgentResponse fromDeepSeek(Object? answer) {
   if (answer is! Map) return const AgentResponse([], 'end_turn');
   final choices = answer['choices'];
   if (choices is! List || choices.isEmpty) return const AgentResponse([], 'end_turn');
-  final message = (choices.first as Map<Object?, Object?>)['message'];
+  final choice = choices.first;
+  if (choice is! Map) return const AgentResponse([], 'end_turn');
+  final message = choice['message'];
   if (message is! Map) return const AgentResponse([], 'end_turn');
   final blocks = <Block>[
     if (message['content'] case final String text when text.isNotEmpty)
@@ -128,6 +130,8 @@ AgentResponse fromDeepSeek(Object? answer) {
     ),
     _ => null,
   };
-  final toolUse = blocks.any((block) => block['type'] == 'tool_use');
+  final finish = choice['finish_reason'];
+  final toolUse = finish == 'tool_calls' && blocks.any((block) => block['type'] == 'tool_use');
+  if (!toolUse && finish is String && finish != 'stop') blocks.add(stoppedEarly(finish));
   return AgentResponse(blocks, toolUse ? 'tool_use' : 'end_turn', usage: usage);
 }

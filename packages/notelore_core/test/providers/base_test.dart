@@ -242,6 +242,10 @@ void main() {
       },
       {'chatgpt', 'anthropic', 'openai', 'gemini', 'deepseek'},
     );
+    expect(findProvider('deepseek').takesImages('deepseek-flash'), isTrue);
+    expect(findProvider('deepseek').takesImages('deepseek-v4-pro'), isFalse);
+    expect(findProvider('anthropic').takesImages('any-model'), isTrue);
+    expect(findProvider('ollama').takesImages('llava'), isFalse);
   });
 
   final arguments = <Object?, Map<String, Object?>>{

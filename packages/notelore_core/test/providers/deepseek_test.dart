@@ -76,6 +76,29 @@ void main() {
     expect(call['timeout'], const Duration(seconds: 120));
   });
 
+  test('a cut-short answer is marked and its tool call does not run', () async {
+    api.answers.add({
+      'choices': [
+        {
+          'message': {
+            'content': 'half',
+            'tool_calls': [
+              {
+                'id': 't3',
+                'type': 'function',
+                'function': {'name': 'read_note', 'arguments': '{"slug":"y"}'},
+              },
+            ],
+          },
+          'finish_reason': 'length',
+        },
+      ],
+    });
+    final response = await DeepSeekProvider('sk', 'm', transport: api.call).turn('', [], []);
+    expect(response.stopReason, 'end_turn');
+    expect(response.content.last, {'type': 'text', 'text': '[The model stopped early: length.]'});
+  });
+
   test('images go as OpenAI image content parts', () async {
     api.answers.add({
       'choices': [

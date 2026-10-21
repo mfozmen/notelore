@@ -512,6 +512,15 @@ void main() {
       await session.connect(findProvider('ollama'), '');
       expect(session.acceptsImages, isFalse);
     });
+
+    test('DeepSeek takes them only on its vision model', () async {
+      final harness = Harness()..models = ['deepseek-flash', 'deepseek-v4-pro'];
+      final session = harness.session();
+      await session.connect(findProvider('deepseek'), 'sk-d');
+      expect(session.acceptsImages, isTrue);
+      await session.setModel('deepseek-v4-pro');
+      expect(session.acceptsImages, isFalse);
+    });
   });
 
   test('send runs the agent and keeps the transcript', () async {

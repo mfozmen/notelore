@@ -1027,8 +1027,8 @@ class Session extends ChangeNotifier {
     if (lastSent case final message?) await send(message, images: images);
   }
 
-  /// The model takes images with a message (#278): the provider's do.
-  bool get acceptsImages => spec?.images ?? false;
+  /// The model takes images with a message (#278): if the provider's does.
+  bool get acceptsImages => spec?.takesImages(model ?? '') ?? false;
 
   /// The images of the last message, for [resend]; only ever in memory.
   var _lastImages = const <Block>[];
