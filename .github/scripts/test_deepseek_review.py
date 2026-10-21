@@ -150,6 +150,7 @@ sent = json.loads(model_opener.request.data)
 check("the model id is sent", sent["model"], "deepseek-v4.1-flash")
 check("the messages are sent", sent["messages"][0]["content"], "x")
 check_true("the call has a timeout", model_opener.timeout > 0)
+check_true("the call waits for a slow review", model_opener.timeout >= 300)
 
 
 def http_error(request, timeout):
