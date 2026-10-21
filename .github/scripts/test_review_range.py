@@ -14,10 +14,15 @@ from review_verdict_gate import REVIEWER_LOGIN
 
 BOT = REVIEWER_LOGIN
 DONE = "**Claude finished @owner's task in 2m** ---\n"
+FALLBACK = "**DeepSeek review finished**\n"
 
 
 def review(sha):
     return (BOT, DONE + "findings...\n\nREVIEWED-HEAD: " + sha + "\nREVIEW-VERDICT: CLEAN")
+
+
+def fallback(sha):
+    return (BOT, FALLBACK + "findings...\n\nREVIEWED-HEAD: " + sha + "\nREVIEW-VERDICT: CLEAN")
 
 
 failures = 0
@@ -32,7 +37,13 @@ def check(name, got, want):
 
 check("no comments", last_review([])[0], None)
 check("a finished review names its head", last_review([review("abc1234")])[0], "abc1234")
+check("a finished fallback review names its head", last_review([fallback("abc1234")])[0], "abc1234")
 check("the newest review wins", last_review([review("abc1234"), review("def5678")])[0], "def5678")
+check(
+    "a fallback after a Claude review wins",
+    last_review([review("abc1234"), fallback("def5678")])[0],
+    "def5678",
+)
 check(
     "an older review without the line does not hide a newer one",
     last_review([review("abc1234"), (BOT, DONE + "REVIEW-VERDICT: CLEAN")])[0],
@@ -46,6 +57,11 @@ check(
 check(
     "SPOOF: a human copying the signature is ignored",
     last_review([("someone", DONE + "REVIEWED-HEAD: 0000000")])[0],
+    None,
+)
+check(
+    "SPOOF: a human copying the fallback signature is ignored",
+    last_review([("someone", FALLBACK + "REVIEWED-HEAD: 0000000")])[0],
     None,
 )
 check(

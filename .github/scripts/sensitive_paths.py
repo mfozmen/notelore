@@ -1,4 +1,4 @@
-"""Which files of a PR call for the security pass (claude-review.yml).
+"""Which files of a PR call for the security pass (ai-review.yml).
 
 The paths the security-reviewer agent covers: auth, providers, sync, the app
 lock, the updater, platform manifests, dependencies, workflows and the CI
