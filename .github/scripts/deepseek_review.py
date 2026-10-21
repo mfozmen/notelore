@@ -149,7 +149,7 @@ def format_body(kind, text, head, run_id, repo):
     return "\n".join(lines)
 
 
-def call_model(api_key, model, messages, opener=urllib.request.urlopen, timeout=180):
+def call_model(api_key, model, messages, opener=urllib.request.urlopen, timeout=600):
     payload = json.dumps(
         {"model": model, "messages": messages, "temperature": 0.2}
     ).encode()
