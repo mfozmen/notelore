@@ -1,6 +1,6 @@
 """Turns the security pass's verdict line into the security-review check result.
 
-Called by .github/workflows/claude-review.yml after the security pass, which
+Called by .github/workflows/ai-review.yml after the security pass, which
 runs only when a PR touches sensitive paths (sensitive_paths.py). It reads the
 pass's own finished comment, finds its SECURITY-VERDICT line and exits non-zero
 on CRITICAL (or on no verdict at all). It never reads the code review's

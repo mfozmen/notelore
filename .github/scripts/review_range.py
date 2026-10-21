@@ -1,6 +1,6 @@
 """Decides what the AI reviewer looks at: only what changed since its last review.
 
-Called by .github/workflows/claude-review.yml before the review step. The
+Called by .github/workflows/ai-review.yml before the review step. The
 reviewer's own finished comment ends with a `REVIEWED-HEAD: <sha>` line, so the
 PR thread is the reviewer's notebook. This script finds the newest such line,
 checks the sha is still an ancestor of the PR head (a rebase or force-push makes
@@ -30,7 +30,7 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from review_verdict_gate import FINISHED_SIGNATURE, REVIEWER_LOGIN, SECURITY_MARKERS, fetch_bodies
+from review_verdict_gate import REVIEWER_LOGIN, REVIEWER_SIGNATURES, SECURITY_MARKERS, fetch_bodies
 
 REVIEWED_HEAD = re.compile(r"^REVIEWED-HEAD: ([0-9a-f]{7,40})$", re.MULTILINE)
 
@@ -44,7 +44,7 @@ def last_review(comments):
     found = (None, None)
     for login, body in comments:
         body = body or ""
-        if login != REVIEWER_LOGIN or not body.startswith(FINISHED_SIGNATURE):
+        if login != REVIEWER_LOGIN or not body.startswith(REVIEWER_SIGNATURES):
             continue
         matches = REVIEWED_HEAD.findall(body)
         if SECURITY_MARKERS.search(body):  # the security pass's, never a code review's head
