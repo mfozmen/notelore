@@ -90,8 +90,8 @@ def latest_head(comments, marker=REVIEWED_HEAD, foreign=SECURITY_MARKERS, run_id
 
 
 def head_matches(expected, posted):
-    """Whether a posted head is the head this run reviewed."""
-    return not expected or posted == expected
+    """Whether a posted head is the head this run reviewed; fails closed without one."""
+    return bool(expected) and posted == expected
 
 
 def fetch_bodies(repo, number, token):

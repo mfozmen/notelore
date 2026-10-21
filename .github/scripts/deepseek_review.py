@@ -81,6 +81,9 @@ def collect_diff(number, mode, commits, run=subprocess.run, base="", head="", ki
             if result.returncode != 0:
                 raise ReviewError(f"git show {sha} failed: {result.stderr.strip()}")
             parts.append(result.stdout)
+        # The code pass leaves merges out to avoid re-reviewing main; the
+        # security pass needs the cumulative diff because merge resolutions can
+        # hide sensitive lines.
         if kind == "security" and base and head:
             result = run(
                 ["git", "diff", "--no-color", f"{base}...{head}"],
@@ -90,7 +93,7 @@ def collect_diff(number, mode, commits, run=subprocess.run, base="", head="", ki
             )
             if result.returncode != 0:
                 raise ReviewError(f"git diff {base}...{head} failed: {result.stderr.strip()}")
-            parts.append("Cumulative range diff (includes merge resolutions):\n" + result.stdout)
+            parts.insert(0, "Cumulative range diff (includes merge resolutions):\n" + result.stdout)
         return "\n".join(parts)
     result = run(
         ["gh", "pr", "diff", str(number)],

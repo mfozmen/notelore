@@ -132,7 +132,7 @@ for name, comments, want in [
     print(f"{'ok  ' if ok else 'FAIL'} {name}: got {got!r}, want {want!r}")
 
 for name, expected, head, want in [
-    ("no expected head", "", None, True),
+    ("no expected head fails closed", "", None, False),
     ("the posted head matches", "abc1234", "abc1234", True),
     ("a different head fails", "abc1234", "def5678", False),
     ("a missing head fails when expected", "abc1234", None, False),

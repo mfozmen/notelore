@@ -132,7 +132,7 @@ check("incremental mode shows each commit", collect_diff(12, "incremental", "abc
 security_diff = collect_diff(
     12, "incremental", "abc fix", fake_run, base="base", head="head", kind="security"
 )
-check_true("incremental security also sees the range diff", "range diff" in security_diff)
+check_true("incremental security sees the range diff first", security_diff.startswith("Cumulative range diff"))
 check_true("incremental security still shows each commit", "show abc" in security_diff)
 check("unchanged asks for no diff", collect_diff(12, "unchanged", "", fake_run), "")
 check("an unchanged review keeps the previous critical",

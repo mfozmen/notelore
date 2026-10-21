@@ -335,8 +335,7 @@ jobs:
         id: security
         if: >-
           steps.paths.outputs.touched == 'true' ||
-          (steps.range.outputs.mode == 'unchanged' &&
-           steps.range.outputs.previous_verdict == 'CRITICAL')
+          steps.range.outputs.previous_verdict == 'CRITICAL'
         continue-on-error: true
         uses: anthropics/claude-code-action@f27be6b65a4652f08a2ba3cff79114829b588967  # v1.0.252
         with:
@@ -455,8 +454,7 @@ jobs:
         if: >-
           steps.security.outcome == 'failure' &&
           (steps.paths.outputs.touched == 'true' ||
-           (steps.range.outputs.mode == 'unchanged' &&
-            steps.range.outputs.previous_verdict == 'CRITICAL'))
+           steps.range.outputs.previous_verdict == 'CRITICAL')
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           REVIEW_MODEL: ${{ vars.OPENCODE_REVIEW_MODEL || 'deepseek-v4.1-flash' }}
@@ -475,8 +473,7 @@ jobs:
           !cancelled() &&
           (steps.security.outcome == 'success' || steps.security_fallback.outcome == 'success') &&
           (steps.paths.outputs.touched == 'true' ||
-           (steps.range.outputs.mode == 'unchanged' &&
-            steps.range.outputs.previous_verdict == 'CRITICAL'))
+           steps.range.outputs.previous_verdict == 'CRITICAL')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
