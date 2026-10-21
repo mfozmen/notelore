@@ -40,6 +40,7 @@ jobs:
             sed -E 's/^([^:]+):([0-9]+): (.*)$/::warning file=\1,line=\2::\3/'
       - run: python3 .github/scripts/test_review_verdict_gate.py
       - run: python3 .github/scripts/test_review_range.py
+      - run: python3 .github/scripts/test_deepseek_review.py
       - run: python3 .github/scripts/test_issue_priority.py
       - run: python3 .github/scripts/test_close_finished_epics.py
       - run: python3 .github/scripts/test_security_verdict_gate.py

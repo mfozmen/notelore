@@ -33,6 +33,11 @@ VERDICT = re.compile(r"^REVIEW-VERDICT: ([A-Z]+)$", re.MULTILINE)
 # MISSING and fails: it fails CLOSED, never open.
 REVIEWER_LOGIN = "github-actions[bot]"
 FINISHED_SIGNATURE = "**Claude finished"
+# The emergency reviewers run only when Claude cannot; their comments follow
+# the same contract and are just as bot-authored as the action's own.
+FALLBACK_SIGNATURE = "**DeepSeek review finished"
+SECURITY_FALLBACK_SIGNATURE = "**DeepSeek security review finished"
+REVIEWER_SIGNATURES = (FINISHED_SIGNATURE, FALLBACK_SIGNATURE, SECURITY_FALLBACK_SIGNATURE)
 
 
 # Both passes post as the same bot with the same signature; these lines tell
@@ -57,7 +62,7 @@ def latest_verdict(comments, marker=VERDICT, foreign=SECURITY_MARKERS, run_id=No
     found = None
     for login, body in comments:
         body = body or ""
-        if login != REVIEWER_LOGIN or not body.startswith(FINISHED_SIGNATURE):
+        if login != REVIEWER_LOGIN or not body.startswith(REVIEWER_SIGNATURES):
             continue
         if own_run and not own_run.search(body):
             continue

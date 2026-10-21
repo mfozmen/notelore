@@ -5,6 +5,9 @@ name: Claude Review
 #
 # Auth: the Claude subscription via claude_code_oauth_token, NOT an API key.
 # Reviews draw from the subscription quota rather than pay-as-you-go billing.
+# If Claude cannot run (quota, auth, outage), an OpenCode Zen fallback reviews
+# the same range with the same verdict contract. It is a plain HTTP call over
+# the diff, not an agent, so the PR's code is never executed.
 #
 # The review never approves a PR: merge stays a human decision and ci.yml is
 # the deterministic gate. It does BLOCK on a Critical finding: the reviewer
@@ -98,6 +101,7 @@ jobs:
 
       - name: Claude review
         id: review
+        continue-on-error: true
         uses: anthropics/claude-code-action@f27be6b65a4652f08a2ba3cff79114829b588967  # v1.0.252
         with:
           # Subscription auth. Do NOT add an Anthropic API key here.
@@ -243,12 +247,30 @@ jobs:
             `&&` or subshells: the tool allowlist matches on the exact command
             start and prefixed commands are denied.
 
+      # Claude's quota is the only thing standing between a PR and a review, so
+      # a failed action gets one OpenCode Zen attempt before the check fails.
+      # The script posts the same REVIEWED-HEAD / REVIEW-VERDICT contract as a
+      # comment from this run; the gate below accepts either reviewer.
+      - name: DeepSeek fallback review
+        id: fallback
+        if: steps.review.outcome == 'failure'
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          REVIEW_MODEL: ${{ vars.OPENCODE_REVIEW_MODEL || 'deepseek-v4.1-flash-free' }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          REVIEW_HEAD: ${{ steps.range.outputs.head }}
+          REVIEW_MODE: ${{ steps.range.outputs.mode }}
+          REVIEW_COMMITS: ${{ steps.range.outputs.commits }}
+          REVIEW_PREVIOUS: ${{ steps.range.outputs.previous }}
+        run: python3 "$RUNNER_TEMP/trusted/.github/scripts/deepseek_review.py"
+
       # Turns the reviewer's verdict into the check's result. A separate step
       # so an execution failure (quota, timeout) stays distinguishable from a
-      # real Critical finding. The script reads ONLY the review action's own
-      # finished comment, so a verdict typed by any commenter is not a gate.
+      # real Critical finding. The script reads ONLY a finished review comment
+      # from this run, so a verdict typed by any commenter is not a gate.
       - name: Block on a Critical finding
-        if: steps.review.outcome == 'success'
+        if: ${{ !cancelled() && (steps.review.outcome == 'success' || steps.fallback.outcome == 'success') }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
@@ -298,6 +320,7 @@ jobs:
       - name: Security pass
         id: security
         if: steps.paths.outputs.touched == 'true'
+        continue-on-error: true
         uses: anthropics/claude-code-action@f27be6b65a4652f08a2ba3cff79114829b588967  # v1.0.252
         with:
           # Subscription auth. Do NOT add an Anthropic API key here.
@@ -366,8 +389,21 @@ jobs:
             `&&` or subshells: the tool allowlist matches on the exact command
             start and prefixed commands are denied.
 
+      - name: DeepSeek fallback security pass
+        id: security_fallback
+        if: steps.paths.outputs.touched == 'true' && steps.security.outcome == 'failure'
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          REVIEW_MODEL: ${{ vars.OPENCODE_REVIEW_MODEL || 'deepseek-v4.1-flash-free' }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REVIEW_KIND: security
+          REVIEW_HEAD: ${{ github.event.pull_request.head.sha }}
+          REVIEW_MODE: full
+        run: python3 "$RUNNER_TEMP/trusted/.github/scripts/deepseek_review.py"
+
       - name: Block on a Critical security finding
-        if: steps.security.outcome == 'success'
+        if: ${{ steps.paths.outputs.touched == 'true' && !cancelled() && (steps.security.outcome == 'success' || steps.security_fallback.outcome == 'success') }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
