@@ -31,6 +31,10 @@ CODE_SIGNATURE = "**DeepSeek review finished**"
 SECURITY_SIGNATURE = "**DeepSeek security review finished**"
 
 VERDICT_LINE = re.compile(r"^VERDICT: ([A-Z]+)\s*$", re.MULTILINE)
+PREVIOUS_VERDICT = re.compile(
+    r"^(?:REVIEW-VERDICT|SECURITY-VERDICT|VERDICT): (CRITICAL|WARNING|CLEAN)\s*$",
+    re.MULTILINE,
+)
 CONTRACT_LINES = re.compile(r"^(REVIEWED-HEAD|REVIEW-VERDICT|SECURITY-VERDICT):.*$", re.MULTILINE)
 VERDICTS = {"CRITICAL", "WARNING", "CLEAN"}
 
@@ -57,6 +61,8 @@ def cap_diff(diff):
 
 
 def collect_diff(number, mode, commits, run=subprocess.run):
+    if mode == "unchanged":
+        return ""
     if mode == "incremental":
         shas = [line.split()[0] for line in commits.splitlines() if line.strip()]
         if not shas:
@@ -82,6 +88,12 @@ def collect_diff(number, mode, commits, run=subprocess.run):
     if result.returncode != 0:
         raise ReviewError(f"gh pr diff {number} failed: {result.stderr.strip()}")
     return result.stdout
+
+
+def unchanged_review(previous):
+    matches = PREVIOUS_VERDICT.findall(previous)
+    verdict = matches[-1] if matches else "WARNING"
+    return f"No new commits since the last review. The previous findings stand.\n\nVERDICT: {verdict}"
 
 
 def build_messages(kind, diff, head, previous):
@@ -201,8 +213,11 @@ def main():
     previous = os.environ.get("REVIEW_PREVIOUS", "(none)")
     model = os.environ.get("REVIEW_MODEL") or DEFAULT_MODEL
 
-    diff = cap_diff(collect_diff(number, mode, commits))
-    text = call_model(api_key, model, build_messages(kind, diff, head, previous))
+    if mode == "unchanged":
+        text = unchanged_review(previous)
+    else:
+        diff = cap_diff(collect_diff(number, mode, commits))
+        text = call_model(api_key, model, build_messages(kind, diff, head, previous))
     body = format_body(kind, text, head, run_id, repo)
     post_comment(repo, number, required("GH_TOKEN"), body)
     print(f"deepseek {kind} review verdict: {parse_verdict(text)}")
