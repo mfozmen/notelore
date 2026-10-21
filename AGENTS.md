@@ -7,11 +7,12 @@ language, branch, and PR rules.
 Claude Code sets `NOTELORE_HOME=.dev-home` through `.claude/settings.json`.
 Codex uses `.codex/config.toml` for the same environment value in trusted local
 projects. opencode reads `opencode.json` and `.opencode/`: it loads `CLAUDE.md`,
-sets `NOTELORE_HOME` through `.opencode/plugins/notelore-env.js`, and installs
-the published commentie plugin, which injects the comments rule, registers the
-critic and commands, and checks edits through its hook. Set it explicitly for
-any manual app or CLI run where that project configuration is unavailable.
-Never read `.env` or real user data.
+sets `NOTELORE_HOME` and blocks `.env` reads and force-pushes through
+`.opencode/plugins/notelore-env.js`, and installs the published commentie
+plugin, which injects the comments rule, registers the critic and commands, and
+checks edits through its hook. Set it explicitly for any manual app or CLI run
+where that project configuration is unavailable. Never read `.env` or real user
+data.
 
 For UI design work, read `.claude/skills/ui-ux-pro-max/SKILL.md` if relevant.
 
