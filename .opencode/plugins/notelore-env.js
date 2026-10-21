@@ -1,9 +1,5 @@
 import { join } from "node:path"
 
-const envFile = /(?:^|[\\/\s"'=])\.env(?:\.[A-Za-z0-9_-]+)*(?=$|[\s"'\\/;:])/i
-const envExample = /(?:^|[\\/\s"'=])\.env\.example(?=$|[\s"'\\/;:])/i
-const dartDefine = /--dart-define-from-file[=\s]+\S*\.env(?:\.[A-Za-z0-9_-]+)?/i
-
 function segments(command) {
   return command
     .split(/[;&|\n]/)
@@ -17,10 +13,42 @@ function tokens(segment) {
   )
 }
 
+function envToken(token) {
+  if (token.startsWith("\\")) return false
+  const base = token.split(/[\\/]/).pop()
+  return base.startsWith(".env") && base !== ".env.example"
+}
+
 function readsEnv(command) {
   return segments(command).some((segment) => {
-    if (!envFile.test(segment)) return false
-    return !envExample.test(segment) && !dartDefine.test(segment)
+    const parts = tokens(segment)
+    const search = ["grep", "rg", "findstr", "Select-String"].includes(parts[0])
+    const messageFlags = ["-m", "--message", "-am"]
+    const fileFlags = ["-f", "--file", "-Path", "-LiteralPath", "--path"]
+    let patternSeen = !search
+    let skipNext = false
+    for (let index = 0; index < parts.length; index++) {
+      const token = parts[index]
+      if (skipNext) {
+        skipNext = false
+        continue
+      }
+      if (token === "--dart-define-from-file") {
+        skipNext = true
+        continue
+      }
+      if (token.startsWith("--dart-define-from-file=")) continue
+      if (messageFlags.includes(token)) {
+        skipNext = true
+        continue
+      }
+      if (search && !patternSeen && index > 0 && !token.startsWith("-")) {
+        patternSeen = true
+        if (!fileFlags.includes(parts[index - 1])) continue
+      }
+      if (envToken(token)) return true
+    }
+    return false
   })
 }
 
