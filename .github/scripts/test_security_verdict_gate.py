@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from review_range import last_review
 from review_verdict_gate import REVIEWER_LOGIN
 from review_verdict_gate import latest_verdict as review_verdict
-from security_verdict_gate import decide, latest_verdict
+from security_verdict_gate import decide, latest_head, latest_verdict
 
 BOT = REVIEWER_LOGIN
 DONE = "**Claude finished @owner's task in 2m** ---\n"
@@ -20,11 +20,21 @@ FALLBACK = "**DeepSeek security review finished**\n"
 
 
 def security(verdict):
-    return (BOT, DONE + "security findings...\n\nSECURITY-VERDICT: " + verdict)
+    return (
+        BOT,
+        DONE
+        + "security findings...\n\nSECURITY-REVIEWED-HEAD: abc1234\nSECURITY-VERDICT: "
+        + verdict,
+    )
 
 
 def fallback_security(verdict):
-    return (BOT, FALLBACK + "security findings...\n\nSECURITY-VERDICT: " + verdict)
+    return (
+        BOT,
+        FALLBACK
+        + "security findings...\n\nSECURITY-REVIEWED-HEAD: abc1234\nSECURITY-VERDICT: "
+        + verdict,
+    )
 
 
 def review(verdict):
@@ -68,6 +78,15 @@ cases = [
 failures = 0
 for name, comments, want in cases:
     got = latest_verdict(comments)
+    ok = got == want
+    failures += not ok
+    print(f"{'ok  ' if ok else 'FAIL'} {name}: got {got!r}, want {want!r}")
+
+for name, comments, want in [
+    ("a security pass names its head", [security("CLEAN")], "abc1234"),
+    ("a code head is not a security head", [review("CLEAN")], None),
+]:
+    got = latest_head(comments)
     ok = got == want
     failures += not ok
     print(f"{'ok  ' if ok else 'FAIL'} {name}: got {got!r}, want {want!r}")

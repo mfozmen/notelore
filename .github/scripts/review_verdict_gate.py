@@ -1,9 +1,10 @@
 """Turns the AI reviewer's verdict line into the AI review check result.
 
 Called by .github/workflows/ai-review.yml after the review step. Reads the
-reviewer's own finished comment on the PR, finds its REVIEW-VERDICT line and
-exits non-zero on CRITICAL (or on no verdict at all), so a Critical finding
-fails the check instead of hiding behind a green tick.
+reviewer's own finished comment on the PR, verifies its REVIEWED-HEAD is the
+head this run reviewed, finds its REVIEW-VERDICT line and exits non-zero on
+CRITICAL (or on no verdict at all), so a Critical finding fails the check
+instead of hiding behind a green tick.
 
 Standard library only, on purpose: it needs nothing but python3.
 Adapted from mfozmen/conflict.
@@ -20,6 +21,8 @@ import urllib.request
 # A whole line, and only a whole line: prose that merely MENTIONS the marker
 # (a PR describing this very mechanism, for one) must not be read as a verdict.
 VERDICT = re.compile(r"^REVIEW-VERDICT: ([A-Z]+)$", re.MULTILINE)
+REVIEWED_HEAD = re.compile(r"^REVIEWED-HEAD: ([0-9a-f]{7,40})$", re.MULTILINE)
+SECURITY_REVIEWED_HEAD = re.compile(r"^SECURITY-REVIEWED-HEAD: ([0-9a-f]{7,40})$", re.MULTILINE)
 
 # Only the review action's own finished comment counts. Without this, anyone
 # able to comment on the PR could post "REVIEW-VERDICT: CLEAN" after a real
@@ -44,19 +47,19 @@ REVIEWER_SIGNATURES = (FINISHED_SIGNATURE, FALLBACK_SIGNATURE, SECURITY_FALLBACK
 # them apart. The other pass's own comments are skipped; a body carrying both
 # passes' lines (a quote, a slip, an injection) resets the verdict to none, so
 # the check fails closed instead of crossing over or keeping an older verdict.
-SECURITY_MARKERS = re.compile(r"^SECURITY-VERDICT:", re.MULTILINE)
+SECURITY_MARKERS = re.compile(r"^(SECURITY-VERDICT|SECURITY-REVIEWED-HEAD):", re.MULTILINE)
 REVIEW_MARKERS = re.compile(r"^(REVIEW-VERDICT|REVIEWED-HEAD):", re.MULTILINE)
 
 
-def latest_verdict(comments, marker=VERDICT, foreign=SECURITY_MARKERS, run_id=None):
-    """The verdict of the newest finished review comment, else None.
+def latest_line(comments, marker=VERDICT, foreign=SECURITY_MARKERS, run_id=None):
+    """The last line matching `marker` in the newest finished review comment.
 
     `comments` is a list of (author login, body) pairs, oldest first. Anything
     not written by the review action's own completed comment is ignored.
-    `marker` picks whose verdict: the code review's, or the security pass's
+    `marker` picks whose line: the code review's, or the security pass's
     (security_verdict_gate.py); `foreign` matches the other pass's lines.
     With `run_id`, only that workflow run's comment counts: its "View job"
-    link names the run, so an older run's verdict never stands in (#385).
+    link names the run, so an older run's line never stands in (#385).
     """
     own_run = run_id and re.compile(rf"/actions/runs/{re.escape(run_id)}(?!\d)")
     found = None
@@ -74,6 +77,21 @@ def latest_verdict(comments, marker=VERDICT, foreign=SECURITY_MARKERS, run_id=No
         if matches:
             found = matches[-1]
     return found
+
+
+def latest_verdict(comments, marker=VERDICT, foreign=SECURITY_MARKERS, run_id=None):
+    """The verdict of the newest finished review comment, else None."""
+    return latest_line(comments, marker, foreign, run_id)
+
+
+def latest_head(comments, marker=REVIEWED_HEAD, foreign=SECURITY_MARKERS, run_id=None):
+    """The reviewed head of the newest finished review comment, else None."""
+    return latest_line(comments, marker, foreign, run_id)
+
+
+def head_matches(expected, posted):
+    """Whether a posted head is the head this run reviewed; fails closed without one."""
+    return bool(expected) and posted == expected
 
 
 def fetch_bodies(repo, number, token):
@@ -128,7 +146,13 @@ def main():
     bodies = fetch_bodies(
         os.environ["GITHUB_REPOSITORY"], os.environ["PR_NUMBER"], os.environ["GH_TOKEN"]
     )
-    verdict = latest_verdict(bodies, run_id=os.environ.get("GITHUB_RUN_ID"))
+    run_id = os.environ.get("GITHUB_RUN_ID")
+    expected = os.environ.get("REVIEW_HEAD", "")
+    head = latest_head(bodies, run_id=run_id)
+    if not head_matches(expected, head):
+        print(f"::error::The review posted head {head or 'MISSING'}, expected {expected}.")
+        return 1
+    verdict = latest_verdict(bodies, run_id=run_id)
     print(f"reviewer verdict: {verdict or 'MISSING'} (from {len(bodies)} comment(s))")
     code, message = decide(verdict)
     print(message)

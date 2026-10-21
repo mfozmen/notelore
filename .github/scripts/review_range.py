@@ -1,11 +1,12 @@
 """Decides what the AI reviewer looks at: only what changed since its last review.
 
-Called by .github/workflows/ai-review.yml before the review step. The
-reviewer's own finished comment ends with a `REVIEWED-HEAD: <sha>` line, so the
-PR thread is the reviewer's notebook. This script finds the newest such line,
-checks the sha is still an ancestor of the PR head (a rebase or force-push makes
-it unreachable, and `git log A..B` would then list the whole branch), and hands
-the review step:
+Called by .github/workflows/ai-review.yml before each review step. The
+reviewer's own finished comment ends with a `REVIEWED-HEAD: <sha>` line (the
+security pass writes `SECURITY-REVIEWED-HEAD`), so the PR thread is the
+reviewer's notebook. This script finds the newest such line for the selected
+pass, checks the sha is still an ancestor of the PR head (a rebase or
+force-push makes it unreachable, and `git log A..B` would then list the whole
+branch), and hands the review step:
 
   mode     incremental | full | unchanged
   base     the last reviewed sha (incremental/unchanged), else empty
@@ -15,6 +16,8 @@ the review step:
   previous the previous summary itself (kept even after a force-push), so open
            findings are checked closed rather than re-derived; passed inline
            because the reviewer may not read files outside the checkout
+  previous_verdict  the last verdict in `previous`, or empty; an unchanged
+           range still has to re-run when it left a Critical open
 
 Standard library only. Adapted from mfozmen/conflict.
 Tests: .github/scripts/test_review_range.py (run by ci.yml).
@@ -30,30 +33,56 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from review_verdict_gate import REVIEWER_LOGIN, REVIEWER_SIGNATURES, SECURITY_MARKERS, fetch_bodies
+from review_verdict_gate import (
+    REVIEWED_HEAD,
+    REVIEW_MARKERS,
+    REVIEWER_LOGIN,
+    REVIEWER_SIGNATURES,
+    SECURITY_MARKERS,
+    SECURITY_REVIEWED_HEAD,
+    fetch_bodies,
+)
 
-REVIEWED_HEAD = re.compile(r"^REVIEWED-HEAD: ([0-9a-f]{7,40})$", re.MULTILINE)
+REVIEW_VERDICT = re.compile(r"^REVIEW-VERDICT: (CRITICAL|WARNING|CLEAN)$", re.MULTILINE)
+SECURITY_VERDICT = re.compile(r"^SECURITY-VERDICT: (CRITICAL|WARNING|CLEAN)$", re.MULTILINE)
 
 
-def last_review(comments):
-    """(reviewed sha, body) of the newest finished review naming its head, else (None, None).
+def last_review(comments, security=False):
+    """(reviewed sha, body) of the newest finished review for this pass, else (None, None).
 
     `comments` is (author login, body) pairs, oldest first; only the review
-    action's own completed comment counts, as in the verdict gate.
+    action's own completed comment counts, as in the verdict gate. `security`
+    selects the security pass, so the two heads never stand in for each other.
     """
+    marker = SECURITY_REVIEWED_HEAD if security else REVIEWED_HEAD
     found = (None, None)
     for login, body in comments:
         body = body or ""
         if login != REVIEWER_LOGIN or not body.startswith(REVIEWER_SIGNATURES):
             continue
-        matches = REVIEWED_HEAD.findall(body)
-        if SECURITY_MARKERS.search(body):  # the security pass's, never a code review's head
-            if matches:
+        is_security = bool(SECURITY_MARKERS.search(body))
+        if is_security != security:
+            if is_security and not security and marker.findall(body):
                 found = (None, None)  # both passes' lines: the next review is a full one
             continue
+        if security:
+            if REVIEW_MARKERS.search(body):
+                if marker.findall(body):
+                    found = (None, None)  # both passes' lines: fail closed
+                continue
+            if not SECURITY_VERDICT.search(body):
+                continue
+        elif not REVIEW_VERDICT.search(body):
+            continue
+        matches = marker.findall(body)
         if matches:
             found = (matches[-1], body)
     return found
+
+
+def previous_verdict(body, security=False):
+    matches = (SECURITY_VERDICT if security else REVIEW_VERDICT).findall(body or "")
+    return matches[-1] if matches else ""
 
 
 def choose_mode(base, head, is_ancestor):
@@ -112,8 +141,9 @@ def write_outputs(path, values, delimiter=None):
 def main():
     repo, number = os.environ["GITHUB_REPOSITORY"], os.environ["PR_NUMBER"]
     token = os.environ["GH_TOKEN"]
+    security = os.environ.get("REVIEW_KIND") == "security"
     head = pr_head(repo, number, token)
-    base, previous = last_review(fetch_bodies(repo, number, token))
+    base, previous = last_review(fetch_bodies(repo, number, token), security)
     mode = choose_mode(base or "", head, is_ancestor)
     commits = own_commits(base, head) if mode == "incremental" else ""
     if mode == "incremental" and not commits:
@@ -126,9 +156,11 @@ def main():
             "head": head,
             "commits": commits,
             "previous": previous or "(none)",
+            "previous_verdict": previous_verdict(previous, security),
         },
     )
-    print(f"review range: mode={mode} base={base or '-'} head={head}")
+    label = "security " if security else ""
+    print(f"{label}review range: mode={mode} base={base or '-'} head={head}")
 
 
 if __name__ == "__main__":
