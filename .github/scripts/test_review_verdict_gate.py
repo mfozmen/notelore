@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from review_verdict_gate import REVIEWER_LOGIN, decide, latest_verdict
+from review_verdict_gate import REVIEWER_LOGIN, decide, head_matches, latest_head, latest_verdict
 
 BOT = REVIEWER_LOGIN
 DONE = "**Claude finished @owner's task in 2m** ---\n"
@@ -23,6 +23,10 @@ def review(verdict):
 def fallback(verdict):
     """The emergency reviewer's comment, with the same verdict contract."""
     return (BOT, FALLBACK + "findings...\n\nREVIEW-VERDICT: " + verdict)
+
+
+def reviewed(verdict, head="abc1234"):
+    return (BOT, DONE + f"findings...\n\nREVIEWED-HEAD: {head}\nREVIEW-VERDICT: {verdict}")
 
 
 cases = [
@@ -116,6 +120,27 @@ for verdict, want_code in [
     ok = code == want_code
     failures += not ok
     print(f"{'ok  ' if ok else 'FAIL'} decide({verdict!r}) -> {code}, want {want_code}")
+
+for name, comments, want in [
+    ("a review names its head", [reviewed("CLEAN")], "abc1234"),
+    ("a human head is ignored", [reviewed("CLEAN"), ("someone", "REVIEWED-HEAD: 0000000")], "abc1234"),
+    ("a mixed body resets the head", [reviewed("CLEAN"), (BOT, DONE + "REVIEWED-HEAD: def5678\nSECURITY-VERDICT: CLEAN")], None),
+]:
+    got = latest_head(comments)
+    ok = got == want
+    failures += not ok
+    print(f"{'ok  ' if ok else 'FAIL'} {name}: got {got!r}, want {want!r}")
+
+for name, expected, head, want in [
+    ("no expected head", "", None, True),
+    ("the posted head matches", "abc1234", "abc1234", True),
+    ("a different head fails", "abc1234", "def5678", False),
+    ("a missing head fails when expected", "abc1234", None, False),
+]:
+    got = head_matches(expected, head)
+    ok = got == want
+    failures += not ok
+    print(f"{'ok  ' if ok else 'FAIL'} {name}: got {got}, want {want}")
 
 print("ALL PASS" if failures == 0 else f"{failures} FAILURE(S)")
 sys.exit(1 if failures else 0)

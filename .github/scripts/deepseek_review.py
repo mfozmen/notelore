@@ -63,7 +63,7 @@ def cap_diff(diff):
     return diff[:MAX_DIFF_CHARS] + "\n\n[diff truncated: the review saw only the first part]"
 
 
-def collect_diff(number, mode, commits, run=subprocess.run):
+def collect_diff(number, mode, commits, run=subprocess.run, base="", head="", kind="code"):
     if mode == "unchanged":
         return ""
     if mode == "incremental":
@@ -81,6 +81,16 @@ def collect_diff(number, mode, commits, run=subprocess.run):
             if result.returncode != 0:
                 raise ReviewError(f"git show {sha} failed: {result.stderr.strip()}")
             parts.append(result.stdout)
+        if kind == "security" and base and head:
+            result = run(
+                ["git", "diff", "--no-color", f"{base}...{head}"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode != 0:
+                raise ReviewError(f"git diff {base}...{head} failed: {result.stderr.strip()}")
+            parts.append("Cumulative range diff (includes merge resolutions):\n" + result.stdout)
         return "\n".join(parts)
     result = run(
         ["gh", "pr", "diff", str(number)],
@@ -213,13 +223,14 @@ def main():
     run_id = required("GITHUB_RUN_ID")
     mode = os.environ.get("REVIEW_MODE", "full")
     commits = os.environ.get("REVIEW_COMMITS", "")
+    base = os.environ.get("REVIEW_BASE", "")
     previous = os.environ.get("REVIEW_PREVIOUS", "(none)")
     model = os.environ.get("REVIEW_MODEL") or DEFAULT_MODEL
 
     if mode == "unchanged":
         text = unchanged_review(previous)
     else:
-        diff = cap_diff(collect_diff(number, mode, commits))
+        diff = cap_diff(collect_diff(number, mode, commits, base=base, head=head, kind=kind))
         text = call_model(api_key, model, build_messages(kind, diff, head, previous))
     body = format_body(kind, text, head, run_id, repo)
     post_comment(repo, number, required("GH_TOKEN"), body)

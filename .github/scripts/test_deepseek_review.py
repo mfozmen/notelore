@@ -121,12 +121,19 @@ def fake_run(args, **kwargs):
         return run_ok(args, "full diff")
     if args[:2] == ["git", "show"]:
         return run_ok(args, f"show {args[-1]}")
+    if args[:2] == ["git", "diff"]:
+        return run_ok(args, "range diff")
     raise AssertionError(args)
 
 
 check("full mode asks gh for the PR diff", collect_diff(12, "full", "", fake_run), "full diff")
 check("incremental mode shows each commit", collect_diff(12, "incremental", "abc fix\ndef two", fake_run),
       "show abc\nshow def")
+security_diff = collect_diff(
+    12, "incremental", "abc fix", fake_run, base="base", head="head", kind="security"
+)
+check_true("incremental security also sees the range diff", "range diff" in security_diff)
+check_true("incremental security still shows each commit", "show abc" in security_diff)
 check("unchanged asks for no diff", collect_diff(12, "unchanged", "", fake_run), "")
 check("an unchanged review keeps the previous critical",
       parse_verdict(unchanged_review("REVIEW-VERDICT: CRITICAL")), "CRITICAL")
