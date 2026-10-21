@@ -61,7 +61,7 @@ same kind did not fix it (v4). The 70% target in #327 is not met.
 | x86_64 Android 15 emulator, CPU | 3,237 tokens | 11.2 s | 552 s | 6.2 s | 4.5 GB |
 
 The S23's warm decode fell to 0.3 tok/s as the phone heated. The slim prompt is
-1,828 tokens: 42% fewer than the emulator's 3,237-token prompt and about 32%
+1,828 tokens: about 43% fewer than the emulator's 3,237-token prompt and about 32%
 fewer than the S23's 2,707. That should put a cold turn near 90 s on the S23 at
 the same prefill rate; that run has not been done. The emulator is a rough
 guide only, but its 4.5 GB peak matches the 6 GB phone floor. Desktop speed has
