@@ -1,10 +1,11 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "instructions": ["CLAUDE.md"],
+  "plugin": [["commentie", { "hook": true }]],
   "references": {
     "commentie": {
       "repository": "mfozmen/commentie",
-      "description": "commentie's canonical comment rule, cleanup steps, critic agent and check script; tool/check_comments.py is a byte-identical copy"
+      "description": "commentie's canonical comment rule, cleanup steps, critic agent and check script; the repository keeps a copy at tool/check_comments.py"
     }
   },
   "permission": {
@@ -13,9 +14,6 @@
       "*.env": "deny",
       "*.env.*": "deny",
       "*.env.example": "allow"
-    },
-    "external_directory": {
-      "~/.claude/plugins/cache/devkit/**": "allow"
     },
     "bash": {
       "git push --force*": "deny",
