@@ -39,6 +39,7 @@ final class ProviderSpec {
     required this.cost,
     this.webSearch = false,
     this.images = false,
+    this.imageModels = const {},
   });
 
   final String name;
@@ -58,6 +59,12 @@ final class ProviderSpec {
   /// The models take images with a message (#278). Ollama's may or may not,
   /// depending on the local model, so it is not offered there.
   final bool images;
+
+  /// The models that take images when only some of them do; empty means all.
+  final Set<String> imageModels;
+
+  /// Whether [model] can look at an image sent with a message.
+  bool takesImages(String model) => images && (imageModels.isEmpty || imageModels.contains(model));
 }
 
 const providerSpecs = [
@@ -121,6 +128,25 @@ const providerSpecs = [
     keySteps: [
       'Sign in to Google AI Studio.',
       'Choose Create API key and copy it.',
+      'Paste the key below.',
+    ],
+  ),
+  ProviderSpec(
+    'deepseek',
+    'DeepSeek',
+    group: ProviderGroup.apiKey,
+    images: true,
+    imageModels: {'deepseek-flash'},
+    requiresApiKey: true,
+    defaultModel: 'deepseek-flash',
+    cost:
+        'Billed per use by DeepSeek through your own API key: about \$0.15 per million input '
+        'tokens and \$0.60 per million output at off-peak, double at peak. A DeepSeek web '
+        'subscription cannot be used in other apps.',
+    keyUrl: 'https://platform.deepseek.com/api_keys',
+    keySteps: [
+      'Sign in to the DeepSeek Platform and add a little credit.',
+      'Choose Create new API key, give it a name such as notelore, and copy it.',
       'Paste the key below.',
     ],
   ),

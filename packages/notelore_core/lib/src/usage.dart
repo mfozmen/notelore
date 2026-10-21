@@ -26,7 +26,7 @@ final class Price {
 }
 
 /// The day [prices] were taken from the providers' price pages.
-const pricesTaken = '2026-10-17';
+const pricesTaken = '2026-10-21';
 
 /// List prices of the models people are likely to pick; any other model has
 /// no cost estimate.
@@ -44,6 +44,7 @@ const prices = {
   'gemini-2.5-pro': Price(1.25, 10),
   'gemini-2.5-flash': Price(0.30, 2.50),
   'gemini-2.5-flash-lite': Price(0.10, 0.40),
+  'deepseek-flash': Price(0.15, 0.60),
 };
 
 /// Providers whose use has no per-token charge.

@@ -56,7 +56,7 @@ Core (`packages/notelore_core/lib/src/`):
 - `store/index.dart`: SQLite index (FTS5, `LIKE` fallback) rebuilt from the files; decision lookups.
 - `store/stale.dart`: deterministic cleanup candidates.
 - `store/transfer.dart`: importing a shared note without overwriting (a taken name gets "(2)"), and the HTML page and plain outline exports are built from.
-- `providers/`: one `LlmProvider` interface over Anthropic, OpenAI, Gemini and Ollama, plain HTTPS through an injectable `Transport`, and key validation by listing models.
+- `providers/`: one `LlmProvider` interface over Anthropic, OpenAI, Gemini, DeepSeek and Ollama, plain HTTPS through an injectable `Transport`, and key validation by listing models.
 - `agent.dart`: the tool-use loop; `tools.dart`: the narrow tools the agent may call (contracts in the library doc).
 - `links.dart`: reading the web pages a message links to (http(s) only, size and time limits) and handing their text to the model as data.
 - `usage.dart`: the tokens each model call reported, per conversation and on this device, and the dated price table cost estimates come from.
