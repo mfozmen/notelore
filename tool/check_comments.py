@@ -2,7 +2,7 @@
 """Flag narrative comments in the added lines of a git diff.
 
 Usage:
-  check_comments.py [--staged] [RANGE] [--diff-file F] [--hook]
+  check_comments.py [--staged] [RANGE] [--diff-file F] [--file F] [--hook]
                     [--strict] [--allowlist PATH] [--max-block N] [--self-test]
 
 Output is file:line: reason. Exit 0, or 1 with --strict when anything is flagged.
@@ -316,6 +316,7 @@ def main(argv=None):
     ap.add_argument("range", nargs="?", help="git range such as main..HEAD (default: staged changes)")
     ap.add_argument("--staged", action="store_true", help="check staged changes (default)")
     ap.add_argument("--diff-file", help="read a unified diff from this file, or - for stdin")
+    ap.add_argument("--file", help="check one file's changes against HEAD (whole file if untracked)")
     ap.add_argument("--hook", action="store_true", help="PostToolUse mode: read hook JSON on stdin")
     ap.add_argument("--strict", action="store_true", help="exit 1 when anything is flagged")
     ap.add_argument("--allowlist", default=".commentie-allow",
@@ -335,6 +336,12 @@ def main(argv=None):
         else:
             with open(args.diff_file, encoding="utf-8") as f:
                 diff = f.read()
+    elif args.file:
+        cwd = os.getcwd()
+        tracked = subprocess.run(["git", "ls-files", "--error-unmatch", args.file],
+                                 cwd=cwd, capture_output=True).returncode == 0
+        diff = git("diff", "-U0", "HEAD", "--", args.file, cwd=cwd) if tracked \
+            else file_as_diff(args.file, cwd)
     elif args.range:
         diff = git("diff", "-U0", args.range)
     else:
