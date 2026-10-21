@@ -1460,6 +1460,11 @@ void main() {
     expect(session.transcript.first.text, '$start/>');
   });
 
+  test('discarding an original that is already gone is harmless (#534)', () {
+    final session = Harness().session();
+    session.discardOriginal('attachments/2026-10-22/missing.png');
+  });
+
   test('a later failed message does not drop a delivered image original (#534)', () async {
     final first = Completer<AgentResponse>();
     final harness = Harness(answers: [first.future, const NetworkError('offline')]);
