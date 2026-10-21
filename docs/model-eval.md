@@ -2,6 +2,8 @@
 
 Notelore should run on a free model on the user's device, with no server of our own. Paid plans and keys stay options. This page records how small open models do on the eval set (`eval/cases.json`, run with `notelore_dev eval`), so the default model is chosen by measurement.
 
+Decision and risks: [on-device-model-feasibility.md](on-device-model-feasibility.md).
+
 ## Baseline, 2026-10-18 (#326)
 
 Setup: 38 cases (EN and TR) through the Ollama provider, with `num_ctx` 16384 and `think: false` (#336). Hardware: an RTX 4070 laptop (8 GB), Ollama 0.40.5, Q4 models as Ollama ships them. A case passes only if the right tools were called, only the expected notes changed, they hold the expected facts, and the answer has the expected facts.
