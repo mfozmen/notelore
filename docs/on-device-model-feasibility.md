@@ -20,8 +20,8 @@ needs.
 - Model: Qwen3-4B-Instruct-2507, Q4_K_M, about 2.5 GB, Apache-2.0. The app pins
   one revision and checks its SHA-256 (`device_model.dart`).
 - Runtime: llama.cpp through llamadart 0.14.0, CPU only, behind the core
-  `LocalProvider` and a small `LocalEngine` interface. The native glue is
-  covered by the fake engine in tests.
+  `LocalProvider` and a small `LocalEngine` interface. The Dart side is tested
+  against a fake engine; the native glue is validated on-device.
 - Training: QLoRA on synthetic turns from two teachers, filtered by the eval
   scorer. v1 and v3/v4 are documented in `docs/model-eval.md`.
 - Platforms: Android 64-bit with at least 6 GB of memory, Windows and macOS 14
@@ -40,8 +40,11 @@ group, not across.
 | Stock Qwen3-4B-Instruct-2507 (non-thinking) | 38 | 26% | 1.3 s |
 | Fine-tune v1 | 38 | 61% | 2.1 s |
 | Qwen3-4B thinking (teacher) | 38 | 68% | 52 s |
-| Fine-tune v3 | 44 | 23/44, 22/44 slim (~51%); 28/44 full (64%) | - |
-| Fine-tune v4 | 44 | 21/44, 24/44 slim (~51%) | - |
+| Fine-tune v3, slim run 1 | 44 | 52% (23/44) | - |
+| Fine-tune v3, slim run 2 | 44 | 50% (22/44) | - |
+| Fine-tune v3, full | 44 | 64% (28/44) | - |
+| Fine-tune v4, slim run 1 | 44 | 48% (21/44) | - |
+| Fine-tune v4, slim run 2 | 44 | 55% (24/44) | - |
 
 The app currently ships the stock model; the slim fine-tune numbers are the
 best evidence for the slim prompt, not a measurement of the stock model. The
@@ -58,7 +61,8 @@ same kind did not fix it (v4). The 70% target in #327 is not met.
 | x86_64 Android 15 emulator, CPU | 3,237 tokens | 11.2 s | 552 s | 6.2 s | 4.5 GB |
 
 The S23's warm decode fell to 0.3 tok/s as the phone heated. The slim prompt is
-1,828 tokens (42% fewer), which should put a cold turn near 90 s on the S23 at
+1,828 tokens: 42% fewer than the emulator's 3,237-token prompt and about 32%
+fewer than the S23's 2,707. That should put a cold turn near 90 s on the S23 at
 the same prefill rate; that run has not been done. The emulator is a rough
 guide only, but its 4.5 GB peak matches the 6 GB phone floor. Desktop speed has
 more headroom, but no published measurement yet.
