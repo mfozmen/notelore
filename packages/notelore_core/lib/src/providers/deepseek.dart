@@ -52,27 +52,7 @@ List<Map<String, Object?>> toDeepSeek(List<Message> messages) => [
 
 List<Map<String, Object?>> _toDeepSeek(Message message) {
   final (:texts, :uses, :results, :images) = splitBlocks(message['content']);
-  if (message['role'] == 'assistant') {
-    return [
-      {
-        'role': 'assistant',
-        'content': texts.join(),
-        if (uses.any((u) => u['id'] != null))
-          'tool_calls': [
-            for (final use in uses)
-              if (use['id'] != null)
-                {
-                  'id': '${use['id']}',
-                  'type': 'function',
-                  'function': {
-                    'name': use['name'] ?? '',
-                    'arguments': jsonEncode(use['input'] ?? const <String, Object?>{}),
-                  },
-                },
-          ],
-      },
-    ];
-  }
+  if (message['role'] == 'assistant') return [_assistantMessage(texts, uses)];
   return [
     for (final result in results)
       {
@@ -80,20 +60,46 @@ List<Map<String, Object?>> _toDeepSeek(Message message) {
         'tool_call_id': result['tool_use_id'] ?? '',
         'content': result['content'] ?? '',
       },
-    if (images.isEmpty)
-      for (final text in texts) {'role': 'user', 'content': text}
-    else
-      {
-        'role': 'user',
-        'content': [
-          for (final text in texts) {'type': 'text', 'text': text},
-          for (final image in images)
-            {
-              'type': 'image_url',
-              'image_url': {'url': _imageUrl(image)},
+    ..._userMessages(texts, images),
+  ];
+}
+
+Map<String, Object?> _assistantMessage(List<String> texts, List<Block> uses) => {
+  'role': 'assistant',
+  'content': texts.join(),
+  if (uses.any((use) => use['id'] != null))
+    'tool_calls': [
+      for (final use in uses)
+        if (use['id'] != null)
+          {
+            'id': '${use['id']}',
+            'type': 'function',
+            'function': {
+              'name': use['name'] ?? '',
+              'arguments': jsonEncode(use['input'] ?? const <String, Object?>{}),
             },
-        ],
-      },
+          },
+    ],
+};
+
+List<Map<String, Object?>> _userMessages(List<String> texts, List<Block> images) {
+  if (images.isEmpty) {
+    return [
+      for (final text in texts) {'role': 'user', 'content': text},
+    ];
+  }
+  return [
+    {
+      'role': 'user',
+      'content': [
+        for (final text in texts) {'type': 'text', 'text': text},
+        for (final image in images)
+          {
+            'type': 'image_url',
+            'image_url': {'url': _imageUrl(image)},
+          },
+      ],
+    },
   ];
 }
 
@@ -110,28 +116,29 @@ AgentResponse fromDeepSeek(Object? answer) {
   if (choice is! Map) return const AgentResponse([], 'end_turn');
   final message = choice['message'];
   if (message is! Map) return const AgentResponse([], 'end_turn');
-  final blocks = <Block>[
-    if (message['content'] case final String text when text.isNotEmpty)
-      {'type': 'text', 'text': text},
-    for (final call
-        in (message['tool_calls'] as List? ?? const []).whereType<Map<Object?, Object?>>())
-      if (call['function'] case final Map<Object?, Object?> function)
-        {
-          'type': 'tool_use',
-          'id': call['id'] == null ? synthesizedToolId() : '${call['id']}',
-          'name': function['name'] ?? '',
-          'input': parseArguments(function['arguments']),
-        },
-  ];
-  final usage = switch (answer['usage']) {
-    {'prompt_tokens': final int input, 'completion_tokens': final int output} => TokenUsage(
-      input,
-      output,
-    ),
-    _ => null,
-  };
+  final blocks = _deepSeekBlocks(message);
   final finish = choice['finish_reason'];
   final toolUse = finish == 'tool_calls' && blocks.any((block) => block['type'] == 'tool_use');
   if (!toolUse && finish is String && finish != 'stop') blocks.add(stoppedEarly(finish));
-  return AgentResponse(blocks, toolUse ? 'tool_use' : 'end_turn', usage: usage);
+  return AgentResponse(blocks, toolUse ? 'tool_use' : 'end_turn', usage: _deepSeekUsage(answer));
 }
+
+List<Block> _deepSeekBlocks(Map<Object?, Object?> message) => [
+  if (message['content'] case final String text when text.isNotEmpty)
+    {'type': 'text', 'text': text},
+  for (final call
+      in (message['tool_calls'] as List? ?? const []).whereType<Map<Object?, Object?>>())
+    if (call['function'] case final Map<Object?, Object?> function)
+      {
+        'type': 'tool_use',
+        'id': call['id'] == null ? synthesizedToolId() : '${call['id']}',
+        'name': function['name'] ?? '',
+        'input': parseArguments(function['arguments']),
+      },
+];
+
+TokenUsage? _deepSeekUsage(Object? answer) => switch (answer) {
+  {'usage': {'prompt_tokens': final int input, 'completion_tokens': final int output}} =>
+    TokenUsage(input, output),
+  _ => null,
+};
