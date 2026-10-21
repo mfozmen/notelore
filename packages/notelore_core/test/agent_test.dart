@@ -327,6 +327,25 @@ void main() {
     expect(attachedFiles(message).text, 'memo');
   });
 
+  test('an image kept on the device says where, for the note to link it (#534)', () {
+    expect(systemPrompt(today), contains('When it is marked original="path"'));
+    final message = withAttachments(
+      'what is it',
+      [],
+      images: ['photo.png'],
+      originals: {'photo.png': 'attachments/2026-10-22/photo.png'},
+    );
+    expect(
+      message,
+      'what is it\n\n'
+      '<attached image="photo.png" original="attachments/2026-10-22/photo.png"/>',
+    );
+    final shown = attachedFiles(message);
+    expect(shown.text, 'what is it');
+    expect(shown.images, ['photo.png']);
+    expect(shown.files, isEmpty);
+  });
+
   test('an attached image is named in the message; its picture goes as a block (#278)', () {
     expect(systemPrompt(today), contains('<attached image='));
     final message = withAttachments(

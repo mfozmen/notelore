@@ -851,6 +851,15 @@ void main() {
     await tester.tap(find.byTooltip('Attach a file'));
     await tester.pump();
     expect(harness.provider.asked.single, allOf(contains('what is it'), contains('image/gif')));
+    expect(
+      harness.provider.asked.single,
+      contains(RegExp(r'<attached image="r\.gif" original="attachments/[\d-]+/r\.gif"/>')),
+    );
+    final kept = Directory(p.join(harness.paths.notes.path, 'attachments'))
+        .listSync(recursive: true)
+        .whereType<File>()
+        .single;
+    expect(kept.readAsBytesSync(), gif);
     expect(find.text('r.gif'), findsOneWidget); // its name in the bubble, not its bytes
     expect(find.bySemanticsLabel('Image: r.gif'), findsOneWidget); // told apart from a file
     // While that turn runs, another image cannot join it.

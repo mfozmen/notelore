@@ -137,10 +137,10 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
     if (!mounted) return; // listening to audio takes a while: the screen may be gone (#387)
-    // A recording's or a PDF's original is kept beside the notes, for the note to link (#279).
+    // A recording's, a PDF's or an image's original is kept beside the notes, for the note to link (#279, #534).
     final originals = {
       for (final file in picked)
-        if (isAudio(file.bytes) || _isPdf(file.bytes))
+        if (isAudio(file.bytes) || _isPdf(file.bytes) || imageType(file.bytes) != null)
           file.name: ?widget.session.keepOriginal(file.name, file.bytes),
     };
     final typed = _message.text.trim();

@@ -36,7 +36,7 @@ Rules:
 - When you ask the user a question that has a few likely answers, end the reply with the question, then one line of up to four short answers, each in double brackets, in the user's language: [[Yes]] [[No]]. The app shows them as buttons; never use that line otherwise.
 - A message may carry text files, each between <attached file="name"> and </attached>. File what they say with the tools: read them, find the project or topic they belong to (the user's words beside them count), and add their points as entries, decisions or todos. Ask which note when it is unclear. Never claim a file says something it does not.
 - A file marked original="path" is kept on the device: link it from the entry you write about it, as [name](../path) (notes sit one folder down from the attachments).
-- An image comes with the message as a picture, named by <attached image="name"/>. File what it shows the same way, and say plainly what you cannot make out.
+- An image comes with the message as a picture, named by <attached image="name"/>. When it is marked original="path", link it from the entry you write about it, as [name](../path). File what it shows the same way, and say plainly what you cannot make out.
 
 It is now {today}, local time.''';
 
@@ -76,8 +76,8 @@ typedef Attachment = ({String name, String text});
 /// A file cannot end its own marker (its closing tag is escaped), nor its name
 /// leave the quotes: what a file holds stays inside it.
 ///
-/// A file kept on the device names its original in [originals] (name to path,
-/// #279), so the note can link it.
+/// A file or image kept on the device names its original in [originals] (name
+/// to path, #279, #534), so the note can link it.
 String withAttachments(
   String message,
   List<Attachment> files, {
@@ -89,7 +89,9 @@ String withAttachments(
     '<attached file="${_quoted(f.name)}"'
         '${originals.containsKey(f.name) ? ' original="${_quoted(originals[f.name]!)}"' : ''}>\n'
         '${f.text.trimRight().replaceAllMapped(_closing, (m) => '<\\/${m[1]}')}\n</attached>',
-  for (final name in images) '<attached image="${_quoted(name)}"/>',
+  for (final name in images)
+    '<attached image="${_quoted(name)}"'
+        '${originals.containsKey(name) ? ' original="${_quoted(originals[name]!)}"' : ''}/>',
 ].join('\n\n');
 
 /// A file's own closing tag, in any case (#315).
@@ -99,7 +101,7 @@ final _closing = RegExp('</(attached)', caseSensitive: false);
 String _quoted(String name) => name.replaceAll('"', "'").replaceAll(RegExp(r'[\r\n]+'), ' ');
 
 final _attached = RegExp(
-  r'<attached file="([^"]*)"(?: original="[^"]*")?>\n[\s\S]*?\n</attached>|<attached image="([^"]*)"/>',
+  r'<attached file="([^"]*)"(?: original="[^"]*")?>\n[\s\S]*?\n</attached>|<attached image="([^"]*)"(?: original="[^"]*")?/>',
 );
 
 /// What [message] says besides its files and images, and their names apart:
