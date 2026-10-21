@@ -2,8 +2,9 @@
 
 The paths the security-reviewer agent covers: auth, providers, sync, the app
 lock, the updater, platform manifests, dependencies, workflows and the CI
-scripts that gate them. Writes `files` (one per line) and `touched` (true or
-false) to GITHUB_OUTPUT.
+scripts that gate them. When RANGE_BASE is set it checks only the commits since
+that head, so a security review can be incremental. Writes `files` (one per
+line) and `touched` (true or false) to GITHUB_OUTPUT.
 
 Standard library only. Tests: .github/scripts/test_sensitive_paths.py.
 """
@@ -60,8 +61,12 @@ def changed_files(base, cwd=None):
     return [f for f in out.split("\0") if f]
 
 
+def base_ref(env):
+    return env.get("RANGE_BASE") or env.get("BASE_REF", "origin/main")
+
+
 def main():
-    changed = changed_files(os.environ.get("BASE_REF", "origin/main"))
+    changed = changed_files(base_ref(os.environ))
     found = sensitive(changed)
     print(f"{len(found)} of {len(changed)} changed file(s) are sensitive")
     # review_range's writer: a random heredoc delimiter no file name can close.

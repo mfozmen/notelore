@@ -20,11 +20,21 @@ FALLBACK = "**DeepSeek security review finished**\n"
 
 
 def security(verdict):
-    return (BOT, DONE + "security findings...\n\nSECURITY-VERDICT: " + verdict)
+    return (
+        BOT,
+        DONE
+        + "security findings...\n\nSECURITY-REVIEWED-HEAD: abc1234\nSECURITY-VERDICT: "
+        + verdict,
+    )
 
 
 def fallback_security(verdict):
-    return (BOT, FALLBACK + "security findings...\n\nSECURITY-VERDICT: " + verdict)
+    return (
+        BOT,
+        FALLBACK
+        + "security findings...\n\nSECURITY-REVIEWED-HEAD: abc1234\nSECURITY-VERDICT: "
+        + verdict,
+    )
 
 
 def review(verdict):

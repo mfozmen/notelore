@@ -9,12 +9,13 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from review_range import choose_mode, last_review, write_outputs
+from review_range import SECURITY_REVIEWED_HEAD, choose_mode, last_review, write_outputs
 from review_verdict_gate import REVIEWER_LOGIN
 
 BOT = REVIEWER_LOGIN
 DONE = "**Claude finished @owner's task in 2m** ---\n"
 FALLBACK = "**DeepSeek review finished**\n"
+SECURITY_FALLBACK = "**DeepSeek security review finished**\n"
 
 
 def review(sha):
@@ -23,6 +24,13 @@ def review(sha):
 
 def fallback(sha):
     return (BOT, FALLBACK + "findings...\n\nREVIEWED-HEAD: " + sha + "\nREVIEW-VERDICT: CLEAN")
+
+
+def security(sha, signature=DONE):
+    return (
+        BOT,
+        signature + "findings...\n\nSECURITY-REVIEWED-HEAD: " + sha + "\nSECURITY-VERDICT: CLEAN",
+    )
 
 
 failures = 0
@@ -72,6 +80,35 @@ check(
 check(
     "prose mentioning the marker mid-line is not a head",
     last_review([(BOT, DONE + "we write REVIEWED-HEAD: abc1234 at the end")])[0],
+    None,
+)
+check(
+    "a security review names its own head",
+    last_review([security("abc1234")], SECURITY_REVIEWED_HEAD, security=True)[0],
+    "abc1234",
+)
+check(
+    "a fallback security review names its own head",
+    last_review(
+        [security("abc1234", SECURITY_FALLBACK)], SECURITY_REVIEWED_HEAD, security=True
+    )[0],
+    "abc1234",
+)
+check(
+    "the newest security review wins",
+    last_review(
+        [security("abc1234"), security("def5678")], SECURITY_REVIEWED_HEAD, security=True
+    )[0],
+    "def5678",
+)
+check(
+    "the code range ignores the security head",
+    last_review([security("abc1234")])[0],
+    None,
+)
+check(
+    "the security range ignores the code head",
+    last_review([review("abc1234")], SECURITY_REVIEWED_HEAD, security=True)[0],
     None,
 )
 

@@ -34,7 +34,13 @@ cases = [
     ("a critical fallback review", [fallback("CRITICAL")], "CRITICAL"),
     (
         "the fallback security pass is not the code review",
-        [(BOT, "**DeepSeek security review finished**\nSECURITY-VERDICT: CLEAN")],
+        [
+            (
+                BOT,
+                "**DeepSeek security review finished**\n"
+                "SECURITY-REVIEWED-HEAD: abc1234\nSECURITY-VERDICT: CLEAN",
+            )
+        ],
         None,
     ),
     (

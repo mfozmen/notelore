@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from sensitive_paths import changed_files, sensitive
+from sensitive_paths import base_ref, changed_files, sensitive
 
 cases = [
     ("a provider", "packages/notelore_core/lib/src/providers/chatgpt.dart", True),
@@ -51,6 +51,16 @@ got = sensitive(["README.md", "apps/notelore/lib/src/update.dart", "docs/x.md"])
 ok = got == ["apps/notelore/lib/src/update.dart"]
 failures += not ok
 print(f"{'ok  ' if ok else 'FAIL'} a mixed change names only its sensitive files: got {got}")
+
+for name, env, want in [
+    ("a security range wins over the PR base", {"RANGE_BASE": "abc", "BASE_REF": "def"}, "abc"),
+    ("the PR base is the fallback", {"BASE_REF": "def"}, "def"),
+    ("the default base is main", {}, "origin/main"),
+]:
+    got = base_ref(env)
+    ok = got == want
+    failures += not ok
+    print(f"{'ok  ' if ok else 'FAIL'} {name}: got {got}, want {want}")
 
 
 # A sensitive file renamed to an ordinary path must still count: git would

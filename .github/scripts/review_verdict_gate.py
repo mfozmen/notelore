@@ -44,7 +44,7 @@ REVIEWER_SIGNATURES = (FINISHED_SIGNATURE, FALLBACK_SIGNATURE, SECURITY_FALLBACK
 # them apart. The other pass's own comments are skipped; a body carrying both
 # passes' lines (a quote, a slip, an injection) resets the verdict to none, so
 # the check fails closed instead of crossing over or keeping an older verdict.
-SECURITY_MARKERS = re.compile(r"^SECURITY-VERDICT:", re.MULTILINE)
+SECURITY_MARKERS = re.compile(r"^(SECURITY-VERDICT|SECURITY-REVIEWED-HEAD):", re.MULTILINE)
 REVIEW_MARKERS = re.compile(r"^(REVIEW-VERDICT|REVIEWED-HEAD):", re.MULTILINE)
 
 

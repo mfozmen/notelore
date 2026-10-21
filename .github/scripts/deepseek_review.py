@@ -35,7 +35,10 @@ PREVIOUS_VERDICT = re.compile(
     r"^(?:REVIEW-VERDICT|SECURITY-VERDICT|VERDICT): (CRITICAL|WARNING|CLEAN)\s*$",
     re.MULTILINE,
 )
-CONTRACT_LINES = re.compile(r"^(REVIEWED-HEAD|REVIEW-VERDICT|SECURITY-VERDICT):.*$", re.MULTILINE)
+CONTRACT_LINES = re.compile(
+    r"^(REVIEWED-HEAD|REVIEW-VERDICT|SECURITY-REVIEWED-HEAD|SECURITY-VERDICT):.*$",
+    re.MULTILINE,
+)
 VERDICTS = {"CRITICAL", "WARNING", "CLEAN"}
 
 PROMPTS = Path(__file__).resolve().parent / "review_prompts"
@@ -143,7 +146,7 @@ def format_body(kind, text, head, run_id, repo):
         "",
     ]
     if kind == "security":
-        lines.append(f"SECURITY-VERDICT: {verdict}")
+        lines.extend([f"SECURITY-REVIEWED-HEAD: {head}", f"SECURITY-VERDICT: {verdict}"])
     else:
         lines.extend([f"REVIEWED-HEAD: {head}", f"REVIEW-VERDICT: {verdict}"])
     return "\n".join(lines)
