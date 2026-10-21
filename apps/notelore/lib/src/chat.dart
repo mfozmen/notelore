@@ -146,10 +146,17 @@ class _ChatScreenState extends State<ChatScreen> {
     final typed = _message.text.trim();
     _message.clear();
     _keyboardAway(context);
-    await widget.session.send(
+    final sent = await widget.session.send(
       withAttachments(typed, files, images: names, originals: originals),
       images: images,
     );
+    if (sent) return;
+    for (final file in picked) {
+      final path = originals[file.name];
+      if (path != null && imageType(file.bytes) != null) {
+        widget.session.discardOriginal(path);
+      }
+    }
   }
 
   /// [picked] as text attachments and images (with their names), or why they

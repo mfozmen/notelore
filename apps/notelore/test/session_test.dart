@@ -1441,6 +1441,24 @@ void main() {
       ..writeAsStringSync('in the way'); // a file where the folder would go
     expect(session.keepOriginal('memo.wav', [1]), isNull);
   });
+
+  test('a failed image send discards its original and its marker (#534)', () async {
+    final harness = Harness(answers: [const NetworkError('offline')]);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    final path = session.keepOriginal('r.png', [1, 2, 3])!;
+    const start = 'what is it\n\n<attached image="r.png"';
+    final sent = await session.send(
+      '$start original="$path"/>',
+      images: [
+        imageBlock('image/png', [1, 2, 3]),
+      ],
+    );
+    expect(sent, isFalse);
+    session.discardOriginal(path);
+    expect(File(p.joinAll([harness.paths.notes.path, ...path.split('/')])).existsSync(), isFalse);
+    expect(session.transcript.first.text, '$start/>');
+  });
 }
 
 /// A keystore whose delete fails, like a locked one.
