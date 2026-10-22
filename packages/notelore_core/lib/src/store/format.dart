@@ -141,7 +141,8 @@ final class Todo extends NoteEntry {
 }
 
 /// Something to be reminded of on [date], at [time] (`HH:MM`, local) if it has
-/// one, and its [end] when the user gave it or it could be estimated.
+/// one, and its [end] when the user gave it or it could be estimated. A
+/// [monthly] reminder comes again on that day each month.
 final class Reminder extends NoteEntry {
   const Reminder(this.date, this.text, {this.time, this.end, this.monthly = false});
 

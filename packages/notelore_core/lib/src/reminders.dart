@@ -186,11 +186,12 @@ Iterable<DayItem> _dayItems(Note note, String kind, String slug, DateTime from) 
     todo: todo,
   );
   for (final entry in note.section('reminders')?.entries ?? const <NoteEntry>[]) {
-    if (entry case Reminder(:final date, :final time, :final end, :final text)
-        when !DateTime(date.year, date.month, date.day).isBefore(from)) {
-      var range = time;
-      if (range != null && end != null) range = '$range-$end';
-      yield item(date, range, text, todo: false);
+    if (entry case final Reminder reminder) {
+      var range = reminder.time;
+      if (range != null && reminder.end != null) range = '$range-${reminder.end}';
+      for (final at in _occurrences(reminder, from)) {
+        if (!at.isBefore(from)) yield item(at, range, reminder.text, todo: false);
+      }
     }
   }
   for (final entry in note.section('todo')?.entries ?? const <NoteEntry>[]) {
