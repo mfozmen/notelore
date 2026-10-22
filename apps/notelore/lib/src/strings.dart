@@ -11,9 +11,11 @@ import 'theme.dart';
 import 'transfer.dart' show ExportFormat;
 import 'whisper_model.dart' show DownloadProblem;
 
-String _updateSize(int bytes) => bytes < 1024 * 1024
-    ? '${(bytes / 1024).round()} KB'
-    : '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+String _updateSize(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).round()} KB';
+  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+}
 
 /// The language the app speaks: the device's, or a fixed one.
 enum AppLanguage { system, en, tr }
@@ -1409,7 +1411,7 @@ class EnglishStrings extends Strings {
   @override
   String downloadingUpdate(int received, int? total) {
     final size = _updateSize(received);
-    if (total == null) return 'Downloading update… $size';
+    if (total == null || total <= 0) return 'Downloading update… $size';
     final share = (received * 100 ~/ total).clamp(0, 100);
     return 'Downloading update… $share% ($size of ${_updateSize(total)})';
   }
@@ -2423,7 +2425,7 @@ class TurkishStrings extends Strings {
   @override
   String downloadingUpdate(int received, int? total) {
     final size = _updateSize(received);
-    if (total == null) return 'Güncelleme indiriliyor… $size';
+    if (total == null || total <= 0) return 'Güncelleme indiriliyor… $size';
     final share = (received * 100 ~/ total).clamp(0, 100);
     return 'Güncelleme indiriliyor… %$share ($size / ${_updateSize(total)})';
   }

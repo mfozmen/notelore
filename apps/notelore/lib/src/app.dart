@@ -261,49 +261,49 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       _progress = const UpdateProgress(UpdatePhase.checking);
     });
     try {
-      await widget.updater!.apply(
-        onProgress: (progress) {
-          if (mounted) setState(() => _progress = progress);
-        },
-      );
-    } on Exception catch (error) {
-      if (mounted) {
-        setState(() {
-          _updating = false;
-          _progress = null;
-          _updateProblem = '$error';
-        });
-      }
-      return;
-    }
-    try {
-      await widget.updater!.relaunch();
-    } on InstallNotAllowed {
-      if (mounted) {
-        setState(() {
-          _updating = false;
-          _progress = null;
-          _updateProblem = widget.session.strings.allowInstalls;
-        });
-      }
-      return;
-    } on Exception catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _updating = false;
-        _progress = null;
-        if (widget.updater!.system != 'macos') {
-          // Windows runs the setup, Android opens the installer: nothing has changed yet.
-          _updateProblem = widget.session.strings.setupFailed(error);
-        } else {
-          _installed = true; // macOS: swapped in, only the restart failed
+      try {
+        await widget.updater!.apply(
+          onProgress: (progress) {
+            if (mounted) setState(() => _progress = progress);
+          },
+        );
+      } on Exception catch (error) {
+        if (mounted) {
+          setState(() {
+            _progress = null;
+            _updateProblem = '$error';
+          });
         }
-      });
-      return;
+        return;
+      }
+      try {
+        await widget.updater!.relaunch();
+      } on InstallNotAllowed {
+        if (mounted) {
+          setState(() {
+            _progress = null;
+            _updateProblem = widget.session.strings.allowInstalls;
+          });
+        }
+        return;
+      } on Exception catch (error) {
+        if (!mounted) return;
+        setState(() {
+          _progress = null;
+          if (widget.updater!.system != 'macos') {
+            // Windows runs the setup, Android opens the installer: nothing has changed yet.
+            _updateProblem = widget.session.strings.setupFailed(error);
+          } else {
+            _installed = true; // macOS: swapped in, only the restart failed
+          }
+        });
+        return;
+      }
+      // Android's installer takes over; cancelling it leaves this app running.
+      if (widget.updater!.system != 'android') widget.exitApp(0);
+    } finally {
+      if (mounted) setState(() => _updating = false);
     }
-    if (mounted) setState(() => _updating = false);
-    // Android's installer takes over; cancelling it leaves this app running.
-    if (widget.updater!.system != 'android') widget.exitApp(0);
   }
 
   Future<String> Function()? get _checkByHand => widget.updater == null ? null : _checkNow;
@@ -714,7 +714,9 @@ class _UpdateBanner extends StatelessWidget {
           Text(message),
           if (updating && progress?.phase == UpdatePhase.downloading)
             LinearProgressIndicator(
-              value: progress!.total == null ? null : progress!.received / progress!.total!,
+              value: progress!.total == null || progress!.total! <= 0
+                  ? null
+                  : progress!.received / progress!.total!,
             ),
           if (updating && progress?.phase == UpdatePhase.installing && windows)
             Text(

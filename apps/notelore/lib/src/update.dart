@@ -128,14 +128,21 @@ Future<List<int>> httpDownload(
     if (response.statusCode != 200) {
       throw UpdateFailed('download failed: HTTP ${response.statusCode} for $url');
     }
-    final total = response.contentLength;
+    var total = response.contentLength;
+    if (total != null && total <= 0) total = null;
     final bytes = BytesBuilder(copy: false);
     var received = 0;
+    var reported = -1;
     await for (final chunk in response.stream.timeout(const Duration(seconds: 30))) {
       bytes.add(chunk);
       received += chunk.length;
-      onProgress?.call(received, total);
+      // Not every chunk: a multi-megabyte file arrives in hundreds of pieces.
+      if (received == total || received - reported >= 256 * 1024) {
+        onProgress?.call(received, total);
+        reported = received;
+      }
     }
+    if (reported != received) onProgress?.call(received, total);
     return bytes.takeBytes();
   } on UpdateFailed {
     rethrow;
