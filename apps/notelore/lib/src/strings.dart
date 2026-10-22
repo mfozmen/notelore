@@ -754,7 +754,7 @@ class EnglishStrings extends Strings {
   String transcribing(String name) => 'Listening to $name…';
   @override
   String audioNeedsWhisper(String name) =>
-      '$name needs on-device speech recognition: Whisper is still on its way (Settings → Voice).';
+      '$name needs on-device speech recognition, which is still getting ready (Settings → Voice).';
   @override
   String audioFormat(String name) => '$name cannot be opened on this device. Try it as a WAV file.';
   @override
@@ -1776,7 +1776,7 @@ class TurkishStrings extends Strings {
   String transcribing(String name) => '$name dinleniyor…';
   @override
   String audioNeedsWhisper(String name) =>
-      '$name için cihazda konuşma tanıma gerekiyor: Whisper henüz yolda (Ayarlar → Ses).';
+      '$name için cihazda konuşma tanıma gerekiyor; henüz hazır değil (Ayarlar → Ses).';
   @override
   String audioFormat(String name) => '$name bu cihazda açılamıyor. WAV dosyası olarak dene.';
   @override
@@ -1817,7 +1817,7 @@ class TurkishStrings extends Strings {
       'Açık: Notelore parolanla açılır. Cihazının kilidine, bir desene ya da PIN’e geçebilirsin.',
   };
   @override
-  String get appLockOff => 'Kapalı: Notelore sormadan açılır.';
+  String get appLockOff => 'Kapalı: Notelore açılırken uygulama kilidi istemez.';
   @override
   String get turnOn => 'Aç';
   @override

@@ -17,6 +17,19 @@ void main() {
     expect(stringsFor(AppLanguage.system, 'de').languageCode, 'en');
   });
 
+  test('user-facing speech copy names no engine, and the lock-off text is accurate (#538)', () {
+    for (final s in [en, tr]) {
+      final words = [
+        s.audioNeedsWhisper('a.m4a'),
+        s.whisper,
+        s.whisperWhy(375),
+        s.whisperDownloading(10),
+      ].join(' ');
+      expect(words, isNot(contains('Whisper')));
+    }
+    expect(tr.appLockOff, 'Kapalı: Notelore açılırken uygulama kilidi istemez.');
+  });
+
   test('every text the core produces has Turkish', () {
     final produced = [
       'Thinking',
