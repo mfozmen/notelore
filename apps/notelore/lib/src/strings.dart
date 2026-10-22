@@ -80,7 +80,8 @@ abstract class Strings {
 
   /// The model on the device did not download: why, and, when a retry helps,
   /// that it goes on from where it stopped.
-  String deviceDownloadFailed(DownloadProblem problem) => problem == DownloadProblem.space
+  String deviceDownloadFailed(DownloadProblem problem) =>
+      problem == DownloadProblem.space
       ? downloadFailed(problem)
       : '${downloadFailed(problem)} $downloadResumes';
   String get downloadResumes;
@@ -93,8 +94,9 @@ abstract class Strings {
   String get continueWithChatGpt;
 
   /// A sign-in that failed, in plain words: never a raw code or HTTP body (#302).
-  String signInProblem(Object error) =>
-      error is NetworkError ? '$cannotReach $checkConnection' : signInUnfinished;
+  String signInProblem(Object error) => error is NetworkError
+      ? '$cannotReach $checkConnection'
+      : signInUnfinished;
   String get signInUnfinished;
 
   /// A ChatGPT account with no Plus or Pro plan, and the free way on (#321).
@@ -312,10 +314,12 @@ abstract class Strings {
   /// What [summary] used: tokens, the calls that did not say, the estimated
   /// cost; "not available" where the provider gave nothing to go on.
   /// [n] with this language's thousands separator.
-  String number(int n) => '$n'.replaceAllMapped(RegExp(r'\B(?=(\d{3})+$)'), (_) => thousands);
+  String number(int n) =>
+      '$n'.replaceAllMapped(RegExp(r'\B(?=(\d{3})+$)'), (_) => thousands);
 
   /// [x] with one decimal, in this language's way.
-  String decimal(double x) => x.toStringAsFixed(1).replaceFirst('.', decimalPoint);
+  String decimal(double x) =>
+      x.toStringAsFixed(1).replaceFirst('.', decimalPoint);
 
   /// [share] (0 to 1) as a whole percent; a sliver is "<1%", never "0%".
   String percent(double share) {
@@ -342,7 +346,9 @@ abstract class Strings {
     return switch (summary.cost) {
       null => usageCostUnavailable,
       final cost => usageCost(
-        cost.toStringAsFixed(cost == 0 || cost >= 0.01 ? 2 : 4).replaceFirst('.', decimalPoint),
+        cost
+            .toStringAsFixed(cost == 0 || cost >= 0.01 ? 2 : 4)
+            .replaceFirst('.', decimalPoint),
       ),
     };
   }
@@ -371,7 +377,8 @@ abstract class Strings {
   List<String> get weekdays;
   List<String> get weekdayNames;
   List<String> get monthNames;
-  String monthYear(DateTime month) => '${monthNames[month.month - 1]} ${month.year}';
+  String monthYear(DateTime month) =>
+      '${monthNames[month.month - 1]} ${month.year}';
 
   /// A day's heading: "Sunday, 25 October" / "25 Ekim Pazar".
   String dayHeading(DateTime day);
@@ -534,7 +541,8 @@ abstract class Strings {
     NetworkError() => errorOffline,
     HttpError(status: 401 || 403) => errorKey,
     // Gemini's free tier answers a model it gives no quota with 429 "limit: 0" (#400).
-    HttpError(status: 429, :final message) when message.contains('limit: 0') => errorNoQuota,
+    HttpError(status: 429, :final message) when message.contains('limit: 0') =>
+      errorNoQuota,
     HttpError(status: 429) => errorBusy,
     HttpError(:final status) when status >= 500 => errorProvider,
     HttpError(:final message) => errorOther(message),
@@ -576,7 +584,8 @@ class EnglishStrings extends Strings {
   @override
   String get connect => 'Connect';
   @override
-  String openFailed(Object error) => 'Notelore could not open its folders.\n\n$error';
+  String openFailed(Object error) =>
+      'Notelore could not open its folders.\n\n$error';
 
   @override
   String get chooseProvider => 'Choose a model provider';
@@ -599,10 +608,10 @@ class EnglishStrings extends Strings {
     'chatgpt' => 'Your notes go to OpenAI.',
     'anthropic' => 'Your notes go to Anthropic.',
     'openai' => 'Your notes go to OpenAI.',
-    'gemini' =>
-      'Your notes go to Google; on the free tier it may use them to improve its products.',
+    'gemini' => 'Your notes go to Google; on the free tier it may use them to improve its products.',
     'deepseek' => 'Your notes go to DeepSeek.',
-    'device' => 'The model runs on this device: your notes go to no AI provider.',
+    'device' =>
+      'The model runs on this device: your notes go to no AI provider.',
     _ => 'Your notes stay on this computer.',
   };
   @override
@@ -709,9 +718,11 @@ class EnglishStrings extends Strings {
   @override
   String get resumeDownload => 'Resume download';
   @override
-  String get deviceDownloadNote => 'Use Wi-Fi and keep the app open while it downloads.';
+  String get deviceDownloadNote =>
+      'Use Wi-Fi and keep the app open while it downloads.';
   @override
-  String get deviceModelHere => 'The model is on this device. No key is needed.';
+  String get deviceModelHere =>
+      'The model is on this device. No key is needed.';
   @override
   String get downloadingModel => 'Downloading the model';
   @override
@@ -733,7 +744,8 @@ class EnglishStrings extends Strings {
       'charges. You can see and manage that usage in ChatGPT.';
 
   @override
-  String get askSomething => 'Write something to note, or ask about your notes.';
+  String get askSomething =>
+      'Write something to note, or ask about your notes.';
   @override
   List<String> get examples => const [
     "I'm reading Tanpınar's The Time Regulation Institute",
@@ -754,13 +766,16 @@ class EnglishStrings extends Strings {
   String transcribing(String name) => 'Listening to $name…';
   @override
   String audioNeedsWhisper(String name) =>
-      '$name needs on-device speech recognition: Whisper is still on its way (Settings → Voice).';
+      '$name needs on-device speech recognition, which is still getting ready (Settings → Voice).';
   @override
-  String audioFormat(String name) => '$name cannot be opened on this device. Try it as a WAV file.';
+  String audioFormat(String name) =>
+      '$name cannot be opened on this device. Try it as a WAV file.';
   @override
-  String audioNoWords(String name) => 'No words were heard in $name, so nothing was sent.';
+  String audioNoWords(String name) =>
+      'No words were heard in $name, so nothing was sent.';
   @override
-  String fileTooBig(String name) => '$name is too big to attach (20 MB at most).';
+  String fileTooBig(String name) =>
+      '$name is too big to attach (20 MB at most).';
   @override
   String get attachFile => 'Attach a file';
   @override
@@ -775,11 +790,14 @@ class EnglishStrings extends Strings {
   String noPdfText(String name) =>
       "$name has no text to read (a scan, or a damaged file); Notelore reads only a PDF's text.";
   @override
-  String tooLarge(String name) => '$name is too large to send; split it into smaller files.';
+  String tooLarge(String name) =>
+      '$name is too large to send; split it into smaller files.';
   @override
-  String noImages(String provider) => '$provider cannot look at images; text files still work.';
+  String noImages(String provider) =>
+      '$provider cannot look at images; text files still work.';
   @override
-  String get imagesNotNow => 'Images go when nothing else is on its way; try again in a moment.';
+  String get imagesNotNow =>
+      'Images go when nothing else is on its way; try again in a moment.';
   @override
   String get imagesCannotWait =>
       'Images cannot wait to be sent later: send the message again when you are back online.';
@@ -790,8 +808,7 @@ class EnglishStrings extends Strings {
     LockKind.device => "On: your device's lock opens Notelore.",
     LockKind.pattern => 'On: a pattern opens Notelore.',
     LockKind.pin => 'On: a PIN opens Notelore.',
-    _ =>
-      "On: your password opens Notelore. You can switch to your device's lock, a pattern or a PIN.",
+    _ => "On: your password opens Notelore. You can switch to your device's lock, a pattern or a PIN.",
   };
   @override
   String get appLockOff => 'Off: Notelore opens without asking.';
@@ -849,11 +866,14 @@ class EnglishStrings extends Strings {
   String get deviceLockGone =>
       "This device has no screen lock any more. Set one up in the device's settings to open Notelore.";
   @override
-  String get pinTooEasy => 'Too easy to guess: not one digit repeated, nor a run like 1234.';
+  String get pinTooEasy =>
+      'Too easy to guess: not one digit repeated, nor a run like 1234.';
   @override
-  String get patternTooEasy => 'That pattern is one of the first people try. Draw another.';
+  String get patternTooEasy =>
+      'That pattern is one of the first people try. Draw another.';
   @override
-  String patternDotsChosen(int count) => count == 1 ? '1 dot chosen' : '$count dots chosen';
+  String patternDotsChosen(int count) =>
+      count == 1 ? '1 dot chosen' : '$count dots chosen';
   @override
   String get lockNotTurnedOn => 'The app lock is still off.';
   @override
@@ -868,7 +888,8 @@ class EnglishStrings extends Strings {
   @override
   String get wrongSecret => "That's not it. Try again.";
   @override
-  String lockWaiting(Duration wait) => 'Too many tries. Try again in ${_minutes(wait)}.';
+  String lockWaiting(Duration wait) =>
+      'Too many tries. Try again in ${_minutes(wait)}.';
   @override
   String get notesMayBeSaved =>
       'Some notes may already have been saved before this failed. Check them before you '
@@ -954,7 +975,8 @@ class EnglishStrings extends Strings {
   @override
   String get speaking => 'Speaking…';
   @override
-  String speechFailed(String code) => 'Speech recognition failed ($code); back to typing.';
+  String speechFailed(String code) =>
+      'Speech recognition failed ($code); back to typing.';
   @override
   String get voiceUnavailable =>
       'Speech recognition is not available. Allow the microphone; on Windows, add the '
@@ -963,7 +985,8 @@ class EnglishStrings extends Strings {
   @override
   String get refresh => 'Refresh';
   @override
-  String get noNotes => 'No notes yet. Tell the assistant something to remember.';
+  String get noNotes =>
+      'No notes yet. Tell the assistant something to remember.';
   @override
   String deleteQuestion(String title) => 'Delete "$title"?';
   @override
@@ -992,7 +1015,8 @@ class EnglishStrings extends Strings {
   @override
   String get next => 'Next';
   @override
-  String exported(int count) => 'Exported $count ${count == 1 ? 'note' : 'notes'}.';
+  String exported(int count) =>
+      'Exported $count ${count == 1 ? 'note' : 'notes'}.';
   @override
   String exportFailed(String why) => 'The export failed: $why';
   @override
@@ -1007,7 +1031,8 @@ class EnglishStrings extends Strings {
   @override
   String get undo => 'Undo';
   @override
-  String noteSubtitle(String kind, String updated) => '${noteKind(kind)} · updated $updated';
+  String noteSubtitle(String kind, String updated) =>
+      '${noteKind(kind)} · updated $updated';
 
   @override
   String get connectedModels => 'Connected models';
@@ -1035,7 +1060,8 @@ class EnglishStrings extends Strings {
   @override
   String get logOut => 'Log out';
   @override
-  String get logOutExplained => 'Logging out forgets the API key on this device. Your notes stay.';
+  String get logOutExplained =>
+      'Logging out forgets the API key on this device. Your notes stay.';
   @override
   String get language => 'Language';
   @override
@@ -1056,7 +1082,8 @@ class EnglishStrings extends Strings {
   @override
   String get showAdvancedWhy => 'Extra pages for checking how the app works.';
   @override
-  String busiestDay(String amount, int day) => 'Busiest day: the ${_ordinal(day)}, $amount';
+  String busiestDay(String amount, int day) =>
+      'Busiest day: the ${_ordinal(day)}, $amount';
 
   /// 1st, 2nd, 3rd, 4th; 11th to 13th; 21st.
   static String _ordinal(int n) => switch (n % 100) {
@@ -1085,9 +1112,11 @@ class EnglishStrings extends Strings {
   @override
   String get usageAppears => 'Usage shows here after your first message.';
   @override
-  String chartKept(int days) => 'The chart shows the last $days days; the totals cover all time.';
+  String chartKept(int days) =>
+      'The chart shows the last $days days; the totals cover all time.';
   @override
-  String lastDaysSummary(int days, String total) => 'Last $days days: $total in all';
+  String lastDaysSummary(int days, String total) =>
+      'Last $days days: $total in all';
   @override
   String lastDaysNothing(int days) => 'Last $days days: nothing used';
   @override
@@ -1115,7 +1144,8 @@ class EnglishStrings extends Strings {
   @override
   String get usageNothing => 'Nothing yet.';
   @override
-  String usageTokens(String input, String output) => '$input read · $output written';
+  String usageTokens(String input, String output) =>
+      '$input read · $output written';
   @override
   String get usageTokensUnavailable => 'Tokens: not available';
   @override
@@ -1177,7 +1207,8 @@ class EnglishStrings extends Strings {
   @override
   String get showAll => 'Show all';
   @override
-  String get calendarExample => 'Try: "remind me Friday at 10 to call the dentist"';
+  String get calendarExample =>
+      'Try: "remind me Friday at 10 to call the dentist"';
   @override
   String get goToChat => 'Go to chat';
   @override
@@ -1216,14 +1247,16 @@ class EnglishStrings extends Strings {
   @override
   String get reminders => 'Reminders';
   @override
-  String get remindersOn => "Notelore notifies you on this device at a reminder's time.";
+  String get remindersOn =>
+      "Notelore notifies you on this device at a reminder's time.";
   @override
   String get remindersOff =>
       "Notifications are off for Notelore: reminders stay in your notes, but you won't be notified.";
   @override
   String get allowNotifications => 'Allow notifications';
   @override
-  String get notificationsBlocked => 'Turn on notifications for Notelore in the system settings.';
+  String get notificationsBlocked =>
+      'Turn on notifications for Notelore in the system settings.';
   @override
   String get reminderHidden => 'You have a reminder.';
   @override
@@ -1235,14 +1268,16 @@ class EnglishStrings extends Strings {
   String get remindersInCalendar =>
       'Google Calendar reminds you on every device. Notelore sends no notifications of its own.';
   @override
-  String get calendarSignInFailed => "Couldn't sign in to Google Calendar. Try again.";
+  String get calendarSignInFailed =>
+      "Couldn't sign in to Google Calendar. Try again.";
   @override
   String get calendarRevoked =>
       "Notelore's access to Google Calendar was removed. This device reminds you on its own; "
       'sign in to send reminders there again. The reminders already in Google Calendar stay '
       'there: delete its "Notelore" calendar to stop them.';
   @override
-  String get calendarUpdateFailed => "Couldn't update Google Calendar. Notelore tries again later.";
+  String get calendarUpdateFailed =>
+      "Couldn't update Google Calendar. Notelore tries again later.";
   @override
   String get calendarElsewhere =>
       'Google Calendar is set up on another device. '
@@ -1333,9 +1368,9 @@ class EnglishStrings extends Strings {
   String downloadFailed(DownloadProblem problem) => switch (problem) {
     DownloadProblem.offline =>
       'Notelore could not download it. Check your connection, then try again.',
-    DownloadProblem.space =>
-      'There is not enough space on this device. Free some space, then try again.',
-    DownloadProblem.failed => 'The download did not finish. Try again in a while.',
+    DownloadProblem.space => 'There is not enough space on this device. Free some space, then try again.',
+    DownloadProblem.failed =>
+      'The download did not finish. Try again in a while.',
   };
   @override
   String get microphone => 'Microphone';
@@ -1371,7 +1406,8 @@ class EnglishStrings extends Strings {
   @override
   String get driveNotSetUp => 'Sync is not set up in this build.';
   @override
-  String get driveExplained => 'Back up and sync your notes across your devices.';
+  String get driveExplained =>
+      'Back up and sync your notes across your devices.';
   @override
   String get signInWithGoogle => 'Sign in with Google';
   @override
@@ -1386,11 +1422,13 @@ class EnglishStrings extends Strings {
   String get welcomePrivate =>
       'Notelore keeps them in its own hidden space there and sees only its own files.';
   @override
-  String get welcomeAccount => 'Sign in with your Google (Gmail) account to start.';
+  String get welcomeAccount =>
+      'Sign in with your Google (Gmail) account to start.';
   @override
   String get signingIn => 'Signing in…';
   @override
-  String get googleRequired => 'Notelore needs a Google account to continue. Sign in to go on.';
+  String get googleRequired =>
+      'Notelore needs a Google account to continue. Sign in to go on.';
   @override
   String get syncing => 'Syncing...';
   @override
@@ -1403,7 +1441,8 @@ class EnglishStrings extends Strings {
   @override
   String get upToDate => 'Notelore is up to date.';
   @override
-  String updateAvailable(String version) => 'A fresh Notelore is ready: $version.';
+  String updateAvailable(String version) =>
+      'A fresh Notelore is ready: $version.';
   @override
   String get whatsNew => "What's new";
   @override
@@ -1422,7 +1461,8 @@ class EnglishStrings extends Strings {
   String get windowsUpdateHandoff =>
       'Windows closes Notelore, runs the setup, and opens the new version.';
   @override
-  String installing(String version) => 'Putting the new Notelore in place ($version)…';
+  String installing(String version) =>
+      'Putting the new Notelore in place ($version)…';
   @override
   String installed(String version) =>
       'Notelore $version is installed. Close and reopen Notelore to use it.';
@@ -1441,18 +1481,22 @@ class EnglishStrings extends Strings {
       'Allow Notelore to install apps in the setting that just opened, then tap Update again.';
 
   @override
-  String get offline => 'Offline; your notes will sync when the connection is back.';
+  String get offline =>
+      'Offline; your notes will sync when the connection is back.';
   @override
-  String get drivePermissionAgain => 'Sign in to Google again to keep syncing your notes.';
+  String get drivePermissionAgain =>
+      'Sign in to Google again to keep syncing your notes.';
   @override
   String get drivePermissionsAll =>
       'Notelore needs every permission it asked for. Sign in again and leave every box ticked.';
   @override
   String get signedOutOfGoogle => 'Signed out of Google. Connect again.';
   @override
-  String get driveUnreachable => 'Google Drive could not be reached. Notelore tries again later.';
+  String get driveUnreachable =>
+      'Google Drive could not be reached. Notelore tries again later.';
   @override
-  String get driveFull => 'Your Google Drive is full: free some space and Notelore syncs again.';
+  String get driveFull =>
+      'Your Google Drive is full: free some space and Notelore syncs again.';
   @override
   String get driveSignInBanner =>
       'Google Drive needs you to sign in again to keep syncing your notes.';
@@ -1467,7 +1511,9 @@ class EnglishStrings extends Strings {
       if (merged > 0) '$merged merged',
       if (waiting > 0) '$waiting waiting for a conflict to be settled',
     ];
-    return parts.isEmpty ? 'Synced; nothing changed.' : 'Synced: ${parts.join(', ')}.';
+    return parts.isEmpty
+        ? 'Synced; nothing changed.'
+        : 'Synced: ${parts.join(', ')}.';
   }
 
   @override
@@ -1499,14 +1545,17 @@ class EnglishStrings extends Strings {
   @override
   String get errorOffline => "Couldn't reach the model. Check your connection.";
   @override
-  String get errorKey => 'The provider turned the key or sign-in down. Check it in Settings.';
+  String get errorKey =>
+      'The provider turned the key or sign-in down. Check it in Settings.';
   @override
-  String get errorBusy => 'The provider is getting too many requests just now. Wait a moment.';
+  String get errorBusy =>
+      'The provider is getting too many requests just now. Wait a moment.';
   @override
   String get errorNoQuota =>
       'Your key has no quota for this model, so waiting will not help. Choose another model in Settings.';
   @override
-  String get errorProvider => "The model's service is having trouble right now. Try again soon.";
+  String get errorProvider =>
+      "The model's service is having trouble right now. Try again soon.";
   @override
   String errorOther(String detail) => 'The provider could not answer: $detail';
   @override
@@ -1586,7 +1635,8 @@ class TurkishStrings extends Strings {
     'chatgpt' => 'Tek dokunuş: ChatGPT ile giriş yap',
     'anthropic' => "Anthropic Console'dan, faturalandırması açık bir anahtar",
     'openai' => 'OpenAI platformundan, faturalandırması açık bir anahtar',
-    'gemini' => "Google AI Studio'dan ücretsiz bir anahtar, yaklaşık bir dakika",
+    'gemini' =>
+      "Google AI Studio'dan ücretsiz bir anahtar, yaklaşık bir dakika",
     'deepseek' => "DeepSeek Platform'dan, biraz bakiyeli bir anahtar",
     'device' => 'Bir kez 2,5 GB indirme',
     _ => "Önce Ollama'yı ve bir modeli kur",
@@ -1663,7 +1713,8 @@ class TurkishStrings extends Strings {
   @override
   String get getFreeGeminiKey => 'Ücretsiz Gemini anahtarı al';
   @override
-  String get keyFromClipboard => 'Anahtar panodan yapıştırıldı. Bağlan’a dokun.';
+  String get keyFromClipboard =>
+      'Anahtar panodan yapıştırıldı. Bağlan’a dokun.';
   @override
   String get cannotReach => 'Hizmete ulaşılamadı.';
   @override
@@ -1676,7 +1727,8 @@ class TurkishStrings extends Strings {
   @override
   String get resumeDownload => 'İndirmeye devam et';
   @override
-  String get deviceDownloadNote => 'İnerken Wi-Fi kullan ve uygulamayı açık tut.';
+  String get deviceDownloadNote =>
+      'İnerken Wi-Fi kullan ve uygulamayı açık tut.';
   @override
   String get deviceModelHere => 'Model bu cihazda. Anahtar gerekmez.';
   @override
@@ -1700,8 +1752,7 @@ class TurkishStrings extends Strings {
   };
   @override
   String cost(ProviderSpec spec) => switch (spec.name) {
-    'chatgpt' =>
-      'ChatGPT Plus veya Pro planını kullanır: ayrıca ücret yok, planının limitleri içinde.',
+    'chatgpt' => 'ChatGPT Plus veya Pro planını kullanır: ayrıca ücret yok, planının limitleri içinde.',
     'anthropic' =>
       'Anthropic API üzerinden kullandıkça ücretlendirilir. Claude Pro veya Max aboneliği '
           'başka uygulamalarda kullanılamaz.',
@@ -1755,7 +1806,8 @@ class TurkishStrings extends Strings {
       'alınmaz. Bu kullanımı ChatGPT’de görebilir ve yönetebilirsin.';
 
   @override
-  String get askSomething => 'Not almamı istediğin bir şey yaz ya da notlarına sor.';
+  String get askSomething =>
+      'Not almamı istediğin bir şey yaz ya da notlarına sor.';
   @override
   List<String> get examples => const [
     "Tanpınar'ın Saatleri Ayarlama Enstitüsü'nü okuyorum",
@@ -1776,13 +1828,16 @@ class TurkishStrings extends Strings {
   String transcribing(String name) => '$name dinleniyor…';
   @override
   String audioNeedsWhisper(String name) =>
-      '$name için cihazda konuşma tanıma gerekiyor: Whisper henüz yolda (Ayarlar → Ses).';
+      '$name için cihazda konuşma tanıma gerekiyor; henüz hazır değil (Ayarlar → Ses).';
   @override
-  String audioFormat(String name) => '$name bu cihazda açılamıyor. WAV dosyası olarak dene.';
+  String audioFormat(String name) =>
+      '$name bu cihazda açılamıyor. WAV dosyası olarak dene.';
   @override
-  String audioNoWords(String name) => '$name içinde kelime duyulmadı, bir şey gönderilmedi.';
+  String audioNoWords(String name) =>
+      '$name içinde kelime duyulmadı, bir şey gönderilmedi.';
   @override
-  String fileTooBig(String name) => '$name eklemek için çok büyük (en fazla 20 MB).';
+  String fileTooBig(String name) =>
+      '$name eklemek için çok büyük (en fazla 20 MB).';
   @override
   String get attachFile => 'Dosya ekle';
   @override
@@ -1798,11 +1853,14 @@ class TurkishStrings extends Strings {
       '$name içinde okunacak yazı yok (taranmış ya da bozuk bir dosya); '
       "Notelore bir PDF'nin yalnızca yazısını okur.";
   @override
-  String tooLarge(String name) => '$name gönderilemeyecek kadar büyük; daha küçük dosyalara böl.';
+  String tooLarge(String name) =>
+      '$name gönderilemeyecek kadar büyük; daha küçük dosyalara böl.';
   @override
-  String noImages(String provider) => '$provider görsellere bakamıyor; metin dosyaları yine olur.';
+  String noImages(String provider) =>
+      '$provider görsellere bakamıyor; metin dosyaları yine olur.';
   @override
-  String get imagesNotNow => 'Görseller, yolda başka bir şey yokken gider; birazdan yeniden dene.';
+  String get imagesNotNow =>
+      'Görseller, yolda başka bir şey yokken gider; birazdan yeniden dene.';
   @override
   String get imagesCannotWait =>
       'Görseller sonra gönderilmek üzere bekleyemez: tekrar çevrimiçi olunca mesajı yeniden gönder.';
@@ -1813,11 +1871,11 @@ class TurkishStrings extends Strings {
     LockKind.device => 'Açık: Notelore cihazının kilidiyle açılır.',
     LockKind.pattern => 'Açık: Notelore bir desenle açılır.',
     LockKind.pin => 'Açık: Notelore bir PIN ile açılır.',
-    _ =>
-      'Açık: Notelore parolanla açılır. Cihazının kilidine, bir desene ya da PIN’e geçebilirsin.',
+    _ => 'Açık: Notelore parolanla açılır. Cihazının kilidine, bir desene ya da PIN’e geçebilirsin.',
   };
   @override
-  String get appLockOff => 'Kapalı: Notelore sormadan açılır.';
+  String get appLockOff =>
+      'Kapalı: Notelore açılırken uygulama kilidi istemez.';
   @override
   String get turnOn => 'Aç';
   @override
@@ -1833,7 +1891,8 @@ class TurkishStrings extends Strings {
   @override
   String get lockWithDevice => 'Cihazının kilidi';
   @override
-  String get lockWithDeviceExplained => 'Parmak izi, yüz, desen ya da PIN: bu cihazı ne açıyorsa.';
+  String get lockWithDeviceExplained =>
+      'Parmak izi, yüz, desen ya da PIN: bu cihazı ne açıyorsa.';
   @override
   String get lockNoDevice =>
       'Bu cihazda ekran kilidi kurulu değil: bir tane kur ya da desen veya PIN kullan.';
@@ -1866,7 +1925,8 @@ class TurkishStrings extends Strings {
   @override
   String get drawYourPattern => 'Desenini çiz.';
   @override
-  String get deviceNotUnlocked => 'Kilit açılmadı. Tekrar denemek için Kilidi aç’a dokun.';
+  String get deviceNotUnlocked =>
+      'Kilit açılmadı. Tekrar denemek için Kilidi aç’a dokun.';
   @override
   String get deviceLockGone =>
       'Bu cihazda artık ekran kilidi yok. Notelore’u açmak için cihaz ayarlarından bir tane kur.';
@@ -1874,7 +1934,8 @@ class TurkishStrings extends Strings {
   String get pinTooEasy =>
       'Tahmini çok kolay: tek bir rakamın tekrarı ya da 1234 gibi bir sıra olmasın.';
   @override
-  String get patternTooEasy => 'Bu desen ilk denenenlerden biri. Başka bir desen çiz.';
+  String get patternTooEasy =>
+      'Bu desen ilk denenenlerden biri. Başka bir desen çiz.';
   @override
   String patternDotsChosen(int count) => '$count nokta seçildi';
   @override
@@ -1891,7 +1952,8 @@ class TurkishStrings extends Strings {
   @override
   String get wrongSecret => 'Bu değil. Tekrar dene.';
   @override
-  String lockWaiting(Duration wait) => 'Çok fazla deneme. ${_minutes(wait)} sonra tekrar dene.';
+  String lockWaiting(Duration wait) =>
+      'Çok fazla deneme. ${_minutes(wait)} sonra tekrar dene.';
   @override
   String get notesMayBeSaved =>
       'Bu hatadan önce bazı notlar kaydedilmiş olabilir. Bir şey iki kez kaydedilmesin diye '
@@ -1977,7 +2039,8 @@ class TurkishStrings extends Strings {
   @override
   String get speaking => 'Okuyorum…';
   @override
-  String speechFailed(String code) => 'Ses tanıma başarısız oldu ($code); yazmaya dönüldü.';
+  String speechFailed(String code) =>
+      'Ses tanıma başarısız oldu ($code); yazmaya dönüldü.';
   @override
   String get voiceUnavailable =>
       'Ses tanıma kullanılamıyor. Mikrofona izin ver; Windows’ta uygulama dilinin konuşma '
@@ -1986,7 +2049,8 @@ class TurkishStrings extends Strings {
   @override
   String get refresh => 'Yenile';
   @override
-  String get noNotes => 'Henüz not yok. Asistana hatırlaması gereken bir şey anlat.';
+  String get noNotes =>
+      'Henüz not yok. Asistana hatırlaması gereken bir şey anlat.';
   @override
   String deleteQuestion(String title) => '"$title" silinsin mi?';
   @override
@@ -2030,7 +2094,8 @@ class TurkishStrings extends Strings {
   @override
   String get undo => 'Geri al';
   @override
-  String noteSubtitle(String kind, String updated) => '${noteKind(kind)} · güncelleme $updated';
+  String noteSubtitle(String kind, String updated) =>
+      '${noteKind(kind)} · güncelleme $updated';
 
   @override
   String get connectedModels => 'Bağlı modeller';
@@ -2058,7 +2123,8 @@ class TurkishStrings extends Strings {
   @override
   String get logOut => 'Çıkış yap';
   @override
-  String get logOutExplained => 'Çıkış yapınca bu cihazdaki API anahtarı silinir. Notların kalır.';
+  String get logOutExplained =>
+      'Çıkış yapınca bu cihazdaki API anahtarı silinir. Notların kalır.';
   @override
   String get language => 'Dil';
   @override
@@ -2077,7 +2143,8 @@ class TurkishStrings extends Strings {
   @override
   String get showAdvanced => 'Gelişmiş ayarları göster';
   @override
-  String get showAdvancedWhy => 'Uygulamanın nasıl çalıştığını gösteren ek sayfalar.';
+  String get showAdvancedWhy =>
+      'Uygulamanın nasıl çalıştığını gösteren ek sayfalar.';
   @override
   String busiestDay(String amount, int day) => 'En yoğun gün: $day, $amount';
   @override
@@ -2097,9 +2164,11 @@ class TurkishStrings extends Strings {
   @override
   String get usageAppears => 'Kullanım, ilk mesajınızdan sonra burada görünür.';
   @override
-  String chartKept(int days) => 'Grafik son $days günü gösterir; toplamlar tüm zamanı kapsar.';
+  String chartKept(int days) =>
+      'Grafik son $days günü gösterir; toplamlar tüm zamanı kapsar.';
   @override
-  String lastDaysSummary(int days, String total) => 'Son $days gün: toplam $total';
+  String lastDaysSummary(int days, String total) =>
+      'Son $days gün: toplam $total';
   @override
   String lastDaysNothing(int days) => 'Son $days gün: kullanım yok';
   @override
@@ -2127,11 +2196,13 @@ class TurkishStrings extends Strings {
   @override
   String get usageNothing => 'Henüz yok.';
   @override
-  String usageTokens(String input, String output) => '$input okundu · $output yazıldı';
+  String usageTokens(String input, String output) =>
+      '$input okundu · $output yazıldı';
   @override
   String get usageTokensUnavailable => 'Token: bilgi yok';
   @override
-  String usageUnreported(int calls) => '$calls model çağrısı kullanım bildirmedi';
+  String usageUnreported(int calls) =>
+      '$calls model çağrısı kullanım bildirmedi';
   @override
   String usageCost(String dollars) => 'Tahmini maliyet: yaklaşık \$$dollars';
   @override
@@ -2234,25 +2305,29 @@ class TurkishStrings extends Strings {
   @override
   String get reminders => 'Hatırlatıcılar';
   @override
-  String get remindersOn => 'Notelore, hatırlatıcının saatinde bu cihazda bildirim gönderir.';
+  String get remindersOn =>
+      'Notelore, hatırlatıcının saatinde bu cihazda bildirim gönderir.';
   @override
   String get remindersOff =>
       'Notelore için bildirimler kapalı: hatırlatıcılar notlarında kalır ama bildirim gelmez.';
   @override
   String get allowNotifications => 'Bildirimlere izin ver';
   @override
-  String get notificationsBlocked => 'Notelore için bildirimleri sistem ayarlarından aç.';
+  String get notificationsBlocked =>
+      'Notelore için bildirimleri sistem ayarlarından aç.';
   @override
   String get reminderHidden => 'Bir hatırlatıcın var.';
   @override
   String get addToCalendar => "Google Takvim'e ekle";
   @override
-  String get addToCalendarHint => 'Yalnızca kendi takvimi: diğer takvimlerine dokunulmaz.';
+  String get addToCalendarHint =>
+      'Yalnızca kendi takvimi: diğer takvimlerine dokunulmaz.';
   @override
   String get remindersInCalendar =>
       'Google Takvim her cihazda hatırlatır. Notelore ayrıca bildirim göndermez.';
   @override
-  String get calendarSignInFailed => "Google Takvim'e giriş yapılamadı. Tekrar dene.";
+  String get calendarSignInFailed =>
+      "Google Takvim'e giriş yapılamadı. Tekrar dene.";
   @override
   String get calendarRevoked =>
       "Notelore'un Google Takvim erişimi kaldırıldı. Bu cihaz sana kendi bildirimiyle hatırlatıyor; "
@@ -2308,7 +2383,8 @@ class TurkishStrings extends Strings {
   @override
   String get deleteForever => 'Kalıcı olarak sil';
   @override
-  String deleteForeverTitle(String title) => '"$title" kalıcı olarak silinsin mi?';
+  String deleteForeverTitle(String title) =>
+      '"$title" kalıcı olarak silinsin mi?';
   @override
   String get deleteForeverBody =>
       'Bu cihazda geri alınamaz. Google Drive açıksa oradaki kopyası 30 gün sonra silinir.';
@@ -2317,7 +2393,8 @@ class TurkishStrings extends Strings {
   @override
   String get emptyArchive => 'Arşivi boşalt';
   @override
-  String archiveEmptied(int count) => 'Arşivden $count not kalıcı olarak silindi.';
+  String archiveEmptied(int count) =>
+      'Arşivden $count not kalıcı olarak silindi.';
   @override
   String emptyArchiveBody(int count) =>
       'Arşivdeki $count not kalıcı olarak silinecek. Bu cihazda geri alınamaz; Google Drive '
@@ -2346,9 +2423,12 @@ class TurkishStrings extends Strings {
   String whisperDownloading(int percent) => 'İndiriliyor… %$percent';
   @override
   String downloadFailed(DownloadProblem problem) => switch (problem) {
-    DownloadProblem.offline => 'İndirilemedi. Bağlantını kontrol edip yeniden dene.',
-    DownloadProblem.space => 'Bu cihazda yeterli yer yok. Biraz yer açıp yeniden dene.',
-    DownloadProblem.failed => 'İndirme tamamlanamadı. Biraz sonra yeniden dene.',
+    DownloadProblem.offline =>
+      'İndirilemedi. Bağlantını kontrol edip yeniden dene.',
+    DownloadProblem.space =>
+      'Bu cihazda yeterli yer yok. Biraz yer açıp yeniden dene.',
+    DownloadProblem.failed =>
+      'İndirme tamamlanamadı. Biraz sonra yeniden dene.',
   };
   @override
   String get microphone => 'Mikrofon';
@@ -2384,7 +2464,8 @@ class TurkishStrings extends Strings {
   @override
   String get driveNotSetUp => 'Bu sürümde eşitleme ayarlı değil.';
   @override
-  String get driveExplained => 'Notlarını yedekle ve cihazların arasında eşitle.';
+  String get driveExplained =>
+      'Notlarını yedekle ve cihazların arasında eşitle.';
   @override
   String get signInWithGoogle => 'Google ile giriş yap';
   @override
@@ -2399,7 +2480,8 @@ class TurkishStrings extends Strings {
   String get welcomePrivate =>
       'Notelore onları orada kendi gizli alanında tutar ve yalnızca kendi dosyalarını görür.';
   @override
-  String get welcomeAccount => 'Başlamak için Google (Gmail) hesabınla giriş yap.';
+  String get welcomeAccount =>
+      'Başlamak için Google (Gmail) hesabınla giriş yap.';
   @override
   String get signingIn => 'Giriş yapılıyor…';
   @override
@@ -2417,7 +2499,8 @@ class TurkishStrings extends Strings {
   @override
   String get upToDate => 'Notelore güncel.';
   @override
-  String updateAvailable(String version) => 'Notelore’un taze bir sürümü hazır: $version.';
+  String updateAvailable(String version) =>
+      'Notelore’un taze bir sürümü hazır: $version.';
   @override
   String get whatsNew => 'Neler yeni';
   @override
@@ -2436,7 +2519,8 @@ class TurkishStrings extends Strings {
   String get windowsUpdateHandoff =>
       'Windows Notelore’u kapatır, kurulumu çalıştırır ve yeni sürümü açar.';
   @override
-  String installing(String version) => 'Yeni Notelore yerine yerleşiyor ($version)…';
+  String installing(String version) =>
+      'Yeni Notelore yerine yerleşiyor ($version)…';
   @override
   String installed(String version) =>
       'Notelore $version kuruldu. Kullanmak için Notelore’u kapatıp yeniden aç.';
@@ -2465,9 +2549,11 @@ class TurkishStrings extends Strings {
   @override
   String get signedOutOfGoogle => 'Google oturumun kapandı. Yeniden bağlan.';
   @override
-  String get driveUnreachable => "Google Drive'a ulaşılamadı. Notelore daha sonra yeniden dener.";
+  String get driveUnreachable =>
+      "Google Drive'a ulaşılamadı. Notelore daha sonra yeniden dener.";
   @override
-  String get driveFull => "Google Drive'ın dolu: biraz yer aç, Notelore eşitlemeyi yeniden yapar.";
+  String get driveFull =>
+      "Google Drive'ın dolu: biraz yer aç, Notelore eşitlemeyi yeniden yapar.";
   @override
   String get driveSignInBanner =>
       "Notlarının eşitlenmeye devam etmesi için Google Drive'a yeniden giriş yapman gerekiyor.";
@@ -2482,7 +2568,9 @@ class TurkishStrings extends Strings {
       if (merged > 0) '$merged birleştirildi',
       if (waiting > 0) '$waiting çakışmanın çözülmesini bekliyor',
     ];
-    return parts.isEmpty ? 'Eşitlendi; değişiklik yok.' : 'Eşitlendi: ${parts.join(', ')}.';
+    return parts.isEmpty
+        ? 'Eşitlendi; değişiklik yok.'
+        : 'Eşitlendi: ${parts.join(', ')}.';
   }
 
   @override
@@ -2516,9 +2604,9 @@ class TurkishStrings extends Strings {
     'Stopped.': 'Durduruldu.',
     'No answer in time, so I stopped. Please try again.':
         'Zamanında cevap gelmedi, durdurdum. Lütfen yeniden dene.',
-    'The model sent no answer. Try again.': 'Model cevap vermedi. Yeniden dene.',
-    'I stopped after too many tool calls in a row. Please rephrase the request.':
-        'Arka arkaya çok fazla araç çağrısı oldu, durdum. İsteği başka türlü söyler misin?',
+    'The model sent no answer. Try again.':
+        'Model cevap vermedi. Yeniden dene.',
+    'I stopped after too many tool calls in a row. Please rephrase the request.': 'Arka arkaya çok fazla araç çağrısı oldu, durdum. İsteği başka türlü söyler misin?',
   };
 
   @override
@@ -2526,14 +2614,17 @@ class TurkishStrings extends Strings {
   @override
   String get errorOffline => 'Modele ulaşılamadı. Bağlantını kontrol et.';
   @override
-  String get errorKey => 'Sağlayıcı anahtarı ya da girişi kabul etmedi. Ayarlar’dan kontrol et.';
+  String get errorKey =>
+      'Sağlayıcı anahtarı ya da girişi kabul etmedi. Ayarlar’dan kontrol et.';
   @override
-  String get errorBusy => 'Sağlayıcı şu an çok fazla istek alıyor. Biraz bekle.';
+  String get errorBusy =>
+      'Sağlayıcı şu an çok fazla istek alıyor. Biraz bekle.';
   @override
   String get errorNoQuota =>
       'Anahtarının bu model için kotası yok, beklemek işe yaramaz. Ayarlar’dan başka bir model seç.';
   @override
-  String get errorProvider => 'Modelin hizmetinde şu an bir sorun var; birazdan yeniden dene.';
+  String get errorProvider =>
+      'Modelin hizmetinde şu an bir sorun var; birazdan yeniden dene.';
   @override
   String errorOther(String detail) => 'Sağlayıcı yanıt veremedi: $detail';
   @override
