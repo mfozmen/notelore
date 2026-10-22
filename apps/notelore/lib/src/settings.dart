@@ -917,7 +917,7 @@ class _ModelPickerState extends State<_ModelPicker> {
     try {
       await widget.session.refreshModels();
       return mounted;
-    } on Exception catch (error) {
+    } on Object catch (error) {
       if (mounted) setState(() => _failure = '$error');
       return mounted;
     } finally {
@@ -993,8 +993,6 @@ class _RefreshingMenuController extends MenuController {
   Future<void> _openAfterRefresh(Offset? position) async {
     try {
       if (await _refresh()) super.open(position: position);
-    } on Object catch (error) {
-      debugPrint('model refresh failed: ${error.runtimeType}');
     } finally {
       _opening = false;
     }
