@@ -74,20 +74,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       final today = _today;
       final items = calendarItems(widget.session.paths.notes.path, today: today);
       return Scaffold(
-        appBar: AppBar(
-          leading: AppMenu.button(context),
-          title: Text(s.calendar),
-          actions: [
-            IconButton(
-              tooltip: s.today,
-              icon: const Icon(Icons.today),
-              onPressed: () => setState(() {
-                _month = _monthOf(today);
-                _picked = null;
-              }),
-            ),
-          ],
-        ),
+        appBar: AppBar(leading: AppMenu.button(context), title: Text(s.calendar)),
         body: LayoutBuilder(
           builder: (context, box) => _layout(
             wide: box.maxWidth >= Layout.wide,
@@ -111,6 +98,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     },
     pick: (day) => setState(() => _picked = day == _picked ? null : day),
     turn: (by) => setState(() => _month = DateTime(_month.year, _month.month + by)),
+    todayTap: () => setState(() {
+      _month = _monthOf(today);
+      _picked = null;
+    }),
   );
 
   Widget _list(Strings s, List<DayItem> items, DateTime today) {
@@ -173,6 +164,7 @@ class _MonthGrid extends StatelessWidget {
     required this.late,
     required this.pick,
     required this.turn,
+    required this.todayTap,
   });
 
   final Strings s;
@@ -183,6 +175,7 @@ class _MonthGrid extends StatelessWidget {
   final Set<DateTime> late;
   final ValueChanged<DateTime> pick;
   final ValueChanged<int> turn;
+  final VoidCallback todayTap;
 
   @override
   Widget build(BuildContext context) {
@@ -205,6 +198,10 @@ class _MonthGrid extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleMedium,
               ),
+            ),
+            Tooltip(
+              message: s.today,
+              child: TextButton(onPressed: todayTap, child: Text(s.today)),
             ),
             IconButton(
               tooltip: s.nextMonth,
