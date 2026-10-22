@@ -67,6 +67,12 @@ void main() {
     expect(find.text('Stock picks, scored weekly.'), findsOneWidget);
   });
 
+  testWidgets('decisions and todos say what they are (#539)', (tester) async {
+    await show(tester, _mopsos);
+    expect(find.text(EnglishStrings().decisionsHelp), findsOneWidget);
+    expect(find.text(EnglishStrings().todosHelp), findsOneWidget);
+  });
+
   testWidgets('a section with nothing in it shows no heading (#508)', (tester) async {
     await show(tester, '$_mopsos\n## Questions\n\n');
     expect(find.text('Questions'), findsNothing);

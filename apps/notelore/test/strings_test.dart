@@ -406,6 +406,8 @@ void main() {
       'noteKind': s.noteKind('project') + s.noteKind('topic') + s.noteKind('x'),
       'updatedOn': s.updatedOn('d'),
       'earlierDecisions': s.earlierDecisions(2),
+      'decisionsHelp': s.decisionsHelp,
+      'todosHelp': s.todosHelp,
       'supersededOn': s.supersededOn('d'),
       'overdue': s.overdue('d'),
       'reminderPassed': s.reminderPassed('d'),
