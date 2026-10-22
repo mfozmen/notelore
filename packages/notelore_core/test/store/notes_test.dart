@@ -292,11 +292,13 @@ void main() {
       }
       addReminder(path, 'Football match', d(2026, 11, 4), time: '20:00', today: today);
       addReminder(path, 'Dinner', d(2026, 11, 5), time: '19:00', end: '21:30', today: today);
+      addReminder(path, 'Rent', d(2026, 12, 18), time: '09:00', monthly: true, today: today);
       expect(
         read(path),
         endsWith(
           '- 2026-11-04 20:00-22:00: Football match\n'
-          '- 2026-11-05 19:00-21:30: Dinner\n',
+          '- 2026-11-05 19:00-21:30: Dinner\n'
+          '- 2026-12-18 09:00 (monthly): Rent\n',
         ),
       );
       expect(

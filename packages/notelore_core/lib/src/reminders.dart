@@ -43,11 +43,12 @@ List<DueReminder> upcomingReminders(String root, {required DateTime now}) {
       final rel = p.posix.joinAll(p.split(p.relative(file.path, from: root)));
       for (final reminder
           in note.section('reminders')?.entries.whereType<Reminder>() ?? const <Reminder>[]) {
-        final at = _at(reminder);
-        if (at.isAfter(now)) {
+        for (final at in _occurrences(reminder, now)) {
+          if (!at.isAfter(now)) continue;
+          final key = '$rel\n${reminder.render()}${reminder.monthly ? '\n${isoDate(at)}' : ''}';
           due.add(
             DueReminder(
-              stableId('$rel\n${reminder.render()}'),
+              stableId(key),
               at,
               note.title,
               _flat(reminder.text),
@@ -78,6 +79,31 @@ DateTime _at(Reminder reminder) {
   final [hour, minute] = (reminder.time ?? '$_morning:00').split(':').map(int.parse).toList();
   final day = reminder.date;
   return DateTime(day.year, day.month, day.day, hour, minute);
+}
+
+/// The next twelve monthly turns of a monthly reminder, or the one date of a
+/// plain one. A month without the day (the 31st in February) is skipped.
+Iterable<DateTime> _occurrences(Reminder reminder, DateTime now) sync* {
+  final first = _at(reminder);
+  if (!reminder.monthly) {
+    yield first;
+    return;
+  }
+  var year = first.isAfter(now) ? first.year : now.year;
+  var month = first.isAfter(now) ? first.month : now.month;
+  var found = 0;
+  while (found < 12) {
+    final at = DateTime(year, month, first.day, first.hour, first.minute);
+    if (at.month == month && at.isAfter(now)) {
+      yield at;
+      found++;
+    }
+    month++;
+    if (month > 12) {
+      month = 1;
+      year++;
+    }
+  }
 }
 
 DateTime? _end(Reminder reminder, DateTime start) {

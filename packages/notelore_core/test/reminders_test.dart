@@ -61,6 +61,39 @@ void main() {
     expect(match.time, '20:00-22:00');
   });
 
+  test('a monthly reminder comes every month, skipping a day that month lacks (#536)', () {
+    final monthly = createNote(root, 'topic', 'Monthly', today: d(2026, 10, 1));
+    addReminder(
+      monthly,
+      'Rent',
+      d(2026, 10, 18),
+      time: '09:00',
+      monthly: true,
+      today: d(2026, 10, 1),
+    );
+    addReminder(
+      monthly,
+      'Last day',
+      d(2027, 1, 31),
+      time: '09:00',
+      monthly: true,
+      today: d(2026, 10, 1),
+    );
+    final due = upcomingReminders(root, now: now).where((r) => r.note == 'Monthly').toList();
+    final rent = due.where((r) => r.text == 'Rent').toList();
+    expect(rent.map((r) => r.at).take(3), [
+      DateTime(2026, 11, 18, 9),
+      DateTime(2026, 12, 18, 9),
+      DateTime(2027, 1, 18, 9),
+    ]);
+    expect(rent.map((r) => r.id).toSet(), hasLength(12));
+    final last = upcomingReminders(
+      root,
+      now: DateTime(2027, 1, 31, 10),
+    ).where((r) => r.text == 'Last day').map((r) => r.at).take(3);
+    expect(last, [DateTime(2027, 3, 31, 9), DateTime(2027, 5, 31, 9), DateTime(2027, 7, 31, 9)]);
+  });
+
   test('an id stays the same for the same reminder and differs for another', () {
     final first = upcomingReminders(root, now: now);
     final again = upcomingReminders(root, now: now);

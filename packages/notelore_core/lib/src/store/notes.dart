@@ -277,6 +277,7 @@ void addReminder(
   DateTime date, {
   String? time,
   String? end,
+  bool monthly = false,
   DateTime? today,
 }) {
   if (time != null && !isReminderTime(time)) {
@@ -291,7 +292,10 @@ void addReminder(
   }
   final note = readNote(path);
   final day = today ?? localToday();
-  _append(_section(note, 'reminders'), Reminder(date, _text(text), time: time, end: end));
+  _append(
+    _section(note, 'reminders'),
+    Reminder(date, _text(text), time: time, end: end, monthly: monthly),
+  );
   writeNote(path, note, today: day);
 }
 
