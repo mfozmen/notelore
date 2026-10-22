@@ -55,6 +55,8 @@ void main() {
     final due = upcomingReminders(root, now: now);
     expect(due.firstWhere((r) => r.text == 'Football match').end, DateTime(2026, 10, 20, 22));
     expect(due.firstWhere((r) => r.text == 'Dinner').end, DateTime(2026, 10, 21, 21, 30));
+    final items = calendarItems(root, today: DateTime(2026, 10, 19));
+    expect(items.firstWhere((i) => i.text == 'Football match').time, '20:00-22:00');
   });
 
   test('an id stays the same for the same reminder and differs for another', () {
