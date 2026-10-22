@@ -944,27 +944,31 @@ class _ModelPickerState extends State<_ModelPicker> {
           onSelected: (model) => widget.onSelected(model!),
         ),
         if (_refreshing)
-          const Padding(
-            padding: EdgeInsets.only(top: Gap.s),
-            child: LinearProgressIndicator(),
-          ),
-        if (_failure case final failure?)
           Padding(
             padding: const EdgeInsets.only(top: Gap.s),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(s.refreshModelsFailed, style: TextStyle(color: colors.error)),
-                Text(failure, style: TextStyle(color: colors.error)),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: _retry,
-                    icon: const Icon(Icons.refresh),
-                    label: Text(s.tryAgain),
+            child: LinearProgressIndicator(semanticsLabel: s.refreshingModels),
+          ),
+        if (_failure case final failure?)
+          Semantics(
+            container: true,
+            liveRegion: true,
+            child: Padding(
+              padding: const EdgeInsets.only(top: Gap.s),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(s.refreshModelsFailed, style: TextStyle(color: colors.error)),
+                  Text(failure, style: TextStyle(color: colors.error)),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: _retry,
+                      icon: const Icon(Icons.refresh),
+                      label: Text(s.tryAgain),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
       ],
@@ -1043,8 +1047,14 @@ class _SettingRow extends StatelessWidget {
                 ],
               )
             : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: label),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: Gap.s),
+                      child: label,
+                    ),
+                  ),
                   const SizedBox(width: Gap.m),
                   SizedBox(width: 320, child: control),
                 ],
