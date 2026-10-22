@@ -2542,6 +2542,7 @@ void main() {
     expect(find.text('Anthropic is not reachable'), findsOneWidget);
     expect(find.text('Try again'), findsOneWidget);
     expect(session.models, ['model-c']);
+    expect(find.text('model-c'), findsWidgets); // the stale list is still open
     harness
       ..rejected = null
       ..models = ['model-d'];
