@@ -142,6 +142,7 @@ abstract class Strings {
 
   /// The app lock (#224): Settings, its dialogs and the screen at start.
   String get appLock;
+  String get protection;
 
   /// What opens Notelore now (#295); an older password lock invites a switch.
   String appLockOn(LockKind kind);
@@ -243,6 +244,7 @@ abstract class Strings {
   String get removeFailed;
   String nowUsing(String name);
   String get model;
+  String get modelInUse;
   String get refreshModels;
   String get modelSaved;
   String get checkForUpdates;
@@ -250,6 +252,7 @@ abstract class Strings {
   String get logOutExplained;
   String get language;
   String languageName(AppLanguage language);
+  String get appLanguage;
   String get theme;
 
   /// The app and its version; a development build has none.
@@ -391,6 +394,7 @@ abstract class Strings {
 
   // Reminders as this device's notifications (#431).
   String get reminders;
+  String get howRemindersArrive;
   String get remindersOn;
   String get remindersOff;
   String get allowNotifications;
@@ -788,6 +792,8 @@ class EnglishStrings extends Strings {
   @override
   String get appLock => 'App lock';
   @override
+  String get protection => 'Protection';
+  @override
   String appLockOn(LockKind kind) => switch (kind) {
     LockKind.device => "On: your device's lock opens Notelore.",
     LockKind.pattern => 'On: a pattern opens Notelore.',
@@ -1029,6 +1035,8 @@ class EnglishStrings extends Strings {
   @override
   String get model => 'Model';
   @override
+  String get modelInUse => 'Model in use';
+  @override
   String get refreshModels => 'Refresh the model list';
   @override
   String get modelSaved => 'Model saved.';
@@ -1042,10 +1050,12 @@ class EnglishStrings extends Strings {
   String get language => 'Language';
   @override
   String languageName(AppLanguage language) => switch (language) {
-    AppLanguage.system => 'System',
+    AppLanguage.system => 'Same as device',
     AppLanguage.en => 'English',
     AppLanguage.tr => 'Türkçe',
   };
+  @override
+  String get appLanguage => 'App language';
   @override
   String get theme => 'Theme';
   @override
@@ -1221,6 +1231,8 @@ class EnglishStrings extends Strings {
   String reminderPassed(String date) => 'Passed, $date';
   @override
   String get reminders => 'Reminders';
+  @override
+  String get howRemindersArrive => 'How reminders arrive';
   @override
   String get remindersOn => "Notelore notifies you on this device at a reminder's time.";
   @override
@@ -1815,6 +1827,8 @@ class TurkishStrings extends Strings {
   @override
   String get appLock => 'Uygulama kilidi';
   @override
+  String get protection => 'Koruma';
+  @override
   String appLockOn(LockKind kind) => switch (kind) {
     LockKind.device => 'Açık: Notelore cihazının kilidiyle açılır.',
     LockKind.pattern => 'Açık: Notelore bir desenle açılır.',
@@ -2056,6 +2070,8 @@ class TurkishStrings extends Strings {
   @override
   String get model => 'Model';
   @override
+  String get modelInUse => 'Kullanılan model';
+  @override
   String get refreshModels => 'Model listesini yenile';
   @override
   String get modelSaved => 'Model kaydedildi.';
@@ -2069,10 +2085,12 @@ class TurkishStrings extends Strings {
   String get language => 'Dil';
   @override
   String languageName(AppLanguage language) => switch (language) {
-    AppLanguage.system => 'Sistem',
+    AppLanguage.system => 'Cihazla aynı',
     AppLanguage.en => 'English',
     AppLanguage.tr => 'Türkçe',
   };
+  @override
+  String get appLanguage => 'Uygulama dili';
   @override
   String get theme => 'Tema';
   @override
@@ -2243,6 +2261,8 @@ class TurkishStrings extends Strings {
   String reminderPassed(String date) => 'Geçti, $date';
   @override
   String get reminders => 'Hatırlatıcılar';
+  @override
+  String get howRemindersArrive => 'Hatırlatıcılar nasıl gelir';
   @override
   String get remindersOn => 'Notelore, hatırlatıcının saatinde bu cihazda bildirim gönderir.';
   @override

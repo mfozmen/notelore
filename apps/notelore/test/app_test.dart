@@ -1631,11 +1631,11 @@ void main() {
     }
     // The model first, alone.
     expect(find.text('Connected models'), findsOneWidget);
-    expect(find.text('Language'), findsNothing);
+    expect(find.text('App language'), findsNothing);
 
     await tester.tap(section('Appearance'));
     await tester.pumpAndSettle();
-    expect(find.text('Language'), findsOneWidget);
+    expect(find.text('App language'), findsOneWidget);
     expect(find.text('Connected models'), findsNothing);
 
     await tester.tap(section('Voice'));
@@ -1738,7 +1738,7 @@ void main() {
     await tester.tap(find.text('Türkçe').last);
     await tester.pumpAndSettle();
     expect(find.text('Görünüm'), findsOneWidget); // the page, in Turkish at once
-    expect(find.text('Dil'), findsOneWidget);
+    expect(find.text('Uygulama dili'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.text('Sohbet'), findsOneWidget);
