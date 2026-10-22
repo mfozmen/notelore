@@ -215,6 +215,12 @@ void main() {
     expect(find.text('No notes yet. Tell the assistant something to remember.'), findsOneWidget);
     expect(find.text('Pick a note to read it here.'), findsNothing);
     expect(find.byKey(const Key('notes-more')), findsOneWidget);
+    await tester.tap(find.byTooltip('Archive'));
+    await tester.pumpAndSettle();
+    expect(find.text('The archive is empty. Deleted notes go here.'), findsOneWidget);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.text('No notes yet. Tell the assistant something to remember.'), findsOneWidget);
   });
 
   testWidgets('the archive opens beside the rail, at a readable width (#508)', (tester) async {
