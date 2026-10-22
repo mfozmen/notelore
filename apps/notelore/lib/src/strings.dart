@@ -456,8 +456,8 @@ abstract class Strings {
   String whisperDownloading(int percent);
   String downloadFailed(DownloadProblem problem);
 
-  /// What the speech model is for, and its download in megabytes.
-  String whisperWhy(int megabytes);
+  /// What the speech model is for, and that its package comes to this device.
+  String get whisperWhy;
   String get microphone;
   String get systemMicrophone;
   String get listMicrophones;
@@ -1354,8 +1354,9 @@ class EnglishStrings extends Strings {
   @override
   String get whisper => 'Speech recognition on this device';
   @override
-  String whisperWhy(int megabytes) =>
-      'Turns your speech into text here; nothing is sent anywhere. About $megabytes MB, once.';
+  String get whisperWhy =>
+      'Turns your speech into text here; nothing is sent anywhere. '
+      'The speech recognition package is downloaded to this device once.';
   @override
   String get tryAgain => 'Try again';
   @override
@@ -2390,8 +2391,9 @@ class TurkishStrings extends Strings {
   @override
   String get whisper => 'Bu cihazda konuşma tanıma';
   @override
-  String whisperWhy(int megabytes) =>
-      'Konuşmanı burada yazıya çevirir; hiçbir yere gönderilmez. Bir kez, yaklaşık $megabytes MB.';
+  String get whisperWhy =>
+      'Konuşmanı burada yazıya çevirir; hiçbir yere gönderilmez. '
+      'Konuşma tanıma paketi bu cihaza bir kez indirilir.';
   @override
   String get tryAgain => 'Tekrar dene';
   @override

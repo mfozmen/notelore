@@ -22,10 +22,11 @@ void main() {
       final words = [
         s.audioNeedsWhisper('a.m4a'),
         s.whisper,
-        s.whisperWhy(375),
+        s.whisperWhy,
         s.whisperDownloading(10),
       ].join(' ');
       expect(words, isNot(contains('Whisper')));
+      expect(words, isNot(contains('MB')));
     }
     expect(tr.appLockOff, 'Kapalı: Notelore açılırken uygulama kilidi istemez.');
   });
@@ -205,7 +206,7 @@ void main() {
       'downloadedPercent': s.downloadedPercent(42),
       'deviceDownloadFailed': s.deviceDownloadFailed(DownloadProblem.offline),
       'deviceNoSpace': s.deviceDownloadFailed(DownloadProblem.space),
-      'whisperWhy': s.whisperWhy(250),
+      'whisperWhy': s.whisperWhy,
       'errorDevice': s.errorDevice,
       'planWelcome': s.planWelcome,
       'askSomething': s.askSomething,

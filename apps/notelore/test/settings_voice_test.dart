@@ -47,7 +47,7 @@ void main() {
     await connect(tester, key: 'k');
     await openVoice(tester);
     expect(find.text('Speech recognition on this device'), findsOneWidget);
-    expect(find.textContaining('375 MB'), findsNothing); // no explanation, just the setting
+    expect(find.textContaining('MB'), findsNothing); // no size, just the setting
     await settle(tester, session);
     expect(session.whisper.ready, isTrue);
     expect(find.text('Download Whisper'), findsNothing);
@@ -72,8 +72,14 @@ void main() {
     await settle(tester, session);
     // In plain words: never the file, the code or the server's text (#508).
     expect(find.text('The download did not finish. Try again in a while.'), findsOneWidget);
-    // What the download is for, and how big, before the person tries again.
-    expect(find.textContaining(RegExp(r'nothing is sent anywhere\. About \d+ MB')), findsOneWidget);
+    // What the package is for, and that it comes to this device, with no size.
+    expect(
+      find.text(
+        'Turns your speech into text here; nothing is sent anywhere. '
+        'The speech recognition package is downloaded to this device once.',
+      ),
+      findsOneWidget,
+    );
     expect(find.textContaining('HTTP'), findsNothing);
 
     harness.modelPage = 'whisper bytes';
