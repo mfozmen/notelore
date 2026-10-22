@@ -691,10 +691,13 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
         title: Text(s.archive),
         actions: [
           if (archived.isNotEmpty)
-            IconButton(
-              tooltip: s.emptyArchive,
-              icon: const Icon(Icons.delete_sweep_outlined),
-              onPressed: () => _empty(archived.length),
+            PopupMenuButton<String>(
+              key: const Key('archive-more'),
+              tooltip: s.moreNoteActions,
+              onSelected: (_) => _empty(archived.length),
+              itemBuilder: (_) => [
+                PopupMenuItem(value: 'empty', child: Text(s.emptyArchive)),
+              ],
             ),
         ],
       ),
@@ -729,7 +732,6 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                         ),
                       ),
                       onTap: () => _open(archived[index]),
-                      onLongPress: () => _deleteForever(archived[index]),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -738,10 +740,13 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                             icon: const Icon(Icons.restore),
                             onPressed: () => _restore(archived[index], () {}),
                           ),
-                          IconButton(
-                            tooltip: s.deleteForever,
-                            icon: const Icon(Icons.delete_forever_outlined),
-                            onPressed: () => _deleteForever(archived[index]),
+                          PopupMenuButton<String>(
+                            key: ValueKey('archive-note-more-${archived[index].original}'),
+                            tooltip: s.moreNoteActions,
+                            onSelected: (_) => _deleteForever(archived[index]),
+                            itemBuilder: (_) => [
+                              PopupMenuItem(value: 'delete', child: Text(s.deleteForever)),
+                            ],
                           ),
                         ],
                       ),

@@ -1980,19 +1980,24 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Archive'));
     await tester.pumpAndSettle();
-    // One, from the list (a long press, or its button): asked first; Cancel keeps it.
-    await tester.longPress(find.text(session.listArchived().first.title));
+    // One, from its row menu: asked first; Cancel keeps it.
+    var first = session.listArchived().first;
+    await tester.tap(find.byKey(ValueKey('archive-note-more-${first.original}')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete for good'));
     await tester.pumpAndSettle();
     expect(find.textContaining('cannot be undone'), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(session.listArchived(), hasLength(3));
-    final first = session.listArchived().first.title;
-    await tester.tap(find.byTooltip('Delete for good').first);
+    first = session.listArchived().first;
+    await tester.tap(find.byKey(ValueKey('archive-note-more-${first.original}')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete for good'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Delete for good'));
     await tester.pumpAndSettle();
-    expect(find.text('Deleted "$first" for good.'), findsOneWidget);
+    expect(find.text('Deleted "${first.title}" for good.'), findsOneWidget);
     expect(session.listArchived(), hasLength(2));
     // One, from its page: back to the list once gone.
     await tester.tap(find.text(session.listArchived().first.title));
@@ -2003,15 +2008,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(NoteView), findsNothing);
     expect(session.listArchived(), hasLength(1));
-    // All the rest, with how many.
-    await tester.tap(find.byTooltip('Empty the archive'));
+    // All the rest, from the archive menu, with how many.
+    await tester.tap(find.byKey(const Key('archive-more')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Empty the archive'));
     await tester.pumpAndSettle();
     expect(find.textContaining('1 note'), findsOneWidget);
     await tester.tap(find.widgetWithText(FilledButton, 'Empty the archive'));
     await tester.pumpAndSettle();
     expect(find.text('Deleted 1 note from the archive for good.'), findsOneWidget);
     expect(find.text('The archive is empty. Deleted notes go here.'), findsOneWidget);
-    expect(find.byTooltip('Empty the archive'), findsNothing);
+    expect(find.byKey(const Key('archive-more')), findsNothing);
   });
 
   testWidgets('notes: archived entries are shown as such and go back into their note', (
