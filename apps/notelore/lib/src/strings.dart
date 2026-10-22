@@ -11,6 +11,10 @@ import 'theme.dart';
 import 'transfer.dart' show ExportFormat;
 import 'whisper_model.dart' show DownloadProblem;
 
+String _updateSize(int bytes) => bytes < 1024 * 1024
+    ? '${(bytes / 1024).round()} KB'
+    : '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+
 /// The language the app speaks: the device's, or a fixed one.
 enum AppLanguage { system, en, tr }
 
@@ -475,6 +479,10 @@ abstract class Strings {
   String get upToDate;
   String updateAvailable(String version);
   String get whatsNew;
+  String get checkingUpdate;
+  String downloadingUpdate(int received, int? total);
+  String get verifyingUpdate;
+  String get windowsUpdateHandoff;
   String installing(String version);
   String installed(String version);
   String checkFailed(Object error);
@@ -1174,7 +1182,13 @@ class EnglishStrings extends Strings {
   List<String> get weekdays => const ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
   @override
   List<String> get weekdayNames => const [
-    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', //
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday', //
   ];
   @override
   List<String> get monthNames => const [
@@ -1241,7 +1255,18 @@ class EnglishStrings extends Strings {
   String get signInCalendar => 'Sign in to Google Calendar';
   @override
   List<String> get months => const [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', //
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec', //
   ];
   @override
   String entriesFrom(String title) => 'Entries from $title';
@@ -1379,6 +1404,21 @@ class EnglishStrings extends Strings {
   String updateAvailable(String version) => 'A fresh Notelore is ready: $version.';
   @override
   String get whatsNew => "What's new";
+  @override
+  String get checkingUpdate => 'Checking the release…';
+  @override
+  String downloadingUpdate(int received, int? total) {
+    final size = _updateSize(received);
+    if (total == null) return 'Downloading update… $size';
+    final share = (received * 100 ~/ total).clamp(0, 100);
+    return 'Downloading update… $share% ($size of ${_updateSize(total)})';
+  }
+
+  @override
+  String get verifyingUpdate => 'Checking the download…';
+  @override
+  String get windowsUpdateHandoff =>
+      'Windows closes Notelore, runs the setup, and opens the new version.';
   @override
   String installing(String version) => 'Putting the new Notelore in place ($version)…';
   @override
@@ -2153,11 +2193,24 @@ class TurkishStrings extends Strings {
   List<String> get weekdays => const ['Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct', 'Pz'];
   @override
   List<String> get weekdayNames => const [
-    'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar', //
+    'Pazartesi',
+    'Salı',
+    'Çarşamba',
+    'Perşembe',
+    'Cuma',
+    'Cumartesi',
+    'Pazar', //
   ];
   @override
   List<String> get monthNames => const [
-    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', //
+    'Ocak',
+    'Şubat',
+    'Mart',
+    'Nisan',
+    'Mayıs',
+    'Haziran',
+    'Temmuz',
+    'Ağustos', //
     'Eylül', 'Ekim', 'Kasım', 'Aralık',
   ];
   @override
@@ -2220,7 +2273,18 @@ class TurkishStrings extends Strings {
   String get signInCalendar => "Google Takvim'e giriş yap";
   @override
   List<String> get months => const [
-    'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara', //
+    'Oca',
+    'Şub',
+    'Mar',
+    'Nis',
+    'May',
+    'Haz',
+    'Tem',
+    'Ağu',
+    'Eyl',
+    'Eki',
+    'Kas',
+    'Ara', //
   ];
   @override
   String entriesFrom(String title) => '$title notundan girdiler';
@@ -2354,6 +2418,21 @@ class TurkishStrings extends Strings {
   String updateAvailable(String version) => 'Notelore’un taze bir sürümü hazır: $version.';
   @override
   String get whatsNew => 'Neler yeni';
+  @override
+  String get checkingUpdate => 'Sürüm denetleniyor…';
+  @override
+  String downloadingUpdate(int received, int? total) {
+    final size = _updateSize(received);
+    if (total == null) return 'Güncelleme indiriliyor… $size';
+    final share = (received * 100 ~/ total).clamp(0, 100);
+    return 'Güncelleme indiriliyor… %$share ($size / ${_updateSize(total)})';
+  }
+
+  @override
+  String get verifyingUpdate => 'İndirme denetleniyor…';
+  @override
+  String get windowsUpdateHandoff =>
+      'Windows Notelore’u kapatır, kurulumu çalıştırır ve yeni sürümü açar.';
   @override
   String installing(String version) => 'Yeni Notelore yerine yerleşiyor ($version)…';
   @override

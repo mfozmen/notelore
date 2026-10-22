@@ -146,6 +146,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   var _highlights = const <String>[];
   String? _page;
   String? _updateProblem;
+  UpdateProgress? _progress;
   var _updating = false;
   var _installed = false; // installed, waiting for a manual restart
   String? _dismissed; // put off with Later: not shown again by the timer
@@ -257,23 +258,40 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     setState(() {
       _updating = true;
       _updateProblem = null;
+      _progress = const UpdateProgress(UpdatePhase.checking);
     });
     try {
-      await widget.updater!.apply();
+      await widget.updater!.apply(
+        onProgress: (progress) {
+          if (mounted) setState(() => _progress = progress);
+        },
+      );
     } on Exception catch (error) {
-      if (mounted) setState(() => _updateProblem = '$error');
+      if (mounted) {
+        setState(() {
+          _updating = false;
+          _progress = null;
+          _updateProblem = '$error';
+        });
+      }
       return;
-    } finally {
-      if (mounted) setState(() => _updating = false);
     }
     try {
       await widget.updater!.relaunch();
     } on InstallNotAllowed {
-      if (mounted) setState(() => _updateProblem = widget.session.strings.allowInstalls);
+      if (mounted) {
+        setState(() {
+          _updating = false;
+          _progress = null;
+          _updateProblem = widget.session.strings.allowInstalls;
+        });
+      }
       return;
     } on Exception catch (error) {
       if (!mounted) return;
       setState(() {
+        _updating = false;
+        _progress = null;
         if (widget.updater!.system != 'macos') {
           // Windows runs the setup, Android opens the installer: nothing has changed yet.
           _updateProblem = widget.session.strings.setupFailed(error);
@@ -283,6 +301,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       });
       return;
     }
+    if (mounted) setState(() => _updating = false);
     // Android's installer takes over; cancelling it leaves this app running.
     if (widget.updater!.system != 'android') widget.exitApp(0);
   }
@@ -330,8 +349,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             page: _page,
             installed: _installed,
             updating: _updating,
+            progress: _progress,
             problem: _updateProblem,
             android: widget.updater?.system == 'android',
+            windows: widget.updater?.system == 'windows',
             later: () => setState(() {
               _dismissed = _available;
               _available = null;
@@ -647,8 +668,10 @@ class _UpdateBanner extends StatelessWidget {
     required this.page,
     required this.installed,
     required this.updating,
+    required this.progress,
     required this.problem,
     required this.android,
+    required this.windows,
     required this.later,
     required this.update,
   });
@@ -659,8 +682,10 @@ class _UpdateBanner extends StatelessWidget {
   final String? page;
   final bool installed;
   final bool updating;
+  final UpdateProgress? progress;
   final String? problem;
   final bool android;
+  final bool windows;
   final VoidCallback later;
   final VoidCallback update;
 
@@ -670,10 +695,15 @@ class _UpdateBanner extends StatelessWidget {
     final message = switch (problem) {
       _ when installed => s.installed(version),
       final problem? => problem,
-      _ when updating => s.installing(version),
+      _ when updating => switch (progress?.phase) {
+        UpdatePhase.checking => s.checkingUpdate,
+        UpdatePhase.downloading => s.downloadingUpdate(progress!.received, progress!.total),
+        UpdatePhase.verifying => s.verifyingUpdate,
+        _ => s.installing(version),
+      },
       _ => s.updateAvailable(version),
     };
-    final brings = highlights.isEmpty || installed || problem != null
+    final brings = highlights.isEmpty || installed || updating || problem != null
         ? null
         : highlights.join(' · ');
     return MaterialBanner(
@@ -682,6 +712,16 @@ class _UpdateBanner extends StatelessWidget {
         spacing: Gap.xs,
         children: [
           Text(message),
+          if (updating && progress?.phase == UpdatePhase.downloading)
+            LinearProgressIndicator(
+              value: progress!.total == null ? null : progress!.received / progress!.total!,
+            ),
+          if (updating && progress?.phase == UpdatePhase.installing && windows)
+            Text(
+              s.windowsUpdateHandoff,
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
           if (brings != null)
             Text(
               brings,

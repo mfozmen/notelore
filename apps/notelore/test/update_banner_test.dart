@@ -164,15 +164,20 @@ void main() {
     expect(find.text('Later'), findsNothing);
   });
 
-  testWidgets('while installing the buttons wait', (tester) async {
+  testWidgets('while downloading the buttons wait, with the bytes known', (tester) async {
+    final pending = Completer<List<int>>();
     final slow = Updater(
       system: 'windows',
       executable: p.join(install, 'notelore.exe'),
       current: '0.2.0',
       temp: temp,
-      fetch: (url) async {
-        if (url != latestReleaseUrl) await Completer<void>().future; // never arrives
-        return release(v);
+      fetch: Pages({
+        latestReleaseUrl: release(v),
+        ...download('notelore-app-$v-windows-x64-setup.exe', setup),
+      }).call,
+      download: (url, {onProgress}) {
+        onProgress?.call(5 * 1024 * 1024, 10 * 1024 * 1024);
+        return pending.future;
       },
       run: (command, args) async => ProcessResult(0, 0, '', ''),
       spawn: (exe, args) async {},
@@ -180,8 +185,35 @@ void main() {
     await pump(tester, slow);
     await tester.tap(find.text('Update and restart'));
     await tester.pump();
-    expect(find.text('Putting the new Notelore in place ($v)…'), findsOneWidget);
+    expect(find.text('Downloading update… 50% (5.0 MB of 10.0 MB)'), findsOneWidget);
+    expect(tester.widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator)).value, 0.5);
     expect(tester.widget<TextButton>(find.widgetWithText(TextButton, 'Later')).onPressed, isNull);
+  });
+
+  testWidgets('Windows says the setup takes over before the app exits', (tester) async {
+    final hold = Completer<void>();
+    final u = Updater(
+      system: 'windows',
+      executable: p.join(install, 'notelore.exe'),
+      current: '0.2.0',
+      temp: temp,
+      fetch: Pages({
+        latestReleaseUrl: release(v),
+        ...download('notelore-app-$v-windows-x64-setup.exe', setup),
+      }).call,
+      download: (url, {onProgress}) async => setup,
+      run: (command, args) async => ProcessResult(0, 0, '', ''),
+      spawn: (exe, args) => hold.future,
+    );
+    await pump(tester, u);
+    await tester.tap(find.text('Update and restart'));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+    await tester.pump();
+    expect(find.textContaining('Windows closes Notelore'), findsOneWidget);
+    expect(exits, isEmpty);
+    hold.complete();
+    await tester.pumpAndSettle();
+    expect(exits, [0]);
   });
 
   testWidgets('Settings checks by hand: up to date, offline, then a new release', (tester) async {
@@ -225,7 +257,8 @@ void main() {
   Future<void> tick(WidgetTester tester) async {
     await tester.pump(const Duration(hours: 6));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
-    await tester.pumpAndSettle();
+    // Not pumpAndSettle: an unknown download size shows an indicator that animates.
+    await tester.pump();
   }
 
   testWidgets('while open it checks again every 6 hours', (tester) async {
@@ -289,7 +322,8 @@ void main() {
     await tester.pump();
     pages.pages[latestReleaseUrl] = release('0.2.0'); // a tick would clear the banner
     await tick(tester);
-    expect(find.textContaining('Putting the new Notelore in place'), findsOneWidget);
+    expect(find.textContaining('Downloading update…'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
     hold.complete();
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
     await tester.pumpAndSettle();

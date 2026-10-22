@@ -198,6 +198,35 @@ void main() {
       expect(args, ['/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART']);
     });
 
+    test('apply reports checking, downloading bytes, verifying and installing', () async {
+      final states = <UpdateProgress>[];
+      final u = Updater(
+        system: 'windows',
+        executable: p.join(install, 'notelore.exe'),
+        current: '0.2.0',
+        temp: Directory(p.join(dir, 'progress-temp'))..createSync(recursive: true),
+        fetch: Pages(good()).call,
+        download: (url, {onProgress}) async {
+          onProgress?.call(1, 2);
+          onProgress?.call(2, 2);
+          return setup;
+        },
+        run: (command, args) async => fail('nothing is unpacked on Windows'),
+        spawn: (exe, args) async {},
+      );
+      expect(await u.apply(onProgress: states.add), v);
+      expect(states.map((s) => s.phase), [
+        UpdatePhase.checking,
+        UpdatePhase.downloading,
+        UpdatePhase.downloading,
+        UpdatePhase.downloading,
+        UpdatePhase.verifying,
+        UpdatePhase.installing,
+      ]);
+      expect(states.where((s) => s.phase == UpdatePhase.downloading).last.received, 2);
+      expect(states.where((s) => s.phase == UpdatePhase.downloading).last.total, 2);
+    });
+
     test('the download stays in its own temp folder, safe from another cleanup (#330)', () async {
       final u = updater(good());
       expect(await u.apply(), v);
@@ -516,6 +545,29 @@ void transportTests() {
     await expectLater(httpFetch('https://x', client: offline), throwsA(isA<UpdateFailed>()));
   });
 
+  test('httpDownload streams the body and its progress, or UpdateFailed', () async {
+    final seen = <(int, int?)>[];
+    final ok = MockClient((_) async => http.Response('body', 200));
+    expect(
+      utf8.decode(
+        await httpDownload(
+          'https://x',
+          client: ok,
+          onProgress: (received, total) => seen.add((received, total)),
+        ),
+      ),
+      'body',
+    );
+    expect(seen, [(4, 4)]);
+    final missing = MockClient((_) async => http.Response('', 404));
+    await expectLater(
+      httpDownload('https://x', client: missing),
+      throwsA(isA<UpdateFailed>().having((e) => '$e', 'message', contains('HTTP 404'))),
+    );
+    final offline = MockClient((_) async => throw http.ClientException('no route'));
+    await expectLater(httpDownload('https://x', client: offline), throwsA(isA<UpdateFailed>()));
+  });
+
   test('httpFetch uses a real client by default (a loopback server here)', () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     addTearDown(server.close);
@@ -525,6 +577,17 @@ void transportTests() {
         ..close(),
     );
     expect(utf8.decode(await httpFetch('http://127.0.0.1:${server.port}/')), 'hello');
+  });
+
+  test('httpDownload uses a real client by default (a loopback server here)', () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(server.close);
+    server.listen(
+      (request) => request.response
+        ..write('hello')
+        ..close(),
+    );
+    expect(utf8.decode(await httpDownload('http://127.0.0.1:${server.port}/')), 'hello');
   });
 
   test('startDetached starts a program and does not wait for it', () async {
