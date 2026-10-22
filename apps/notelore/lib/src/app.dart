@@ -146,6 +146,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   var _highlights = const <String>[];
   String? _page;
   String? _updateProblem;
+  UpdateProgress? _progress;
   var _updating = false;
   var _installed = false; // installed, waiting for a manual restart
   String? _dismissed; // put off with Later: not shown again by the timer
@@ -257,34 +258,58 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     setState(() {
       _updating = true;
       _updateProblem = null;
+      _progress = const UpdateProgress(UpdatePhase.checking);
     });
     try {
-      await widget.updater!.apply();
-    } on Exception catch (error) {
-      if (mounted) setState(() => _updateProblem = '$error');
-      return;
+      final applied = await _applyUpdate();
+      if (applied != null) return _failedUpdate(applied);
+      final relaunched = await _relaunchUpdate();
+      if (relaunched != null) return _failedUpdate(relaunched);
+      if (_installed) return; // macOS swapped it in; only the restart failed
+      // Android's installer takes over; cancelling it leaves this app running.
+      if (widget.updater!.system != 'android') widget.exitApp(0);
     } finally {
       if (mounted) setState(() => _updating = false);
     }
+  }
+
+  /// Null when the download and its checksum are in place, else why not.
+  Future<String?> _applyUpdate() async {
+    try {
+      await widget.updater!.apply(
+        onProgress: (progress) {
+          if (mounted) setState(() => _progress = progress);
+        },
+      );
+      return null;
+    } on Exception catch (error) {
+      return '$error';
+    }
+  }
+
+  /// Null once the new version is started (or the installer opened), else why not.
+  Future<String?> _relaunchUpdate() async {
     try {
       await widget.updater!.relaunch();
+      return null;
     } on InstallNotAllowed {
-      if (mounted) setState(() => _updateProblem = widget.session.strings.allowInstalls);
-      return;
+      return widget.session.strings.allowInstalls;
     } on Exception catch (error) {
-      if (!mounted) return;
-      setState(() {
-        if (widget.updater!.system != 'macos') {
-          // Windows runs the setup, Android opens the installer: nothing has changed yet.
-          _updateProblem = widget.session.strings.setupFailed(error);
-        } else {
-          _installed = true; // macOS: swapped in, only the restart failed
-        }
-      });
-      return;
+      if (widget.updater!.system == 'macos') {
+        if (mounted) setState(() => _installed = true); // swapped in; the restart failed
+        return null;
+      }
+      // Windows runs the setup, Android opens the installer: nothing has changed yet.
+      return widget.session.strings.setupFailed(error);
     }
-    // Android's installer takes over; cancelling it leaves this app running.
-    if (widget.updater!.system != 'android') widget.exitApp(0);
+  }
+
+  void _failedUpdate(String problem) {
+    if (!mounted) return;
+    setState(() {
+      _progress = null;
+      _updateProblem = problem;
+    });
   }
 
   Future<String> Function()? get _checkByHand => widget.updater == null ? null : _checkNow;
@@ -330,8 +355,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             page: _page,
             installed: _installed,
             updating: _updating,
+            progress: _progress,
             problem: _updateProblem,
             android: widget.updater?.system == 'android',
+            windows: widget.updater?.system == 'windows',
             later: () => setState(() {
               _dismissed = _available;
               _available = null;
@@ -647,8 +674,10 @@ class _UpdateBanner extends StatelessWidget {
     required this.page,
     required this.installed,
     required this.updating,
+    required this.progress,
     required this.problem,
     required this.android,
+    required this.windows,
     required this.later,
     required this.update,
   });
@@ -659,21 +688,46 @@ class _UpdateBanner extends StatelessWidget {
   final String? page;
   final bool installed;
   final bool updating;
+  final UpdateProgress? progress;
   final String? problem;
   final bool android;
+  final bool windows;
   final VoidCallback later;
   final VoidCallback update;
+
+  String _message(Strings s) {
+    if (installed) return s.installed(version);
+    if (problem case final problem?) return problem;
+    if (!updating) return s.updateAvailable(version);
+    return switch (progress?.phase) {
+      UpdatePhase.checking => s.checkingUpdate,
+      UpdatePhase.downloading => s.downloadingUpdate(progress!.received, progress!.total),
+      UpdatePhase.verifying => s.verifyingUpdate,
+      _ => s.installing(version),
+    };
+  }
+
+  Widget? _progressBar() {
+    if (!updating || progress?.phase != UpdatePhase.downloading) return null;
+    final total = progress!.total;
+    return LinearProgressIndicator(
+      value: total == null || total <= 0 ? null : progress!.received / total,
+    );
+  }
+
+  Widget? _handoff(BuildContext context) {
+    if (!updating || progress?.phase != UpdatePhase.installing || !windows) return null;
+    return Text(
+      strings.windowsUpdateHandoff,
+      style: Theme.of(context).textTheme.bodySmall
+          ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final s = strings;
-    final message = switch (problem) {
-      _ when installed => s.installed(version),
-      final problem? => problem,
-      _ when updating => s.installing(version),
-      _ => s.updateAvailable(version),
-    };
-    final brings = highlights.isEmpty || installed || problem != null
+    final brings = highlights.isEmpty || installed || updating || problem != null
         ? null
         : highlights.join(' · ');
     return MaterialBanner(
@@ -681,7 +735,9 @@ class _UpdateBanner extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Gap.xs,
         children: [
-          Text(message),
+          Text(_message(s)),
+          ?_progressBar(),
+          ?_handoff(context),
           if (brings != null)
             Text(
               brings,

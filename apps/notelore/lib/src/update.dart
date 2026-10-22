@@ -14,6 +14,7 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
@@ -27,8 +28,25 @@ const latestReleaseUrl = 'https://api.github.com/repos/mfozmen/notelore/releases
 const appVersion = String.fromEnvironment('NOTELORE_VERSION');
 
 typedef Fetch = Future<List<int>> Function(String url);
+typedef Download = Future<List<int>> Function(
+  String url, {
+  void Function(int received, int? total)? onProgress,
+});
 typedef Run = Future<ProcessResult> Function(String command, List<String> args);
 typedef Spawn = Future<void> Function(String executable, List<String> args);
+
+/// What an update is doing, for the banner; bytes only while downloading.
+enum UpdatePhase { checking, downloading, verifying, installing }
+
+final class UpdateProgress {
+  const UpdateProgress(this.phase, {this.received = 0, this.total});
+
+  const UpdateProgress.downloading(this.received, this.total) : phase = UpdatePhase.downloading;
+
+  final UpdatePhase phase;
+  final int received;
+  final int? total;
+}
 
 /// Hands an APK to Android's installer; false when installs from Notelore are
 /// not allowed yet (the setting to allow them has been opened instead).
@@ -93,6 +111,46 @@ Future<List<int>> httpFetch(String url, {http.Client? client}) async {
     throw UpdateFailed('download failed: HTTP ${response.statusCode} for $url');
   }
   return response.bodyBytes;
+}
+
+/// The update file, streamed so the banner can show how much is here; a size
+/// the server does not send stays null for an activity indicator, never a guess.
+Future<List<int>> httpDownload(
+  String url, {
+  http.Client? client,
+  void Function(int received, int? total)? onProgress,
+}) async {
+  final own = client == null;
+  client ??= http.Client();
+  try {
+    final request = http.Request('GET', Uri.parse(url));
+    final response = await client.send(request).timeout(const Duration(minutes: 2));
+    if (response.statusCode != 200) {
+      throw UpdateFailed('download failed: HTTP ${response.statusCode} for $url');
+    }
+    var total = response.contentLength;
+    if (total != null && total <= 0) total = null;
+    final bytes = BytesBuilder(copy: false);
+    var received = 0;
+    var reported = -1;
+    await for (final chunk in response.stream.timeout(const Duration(seconds: 30))) {
+      bytes.add(chunk);
+      received += chunk.length;
+      // Not every chunk: a multi-megabyte file arrives in hundreds of pieces.
+      if (received == total || received - reported >= 256 * 1024) {
+        onProgress?.call(received, total);
+        reported = received;
+      }
+    }
+    if (reported != received) onProgress?.call(received, total);
+    return bytes.takeBytes();
+  } on UpdateFailed {
+    rethrow;
+  } on Exception catch (error) {
+    throw UpdateFailed('download failed: $error');
+  } finally {
+    if (own) client.close();
+  }
 }
 
 Future<void> startDetached(String executable, [List<String> args = const []]) =>
@@ -178,6 +236,7 @@ Updater? updaterFor({required String system, required String version, required S
     current: version,
     temp: Directory.systemTemp,
     fetch: httpFetch,
+    download: httpDownload,
     run: Process.run,
     spawn: startDetached,
     osVersion: Platform.operatingSystemVersion,
@@ -191,6 +250,7 @@ class Updater {
     required this.current,
     required this.temp,
     required this.fetch,
+    this.download,
     required this.run,
     required this.spawn,
     this.renameDirectory = _renameDirectory,
@@ -214,6 +274,10 @@ class Updater {
   /// so a test's cleanup never deletes another test's download (#330).
   final Directory temp;
   final Fetch fetch;
+
+  /// The update asset's download, with progress; the small release and
+  /// checksum answers use [fetch].
+  final Download? download;
   final Run run;
   final Spawn spawn;
 
@@ -229,7 +293,8 @@ class Updater {
 
   /// Downloads the latest release and checks it; on macOS also swaps the bundle
   /// in. Its version, or null when this is current.
-  Future<String?> apply() async {
+  Future<String?> apply({void Function(UpdateProgress progress)? onProgress}) async {
+    onProgress?.call(const UpdateProgress(UpdatePhase.checking));
     final (:version, :assets) = await latestRelease(fetch);
     if (!isNewer(version, current)) return null;
     final name = assetName(version, system);
@@ -246,10 +311,17 @@ class Updater {
     if (fields.first.isEmpty) {
       throw UpdateFailed('the checksum for $name is empty; not installing it');
     }
-    final data = await fetch(url);
+    onProgress?.call(const UpdateProgress.downloading(0, null));
+    final data = await (download ?? (url, {onProgress}) => fetch(url))(
+      url,
+      onProgress: (received, total) =>
+          onProgress?.call(UpdateProgress.downloading(received, total)),
+    );
+    onProgress?.call(const UpdateProgress(UpdatePhase.verifying));
     if (sha256.convert(data).toString() != fields.first.toLowerCase()) {
       throw UpdateFailed('checksum mismatch for $name; the download was not installed');
     }
+    onProgress?.call(const UpdateProgress(UpdatePhase.installing));
     if (system == 'windows' || system == 'android') {
       // The setup replaces the files once this app has exited; the APK goes to
       // the system installer (see relaunch).
