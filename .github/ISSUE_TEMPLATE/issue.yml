@@ -6,7 +6,9 @@ body:
       value: >-
         Set the **Milestone** in the sidebar: the epic this issue serves. Every
         issue has one. If no open epic fits, ask for a new one; a closed epic is
-        never reopened.
+        never reopened. Check existing issues for prerequisites and work this
+        issue blocks. After creating it, add GitHub **Blocked by / Blocking**
+        relationships for real dependencies.
   - type: textarea
     id: what
     attributes:
