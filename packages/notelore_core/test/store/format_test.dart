@@ -192,6 +192,7 @@ void main() {
     expect(estimateReminderDuration('Konser'), 120);
     expect(estimateReminderDuration('Fenerbahçe maçını izle'), 120);
     expect(estimateReminderDuration('Konseri'), 120);
+    expect(estimateReminderDuration('Derbisi'), 120);
     expect(estimateReminderDuration('Team meeting'), 60);
     expect(estimateReminderDuration('Toplantısı'), 60);
     expect(estimateReminderDuration('Dentist'), 15);

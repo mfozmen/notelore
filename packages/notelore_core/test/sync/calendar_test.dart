@@ -161,14 +161,23 @@ void main() {
       (first['end']! as Map)['dateTime'],
       at.add(const Duration(hours: 2)).toUtc().toIso8601String(),
     );
+    final firstId = first['id'];
     await cal.sync(id, [
       DueReminder(2, at, 'Sport', 'Match', end: at.add(const Duration(hours: 3))),
     ], now: now);
     final events = api.events[id]!.values.toList();
     expect(events, hasLength(1));
+    expect(events.single['id'], isNot(firstId));
     expect(
       (events.single['end']! as Map)['dateTime'],
       at.add(const Duration(hours: 3)).toUtc().toIso8601String(),
+    );
+    // Removing the end falls back to the kind's estimate.
+    await cal.sync(id, [DueReminder(3, at, 'Sport', 'Match')], now: now);
+    final after = api.events[id]!.values.single;
+    expect(
+      (after['end']! as Map)['dateTime'],
+      at.add(const Duration(hours: 2)).toUtc().toIso8601String(),
     );
   });
 
