@@ -340,26 +340,7 @@ class Updater {
     final name = assetName(version, system);
     final url = assets[name];
     if (url == null) throw UpdateFailed('release $version has no $name; download it from GitHub');
-    final checksumUrl = assets['$name.sha256'];
-    if (checksumUrl == null) {
-      throw UpdateFailed('release $version publishes no checksum for $name; not installing it');
-    }
-    final checksum = await fetch(checksumUrl);
-    if (publicKey.isNotEmpty) await _checkSignature(name, version, checksum, assets);
-    final fields = utf8.decode(checksum, allowMalformed: true).trim().split(RegExp(r'\s+'));
-    if (fields.first.isEmpty) {
-      throw UpdateFailed('the checksum for $name is empty; not installing it');
-    }
-    // The signature covers the line's file name, which carries the version: an
-    // older release's signed checksum cannot pass for this one's (#485).
-    final named = fields.length > 1 ? fields[1].replaceFirst(RegExp(r'^\*'), '') : null;
-    if (named != name) {
-      throw UpdateFailed(
-        named == null
-            ? 'the checksum for $name names no file; not installing it'
-            : 'the checksum published as $name is for $named; not installing it',
-      );
-    }
+    final digest = await _checksum(name, version, assets);
     onProgress?.call(const UpdateProgress.downloading(0, null));
     final data = await (download ?? (url, {onProgress}) => fetch(url))(
       url,
@@ -367,7 +348,7 @@ class Updater {
           onProgress?.call(UpdateProgress.downloading(received, total)),
     );
     onProgress?.call(const UpdateProgress(UpdatePhase.verifying));
-    if (sha256.convert(data).toString() != fields.first.toLowerCase()) {
+    if (sha256.convert(data).toString() != digest) {
       throw UpdateFailed('checksum mismatch for $name; the download was not installed');
     }
     onProgress?.call(const UpdateProgress(UpdatePhase.installing));
@@ -417,6 +398,32 @@ class Updater {
       staging.deleteSync(recursive: true);
     }
     return version;
+  }
+
+  /// The SHA-256 the release publishes for [name], once its `.sha256` names
+  /// that file and, with a pinned key, carries the release signature.
+  Future<String> _checksum(String name, String version, Map<String, String> assets) async {
+    final checksumUrl = assets['$name.sha256'];
+    if (checksumUrl == null) {
+      throw UpdateFailed('release $version publishes no checksum for $name; not installing it');
+    }
+    final checksum = await fetch(checksumUrl);
+    if (publicKey.isNotEmpty) await _checkSignature(name, version, checksum, assets);
+    final fields = utf8.decode(checksum, allowMalformed: true).trim().split(RegExp(r'\s+'));
+    if (fields.first.isEmpty) {
+      throw UpdateFailed('the checksum for $name is empty; not installing it');
+    }
+    // The signature covers the line's file name, which carries the version: an
+    // older release's signed checksum cannot pass for this one's (#485).
+    final named = fields.length > 1 ? fields[1].replaceFirst(RegExp(r'^\*'), '') : null;
+    if (named != name) {
+      throw UpdateFailed(
+        named == null
+            ? 'the checksum for $name names no file; not installing it'
+            : 'the checksum published as $name is for $named; not installing it',
+      );
+    }
+    return fields.first.toLowerCase();
   }
 
   /// The checksum is the release key's: whoever can only write to the release
