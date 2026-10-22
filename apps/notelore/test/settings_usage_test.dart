@@ -192,7 +192,7 @@ void main() {
         failed: false,
       );
     await tester.pumpAndSettle();
-    await openSettings(tester, 'Hakkında');
+    await openSettings(tester, session.strings.aboutSection);
     await tester.ensureVisible(find.byKey(const Key('open-usage')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('open-usage')));
