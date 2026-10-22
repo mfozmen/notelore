@@ -148,8 +148,14 @@ final class Reminder extends NoteEntry {
   final String? end;
 
   @override
-  String render() =>
-      '- ${isoDate(date)}${time == null ? '' : ' $time${end == null ? '' : '-$end'}'}: $text';
+  String render() {
+    var clock = '';
+    if (time != null) {
+      clock = ' $time';
+      if (end != null) clock += '-$end';
+    }
+    return '- ${isoDate(date)}$clock: $text';
+  }
 
   @override
   bool operator ==(Object other) =>
