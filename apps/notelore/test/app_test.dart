@@ -2310,6 +2310,7 @@ void main() {
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('No notes yet. Tell the assistant something to remember.'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, 'Import notes'), findsOneWidget);
     await tester.tap(find.text('Chat'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('message')), 'Mopsos diye proje aç');

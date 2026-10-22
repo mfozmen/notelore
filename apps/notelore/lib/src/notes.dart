@@ -154,6 +154,7 @@ class _NotesScreenState extends State<NotesScreen> {
         ),
         PopupMenuButton<_NotesAction>(
           key: const Key('notes-more'),
+          tooltip: s.moreNoteActions,
           icon: const Icon(Icons.more_vert),
           onSelected: (action) async {
             switch (action) {
@@ -235,7 +236,7 @@ class _NotesScreenState extends State<NotesScreen> {
         builder: (context) {
           final wide = Layout.isWide(context);
           final list = _list(context, notes, wide: wide);
-          if (!wide) return list;
+          if (!wide || notes.isEmpty) return list;
           return Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -325,6 +326,12 @@ class _NotesScreenState extends State<NotesScreen> {
                         Icon(Icons.description_outlined, size: 56, color: colors.primary),
                         const SizedBox(height: Gap.m),
                         Text(s.noNotes, textAlign: TextAlign.center),
+                        const SizedBox(height: Gap.m),
+                        OutlinedButton.icon(
+                          onPressed: _import,
+                          icon: const Icon(Icons.file_open_outlined),
+                          label: Text(s.importNotes),
+                        ),
                       ],
                     ),
                   ),
@@ -414,7 +421,20 @@ class _NotesScreenState extends State<NotesScreen> {
         ],
       );
     } else {
-      content = Center(child: Text(s.pickNote));
+      content = Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.menu_book_outlined, size: 56, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: Gap.m),
+            Text(
+              s.pickNote,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      );
     }
     return Align(
       alignment: Alignment.topCenter,

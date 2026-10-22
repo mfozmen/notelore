@@ -164,13 +164,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Dune'), findsOneWidget);
 
-    // Archived elsewhere: the reader empties.
+    // Archived elsewhere: the empty state takes the window.
     await session.deleteNote(session.listNotes().single);
     await tester.tap(find.byKey(const Key('notes-more')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Refresh'));
     await tester.pumpAndSettle();
-    expect(find.text('Pick a note to read it here.'), findsOneWidget);
+    expect(find.text('No notes yet. Tell the assistant something to remember.'), findsOneWidget);
+    expect(find.text('Pick a note to read it here.'), findsNothing);
   });
 
   testWidgets('with a hardware keyboard, Enter sends and the box keeps the focus (#497)', (
@@ -202,6 +203,18 @@ void main() {
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('settings-sections')), findsOneWidget);
+  });
+
+  testWidgets('an empty wide notes screen keeps one empty state (#555)', (tester) async {
+    desktop(tester, 1600);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('No notes yet. Tell the assistant something to remember.'), findsOneWidget);
+    expect(find.text('Pick a note to read it here.'), findsNothing);
+    expect(find.byKey(const Key('notes-more')), findsOneWidget);
   });
 
   testWidgets('the archive opens beside the rail, at a readable width (#508)', (tester) async {
