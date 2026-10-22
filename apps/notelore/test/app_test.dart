@@ -1934,6 +1934,7 @@ void main() {
     await tester.tap(find.byTooltip('Restore'));
     await tester.pumpAndSettle();
     expect(find.text('Restored "Kitaplar".'), findsOneWidget);
+    expect(find.text('Kitaplar'), findsNothing); // the row left the archive
     expect(session.listNotes().single.title, 'Kitaplar');
   });
 
