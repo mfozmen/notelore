@@ -41,25 +41,28 @@ List<DueReminder> upcomingReminders(String root, {required DateTime now}) {
       final note = _readable(file.path);
       if (note == null) continue;
       final rel = p.posix.joinAll(p.split(p.relative(file.path, from: root)));
-      for (final reminder
-          in note.section('reminders')?.entries.whereType<Reminder>() ?? const <Reminder>[]) {
-        final at = _at(reminder);
-        if (at.isAfter(now)) {
-          due.add(
-            DueReminder(
-              stableId('$rel\n${reminder.render()}'),
-              at,
-              note.title,
-              _flat(reminder.text),
-              end: _end(reminder, at),
-            ),
-          );
-        }
-      }
+      due.addAll(_dueFromNote(note, rel, now));
     }
   }
   due.sort((a, b) => a.at.compareTo(b.at));
   return due.take(maxScheduledReminders).toList();
+}
+
+List<DueReminder> _dueFromNote(Note note, String rel, DateTime now) {
+  final due = <DueReminder>[];
+  for (final reminder
+      in note.section('reminders')?.entries.whereType<Reminder>() ?? const <Reminder>[]) {
+    for (final at in _occurrences(reminder, now)) {
+      if (!at.isAfter(now)) continue;
+      due.add(_due(reminder, rel, at, note.title));
+    }
+  }
+  return due;
+}
+
+DueReminder _due(Reminder reminder, String rel, DateTime at, String note) {
+  final key = '$rel\n${reminder.render()}${reminder.monthly ? '\n${isoDate(at)}' : ''}';
+  return DueReminder(stableId(key), at, note, _flat(reminder.text), end: _end(reminder, at));
 }
 
 /// The note at [path], or null when it is none or cannot be read (not UTF-8,
@@ -79,6 +82,34 @@ DateTime _at(Reminder reminder) {
   final day = reminder.date;
   return DateTime(day.year, day.month, day.day, hour, minute);
 }
+
+/// The next twelve monthly turns of a monthly reminder, or the one date of a
+/// plain one. A month without the day (the 31st in February) is skipped.
+Iterable<DateTime> _occurrences(Reminder reminder, DateTime now) sync* {
+  final first = _at(reminder);
+  if (!reminder.monthly) {
+    yield first;
+    return;
+  }
+  var year = first.isAfter(now) ? first.year : now.year;
+  var month = first.isAfter(now) ? first.month : now.month;
+  var found = 0;
+  while (found < 12) {
+    final at = DateTime(year, month, first.day, first.hour, first.minute);
+    if (_inMonth(at, month) && at.isAfter(now)) {
+      yield at;
+      found++;
+    }
+    if (month == 12) {
+      month = 1;
+      year++;
+    } else {
+      month++;
+    }
+  }
+}
+
+bool _inMonth(DateTime at, int month) => at.month == month;
 
 DateTime? _end(Reminder reminder, DateTime start) {
   final end = reminder.end;
@@ -160,11 +191,8 @@ Iterable<DayItem> _dayItems(Note note, String kind, String slug, DateTime from) 
     todo: todo,
   );
   for (final entry in note.section('reminders')?.entries ?? const <NoteEntry>[]) {
-    if (entry case Reminder(:final date, :final time, :final end, :final text)
-        when !DateTime(date.year, date.month, date.day).isBefore(from)) {
-      var range = time;
-      if (range != null && end != null) range = '$range-$end';
-      yield item(date, range, text, todo: false);
+    if (entry case final Reminder reminder) {
+      yield* _reminderItems(reminder, item, from);
     }
   }
   for (final entry in note.section('todo')?.entries ?? const <NoteEntry>[]) {
@@ -172,6 +200,23 @@ Iterable<DayItem> _dayItems(Note note, String kind, String slug, DateTime from) 
       yield item(date, null, text, todo: true);
     }
   }
+}
+
+Iterable<DayItem> _reminderItems(
+  Reminder reminder,
+  DayItem Function(DateTime, String?, String, {required bool todo}) item,
+  DateTime from,
+) sync* {
+  final range = _range(reminder);
+  for (final at in _occurrences(reminder, from)) {
+    if (!at.isBefore(from)) yield item(at, range, reminder.text, todo: false);
+  }
+}
+
+String? _range(Reminder reminder) {
+  final time = reminder.time;
+  if (time == null || reminder.end == null) return time;
+  return '$time-${reminder.end}';
 }
 
 int _byDay(DayItem a, DayItem b) {

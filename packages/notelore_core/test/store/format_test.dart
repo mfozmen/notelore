@@ -188,6 +188,17 @@ void main() {
       ended.section('reminders')!.entries.single,
       Reminder(d(2026, 1, 2), 'x', time: '07:05', end: '08:30'),
     );
+    final monthly = parse(
+      '---\ntitle: T\n---\n# T\n## Reminders\n- 2026-01-02 09:00 (monthly): Rent\n',
+    );
+    expect(
+      monthly.section('reminders')!.entries.single,
+      Reminder(d(2026, 1, 2), 'Rent', time: '09:00', monthly: true),
+    );
+    expect(
+      Reminder(d(2026, 1, 2), 'Rent', time: '09:00', monthly: true).render(),
+      '- 2026-01-02 09:00 (monthly): Rent',
+    );
     expect(estimateReminderDuration('Football match'), 120);
     expect(estimateReminderDuration('Konser'), 120);
     expect(estimateReminderDuration('Fenerbahçe maçını izle'), 120);

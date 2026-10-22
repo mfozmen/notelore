@@ -120,6 +120,11 @@ final noteTools = List<Tool>.unmodifiable([
               '(a match as the source names it, "Arsenal - Chelsea"), else a few words; '
               'no date or time',
         },
+        'repeat': {
+          'type': 'string',
+          'enum': ['monthly'],
+          'description': 'monthly for a commitment that repeats every month',
+        },
         'kind': _kind,
       },
     ),
@@ -330,8 +335,20 @@ class Toolbox {
         (path) => notes.completeTodo(path, args['number']! as int, today: today),
       ),
       'add_reminder' => _write(_path(arg('slug'), kind), (path) {
+        final repeat = optional('repeat');
+        if (repeat != null && repeat != 'monthly') {
+          throw FormatException("repeat must be 'monthly', got '$repeat'.");
+        }
         final (date, time, end) = _at(arg('at'));
-        notes.addReminder(path, arg('text'), date, time: time, end: end, today: today);
+        notes.addReminder(
+          path,
+          arg('text'),
+          date,
+          time: time,
+          end: end,
+          monthly: repeat == 'monthly',
+          today: today,
+        );
       }),
       'record_decision' => _write(
         _path(arg('slug'), kind),
