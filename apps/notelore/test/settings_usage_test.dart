@@ -7,11 +7,11 @@ import 'app_test.dart' show connect, phone, pumpApp;
 import 'support.dart';
 
 void main() {
-  Future<void> openModel(WidgetTester tester) => openSettings(tester, 'Model');
+  Future<void> openAdvanced(WidgetTester tester) => openSettings(tester, 'About');
 
-  /// Settings → Show advanced settings → Usage: the full page (#294).
+  /// Settings > About > Show advanced settings > Usage: the full page (#294).
   Future<void> openUsage(WidgetTester tester) async {
-    await openModel(tester);
+    await openAdvanced(tester);
     await tester.scrollUntilVisible(
       find.text('Show advanced settings'),
       300,
@@ -34,7 +34,7 @@ void main() {
     final harness = Harness();
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    await openModel(tester);
+    await openAdvanced(tester);
     expect(find.byKey(const Key('open-usage')), findsNothing); // everyday users see no tokens
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -192,7 +192,7 @@ void main() {
         failed: false,
       );
     await tester.pumpAndSettle();
-    await openSettings(tester, 'Model');
+    await openSettings(tester, session.strings.aboutSection);
     await tester.ensureVisible(find.byKey(const Key('open-usage')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('open-usage')));

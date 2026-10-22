@@ -96,7 +96,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final session = widget.session;
     final s = session.strings;
     final cards = {
-      SettingsSection.model: [_ModelCard(session), _AdvancedCard(session)],
+      SettingsSection.model: [_ModelCard(session)],
       SettingsSection.voice: [
         _VoiceCard(
           session,
@@ -111,6 +111,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       SettingsSection.lock: [_LockCard(session)],
       SettingsSection.reminders: [_RemindersCard(session)],
       SettingsSection.about: [
+        _AdvancedCard(session),
         _AboutCard(
           session,
           version: widget.version,
@@ -304,7 +305,7 @@ class _ModelCard extends StatelessWidget {
             _Connections(session),
             _SettingRow(
               icon: Icons.psychology_outlined,
-              title: s.model,
+              title: s.modelInUse,
               control: Row(
                 children: [
                   Expanded(
@@ -547,7 +548,7 @@ class _LanguageCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: Gap.s),
         child: _SettingRow(
           icon: Icons.translate,
-          title: s.language,
+          title: s.appLanguage,
           control: _picker(
             key: const Key('language'),
             value: session.language,
@@ -735,7 +736,7 @@ class _LockCard extends StatelessWidget {
           children: [
             ListTile(
               leading: const Icon(Icons.lock_outline),
-              title: Text(s.appLock),
+              title: Text(s.protection),
               subtitle: Text(session.lock.enabled ? s.appLockOn(session.lock.kind) : s.appLockOff),
             ),
             Padding(
@@ -788,7 +789,7 @@ class _RemindersCard extends StatelessWidget {
           leading: Icon(
             elsewhere ? Icons.notifications_outlined : Icons.notifications_off_outlined,
           ),
-          title: Text(s.reminders),
+          title: Text(s.howRemindersArrive),
           subtitle: Text(elsewhere ? s.calendarElsewhere : s.remindersInCalendar),
         ),
         if (elsewhere) _action(Icons.login, s.signInCalendar, session.signInCalendar),
@@ -800,7 +801,7 @@ class _RemindersCard extends StatelessWidget {
     return [
       ListTile(
         leading: Icon(allowed ? Icons.notifications_outlined : Icons.notifications_off_outlined),
-        title: Text(s.reminders),
+        title: Text(s.howRemindersArrive),
         subtitle: Text(allowed ? s.remindersOn : s.remindersOff),
       ),
       if (!allowed)
