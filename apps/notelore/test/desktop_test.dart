@@ -221,6 +221,7 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     expect(find.text('No notes yet. Tell the assistant something to remember.'), findsOneWidget);
+    expect(find.text('The archive is empty. Deleted notes go here.'), findsNothing);
   });
 
   testWidgets('the archive opens beside the rail, at a readable width (#508)', (tester) async {
