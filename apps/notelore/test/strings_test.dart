@@ -319,6 +319,8 @@ void main() {
       'undo': s.undo,
       'modelInUse': s.modelInUse,
       'refreshModels': s.refreshModels,
+      'refreshingModels': s.refreshingModels,
+      'refreshModelsFailed': s.refreshModelsFailed,
       'modelSaved': s.modelSaved,
       'checkForUpdates': s.checkForUpdates,
       'whatsNew': s.whatsNew,

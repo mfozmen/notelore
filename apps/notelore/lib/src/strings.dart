@@ -247,6 +247,8 @@ abstract class Strings {
   String get model;
   String get modelInUse;
   String get refreshModels;
+  String get refreshingModels;
+  String get refreshModelsFailed;
   String get modelSaved;
   String get checkForUpdates;
   String get logOut;
@@ -1041,6 +1043,11 @@ class EnglishStrings extends Strings {
   String get modelInUse => 'Model in use';
   @override
   String get refreshModels => 'Refresh the model list';
+  @override
+  String get refreshingModels => 'Refreshing the model list';
+  @override
+  String get refreshModelsFailed =>
+      'Could not refresh the model list. Showing the last known models.';
   @override
   String get modelSaved => 'Model saved.';
   @override
@@ -2078,6 +2085,11 @@ class TurkishStrings extends Strings {
   String get modelInUse => 'Kullanılan model';
   @override
   String get refreshModels => 'Model listesini yenile';
+  @override
+  String get refreshingModels => 'Model listesi yenileniyor';
+  @override
+  String get refreshModelsFailed =>
+      'Model listesi yenilenemedi. Bilinen son modeller gösteriliyor.';
   @override
   String get modelSaved => 'Model kaydedildi.';
   @override
