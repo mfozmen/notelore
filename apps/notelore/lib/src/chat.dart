@@ -884,14 +884,37 @@ class _TalkButton extends StatelessWidget {
   );
 }
 
-/// In the message box's place while recording: it listens.
-class _Recording extends StatelessWidget {
+/// In the message box's place while recording: it listens and counts the seconds.
+class _Recording extends StatefulWidget {
   const _Recording(this.label, {this.discard});
 
   final String label;
 
   /// A tap-started recording can be dropped: the tooltip and what does it.
   final (String, VoidCallback)? discard;
+
+  @override
+  State<_Recording> createState() => _RecordingState();
+}
+
+class _RecordingState extends State<_Recording> {
+  var _seconds = 0;
+  late final Timer _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) => setState(() => _seconds++));
+  }
+
+  @override
+  void dispose() {
+    _tick.cancel();
+    super.dispose();
+  }
+
+  static String _clock(int seconds) =>
+      '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -909,14 +932,15 @@ class _Recording extends StatelessWidget {
           const SizedBox(width: Gap.s),
           Expanded(
             child: Text(
-              label,
+              widget.label,
               key: const Key('voice-state'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(color: colors.onPrimaryContainer),
             ),
           ),
-          if (discard case (final tooltip, final drop)?)
+          Text(_clock(_seconds), style: TextStyle(color: colors.onPrimaryContainer)),
+          if (widget.discard case (final tooltip, final drop)?)
             IconButton(
               tooltip: tooltip,
               icon: Icon(Icons.close, color: colors.onPrimaryContainer),

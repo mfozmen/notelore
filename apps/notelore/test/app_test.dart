@@ -1616,6 +1616,33 @@ void main() {
     expect(find.textContaining('Speech recognition is not available'), findsOneWidget);
   });
 
+  testWidgets('chat: a tap-started recording shows how long it has listened (#573)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final tap = await tester.createGesture();
+    await tap.down(
+      tester.getCenter(find.byTooltip('Tap or hold to talk')),
+      timeStamp: const Duration(seconds: 10),
+    );
+    await tester.pump();
+    await tap.up(timeStamp: const Duration(seconds: 10, milliseconds: 100));
+    await tester.pump();
+    expect(find.text('0:00'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('0:01'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('0:02'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 58));
+    expect(find.text('1:00'), findsOneWidget);
+    await tester.tap(find.byTooltip('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('1:00'), findsNothing);
+  });
+
   testWidgets('settings: a wide window lists the sections and shows one at a time', (tester) async {
     tester.view
       ..physicalSize = const Size(1280, 900)
