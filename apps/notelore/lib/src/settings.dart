@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
@@ -274,17 +276,6 @@ class _ModelCard extends StatelessWidget {
       ..showSnackBar(SnackBar(content: Text(session.strings.modelSaved)));
   }
 
-  Future<void> _refresh(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      await session.refreshModels();
-    } on Exception catch (error) {
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('$error')));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final s = session.strings;
@@ -306,25 +297,13 @@ class _ModelCard extends StatelessWidget {
             _SettingRow(
               icon: Icons.psychology_outlined,
               title: s.modelInUse,
-              control: Row(
-                children: [
-                  Expanded(
-                    // The models the key can use, picked from the list.
-                    child: _picker(
-                      key: const Key('model'),
-                      value: session.model,
-                      entries: [
-                        for (final m in {...session.models, ?session.model}) (m, m),
-                      ],
-                      onSelected: (String? m) => _pick(context, m!),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: s.refreshModels,
-                    icon: const Icon(Icons.refresh),
-                    onPressed: () => _refresh(context),
-                  ),
+              control: _ModelPicker(
+                session: session,
+                value: session.model,
+                entries: [
+                  for (final m in {...session.models, ?session.model}) (m, m),
                 ],
+                onSelected: (m) => _pick(context, m),
               ),
             ),
             SwitchListTile(
@@ -907,15 +886,76 @@ class _AboutCard extends StatelessWidget {
   }
 }
 
+class _ModelPicker extends StatefulWidget {
+  const _ModelPicker({
+    required this.session,
+    required this.value,
+    required this.entries,
+    required this.onSelected,
+  });
+
+  final Session session;
+  final String? value;
+  final List<(String, String)> entries;
+  final ValueChanged<String> onSelected;
+
+  @override
+  State<_ModelPicker> createState() => _ModelPickerState();
+}
+
+class _ModelPickerState extends State<_ModelPicker> {
+  late final _controller = _RefreshingMenuController(_refresh);
+
+  Future<void> _refresh() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await widget.session.refreshModels();
+    } on Exception catch (error) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('$error'),
+            action: SnackBarAction(label: widget.session.strings.tryAgain, onPressed: _refresh),
+          ),
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => _picker<String?>(
+    key: const Key('model'),
+    value: widget.value,
+    entries: widget.entries,
+    menuController: _controller,
+    onSelected: (model) => widget.onSelected(model!),
+  );
+}
+
+class _RefreshingMenuController extends MenuController {
+  _RefreshingMenuController(this._refresh);
+
+  final Future<void> Function() _refresh;
+
+  @override
+  void open({Offset? position}) {
+    unawaited(_refresh());
+    super.open(position: position);
+  }
+}
+
 /// A choice from a list, never typed: the one look every picker in Settings has
 /// (themed in theme.dart).
 Widget _picker<T>({
+  MenuController? menuController,
+
   required Key key,
   required T value,
   required List<(T, String)> entries,
   required void Function(T) onSelected,
 }) => DropdownMenu<T>(
   key: key,
+  menuController: menuController,
   initialSelection: value,
   requestFocusOnTap: false,
   expandedInsets: EdgeInsets.zero,

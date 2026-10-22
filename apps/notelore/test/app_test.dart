@@ -2522,14 +2522,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(session.model, 'model-b');
     expect(find.text('Model saved.'), findsOneWidget);
+    expect(find.byTooltip('Refresh the model list'), findsNothing);
     harness.models = ['model-c'];
-    await tester.tap(find.byTooltip('Refresh the model list'));
+    await tester.tap(find.byKey(const Key('model')));
     await tester.pumpAndSettle();
     expect(session.models, ['model-c']);
+    await tester.tap(find.text('Model').first); // close it again
+    await tester.pumpAndSettle();
     harness.rejected = const TransientValidationError('Anthropic is not reachable');
-    await tester.tap(find.byTooltip('Refresh the model list'));
+    await tester.tap(find.byKey(const Key('model')));
     await tester.pumpAndSettle();
     expect(find.text('Anthropic is not reachable'), findsOneWidget);
+    expect(find.text('Try again'), findsOneWidget);
     expect(session.models, ['model-c']);
   });
 
