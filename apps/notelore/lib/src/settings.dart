@@ -649,8 +649,7 @@ class _VoiceCard extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.record_voice_over_outlined),
               title: Text(s.whisper),
-              // What it is and how big, before anyone downloads it.
-              subtitle: Text(s.whisperWhy((session.whisper.bytes / 1e6).ceil())),
+              subtitle: Text(s.whisperWhy),
             ),
             if (session.whisper.ready)
               FutureBuilder(future: microphones, builder: _microphone)
