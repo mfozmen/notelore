@@ -223,6 +223,27 @@ void main() {
       expect(phone.language, AppLanguage.tr); // the language still applies
     });
 
+    test('the plan on one device is never an OpenAI key on another (#404)', () async {
+      final drive = MemoryRemote();
+      final desk = Harness(
+        auth: FakeAuth(),
+        chatGpt: FakeAuth(),
+        remote: drive,
+      ).session(clock: at(10));
+      final phone = Harness(
+        auth: FakeAuth(),
+        chatGpt: FakeAuth(), // never signed in to ChatGPT here
+        remote: drive,
+      ).session(keySpace: 'phone', clock: at(9));
+      await desk.connect(findProvider('chatgpt'), '');
+      await desk.connectDrive();
+      expect(drive.texts[sharedSettings], contains('"provider":"chatgpt"'));
+      await phone.load();
+      await phone.connectDrive();
+      expect(phone.spec?.name, isNot('openai'));
+      expect([for (final spec in await phone.connections()) spec.name], isNot(contains('openai')));
+    });
+
     test('another device can switch this one to a provider it has a key for', () async {
       final drive = MemoryRemote();
       final desk = Harness(auth: FakeAuth(), remote: drive).session(clock: at(9));
