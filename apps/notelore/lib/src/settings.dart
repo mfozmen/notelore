@@ -919,14 +919,15 @@ class _ModelPickerState extends State<_ModelPicker> {
       return mounted;
     } on Exception catch (error) {
       if (mounted) setState(() => _failure = '$error');
-      return false;
+      return mounted;
     } finally {
       if (mounted) setState(() => _refreshing = false);
     }
   }
 
   Future<void> _retry() async {
-    if (await _refresh() && mounted) _controller.show();
+    await _refresh();
+    if (mounted && _failure == null) _controller.show();
   }
 
   @override
@@ -986,12 +987,17 @@ class _RefreshingMenuController extends MenuController {
   void open({Offset? position}) {
     if (_opening) return;
     _opening = true;
-    unawaited(
-      _refresh().then((open) {
-        _opening = false;
-        if (open) super.open(position: position);
-      }),
-    );
+    unawaited(_openAfterRefresh(position));
+  }
+
+  Future<void> _openAfterRefresh(Offset? position) async {
+    try {
+      if (await _refresh()) super.open(position: position);
+    } on Object catch (error) {
+      debugPrint('model refresh failed: ${error.runtimeType}');
+    } finally {
+      _opening = false;
+    }
   }
 
   void show() => super.open();
