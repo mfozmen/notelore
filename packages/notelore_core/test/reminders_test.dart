@@ -41,6 +41,26 @@ void main() {
     ]);
   });
 
+  test('a reminder keeps its end, and a match gets a realistic one (#535)', () {
+    final sport = createNote(root, 'topic', 'Sport', today: d(2026, 10, 1));
+    addReminder(sport, 'Football match', d(2026, 10, 20), time: '20:00', today: d(2026, 10, 1));
+    addReminder(
+      sport,
+      'Dinner',
+      d(2026, 10, 21),
+      time: '19:00',
+      end: '21:30',
+      today: d(2026, 10, 1),
+    );
+    final due = upcomingReminders(root, now: now);
+    expect(due.firstWhere((r) => r.text == 'Football match').end, DateTime(2026, 10, 20, 22));
+    expect(due.firstWhere((r) => r.text == 'Dinner').end, DateTime(2026, 10, 21, 21, 30));
+    final items = calendarItems(root, today: DateTime(2026, 10, 19));
+    final match = items.firstWhere((i) => i.text == 'Football match');
+    expect(match.day, DateTime(2026, 10, 20));
+    expect(match.time, '20:00-22:00');
+  });
+
   test('an id stays the same for the same reminder and differs for another', () {
     final first = upcomingReminders(root, now: now);
     final again = upcomingReminders(root, now: now);

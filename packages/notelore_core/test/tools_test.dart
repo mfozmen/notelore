@@ -95,18 +95,31 @@ void main() {
     );
     expect(call('add_reminder', {'slug': 'health', 'at': '2026-10-27', 'text': 'Call back'}), 'ok');
     expect(
+      call('add_reminder', {'slug': 'health', 'at': '2026-10-28 18:00-20:15', 'text': 'Dinner'}),
+      'ok',
+    );
+    expect(
       call('read_note', {'slug': 'health'}),
-      endsWith('## Reminders\n- 2026-10-20 10:00: Dentist\n- 2026-10-27: Call back\n'),
+      endsWith(
+        '## Reminders\n'
+        '- 2026-10-20 10:00: Dentist\n'
+        '- 2026-10-27: Call back\n'
+        '- 2026-10-28 18:00-20:15: Dinner\n',
+      ),
     );
     for (final at in ['tomorrow', '2026-10-20T10:00', '2026-02-30']) {
       expect(
         call('add_reminder', {'slug': 'health', 'at': at, 'text': 'x'}),
-        "Error: at must be YYYY-MM-DD or YYYY-MM-DD HH:MM, got '$at'.",
+        "Error: at must be YYYY-MM-DD, YYYY-MM-DD HH:MM or YYYY-MM-DD HH:MM-HH:MM, got '$at'.",
       );
     }
     expect(
       call('add_reminder', {'slug': 'health', 'at': '2026-10-20 25:00', 'text': 'x'}),
       'Error: a reminder time is HH:MM, 00:00 to 23:59 (got 25:00)',
+    );
+    expect(
+      call('add_reminder', {'slug': 'health', 'at': '2026-10-20 10:00-25:00', 'text': 'x'}),
+      'Error: a reminder end is HH:MM, 00:00 to 23:59 (got 25:00)',
     );
   });
 

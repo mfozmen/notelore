@@ -125,6 +125,62 @@ void main() {
     expect(() => calendar().calendarId(null), throwsA(isA<FormatException>()));
   });
 
+  test('an event uses its end, or a realistic one for its kind (#535)', () async {
+    final cal = calendar();
+    final id = await cal.calendarId(null);
+    final match = DueReminder(1, DateTime(2026, 10, 20, 20), 'Sport', 'Football match');
+    final dinner = DueReminder(
+      2,
+      DateTime(2026, 10, 21, 19),
+      'Food',
+      'Dinner',
+      end: DateTime(2026, 10, 21, 21, 30),
+    );
+    await cal.sync(id, [match, dinner], now: now);
+    final events = api.events[id]!.values.toList();
+    String ends(Map<String, Object?> event) => (event['end']! as Map)['dateTime']! as String;
+    expect(
+      ends(events.firstWhere((e) => e['summary'] == 'Football match')),
+      DateTime(2026, 10, 20, 22).toUtc().toIso8601String(),
+    );
+    expect(
+      ends(events.firstWhere((e) => e['summary'] == 'Dinner')),
+      DateTime(2026, 10, 21, 21, 30).toUtc().toIso8601String(),
+    );
+  });
+
+  test('an end change replaces the event, never leaves the old one (#535)', () async {
+    final cal = calendar();
+    final id = await cal.calendarId(null);
+    final at = DateTime(2026, 10, 21, 20);
+    await cal.sync(id, [
+      DueReminder(1, at, 'Sport', 'Match', end: at.add(const Duration(hours: 2))),
+    ], now: now);
+    final first = api.events[id]!.values.single;
+    expect(
+      (first['end']! as Map)['dateTime'],
+      at.add(const Duration(hours: 2)).toUtc().toIso8601String(),
+    );
+    final firstId = first['id'];
+    await cal.sync(id, [
+      DueReminder(2, at, 'Sport', 'Match', end: at.add(const Duration(hours: 3))),
+    ], now: now);
+    final events = api.events[id]!.values.toList();
+    expect(events, hasLength(1));
+    expect(events.single['id'], isNot(firstId));
+    expect(
+      (events.single['end']! as Map)['dateTime'],
+      at.add(const Duration(hours: 3)).toUtc().toIso8601String(),
+    );
+    // Removing the end falls back to the kind's estimate.
+    await cal.sync(id, [DueReminder(3, at, 'Sport', 'Match')], now: now);
+    final after = api.events[id]!.values.single;
+    expect(
+      (after['end']! as Map)['dateTime'],
+      at.add(const Duration(hours: 2)).toUtc().toIso8601String(),
+    );
+  });
+
   test('the coming events are exactly the coming reminders, each once', () async {
     final cal = calendar();
     final id = await cal.calendarId(null);

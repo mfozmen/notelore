@@ -14,6 +14,7 @@ import 'package:http/http.dart' as http;
 
 import '../providers/http.dart';
 import '../reminders.dart';
+import '../store/format.dart' show estimateReminderDuration;
 import 'drive.dart' show AccessToken;
 
 const calendarScope = 'https://www.googleapis.com/auth/calendar.app.created';
@@ -140,14 +141,17 @@ class GoogleCalendar implements ReminderCalendar {
   static String _markOf(DueReminder reminder) =>
       '${reminder.id}-${stableId('${reminder.note}\n${reminder.text}')}';
 
-  /// A short event at the reminder's minute; Google notifies at its start.
+  /// The reminder's own end, or a length its kind suggests; Google notifies at
+  /// its start.
   static Map<String, Object?> _event(DueReminder reminder) {
     String at(DateTime time) => time.toUtc().toIso8601String();
+    final end =
+        reminder.end ?? reminder.at.add(Duration(minutes: estimateReminderDuration(reminder.text)));
     return {
       'summary': reminder.text,
       'description': '${reminder.note} · $_name',
       'start': {'dateTime': at(reminder.at)},
-      'end': {'dateTime': at(reminder.at.add(const Duration(minutes: 15)))},
+      'end': {'dateTime': at(end)},
       'reminders': {
         'useDefault': false,
         'overrides': [

@@ -20,13 +20,16 @@ const _morning = 9;
 
 /// One reminder to notify of: at [at] (local), from the note titled [note].
 final class DueReminder {
-  const DueReminder(this.id, this.at, this.note, this.text);
+  const DueReminder(this.id, this.at, this.note, this.text, {this.end});
 
   /// Stable for the same reminder in the same note: the platform's id for it.
   final int id;
   final DateTime at;
   final String note;
   final String text;
+
+  /// When the user gave an end, or the kind of event made one worth keeping.
+  final DateTime? end;
 }
 
 /// Every reminder in the notes under [root] still to come after [now], the
@@ -48,6 +51,7 @@ List<DueReminder> upcomingReminders(String root, {required DateTime now}) {
               at,
               note.title,
               _flat(reminder.text),
+              end: _end(reminder, at),
             ),
           );
         }
@@ -74,6 +78,14 @@ DateTime _at(Reminder reminder) {
   final [hour, minute] = (reminder.time ?? '$_morning:00').split(':').map(int.parse).toList();
   final day = reminder.date;
   return DateTime(day.year, day.month, day.day, hour, minute);
+}
+
+DateTime? _end(Reminder reminder, DateTime start) {
+  final end = reminder.end;
+  if (end == null) return null;
+  final [hour, minute] = end.split(':').map(int.parse).toList();
+  final at = DateTime(start.year, start.month, start.day, hour, minute);
+  return at.isAfter(start) ? at : at.add(const Duration(days: 1));
 }
 
 /// FNV-1a over the UTF-8 bytes, kept to 31 bits: a platform's positive int32,
@@ -148,9 +160,11 @@ Iterable<DayItem> _dayItems(Note note, String kind, String slug, DateTime from) 
     todo: todo,
   );
   for (final entry in note.section('reminders')?.entries ?? const <NoteEntry>[]) {
-    if (entry case Reminder(:final date, :final time, :final text)
+    if (entry case Reminder(:final date, :final time, :final end, :final text)
         when !DateTime(date.year, date.month, date.day).isBefore(from)) {
-      yield item(date, time, text, todo: false);
+      var range = time;
+      if (range != null && end != null) range = '$range-$end';
+      yield item(date, range, text, todo: false);
     }
   }
   for (final entry in note.section('todo')?.entries ?? const <NoteEntry>[]) {
