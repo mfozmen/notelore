@@ -37,7 +37,7 @@ openssl pkey -in update-key.pem -pubout -outform DER | tail -c 32 | base64   # t
 
 - The PEM goes into the repository secret `NOTELORE_UPDATE_SIGNING_KEY`; keep an offline copy and delete the file.
 - The public half goes into the repository variable `NOTELORE_UPDATE_PUBLIC_KEY`; release builds pin it (`--dart-define=NOTELORE_UPDATE_PUBLIC_KEY`).
-- The release workflow stops before tagging when either is missing, and before uploading when they are not a pair. Changing the key strands the apps that pin the old one: they no longer update themselves, and need the new version installed by hand. On Windows the setup runs silently and restarts Notelore; on macOS the new app replaces the old one, which is put back if that fails halfway; on Android the system installer opens and the user taps Install.
+- The release workflow stops before tagging when either is missing or they are not a pair, and checks the pair again before it signs. Changing the key strands the apps that pin the old one: they no longer update themselves, and need the new version installed by hand. On Windows the setup runs silently and restarts Notelore; on macOS the new app replaces the old one, which is put back if that fails halfway; on Android the system installer opens and the user taps Install.
 
 The old command line (`notelore-<version>-*.zip`, v0.2.0 and earlier) is retired; the app reads the same `~/Notelore` folder.
 
