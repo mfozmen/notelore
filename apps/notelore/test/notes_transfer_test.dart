@@ -16,6 +16,11 @@ import 'support.dart';
 Future<void> settleUntilText(WidgetTester tester, String text) =>
     settleUntil(tester, () => find.textContaining(text).evaluate().isNotEmpty);
 
+Future<void> openNotesMenu(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('notes-more')));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   Future<Harness> notesOpen(WidgetTester tester, {bool mobile = true}) async {
     final harness = Harness()..mobile = mobile;
@@ -52,7 +57,8 @@ void main() {
   testWidgets('several notes at once: pick them, then the format', (tester) async {
     phone(tester);
     final harness = await notesOpen(tester);
-    await tester.tap(find.byTooltip('Export notes'));
+    await openNotesMenu(tester);
+    await tester.tap(find.text('Export notes'));
     await tester.pumpAndSettle();
     expect(find.text('Which notes?'), findsOneWidget);
     FilledButton next() => tester.widget<FilledButton>(
@@ -79,7 +85,8 @@ void main() {
     expect(harness.share.contents.keys.toSet(), {'mopsos.md', 'kitaplar.md'});
     expect(find.text('Exported 2 notes.'), findsOneWidget);
     // Cancel in the list exports nothing.
-    await tester.tap(find.byTooltip('Export notes'));
+    await openNotesMenu(tester);
+    await tester.tap(find.text('Export notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
@@ -122,7 +129,8 @@ void main() {
       XFile(put('same.md', mine).path),
       XFile(put('notes.txt', 'just text').path),
     ];
-    await tester.tap(find.byTooltip('Import notes'));
+    await openNotesMenu(tester);
+    await tester.tap(find.text('Import notes'));
     await settleUntilText(tester, 'Imported "Filmler".');
     expect(find.text('Imported "Filmler".'), findsOneWidget);
     expect(
@@ -138,7 +146,8 @@ void main() {
     harness.files.picked = [];
     ScaffoldMessenger.of(tester.element(find.byType(ListView).first)).removeCurrentSnackBar();
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Import notes'));
+    await openNotesMenu(tester);
+    await tester.tap(find.text('Import notes'));
     await tester.pumpAndSettle();
     expect(find.byType(SnackBar), findsNothing);
   });

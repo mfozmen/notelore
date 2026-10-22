@@ -123,6 +123,9 @@ void main() {
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('Pick a note to read it here.'), findsOneWidget);
+    expect(find.byTooltip('Archive'), findsOneWidget);
+    expect(find.byKey(const Key('notes-more')), findsOneWidget);
+    expect(find.byTooltip('Import notes'), findsNothing);
 
     await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
@@ -155,15 +158,20 @@ void main() {
     // Added to elsewhere the same day (the date stays): the reader shows it.
     final text = File(path).readAsStringSync();
     File(path).writeAsStringSync('$text- Dune${String.fromCharCode(10)}');
-    await tester.tap(find.byTooltip('Refresh'));
+    await tester.tap(find.byKey(const Key('notes-more')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Refresh'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Dune'), findsOneWidget);
 
-    // Archived elsewhere: the reader empties.
+    // Archived elsewhere: the empty state takes the window.
     await session.deleteNote(session.listNotes().single);
-    await tester.tap(find.byTooltip('Refresh'));
+    await tester.tap(find.byKey(const Key('notes-more')));
     await tester.pumpAndSettle();
-    expect(find.text('Pick a note to read it here.'), findsOneWidget);
+    await tester.tap(find.text('Refresh'));
+    await tester.pumpAndSettle();
+    expect(find.text('No notes yet. Tell the assistant something to remember.'), findsOneWidget);
+    expect(find.text('Pick a note to read it here.'), findsNothing);
   });
 
   testWidgets('with a hardware keyboard, Enter sends and the box keeps the focus (#497)', (
@@ -197,6 +205,25 @@ void main() {
     expect(find.byKey(const Key('settings-sections')), findsOneWidget);
   });
 
+  testWidgets('an empty wide notes screen keeps one empty state (#555)', (tester) async {
+    desktop(tester, 1600);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('No notes yet. Tell the assistant something to remember.'), findsOneWidget);
+    expect(find.text('Pick a note to read it here.'), findsNothing);
+    expect(find.byKey(const Key('notes-more')), findsOneWidget);
+    await tester.tap(find.byTooltip('Archive'));
+    await tester.pumpAndSettle();
+    expect(find.text('The archive is empty. Deleted notes go here.'), findsOneWidget);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.text('No notes yet. Tell the assistant something to remember.'), findsOneWidget);
+    expect(find.text('The archive is empty. Deleted notes go here.'), findsNothing);
+  });
+
   testWidgets('the archive opens beside the rail, at a readable width (#508)', (tester) async {
     desktop(tester, 1600);
     final harness = Harness();
@@ -216,7 +243,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Kitaplar'), findsOneWidget);
     // An archived note reads in the pane too; Back and the system's back step out.
-    await tester.tap(find.byTooltip('Delete').first);
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Delete'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete').last);
     await tester.pumpAndSettle();
