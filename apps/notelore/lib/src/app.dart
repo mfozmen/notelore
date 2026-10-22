@@ -229,6 +229,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       fetch: updater.fetch,
       system: updater.system,
       force: force,
+      signed: updater.publicKey.isNotEmpty,
     );
     final newer = release?.version;
     // An install in progress keeps its banner; a version put off stays put off.

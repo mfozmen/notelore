@@ -26,7 +26,18 @@ A build without them works, just without sync. On Windows, Flutter needs Develop
 
 Releases are cut on demand from the Conventional Commit history on `main`: a `feat` commit bumps the minor version, `fix` or `perf` the patch version; other types (`docs`, `chore`, `ci`...) do not.
 
-The app checks for a newer release when it starts (at most once a day), every 6 hours while it stays open, and on *Settings → Check for updates*. An update is installed only when its SHA-256 matches the one published with the release; this catches corrupted or partial downloads, it is not a signature. On Windows the setup runs silently and restarts Notelore; on macOS the new app replaces the old one, which is put back if that fails halfway; on Android the system installer opens and the user taps Install.
+The app checks for a newer release when it starts (at most once a day), every 6 hours while it stays open, and on *Settings → Check for updates*. An update is installed only when its SHA-256 matches the one published with the release and that checksum carries the release's Ed25519 signature (`<file>.sha256.sig`): the checksum catches corrupted or partial downloads, the signature proves Notelore's release workflow made the file, so whoever can only replace files in a GitHub release cannot ship an update.
+
+The signing key is set up once, by the maintainer:
+
+```bash
+openssl genpkey -algorithm ed25519 -out update-key.pem
+openssl pkey -in update-key.pem -pubout -outform DER | tail -c 32 | base64   # the public half
+```
+
+- The PEM goes into the repository secret `NOTELORE_UPDATE_SIGNING_KEY`; keep an offline copy and delete the file.
+- The public half goes into the repository variable `NOTELORE_UPDATE_PUBLIC_KEY`; release builds pin it (`--dart-define=NOTELORE_UPDATE_PUBLIC_KEY`).
+- The release workflow stops before tagging when either is missing, and before uploading when they are not a pair. Changing the key strands the apps that pin the old one: they no longer update themselves, and need the new version installed by hand. On Windows the setup runs silently and restarts Notelore; on macOS the new app replaces the old one, which is put back if that fails halfway; on Android the system installer opens and the user taps Install.
 
 The old command line (`notelore-<version>-*.zip`, v0.2.0 and earlier) is retired; the app reads the same `~/Notelore` folder.
 

@@ -6,7 +6,8 @@ name: Release
 # BREAKING CHANGE -> major), writes CHANGELOG.md, tags vX.Y.Z and cuts a
 # draft GitHub Release. The app jobs build the Flutter app for Windows and macOS
 # and a signed Android APK, each with a .sha256 the app's updater checks, and
-# `attach` uploads them, the only job besides the release with a write token,
+# `attach` signs those checksums with the update key (#485) and uploads them,
+# the only job besides the release with a write token,
 # then publishes the release once every platform's files are up (#476): until
 # then it is a draft, which no updater sees. (Assets are
 # named notelore-app-*: the retired CLI's `notelore update` looked for
@@ -48,6 +49,16 @@ jobs:
       tag: ${{ steps.rebuild.outputs.tag || steps.release.outputs.tag }}
       version: ${{ steps.rebuild.outputs.version || steps.release.outputs.version }}
     steps:
+      # Without the update key pair (#485, docs/development.md) a release would
+      # ship apps that never update again: stop before anything is tagged.
+      - name: The update signing key is set up
+        env:
+          UPDATE_KEY: ${{ vars.NOTELORE_UPDATE_PUBLIC_KEY }}
+          HAS_SIGNING_KEY: ${{ secrets.NOTELORE_UPDATE_SIGNING_KEY != '' }}
+        run: |
+          if [ -z "$UPDATE_KEY" ]; then echo "::error::the variable NOTELORE_UPDATE_PUBLIC_KEY is not set"; exit 1; fi
+          if [ "$HAS_SIGNING_KEY" != true ]; then echo "::error::the secret NOTELORE_UPDATE_SIGNING_KEY is not set"; exit 1; fi
+
       # A rebuild skips Semantic Release and hands the existing tag to the app jobs.
       - name: Existing tag to rebuild
         id: rebuild
@@ -137,6 +148,8 @@ jobs:
       # The OAuth client ids go into the binary at build time; they are never in the repo.
       NOTELORE_GOOGLE_CLIENT_ID: ${{ secrets.NOTELORE_GOOGLE_CLIENT_ID }}
       NOTELORE_GOOGLE_CLIENT_SECRET: ${{ secrets.NOTELORE_GOOGLE_CLIENT_SECRET }}
+      # Public: the update key the app pins (#485).
+      NOTELORE_UPDATE_PUBLIC_KEY: ${{ vars.NOTELORE_UPDATE_PUBLIC_KEY }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -165,6 +178,7 @@ jobs:
           --dart-define=NOTELORE_VERSION="$VERSION"
           --dart-define=NOTELORE_GOOGLE_CLIENT_ID="$NOTELORE_GOOGLE_CLIENT_ID"
           --dart-define=NOTELORE_GOOGLE_CLIENT_SECRET="$NOTELORE_GOOGLE_CLIENT_SECRET"
+          --dart-define=NOTELORE_UPDATE_PUBLIC_KEY="$NOTELORE_UPDATE_PUBLIC_KEY"
       - name: Install Inno Setup
         if: runner.os == 'Windows'
         run: choco install innosetup --no-progress -y
@@ -194,6 +208,7 @@ jobs:
       NOTELORE_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.NOTELORE_ANDROID_KEYSTORE_PASSWORD }}
       NOTELORE_ANDROID_KEY_PASSWORD: ${{ secrets.NOTELORE_ANDROID_KEY_PASSWORD }}
       NOTELORE_ANDROID_KEY_ALIAS: ${{ secrets.NOTELORE_ANDROID_KEY_ALIAS }}
+      NOTELORE_UPDATE_PUBLIC_KEY: ${{ vars.NOTELORE_UPDATE_PUBLIC_KEY }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -234,6 +249,7 @@ jobs:
             --build-number=$((major * 1000000 + minor * 1000 + patch))
             --dart-define=NOTELORE_VERSION="$VERSION"
             --dart-define=NOTELORE_GOOGLE_WEB_CLIENT_ID="$NOTELORE_GOOGLE_WEB_CLIENT_ID"
+            --dart-define=NOTELORE_UPDATE_PUBLIC_KEY="$NOTELORE_UPDATE_PUBLIC_KEY"
           )
           flutter build apk --release "${args[@]}"
       - name: Package
@@ -271,6 +287,38 @@ jobs:
           pattern: app-*
           path: dist
           merge-multiple: true
+      # Only the files the updater installs, checksummed here and not by the
+      # builds, get <file>.sha256.sig (#485); any failure leaves the draft.
+      - name: Sign the checksums
+        shell: bash
+        env:
+          SIGNING_KEY: ${{ secrets.NOTELORE_UPDATE_SIGNING_KEY }}
+          UPDATE_KEY: ${{ vars.NOTELORE_UPDATE_PUBLIC_KEY }}
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          key="$RUNNER_TEMP/update-key.pem"
+          public="$RUNNER_TEMP/update-key.pub"
+          trap 'rm -f "$key" "$public" "$RUNNER_TEMP/update.sig"' EXIT
+          (umask 077 && printf '%s\n' "$SIGNING_KEY" > "$key")
+          openssl pkey -in "$key" -pubout -out "$public"
+          if [ "$(openssl pkey -pubin -in "$public" -outform DER | tail -c 32 | base64 -w0)" != "$UPDATE_KEY" ]; then
+            echo "::error::NOTELORE_UPDATE_SIGNING_KEY is not the private half of NOTELORE_UPDATE_PUBLIC_KEY"
+            exit 1
+          fi
+          cd dist
+          signed=0
+          for file in "notelore-app-$VERSION-windows-x64-setup.exe" "notelore-app-$VERSION-macos.dmg" \
+            "notelore-app-$VERSION-android.apk"; do
+            [ -f "$file" ] || continue # its build failed: the release stays a draft
+            sha256sum "$file" > "$file.sha256"
+            openssl pkeyutl -sign -inkey "$key" -rawin -in "$file.sha256" -out "$RUNNER_TEMP/update.sig"
+            openssl pkeyutl -verify -pubin -inkey "$public" -rawin -in "$file.sha256" \
+              -sigfile "$RUNNER_TEMP/update.sig"
+            base64 -w0 "$RUNNER_TEMP/update.sig" > "$file.sha256.sig"
+            signed=$((signed + 1))
+          done
+          if [ "$signed" -eq 0 ]; then echo "::error::no update file to sign"; exit 1; fi
       - name: Upload
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

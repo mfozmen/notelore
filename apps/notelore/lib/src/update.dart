@@ -2,8 +2,10 @@
 ///
 /// Port of the CLI's updater: a check at every start (silent when offline),
 /// and an update is installed only when its SHA-256 matches the `.sha256`
-/// published with the release (this catches corrupt or partial downloads; it is
-/// not a signature). On Windows the release's setup runs silently into this
+/// published with the release, and, in a build that pins the release key
+/// ([updateKey]), only when that `.sha256` carries the key's Ed25519 signature
+/// (`.sha256.sig`, made by release.yml): a checksum alone proves the download
+/// is whole, the signature that Notelore's release made it (#485). On Windows the release's setup runs silently into this
 /// app's folder once the app has exited, and starts it again. On macOS the
 /// `.app` comes out of the release's dmg (`hdiutil`, then `ditto`, which keeps
 /// the bundle's symlinks) and replaces the old bundle, which stays as `.old`
@@ -17,6 +19,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:cryptography/cryptography.dart'
+    show Ed25519, KeyPairType, Signature, SimplePublicKey;
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -26,6 +30,11 @@ const latestReleaseUrl = 'https://api.github.com/repos/mfozmen/notelore/releases
 /// Set by the release build (`--dart-define=NOTELORE_VERSION=x.y.z`); empty in
 /// development builds, which never update themselves.
 const appVersion = String.fromEnvironment('NOTELORE_VERSION');
+
+/// The public half of the release signing key, base64 of its 32 bytes, set by
+/// the release build (`--dart-define=NOTELORE_UPDATE_PUBLIC_KEY=…`, #485). Empty in
+/// development builds, which never update themselves.
+const updateKey = String.fromEnvironment('NOTELORE_UPDATE_PUBLIC_KEY');
 
 typedef Fetch = Future<List<int>> Function(String url);
 typedef Download = Future<List<int>> Function(
@@ -180,13 +189,15 @@ Future<String?> checkForUpdate({
 
 /// A newer release than [current], with what it brings and its page (#288);
 /// null when there is none. Offline or garbled is silent unless [force]. A
-/// release without [system]'s file and its `.sha256` is not one yet: its
-/// builds are still running, and an update now would find nothing (#476).
+/// release without [system]'s file and its `.sha256` (and, when [signed], its
+/// `.sha256.sig`) is not one yet: its builds are still running, and an update
+/// now would find nothing (#476).
 Future<({String version, List<String> highlights, String page})?> checkRelease({
   required String current,
   required Fetch fetch,
   required String system,
   bool force = false,
+  bool signed = false,
 }) async {
   final Map<String, Object?> data;
   try {
@@ -203,7 +214,8 @@ Future<({String version, List<String> highlights, String page})?> checkRelease({
     for (final asset in listed.whereType<Map<Object?, Object?>>()) '${asset['name']}',
   };
   final file = assetName(version, system);
-  if (!assets.contains(file) || !assets.contains('$file.sha256')) return null;
+  final needed = [file, '$file.sha256', if (signed) '$file.sha256.sig'];
+  if (!needed.every(assets.contains)) return null;
   return (
     version: version,
     highlights: releaseHighlights(data['body'] as String?),
@@ -227,9 +239,16 @@ List<String> releaseHighlights(String? notes) {
   return [...?sections['Features'], ...?sections['Bug Fixes']].take(2).toList();
 }
 
-/// The updater for a release build of the desktop app, or null.
-Updater? updaterFor({required String system, required String version, required String executable}) {
-  if (version.isEmpty || !const {'windows', 'macos', 'android'}.contains(system)) return null;
+/// The updater for a release build of the app, or null. A build without the
+/// release [key] does not update itself: never on checksums alone (#485).
+Updater? updaterFor({
+  required String system,
+  required String version,
+  required String executable,
+  String key = updateKey,
+}) {
+  if (version.isEmpty || key.isEmpty) return null;
+  if (!const {'windows', 'macos', 'android'}.contains(system)) return null;
   return Updater(
     system: system,
     executable: executable,
@@ -240,6 +259,23 @@ Updater? updaterFor({required String system, required String version, required S
     run: Process.run,
     spawn: startDetached,
     osVersion: Platform.operatingSystemVersion,
+    publicKey: key,
+  );
+}
+
+/// Whether [signature] (base64, as release.yml writes it) is [key]'s Ed25519
+/// signature of [message]; anything malformed is not.
+Future<bool> signedBy(List<int> message, String signature, String key) async {
+  final List<int> bytes, public;
+  try {
+    (bytes, public) = (base64.decode(signature.trim()), base64.decode(key));
+  } on FormatException {
+    return false;
+  }
+  if (bytes.length != 64 || public.length != 32) return false;
+  return Ed25519().verify(
+    message,
+    signature: Signature(bytes, publicKey: SimplePublicKey(public, type: KeyPairType.ed25519)),
   );
 }
 
@@ -256,7 +292,11 @@ class Updater {
     this.renameDirectory = _renameDirectory,
     this.openInstaller = androidInstaller,
     this.osVersion = '',
+    this.publicKey = '',
   });
+
+  /// The release key this build pins ([updateKey]); empty: checksums only.
+  final String publicKey;
 
   /// This machine's OS as the platform says it ("Version 14.5 (Build 23F79)").
   final String osVersion;
@@ -304,12 +344,21 @@ class Updater {
     if (checksumUrl == null) {
       throw UpdateFailed('release $version publishes no checksum for $name; not installing it');
     }
-    final fields = utf8
-        .decode(await fetch(checksumUrl), allowMalformed: true)
-        .trim()
-        .split(RegExp(r'\s+'));
+    final checksum = await fetch(checksumUrl);
+    if (publicKey.isNotEmpty) await _checkSignature(name, version, checksum, assets);
+    final fields = utf8.decode(checksum, allowMalformed: true).trim().split(RegExp(r'\s+'));
     if (fields.first.isEmpty) {
       throw UpdateFailed('the checksum for $name is empty; not installing it');
+    }
+    // The signature covers the line's file name, which carries the version: an
+    // older release's signed checksum cannot pass for this one's (#485).
+    final named = fields.length > 1 ? fields[1].replaceFirst(RegExp(r'^\*'), '') : null;
+    if (named != name) {
+      throw UpdateFailed(
+        named == null
+            ? 'the checksum for $name names no file; not installing it'
+            : 'the checksum published as $name is for $named; not installing it',
+      );
     }
     onProgress?.call(const UpdateProgress.downloading(0, null));
     final data = await (download ?? (url, {onProgress}) => fetch(url))(
@@ -368,6 +417,24 @@ class Updater {
       staging.deleteSync(recursive: true);
     }
     return version;
+  }
+
+  /// The checksum is the release key's: whoever can only write to the release
+  /// cannot sign a checksum of their own file.
+  Future<void> _checkSignature(
+    String name,
+    String version,
+    List<int> checksum,
+    Map<String, String> assets,
+  ) async {
+    final url = assets['$name.sha256.sig'];
+    if (url == null) {
+      throw UpdateFailed('release $version publishes no signature for $name; not installing it');
+    }
+    final signature = utf8.decode(await fetch(url), allowMalformed: true);
+    if (!await signedBy(checksum, signature, publicKey)) {
+      throw UpdateFailed('$name is not signed by Notelore; the download was not installed');
+    }
   }
 
   /// A bundle that needs a newer macOS than this one would not start, and the
