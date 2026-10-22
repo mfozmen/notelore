@@ -639,12 +639,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
-    await tester.longPress(find.text('Secret plans'));
+    await tester.tap(find.text('Secret plans'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Delete'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
     await tester.pump();
     const notice = 'Moved "Secret plans" to the archive.';
-    expect(find.text(notice), findsOneWidget);
+    expect(find.text(notice), findsWidgets);
     toBackground(tester);
     now = now.add(const Duration(minutes: 1));
     toForeground(tester);
@@ -1891,7 +1893,9 @@ void main() {
     expect(find.text('The archive is empty. Deleted notes go here.'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Delete').first);
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Delete'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
@@ -2064,7 +2068,9 @@ void main() {
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Delete').first);
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Delete'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
@@ -2240,7 +2246,7 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
-  testWidgets('notes: delete from the list or the reader, with undo', (tester) async {
+  testWidgets('notes: delete from the reader, with undo', (tester) async {
     phone(tester);
     final harness = Harness();
     final session = await pumpApp(tester, harness);
@@ -2250,21 +2256,9 @@ void main() {
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
 
-    // Long press, then Cancel: nothing changes.
-    await tester.longPress(find.text('Kitaplar'));
+    await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
-    expect(find.text('Delete "Kitaplar"?'), findsOneWidget);
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
-    expect(find.text('Kitaplar'), findsOneWidget);
-
-    // The entry's own trash button (#129), Delete, then Undo.
-    await tester.tap(
-      find.descendant(
-        of: find.widgetWithText(ListTile, 'Kitaplar'),
-        matching: find.byTooltip('Delete'),
-      ),
-    );
+    await tester.tap(find.byTooltip('Delete'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
@@ -2275,7 +2269,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Kitaplar'), findsOneWidget);
 
-    // From the open note: the app bar's delete button, and back to the list.
+    // From the open note: the reader's delete button, and back to the list.
     await tester.tap(find.text('Mopsos'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Delete'));
@@ -2286,8 +2280,10 @@ void main() {
     expect(session.listNotes().map((n) => n.title), ['Kitaplar']);
 
     // Gone meanwhile (a sync, a chat turn): says so instead of failing.
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
     File(notePath(harness.paths.notes.path, 'topic', 'kitaplar')).deleteSync();
-    await tester.longPress(find.text('Kitaplar'));
+    await tester.tap(find.byTooltip('Delete'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
@@ -2330,9 +2326,40 @@ void main() {
     expect(find.text('Decisions'), findsNothing); // a new note's empty sections have no heading
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Refresh'));
+    await tester.fling(find.byType(ListView).last, const Offset(0, 300), 1000);
     await tester.pumpAndSettle();
     expect(find.text('Mopsos'), findsOneWidget);
+  });
+
+  testWidgets('notes: list actions sit in one overflow; the reader owns export and delete (#555)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Archive'), findsOneWidget);
+    expect(find.byTooltip('Import notes'), findsNothing);
+    expect(find.byTooltip('Export notes'), findsNothing);
+    expect(find.byTooltip('Refresh'), findsNothing);
+    expect(find.byTooltip('Delete'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('notes-more')));
+    await tester.pumpAndSettle();
+    expect(find.text('Import notes'), findsOneWidget);
+    expect(find.text('Export notes'), findsOneWidget);
+    expect(find.text('Refresh'), findsOneWidget);
+    await tester.tap(find.text('Refresh'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Export'), findsOneWidget);
+    expect(find.byTooltip('Delete'), findsOneWidget);
   });
 
   /// The words of a line of text on screen: an answer's (in its SelectionArea)

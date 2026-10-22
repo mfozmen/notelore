@@ -123,6 +123,9 @@ void main() {
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('Pick a note to read it here.'), findsOneWidget);
+    expect(find.byTooltip('Archive'), findsOneWidget);
+    expect(find.byKey(const Key('notes-more')), findsOneWidget);
+    expect(find.byTooltip('Import notes'), findsNothing);
 
     await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
@@ -155,13 +158,17 @@ void main() {
     // Added to elsewhere the same day (the date stays): the reader shows it.
     final text = File(path).readAsStringSync();
     File(path).writeAsStringSync('$text- Dune${String.fromCharCode(10)}');
-    await tester.tap(find.byTooltip('Refresh'));
+    await tester.tap(find.byKey(const Key('notes-more')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Refresh'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Dune'), findsOneWidget);
 
     // Archived elsewhere: the reader empties.
     await session.deleteNote(session.listNotes().single);
-    await tester.tap(find.byTooltip('Refresh'));
+    await tester.tap(find.byKey(const Key('notes-more')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Refresh'));
     await tester.pumpAndSettle();
     expect(find.text('Pick a note to read it here.'), findsOneWidget);
   });
@@ -216,7 +223,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Kitaplar'), findsOneWidget);
     // An archived note reads in the pane too; Back and the system's back step out.
-    await tester.tap(find.byTooltip('Delete').first);
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Delete'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete').last);
     await tester.pumpAndSettle();

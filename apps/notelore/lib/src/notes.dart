@@ -10,8 +10,7 @@ import 'theme.dart';
 import 'transfer.dart';
 
 /// Every project and topic, newest first; a tap opens the note read-only, beside
-/// the list on a wide window. The entry's trash button (or a long press, or the
-/// open note's) archives it.
+/// the list on a wide window. The open note's header archives it.
 class NotesScreen extends StatefulWidget {
   const NotesScreen(this.session, {super.key});
 
@@ -20,6 +19,8 @@ class NotesScreen extends StatefulWidget {
   @override
   State<NotesScreen> createState() => _NotesScreenState();
 }
+
+enum _NotesAction { import, export, refresh }
 
 class _NotesScreenState extends State<NotesScreen> {
   /// The note open beside the list on a wide window, read once.
@@ -129,6 +130,55 @@ class _NotesScreenState extends State<NotesScreen> {
     if (chosen != null && mounted) await _export(chosen);
   }
 
+  Future<void> _refresh() async => setState(() {});
+
+  Widget _refreshable(Widget child) => RefreshIndicator(onRefresh: _refresh, child: child);
+
+  Widget _listHeader(BuildContext context, List<NoteInfo> notes) => Padding(
+    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.s, 0),
+    child: Align(alignment: Alignment.centerRight, child: _listActions(context, notes)),
+  );
+
+  Widget _listActions(BuildContext context, List<NoteInfo> notes) {
+    final s = widget.session.strings;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          tooltip: s.archive,
+          icon: const Icon(Icons.inventory_2_outlined),
+          onPressed: () => Layout.isWide(context)
+              ? setState(() => _archive = true)
+              : Navigator.of(context)
+                    .push(MaterialPageRoute<void>(builder: (_) => ArchiveScreen(widget.session))),
+        ),
+        PopupMenuButton<_NotesAction>(
+          key: const Key('notes-more'),
+          icon: const Icon(Icons.more_vert),
+          onSelected: (action) async {
+            switch (action) {
+              case _NotesAction.import:
+                await _import();
+              case _NotesAction.export:
+                await _exportSeveral(notes);
+              case _NotesAction.refresh:
+                await _refresh();
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem(value: _NotesAction.import, child: Text(s.importNotes)),
+            PopupMenuItem(
+              value: _NotesAction.export,
+              enabled: notes.isNotEmpty,
+              child: Text(s.exportNotes),
+            ),
+            PopupMenuItem(value: _NotesAction.refresh, child: Text(s.refresh)),
+          ],
+        ),
+      ],
+    );
+  }
+
   /// Imports the files the person picks and says what happened to each.
   Future<void> _import() async {
     final s = widget.session.strings;
@@ -174,35 +224,12 @@ class _NotesScreenState extends State<NotesScreen> {
       final now = notes.where((n) => n.kind == open.kind && n.slug == open.slug).firstOrNull;
       _reading = now == null ? null : (now, widget.session.readNote(now));
     }
+    final wide = Layout.isWide(context);
     return Scaffold(
       appBar: AppBar(
         leading: AppMenu.button(context),
         title: Text(s.notes),
-        actions: [
-          IconButton(
-            tooltip: s.importNotes,
-            icon: const Icon(Icons.file_open_outlined),
-            onPressed: _import,
-          ),
-          IconButton(
-            tooltip: s.exportNotes,
-            icon: const Icon(Icons.ios_share),
-            onPressed: notes.isEmpty ? null : () => _exportSeveral(notes),
-          ),
-          IconButton(
-            tooltip: s.archive,
-            icon: const Icon(Icons.inventory_2_outlined),
-            onPressed: () => Layout.isWide(context)
-                ? setState(() => _archive = true)
-                : Navigator.of(context)
-                      .push(MaterialPageRoute<void>(builder: (_) => ArchiveScreen(widget.session))),
-          ),
-          IconButton(
-            tooltip: s.refresh,
-            icon: const Icon(Icons.refresh),
-            onPressed: () => setState(() {}),
-          ),
-        ],
+        actions: wide ? null : [_listActions(context, notes)],
       ),
       body: Builder(
         builder: (context) {
@@ -225,10 +252,18 @@ class _NotesScreenState extends State<NotesScreen> {
   Widget _list(BuildContext context, List<NoteInfo> all, {required bool wide}) {
     final s = widget.session.strings;
     final colors = Theme.of(context).colorScheme;
-    if (all.isEmpty) return _shown(context, all, wide: wide);
+    if (all.isEmpty) {
+      return Column(
+        children: [
+          if (wide) _listHeader(context, all),
+          Expanded(child: _refreshable(_shown(context, all, wide: wide))),
+        ],
+      );
+    }
     final notes = _search.text.trim().isEmpty ? all : widget.session.findNotes(_search.text, all);
     return Column(
       children: [
+        if (wide) _listHeader(context, all),
         Padding(
           padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, 0),
           child: TextField(
@@ -250,20 +285,22 @@ class _NotesScreenState extends State<NotesScreen> {
           ),
         ),
         Expanded(
-          child: notes.isEmpty
-              // Right under the field, where the eye is after typing.
-              ? Align(
-                  alignment: Alignment.topCenter,
-                  child: Padding(
+          child: _refreshable(
+            notes.isEmpty
+                // Right under the field, where the eye is after typing.
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, 0),
-                    child: Text(
-                      s.noNoteMentions(_search.text.trim()),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: colors.onSurfaceVariant),
-                    ),
-                  ),
-                )
-              : _shown(context, notes, wide: wide),
+                    children: [
+                      Text(
+                        s.noNoteMentions(_search.text.trim()),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: colors.onSurfaceVariant),
+                      ),
+                    ],
+                  )
+                : _shown(context, notes, wide: wide),
+          ),
         ),
       ],
     );
@@ -274,20 +311,29 @@ class _NotesScreenState extends State<NotesScreen> {
     final s = widget.session.strings;
     final colors = Theme.of(context).colorScheme;
     return notes.isEmpty
-        ? Center(
-            child: Padding(
-              padding: const EdgeInsets.all(Gap.l),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.description_outlined, size: 56, color: colors.primary),
-                  const SizedBox(height: Gap.m),
-                  Text(s.noNotes, textAlign: TextAlign.center),
-                ],
+        ? CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(Gap.l),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.description_outlined, size: 56, color: colors.primary),
+                        const SizedBox(height: Gap.m),
+                        Text(s.noNotes, textAlign: TextAlign.center),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
+            ],
           )
         : ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
             itemCount: notes.length,
             separatorBuilder: (_, _) => const SizedBox(height: Gap.s),
@@ -312,12 +358,6 @@ class _NotesScreenState extends State<NotesScreen> {
                           ? '?'
                           : s.shortDate(note.updated!, widget.session.clock().toLocal()),
                     ),
-                  ),
-                  onLongPress: () => _delete(note),
-                  trailing: IconButton(
-                    tooltip: s.delete,
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () => _delete(note),
                   ),
                   selected: wide && _isOpen(note),
                   // Read once: the app rebuilds on every session change, and a
