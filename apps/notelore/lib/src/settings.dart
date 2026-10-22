@@ -1049,12 +1049,7 @@ class _SettingRow extends StatelessWidget {
             : Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: Gap.s),
-                      child: label,
-                    ),
-                  ),
+                  Expanded(child: label),
                   const SizedBox(width: Gap.m),
                   SizedBox(width: 320, child: control),
                 ],
