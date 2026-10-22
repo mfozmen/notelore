@@ -102,7 +102,7 @@ Text can wrap to indented continuation lines. The LLM writes a clean, self-conta
 - <date> <HH:MM>-<HH:MM>: <text>     # with the end the user gave or a sensible one
 ```
 
-A new note has Decisions, Notes and Todo; the Reminders section is added at the end of the file with its first reminder (`add_reminder`). The app turns reminders into notifications. A reminder whose time is not a real one (`25:00`, `9:30`) is kept verbatim like any other unparsable line. An end earlier than the start means the next day.
+A new note has Decisions, Notes and Todo; the Reminders section is added at the end of the file with its first reminder (`add_reminder`). The app turns reminders into notifications. A reminder whose time is not a real one (`25:00`, `9:30`) is kept verbatim like any other unparsable line. The end may be one the user gave or one the app estimated from the kind of event; an end earlier than the start means the next day.
 
 ### Parser guarantees
 

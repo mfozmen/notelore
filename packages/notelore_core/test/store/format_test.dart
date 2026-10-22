@@ -190,7 +190,10 @@ void main() {
     );
     expect(estimateReminderDuration('Football match'), 120);
     expect(estimateReminderDuration('Konser'), 120);
+    expect(estimateReminderDuration('Fenerbahçe maçını izle'), 120);
+    expect(estimateReminderDuration('Konseri'), 120);
     expect(estimateReminderDuration('Team meeting'), 60);
+    expect(estimateReminderDuration('Toplantısı'), 60);
     expect(estimateReminderDuration('Dentist'), 15);
     for (final time in ['24:00', '12:60', '7:05']) {
       final text = '---\ntitle: T\n---\n# T\n## Reminders\n- 2026-01-02 $time: x\n';

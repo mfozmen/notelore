@@ -166,12 +166,25 @@ final class Reminder extends NoteEntry {
 /// A sensible default length for a reminder, from the kind of thing it names.
 /// A match or a concert is not a 15-minute errand.
 int estimateReminderDuration(String text) {
-  final words = text.toLowerCase().split(RegExp(r'[^a-z0-9çğıöşü]+')).toSet();
-  if (['match', 'football', 'soccer', 'derby', 'maç', 'mac', 'futbol'].any(words.contains) ||
-      ['concert', 'konser', 'film', 'movie', 'sinema'].any(words.contains)) {
+  final lower = text.toLowerCase();
+  bool hasAny(List<String> stems) => stems.any(lower.contains);
+  if (hasAny([
+    'match',
+    'football',
+    'soccer',
+    'derby',
+    'derbi',
+    'maç',
+    'futbol',
+    'concert',
+    'konser',
+    'film',
+    'movie',
+    'sinema',
+  ])) {
     return 120;
   }
-  if (['meeting', 'toplantı', 'toplanti'].any(words.contains)) return 60;
+  if (hasAny(['meeting', 'toplantı', 'toplanti'])) return 60;
   return 15;
 }
 

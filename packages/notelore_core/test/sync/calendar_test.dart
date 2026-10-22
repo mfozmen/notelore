@@ -149,6 +149,29 @@ void main() {
     );
   });
 
+  test('an end change replaces the event, never leaves the old one (#535)', () async {
+    final cal = calendar();
+    final id = await cal.calendarId(null);
+    final at = DateTime(2026, 10, 21, 20);
+    await cal.sync(id, [
+      DueReminder(1, at, 'Sport', 'Match', end: at.add(const Duration(hours: 2))),
+    ], now: now);
+    final first = api.events[id]!.values.single;
+    expect(
+      (first['end']! as Map)['dateTime'],
+      at.add(const Duration(hours: 2)).toUtc().toIso8601String(),
+    );
+    await cal.sync(id, [
+      DueReminder(2, at, 'Sport', 'Match', end: at.add(const Duration(hours: 3))),
+    ], now: now);
+    final events = api.events[id]!.values.toList();
+    expect(events, hasLength(1));
+    expect(
+      (events.single['end']! as Map)['dateTime'],
+      at.add(const Duration(hours: 3)).toUtc().toIso8601String(),
+    );
+  });
+
   test('the coming events are exactly the coming reminders, each once', () async {
     final cal = calendar();
     final id = await cal.calendarId(null);
