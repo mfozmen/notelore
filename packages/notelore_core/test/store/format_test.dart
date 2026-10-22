@@ -176,12 +176,27 @@ void main() {
     expect(reminders[2], isA<Raw>());
     expect(parse(fixture('hatirlaticilar.md')).section('Hatırlatıcılar')!.key, 'reminders');
     expect(Reminder(d(2026, 1, 2), 'a', time: '07:05').render(), '- 2026-01-02 07:05: a');
+    expect(
+      Reminder(d(2026, 1, 2), 'a', time: '07:05', end: '08:30').render(),
+      '- 2026-01-02 07:05-08:30: a',
+    );
     expect(Reminder(d(2026, 1, 2), 'a').render(), '- 2026-01-02: a');
     expect(Reminder(d(2026, 1, 2), 'a').hashCode, Reminder(d(2026, 1, 2), 'a').hashCode);
     expect(Reminder(d(2026, 1, 2), 'a'), isNot(Reminder(d(2026, 1, 2), 'a', time: '07:05')));
+    final ended = parse('---\ntitle: T\n---\n# T\n## Reminders\n- 2026-01-02 07:05-08:30: x\n');
+    expect(
+      ended.section('reminders')!.entries.single,
+      Reminder(d(2026, 1, 2), 'x', time: '07:05', end: '08:30'),
+    );
+    expect(estimateReminderDuration('Football match'), 120);
+    expect(estimateReminderDuration('Konser'), 120);
+    expect(estimateReminderDuration('Team meeting'), 60);
+    expect(estimateReminderDuration('Dentist'), 15);
     for (final time in ['24:00', '12:60', '7:05']) {
       final text = '---\ntitle: T\n---\n# T\n## Reminders\n- 2026-01-02 $time: x\n';
       expect(parse(text).section('reminders')!.entries.single, isA<Raw>(), reason: time);
+      final end = '---\ntitle: T\n---\n# T\n## Reminders\n- 2026-01-02 07:05-$time: x\n';
+      expect(parse(end).section('reminders')!.entries.single, isA<Raw>(), reason: time);
     }
   });
 

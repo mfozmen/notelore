@@ -245,7 +245,7 @@ void main() {
         'notes': {
           r'^topics/futbol\.md$': ['2026-10-19 21:30'],
         },
-        'lines_not': [r'^- \d{4}-\d\d-\d\d \d\d:\d\d: (.{50,}|.*\d[.:]\d\d)'],
+        'lines_not': [r'^- \d{4}-\d\d-\d\d \d\d:\d\d(?:-\d\d:\d\d)?: (.{50,}|.*\d[.:]\d\d)'],
       },
     });
 
@@ -267,7 +267,7 @@ void main() {
         "Fenerbahçe–Galatasaray maçını izle; maç Türkiye saatiyle 21.30'da başlayacak.",
       );
       expect(result.problems, [
-        r'topics/futbol.md has a line matching ^- \d{4}-\d\d-\d\d \d\d:\d\d: (.{50,}|.*\d[.:]\d\d)',
+        r'topics/futbol.md has a line matching ^- \d{4}-\d\d-\d\d \d\d:\d\d(?:-\d\d:\d\d)?: (.{50,}|.*\d[.:]\d\d)',
       ]);
     });
   });

@@ -290,6 +290,19 @@ void main() {
           reason: time,
         );
       }
+      addReminder(path, 'Football match', d(2026, 11, 4), time: '20:00', today: today);
+      addReminder(path, 'Dinner', d(2026, 11, 5), time: '19:00', end: '21:30', today: today);
+      expect(
+        read(path),
+        endsWith(
+          '- 2026-11-04 20:00-22:00: Football match\n'
+          '- 2026-11-05 19:00-21:30: Dinner\n',
+        ),
+      );
+      expect(
+        () => addReminder(path, 'x', d(2026, 11, 6), time: '10:00', end: '9:00', today: today),
+        throwsA(isA<ArgumentError>()),
+      );
     });
 
     test('identical todos are completed by position', () {

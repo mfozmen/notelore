@@ -109,7 +109,10 @@ final noteTools = List<Tool>.unmodifiable([
       ['slug', 'at', 'text'],
       {
         'slug': _slug,
-        'at': {'type': 'string', 'description': 'YYYY-MM-DD, or YYYY-MM-DD HH:MM (24-hour)'},
+        'at': {
+          'type': 'string',
+          'description': 'YYYY-MM-DD, YYYY-MM-DD HH:MM, or YYYY-MM-DD HH:MM-HH:MM (24-hour)',
+        },
         'text': {
           'type': 'string',
           'description':
@@ -327,8 +330,8 @@ class Toolbox {
         (path) => notes.completeTodo(path, args['number']! as int, today: today),
       ),
       'add_reminder' => _write(_path(arg('slug'), kind), (path) {
-        final (date, time) = _at(arg('at'));
-        notes.addReminder(path, arg('text'), date, time: time, today: today);
+        final (date, time, end) = _at(arg('at'));
+        notes.addReminder(path, arg('text'), date, time: time, end: end, today: today);
       }),
       'record_decision' => _write(
         _path(arg('slug'), kind),
@@ -391,13 +394,16 @@ class Toolbox {
   }
 
   /// A reminder's day and its time if it has one; the store checks the time.
-  static (DateTime, String?) _at(String at) {
-    final match = RegExp(r'^(\d{4}-\d{2}-\d{2})(?: (\d{1,2}:\d{2}))?$').firstMatch(at);
+  static (DateTime, String?, String?) _at(String at) {
+    final match = RegExp(r'^(\d{4}-\d{2}-\d{2})(?: (\d{1,2}:\d{2})(?:-(\d{1,2}:\d{2}))?)?$')
+        .firstMatch(at);
     final date = match == null ? null : parseIsoDate(match[1]!);
     if (date == null) {
-      throw FormatException("at must be YYYY-MM-DD or YYYY-MM-DD HH:MM, got '$at'.");
+      throw FormatException(
+        "at must be YYYY-MM-DD, YYYY-MM-DD HH:MM or YYYY-MM-DD HH:MM-HH:MM, got '$at'.",
+      );
     }
-    return (date, match![2]);
+    return (date, match![2], match[3]);
   }
 
   static DateTime? _due(String? due) {

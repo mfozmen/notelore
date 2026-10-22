@@ -481,6 +481,7 @@ void main() {
     expect(prompt, contains('Never refuse a reminder'));
     expect(prompt, contains('"5 dakika sonra"'));
     expect(prompt, contains('a clock time'));
+    expect(prompt, contains('HH:MM-HH:MM'));
     // Without one, the device's clock: the minute, not only the day.
     expect(systemPrompt(), contains('It is now ${isoDate(DateTime.now())} '));
   });
@@ -716,6 +717,7 @@ void failureTests() {
         'complete_todo',
         'add_reminder',
         'Never refuse',
+        'HH:MM-HH:MM',
         '"deyta beys"',
         'one short sentence',
         '[[Yes]] [[No]]',

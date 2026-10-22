@@ -269,15 +269,37 @@ void addTodo(String path, String text, {DateTime? due, DateTime? today}) {
   writeNote(path, note, today: day);
 }
 
-/// Adds a reminder for [date], at [time] (`HH:MM`, local) if given (#430).
-void addReminder(String path, String text, DateTime date, {String? time, DateTime? today}) {
+/// Adds a reminder for [date], at [time] (`HH:MM`, local) if given, and its
+/// [end] when the user gave it or the kind of event suggests one (#430, #535).
+void addReminder(
+  String path,
+  String text,
+  DateTime date, {
+  String? time,
+  String? end,
+  DateTime? today,
+}) {
   if (time != null && !isReminderTime(time)) {
     throw ArgumentError.value(time, 'time', 'a reminder time is HH:MM, 00:00 to 23:59');
   }
+  if (end != null && (time == null || !isReminderTime(end))) {
+    throw ArgumentError.value(end, 'end', 'a reminder end is HH:MM, 00:00 to 23:59');
+  }
+  if (time != null && end == null) {
+    final minutes = estimateReminderDuration(text);
+    if (minutes > 15) end = _endAfter(time, minutes);
+  }
   final note = readNote(path);
   final day = today ?? localToday();
-  _append(_section(note, 'reminders'), Reminder(date, _text(text), time: time));
+  _append(_section(note, 'reminders'), Reminder(date, _text(text), time: time, end: end));
   writeNote(path, note, today: day);
+}
+
+String _endAfter(String time, int minutes) {
+  final [hour, minute] = time.split(':').map(int.parse).toList();
+  final total = (hour * 60 + minute + minutes) % (24 * 60);
+  return '${(total ~/ 60).toString().padLeft(2, '0')}:'
+      '${(total % 60).toString().padLeft(2, '0')}';
 }
 
 void completeTodo(String path, int number, {DateTime? today}) {

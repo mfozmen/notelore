@@ -125,6 +125,30 @@ void main() {
     expect(() => calendar().calendarId(null), throwsA(isA<FormatException>()));
   });
 
+  test('an event uses its end, or a realistic one for its kind (#535)', () async {
+    final cal = calendar();
+    final id = await cal.calendarId(null);
+    final match = DueReminder(1, DateTime(2026, 10, 20, 20), 'Sport', 'Football match');
+    final dinner = DueReminder(
+      2,
+      DateTime(2026, 10, 21, 19),
+      'Food',
+      'Dinner',
+      end: DateTime(2026, 10, 21, 21, 30),
+    );
+    await cal.sync(id, [match, dinner], now: now);
+    final events = api.events[id]!.values.toList();
+    String ends(Map<String, Object?> event) => (event['end']! as Map)['dateTime']! as String;
+    expect(
+      ends(events.firstWhere((e) => e['summary'] == 'Football match')),
+      DateTime(2026, 10, 20, 22).toUtc().toIso8601String(),
+    );
+    expect(
+      ends(events.firstWhere((e) => e['summary'] == 'Dinner')),
+      DateTime(2026, 10, 21, 21, 30).toUtc().toIso8601String(),
+    );
+  });
+
   test('the coming events are exactly the coming reminders, each once', () async {
     final cal = calendar();
     final id = await cal.calendarId(null);

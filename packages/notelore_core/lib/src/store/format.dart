@@ -22,8 +22,9 @@ final _superseded = RegExp(
 final _entry = RegExp('^- $_date: (.*)\$', dotAll: true);
 // A reminder's time of day, 00:00 to 23:59: the parser and the writer go by this one pattern.
 const _time = '([01][0-9]|2[0-3]):([0-5][0-9])';
-// The time is optional; an hour or minute that cannot be one keeps the line Raw.
-final _reminder = RegExp('^- $_date(?: $_time)?: (.*)\$', dotAll: true);
+// The time and an optional end are optional; an hour or minute that cannot be
+// one keeps the line Raw.
+final _reminder = RegExp('^- $_date(?: $_time(?:-$_time)?)?: (.*)\$', dotAll: true);
 
 /// Whether [time] is a reminder's time of day as the format writes it (`HH:MM`).
 bool isReminderTime(String time) => RegExp('^$_time\$').hasMatch(time);
@@ -136,23 +137,42 @@ final class Todo extends NoteEntry {
   int get hashCode => Object.hash(date, text, done);
 }
 
-/// Something to be reminded of on [date], at [time] (`HH:MM`, local) if it has one.
+/// Something to be reminded of on [date], at [time] (`HH:MM`, local) if it has
+/// one, and its [end] when the user gave it or it could be estimated.
 final class Reminder extends NoteEntry {
-  const Reminder(this.date, this.text, {this.time});
+  const Reminder(this.date, this.text, {this.time, this.end});
 
   final DateTime date;
   final String text;
   final String? time;
+  final String? end;
 
   @override
-  String render() => '- ${isoDate(date)}${time == null ? '' : ' $time'}: $text';
+  String render() =>
+      '- ${isoDate(date)}${time == null ? '' : ' $time${end == null ? '' : '-$end'}'}: $text';
 
   @override
   bool operator ==(Object other) =>
-      other is Reminder && other.date == date && other.text == text && other.time == time;
+      other is Reminder &&
+      other.date == date &&
+      other.text == text &&
+      other.time == time &&
+      other.end == end;
 
   @override
-  int get hashCode => Object.hash(date, text, time);
+  int get hashCode => Object.hash(date, text, time, end);
+}
+
+/// A sensible default length for a reminder, from the kind of thing it names.
+/// A match or a concert is not a 15-minute errand.
+int estimateReminderDuration(String text) {
+  final words = text.toLowerCase().split(RegExp(r'[^a-z0-9çğıöşü]+')).toSet();
+  if (['match', 'football', 'soccer', 'derby', 'maç', 'mac', 'futbol'].any(words.contains) ||
+      ['concert', 'konser', 'film', 'movie', 'sinema'].any(words.contains)) {
+    return 120;
+  }
+  if (['meeting', 'toplantı', 'toplanti'].any(words.contains)) return 60;
+  return 15;
 }
 
 /// A line (or bullet block) that is not a recognized entry. Preserved verbatim.
@@ -313,7 +333,10 @@ Todo? _todoOf(String block) {
 Reminder? _reminderOf(String block) {
   if (_reminder.firstMatch(block) case final m?) {
     final time = m[2] == null ? null : '${m[2]}:${m[3]}';
-    if (parseIsoDate(m[1]!) case final date?) return Reminder(date, m[4]!, time: time);
+    final end = m[4] == null ? null : '${m[4]}:${m[5]}';
+    if (parseIsoDate(m[1]!) case final date?) {
+      return Reminder(date, m[6]!, time: time, end: end);
+    }
   }
   return null;
 }
