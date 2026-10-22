@@ -905,43 +905,92 @@ class _ModelPicker extends StatefulWidget {
 
 class _ModelPickerState extends State<_ModelPicker> {
   late final _controller = _RefreshingMenuController(_refresh);
+  var _refreshing = false;
+  String? _failure;
 
-  Future<void> _refresh() async {
-    final messenger = ScaffoldMessenger.of(context);
+  Future<bool> _refresh() async {
+    if (_refreshing || !mounted) return false;
+    setState(() {
+      _refreshing = true;
+      _failure = null;
+    });
     try {
       await widget.session.refreshModels();
+      return mounted;
     } on Exception catch (error) {
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text('$error'),
-            action: SnackBarAction(label: widget.session.strings.tryAgain, onPressed: _refresh),
-          ),
-        );
+      if (mounted) setState(() => _failure = '$error');
+      return false;
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
     }
   }
 
+  Future<void> _retry() async {
+    if (await _refresh() && mounted) _controller.show();
+  }
+
   @override
-  Widget build(BuildContext context) => _picker<String?>(
-    key: const Key('model'),
-    value: widget.value,
-    entries: widget.entries,
-    menuController: _controller,
-    onSelected: (model) => widget.onSelected(model!),
-  );
+  Widget build(BuildContext context) {
+    final s = widget.session.strings;
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _picker<String?>(
+          key: const Key('model'),
+          value: widget.value,
+          entries: widget.entries,
+          menuController: _controller,
+          onSelected: (model) => widget.onSelected(model!),
+        ),
+        if (_refreshing)
+          const Padding(
+            padding: EdgeInsets.only(top: Gap.s),
+            child: LinearProgressIndicator(),
+          ),
+        if (_failure case final failure?)
+          Padding(
+            padding: const EdgeInsets.only(top: Gap.s),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(s.refreshModelsFailed, style: TextStyle(color: colors.error)),
+                Text(failure, style: TextStyle(color: colors.error)),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: _retry,
+                    icon: const Icon(Icons.refresh),
+                    label: Text(s.tryAgain),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class _RefreshingMenuController extends MenuController {
   _RefreshingMenuController(this._refresh);
 
-  final Future<void> Function() _refresh;
+  final Future<bool> Function() _refresh;
+  var _opening = false;
 
   @override
   void open({Offset? position}) {
-    unawaited(_refresh());
-    super.open(position: position);
+    if (_opening) return;
+    _opening = true;
+    unawaited(
+      _refresh().then((open) {
+        _opening = false;
+        if (open) super.open(position: position);
+      }),
+    );
   }
+
+  void show() => super.open();
 }
 
 /// A choice from a list, never typed: the one look every picker in Settings has

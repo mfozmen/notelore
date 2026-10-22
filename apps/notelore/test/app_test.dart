@@ -2523,9 +2523,16 @@ void main() {
     expect(session.model, 'model-b');
     expect(find.text('Model saved.'), findsOneWidget);
     expect(find.byTooltip('Refresh the model list'), findsNothing);
-    harness.models = ['model-c'];
+    final hold = Completer<void>();
+    harness
+      ..models = ['model-c']
+      ..connectHold = hold;
     await tester.tap(find.byKey(const Key('model')));
+    await tester.pump();
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    hold.complete();
     await tester.pumpAndSettle();
+    harness.connectHold = null;
     expect(session.models, ['model-c']);
     await tester.tap(find.text('Model').first); // close it again
     await tester.pumpAndSettle();
@@ -2535,6 +2542,13 @@ void main() {
     expect(find.text('Anthropic is not reachable'), findsOneWidget);
     expect(find.text('Try again'), findsOneWidget);
     expect(session.models, ['model-c']);
+    harness
+      ..rejected = null
+      ..models = ['model-d'];
+    await tester.tap(find.text('Try again'));
+    await tester.pumpAndSettle();
+    expect(session.models, ['model-d']);
+    expect(find.text('model-d'), findsWidgets); // the fresh list is open
   });
 
   testWidgets('setup: only the step in a slim bar, the action pinned at the bottom (#337, #357)', (

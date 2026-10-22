@@ -319,6 +319,7 @@ void main() {
       'undo': s.undo,
       'modelInUse': s.modelInUse,
       'refreshModels': s.refreshModels,
+      'refreshModelsFailed': s.refreshModelsFailed,
       'modelSaved': s.modelSaved,
       'checkForUpdates': s.checkForUpdates,
       'whatsNew': s.whatsNew,
