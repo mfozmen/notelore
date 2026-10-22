@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:cryptography/cryptography.dart' show Ed25519, SimpleKeyPair;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -14,10 +15,15 @@ const v = '9.9.9';
 List<int> release(
   String version, {
   bool checksums = true,
+  bool signatures = false,
   List<String> systems = const ['windows', 'macos', 'android'],
 }) {
   final apps = [for (final system in systems) assetName(version, system)];
-  final names = [...apps, if (checksums) ...apps.map((a) => '$a.sha256')];
+  final names = [
+    ...apps,
+    if (checksums) ...apps.map((a) => '$a.sha256'),
+    if (signatures) ...apps.map((a) => '$a.sha256.sig'),
+  ];
   return utf8.encode(
     jsonEncode({
       'tag_name': 'v$version',
@@ -53,6 +59,28 @@ Map<String, List<int>> download(String name, List<int> zip, {String? digest}) =>
   'https://dl/$name': zip,
   'https://dl/$name.sha256': utf8.encode('${digest ?? sha256.convert(zip)}  $name\n'),
 };
+
+/// The signing key of the release workflow, and its public half as the app
+/// pins it (base64).
+Future<({SimpleKeyPair pair, String key})> releaseKey() async {
+  final pair = await Ed25519().newKeyPair();
+  return (pair: pair, key: base64.encode((await pair.extractPublicKey()).bytes));
+}
+
+/// [download] plus the `.sig` of its checksum, signed with [pair] as release.yml
+/// signs it: the base64 Ed25519 signature of the `.sha256` file's bytes.
+Future<Map<String, List<int>>> signedDownload(
+  String name,
+  List<int> data,
+  SimpleKeyPair pair,
+) async {
+  final pages = download(name, data);
+  final signature = await Ed25519().sign(pages['https://dl/$name.sha256']!, keyPair: pair);
+  return {
+    ...pages,
+    'https://dl/$name.sha256.sig': utf8.encode('${base64.encode(signature.bytes)}\n'),
+  };
+}
 
 void write(String path, String text) => File(path)
   ..parent.createSync(recursive: true)
@@ -144,6 +172,24 @@ void main() {
         }
       },
     );
+
+    test('an app that pins a key waits for a release that signed its file (#485)', () async {
+      final unsigned = Pages({latestReleaseUrl: release(v)});
+      expect(
+        await checkRelease(current: '0.2.0', fetch: unsigned.call, system: 'macos', signed: true),
+        isNull,
+      );
+      final signed = Pages({latestReleaseUrl: release(v, signatures: true)});
+      expect(
+        (await checkRelease(
+          current: '0.2.0',
+          fetch: signed.call,
+          system: 'macos',
+          signed: true,
+        ))!.version,
+        v,
+      );
+    });
 
     test('offline or a garbled answer is silent, unless forced', () async {
       expect(
@@ -263,6 +309,10 @@ void main() {
           latestReleaseUrl: utf8.encode(jsonEncode({'tag_name': 'v$v', 'assets': <Object>[]})),
         },
         'is empty': {...good(), 'https://dl/notelore-app-$v-windows-x64-setup.exe.sha256': <int>[]},
+        'names no file': {
+          ...good(),
+          'https://dl/notelore-app-$v-windows-x64-setup.exe.sha256': utf8.encode('${'a' * 64}\n'),
+        },
       };
       for (final MapEntry(key: reason, value: pages) in cases.entries) {
         final u = updater(pages);
@@ -274,6 +324,89 @@ void main() {
         await u.relaunch(); // nothing downloaded: it just starts this app again
       }
       expect(spawned, everyElement([p.join(install, 'notelore.exe')]));
+    });
+
+    group('with a pinned key (#485)', () {
+      late SimpleKeyPair pair;
+      late String key;
+      setUp(() async => (:pair, :key) = await releaseKey());
+
+      Updater pinned(Map<String, List<int>> pages, String key) => Updater(
+        system: 'windows',
+        executable: p.join(install, 'notelore.exe'),
+        current: '0.2.0',
+        temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
+        fetch: Pages(pages).call,
+        run: (command, args) async => fail('nothing is unpacked on Windows'),
+        spawn: (exe, args) async => spawned.add([exe, ...args]),
+        publicKey: key,
+      );
+
+      const name = 'notelore-app-$v-windows-x64-setup.exe';
+
+      test('a setup whose checksum the release key signed is installed', () async {
+        final pages = {
+          latestReleaseUrl: release(v, signatures: true),
+          ...await signedDownload(name, setup, pair),
+        };
+        final u = pinned(pages, key);
+        expect(await u.apply(), v);
+        await u.relaunch();
+        expect(File(spawned.single.first).readAsBytesSync(), setup);
+      });
+
+      test('no signature, another key\'s, a garbled one or a changed checksum: nothing', () async {
+        final good = await signedDownload(name, setup, pair);
+        final other = await releaseKey();
+        final evil = utf8.encode('evil setup');
+        // Whoever can write to the release replaces the setup and its checksum.
+        final swapped = {...good, ...download(name, evil)};
+        final cases = {
+          'publishes no signature': {latestReleaseUrl: release(v), ...download(name, setup)},
+          'another key': {
+            latestReleaseUrl: release(v, signatures: true),
+            ...await signedDownload(name, setup, other.pair),
+          },
+          'garbled': {
+            latestReleaseUrl: release(v, signatures: true),
+            ...good,
+            'https://dl/$name.sha256.sig': utf8.encode('not base64!'),
+          },
+          'too short': {
+            latestReleaseUrl: release(v, signatures: true),
+            ...good,
+            'https://dl/$name.sha256.sig': utf8.encode(base64.encode([1, 2, 3])),
+          },
+          'replaced': {latestReleaseUrl: release(v, signatures: true), ...swapped},
+        };
+        for (final MapEntry(key: reason, value: pages) in cases.entries) {
+          final why = reason == 'publishes no signature' ? reason : 'not signed by Notelore';
+          await expectLater(
+            pinned(pages, key).apply(),
+            throwsA(isA<UpdateFailed>().having((e) => '$e', 'message', contains(why))),
+            reason: reason,
+          );
+        }
+        // An older release's file with its own signed checksum, put up under a
+        // newer version's name: the signature holds, the name does not.
+        const old = 'notelore-app-1.0.0-windows-x64-setup.exe';
+        final replayed = await signedDownload(old, setup, pair);
+        await expectLater(
+          pinned({
+            latestReleaseUrl: release(v, signatures: true),
+            'https://dl/$name': setup,
+            'https://dl/$name.sha256': replayed['https://dl/$old.sha256']!,
+            'https://dl/$name.sha256.sig': replayed['https://dl/$old.sha256.sig']!,
+          }, key).apply(),
+          throwsA(isA<UpdateFailed>().having((e) => '$e', 'message', contains('is for $old'))),
+        );
+        // A key the app was built with that is not one: nothing passes either.
+        await expectLater(
+          pinned({latestReleaseUrl: release(v, signatures: true), ...good}, 'AAAA').apply(),
+          throwsA(isA<UpdateFailed>()),
+        );
+        expect(spawned, isEmpty);
+      });
     });
 
     test('cleanup removes the .old files an earlier zip update left', () {
@@ -468,11 +601,16 @@ void main() {
   });
 
   test('release builds on Windows, macOS and Android update themselves', () {
-    expect(updaterFor(system: 'windows', version: '', executable: 'x'), isNull);
-    expect(updaterFor(system: 'linux', version: '1.0.0', executable: 'x'), isNull);
-    final updater = updaterFor(system: 'macos', version: '1.0.0', executable: 'x')!;
+    expect(updaterFor(system: 'windows', version: '', executable: 'x', key: 'k'), isNull);
+    expect(updaterFor(system: 'linux', version: '1.0.0', executable: 'x', key: 'k'), isNull);
+    final updater = updaterFor(system: 'macos', version: '1.0.0', executable: 'x', key: 'k')!;
     expect(updater.current, '1.0.0');
-    expect(updaterFor(system: 'android', version: '1.0.0', executable: 'x')!.system, 'android');
+    expect(updater.publicKey, 'k'); // the key the release build pins (#485)
+    final android = updaterFor(system: 'android', version: '1.0.0', executable: 'x', key: 'k');
+    expect(android!.system, 'android');
+    // A release build without the key never falls back to checksums alone.
+    expect(updaterFor(system: 'macos', version: '1.0.0', executable: 'x', key: ''), isNull);
+    expect(updaterFor(system: 'macos', version: '1.0.0', executable: 'x'), isNull); // this build
   });
 
   group('Android: the APK, handed to the system installer', () {
