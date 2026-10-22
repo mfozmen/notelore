@@ -685,6 +685,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
 
   Widget _list(BuildContext context, Strings s) {
     final archived = widget.session.listArchived();
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         leading: widget.back == null ? null : BackButton(onPressed: widget.back),
@@ -693,10 +694,21 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
           if (archived.isNotEmpty)
             PopupMenuButton<String>(
               key: const Key('archive-more'),
-              tooltip: s.moreNoteActions,
+              tooltip: s.archiveActions,
               onSelected: (_) => _empty(archived.length),
               itemBuilder: (_) => [
-                PopupMenuItem(value: 'empty', child: Text(s.emptyArchive)),
+                PopupMenuItem(
+                  value: 'empty',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_sweep_outlined, color: colors.error),
+                      const SizedBox(width: Gap.s),
+                      Expanded(
+                        child: Text(s.emptyArchive, style: TextStyle(color: colors.error)),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
         ],
@@ -745,7 +757,21 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                             tooltip: s.moreNoteActions,
                             onSelected: (_) => _deleteForever(archived[index]),
                             itemBuilder: (_) => [
-                              PopupMenuItem(value: 'delete', child: Text(s.deleteForever)),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete_forever_outlined, color: colors.error),
+                                    const SizedBox(width: Gap.s),
+                                    Expanded(
+                                      child: Text(
+                                        s.deleteForever,
+                                        style: TextStyle(color: colors.error),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ],

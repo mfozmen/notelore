@@ -223,6 +223,7 @@ abstract class Strings {
   String get exportNotes;
   String get importNotes;
   String get moreNoteActions;
+  String get archiveActions;
   String get exportAs;
   String formatName(ExportFormat format);
   String get chooseNotes;
@@ -992,6 +993,8 @@ class EnglishStrings extends Strings {
   String get importNotes => 'Import notes';
   @override
   String get moreNoteActions => 'More note actions';
+  @override
+  String get archiveActions => 'Archive actions';
   @override
   String get exportAs => 'Export as';
   @override
@@ -2034,6 +2037,8 @@ class TurkishStrings extends Strings {
   String get importNotes => 'Not içe aktar';
   @override
   String get moreNoteActions => 'Diğer not işlemleri';
+  @override
+  String get archiveActions => 'Arşiv işlemleri';
   @override
   String get exportAs => 'Şu biçimde dışa aktar';
   @override

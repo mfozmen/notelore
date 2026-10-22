@@ -273,6 +273,7 @@ void main() {
       'exportNotes': s.exportNotes,
       'importNotes': s.importNotes,
       'moreNoteActions': s.moreNoteActions,
+      'archiveActions': s.archiveActions,
       'exportAs': s.exportAs,
       for (final f in ExportFormat.values)
         if (f != ExportFormat.pdf) 'format-${f.name}': s.formatName(f),
