@@ -92,11 +92,18 @@ void main() {
       now: DateTime(2027, 1, 31, 10),
     ).where((r) => r.text == 'Last day').map((r) => r.at).take(3);
     expect(last, [DateTime(2027, 3, 31, 9), DateTime(2027, 5, 31, 9), DateTime(2027, 7, 31, 9)]);
+    addReminder(monthly, 'Past', d(2026, 10, 1), time: '10:00', today: d(2026, 10, 1));
     final future = calendarItems(
       root,
-      today: DateTime(2026, 12, 1),
-    ).where((i) => i.text == 'Rent').map((i) => i.day).take(2);
-    expect(future, [DateTime(2026, 12, 18), DateTime(2027, 1, 18)]);
+      today: DateTime(2026, 10, 19),
+    ).where((i) => i.text == 'Rent').toList();
+    expect(future, hasLength(12));
+    expect(future.first.day, DateTime(2026, 11, 18));
+    expect(future.last.day, DateTime(2027, 10, 18));
+    expect(
+      calendarItems(root, today: DateTime(2026, 10, 19)).where((i) => i.text == 'Past'),
+      isEmpty,
+    );
   });
 
   test('an id stays the same for the same reminder and differs for another', () {
