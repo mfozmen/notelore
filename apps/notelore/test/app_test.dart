@@ -1899,6 +1899,7 @@ void main() {
     await tester.tap(find.byTooltip('Archive'));
     await tester.pumpAndSettle();
     expect(find.text('Kitaplar'), findsOneWidget);
+    expect(find.byTooltip('Restore'), findsOneWidget); // on the row, not only in the reader
     // A date as people say it, and no file path (#508).
     expect(find.text('archived 30 Sep'), findsOneWidget);
     expect(find.textContaining('topics/'), findsNothing);
@@ -1917,6 +1918,24 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.text('Kitaplar'), findsOneWidget); // back in the notes
+  });
+
+  testWidgets('notes: restore directly from the archive row (#508)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    await session.deleteNote(session.listNotes().single);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Archive'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Restore'));
+    await tester.pumpAndSettle();
+    expect(find.text('Restored "Kitaplar".'), findsOneWidget);
+    expect(find.text('Kitaplar'), findsNothing); // the row left the archive
+    expect(session.listNotes().single.title, 'Kitaplar');
   });
 
   testWidgets('notes: an archive folder that is not a date still lists, as it is named (#508)', (

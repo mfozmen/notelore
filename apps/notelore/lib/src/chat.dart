@@ -544,10 +544,18 @@ class _ModelBar extends StatelessWidget {
         child: Chip(
           avatar: const Icon(Icons.auto_awesome_outlined, size: 16),
           // The model first: a narrow chip cuts the plan's words, not its name.
-          label: Text(
-            plan ? '${session.model ?? ''} · ${s.usingChatGptPlan}' : session.model ?? '',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          label: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  plan ? '${session.model ?? ''} · ${s.usingChatGptPlan}' : session.model ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const Icon(Icons.arrow_drop_down, size: 18),
+            ],
           ),
           visualDensity: VisualDensity.compact,
         ),

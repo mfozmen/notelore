@@ -670,10 +670,20 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                       ),
                       onTap: () => _open(archived[index]),
                       onLongPress: () => _deleteForever(archived[index]),
-                      trailing: IconButton(
-                        tooltip: s.deleteForever,
-                        icon: const Icon(Icons.delete_forever_outlined),
-                        onPressed: () => _deleteForever(archived[index]),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: s.restore,
+                            icon: const Icon(Icons.restore),
+                            onPressed: () => _restore(archived[index], () {}),
+                          ),
+                          IconButton(
+                            tooltip: s.deleteForever,
+                            icon: const Icon(Icons.delete_forever_outlined),
+                            onPressed: () => _deleteForever(archived[index]),
+                          ),
+                        ],
                       ),
                     ),
                   ),
