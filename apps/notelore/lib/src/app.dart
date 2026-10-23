@@ -265,6 +265,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   }
 
   Future<void> _update() async {
+    if (_updating) return; // one download and one installer at a time
     setState(() {
       _updating = true;
       _updateProblem = null;

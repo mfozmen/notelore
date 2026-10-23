@@ -75,7 +75,8 @@ class SettingsScreen extends StatefulWidget {
   final Future<UpdateCheck> Function()? checkForUpdates;
 
   /// Starts the update found by [checkForUpdates]; on a phone it leaves this
-  /// page so the banner and its progress are visible.
+  /// page so the banner and its progress are visible. Paired with it: without
+  /// this, a check reports a version but offers no action.
   final VoidCallback? updateNow;
 
   @override

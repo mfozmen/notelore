@@ -247,6 +247,42 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('closing the app during an Android download never opens the installer', (
+    tester,
+  ) async {
+    final pending = Completer<List<int>>();
+    final opened = <String>[];
+    final u = Updater(
+      system: 'android',
+      executable: '/system/bin/app_process',
+      current: '0.2.0',
+      temp: temp,
+      fetch: Pages({
+        latestReleaseUrl: release(v),
+        ...download('notelore-app-$v-android.apk', utf8.encode('apk')),
+      }).call,
+      download: (url, {onProgress}) => pending.future,
+      run: (command, args) async => fail('nothing runs on Android'),
+      spawn: (_, _) async => fail('nothing is spawned on Android'),
+      openInstaller: (apk) async {
+        opened.add(apk);
+        return true;
+      },
+    );
+    await pump(tester, u);
+    await tester.tap(find.text('Update'));
+    await tester.pump();
+    expect(find.textContaining('Downloading update'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    pending.complete(utf8.encode('apk'));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    await tester.pump();
+
+    expect(opened, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('closing the app while Settings checks does not error', (tester) async {
     final hold = Completer<List<int>>();
     final pages = Pages({
