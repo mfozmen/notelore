@@ -26,6 +26,8 @@ checksum() {
 case "$(uname -s)" in
   MINGW* | MSYS* | CYGWIN*)
     built="$(pwd)/$app/build/windows/x64/runner/$mode" # absolute: iscc resolves paths from the .iss
+    # The helper that applies a changed-files update after the app exits (#584).
+    (cd "$app" && dart compile exe tool/update_helper.dart -o "$(cygpath -w "$built/notelore-updater.exe")")
     setup="notelore-app-$version-windows-x64-setup"
     # MSYS_NO_PATHCONV: Git Bash would turn the /D, /O and /F flags into paths.
     MSYS_NO_PATHCONV=1 "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" /Q \

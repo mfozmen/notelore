@@ -95,7 +95,7 @@ Provider and Drive code is tested against fakes: an injectable `Transport`, `Moc
 
 ### Secrets
 
-The Google OAuth client ids are never committed. Locally they live in the gitignored `.env` (`NOTELORE_GOOGLE_CLIENT_ID`, `NOTELORE_GOOGLE_CLIENT_SECRET`, `NOTELORE_GOOGLE_WEB_CLIENT_ID`) and reach the app through `--dart-define-from-file`. For releases they come from GitHub secrets of the same names, like the Android release key (`NOTELORE_ANDROID_*`) and the update signing key (`NOTELORE_UPDATE_SIGNING_KEY`, whose public half the app pins from the variable `NOTELORE_UPDATE_PUBLIC_KEY`). API keys and Google refresh tokens live in the platform keystore (`flutter_secure_storage`).
+The Google OAuth client ids are never committed. Locally they live in the gitignored `.env` (`NOTELORE_GOOGLE_CLIENT_ID`, `NOTELORE_GOOGLE_CLIENT_SECRET`, `NOTELORE_GOOGLE_WEB_CLIENT_ID`) and reach the app through `--dart-define-from-file`. For releases they come from GitHub secrets of the same names, like the Android release key (`NOTELORE_ANDROID_*`) and the update signing key (`NOTELORE_UPDATE_SIGNING_KEY`, whose public half is pinned in the release workflow and the app build). API keys and Google refresh tokens live in the platform keystore (`flutter_secure_storage`).
 
 ### Cross-platform rules
 

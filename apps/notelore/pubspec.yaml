@@ -8,6 +8,7 @@ environment:
   sdk: ^3.13.0
 
 dependencies:
+  archive: ^4.5.2
   crypto: ^3.0.7
   cryptography: ^2.9.0
   file_selector: ^1.1.0

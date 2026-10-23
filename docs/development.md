@@ -36,7 +36,7 @@ openssl pkey -in update-key.pem -pubout -outform DER | tail -c 32 | base64   # t
 ```
 
 - The PEM goes into the repository secret `NOTELORE_UPDATE_SIGNING_KEY`; keep an offline copy and delete the file.
-- The public half goes into the repository variable `NOTELORE_UPDATE_PUBLIC_KEY`; release builds pin it (`--dart-define=NOTELORE_UPDATE_PUBLIC_KEY`).
+- The public half is pinned in `.github/workflows/release.yml` (the same literal the app builds with). It is public; changing it takes a protected PR.
 - The release workflow stops before tagging when either is missing or they are not a pair, and checks the pair again before it signs. Changing the key strands the apps that pin the old one: they no longer update themselves, and need the new version installed by hand. On Windows the setup runs silently and restarts Notelore; on macOS the new app replaces the old one, which is put back if that fails halfway; on Android the system installer opens and the user taps Install.
 
 The old command line (`notelore-<version>-*.zip`, v0.2.0 and earlier) is retired; the app reads the same `~/Notelore` folder.
@@ -56,3 +56,9 @@ It lives outside `test/`, so the test suite never writes these files.
 - Contributor guide for humans and AI agents: [`CLAUDE.md`](../CLAUDE.md)
 - Note format: [`note-format.md`](note-format.md)
 - Roadmap: [`PLAN.md`](PLAN.md)
+
+On Windows a release also publishes a signed changed-files delta from each of
+the last two releases, when that older app already has `notelore-updater.exe`.
+The app uses the delta only when the manifest signature and every changed file
+hash match; otherwise it downloads the full setup. macOS keeps the full signed
+dmg, because changing files inside the signed bundle breaks its signature.
