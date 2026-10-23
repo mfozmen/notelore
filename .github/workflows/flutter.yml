@@ -194,3 +194,20 @@ jobs:
           test -x "$RUNNER_TEMP/dmg/notelore.app/Contents/MacOS/notelore"
           test -L "$RUNNER_TEMP/dmg/Applications"
           hdiutil detach "$RUNNER_TEMP/dmg"
+      # The release thins a universal app; do the same here so a broken lipo or
+      # codesign step is caught before a tag, not after.
+      - name: Per-architecture macOS bundles
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          (cd apps/notelore && flutter build macos --release)
+          bundle="apps/notelore/build/macos/Build/Products/Release/notelore.app"
+          for arch in arm64 x86_64; do
+            dir="$RUNNER_TEMP/macos-$arch"
+            rm -rf "$dir" "$RUNNER_TEMP/dist-$arch"
+            mkdir -p "$dir"
+            cp -R "$bundle" "$dir/notelore.app"
+            bash tool/thin_macos_app.sh "$dir/notelore.app" "$arch"
+            bash tool/package_desktop.sh 0.0.0 "$RUNNER_TEMP/dist-$arch" Release "$dir/notelore.app" "$arch"
+            test -f "$RUNNER_TEMP/dist-$arch/notelore-app-0.0.0-macos-$arch.dmg"
+          done
