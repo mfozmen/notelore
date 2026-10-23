@@ -216,6 +216,150 @@ void main() {
     expect(exits, [0]);
   });
 
+  testWidgets('closing the app while an update downloads starts nothing', (tester) async {
+    final pending = Completer<List<int>>();
+    final runs = <String>[];
+    final u = Updater(
+      system: 'windows',
+      executable: p.join(install, 'notelore.exe'),
+      current: '0.2.0',
+      temp: temp,
+      fetch: Pages({
+        latestReleaseUrl: release(v),
+        ...download('notelore-app-$v-windows-x64-setup.exe', setup),
+      }).call,
+      download: (url, {onProgress}) => pending.future,
+      run: (command, args) async {
+        runs.add(command);
+        return ProcessResult(0, 0, '', '');
+      },
+      spawn: (exe, args) async => spawned.add(exe),
+    );
+    await pump(tester, u);
+    await tester.tap(find.text('Update and restart'));
+    await tester.pump();
+    expect(find.textContaining('Downloading update'), findsOneWidget);
+
+    // The window closes in the middle of the download.
+    await tester.pumpWidget(const SizedBox());
+    pending.complete(setup);
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    await tester.pump();
+
+    expect(runs, isEmpty); // the download never unpacks anything itself
+    expect(spawned, isEmpty); // never starts a setup for a closed app
+    expect(exits, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('closing the app during an Android download never opens the installer', (
+    tester,
+  ) async {
+    final pending = Completer<List<int>>();
+    final opened = <String>[];
+    final u = Updater(
+      system: 'android',
+      executable: '/system/bin/app_process',
+      current: '0.2.0',
+      temp: temp,
+      fetch: Pages({
+        latestReleaseUrl: release(v),
+        ...download('notelore-app-$v-android.apk', utf8.encode('apk')),
+      }).call,
+      download: (url, {onProgress}) => pending.future,
+      run: (command, args) async => fail('nothing runs on Android'),
+      spawn: (_, _) async => fail('nothing is spawned on Android'),
+      openInstaller: (apk) async {
+        opened.add(apk);
+        return true;
+      },
+    );
+    await pump(tester, u);
+    await tester.tap(find.text('Update'));
+    await tester.pump();
+    expect(find.textContaining('Downloading update'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    pending.complete(utf8.encode('apk'));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    await tester.pump();
+
+    expect(opened, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('closing the app while Settings checks does not error', (tester) async {
+    final hold = Completer<List<int>>();
+    final pages = Pages({
+      latestReleaseUrl: release(v),
+      ...download('notelore-app-$v-android.apk', utf8.encode('apk')),
+    });
+    final u = Updater(
+      system: 'android',
+      executable: '/system/bin/app_process',
+      current: '0.2.0',
+      temp: temp,
+      fetch: (url) async => url == latestReleaseUrl ? hold.future : pages.call(url),
+      run: (command, args) async => fail('nothing runs on Android'),
+      spawn: (_, _) async => fail('nothing is spawned on Android'),
+      openInstaller: (apk) async => true,
+    );
+    await pump(tester, u);
+    await openSettings(tester, 'About');
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Check for updates'));
+    await tester.pump();
+
+    // The app closes before GitHub answers.
+    await tester.pumpWidget(const SizedBox());
+    hold.complete(release(v));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a phone can start the update from Settings, not only from the banner', (
+    tester,
+  ) async {
+    final opened = <String>[];
+    final u = Updater(
+      system: 'android',
+      executable: '/system/bin/app_process',
+      current: '0.2.0',
+      temp: temp,
+      fetch: Pages({
+        latestReleaseUrl: release(v),
+        ...download('notelore-app-$v-android.apk', utf8.encode('apk')),
+      }).call,
+      run: (command, args) async => fail('nothing runs on Android'),
+      spawn: (_, _) async => fail('nothing is spawned on Android'),
+      openInstaller: (apk) async {
+        opened.add(apk);
+        return true;
+      },
+    );
+    await pump(tester, u);
+    await openSettings(tester, 'About');
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Check for updates'));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+    await tester.pumpAndSettle();
+
+    // The check found one: start it right here, without hunting for the banner.
+    expect(find.text('Update $v'), findsOneWidget);
+    await tester.tap(find.text('Update $v'));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
+    await tester.pumpAndSettle();
+
+    expect(opened, hasLength(1));
+    expect(p.basename(opened.single), 'notelore-app-$v-android.apk');
+    expect(find.text('Check for updates'), findsNothing); // the Settings page left
+    expect(exits, isEmpty); // Android's installer takes over
+  });
+
   testWidgets('Settings checks by hand: up to date, offline, then a new release', (tester) async {
     final pages = Pages({latestReleaseUrl: release('0.2.0')});
     await pump(
