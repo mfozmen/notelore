@@ -218,6 +218,7 @@ void main() {
 
   testWidgets('closing the app while an update downloads starts nothing', (tester) async {
     final pending = Completer<List<int>>();
+    final runs = <String>[];
     final u = Updater(
       system: 'windows',
       executable: p.join(install, 'notelore.exe'),
@@ -228,7 +229,10 @@ void main() {
         ...download('notelore-app-$v-windows-x64-setup.exe', setup),
       }).call,
       download: (url, {onProgress}) => pending.future,
-      run: (command, args) async => ProcessResult(0, 0, '', ''),
+      run: (command, args) async {
+        runs.add(command);
+        return ProcessResult(0, 0, '', '');
+      },
       spawn: (exe, args) async => spawned.add(exe),
     );
     await pump(tester, u);
@@ -242,6 +246,7 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
     await tester.pump();
 
+    expect(runs, isEmpty); // the download never unpacks anything itself
     expect(spawned, isEmpty); // never starts a setup for a closed app
     expect(exits, isEmpty);
     expect(tester.takeException(), isNull);
