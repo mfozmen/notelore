@@ -164,6 +164,25 @@ void main() {
     expect(find.text('Later'), findsNothing);
   });
 
+  testWidgets("the start check asks for this device's ABI, not only the universal APK", (
+    tester,
+  ) async {
+    final u = Updater(
+      system: 'android',
+      abi: 'arm64-v8a',
+      executable: '/system/bin/app_process',
+      current: '0.2.0',
+      temp: temp,
+      // No universal APK: only an ABI-aware check can find this release.
+      fetch: Pages({latestReleaseUrl: release(v, abi: 'arm64-v8a', universal: false)}).call,
+      run: (command, args) async => fail('nothing runs on Android'),
+      spawn: (_, _) async => fail('nothing is spawned on Android'),
+      openInstaller: (apk) async => true,
+    );
+    await pump(tester, u);
+    expect(find.text('A fresh Notelore is ready: $v.'), findsOneWidget);
+  });
+
   testWidgets('while downloading the buttons wait, with the bytes known', (tester) async {
     final pending = Completer<List<int>>();
     final slow = Updater(

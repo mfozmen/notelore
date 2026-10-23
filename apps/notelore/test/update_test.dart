@@ -19,9 +19,11 @@ List<int> release(
   bool signatures = false,
   List<String> systems = const ['windows', 'macos', 'android'],
   String abi = '',
+  bool universal = true,
 }) {
   final apps = [
-    for (final system in systems) assetName(version, system),
+    for (final system in systems)
+      if (system != 'android' || universal) assetName(version, system),
     if (systems.contains('android') && abi.isNotEmpty) assetName(version, 'android', abi: abi),
   ];
   final names = [
@@ -654,8 +656,8 @@ void main() {
     );
     expect(android!.system, 'android');
     expect(android.abi, 'arm64-v8a');
-    // Without a pinned ABI the running ABI is asked; on this test machine that
-    // is not Android, so the universal APK is the fallback.
+    // Without a pinned ABI, updaterFor asks Abi.current(); the test host is not
+    // Android, so that is empty and the universal APK is the fallback.
     final androidDefault = updaterFor(
       system: 'android',
       version: '1.0.0',
