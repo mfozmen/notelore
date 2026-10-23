@@ -9,12 +9,14 @@
 /// app's folder once the app has exited, and starts it again. On macOS the
 /// `.app` comes out of the release's dmg (`hdiutil`, then `ditto`, which keeps
 /// the bundle's symlinks) and replaces the old bundle, which stays as `.old`
-/// until the next start; a failed swap is rolled back. On Android the APK goes
-/// to the system installer, where the user taps Install (an app outside a store
-/// cannot install itself silently).
+/// until the next start; a failed swap is rolled back. On Android the release
+/// carries one APK per ABI plus a universal fallback; the app downloads its
+/// own and hands it to the system installer, where the user taps Install (an
+/// app outside a store cannot install itself silently).
 library;
 
 import 'dart:convert';
+import 'dart:ffi' show Abi;
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -99,13 +101,39 @@ bool isNewer(String candidate, String current) {
   return a.length > b.length; // like Python's tuples: 1.0.0 is newer than 1.0
 }
 
-/// The release asset for this OS, as release.yml names it.
-String assetName(String version, String system) => switch (system) {
+/// The release asset for this OS, as release.yml names it; an Android APK is
+/// per ABI when [abi] is given.
+String assetName(String version, String system, {String abi = ''}) => switch (system) {
   'windows' => 'notelore-app-$version-windows-x64-setup.exe',
   'macos' => 'notelore-app-$version-macos.dmg',
-  'android' => 'notelore-app-$version-android.apk',
+  'android' =>
+    abi.isEmpty ? 'notelore-app-$version-android.apk' : 'notelore-app-$version-android-$abi.apk',
   _ => throw UpdateFailed('no prebuilt app for $system'),
 };
+
+/// Flutter's APK ABI name for [abi]; empty for a CPU this release does not
+/// build for, so the universal APK is used.
+String abiName(Abi abi) => switch (abi) {
+  Abi.androidArm64 => 'arm64-v8a',
+  Abi.androidArm => 'armeabi-v7a',
+  Abi.androidX64 => 'x86_64',
+  _ => '',
+};
+
+/// The ABI of the running Android app; empty elsewhere. Tests pin [abi]
+/// instead of asking the host.
+String androidAbi([Abi? abi]) => abiName(abi ?? Abi.current());
+
+/// The asset for this device: its ABI's APK, else the universal Android APK.
+String? releaseAsset(String version, String system, Set<String> assets, {String abi = ''}) {
+  final own = assetName(version, system, abi: abi);
+  if (assets.contains(own)) return own;
+  if (system == 'android' && abi.isNotEmpty) {
+    final universal = assetName(version, system);
+    if (assets.contains(universal)) return universal;
+  }
+  return null;
+}
 
 Future<List<int>> httpFetch(String url, {http.Client? client}) async {
   final http.Response response;
@@ -184,8 +212,14 @@ Future<String?> checkForUpdate({
   required Fetch fetch,
   required String system,
   bool force = false,
-}) async =>
-    (await checkRelease(current: current, fetch: fetch, system: system, force: force))?.version;
+  String abi = '',
+}) async => (await checkRelease(
+  current: current,
+  fetch: fetch,
+  system: system,
+  force: force,
+  abi: abi,
+))?.version;
 
 /// A newer release than [current], with what it brings and its page (#288);
 /// null when there is none. Offline or garbled is silent unless [force]. A
@@ -198,6 +232,7 @@ Future<({String version, List<String> highlights, String page})?> checkRelease({
   required String system,
   bool force = false,
   bool signed = false,
+  String abi = '',
 }) async {
   final Map<String, Object?> data;
   try {
@@ -213,7 +248,8 @@ Future<({String version, List<String> highlights, String page})?> checkRelease({
   final assets = {
     for (final asset in listed.whereType<Map<Object?, Object?>>()) '${asset['name']}',
   };
-  final file = assetName(version, system);
+  final file = releaseAsset(version, system, assets, abi: abi);
+  if (file == null) return null;
   final needed = [file, '$file.sha256', if (signed) '$file.sha256.sig'];
   if (!needed.every(assets.contains)) return null;
   return (
@@ -246,6 +282,8 @@ Updater? updaterFor({
   required String version,
   required String executable,
   String key = updateKey,
+  String? abi,
+  Abi? platformAbi,
 }) {
   if (version.isEmpty || key.isEmpty) return null;
   if (!const {'windows', 'macos', 'android'}.contains(system)) return null;
@@ -260,6 +298,7 @@ Updater? updaterFor({
     spawn: startDetached,
     osVersion: Platform.operatingSystemVersion,
     publicKey: key,
+    abi: system == 'android' ? (abi ?? androidAbi(platformAbi)) : '',
   );
 }
 
@@ -289,6 +328,7 @@ class Updater {
     this.download,
     required this.run,
     required this.spawn,
+    this.abi = '',
     this.renameDirectory = _renameDirectory,
     this.openInstaller = androidInstaller,
     this.osVersion = '',
@@ -303,6 +343,9 @@ class Updater {
 
   /// 'windows', 'macos' or 'android'.
   final String system;
+
+  /// The Android ABI this build runs on (e.g. arm64-v8a); empty elsewhere.
+  final String abi;
 
   /// Android's installer (see [androidInstaller]).
   final OpenInstaller openInstaller;
@@ -337,9 +380,11 @@ class Updater {
     onProgress?.call(const UpdateProgress(UpdatePhase.checking));
     final (:version, :assets) = await latestRelease(fetch);
     if (!isNewer(version, current)) return null;
-    final name = assetName(version, system);
-    final url = assets[name];
-    if (url == null) throw UpdateFailed('release $version has no $name; download it from GitHub');
+    final name = releaseAsset(version, system, assets.keys.toSet(), abi: abi);
+    if (name == null) {
+      throw UpdateFailed('release $version has no app for this device; download it from GitHub');
+    }
+    final url = assets[name]!;
     final digest = await _checksum(name, version, assets);
     onProgress?.call(const UpdateProgress.downloading(0, null));
     final data = await (download ?? (url, {onProgress}) => fetch(url))(

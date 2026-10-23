@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ffi' show Abi;
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -17,8 +18,15 @@ List<int> release(
   bool checksums = true,
   bool signatures = false,
   List<String> systems = const ['windows', 'macos', 'android'],
+  String abi = '',
+  bool universal = true,
 }) {
-  final apps = [for (final system in systems) assetName(version, system)];
+  assert(abi.isNotEmpty || universal || !systems.contains('android'));
+  final apps = [
+    for (final system in systems)
+      if (system != 'android' || universal) assetName(version, system),
+    if (systems.contains('android') && abi.isNotEmpty) assetName(version, 'android', abi: abi),
+  ];
   final names = [
     ...apps,
     if (checksums) ...apps.map((a) => '$a.sha256'),
@@ -109,7 +117,19 @@ void main() {
     expect(assetName('1.2.3', 'windows'), 'notelore-app-1.2.3-windows-x64-setup.exe');
     expect(assetName('1.2.3', 'macos'), 'notelore-app-1.2.3-macos.dmg');
     expect(assetName('1.2.3', 'android'), 'notelore-app-1.2.3-android.apk');
+    expect(
+      assetName('1.2.3', 'android', abi: 'arm64-v8a'),
+      'notelore-app-1.2.3-android-arm64-v8a.apk',
+    );
     expect(() => assetName('1.2.3', 'linux'), throwsA(isA<UpdateFailed>()));
+  });
+
+  test('names the Android ABI, and leaves a CPU it does not build for empty', () {
+    expect(abiName(Abi.androidArm64), 'arm64-v8a');
+    expect(abiName(Abi.androidArm), 'armeabi-v7a');
+    expect(abiName(Abi.androidX64), 'x86_64');
+    expect(abiName(Abi.windowsX64), '');
+    expect(androidAbi(Abi.androidArm64), 'arm64-v8a');
   });
 
   test('a release says what it brings: features first, then fixes, two at most (#288)', () {
@@ -124,6 +144,29 @@ void main() {
   });
 
   group('the check', () {
+    test('Android takes the APK for its ABI, or the universal one', () async {
+      final arm = Pages({latestReleaseUrl: release(v, abi: 'arm64-v8a')});
+      expect(
+        await checkForUpdate(
+          current: '0.2.0',
+          fetch: arm.call,
+          system: 'android',
+          abi: 'arm64-v8a',
+        ),
+        v,
+      );
+      final universal = Pages({latestReleaseUrl: release(v)});
+      expect(
+        await checkForUpdate(
+          current: '0.2.0',
+          fetch: universal.call,
+          system: 'android',
+          abi: 'x86_64',
+        ),
+        v,
+      );
+    });
+
     test('a newer release comes with its highlights and its page (#288)', () async {
       final pages = Pages({latestReleaseUrl: release(v)});
       final found = await checkRelease(current: '0.2.0', fetch: pages.call, system: 'windows');
@@ -305,7 +348,7 @@ void main() {
       final cases = {
         'checksum mismatch': wrong,
         'publishes no checksum': {latestReleaseUrl: release(v, checksums: false)},
-        'has no notelore-app': {
+        'has no app for this device': {
           latestReleaseUrl: utf8.encode(jsonEncode({'tag_name': 'v$v', 'assets': <Object>[]})),
         },
         'is empty': {...good(), 'https://dl/notelore-app-$v-windows-x64-setup.exe.sha256': <int>[]},
@@ -606,8 +649,26 @@ void main() {
     final updater = updaterFor(system: 'macos', version: '1.0.0', executable: 'x', key: 'k')!;
     expect(updater.current, '1.0.0');
     expect(updater.publicKey, 'k'); // the key the release build pins (#485)
-    final android = updaterFor(system: 'android', version: '1.0.0', executable: 'x', key: 'k');
+    final android = updaterFor(
+      system: 'android',
+      version: '1.0.0',
+      executable: 'x',
+      key: 'k',
+      abi: 'arm64-v8a',
+    );
     expect(android!.system, 'android');
+    expect(android.abi, 'arm64-v8a');
+    // Without a pinned ABI, updaterFor asks the platform; this pins the answer
+    // so the test does not depend on the host's ABI.
+    final androidDefault = updaterFor(
+      system: 'android',
+      version: '1.0.0',
+      executable: 'x',
+      key: 'k',
+      platformAbi: Abi.androidArm64,
+    );
+    expect(androidDefault, isNotNull);
+    expect(androidDefault!.abi, 'arm64-v8a');
     // A release build without the key never falls back to checksums alone.
     expect(updaterFor(system: 'macos', version: '1.0.0', executable: 'x', key: ''), isNull);
     expect(updaterFor(system: 'macos', version: '1.0.0', executable: 'x'), isNull); // this build
@@ -621,8 +682,9 @@ void main() {
       allowed = true;
     });
 
-    Updater updater(Map<String, List<int>> pages) => Updater(
+    Updater updater(Map<String, List<int>> pages, {String abi = ''}) => Updater(
       system: 'android',
+      abi: abi,
       executable: '/system/bin/app_process',
       current: '0.2.0',
       temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
@@ -650,6 +712,27 @@ void main() {
       // The next start removes it.
       u.cleanup();
       expect(File(opened.single).existsSync(), isFalse);
+    });
+
+    test('downloads the APK for this ABI, not the universal one', () async {
+      final arm = utf8.encode('arm64 apk');
+      final u = updater({
+        latestReleaseUrl: release(v, abi: 'arm64-v8a'),
+        ...download('notelore-app-$v-android.apk', apk),
+        ...download('notelore-app-$v-android-arm64-v8a.apk', arm),
+      }, abi: 'arm64-v8a');
+      expect(await u.apply(), v);
+      await u.relaunch();
+      expect(File(opened.single).readAsBytesSync(), arm);
+      expect(p.basename(opened.single), 'notelore-app-$v-android-arm64-v8a.apk');
+    });
+
+    test('falls back to the universal APK when this ABI is not published', () async {
+      final u = updater(good(), abi: 'x86_64');
+      expect(await u.apply(), v);
+      await u.relaunch();
+      expect(File(opened.single).readAsBytesSync(), apk);
+      expect(p.basename(opened.single), 'notelore-app-$v-android.apk');
     });
 
     test('installs from Notelore not allowed yet: says so', () async {
