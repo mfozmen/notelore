@@ -29,9 +29,8 @@ done < <(find "$app" -type f -print0)
 # development app already has, and macOS 14 accepts it with the user's Open.
 root=$(cd "$(dirname "$0")/.." && pwd)
 entitlements="$root/apps/notelore/macos/Runner/Release.entitlements"
-args=(--force --deep --sign -)
-[ -f "$entitlements" ] && args+=(--entitlements "$entitlements")
-codesign "${args[@]}" "$app"
+[ -f "$entitlements" ] || { echo "missing $entitlements" >&2; exit 1; }
+codesign --force --deep --sign - --entitlements "$entitlements" "$app"
 codesign --verify --deep --strict "$app"
 got=$(lipo -archs "$main")
 [ "$got" = "$arch" ] || { echo "thinned main binary is $got, not $arch" >&2; exit 1; }
