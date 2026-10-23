@@ -103,7 +103,7 @@ void main() {
 
   test('many short, distinct examples for an empty chat, in each language', () {
     for (final s in [en, tr]) {
-      expect(s.examples.length, greaterThanOrEqualTo(12));
+      expect(s.examples, hasLength(500));
       expect(s.examples.toSet(), hasLength(s.examples.length));
       for (final example in s.examples) {
         expect(example, isNotEmpty);
@@ -116,7 +116,7 @@ void main() {
   test('three distinct starters at random, and every one reachable (#577)', () {
     for (final s in [en, tr]) {
       final seen = <String>{};
-      for (var seed = 0; seed < 500; seed++) {
+      for (var seed = 0; seed < 5000; seed++) {
         final picked = pickExamples(s.examples, Random(seed));
         expect(picked, hasLength(3));
         expect(picked.toSet(), hasLength(3));

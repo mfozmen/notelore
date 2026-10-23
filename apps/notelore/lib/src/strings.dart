@@ -9,6 +9,7 @@ import 'dart:math' show Random;
 import 'package:notelore_core/notelore_core.dart';
 
 import 'lock_state.dart' show LockKind;
+import 'starters.dart';
 import 'theme.dart';
 import 'transfer.dart' show ExportFormat;
 import 'whisper_model.dart' show DownloadProblem;
@@ -747,23 +748,7 @@ class EnglishStrings extends Strings {
   @override
   String get askSomething => 'Write something to note, or ask about your notes.';
   @override
-  List<String> get examples => const [
-    'Start a garden plan: tomatoes and basil on the balcony.',
-    'Ankara trip: we chose the train because it is cheaper than flying.',
-    'Remind me to call Mom on Friday at 18:00.',
-    'New project: build a birdhouse from cedar offcuts.',
-    'For the hallway, we picked the pale blue paint because it is brighter.',
-    'Remind me to water the plants on Saturday at 09:00.',
-    'Save this: the library closes at 18:00 on weekdays.',
-    'Add a todo: renew the home insurance by 15 November.',
-    'For the campsite, we chose the north loop because it is quieter.',
-    'New topic: solar panel quotes for the roof.',
-    'Remind me to take the cake out at 16:30.',
-    'Start a note for the kitchen remodelling: keep the oak floor.',
-    'We decided on the smaller car because it fits the garage.',
-    'Add a todo: book the ferry before 1 June.',
-    'Save this: the plumber comes on Tuesdays.',
-  ];
+  List<String> get examples => starterExamplesEn;
   @override
   String get message => 'Message';
   @override
@@ -1803,23 +1788,7 @@ class TurkishStrings extends Strings {
   @override
   String get askSomething => 'Not almamı istediğin bir şey yaz ya da notlarına sor.';
   @override
-  List<String> get examples => const [
-    'Balkon için bahçe planı başlat: domates ve fesleğen.',
-    'Ankara gezisi: uçaktan daha ucuz olduğu için treni seçtik.',
-    "Cuma 18.00'de annemi aramamı hatırlat.",
-    'Yeni proje: kalan sedir parçalarından kuş evi yap.',
-    'Koridor için soluk maviyi seçtik, daha aydınlık duruyor.',
-    "Cumartesi 09.00'da çiçekleri sulamayı hatırlat.",
-    "Bunu not al: kütüphane hafta içi 18.00'de kapanıyor.",
-    "Yapılacak: 15 Kasım'a kadar ev sigortasını yenile.",
-    'Kamp alanı için kuzey halkasını seçtik, daha sessiz.',
-    'Yeni konu: çatı için güneş paneli teklifleri.',
-    "16.30'da keki fırından almayı hatırlat.",
-    'Mutfak tadilatı için not başlat: meşe parke kalsın.',
-    'Daha küçük arabayı seçtik, garaja sığıyor.',
-    "Yapılacak: 1 Haziran'dan önce vapur yerini ayırt.",
-    'Bunu not al: tesisatçı salı günleri geliyor.',
-  ];
+  List<String> get examples => starterExamplesTr;
   @override
   String get message => 'Mesaj';
   @override
