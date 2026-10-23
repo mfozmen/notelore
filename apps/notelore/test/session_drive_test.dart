@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -221,6 +222,31 @@ void main() {
       await phone.connectDrive();
       expect(phone.spec!.name, 'anthropic'); // kept: no OpenAI key here
       expect(phone.language, AppLanguage.tr); // the language still applies
+    });
+
+    test('the plan on one device is never an OpenAI key on another (#404)', () async {
+      final drive = MemoryRemote();
+      final desk = Harness(
+        auth: FakeAuth(),
+        chatGpt: FakeAuth(),
+        remote: drive,
+      ).session(clock: at(10));
+      final phone = Harness(
+        auth: FakeAuth(),
+        chatGpt: FakeAuth(), // the plan exists here, signed out
+        remote: drive,
+      ).session(keySpace: 'phone', clock: at(9));
+      await desk.connect(findProvider('chatgpt'), '');
+      desk.setLanguage(AppLanguage.tr);
+      await desk.connectDrive();
+      final shared = jsonDecode(drive.texts[sharedSettings]!) as Map<String, Object?>;
+      expect(shared['provider'], 'chatgpt');
+      // The newer stamp makes the phone adopt these settings, not the provider.
+      await phone.load();
+      await phone.connectDrive();
+      expect(phone.language, AppLanguage.tr);
+      expect(phone.spec, isNull);
+      expect([for (final spec in await phone.connections()) spec.name], isNot(contains('openai')));
     });
 
     test('another device can switch this one to a provider it has a key for', () async {
