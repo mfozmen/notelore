@@ -501,23 +501,68 @@ class Updater {
     void Function(UpdateProgress)? onProgress,
   ) async {
     if (publicKey.isEmpty) return null;
-    final manifestName = deltaName(version, system == 'windows' ? 'windows-x64' : system, current);
+    final manifestName = deltaName(version, 'windows-x64', current);
     final manifestUrl = assets[manifestName];
     final signatureUrl = assets['$manifestName.sig'];
     if (manifestUrl == null || signatureUrl == null) return null;
-    Directory? staging;
-    var applied = false;
+    final manifest = await _readDelta(version, manifestUrl, signatureUrl);
+    if (manifest == null) return null;
+    final archiveUrl = assets[manifest.archive];
+    if (archiveUrl == null) return null;
+    final staging = await _stageDelta(manifest, archiveUrl, onProgress);
+    if (staging == null) return null;
+    final helper = File(p.join(_installed, 'notelore-updater.exe'));
+    if (!helper.existsSync()) {
+      staging.deleteSync(recursive: true);
+      return null;
+    }
     try {
-      final manifestBytes = await fetch(manifestUrl);
+      final job = UpdateJob(
+        install: _installed,
+        staging: staging.path,
+        files: manifest.files,
+        executable: p.basename(executable),
+        parentPid: pid,
+      );
+      final jobFile = File(p.join(staging.path, 'job.json'))
+        ..writeAsStringSync(jsonEncode(job.toJson()));
+      _deltaJob = jobFile.path;
+      _deltaHelper = helper.path;
+      return version;
+    } on Object {
+      staging.deleteSync(recursive: true);
+      _deltaJob = null;
+      _deltaHelper = null;
+      return null;
+    }
+  }
+
+  /// The signed manifest for [version], or null when it does not verify.
+  Future<DeltaManifest?> _readDelta(String version, String manifestUrl, String signatureUrl) async {
+    try {
+      final bytes = await fetch(manifestUrl);
       final signature = utf8.decode(await fetch(signatureUrl), allowMalformed: true);
-      if (!await signedBy(manifestBytes, signature, publicKey)) return null;
-      final manifest = DeltaManifest.parse(
-        utf8.decode(manifestBytes),
+      if (!await signedBy(bytes, signature, publicKey)) return null;
+      return DeltaManifest.parse(
+        utf8.decode(bytes),
+        version: version,
         current: current,
         system: system,
       );
-      final archiveUrl = assets[manifest.archive];
-      if (archiveUrl == null) return null;
+    } on Object {
+      return null;
+    }
+  }
+
+  /// Downloads and verifies the archive into a staging folder, or null.
+  Future<Directory?> _stageDelta(
+    DeltaManifest manifest,
+    String archiveUrl,
+    void Function(UpdateProgress)? onProgress,
+  ) async {
+    Directory? staging;
+    var ok = false;
+    try {
       onProgress?.call(const UpdateProgress.downloading(0, null));
       final data = await (download ?? (url, {onProgress}) => fetch(url))(
         archiveUrl,
@@ -539,29 +584,12 @@ class Updater {
         seen.add(entry.name);
       }
       if (seen.length != manifest.files.length) return null;
-      final helper = File(p.join(_installed, 'notelore-updater.exe'));
-      if (!helper.existsSync()) return null;
-      final job = UpdateJob(
-        install: _installed,
-        staging: staging.path,
-        files: manifest.files,
-        executable: p.basename(executable),
-        parentPid: pid,
-      );
-      final jobFile = File(p.join(staging.path, 'job.json'))
-        ..writeAsStringSync(jsonEncode(job.toJson()));
-      _deltaJob = jobFile.path;
-      _deltaHelper = helper.path;
-      applied = true;
-      return version;
+      ok = true;
+      return staging;
     } on Object {
       return null;
     } finally {
-      if (!applied) {
-        _deltaJob = null;
-        _deltaHelper = null;
-        staging?.deleteSync(recursive: true);
-      }
+      if (!ok) staging?.deleteSync(recursive: true);
     }
   }
 

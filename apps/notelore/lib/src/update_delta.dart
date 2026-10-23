@@ -4,9 +4,33 @@ library;
 import 'dart:convert';
 
 final _sha256 = RegExp(r'^[0-9a-f]{64}$');
+const _reserved = {
+  'con',
+  'prn',
+  'aux',
+  'nul',
+  'com1',
+  'com2',
+  'com3',
+  'com4',
+  'com5',
+  'com6',
+  'com7',
+  'com8',
+  'com9',
+  'lpt1',
+  'lpt2',
+  'lpt3',
+  'lpt4',
+  'lpt5',
+  'lpt6',
+  'lpt7',
+  'lpt8',
+  'lpt9',
+};
 
 /// Whether [path] is a safe relative path inside an app folder: no drive, no
-/// backslashes, no `..`, no empty segment.
+/// backslashes, no `..`, no empty segment, no Win32 alias or device name.
 bool isSafeUpdatePath(String path) {
   if (path.isEmpty ||
       path.startsWith('/') ||
@@ -15,7 +39,51 @@ bool isSafeUpdatePath(String path) {
       path.contains(':')) {
     return false;
   }
-  return path.split('/').every((part) => part.isNotEmpty && part != '.' && part != '..');
+  return path.split('/').every(_safeSegment);
+}
+
+bool _safeSegment(String part) {
+  if (part.isEmpty || part == '.' || part == '..') return false;
+  if (part.endsWith('.') || part.endsWith(' ')) return false;
+  return !_reserved.contains(part.split('.').first.toLowerCase());
+}
+
+Map<String, Object?> _object(String text) {
+  final Object? json;
+  try {
+    json = jsonDecode(text);
+  } on FormatException {
+    throw const FormatException('delta manifest is not JSON');
+  }
+  if (json is! Map<String, Object?>) {
+    throw const FormatException('delta manifest is not an object');
+  }
+  return json;
+}
+
+String _string(Map<String, Object?> map, String name) {
+  final value = map[name];
+  if (value is! String || value.isEmpty) {
+    throw FormatException("delta manifest has no '$name'");
+  }
+  return value;
+}
+
+Map<String, String> _files(Object? raw) {
+  if (raw is! Map<String, Object?> || raw.isEmpty) {
+    throw const FormatException('delta manifest lists no files');
+  }
+  final files = <String, String>{};
+  for (final MapEntry(key: path, value: hash) in raw.entries) {
+    if (!isSafeUpdatePath(path) || path.toLowerCase() == 'notelore-updater.exe') {
+      throw FormatException("delta manifest path '$path' is not safe");
+    }
+    if (hash is! String || !_sha256.hasMatch(hash)) {
+      throw FormatException("delta manifest hash for '$path' is not SHA-256");
+    }
+    files[path] = hash;
+  }
+  return files;
 }
 
 /// A release's changed-files manifest. The release key signs the JSON bytes;
@@ -37,32 +105,22 @@ final class DeltaManifest {
   final String archiveSha256;
   final Map<String, String> files;
 
-  /// Parses [text] for [current] on [system]. Throws [FormatException] for
-  /// anything that is not a manifest for this exact upgrade.
-  factory DeltaManifest.parse(String text, {required String current, required String system}) {
-    final Object? json;
-    try {
-      json = jsonDecode(text);
-    } on FormatException {
-      throw const FormatException('delta manifest is not JSON');
+  /// Parses [text] for the exact [version], [current] and [system] upgrade.
+  /// Throws [FormatException] for anything that does not match.
+  factory DeltaManifest.parse(
+    String text, {
+    required String version,
+    required String current,
+    required String system,
+  }) {
+    final map = _object(text);
+    final from = _string(map, 'from');
+    final manifestSystem = _string(map, 'system');
+    final archive = _string(map, 'archive');
+    final archiveSha = _string(map, 'archive_sha256');
+    if (_string(map, 'version') != version) {
+      throw FormatException("delta manifest is for another version, not '$version'");
     }
-    if (json is! Map<String, Object?>) {
-      throw const FormatException('delta manifest is not an object');
-    }
-    final map = json;
-    String field(String name) {
-      final value = map[name];
-      if (value is! String || value.isEmpty) {
-        throw FormatException("delta manifest has no '$name'");
-      }
-      return value;
-    }
-
-    final version = field('version');
-    final from = field('from');
-    final manifestSystem = field('system');
-    final archive = field('archive');
-    final archiveSha = field('archive_sha256');
     if (from != current) {
       throw FormatException("delta manifest is from '$from', not '$current'");
     }
@@ -75,27 +133,13 @@ final class DeltaManifest {
     if (!_sha256.hasMatch(archiveSha)) {
       throw const FormatException('delta archive hash is not SHA-256');
     }
-    final rawFiles = map['files'];
-    if (rawFiles is! Map<String, Object?> || rawFiles.isEmpty) {
-      throw const FormatException('delta manifest lists no files');
-    }
-    final files = <String, String>{};
-    for (final MapEntry(key: path, value: hash) in rawFiles.entries) {
-      if (!isSafeUpdatePath(path) || path.toLowerCase() == 'notelore-updater.exe') {
-        throw FormatException("delta manifest path '$path' is not safe");
-      }
-      if (hash is! String || !_sha256.hasMatch(hash)) {
-        throw FormatException("delta manifest hash for '$path' is not SHA-256");
-      }
-      files[path] = hash;
-    }
     return DeltaManifest(
       version: version,
       from: from,
       system: manifestSystem,
       archive: archive,
       archiveSha256: archiveSha,
-      files: files,
+      files: _files(map['files']),
     );
   }
 

@@ -119,28 +119,6 @@ void main() {
     }
   });
 
-  test('a path or hash out of the job is refused', () {
-    // Kept separate from the valid-path test so the reason is visible.
-    for (final text in [
-      jsonEncode({
-        'install': r'C:\app',
-        'staging': r'C:\stage',
-        'files': {'../app.so': 'a' * 64},
-        'executable': 'notelore.exe',
-        'parent_pid': 1,
-      }),
-      jsonEncode({
-        'install': r'C:\app',
-        'staging': r'C:\stage',
-        'files': {'app.so': 'a' * 64},
-        'executable': '../notelore.exe',
-        'parent_pid': 1,
-      }),
-    ]) {
-      expect(() => UpdateJob.fromJson(text), throwsA(isA<FormatException>()));
-    }
-  });
-
   test('the job says what it writes and reads back', () {
     final value = job({'data/app.so': hashOf('new')}).toJson();
     final read = UpdateJob.fromJson(jsonEncode(value));
@@ -153,16 +131,16 @@ void main() {
 
   test('a job with a path out of the folder or a bad hash is refused', () {
     Map<String, Object?> raw({
-      String install = r'C:\app',
-      String staging = r'C:\stage',
+      String? installPath,
+      String? stagingPath,
       Map<String, Object?> files = const {
         'app.so': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       },
       Object? pid = 1,
       String executable = 'notelore.exe',
     }) => {
-      'install': install,
-      'staging': staging,
+      'install': installPath ?? install,
+      'staging': stagingPath ?? staging,
       'files': files,
       'executable': executable,
       'parent_pid': pid,
@@ -176,8 +154,8 @@ void main() {
       raw(pid: 0),
       raw(pid: '1'),
       raw(executable: '../notelore.exe'),
-      raw(install: 'relative'),
-      raw(staging: 'relative'),
+      raw(installPath: 'relative'),
+      raw(stagingPath: 'relative'),
     ]) {
       expect(
         () => UpdateJob.fromJson(jsonEncode(value)),

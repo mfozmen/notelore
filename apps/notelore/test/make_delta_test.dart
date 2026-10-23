@@ -47,6 +47,7 @@ void main() {
     expect(delta.manifest.archiveSha256, hasLength(64));
     final manifest = DeltaManifest.parse(
       File(p.join(out, deltaName('1.1.0', 'windows-x64', '1.0.0'))).readAsStringSync(),
+      version: '1.1.0',
       current: '1.0.0',
       system: 'windows',
     );

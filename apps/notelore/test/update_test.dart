@@ -328,12 +328,17 @@ void main() {
       bool missingFile = false,
       bool extraFile = false,
       bool noArchive = false,
+      bool jobJsonDir = false,
     }) async {
       final next = utf8.encode('new app').toList();
       final archive = Archive()..addFile(ArchiveFile('data/app.so', next.length, next));
       if (extraFile) {
         final extra = utf8.encode('extra').toList();
         archive.addFile(ArchiveFile('extra.txt', extra.length, extra));
+      }
+      if (jobJsonDir) {
+        final child = utf8.encode('child').toList();
+        archive.addFile(ArchiveFile('job.json/child', child.length, child));
       }
       final zip = brokenZip ? <int>[1, 2, 3] : ZipEncoder().encode(archive);
       final zipName = 'notelore-app-$v-windows-x64-delta-0.2.0.zip';
@@ -347,6 +352,7 @@ void main() {
         files: {
           'data/app.so': sha256.convert(next).toString(),
           if (missingFile) 'data/missing.so': sha256.convert(utf8.encode('missing')).toString(),
+          if (jobJsonDir) 'job.json/child': sha256.convert(utf8.encode('child')).toString(),
         },
       );
       final bytes = utf8.encode(jsonEncode(manifest.toJson()));
@@ -416,6 +422,17 @@ void main() {
         spawned.clear();
         await fullFallback(delta.pages, delta.key);
       }
+    });
+
+    test('a delta whose job cannot be written falls back to the full setup', () async {
+      write(p.join(install, 'notelore-updater.exe'), 'helper');
+      final delta = await deltaPages(jobJsonDir: true);
+      await fullFallback(delta.pages, delta.key);
+    });
+
+    test('a delta without the helper falls back to the full setup', () async {
+      final delta = await deltaPages();
+      await fullFallback(delta.pages, delta.key);
     });
 
     test('a release without a delta uses the full setup', () async {

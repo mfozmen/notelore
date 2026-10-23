@@ -202,17 +202,42 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPDATE_KEY: ${{ vars.NOTELORE_UPDATE_PUBLIC_KEY }}
         run: |
           set -euo pipefail
           releases=$(gh release list --exclude-drafts --limit 2 --json tagName --jq '.[].tagName')
           if [ -z "$releases" ]; then echo "no previous release; no delta"; exit 0; fi
+          if [ -z "$UPDATE_KEY" ]; then echo "no update public key; no delta"; exit 0; fi
           for previous in $releases; do
             old_version=${previous#v}
             old_setup="notelore-app-$old_version-windows-x64-setup.exe"
             old_dir="$RUNNER_TEMP/old-$old_version"
             mkdir -p "$old_dir"
-            if ! gh release download "$previous" -p "$old_setup" -D "$old_dir"; then
-              echo "no Windows setup for $previous; no delta from it"
+            if ! gh release download "$previous" \
+              -p "$old_setup" -p "$old_setup.sha256" -p "$old_setup.sha256.sig" \
+              -D "$old_dir"; then
+              echo "no signed Windows setup for $previous; no delta from it"
+              continue
+            fi
+            python - "$UPDATE_KEY" "$RUNNER_TEMP/old-update.pub" <<'PY'
+          import base64, sys, textwrap
+          raw = base64.b64decode(sys.argv[1])
+          assert len(raw) == 32
+          spki = bytes.fromhex('302a300506032b6570032100') + raw
+          body = '\n'.join(textwrap.wrap(base64.b64encode(spki).decode(), 64))
+          open(sys.argv[2], 'w').write(
+              '-----BEGIN PUBLIC KEY-----\n' + body + '\n-----END PUBLIC KEY-----\n')
+          PY
+            base64 -d "$old_dir/$old_setup.sha256.sig" > "$RUNNER_TEMP/old-update.sig"
+            if ! openssl pkeyutl -verify -pubin -inkey "$RUNNER_TEMP/old-update.pub" \
+              -rawin -in "$old_dir/$old_setup.sha256" -sigfile "$RUNNER_TEMP/old-update.sig"; then
+              echo "old setup $old_version is not signed by the release key; no delta from it"
+              continue
+            fi
+            expected=$(cut -d' ' -f1 "$old_dir/$old_setup.sha256")
+            actual=$(sha256sum "$old_dir/$old_setup" | cut -d' ' -f1)
+            if [ "$expected" != "$actual" ]; then
+              echo "old setup $old_version does not match its signed checksum; no delta from it"
               continue
             fi
             old_app="$RUNNER_TEMP/oldapp-$old_version"

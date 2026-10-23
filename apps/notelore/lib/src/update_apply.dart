@@ -20,6 +20,60 @@ class UpdateApplyFailed implements Exception {
   String toString() => message;
 }
 
+Map<String, Object?> _object(String text) {
+  final Object? json;
+  try {
+    json = jsonDecode(text);
+  } on FormatException {
+    throw const FormatException('update job is not JSON');
+  }
+  if (json is! Map<String, Object?>) {
+    throw const FormatException('update job is not an object');
+  }
+  return json;
+}
+
+String _string(Map<String, Object?> map, String name) {
+  final value = map[name];
+  if (value is! String || value.isEmpty) {
+    throw FormatException("update job has no '$name'");
+  }
+  return value;
+}
+
+int _parentPid(Object? value) {
+  if (value is! int || value <= 0) {
+    throw const FormatException('update job has no parent pid');
+  }
+  return value;
+}
+
+String _executable(Map<String, Object?> map) {
+  final value = _string(map, 'executable');
+  if (!isSafeUpdatePath(value) || value.contains('/')) {
+    throw FormatException("update job executable '$value' is not a plain name");
+  }
+  return value;
+}
+
+Map<String, String> _files(Object? raw) {
+  if (raw is! Map<String, Object?> || raw.isEmpty) {
+    throw const FormatException('update job lists no files');
+  }
+  final hashes = RegExp(r'^[0-9a-f]{64}$');
+  final files = <String, String>{};
+  for (final MapEntry(key: path, value: hash) in raw.entries) {
+    if (!isSafeUpdatePath(path) || path.toLowerCase() == 'notelore-updater.exe') {
+      throw FormatException("update job path '$path' is not safe");
+    }
+    if (hash is! String || !hashes.hasMatch(hash)) {
+      throw FormatException("update job hash for '$path' is not SHA-256");
+    }
+    files[path] = hash;
+  }
+  return files;
+}
+
 /// The job the app leaves for the helper: [install] is the app folder,
 /// [staging] the verified files, and [files] their relative paths and hashes.
 final class UpdateJob {
@@ -38,58 +92,18 @@ final class UpdateJob {
   final int parentPid;
 
   factory UpdateJob.fromJson(String text) {
-    final Object? json;
-    try {
-      json = jsonDecode(text);
-    } on FormatException {
-      throw const FormatException('update job is not JSON');
-    }
-    if (json is! Map<String, Object?>) {
-      throw const FormatException('update job is not an object');
-    }
-    final map = json;
-    String field(String name) {
-      final value = map[name];
-      if (value is! String || value.isEmpty) {
-        throw FormatException("update job has no '$name'");
-      }
-      return value;
-    }
-
-    final install = field('install');
-    final staging = field('staging');
-    final executable = field('executable');
-    final pid = map['parent_pid'];
+    final map = _object(text);
+    final install = _string(map, 'install');
+    final staging = _string(map, 'staging');
     if (!p.isAbsolute(install) || !p.isAbsolute(staging)) {
       throw const FormatException('update job paths must be absolute');
-    }
-    if (!isSafeUpdatePath(executable) || executable.contains('/')) {
-      throw FormatException("update job executable '$executable' is not a plain name");
-    }
-    if (pid is! int || pid <= 0) {
-      throw const FormatException('update job has no parent pid');
-    }
-    final rawFiles = map['files'];
-    if (rawFiles is! Map<String, Object?> || rawFiles.isEmpty) {
-      throw const FormatException('update job lists no files');
-    }
-    final files = <String, String>{};
-    final hashes = RegExp(r'^[0-9a-f]{64}$');
-    for (final MapEntry(key: path, value: hash) in rawFiles.entries) {
-      if (!isSafeUpdatePath(path) || path.toLowerCase() == 'notelore-updater.exe') {
-        throw FormatException("update job path '$path' is not safe");
-      }
-      if (hash is! String || !hashes.hasMatch(hash)) {
-        throw FormatException("update job hash for '$path' is not SHA-256");
-      }
-      files[path] = hash;
     }
     return UpdateJob(
       install: install,
       staging: staging,
-      files: files,
-      executable: executable,
-      parentPid: pid,
+      files: _files(map['files']),
+      executable: _executable(map),
+      parentPid: _parentPid(map['parent_pid']),
     );
   }
 
@@ -116,20 +130,7 @@ Future<void> applyUpdate(UpdateJob job, {void Function(String message)? log}) as
   final touched = <String>[];
   try {
     for (final MapEntry(key: path, value: hash) in job.files.entries) {
-      final staged = File(_under(staging.path, path));
-      if (!staged.existsSync()) throw UpdateApplyFailed('staged file $path is missing');
-      if (_hash(staged) != hash) throw UpdateApplyFailed('staged file $path has the wrong hash');
-      final target = File(_under(install.path, path));
-      final saved = File(_under(backup.path, path));
-      saved.parent.createSync(recursive: true);
-      if (target.existsSync()) target.copySync(saved.path);
-      final temp = File('${target.path}.update');
-      staged.copySync(temp.path);
-      if (_hash(temp) != hash) throw UpdateApplyFailed('copied file $path has the wrong hash');
-      touched.add(path);
-      if (target.existsSync()) target.deleteSync();
-      temp.renameSync(target.path);
-      if (_hash(target) != hash) throw UpdateApplyFailed('installed file $path has the wrong hash');
+      _copyOne(install.path, staging.path, backup.path, path, hash, touched);
     }
     backup.deleteSync(recursive: true);
     log?.call('updated ${job.files.length} files');
@@ -138,6 +139,30 @@ Future<void> applyUpdate(UpdateJob job, {void Function(String message)? log}) as
     backup.deleteSync(recursive: true);
     rethrow;
   }
+}
+
+void _copyOne(
+  String install,
+  String staging,
+  String backup,
+  String path,
+  String hash,
+  List<String> touched,
+) {
+  final staged = File(_under(staging, path));
+  if (!staged.existsSync()) throw UpdateApplyFailed('staged file $path is missing');
+  if (_hash(staged) != hash) throw UpdateApplyFailed('staged file $path has the wrong hash');
+  final target = File(_under(install, path));
+  final saved = File(_under(backup, path));
+  saved.parent.createSync(recursive: true);
+  if (target.existsSync()) target.copySync(saved.path);
+  final temp = File('${target.path}.update');
+  staged.copySync(temp.path);
+  if (_hash(temp) != hash) throw UpdateApplyFailed('copied file $path has the wrong hash');
+  touched.add(path);
+  if (target.existsSync()) target.deleteSync();
+  temp.renameSync(target.path);
+  if (_hash(target) != hash) throw UpdateApplyFailed('installed file $path has the wrong hash');
 }
 
 String _under(String root, String relative) => p.joinAll([root, ...relative.split('/')]);

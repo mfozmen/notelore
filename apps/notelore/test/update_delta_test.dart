@@ -28,13 +28,21 @@ void main() {
       'data/../app.so',
       'data//app.so',
       './app.so',
+      'notelore-updater.exe.',
+      'foo ',
+      'con.txt',
     ]) {
       expect(isSafeUpdatePath(path), isFalse, reason: path);
     }
   });
 
   test('parses the manifest for this exact upgrade', () {
-    final manifest = DeltaManifest.parse(jsonEncode(ok()), current: '1.0.0', system: 'windows');
+    final manifest = DeltaManifest.parse(
+      jsonEncode(ok()),
+      version: '1.1.0',
+      current: '1.0.0',
+      system: 'windows',
+    );
     expect(manifest.version, '1.1.0');
     expect(manifest.from, '1.0.0');
     expect(manifest.archive, 'delta.zip');
@@ -42,8 +50,9 @@ void main() {
     expect(manifest.toJson(), ok());
   });
 
-  test('rejects another from, system, archive or file hash', () {
+  test('rejects another version, from, system, archive or file hash', () {
     for (final (Map<String, Object?> value, Matcher message) in [
+      ({...ok(), 'version': '1.2.0'}, contains('another version')),
       ({...ok(), 'from': '0.9.0'}, contains('not')),
       ({...ok(), 'system': 'macos'}, contains('not')),
       ({...ok(), 'archive': '../delta.zip'}, contains('not a plain')),
@@ -73,7 +82,12 @@ void main() {
       ({...ok(), 'files': <String, Object?>{}}, contains('no files')),
     ]) {
       expect(
-        () => DeltaManifest.parse(jsonEncode(value), current: '1.0.0', system: 'windows'),
+        () => DeltaManifest.parse(
+          jsonEncode(value),
+          version: '1.1.0',
+          current: '1.0.0',
+          system: 'windows',
+        ),
         throwsA(isA<FormatException>().having((e) => e.message, 'message', message)),
         reason: '$value',
       );
@@ -88,7 +102,7 @@ void main() {
       jsonEncode({'version': '1.1.0'}),
     ]) {
       expect(
-        () => DeltaManifest.parse(text, current: '1.0.0', system: 'windows'),
+        () => DeltaManifest.parse(text, version: '1.1.0', current: '1.0.0', system: 'windows'),
         throwsA(isA<FormatException>()),
         reason: text,
       );
