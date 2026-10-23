@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Packages a built desktop app: the installer (Windows setup.exe, macOS .dmg)
-# plus the zip the 0.3.x updater looks for, each with a .sha256 (sha256sum
-# format, LF). Used by the release workflow and, to check the packaging on
-# every PR, by flutter.yml.
+# and its .sha256 (sha256sum format, LF). Used by the release workflow and, to
+# check the packaging on every PR, by flutter.yml.
 #
 #   tool/package_desktop.sh <version> <out-dir> <Release|Debug>
 #
@@ -29,10 +28,6 @@ case "$(uname -s)" in
       "/DAppVersion=$version" "/DSourceDir=$(cygpath -w "$built")" \
       "/O$(cygpath -w "$out")" "/F$setup" "$(cygpath -w "$app/windows/installer/notelore.iss")"
     checksum "$setup.exe"
-    # shortcut: the zip only serves the 0.3.x updater; drop it once nobody runs 0.3.x.
-    zip="notelore-app-$version-windows-x64.zip"
-    (cd "$built" && 7z a -tzip "$(cygpath -w "$out/$zip")" . > /dev/null)
-    checksum "$zip"
     ;;
   Darwin)
     bundle="$app/build/macos/Build/Products/$mode/notelore.app"
@@ -42,9 +37,6 @@ case "$(uname -s)" in
     dmg="notelore-app-$version-macos.dmg"
     hdiutil create -quiet -volname Notelore -srcfolder "$stage" -ov -format UDZO "$out/$dmg"
     checksum "$dmg"
-    zip="notelore-app-$version-macos.zip" # for the 0.3.x updater, see above
-    ditto -c -k --keepParent "$bundle" "$out/$zip"
-    checksum "$zip"
     ;;
   *)
     echo "no desktop package for $(uname -s)" >&2
