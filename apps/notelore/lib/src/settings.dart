@@ -48,10 +48,15 @@ enum SettingsSection {
   ];
 }
 
+/// What a manual update check found: the line to show, and the version to
+/// offer when one is ready.
+typedef UpdateCheck = ({String message, String? version});
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen(
     this.session, {
     this.checkForUpdates,
+    this.updateNow,
     this.version = appVersion,
     this.section,
     super.key,
@@ -65,8 +70,13 @@ class SettingsScreen extends StatefulWidget {
   /// This build's version ([appVersion]); empty in a development build.
   final String version;
 
-  /// Asks for a newer release now and says what came of it; desktop builds only.
-  final Future<String> Function()? checkForUpdates;
+  /// Asks for a newer release now and says what came of it; builds that
+  /// update themselves only.
+  final Future<UpdateCheck> Function()? checkForUpdates;
+
+  /// Starts the update found by [checkForUpdates]; on a phone it leaves this
+  /// page so the banner and its progress are visible.
+  final VoidCallback? updateNow;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -76,6 +86,7 @@ class SettingsScreen extends StatefulWidget {
 /// time, so a card's own state would reset on every switch.
 class _SettingsScreenState extends State<SettingsScreen> {
   var _checking = false; // one update check at a time
+  String? _updateVersion; // a check found one; the card offers it
 
   /// The section shown on a wide window.
   var _section = 0;
@@ -83,14 +94,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// The device's microphones, listed on opening and again on request.
   late var _microphones = widget.session.listMicrophones();
 
-  Future<void> _checkForUpdates(Future<String> Function() check) async {
-    final messenger = ScaffoldMessenger.of(context);
-    setState(() => _checking = true);
+  Future<void> _checkForUpdates(Future<UpdateCheck> Function() check) async {
+    setState(() {
+      _checking = true;
+      _updateVersion = null;
+    });
     final result = await check();
-    if (mounted) setState(() => _checking = false);
-    messenger
+    // The page (or the app) may have closed while GitHub answered.
+    if (!mounted) return;
+    setState(() {
+      _checking = false;
+      _updateVersion = result.version;
+    });
+    ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(result)));
+      ..showSnackBar(SnackBar(content: Text(result.message)));
   }
 
   @override
@@ -122,6 +140,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _ => null,
           },
           canCheck: widget.checkForUpdates != null,
+          update: widget.updateNow,
+          updateVersion: _updateVersion,
         ),
       ],
     };
@@ -202,7 +222,8 @@ Future<void> openSettingsSection(
   Session session,
   SettingsSection section, {
   String version = appVersion,
-  Future<String> Function()? checkForUpdates,
+  Future<UpdateCheck> Function()? checkForUpdates,
+  VoidCallback? updateNow,
 }) => Navigator.of(context).push(
   MaterialPageRoute<void>(
     builder: (_) => SettingsScreen(
@@ -210,6 +231,7 @@ Future<void> openSettingsSection(
       section: section,
       version: version,
       checkForUpdates: checkForUpdates,
+      updateNow: updateNow,
     ),
   ),
 );
@@ -834,6 +856,8 @@ class _AboutCard extends StatelessWidget {
     required this.version,
     required this.check,
     required this.canCheck,
+    required this.update,
+    required this.updateVersion,
   });
 
   final Session session;
@@ -842,6 +866,10 @@ class _AboutCard extends StatelessWidget {
   /// Null while a check runs.
   final VoidCallback? check;
   final bool canCheck;
+
+  /// Starts the version [updateVersion] a check found.
+  final VoidCallback? update;
+  final String? updateVersion;
 
   @override
   Widget build(BuildContext context) {
@@ -863,6 +891,15 @@ class _AboutCard extends StatelessWidget {
                   icon: const Icon(Icons.system_update_alt),
                   onPressed: check,
                   label: Text(s.checkForUpdates),
+                ),
+              ),
+            if (updateVersion case final version? when update != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.m),
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.system_update_alt),
+                  onPressed: update,
+                  label: Text('${s.update} $version'),
                 ),
               ),
             Padding(

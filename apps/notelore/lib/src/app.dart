@@ -243,16 +243,25 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     return newer;
   }
 
-  /// Settings' *Check for updates*: what to tell the user.
-  Future<String> _checkNow() async {
+  /// Settings' *Check for updates*: what to tell the user, and the version to
+  /// offer when there is one.
+  Future<UpdateCheck> _checkNow() async {
+    final s = widget.session.strings;
     try {
       _dismissed = null; // asked by hand: show it even if put off before
       final newer = await _check(widget.updater!, force: true);
-      final s = widget.session.strings;
-      return newer == null ? s.upToDate : s.updateAvailable(newer);
+      return (message: newer == null ? s.upToDate : s.updateAvailable(newer), version: newer);
     } on Object catch (error) {
-      return widget.session.strings.checkFailed(error);
+      return (message: s.checkFailed(error), version: null);
     }
+  }
+
+  /// Starts an update found on the Settings page. A phone's Settings is a
+  /// route over the banner, so leave it first; the banner shows the progress.
+  void _updateFromSettings() {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) navigator.pop();
+    unawaited(_update());
   }
 
   Future<void> _update() async {
@@ -263,8 +272,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     });
     try {
       final applied = await _applyUpdate();
+      // The app may have closed while the download ran: never start an
+      // installer for a window that is gone.
+      if (!mounted) return;
       if (applied != null) return _failedUpdate(applied);
       final relaunched = await _relaunchUpdate();
+      if (!mounted) return;
       if (relaunched != null) return _failedUpdate(relaunched);
       if (_installed) return; // macOS swapped it in; only the restart failed
       // Android's installer takes over; cancelling it leaves this app running.
@@ -313,7 +326,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     });
   }
 
-  Future<String> Function()? get _checkByHand => widget.updater == null ? null : _checkNow;
+  Future<UpdateCheck> Function()? get _checkByHand => widget.updater == null ? null : _checkNow;
 
   /// The screen of [tab].
   Widget _screen(int tab, {required bool wide}) => switch (tab) {
@@ -327,7 +340,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     0 => ChatScreen(widget.session),
     1 => NotesScreen(widget.session),
     2 => CalendarScreen(widget.session, toChat: () => setState(() => _tab = 0)),
-    _ => SettingsScreen(widget.session, checkForUpdates: _checkByHand),
+    _ => SettingsScreen(
+      widget.session,
+      checkForUpdates: _checkByHand,
+      updateNow: _updateFromSettings,
+    ),
   };
 
   @override
@@ -385,6 +402,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 widget.session,
                 section,
                 checkForUpdates: _checkByHand,
+                updateNow: _updateFromSettings,
               ),
             ),
       body: SafeArea(
