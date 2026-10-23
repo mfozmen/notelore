@@ -229,6 +229,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       fetch: updater.fetch,
       system: updater.system,
       abi: updater.abi,
+      arch: updater.arch,
       force: force,
       signed: updater.publicKey.isNotEmpty,
     );

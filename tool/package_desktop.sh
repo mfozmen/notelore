@@ -3,8 +3,10 @@
 # and its .sha256 (sha256sum format, LF). Used by the release workflow and, to
 # check the packaging on every PR, by flutter.yml.
 #
-#   tool/package_desktop.sh <version> <out-dir> <Release|Debug>
+#   tool/package_desktop.sh <version> <out-dir> <Release|Debug> [<app-path>] [<arch>]
 #
+# The optional app path and architecture package a thinned macOS bundle;
+# without them the whole build is used.
 # Run from the repo root after `flutter build windows|macos`. Windows needs
 # Inno Setup 6 (choco install innosetup).
 set -euo pipefail
@@ -14,6 +16,8 @@ mkdir -p "$2"
 out=$(cd "$2" && pwd)
 mode=$3
 app=apps/notelore
+given_bundle=${4:-}
+arch=${5:-}
 
 checksum() {
   (cd "$out" && if command -v sha256sum > /dev/null; then sha256sum "$1"; else shasum -a 256 "$1"; fi > "$1.sha256")
@@ -30,11 +34,11 @@ case "$(uname -s)" in
     checksum "$setup.exe"
     ;;
   Darwin)
-    bundle="$app/build/macos/Build/Products/$mode/notelore.app"
+    bundle="${given_bundle:-$app/build/macos/Build/Products/$mode/notelore.app}"
     stage=$(mktemp -d)
     ditto "$bundle" "$stage/notelore.app" # keeps the bundle's symlinks and permissions
     ln -s /Applications "$stage/Applications" # drag the app onto it to install
-    dmg="notelore-app-$version-macos.dmg"
+    dmg="notelore-app-$version-macos${arch:+-$arch}.dmg"
     hdiutil create -quiet -volname Notelore -srcfolder "$stage" -ov -format UDZO "$out/$dmg"
     checksum "$dmg"
     ;;
