@@ -746,9 +746,9 @@ class EnglishStrings extends Strings {
   String get askSomething => 'Write something to note, or ask about your notes.';
   @override
   List<String> get examples => const [
-    "I'm reading Tanpınar's The Time Regulation Institute",
-    'Remind me to renew my passport next month',
-    'What did we decide about the database?',
+    'Start a garden plan: tomatoes and basil on the balcony.',
+    'Ankara trip: we chose the train because it is cheaper than flying.',
+    'Remind me to call Mom on Friday at 18:00.',
   ];
   @override
   String get message => 'Message';
@@ -1790,9 +1790,9 @@ class TurkishStrings extends Strings {
   String get askSomething => 'Not almamı istediğin bir şey yaz ya da notlarına sor.';
   @override
   List<String> get examples => const [
-    "Tanpınar'ın Saatleri Ayarlama Enstitüsü'nü okuyorum",
-    'Gelecek ay pasaportumu yenilemeyi hatırlat',
-    'Veritabanı için ne karar vermiştik?',
+    'Balkon için bahçe planı başlat: domates ve fesleğen.',
+    'Ankara gezisi: uçaktan daha ucuz olduğu için treni seçtik.',
+    "Cuma 18.00'de annemi aramamı hatırlat.",
   ];
   @override
   String get message => 'Mesaj';
