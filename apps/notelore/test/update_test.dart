@@ -22,8 +22,7 @@ List<int> release(
 }) {
   final apps = [
     for (final system in systems) assetName(version, system),
-    if (systems.contains('android') && abi.isNotEmpty)
-      assetName(version, 'android', abi: abi),
+    if (systems.contains('android') && abi.isNotEmpty) assetName(version, 'android', abi: abi),
   ];
   final names = [
     ...apps,
@@ -655,6 +654,15 @@ void main() {
     );
     expect(android!.system, 'android');
     expect(android.abi, 'arm64-v8a');
+    // Without a pinned ABI the running ABI is asked; on this test machine that
+    // is not Android, so the universal APK is the fallback.
+    final androidDefault = updaterFor(
+      system: 'android',
+      version: '1.0.0',
+      executable: 'x',
+      key: 'k',
+    )!;
+    expect(androidDefault.abi, '');
     // A release build without the key never falls back to checksums alone.
     expect(updaterFor(system: 'macos', version: '1.0.0', executable: 'x', key: ''), isNull);
     expect(updaterFor(system: 'macos', version: '1.0.0', executable: 'x'), isNull); // this build
