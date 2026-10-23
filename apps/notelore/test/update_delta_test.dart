@@ -31,6 +31,8 @@ void main() {
       'notelore-updater.exe.',
       'foo ',
       'con.txt',
+      'NOTEL~1.EXE',
+      '.notelore-backup',
     ]) {
       expect(isSafeUpdatePath(path), isFalse, reason: path);
     }
@@ -69,6 +71,13 @@ void main() {
         {
           ...ok(),
           'files': {'notelore-updater.exe': hash},
+        },
+        contains('not safe'),
+      ),
+      (
+        {
+          ...ok(),
+          'files': {'job.json': hash},
         },
         contains('not safe'),
       ),

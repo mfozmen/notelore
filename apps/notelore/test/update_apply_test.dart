@@ -72,7 +72,7 @@ void main() {
   test('a failure halfway puts back the files already copied', () async {
     write(p.join(install, 'a.txt'), 'old a');
     write(p.join(install, 'b.txt'), 'old b');
-    write(p.join(install, 'a.txt.update'), 'stale temp');
+    write(p.join(install, 'a.txt.notelore-tmp'), 'stale temp');
     write(p.join(staging, 'a.txt'), 'new a');
     write(p.join(staging, 'c.txt'), 'new c');
     // b.txt is missing from the staging folder.
@@ -86,7 +86,7 @@ void main() {
     expect(File(p.join(install, 'a.txt')).readAsStringSync(), 'old a');
     expect(File(p.join(install, 'b.txt')).readAsStringSync(), 'old b');
     expect(File(p.join(install, 'c.txt')).existsSync(), isFalse);
-    expect(File(p.join(install, 'a.txt.update')).existsSync(), isFalse);
+    expect(File(p.join(install, 'a.txt.notelore-tmp')).existsSync(), isFalse);
   });
 
   test('a missing install or staging folder is refused', () async {
@@ -151,6 +151,7 @@ void main() {
       raw(files: {'app.so': 'nope'}),
       raw(files: <String, Object?>{}),
       raw(files: {'notelore-updater.exe': 'a' * 64}),
+      raw(files: {'job.json': 'a' * 64}),
       raw(pid: 0),
       raw(pid: '1'),
       raw(executable: '../notelore.exe'),

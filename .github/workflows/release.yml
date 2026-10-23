@@ -55,10 +55,11 @@ jobs:
         shell: bash
         env:
           SIGNING_KEY: ${{ secrets.NOTELORE_UPDATE_SIGNING_KEY }}
-          UPDATE_KEY: ${{ vars.NOTELORE_UPDATE_PUBLIC_KEY }}
+          # Public by nature; inline so an asset swap cannot also swap the anchor.
+          UPDATE_KEY: 'EOKo49dj6U5znM+aku0K0uvrHLUe4syXGcX/JXHrlsU='
         run: |
           set -euo pipefail
-          if [ -z "$UPDATE_KEY" ]; then echo "::error::the variable NOTELORE_UPDATE_PUBLIC_KEY is not set"; exit 1; fi
+          if [ -z "$UPDATE_KEY" ]; then echo "::error::the pinned update public key is not set"; exit 1; fi
           if [ -z "$SIGNING_KEY" ]; then echo "::error::the secret NOTELORE_UPDATE_SIGNING_KEY is not set"; exit 1; fi
           key="$RUNNER_TEMP/update-key.pem"
           trap 'rm -f "$key"' EXIT INT TERM
@@ -158,7 +159,7 @@ jobs:
       NOTELORE_GOOGLE_CLIENT_ID: ${{ secrets.NOTELORE_GOOGLE_CLIENT_ID }}
       NOTELORE_GOOGLE_CLIENT_SECRET: ${{ secrets.NOTELORE_GOOGLE_CLIENT_SECRET }}
       # Public: the update key the app pins (#485).
-      NOTELORE_UPDATE_PUBLIC_KEY: ${{ vars.NOTELORE_UPDATE_PUBLIC_KEY }}
+      NOTELORE_UPDATE_PUBLIC_KEY: 'EOKo49dj6U5znM+aku0K0uvrHLUe4syXGcX/JXHrlsU='
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -202,7 +203,8 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          UPDATE_KEY: ${{ vars.NOTELORE_UPDATE_PUBLIC_KEY }}
+          # Public by nature; inline so an asset swap cannot also swap the anchor.
+          UPDATE_KEY: 'EOKo49dj6U5znM+aku0K0uvrHLUe4syXGcX/JXHrlsU='
         run: |
           set -euo pipefail
           releases=$(gh release list --exclude-drafts --limit 2 --json tagName --jq '.[].tagName')
@@ -219,6 +221,10 @@ jobs:
               echo "no signed Windows setup for $previous; no delta from it"
               continue
             fi
+            if [ ! -f "$old_dir/$old_setup.sha256" ] || [ ! -f "$old_dir/$old_setup.sha256.sig" ]; then
+              echo "old setup $old_version has no signed checksum; no delta from it"
+              continue
+            fi
             python - "$UPDATE_KEY" "$RUNNER_TEMP/old-update.pub" <<'PY'
           import base64, sys, textwrap
           raw = base64.b64decode(sys.argv[1])
@@ -228,7 +234,10 @@ jobs:
           open(sys.argv[2], 'w').write(
               '-----BEGIN PUBLIC KEY-----\n' + body + '\n-----END PUBLIC KEY-----\n')
           PY
-            base64 -d "$old_dir/$old_setup.sha256.sig" > "$RUNNER_TEMP/old-update.sig"
+            if ! base64 -d "$old_dir/$old_setup.sha256.sig" > "$RUNNER_TEMP/old-update.sig"; then
+              echo "old setup $old_version has a damaged signature; no delta from it"
+              continue
+            fi
             if ! openssl pkeyutl -verify -pubin -inkey "$RUNNER_TEMP/old-update.pub" \
               -rawin -in "$old_dir/$old_setup.sha256" -sigfile "$RUNNER_TEMP/old-update.sig"; then
               echo "old setup $old_version is not signed by the release key; no delta from it"
@@ -292,7 +301,7 @@ jobs:
       NOTELORE_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.NOTELORE_ANDROID_KEYSTORE_PASSWORD }}
       NOTELORE_ANDROID_KEY_PASSWORD: ${{ secrets.NOTELORE_ANDROID_KEY_PASSWORD }}
       NOTELORE_ANDROID_KEY_ALIAS: ${{ secrets.NOTELORE_ANDROID_KEY_ALIAS }}
-      NOTELORE_UPDATE_PUBLIC_KEY: ${{ vars.NOTELORE_UPDATE_PUBLIC_KEY }}
+      NOTELORE_UPDATE_PUBLIC_KEY: 'EOKo49dj6U5znM+aku0K0uvrHLUe4syXGcX/JXHrlsU='
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -384,7 +393,8 @@ jobs:
         shell: bash
         env:
           SIGNING_KEY: ${{ secrets.NOTELORE_UPDATE_SIGNING_KEY }}
-          UPDATE_KEY: ${{ vars.NOTELORE_UPDATE_PUBLIC_KEY }}
+          # Public by nature; inline so an asset swap cannot also swap the anchor.
+          UPDATE_KEY: 'EOKo49dj6U5znM+aku0K0uvrHLUe4syXGcX/JXHrlsU='
           VERSION: ${{ needs.release.outputs.version }}
         run: |
           set -euo pipefail

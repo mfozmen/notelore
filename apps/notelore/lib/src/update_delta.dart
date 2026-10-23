@@ -9,6 +9,7 @@ const _reserved = {
   'prn',
   'aux',
   'nul',
+  'com0',
   'com1',
   'com2',
   'com3',
@@ -18,6 +19,7 @@ const _reserved = {
   'com7',
   'com8',
   'com9',
+  'lpt0',
   'lpt1',
   'lpt2',
   'lpt3',
@@ -27,7 +29,51 @@ const _reserved = {
   'lpt7',
   'lpt8',
   'lpt9',
+  'conin\$',
+  'conout\$',
 };
+const _neverUpdated = {'notelore-updater.exe', 'job.json'};
+
+/// A JSON object from [text], or [FormatException] naming [what].
+Map<String, Object?> updateJsonObject(String text, String what) {
+  final Object? json;
+  try {
+    json = jsonDecode(text);
+  } on FormatException {
+    throw FormatException('$what is not JSON');
+  }
+  if (json is! Map<String, Object?>) {
+    throw FormatException('$what is not an object');
+  }
+  return json;
+}
+
+/// A non-empty string field [name] of [map], or [FormatException] naming [what].
+String updateJsonString(Map<String, Object?> map, String name, String what) {
+  final value = map[name];
+  if (value is! String || value.isEmpty) {
+    throw FormatException("$what has no '$name'");
+  }
+  return value;
+}
+
+/// A non-empty map of safe relative paths to SHA-256 hashes, for [what].
+Map<String, String> updateJsonFiles(Object? raw, String what) {
+  if (raw is! Map<String, Object?> || raw.isEmpty) {
+    throw FormatException('$what lists no files');
+  }
+  final files = <String, String>{};
+  for (final MapEntry(key: path, value: hash) in raw.entries) {
+    if (!isSafeUpdatePath(path) || _neverUpdated.contains(path.toLowerCase())) {
+      throw FormatException("$what path '$path' is not safe");
+    }
+    if (hash is! String || !_sha256.hasMatch(hash)) {
+      throw FormatException("$what hash for '$path' is not SHA-256");
+    }
+    files[path] = hash;
+  }
+  return files;
+}
 
 /// Whether [path] is a safe relative path inside an app folder: no drive, no
 /// backslashes, no `..`, no empty segment, no Win32 alias or device name.
@@ -44,46 +90,9 @@ bool isSafeUpdatePath(String path) {
 
 bool _safeSegment(String part) {
   if (part.isEmpty || part == '.' || part == '..') return false;
-  if (part.endsWith('.') || part.endsWith(' ')) return false;
+  if (part.endsWith('.') || part.endsWith(' ') || part.contains('~')) return false;
+  if (part.startsWith('.notelore')) return false;
   return !_reserved.contains(part.split('.').first.toLowerCase());
-}
-
-Map<String, Object?> _object(String text) {
-  final Object? json;
-  try {
-    json = jsonDecode(text);
-  } on FormatException {
-    throw const FormatException('delta manifest is not JSON');
-  }
-  if (json is! Map<String, Object?>) {
-    throw const FormatException('delta manifest is not an object');
-  }
-  return json;
-}
-
-String _string(Map<String, Object?> map, String name) {
-  final value = map[name];
-  if (value is! String || value.isEmpty) {
-    throw FormatException("delta manifest has no '$name'");
-  }
-  return value;
-}
-
-Map<String, String> _files(Object? raw) {
-  if (raw is! Map<String, Object?> || raw.isEmpty) {
-    throw const FormatException('delta manifest lists no files');
-  }
-  final files = <String, String>{};
-  for (final MapEntry(key: path, value: hash) in raw.entries) {
-    if (!isSafeUpdatePath(path) || path.toLowerCase() == 'notelore-updater.exe') {
-      throw FormatException("delta manifest path '$path' is not safe");
-    }
-    if (hash is! String || !_sha256.hasMatch(hash)) {
-      throw FormatException("delta manifest hash for '$path' is not SHA-256");
-    }
-    files[path] = hash;
-  }
-  return files;
 }
 
 /// A release's changed-files manifest. The release key signs the JSON bytes;
@@ -113,12 +122,12 @@ final class DeltaManifest {
     required String current,
     required String system,
   }) {
-    final map = _object(text);
-    final from = _string(map, 'from');
-    final manifestSystem = _string(map, 'system');
-    final archive = _string(map, 'archive');
-    final archiveSha = _string(map, 'archive_sha256');
-    if (_string(map, 'version') != version) {
+    final map = updateJsonObject(text, 'delta manifest');
+    final from = updateJsonString(map, 'from', 'delta manifest');
+    final manifestSystem = updateJsonString(map, 'system', 'delta manifest');
+    final archive = updateJsonString(map, 'archive', 'delta manifest');
+    final archiveSha = updateJsonString(map, 'archive_sha256', 'delta manifest');
+    if (updateJsonString(map, 'version', 'delta manifest') != version) {
       throw FormatException("delta manifest is for another version, not '$version'");
     }
     if (from != current) {
@@ -139,7 +148,7 @@ final class DeltaManifest {
       system: manifestSystem,
       archive: archive,
       archiveSha256: archiveSha,
-      files: _files(map['files']),
+      files: updateJsonFiles(map['files'], 'delta manifest'),
     );
   }
 
