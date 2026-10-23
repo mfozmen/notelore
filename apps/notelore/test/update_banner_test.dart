@@ -179,6 +179,8 @@ void main() {
       spawn: (_, _) async => fail('nothing is spawned on Android'),
       openInstaller: (apk) async => true,
     );
+    // The Updater knows its ABI; only a home check that forwards it can find
+    // this ABI-only release.
     await pump(tester, u);
     expect(find.text('A fresh Notelore is ready: $v.'), findsOneWidget);
   });

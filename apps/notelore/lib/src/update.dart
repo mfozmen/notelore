@@ -120,8 +120,9 @@ String abiName(Abi abi) => switch (abi) {
   _ => '',
 };
 
-/// The ABI of the running Android app; empty elsewhere.
-String androidAbi() => abiName(Abi.current());
+/// The ABI of the running Android app; empty elsewhere. Tests pin [abi]
+/// instead of asking the host.
+String androidAbi([Abi? abi]) => abiName(abi ?? Abi.current());
 
 /// The asset for this device: its ABI's APK, else the universal Android APK.
 String? releaseAsset(String version, String system, Set<String> assets, {String abi = ''}) {
@@ -282,6 +283,7 @@ Updater? updaterFor({
   required String executable,
   String key = updateKey,
   String? abi,
+  Abi? platformAbi,
 }) {
   if (version.isEmpty || key.isEmpty) return null;
   if (!const {'windows', 'macos', 'android'}.contains(system)) return null;
@@ -296,7 +298,7 @@ Updater? updaterFor({
     spawn: startDetached,
     osVersion: Platform.operatingSystemVersion,
     publicKey: key,
-    abi: system == 'android' ? (abi ?? androidAbi()) : '',
+    abi: system == 'android' ? (abi ?? androidAbi(platformAbi)) : '',
   );
 }
 

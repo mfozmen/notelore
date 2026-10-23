@@ -21,6 +21,7 @@ List<int> release(
   String abi = '',
   bool universal = true,
 }) {
+  assert(abi.isNotEmpty || universal || !systems.contains('android'));
   final apps = [
     for (final system in systems)
       if (system != 'android' || universal) assetName(version, system),
@@ -128,6 +129,7 @@ void main() {
     expect(abiName(Abi.androidArm), 'armeabi-v7a');
     expect(abiName(Abi.androidX64), 'x86_64');
     expect(abiName(Abi.windowsX64), '');
+    expect(androidAbi(Abi.androidArm64), 'arm64-v8a');
   });
 
   test('a release says what it brings: features first, then fixes, two at most (#288)', () {
@@ -656,15 +658,17 @@ void main() {
     );
     expect(android!.system, 'android');
     expect(android.abi, 'arm64-v8a');
-    // Without a pinned ABI, updaterFor asks Abi.current(); the test host is not
-    // Android, so that is empty and the universal APK is the fallback.
+    // Without a pinned ABI, updaterFor asks the platform; this pins the answer
+    // so the test does not depend on the host's ABI.
     final androidDefault = updaterFor(
       system: 'android',
       version: '1.0.0',
       executable: 'x',
       key: 'k',
-    )!;
-    expect(androidDefault.abi, '');
+      platformAbi: Abi.androidArm64,
+    );
+    expect(androidDefault, isNotNull);
+    expect(androidDefault!.abi, 'arm64-v8a');
     // A release build without the key never falls back to checksums alone.
     expect(updaterFor(system: 'macos', version: '1.0.0', executable: 'x', key: ''), isNull);
     expect(updaterFor(system: 'macos', version: '1.0.0', executable: 'x'), isNull); // this build
