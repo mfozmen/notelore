@@ -88,7 +88,7 @@ class MarkPainter extends CustomPainter {
     } else {
       canvas.drawPath(
         _ribbon,
-        Paint()..color = ink ?? (background == null ? MarkColors.teal : MarkColors.ribbon),
+        Paint()..color = background == null ? (ink ?? MarkColors.teal) : MarkColors.ribbon,
       );
       canvas.drawPath(_fold, Paint()..color = fold ?? MarkColors.fold);
     }
