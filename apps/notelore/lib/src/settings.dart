@@ -852,7 +852,10 @@ class _AboutCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ListTile(leading: const NoteloreMark(size: 40), title: Text(s.versionLine(version))),
+            ListTile(
+              leading: const ExcludeSemantics(child: NoteloreMark(size: 40)),
+              title: Text(s.versionLine(version)),
+            ),
             if (canCheck)
               Padding(
                 padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.m),
