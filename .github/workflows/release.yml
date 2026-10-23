@@ -5,7 +5,7 @@ name: Release
 # the last tag and bumps accordingly (feat -> minor, fix/perf -> patch,
 # BREAKING CHANGE -> major), writes CHANGELOG.md, tags vX.Y.Z and cuts a
 # draft GitHub Release. The app jobs build the Flutter app for Windows and macOS
-# and a signed Android APK, and `attach` writes the .sha256 of each file the
+# and signed Android APKs (one per ABI, plus universal), and `attach` writes the .sha256 of each file the
 # app's updater installs, signs it with the update key (#485) and uploads them,
 # the only job besides the release with a write token,
 # then publishes the release once every platform's files are up (#476): until
@@ -248,7 +248,7 @@ jobs:
           if [ -z "$KEYSTORE_BASE64" ]; then echo "::error::NOTELORE_ANDROID_KEYSTORE_BASE64 is not set"; exit 1; fi
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
           echo "NOTELORE_ANDROID_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
-      - name: Build the signed APK
+      - name: Build the signed APKs
         working-directory: apps/notelore
         # versionCode from the version: 1.2.3 -> 1002003, always increasing.
         run: |
@@ -260,21 +260,28 @@ jobs:
             --dart-define=NOTELORE_GOOGLE_WEB_CLIENT_ID="$NOTELORE_GOOGLE_WEB_CLIENT_ID"
             --dart-define=NOTELORE_UPDATE_PUBLIC_KEY="$NOTELORE_UPDATE_PUBLIC_KEY"
           )
+          flutter build apk --release --split-per-abi "${args[@]}"
+          mkdir -p "$RUNNER_TEMP/splits"
+          cp build/app/outputs/flutter-apk/app-*-release.apk "$RUNNER_TEMP/splits/"
+          # The universal APK stays for a device whose ABI the app cannot name.
           flutter build apk --release "${args[@]}"
       - name: Package
-        id: pkg
         run: |
-          asset="notelore-app-$VERSION-android.apk"
-          cp apps/notelore/build/app/outputs/flutter-apk/app-release.apk "$asset"
-          sha256sum "$asset" > "$asset.sha256"
-          cat "$asset.sha256"
-          echo "asset=$asset" >> "$GITHUB_OUTPUT"
+          universal="notelore-app-$VERSION-android.apk"
+          cp apps/notelore/build/app/outputs/flutter-apk/app-release.apk "$universal"
+          sha256sum "$universal" > "$universal.sha256"
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            asset="notelore-app-$VERSION-android-$abi.apk"
+            cp "$RUNNER_TEMP/splits/app-$abi-release.apk" "$asset"
+            sha256sum "$asset" > "$asset.sha256"
+          done
+          ls -l notelore-app-"$VERSION"-android*.apk*
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: app-android
           path: |
-            ${{ steps.pkg.outputs.asset }}
-            ${{ steps.pkg.outputs.asset }}.sha256
+            notelore-app-${{ needs.release.outputs.version }}-android*.apk
+            notelore-app-${{ needs.release.outputs.version }}-android*.apk.sha256
           if-no-files-found: error
           retention-days: 1
 
@@ -318,7 +325,10 @@ jobs:
           cd dist
           signed=0
           for file in "notelore-app-$VERSION-windows-x64-setup.exe" "notelore-app-$VERSION-macos.dmg" \
-            "notelore-app-$VERSION-android.apk"; do
+            "notelore-app-$VERSION-android.apk" \
+            "notelore-app-$VERSION-android-arm64-v8a.apk" \
+            "notelore-app-$VERSION-android-armeabi-v7a.apk" \
+            "notelore-app-$VERSION-android-x86_64.apk"; do
             [ -f "$file" ] || continue # its build failed: the release stays a draft
             sha256sum "$file" > "$file.sha256"
             openssl pkeyutl -sign -inkey "$key" -rawin -in "$file.sha256" -out "$RUNNER_TEMP/update.sig"
