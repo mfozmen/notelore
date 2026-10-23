@@ -195,6 +195,41 @@ jobs:
       - name: Package
         shell: bash
         run: bash tool/package_desktop.sh "$VERSION" dist Release
+      # A delta is only safe from a version whose helper is already installed;
+      # the first release after this change therefore has none.
+      - name: Changed-files delta
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          releases=$(gh release list --exclude-drafts --limit 2 --json tagName --jq '.[].tagName')
+          if [ -z "$releases" ]; then echo "no previous release; no delta"; exit 0; fi
+          for previous in $releases; do
+            old_version=${previous#v}
+            old_setup="notelore-app-$old_version-windows-x64-setup.exe"
+            old_dir="$RUNNER_TEMP/old-$old_version"
+            mkdir -p "$old_dir"
+            if ! gh release download "$previous" -p "$old_setup" -D "$old_dir"; then
+              echo "no Windows setup for $previous; no delta from it"
+              continue
+            fi
+            old_app="$RUNNER_TEMP/oldapp-$old_version"
+            rm -rf "$old_app"
+            MSYS_NO_PATHCONV=1 "$old_dir/$old_setup" /CURRENTUSER /VERYSILENT \
+              /SUPPRESSMSGBOXES /NORESTART /NOLAUNCH "/DIR=$(cygpath -w "$old_app")"
+            for _ in $(seq 60); do [ -f "$old_app/notelore.exe" ] && break; sleep 1; done
+            if [ ! -f "$old_app/notelore.exe" ]; then
+              echo "old app $old_version did not install; no delta from it"
+              continue
+            fi
+            (cd apps/notelore && dart run tool/make_delta.dart \
+              --old="$(cygpath -w "$old_app")" \
+              --new="$(cygpath -w "$(pwd)/build/windows/x64/runner/Release")" \
+              --version="$VERSION" --from="$old_version" \
+              --out="$(cygpath -w "$(pwd)/../../dist")")
+          done
       # The universal dmg above stays as the fallback; these two are half the
       # size for the Mac each person actually has.
       - name: Per-architecture macOS dmg
@@ -351,6 +386,14 @@ jobs:
             openssl pkeyutl -verify -pubin -inkey "$public" -rawin -in "$file.sha256" \
               -sigfile "$RUNNER_TEMP/update.sig"
             base64 -w0 "$RUNNER_TEMP/update.sig" > "$file.sha256.sig"
+            signed=$((signed + 1))
+          done
+          for manifest in notelore-app-"$VERSION"-windows-x64-delta-*.json; do
+            [ -f "$manifest" ] || continue
+            openssl pkeyutl -sign -inkey "$key" -rawin -in "$manifest" -out "$RUNNER_TEMP/update.sig"
+            openssl pkeyutl -verify -pubin -inkey "$public" -rawin -in "$manifest" \
+              -sigfile "$RUNNER_TEMP/update.sig"
+            base64 -w0 "$RUNNER_TEMP/update.sig" > "$manifest.sig"
             signed=$((signed + 1))
           done
           if [ "$signed" -eq 0 ]; then echo "::error::no update file to sign"; exit 1; fi

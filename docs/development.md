@@ -56,3 +56,9 @@ It lives outside `test/`, so the test suite never writes these files.
 - Contributor guide for humans and AI agents: [`CLAUDE.md`](../CLAUDE.md)
 - Note format: [`note-format.md`](note-format.md)
 - Roadmap: [`PLAN.md`](PLAN.md)
+
+On Windows a release also publishes a signed changed-files delta from each of
+the last two releases, when that older app already has `notelore-updater.exe`.
+The app uses the delta only when the manifest signature and every changed file
+hash match; otherwise it downloads the full setup. macOS keeps the full signed
+dmg, because changing files inside the signed bundle breaks its signature.

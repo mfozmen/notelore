@@ -2,12 +2,15 @@ import 'dart:convert';
 import 'dart:ffi' show Abi;
 import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:cryptography/cryptography.dart' show Ed25519, SimpleKeyPair;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:notelore/src/update.dart';
+import 'package:notelore/src/update_apply.dart';
+import 'package:notelore/src/update_delta.dart';
 import 'package:path/path.dart' as p;
 
 const v = '9.9.9';
@@ -22,6 +25,7 @@ List<int> release(
   String arch = '',
   bool universal = true,
   bool macUniversal = true,
+  List<String> extra = const [],
 }) {
   assert(abi.isNotEmpty || universal || !systems.contains('android'));
   assert(arch.isNotEmpty || macUniversal || !systems.contains('macos'));
@@ -36,6 +40,7 @@ List<int> release(
     ...apps,
     if (checksums) ...apps.map((a) => '$a.sha256'),
     if (signatures) ...apps.map((a) => '$a.sha256.sig'),
+    ...extra,
   ];
   return utf8.encode(
     jsonEncode({
@@ -292,7 +297,12 @@ void main() {
       spawned = [];
     });
 
-    Updater updater(Map<String, List<int>> pages, {Spawn? spawn}) => Updater(
+    Updater updater(
+      Map<String, List<int>> pages, {
+      Spawn? spawn,
+      String key = '',
+      Download? download,
+    }) => Updater(
       system: 'windows',
       executable: p.join(install, 'notelore.exe'),
       current: '0.2.0',
@@ -300,6 +310,8 @@ void main() {
       fetch: Pages(pages).call,
       run: (command, args) async => fail('nothing is unpacked on Windows'),
       spawn: spawn ?? (exe, args) async => spawned.add([exe, ...args]),
+      publicKey: key,
+      download: download,
     );
 
     final setup = utf8.encode('setup bytes');
@@ -307,6 +319,136 @@ void main() {
       latestReleaseUrl: release(v),
       ...download('notelore-app-$v-windows-x64-setup.exe', setup),
     };
+
+    Future<({Map<String, List<int>> pages, String key, List<int> next})> deltaPages({
+      bool tamper = false,
+      bool badSignature = false,
+      bool brokenZip = false,
+      bool badManifest = false,
+      bool missingFile = false,
+      bool extraFile = false,
+      bool noArchive = false,
+    }) async {
+      final next = utf8.encode('new app').toList();
+      final archive = Archive()..addFile(ArchiveFile('data/app.so', next.length, next));
+      if (extraFile) {
+        final extra = utf8.encode('extra').toList();
+        archive.addFile(ArchiveFile('extra.txt', extra.length, extra));
+      }
+      final zip = brokenZip ? <int>[1, 2, 3] : ZipEncoder().encode(archive);
+      final zipName = 'notelore-app-$v-windows-x64-delta-0.2.0.zip';
+      final manifestName = deltaName(v, 'windows-x64', '0.2.0');
+      final manifest = DeltaManifest(
+        version: v,
+        from: '0.2.0',
+        system: badManifest ? 'macos' : 'windows',
+        archive: zipName,
+        archiveSha256: sha256.convert(zip).toString(),
+        files: {
+          'data/app.so': sha256.convert(next).toString(),
+          if (missingFile) 'data/missing.so': sha256.convert(utf8.encode('missing')).toString(),
+        },
+      );
+      final bytes = utf8.encode(jsonEncode(manifest.toJson()));
+      final (:pair, :key) = await releaseKey();
+      final signature = await Ed25519().sign(bytes, keyPair: pair);
+      final signed = badSignature
+          ? base64.encode(List.filled(64, 0))
+          : base64.encode(signature.bytes);
+      final Map<String, List<int>> pages = {
+        latestReleaseUrl: release(
+          v,
+          systems: ['windows'],
+          extra: [manifestName, '$manifestName.sig', if (!noArchive) zipName],
+          signatures: true,
+        ),
+        ...await signedDownload('notelore-app-$v-windows-x64-setup.exe', setup, pair),
+        'https://dl/$manifestName': bytes,
+        'https://dl/$manifestName.sig': utf8.encode('$signed\n'),
+        if (!noArchive) 'https://dl/$zipName': tamper ? [...zip, 0] : zip,
+      };
+      return (pages: pages, key: key, next: next);
+    }
+
+    Future<void> fullFallback(Map<String, List<int>> pages, String key) async {
+      final u = updater(pages, key: key);
+      expect(await u.apply(), v);
+      await u.relaunch();
+      expect(p.basename(spawned.single.first), 'notelore-app-$v-windows-x64-setup.exe');
+    }
+
+    test('a signed changed-files update stages the files and starts the helper', () async {
+      write(p.join(install, 'notelore-updater.exe'), 'helper');
+      final delta = await deltaPages();
+      final u = updater(
+        delta.pages,
+        key: delta.key,
+        download: (url, {onProgress}) async {
+          onProgress?.call(1, 2);
+          return Pages(delta.pages).call(url);
+        },
+      );
+      final states = <UpdateProgress>[];
+      expect(await u.apply(onProgress: states.add), v);
+      expect(
+        states.map((s) => s.phase),
+        containsAll([UpdatePhase.downloading, UpdatePhase.verifying]),
+      );
+      await u.relaunch();
+
+      final [helper, ...args] = spawned.single;
+      expect(p.basename(helper), 'notelore-updater.exe');
+      expect(args, hasLength(1));
+      final job = UpdateJob.fromJson(read(args.single));
+      expect(job.files, {'data/app.so': sha256.convert(delta.next).toString()});
+      expect(read(p.join(job.staging, 'data', 'app.so')), 'new app');
+      u.cleanup();
+      expect(Directory(job.staging).existsSync(), isFalse);
+    });
+
+    test('bad or incomplete deltas fall back to the full setup', () async {
+      for (final delta in [
+        await deltaPages(badManifest: true),
+        await deltaPages(missingFile: true),
+        await deltaPages(extraFile: true),
+        await deltaPages(noArchive: true),
+      ]) {
+        spawned.clear();
+        await fullFallback(delta.pages, delta.key);
+      }
+    });
+
+    test('a release without a delta uses the full setup', () async {
+      final (:pair, :key) = await releaseKey();
+      await fullFallback({
+        latestReleaseUrl: release(v, systems: ['windows'], signatures: true),
+        ...await signedDownload('notelore-app-$v-windows-x64-setup.exe', setup, pair),
+      }, key);
+    });
+
+    test('a bad delta signature falls back to the full setup', () async {
+      final delta = await deltaPages(badSignature: true);
+      final u = updater(delta.pages, key: delta.key);
+      expect(await u.apply(), v);
+      await u.relaunch();
+      expect(p.basename(spawned.single.first), 'notelore-app-$v-windows-x64-setup.exe');
+    });
+
+    test('a tampered delta archive falls back to the full setup', () async {
+      final delta = await deltaPages(tamper: true);
+      final u = updater(delta.pages, key: delta.key);
+      expect(await u.apply(), v);
+      await u.relaunch();
+      expect(p.basename(spawned.single.first), 'notelore-app-$v-windows-x64-setup.exe');
+    });
+
+    test('a broken delta archive falls back to the full setup', () async {
+      final delta = await deltaPages(brokenZip: true);
+      final u = updater(delta.pages, key: delta.key);
+      expect(await u.apply(), v);
+      await u.relaunch();
+      expect(p.basename(spawned.single.first), 'notelore-app-$v-windows-x64-setup.exe');
+    });
 
     test('download and verify the setup, then run it silently for this user (#493)', () async {
       final u = updater(good());

@@ -5,8 +5,11 @@
 /// published with the release, and, in a build that pins the release key
 /// ([updateKey]), only when that `.sha256` carries the key's Ed25519 signature
 /// (`.sha256.sig`, made by release.yml): a checksum alone proves the download
-/// is whole, the signature that Notelore's release made it (#485). On Windows the release's setup runs silently into this
-/// app's folder once the app has exited, and starts it again. On macOS the
+/// is whole, the signature that Notelore's release made it (#485). On Windows
+/// the release's setup runs silently into this app's folder once the app has
+/// exited, and starts it again; a signed changed-files delta from the previous
+/// version, when published, is applied by the small helper instead, and any
+/// failure falls back to the setup. On macOS the
 /// `.app` comes out of the release's dmg (`hdiutil`, then `ditto`, which keeps
 /// the bundle's symlinks) and replaces the old bundle, which stays as `.old`
 /// until the next start; a failed swap is rolled back. macOS also publishes a
@@ -21,12 +24,16 @@ import 'dart:ffi' show Abi;
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:cryptography/cryptography.dart'
     show Ed25519, KeyPairType, Signature, SimplePublicKey;
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
+
+import 'update_apply.dart';
+import 'update_delta.dart';
 
 const latestReleaseUrl = 'https://api.github.com/repos/mfozmen/notelore/releases/latest';
 
@@ -407,6 +414,10 @@ class Updater {
   /// The downloaded Windows setup or Android APK, opened by [relaunch].
   String? _setup;
 
+  /// The changed-files job and helper, when a Windows delta was staged (#584).
+  String? _deltaJob;
+  String? _deltaHelper;
+
   /// Downloads the latest release and checks it; on macOS also swaps the bundle
   /// in. Its version, or null when this is current.
   Future<String?> apply({void Function(UpdateProgress progress)? onProgress}) async {
@@ -418,6 +429,10 @@ class Updater {
       throw UpdateFailed('release $version has no app for this device; download it from GitHub');
     }
     final url = assets[name]!;
+    if (system == 'windows') {
+      final delta = await _tryDelta(version, assets, onProgress);
+      if (delta != null) return delta;
+    }
     final digest = await _checksum(name, version, assets);
     onProgress?.call(const UpdateProgress.downloading(0, null));
     final data = await (download ?? (url, {onProgress}) => fetch(url))(
@@ -476,6 +491,78 @@ class Updater {
       staging.deleteSync(recursive: true);
     }
     return version;
+  }
+
+  /// Stages a signed changed-files Windows update for [version] if the release
+  /// has one and it verifies; null falls back to the full package.
+  Future<String?> _tryDelta(
+    String version,
+    Map<String, String> assets,
+    void Function(UpdateProgress)? onProgress,
+  ) async {
+    if (publicKey.isEmpty) return null;
+    final manifestName = deltaName(version, system == 'windows' ? 'windows-x64' : system, current);
+    final manifestUrl = assets[manifestName];
+    final signatureUrl = assets['$manifestName.sig'];
+    if (manifestUrl == null || signatureUrl == null) return null;
+    Directory? staging;
+    var applied = false;
+    try {
+      final manifestBytes = await fetch(manifestUrl);
+      final signature = utf8.decode(await fetch(signatureUrl), allowMalformed: true);
+      if (!await signedBy(manifestBytes, signature, publicKey)) return null;
+      final manifest = DeltaManifest.parse(
+        utf8.decode(manifestBytes),
+        current: current,
+        system: system,
+      );
+      final archiveUrl = assets[manifest.archive];
+      if (archiveUrl == null) return null;
+      onProgress?.call(const UpdateProgress.downloading(0, null));
+      final data = await (download ?? (url, {onProgress}) => fetch(url))(
+        archiveUrl,
+        onProgress: (received, total) =>
+            onProgress?.call(UpdateProgress.downloading(received, total)),
+      );
+      onProgress?.call(const UpdateProgress(UpdatePhase.verifying));
+      if (sha256.convert(data).toString() != manifest.archiveSha256) return null;
+      staging = temp.createTempSync('notelore-delta-');
+      final seen = <String>{};
+      for (final entry in ZipDecoder().decodeBytes(data)) {
+        if (!entry.isFile) continue;
+        final expected = manifest.files[entry.name];
+        if (expected == null) return null;
+        final file = File(p.joinAll([staging.path, ...entry.name.split('/')]))
+          ..parent.createSync(recursive: true)
+          ..writeAsBytesSync(entry.content as List<int>);
+        if (sha256.convert(file.readAsBytesSync()).toString() != expected) return null;
+        seen.add(entry.name);
+      }
+      if (seen.length != manifest.files.length) return null;
+      final helper = File(p.join(_installed, 'notelore-updater.exe'));
+      if (!helper.existsSync()) return null;
+      final job = UpdateJob(
+        install: _installed,
+        staging: staging.path,
+        files: manifest.files,
+        executable: p.basename(executable),
+        parentPid: pid,
+      );
+      final jobFile = File(p.join(staging.path, 'job.json'))
+        ..writeAsStringSync(jsonEncode(job.toJson()));
+      _deltaJob = jobFile.path;
+      _deltaHelper = helper.path;
+      applied = true;
+      return version;
+    } on Object {
+      return null;
+    } finally {
+      if (!applied) {
+        _deltaJob = null;
+        _deltaHelper = null;
+        staging?.deleteSync(recursive: true);
+      }
+    }
   }
 
   /// The SHA-256 the release publishes for [name], once its `.sha256` names
@@ -557,6 +644,9 @@ class Updater {
   /// Windows that is the setup, silent, for this user; it starts the app when
   /// done. Throws [InstallNotAllowed] on Android until allowed.
   Future<void> relaunch() async {
+    if (system == 'windows' && _deltaJob != null) {
+      return spawn(_deltaHelper!, [_deltaJob!]);
+    }
     if (system == 'android') {
       if (!await openInstaller(_setup!)) throw const InstallNotAllowed();
       return;
@@ -587,7 +677,8 @@ class Updater {
       // Setups and APKs of earlier updates: they were opened after this app
       // handed over, so it could not delete them then.
       for (final folder in temp.listSync().whereType<Directory>()) {
-        if (p.basename(folder.path).startsWith('notelore-update-')) {
+        if (p.basename(folder.path).startsWith('notelore-update-') ||
+            p.basename(folder.path).startsWith('notelore-delta-')) {
           folder.deleteSync(recursive: true);
         }
       }
