@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
+import 'package:notelore/src/chat.dart';
 import 'package:notelore/src/mark.dart';
 import 'package:notelore/src/note_view.dart';
 import 'package:notelore/src/session.dart';
@@ -484,6 +485,31 @@ void main() {
     await connect(tester, key: 'k');
     expect(tester.takeException(), isNull); // no overflow
     expect(shownExamples(tester, EnglishStrings()), hasLength(3));
+  });
+
+  testWidgets('chat: the longest first-run example fits at large text (#577)', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    addTearDown(tester.view.reset);
+    final longest = EnglishStrings().examples.reduce((a, b) => a.length >= b.length ? a : b);
+    for (final (size, ratio) in [(const Size(1080, 2400), 2.5), (const Size(1280, 900), 1.0)]) {
+      tester.view
+        ..physicalSize = size
+        ..devicePixelRatio = ratio;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmptyChat(
+              EnglishStrings(),
+              example: (_) {},
+              starters: [longest, longest, longest],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull); // no overflow
+    }
   });
 
   testWidgets('chat: message buttons are full-size targets; bubbles leave a gutter (#289)', (

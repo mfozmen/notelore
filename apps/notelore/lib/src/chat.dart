@@ -308,7 +308,7 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             Expanded(
               child: session.transcript.isEmpty
-                  ? _Empty(s, example: session.ready ? _example : null)
+                  ? EmptyChat(s, example: session.ready ? _example : null)
                   : _Lines(session, live: _live),
             ),
             if (session.modelGone)
@@ -336,30 +336,36 @@ class _ChatScreenState extends State<ChatScreen> {
 
 /// No conversation yet: what to do, and three random examples that put
 /// themselves in the box to edit or send ([example]; none without a model).
-class _Empty extends StatefulWidget {
-  const _Empty(this.strings, {this.example});
+class EmptyChat extends StatefulWidget {
+  const EmptyChat(this.strings, {this.example, this.starters, super.key});
 
   final Strings strings;
   final ValueChanged<String>? example;
 
+  /// Pins the three shown; null picks a random three from [Strings.examples].
+  final List<String>? starters;
+
   @override
-  State<_Empty> createState() => _EmptyState();
+  State<EmptyChat> createState() => _EmptyChatState();
 }
 
-class _EmptyState extends State<_Empty> {
+class _EmptyChatState extends State<EmptyChat> {
   late List<String> _shown;
+
+  void _pick() => _shown = widget.starters ?? pickExamples(widget.strings.examples, Random());
 
   @override
   void initState() {
     super.initState();
-    _shown = pickExamples(widget.strings.examples, Random());
+    _pick();
   }
 
   @override
-  void didUpdateWidget(covariant _Empty old) {
+  void didUpdateWidget(covariant EmptyChat old) {
     super.didUpdateWidget(old);
-    if (old.strings.languageCode != widget.strings.languageCode) {
-      _shown = pickExamples(widget.strings.examples, Random());
+    if (old.strings.languageCode != widget.strings.languageCode ||
+        old.starters != widget.starters) {
+      _pick();
     }
   }
 
