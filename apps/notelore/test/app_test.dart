@@ -88,6 +88,12 @@ void phone(WidgetTester tester) {
   addTearDown(tester.view.reset);
 }
 
+/// The starter examples built under the empty chat.
+List<String> shownExamples(WidgetTester tester, Strings strings) => [
+  for (final example in strings.examples)
+    if (find.text(example).evaluate().isNotEmpty) example,
+];
+
 void main() {
   testWidgets('opening shows progress, then the setup screen', (tester) async {
     phone(tester);
@@ -443,7 +449,10 @@ void main() {
     phone(tester);
     await pumpApp(tester, Harness(answers: ['Saved.']));
     await connect(tester, key: 'k');
-    final example = EnglishStrings().examples.first;
+    final shown = shownExamples(tester, EnglishStrings());
+    expect(shown, hasLength(3));
+    expect(shown.toSet(), hasLength(3));
+    final example = shown.first;
     await tester.tap(find.text(example));
     await tester.pump();
     final field = tester.widget<TextField>(find.byKey(const Key('message')));
@@ -461,9 +470,7 @@ void main() {
     await pumpApp(tester, Harness(answers: ['Saved.']));
     await connect(tester, key: 'k');
     expect(tester.takeException(), isNull); // no overflow
-    for (final example in EnglishStrings().examples) {
-      expect(find.text(example), findsOneWidget);
-    }
+    expect(shownExamples(tester, EnglishStrings()), hasLength(3));
   });
 
   testWidgets('chat: the first-run examples fit a desktop at large text (#567)', (tester) async {
@@ -476,9 +483,7 @@ void main() {
     await pumpApp(tester, Harness(answers: ['Saved.']));
     await connect(tester, key: 'k');
     expect(tester.takeException(), isNull); // no overflow
-    for (final example in EnglishStrings().examples) {
-      expect(find.text(example), findsOneWidget);
-    }
+    expect(shownExamples(tester, EnglishStrings()), hasLength(3));
   });
 
   testWidgets('chat: message buttons are full-size targets; bubbles leave a gutter (#289)', (

@@ -334,13 +334,34 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-/// No conversation yet: what to do, and a few examples that put themselves
-/// in the box to edit or send ([example]; none without a model).
-class _Empty extends StatelessWidget {
+/// No conversation yet: what to do, and three random examples that put
+/// themselves in the box to edit or send ([example]; none without a model).
+class _Empty extends StatefulWidget {
   const _Empty(this.strings, {this.example});
 
   final Strings strings;
   final ValueChanged<String>? example;
+
+  @override
+  State<_Empty> createState() => _EmptyState();
+}
+
+class _EmptyState extends State<_Empty> {
+  late List<String> _shown;
+
+  @override
+  void initState() {
+    super.initState();
+    _shown = pickExamples(widget.strings.examples, Random());
+  }
+
+  @override
+  void didUpdateWidget(covariant _Empty old) {
+    super.didUpdateWidget(old);
+    if (old.strings.languageCode != widget.strings.languageCode) {
+      _shown = pickExamples(widget.strings.examples, Random());
+    }
+  }
 
   // Low on the screen, near the thumb and the message box.
   @override
@@ -354,14 +375,14 @@ class _Empty extends StatelessWidget {
           Icon(Icons.edit_note, size: 56, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: Gap.m),
           Text(
-            strings.askSomething,
+            widget.strings.askSomething,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          if (example case final example?) ...[
+          if (widget.example case final example?) ...[
             const SizedBox(height: Gap.l),
             // Full-width rows that wrap, so a long example never gets cut.
-            for (final e in strings.examples)
+            for (final e in _shown)
               Padding(
                 padding: const EdgeInsets.only(bottom: Gap.s),
                 child: SizedBox(

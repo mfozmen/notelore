@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/lock_state.dart';
 import 'package:notelore/src/strings.dart';
@@ -99,16 +101,29 @@ void main() {
     }
   });
 
-  test('a few short, distinct examples for an empty chat, in each language', () {
+  test('many short, distinct examples for an empty chat, in each language', () {
     for (final s in [en, tr]) {
-      expect(s.examples, hasLength(3));
-      expect(s.examples.toSet(), hasLength(3));
+      expect(s.examples.length, greaterThanOrEqualTo(12));
+      expect(s.examples.toSet(), hasLength(s.examples.length));
       for (final example in s.examples) {
         expect(example, isNotEmpty);
         expect(example.length, lessThanOrEqualTo(80));
       }
     }
     expect(tr.examples.first, isNot(en.examples.first));
+  });
+
+  test('three distinct starters at random, and every one reachable (#577)', () {
+    for (final s in [en, tr]) {
+      final seen = <String>{};
+      for (var seed = 0; seed < 500; seed++) {
+        final picked = pickExamples(s.examples, Random(seed));
+        expect(picked, hasLength(3));
+        expect(picked.toSet(), hasLength(3));
+        seen.addAll(picked);
+      }
+      expect(seen, s.examples.toSet());
+    }
   });
 
   test('plenty of waiting lines in both languages, each its own', () {

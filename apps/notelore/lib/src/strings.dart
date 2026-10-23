@@ -4,6 +4,8 @@
 /// OpenAI's required wording for the ChatGPT plan stays English in both.
 library;
 
+import 'dart:math' show Random;
+
 import 'package:notelore_core/notelore_core.dart';
 
 import 'lock_state.dart' show LockKind;
@@ -749,6 +751,18 @@ class EnglishStrings extends Strings {
     'Start a garden plan: tomatoes and basil on the balcony.',
     'Ankara trip: we chose the train because it is cheaper than flying.',
     'Remind me to call Mom on Friday at 18:00.',
+    'New project: build a birdhouse from cedar offcuts.',
+    'For the hallway, we picked the pale blue paint because it is brighter.',
+    'Remind me to water the plants on Saturday at 09:00.',
+    'Save this: the library closes at 18:00 on weekdays.',
+    'Add a todo: renew the home insurance by 15 November.',
+    'For the campsite, we chose the north loop because it is quieter.',
+    'New topic: solar panel quotes for the roof.',
+    'Remind me to take the cake out at 16:30.',
+    'Start a note for the kitchen remodelling: keep the oak floor.',
+    'We decided on the smaller car because it fits the garage.',
+    'Add a todo: book the ferry before 1 June.',
+    'Save this: the plumber comes on Tuesdays.',
   ];
   @override
   String get message => 'Message';
@@ -1793,6 +1807,18 @@ class TurkishStrings extends Strings {
     'Balkon için bahçe planı başlat: domates ve fesleğen.',
     'Ankara gezisi: uçaktan daha ucuz olduğu için treni seçtik.',
     "Cuma 18.00'de annemi aramamı hatırlat.",
+    'Yeni proje: kalan sedir parçalarından kuş evi yap.',
+    'Koridor için soluk maviyi seçtik, daha aydınlık duruyor.',
+    "Cumartesi 09.00'da çiçekleri sulamayı hatırlat.",
+    "Bunu not al: kütüphane hafta içi 18.00'de kapanıyor.",
+    "Yapılacak: 15 Kasım'a kadar ev sigortasını yenile.",
+    'Kamp alanı için kuzey halkasını seçtik, daha sessiz.',
+    'Yeni konu: çatı için güneş paneli teklifleri.',
+    "16.30'da keki fırından almayı hatırlat.",
+    'Mutfak tadilatı için not başlat: meşe parke kalsın.',
+    'Daha küçük arabayı seçtik, garaja sığıyor.',
+    "Yapılacak: 1 Haziran'dan önce vapur yerini ayırt.",
+    'Bunu not al: tesisatçı salı günleri geliyor.',
   ];
   @override
   String get message => 'Mesaj';
@@ -2602,6 +2628,14 @@ Strings stringsFor(AppLanguage language, String system) => switch (language) {
   AppLanguage.en => EnglishStrings(),
   AppLanguage.system => system == 'tr' ? TurkishStrings() : EnglishStrings(),
 };
+
+/// Three distinct starters from [examples], in random order: a new empty chat
+/// greets with a different few each time, never a fixed three (#577).
+List<String> pickExamples(List<String> examples, Random random) {
+  assert(examples.length >= 3);
+  final pool = [...examples]..shuffle(random);
+  return pool.take(3).toList();
+}
 
 /// A wait as minutes and seconds, like a timer: 0:30, 5:00.
 String _minutes(Duration wait) =>
