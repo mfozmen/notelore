@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
-# Thins a universal macOS .app to one architecture and signs it ad hoc, so the
-# release can ship a smaller dmg per Mac. The release key for the app bundle is
-# not affected: the update checksum/signature covers the dmg.
-#
-#   tool/thin_macos_app.sh <path/to/notelore.app> <arm64|x86_64>
+# Thin a universal macOS .app to one architecture and ad-hoc sign it, so each
+# Mac gets a smaller dmg; the dmg's update checksum/signature is unaffected.
 set -euo pipefail
 
 app=$1
