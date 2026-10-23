@@ -1,7 +1,6 @@
-/// Notelore's mark (#340): a note you talk to. A white card with a folded
-/// corner (the note) and a speech tail (the chat), two lines of writing on it,
-/// on lagoon teal. One drawing for the app and for every platform's icon
-/// (`tool/make_icons_test.dart`), so they never drift apart.
+/// Notelore's mark (#340, #568): a folded ribbon that forms an N, its left end
+/// cut like a bookmark, on lagoon teal. One drawing for the app and for every
+/// platform's icon (`tool/make_icons_test.dart`), so they never drift apart.
 library;
 
 import 'package:flutter/material.dart';
@@ -9,12 +8,13 @@ import 'package:flutter/material.dart';
 /// The mark's own colours: a brand, the same whatever palette the app wears.
 abstract final class MarkColors {
   static const teal = Color(0xFF0D9488); // the lagoon palette's seed
-  static const card = Color(0xFFFFFFFF);
-  static const fold = Color(0xFF99E2D8);
+  static const ribbon = Color(0xFFFFFFFF);
+  static const fold = Color(0xFF5EC9BC);
+  static const foldOnLight = Color(0xFF064E48);
 }
 
-/// The mark at [size]: on its rounded teal square, or the card alone ([badge]
-/// false) for a place that has its own background.
+/// The mark at [size]: on its rounded teal square, or the ribbon alone
+/// ([badge] false) for a place that has its own background.
 class NoteloreMark extends StatelessWidget {
   const NoteloreMark({this.size = 72, this.badge = true, super.key});
 
@@ -22,27 +22,51 @@ class NoteloreMark extends StatelessWidget {
   final bool badge;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    label: 'Notelore',
-    image: true,
-    child: SizedBox.square(
-      dimension: size,
-      child: CustomPaint(painter: MarkPainter(background: badge ? MarkColors.teal : null)),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Semantics(
+      label: 'Notelore',
+      image: true,
+      child: SizedBox.square(
+        dimension: size,
+        child: CustomPaint(
+          painter: MarkPainter(
+            background: badge ? MarkColors.teal : null,
+            ink: badge ? null : (dark ? MarkColors.ribbon : MarkColors.teal),
+            fold: badge || dark ? MarkColors.fold : MarkColors.foldOnLight,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Draws the mark into its canvas: a [background] square (its corners rounded
-/// by [radius], a share of the side) when given, and the card within [inset]
-/// (a share of the side on every edge). [mono] draws the card's shape alone,
-/// the writing cut out, for Android's themed icons.
+/// by [radius], a share of the side) when given, and the ribbon within [inset]
+/// (a share of the side on every edge). [mono] draws the ribbon's silhouette
+/// alone, for Android's themed icons.
 class MarkPainter extends CustomPainter {
-  const MarkPainter({this.background, this.radius = 0.22, this.inset = 0.16, this.mono = false});
+  const MarkPainter({
+    this.background,
+    this.radius = 0.22,
+    this.inset = 0.13,
+    this.mono = false,
+    this.ink,
+    this.fold,
+  });
 
   final Color? background;
   final double radius;
   final double inset;
   final bool mono;
+
+  /// The ribbon's colour when the painter has no [background] of its own, such
+  /// as Android's adaptive foreground over its teal layer.
+  final Color? ink;
+
+  /// The turned underside: a shade of [ink] on the badge, darker than the
+  /// ribbon when it stands on a light surface.
+  final Color? fold;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -53,55 +77,52 @@ class MarkPainter extends CustomPainter {
         Paint()..color = color,
       );
     }
-    // The card in a 100-unit box, placed within the inset.
+    // The ribbon in a 100-unit box, placed within the inset.
     final unit = side * (1 - 2 * inset) / 100;
     canvas
       ..save()
       ..translate(side * inset, side * inset)
       ..scale(unit);
-    if (mono) canvas.saveLayer(const Rect.fromLTWH(0, 0, 100, 100), Paint());
-    final ink = mono ? Colors.white : MarkColors.teal;
-    canvas.drawPath(_card, Paint()..color = mono ? Colors.white : MarkColors.card);
-    if (!mono) canvas.drawPath(_fold, Paint()..color = MarkColors.fold);
-    final line = Paint()
-      ..color = ink
-      ..strokeWidth = 8
-      ..strokeCap = StrokeCap.round
-      // The writing is cut out of the themed icon's single colour.
-      ..blendMode = mono ? BlendMode.clear : BlendMode.srcOver;
-    canvas
-      ..drawLine(const Offset(26, 36), const Offset(70, 36), line)
-      ..drawLine(const Offset(26, 54), const Offset(54, 54), line);
-    if (mono) canvas.restore();
+    if (mono) {
+      canvas.drawPath(_ribbon, Paint()..color = Colors.white);
+    } else {
+      canvas.drawPath(
+        _ribbon,
+        Paint()..color = background == null ? (ink ?? MarkColors.teal) : MarkColors.ribbon,
+      );
+      canvas.drawPath(_fold, Paint()..color = fold ?? MarkColors.fold);
+    }
     canvas.restore();
   }
 
-  /// A rounded card with its top-right corner folded away, and a speech tail
-  /// at its bottom-left.
-  static final _card = Path.combine(
-    PathOperation.union,
+  /// A bold N: the two uprights and the diagonal are one ribbon, its top-left
+  /// end cut down the middle like a bookmark's notch.
+  static final _ribbon = Path.combine(
+    PathOperation.difference,
     Path.combine(
-      PathOperation.difference,
-      Path()..addRRect(RRect.fromLTRBR(10, 8, 90, 74, const Radius.circular(12))),
+      PathOperation.union,
       Path()
-        ..moveTo(62, 0)
-        ..lineTo(100, 0)
-        ..lineTo(100, 38)
+        ..addRect(const Rect.fromLTRB(14, 12, 38, 88))
+        ..addRect(const Rect.fromLTRB(62, 12, 86, 88)),
+      Path()
+        ..moveTo(14, 12)
+        ..lineTo(38, 12)
+        ..lineTo(86, 88)
+        ..lineTo(62, 88)
         ..close(),
     ),
     Path()
-      ..moveTo(22, 70)
-      ..lineTo(16, 94)
-      ..lineTo(42, 70)
+      ..moveTo(14, 12)
+      ..lineTo(29, 34)
+      ..lineTo(44, 12)
       ..close(),
   );
 
-  /// The folded-down corner.
+  /// The underside of the ribbon where it turns into the right upright.
   static final _fold = Path()
-    ..moveTo(70, 8)
-    ..lineTo(70, 22)
-    ..quadraticBezierTo(70, 28, 76, 28)
-    ..lineTo(90, 28)
+    ..moveTo(62, 88)
+    ..lineTo(62, 60)
+    ..lineTo(86, 60)
     ..close();
 
   @override
@@ -109,5 +130,7 @@ class MarkPainter extends CustomPainter {
       old.background != background ||
       old.inset != inset ||
       old.mono != mono ||
+      old.ink != ink ||
+      old.fold != fold ||
       old.radius != radius;
 }

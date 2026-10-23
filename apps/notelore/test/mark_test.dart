@@ -27,24 +27,53 @@ Color at(ByteData data, int side, int x, int y) {
 }
 
 void main() {
-  testWidgets('the badge: teal around a white card with teal writing (#340)', (tester) async {
-    final data = await pixels(tester, const MarkPainter(background: MarkColors.teal), 100);
-    expect(at(data, 100, 50, 4), MarkColors.teal); // the background, above the card
-    expect(at(data, 100, 30, 70), MarkColors.card); // the card
-    expect(at(data, 100, 40, 39), MarkColors.teal); // the first line of writing
+  testWidgets('the badge: a white ribbon on teal, its fold in mint (#568)', (tester) async {
+    final data = await pixels(
+      tester,
+      const MarkPainter(background: MarkColors.teal, inset: 0),
+      100,
+    );
+    expect(at(data, 100, 50, 4), MarkColors.teal); // the badge above the ribbon
+    expect(at(data, 100, 25, 50), MarkColors.ribbon); // the left upright
+    expect(at(data, 100, 75, 50), MarkColors.ribbon); // the right upright
+    expect(at(data, 100, 70, 70), MarkColors.fold); // the turned underside
+    expect(at(data, 100, 26, 20), MarkColors.teal); // the bookmark notch
   });
 
-  testWidgets('the themed icon: one colour, the writing cut out', (tester) async {
+  testWidgets('without a badge the ribbon is teal on the page (#568)', (tester) async {
+    final data = await pixels(tester, const MarkPainter(inset: 0), 100);
+    expect(at(data, 100, 50, 4).a, 0); // no square
+    expect(at(data, 100, 25, 50), MarkColors.teal); // the ribbon
+    expect(at(data, 100, 70, 70), MarkColors.fold); // the fold
+  });
+
+  testWidgets('a light ribbon over its own teal layer, as Android draws it (#568)', (tester) async {
+    final data = await pixels(tester, const MarkPainter(inset: 0, ink: MarkColors.ribbon), 100);
+    expect(at(data, 100, 25, 50), MarkColors.ribbon); // the ribbon
+    expect(at(data, 100, 50, 4).a, 0); // no square of its own
+  });
+
+  testWidgets('the themed icon: one colour, the ribbon silhouette (#568)', (tester) async {
     final data = await pixels(tester, const MarkPainter(inset: 0, mono: true), 100);
-    expect(at(data, 100, 30, 20).a, 1); // the card, opaque
-    expect(at(data, 100, 40, 36).a, 0); // the writing, see-through
+    expect(at(data, 100, 25, 50).a, 1); // the left upright
+    expect(at(data, 100, 70, 70).a, 1); // the fold stays solid
+    expect(at(data, 100, 26, 20).a, 0); // the notch
     expect(at(data, 100, 2, 2).a, 0); // no background
+  });
+
+  testWidgets('at 16 px the N and its notch still read (#568)', (tester) async {
+    final data = await pixels(tester, const MarkPainter(background: MarkColors.teal, inset: 0), 16);
+    expect(at(data, 16, 4, 8), MarkColors.ribbon); // the left upright
+    expect(at(data, 16, 12, 8), MarkColors.ribbon); // the right upright
+    expect(at(data, 16, 4, 2), MarkColors.teal); // the notch
   });
 
   test('repaints only when what it draws changes', () {
     const mark = MarkPainter();
     expect(mark.shouldRepaint(const MarkPainter()), isFalse);
     expect(mark.shouldRepaint(const MarkPainter(mono: true)), isTrue);
+    expect(mark.shouldRepaint(const MarkPainter(ink: MarkColors.ribbon)), isTrue);
+    expect(mark.shouldRepaint(const MarkPainter(fold: MarkColors.foldOnLight)), isTrue);
     expect(mark.shouldRepaint(const MarkPainter(background: MarkColors.teal)), isTrue);
   });
 }

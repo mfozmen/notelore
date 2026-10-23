@@ -456,7 +456,7 @@ class _Menu extends StatelessWidget {
           children: [
             // The app's own menu, not a hidden list: its mark and name first.
             ListTile(
-              leading: const NoteloreMark(size: 32, badge: false),
+              leading: const ExcludeSemantics(child: NoteloreMark(size: 32, badge: false)),
               title: Text('Notelore', style: theme.textTheme.titleLarge),
             ),
             Padding(

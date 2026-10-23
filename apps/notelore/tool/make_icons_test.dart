@@ -79,11 +79,11 @@ void main() {
         final side = (108 * scale).round();
         write(
           p.join(dir, 'ic_launcher_foreground.png'),
-          await png(side, const MarkPainter(inset: 0.25)),
+          await png(side, const MarkPainter(inset: 0.22, ink: MarkColors.ribbon)),
         );
         write(
           p.join(dir, 'ic_launcher_monochrome.png'),
-          await png(side, const MarkPainter(inset: 0.25, mono: true)),
+          await png(side, const MarkPainter(inset: 0.22, mono: true)),
         );
       }
       write(p.join(res, 'mipmap-anydpi-v26', 'ic_launcher.xml'), utf8.encode(_adaptive));
@@ -108,7 +108,11 @@ void main() {
         final scale = double.parse('${image['scale']}'.replaceAll('x', ''));
         write(
           p.join(ios, '${image['filename']}'),
-          await png((points * scale).round(), const MarkPainter(radius: 0), opaque: true),
+          await png(
+            (points * scale).round(),
+            const MarkPainter(radius: 0, background: MarkColors.teal),
+            opaque: true,
+          ),
         );
       }
     });
