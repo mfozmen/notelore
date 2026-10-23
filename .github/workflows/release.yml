@@ -191,7 +191,7 @@ jobs:
       - name: Install Inno Setup
         if: runner.os == 'Windows'
         run: choco install innosetup --no-progress -y
-      # The installer (setup.exe / .dmg) plus the zip the 0.3.x updater looks for.
+      # The installer (setup.exe / .dmg).
       - name: Package
         shell: bash
         run: bash tool/package_desktop.sh "$VERSION" dist Release
