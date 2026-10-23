@@ -454,6 +454,33 @@ void main() {
     expect(find.text(example), findsOneWidget); // the bubble; the examples are gone
   });
 
+  testWidgets('chat: the first-run examples fit a phone at large text (#567)', (tester) async {
+    phone(tester);
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await pumpApp(tester, Harness(answers: ['Saved.']));
+    await connect(tester, key: 'k');
+    expect(tester.takeException(), isNull); // no overflow
+    for (final example in EnglishStrings().examples) {
+      expect(find.text(example), findsOneWidget);
+    }
+  });
+
+  testWidgets('chat: the first-run examples fit a desktop at large text (#567)', (tester) async {
+    tester.view
+      ..physicalSize = const Size(1280, 900)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await pumpApp(tester, Harness(answers: ['Saved.']));
+    await connect(tester, key: 'k');
+    expect(tester.takeException(), isNull); // no overflow
+    for (final example in EnglishStrings().examples) {
+      expect(find.text(example), findsOneWidget);
+    }
+  });
+
   testWidgets('chat: message buttons are full-size targets; bubbles leave a gutter (#289)', (
     tester,
   ) async {

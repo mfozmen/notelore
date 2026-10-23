@@ -99,9 +99,14 @@ void main() {
     }
   });
 
-  test('a few examples for an empty chat, in each language', () {
+  test('a few short, distinct examples for an empty chat, in each language', () {
     for (final s in [en, tr]) {
       expect(s.examples, hasLength(3));
+      expect(s.examples.toSet(), hasLength(3));
+      for (final example in s.examples) {
+        expect(example, isNotEmpty);
+        expect(example.length, lessThanOrEqualTo(80));
+      }
     }
     expect(tr.examples.first, isNot(en.examples.first));
   });
