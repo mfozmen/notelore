@@ -11,6 +11,8 @@ import 'package:path/path.dart' as p;
 import 'update_delta.dart'
     show isSafeUpdatePath, updateJsonFiles, updateJsonObject, updateJsonString;
 
+const _what = 'update job';
+
 class UpdateApplyFailed implements Exception {
   const UpdateApplyFailed(this.message);
 
@@ -28,7 +30,7 @@ int _parentPid(Object? value) {
 }
 
 String _executable(Map<String, Object?> map) {
-  final value = updateJsonString(map, 'executable', 'update job');
+  final value = updateJsonString(map, 'executable', _what);
   if (!isSafeUpdatePath(value) || value.contains('/')) {
     throw FormatException("update job executable '$value' is not a plain name");
   }
@@ -53,16 +55,16 @@ final class UpdateJob {
   final int parentPid;
 
   factory UpdateJob.fromJson(String text) {
-    final map = updateJsonObject(text, 'update job');
-    final install = updateJsonString(map, 'install', 'update job');
-    final staging = updateJsonString(map, 'staging', 'update job');
+    final map = updateJsonObject(text, _what);
+    final install = updateJsonString(map, 'install', _what);
+    final staging = updateJsonString(map, 'staging', _what);
     if (!p.isAbsolute(install) || !p.isAbsolute(staging)) {
       throw const FormatException('update job paths must be absolute');
     }
     return UpdateJob(
       install: install,
       staging: staging,
-      files: updateJsonFiles(map['files'], 'update job'),
+      files: updateJsonFiles(map['files'], _what),
       executable: _executable(map),
       parentPid: _parentPid(map['parent_pid']),
     );

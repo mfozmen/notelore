@@ -33,6 +33,7 @@ const _reserved = {
   'conout\$',
 };
 const _neverUpdated = {'notelore-updater.exe', 'job.json'};
+const _what = 'delta manifest';
 
 /// A JSON object from [text], or [FormatException] naming [what].
 Map<String, Object?> updateJsonObject(String text, String what) {
@@ -122,12 +123,12 @@ final class DeltaManifest {
     required String current,
     required String system,
   }) {
-    final map = updateJsonObject(text, 'delta manifest');
-    final from = updateJsonString(map, 'from', 'delta manifest');
-    final manifestSystem = updateJsonString(map, 'system', 'delta manifest');
-    final archive = updateJsonString(map, 'archive', 'delta manifest');
-    final archiveSha = updateJsonString(map, 'archive_sha256', 'delta manifest');
-    if (updateJsonString(map, 'version', 'delta manifest') != version) {
+    final map = updateJsonObject(text, _what);
+    final from = updateJsonString(map, 'from', _what);
+    final manifestSystem = updateJsonString(map, 'system', _what);
+    final archive = updateJsonString(map, 'archive', _what);
+    final archiveSha = updateJsonString(map, 'archive_sha256', _what);
+    if (updateJsonString(map, 'version', _what) != version) {
       throw FormatException("delta manifest is for another version, not '$version'");
     }
     if (from != current) {
@@ -148,7 +149,7 @@ final class DeltaManifest {
       system: manifestSystem,
       archive: archive,
       archiveSha256: archiveSha,
-      files: updateJsonFiles(map['files'], 'delta manifest'),
+      files: updateJsonFiles(map['files'], _what),
     );
   }
 
