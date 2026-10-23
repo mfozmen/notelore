@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
+import 'package:notelore/src/chat.dart';
 import 'package:notelore/src/mark.dart';
 import 'package:notelore/src/note_view.dart';
 import 'package:notelore/src/session.dart';
@@ -87,6 +88,12 @@ void phone(WidgetTester tester) {
     ..devicePixelRatio = 2.5;
   addTearDown(tester.view.reset);
 }
+
+/// The starter examples built under the empty chat.
+List<String> shownExamples(WidgetTester tester, Strings strings) => [
+  for (final example in strings.examples)
+    if (find.text(example).evaluate().isNotEmpty) example,
+];
 
 void main() {
   testWidgets('opening shows progress, then the setup screen', (tester) async {
@@ -443,7 +450,10 @@ void main() {
     phone(tester);
     await pumpApp(tester, Harness(answers: ['Saved.']));
     await connect(tester, key: 'k');
-    final example = EnglishStrings().examples.first;
+    final shown = shownExamples(tester, EnglishStrings());
+    expect(shown, hasLength(3));
+    expect(shown.toSet(), hasLength(3));
+    final example = shown.first;
     await tester.tap(find.text(example));
     await tester.pump();
     final field = tester.widget<TextField>(find.byKey(const Key('message')));
@@ -461,9 +471,7 @@ void main() {
     await pumpApp(tester, Harness(answers: ['Saved.']));
     await connect(tester, key: 'k');
     expect(tester.takeException(), isNull); // no overflow
-    for (final example in EnglishStrings().examples) {
-      expect(find.text(example), findsOneWidget);
-    }
+    expect(shownExamples(tester, EnglishStrings()), hasLength(3));
   });
 
   testWidgets('chat: the first-run examples fit a desktop at large text (#567)', (tester) async {
@@ -476,8 +484,31 @@ void main() {
     await pumpApp(tester, Harness(answers: ['Saved.']));
     await connect(tester, key: 'k');
     expect(tester.takeException(), isNull); // no overflow
-    for (final example in EnglishStrings().examples) {
-      expect(find.text(example), findsOneWidget);
+    expect(shownExamples(tester, EnglishStrings()), hasLength(3));
+  });
+
+  testWidgets('chat: the longest first-run example fits at large text (#577)', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    addTearDown(tester.view.reset);
+    final longest = EnglishStrings().examples.reduce((a, b) => a.length >= b.length ? a : b);
+    for (final (size, ratio) in [(const Size(1080, 2400), 2.5), (const Size(1280, 900), 1.0)]) {
+      tester.view
+        ..physicalSize = size
+        ..devicePixelRatio = ratio;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmptyChat(
+              EnglishStrings(),
+              example: (_) {},
+              starters: [longest, longest, longest],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull); // no overflow
     }
   });
 

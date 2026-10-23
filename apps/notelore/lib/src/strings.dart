@@ -4,9 +4,12 @@
 /// OpenAI's required wording for the ChatGPT plan stays English in both.
 library;
 
+import 'dart:math' show Random;
+
 import 'package:notelore_core/notelore_core.dart';
 
 import 'lock_state.dart' show LockKind;
+import 'starters.dart';
 import 'theme.dart';
 import 'transfer.dart' show ExportFormat;
 import 'whisper_model.dart' show DownloadProblem;
@@ -745,11 +748,7 @@ class EnglishStrings extends Strings {
   @override
   String get askSomething => 'Write something to note, or ask about your notes.';
   @override
-  List<String> get examples => const [
-    'Start a garden plan: tomatoes and basil on the balcony.',
-    'Ankara trip: we chose the train because it is cheaper than flying.',
-    'Remind me to call Mom on Friday at 18:00.',
-  ];
+  List<String> get examples => starterExamplesEn;
   @override
   String get message => 'Message';
   @override
@@ -1789,11 +1788,7 @@ class TurkishStrings extends Strings {
   @override
   String get askSomething => 'Not almamı istediğin bir şey yaz ya da notlarına sor.';
   @override
-  List<String> get examples => const [
-    'Balkon için bahçe planı başlat: domates ve fesleğen.',
-    'Ankara gezisi: uçaktan daha ucuz olduğu için treni seçtik.',
-    "Cuma 18.00'de annemi aramamı hatırlat.",
-  ];
+  List<String> get examples => starterExamplesTr;
   @override
   String get message => 'Mesaj';
   @override
@@ -2602,6 +2597,14 @@ Strings stringsFor(AppLanguage language, String system) => switch (language) {
   AppLanguage.en => EnglishStrings(),
   AppLanguage.system => system == 'tr' ? TurkishStrings() : EnglishStrings(),
 };
+
+/// Three distinct starters from [examples], in random order: a new empty chat
+/// greets with a different few each time, never a fixed three (#577).
+List<String> pickExamples(List<String> examples, Random random) {
+  assert(examples.length >= 3);
+  final pool = [...examples]..shuffle(random);
+  return pool.take(3).toList();
+}
 
 /// A wait as minutes and seconds, like a timer: 0:30, 5:00.
 String _minutes(Duration wait) =>

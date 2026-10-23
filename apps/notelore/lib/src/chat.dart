@@ -308,7 +308,7 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             Expanded(
               child: session.transcript.isEmpty
-                  ? _Empty(s, example: session.ready ? _example : null)
+                  ? EmptyChat(s, example: session.ready ? _example : null)
                   : _Lines(session, live: _live),
             ),
             if (session.modelGone)
@@ -334,13 +334,40 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-/// No conversation yet: what to do, and a few examples that put themselves
-/// in the box to edit or send ([example]; none without a model).
-class _Empty extends StatelessWidget {
-  const _Empty(this.strings, {this.example});
+/// No conversation yet: what to do, and three random examples that put
+/// themselves in the box to edit or send ([example]; none without a model).
+class EmptyChat extends StatefulWidget {
+  const EmptyChat(this.strings, {this.example, this.starters, super.key});
 
   final Strings strings;
   final ValueChanged<String>? example;
+
+  /// Pins the three shown; null picks a random three from [Strings.examples].
+  final List<String>? starters;
+
+  @override
+  State<EmptyChat> createState() => _EmptyChatState();
+}
+
+class _EmptyChatState extends State<EmptyChat> {
+  late List<String> _shown;
+
+  void _pick() => _shown = widget.starters ?? pickExamples(widget.strings.examples, Random());
+
+  @override
+  void initState() {
+    super.initState();
+    _pick();
+  }
+
+  @override
+  void didUpdateWidget(covariant EmptyChat old) {
+    super.didUpdateWidget(old);
+    if (old.strings.languageCode != widget.strings.languageCode ||
+        old.starters != widget.starters) {
+      _pick();
+    }
+  }
 
   // Low on the screen, near the thumb and the message box.
   @override
@@ -354,14 +381,14 @@ class _Empty extends StatelessWidget {
           Icon(Icons.edit_note, size: 56, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: Gap.m),
           Text(
-            strings.askSomething,
+            widget.strings.askSomething,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          if (example case final example?) ...[
+          if (widget.example case final example?) ...[
             const SizedBox(height: Gap.l),
             // Full-width rows that wrap, so a long example never gets cut.
-            for (final e in strings.examples)
+            for (final e in _shown)
               Padding(
                 padding: const EdgeInsets.only(bottom: Gap.s),
                 child: SizedBox(
