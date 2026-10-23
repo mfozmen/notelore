@@ -19,13 +19,18 @@ List<int> release(
   bool signatures = false,
   List<String> systems = const ['windows', 'macos', 'android'],
   String abi = '',
+  String arch = '',
   bool universal = true,
+  bool macUniversal = true,
 }) {
   assert(abi.isNotEmpty || universal || !systems.contains('android'));
+  assert(arch.isNotEmpty || macUniversal || !systems.contains('macos'));
   final apps = [
     for (final system in systems)
-      if (system != 'android' || universal) assetName(version, system),
+      if ((system != 'android' || universal) && (system != 'macos' || macUniversal))
+        assetName(version, system),
     if (systems.contains('android') && abi.isNotEmpty) assetName(version, 'android', abi: abi),
+    if (systems.contains('macos') && arch.isNotEmpty) assetName(version, 'macos', arch: arch),
   ];
   final names = [
     ...apps,
@@ -121,15 +126,20 @@ void main() {
       assetName('1.2.3', 'android', abi: 'arm64-v8a'),
       'notelore-app-1.2.3-android-arm64-v8a.apk',
     );
+    expect(assetName('1.2.3', 'macos', arch: 'arm64'), 'notelore-app-1.2.3-macos-arm64.dmg');
     expect(() => assetName('1.2.3', 'linux'), throwsA(isA<UpdateFailed>()));
   });
 
-  test('names the Android ABI, and leaves a CPU it does not build for empty', () {
+  test('names the Android ABI and the Mac architecture', () {
     expect(abiName(Abi.androidArm64), 'arm64-v8a');
     expect(abiName(Abi.androidArm), 'armeabi-v7a');
     expect(abiName(Abi.androidX64), 'x86_64');
     expect(abiName(Abi.windowsX64), '');
+    expect(macArchName(Abi.macosArm64), 'arm64');
+    expect(macArchName(Abi.macosX64), 'x86_64');
+    expect(macArchName(Abi.windowsX64), '');
     expect(androidAbi(Abi.androidArm64), 'arm64-v8a');
+    expect(macArch(Abi.macosArm64), 'arm64');
   });
 
   test('a release says what it brings: features first, then fixes, two at most (#288)', () {
@@ -162,6 +172,28 @@ void main() {
           fetch: universal.call,
           system: 'android',
           abi: 'x86_64',
+        ),
+        v,
+      );
+    });
+
+    test('macOS takes the dmg for its architecture, or the universal one', () async {
+      final arm = Pages({
+        latestReleaseUrl: release(v, systems: ['macos'], arch: 'arm64'),
+      });
+      expect(
+        await checkForUpdate(current: '0.2.0', fetch: arm.call, system: 'macos', arch: 'arm64'),
+        v,
+      );
+      final universal = Pages({
+        latestReleaseUrl: release(v, systems: ['macos']),
+      });
+      expect(
+        await checkForUpdate(
+          current: '0.2.0',
+          fetch: universal.call,
+          system: 'macos',
+          arch: 'x86_64',
         ),
         v,
       );
@@ -517,17 +549,22 @@ void main() {
       return ProcessResult(0, 0, '', '');
     }
 
-    Updater updater(Map<String, List<int>> pages, {Run? run, String os = 'Version 15.1'}) =>
-        Updater(
-          system: 'macos',
-          osVersion: os,
-          executable: p.join(bundle, 'Contents', 'MacOS', 'notelore'),
-          current: '0.2.0',
-          temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
-          fetch: Pages(pages).call,
-          run: run ?? tools,
-          spawn: (exe, args) async => spawned.add([exe, ...args]),
-        );
+    Updater updater(
+      Map<String, List<int>> pages, {
+      Run? run,
+      String os = 'Version 15.1',
+      String arch = '',
+    }) => Updater(
+      system: 'macos',
+      arch: arch,
+      osVersion: os,
+      executable: p.join(bundle, 'Contents', 'MacOS', 'notelore'),
+      current: '0.2.0',
+      temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
+      fetch: Pages(pages).call,
+      run: run ?? tools,
+      spawn: (exe, args) async => spawned.add([exe, ...args]),
+    );
 
     final dmg = utf8.encode('dmg bytes');
     Map<String, List<int>> good() => {
@@ -554,6 +591,39 @@ void main() {
       u.cleanup();
       expect(Directory('$bundle.old').existsSync(), isFalse);
       u.cleanup(); // nothing left: fine
+    });
+
+    test('downloads the dmg for this Mac, not the universal one', () async {
+      final paths = <String>[];
+      Future<ProcessResult> record(String command, List<String> args) async {
+        if (command == 'hdiutil' && args.first == 'attach') paths.add(args.last);
+        return tools(command, args);
+      }
+
+      final arm = utf8.encode('arm dmg');
+      final u = updater(
+        {
+          latestReleaseUrl: release(v, systems: ['macos'], arch: 'arm64'),
+          ...download('notelore-app-$v-macos.dmg', dmg),
+          ...download('notelore-app-$v-macos-arm64.dmg', arm),
+        },
+        run: record,
+        arch: 'arm64',
+      );
+      expect(await u.apply(), v);
+      expect(p.basename(paths.single), 'notelore-app-$v-macos-arm64.dmg');
+    });
+
+    test('falls back to the universal dmg when this architecture is not published', () async {
+      final paths = <String>[];
+      Future<ProcessResult> record(String command, List<String> args) async {
+        if (command == 'hdiutil' && args.first == 'attach') paths.add(args.last);
+        return tools(command, args);
+      }
+
+      final u = updater(good(), run: record, arch: 'x86_64');
+      expect(await u.apply(), v);
+      expect(p.basename(paths.single), 'notelore-app-$v-macos.dmg');
     });
 
     test(
@@ -669,6 +739,15 @@ void main() {
     );
     expect(androidDefault, isNotNull);
     expect(androidDefault!.abi, 'arm64-v8a');
+    final mac = updaterFor(
+      system: 'macos',
+      version: '1.0.0',
+      executable: 'x',
+      key: 'k',
+      platformAbi: Abi.macosArm64,
+    );
+    expect(mac, isNotNull);
+    expect(mac!.arch, 'arm64');
     // A release build without the key never falls back to checksums alone.
     expect(updaterFor(system: 'macos', version: '1.0.0', executable: 'x', key: ''), isNull);
     expect(updaterFor(system: 'macos', version: '1.0.0', executable: 'x'), isNull); // this build

@@ -185,6 +185,23 @@ void main() {
     expect(find.text('A fresh Notelore is ready: $v.'), findsOneWidget);
   });
 
+  testWidgets("the start check asks for this Mac's architecture", (tester) async {
+    final u = Updater(
+      system: 'macos',
+      arch: 'arm64',
+      executable: p.join(install, 'Contents', 'MacOS', 'notelore'),
+      current: '0.2.0',
+      temp: temp,
+      fetch: Pages({
+        latestReleaseUrl: release(v, systems: ['macos'], arch: 'arm64', macUniversal: false),
+      }).call,
+      run: (command, args) async => fail('nothing runs on a check'),
+      spawn: (_, _) async => fail('nothing is spawned on a check'),
+    );
+    await pump(tester, u);
+    expect(find.text('A fresh Notelore is ready: $v.'), findsOneWidget);
+  });
+
   testWidgets('while downloading the buttons wait, with the bytes known', (tester) async {
     final pending = Completer<List<int>>();
     final slow = Updater(

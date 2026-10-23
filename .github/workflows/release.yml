@@ -195,6 +195,21 @@ jobs:
       - name: Package
         shell: bash
         run: bash tool/package_desktop.sh "$VERSION" dist Release
+      # The universal dmg above stays as the fallback; these two are half the
+      # size for the Mac each person actually has.
+      - name: Per-architecture macOS dmg
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          bundle="apps/notelore/build/macos/Build/Products/Release/notelore.app"
+          for arch in arm64 x86_64; do
+            dir="$RUNNER_TEMP/macos-$arch"
+            rm -rf "$dir"
+            mkdir -p "$dir"
+            cp -R "$bundle" "$dir/notelore.app"
+            bash tool/thin_macos_app.sh "$dir/notelore.app" "$arch"
+            bash tool/package_desktop.sh "$VERSION" dist Release "$dir/notelore.app" "$arch"
+          done
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: app-${{ matrix.target }}
@@ -325,6 +340,7 @@ jobs:
           cd dist
           signed=0
           for file in "notelore-app-$VERSION-windows-x64-setup.exe" "notelore-app-$VERSION-macos.dmg" \
+            "notelore-app-$VERSION-macos-arm64.dmg" "notelore-app-$VERSION-macos-x86_64.dmg" \
             "notelore-app-$VERSION-android.apk" \
             "notelore-app-$VERSION-android-arm64-v8a.apk" \
             "notelore-app-$VERSION-android-armeabi-v7a.apk" \

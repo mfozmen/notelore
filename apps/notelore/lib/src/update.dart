@@ -9,10 +9,11 @@
 /// app's folder once the app has exited, and starts it again. On macOS the
 /// `.app` comes out of the release's dmg (`hdiutil`, then `ditto`, which keeps
 /// the bundle's symlinks) and replaces the old bundle, which stays as `.old`
-/// until the next start; a failed swap is rolled back. On Android the release
-/// carries one APK per ABI plus a universal fallback; the app downloads its
-/// own and hands it to the system installer, where the user taps Install (an
-/// app outside a store cannot install itself silently).
+/// until the next start; a failed swap is rolled back. macOS also publishes a
+/// dmg per architecture. On Android the release carries one APK per ABI plus a
+/// universal fallback; the app downloads its own and hands it to the system
+/// installer, where the user taps Install (an app outside a store cannot
+/// install itself silently).
 library;
 
 import 'dart:convert';
@@ -102,14 +103,19 @@ bool isNewer(String candidate, String current) {
 }
 
 /// The release asset for this OS, as release.yml names it; an Android APK is
-/// per ABI when [abi] is given.
-String assetName(String version, String system, {String abi = ''}) => switch (system) {
-  'windows' => 'notelore-app-$version-windows-x64-setup.exe',
-  'macos' => 'notelore-app-$version-macos.dmg',
-  'android' =>
-    abi.isEmpty ? 'notelore-app-$version-android.apk' : 'notelore-app-$version-android-$abi.apk',
-  _ => throw UpdateFailed('no prebuilt app for $system'),
-};
+/// per ABI when [abi] is given, and a macOS dmg per architecture when [arch]
+/// is given.
+String assetName(String version, String system, {String abi = '', String arch = ''}) =>
+    switch (system) {
+      'windows' => 'notelore-app-$version-windows-x64-setup.exe',
+      'macos' =>
+        arch.isEmpty ? 'notelore-app-$version-macos.dmg' : 'notelore-app-$version-macos-$arch.dmg',
+      'android' =>
+        abi.isEmpty
+            ? 'notelore-app-$version-android.apk'
+            : 'notelore-app-$version-android-$abi.apk',
+      _ => throw UpdateFailed('no prebuilt app for $system'),
+    };
 
 /// Flutter's APK ABI name for [abi]; empty for a CPU this release does not
 /// build for, so the universal APK is used.
@@ -124,11 +130,28 @@ String abiName(Abi abi) => switch (abi) {
 /// instead of asking the host.
 String androidAbi([Abi? abi]) => abiName(abi ?? Abi.current());
 
-/// The asset for this device: its ABI's APK, else the universal Android APK.
-String? releaseAsset(String version, String system, Set<String> assets, {String abi = ''}) {
-  final own = assetName(version, system, abi: abi);
+/// The architecture of the running macOS app (`arm64` or `x86_64`); empty
+/// elsewhere, for the universal dmg.
+String macArchName(Abi abi) => switch (abi) {
+  Abi.macosArm64 => 'arm64',
+  Abi.macosX64 => 'x86_64',
+  _ => '',
+};
+
+String macArch([Abi? abi]) => macArchName(abi ?? Abi.current());
+
+/// The asset for this device: its ABI/architecture, else the universal one.
+String? releaseAsset(
+  String version,
+  String system,
+  Set<String> assets, {
+  String abi = '',
+  String arch = '',
+}) {
+  final own = assetName(version, system, abi: abi, arch: arch);
   if (assets.contains(own)) return own;
-  if (system == 'android' && abi.isNotEmpty) {
+  final split = system == 'android' ? abi.isNotEmpty : system == 'macos' && arch.isNotEmpty;
+  if (split) {
     final universal = assetName(version, system);
     if (assets.contains(universal)) return universal;
   }
@@ -213,12 +236,14 @@ Future<String?> checkForUpdate({
   required String system,
   bool force = false,
   String abi = '',
+  String arch = '',
 }) async => (await checkRelease(
   current: current,
   fetch: fetch,
   system: system,
   force: force,
   abi: abi,
+  arch: arch,
 ))?.version;
 
 /// A newer release than [current], with what it brings and its page (#288);
@@ -233,6 +258,7 @@ Future<({String version, List<String> highlights, String page})?> checkRelease({
   bool force = false,
   bool signed = false,
   String abi = '',
+  String arch = '',
 }) async {
   final Map<String, Object?> data;
   try {
@@ -248,7 +274,7 @@ Future<({String version, List<String> highlights, String page})?> checkRelease({
   final assets = {
     for (final asset in listed.whereType<Map<Object?, Object?>>()) '${asset['name']}',
   };
-  final file = releaseAsset(version, system, assets, abi: abi);
+  final file = releaseAsset(version, system, assets, abi: abi, arch: arch);
   if (file == null) return null;
   final needed = [file, '$file.sha256', if (signed) '$file.sha256.sig'];
   if (!needed.every(assets.contains)) return null;
@@ -283,6 +309,7 @@ Updater? updaterFor({
   required String executable,
   String key = updateKey,
   String? abi,
+  String? arch,
   Abi? platformAbi,
 }) {
   if (version.isEmpty || key.isEmpty) return null;
@@ -299,6 +326,7 @@ Updater? updaterFor({
     osVersion: Platform.operatingSystemVersion,
     publicKey: key,
     abi: system == 'android' ? (abi ?? androidAbi(platformAbi)) : '',
+    arch: system == 'macos' ? (arch ?? macArch(platformAbi)) : '',
   );
 }
 
@@ -329,6 +357,7 @@ class Updater {
     required this.run,
     required this.spawn,
     this.abi = '',
+    this.arch = '',
     this.renameDirectory = _renameDirectory,
     this.openInstaller = androidInstaller,
     this.osVersion = '',
@@ -346,6 +375,10 @@ class Updater {
 
   /// The Android ABI this build runs on (e.g. arm64-v8a); empty elsewhere.
   final String abi;
+
+  /// The macOS architecture this build runs on (`arm64`/`x86_64`); empty
+  /// elsewhere, for the universal dmg.
+  final String arch;
 
   /// Android's installer (see [androidInstaller]).
   final OpenInstaller openInstaller;
@@ -380,7 +413,7 @@ class Updater {
     onProgress?.call(const UpdateProgress(UpdatePhase.checking));
     final (:version, :assets) = await latestRelease(fetch);
     if (!isNewer(version, current)) return null;
-    final name = releaseAsset(version, system, assets.keys.toSet(), abi: abi);
+    final name = releaseAsset(version, system, assets.keys.toSet(), abi: abi, arch: arch);
     if (name == null) {
       throw UpdateFailed('release $version has no app for this device; download it from GitHub');
     }
