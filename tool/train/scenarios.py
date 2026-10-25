@@ -298,21 +298,31 @@ REMINDERS = [
 # Other notes every case's workspace gets beside its own, like the eval's shared notes.
 DISTRACTORS = 4
 
+# How many collections also get a case whose first tool call fails.
+RECOVERIES = 4
 
-def cases(rng):
+CROSS = []
+
+CHAT = [("en", "ok, thank you"), ("tr", "sağ ol"), ("en", "great, thanks a lot"), ("tr", "tamamdır, teşekkür ederim")]
+
+
+def cases(rng, t=None):
+    """The cases [t]'s tables make (this module's by default; the held-out set
+    passes its own, #599)."""
+    t = t or sys.modules[__name__]
     out = []
 
     def add(case_id, kind, lang, notes, message, expect):
         out.append({"id": case_id, "kind": kind, "lang": lang, "notes": dict(notes), "message": message, "expect": expect})
 
-    for c, (lang, title, first, items, templates) in enumerate(COLLECTIONS):
+    for c, (lang, title, first, items, templates) in enumerate(t.COLLECTIONS):
         p = path("topic", title)
         notes = {p: note(title, "topic", lang, notes=[first])}
         picked = rng.sample(items, 3)
-        if c < 4:
+        if c < t.RECOVERIES:
             item = next(x for x in items if x not in picked)
             add(f"recover-{slug(title)}", "recovery", lang, notes, rng.choice(templates).format(x=item),
-                {"notes": {f"^{re.escape(p)}$": [item.split(" — ")[0]]}, "answer_not": NO_TOOL_WORDS})
+                {"notes": {f"^{re.escape(p)}$": [item.split(" — ")[0]]}, "answer_not": t.NO_TOOL_WORDS})
             out[-1]["fail_first_call"] = True
         for i, item in enumerate(picked):
             # One sentence an item: lists were over half of v2's turns, and it overfit on them.
@@ -323,18 +333,18 @@ def cases(rng):
             f"{title} listesinde neler var?" if lang == "tr" else f"What is on my {title} list?",
             {"answer": [first.split(" — ")[0]]})
 
-    for lang, title, nts, decs, todos, facts, new_decs, new_todos, done, other, other_word in PROJECTS:
+    for lang, title, nts, decs, todos, facts, new_decs, new_todos, done, other, other_word in t.PROJECTS:
         p = path("project", title)
         notes = {p: note(title, "project", lang, notes=nts, decisions=decs, todos=todos)}
         pat = f"^{re.escape(p)}$"
         for i, fact in enumerate(facts):
             add(f"file-{slug(title)}-{i}", "filing", lang, notes, f"{title}: {fact}", {"tools": ["add_note_entry"], "notes": {pat: [fact.split()[1]]}})
-        for topic, value, why in new_decs:
+        for i, (topic, value, why) in enumerate(new_decs):
             msg = f"{title}: we picked {value} for the {topic}, {why}." if lang == "en" else f"{title}: {topic} için {value} seçtik, {why}."
-            add(f"dec-{slug(title)}", "decision", lang, notes, msg, {"tools": ["record_decision"], "notes": {pat: [value.split()[0]]}})
-        for todo in new_todos:
+            add(f"dec-{slug(title)}{f'-{i}' if i else ''}", "decision", lang, notes, msg, {"tools": ["record_decision"], "notes": {pat: [value.split()[0]]}})
+        for i, todo in enumerate(new_todos):
             msg = f"Add a todo to {title}: {todo}." if lang == "en" else f"{title} için yapılacak: {todo}."
-            add(f"todo-{slug(title)}", "todo", lang, notes, msg, {"tools": ["add_todo"], "notes": {pat: [todo.split()[-1]]}})
+            add(f"todo-{slug(title)}{f'-{i}' if i else ''}", "todo", lang, notes, msg, {"tools": ["add_todo"], "notes": {pat: [todo.split()[-1]]}})
         for i, message in enumerate(done):
             add(f"done-{slug(title)}-{i}", "todo-done", lang, notes, message, {"tools": ["complete_todo"], "notes": {pat: []}})
         # Done, but no open todo says so: a dated entry, never a wrong tick (#349).
@@ -345,40 +355,45 @@ def cases(rng):
         q = f"What is still open for {title}?" if lang == "en" else f"{title} için yapılacaklar neler?"
         add(f"q-todo-{slug(title)}", "question", lang, notes, q, {"answer": [todos[0].split()[-1]]})
 
-    for lang, title, nts, fact, question, answer in TOPICS:
+    for lang, title, nts, fact, question, answer in t.TOPICS:
         p = path("topic", title)
         notes = {p: note(title, "topic", lang, notes=nts)}
         add(f"file-{slug(title)}", "filing", lang, notes, fact, {"notes": {f"^{re.escape(p)}$": [fact.split()[-1].rstrip(".")]}})
         add(f"q-{slug(title)}", "question", lang, notes, question, {"answer": [answer]})
 
-    for i, (lang, msg) in enumerate([("en", "ok, thank you"), ("tr", "sağ ol"), ("en", "great, thanks a lot"), ("tr", "tamamdır, teşekkür ederim")]):
+    for i, (lang, msg) in enumerate(t.CHAT):
         add(f"chat-{i}", "chat", lang, {}, msg, {})
     # The note each reminder belongs to, as its project or topic case wrote it.
     written = {p: text for case in out for p, text in case["notes"].items()}
-    for i, (lang, msg, at) in enumerate(PLANS):
+    for i, (lang, msg, at) in enumerate(t.PLANS):
         add(f"plan-{i}", "plan", lang, {}, msg,
             {"tools": ["add_reminder"], "notes": {r"^(topics|projects)/[^/]*\.md$": [at]}, "answer_not": ["?"]})
-    for i, (lang, title, kind, msg, at, word) in enumerate(REMINDERS):
+    for i, (lang, title, kind, msg, at, word) in enumerate(t.REMINDERS):
         p = path(kind, title)
         add(f"rem-{i}", "reminder", lang, {p: written[p]}, msg,
             {"tools": ["add_reminder"], "notes": {f"^{re.escape(p)}$": [at, word]}})
-    for i, (lang, msg) in enumerate(UNCLEAR):
+    for i, (lang, msg) in enumerate(t.UNCLEAR):
         add(f"unclear-{i}", "unclear", lang, {}, msg, {"answer": ["?"]})
-    for i, (lang, msg, pattern, item) in enumerate(NEW_LISTS):
+    for i, (lang, msg, pattern, item) in enumerate(t.NEW_LISTS):
         add(f"newlist-{i}", "collection", lang, {}, msg, {"tools": ["create_note"], "notes": {pattern: [item]}})
-    for i, (lang, msg, pattern, item) in enumerate(FIRST_OF_KIND):
+    for i, (lang, msg, pattern, item) in enumerate(t.FIRST_OF_KIND):
         add(f"newlist-first-{i}", "collection", lang, {}, msg, {"tools": ["create_note"], "notes": {pattern: [item]}})
-    for lang, titles, messages in MIXED_LISTS:
+    for lang, titles, messages in t.MIXED_LISTS:
         notes = {path("topic", t): note(t, "topic", lang) for t in titles.values()}
         for i, (msg, kind, item) in enumerate(messages):
             p = path("topic", titles[kind])
             add(f"mixed-{lang}-{i}", "collection", lang, notes, msg, {"notes": {f"^{re.escape(p)}$": [item]}})
-    for lang, now, later, messages in TWIN_LISTS:
+    for lang, now, later, messages in t.TWIN_LISTS:
         notes = {path("topic", t): note(t, "topic", lang) for t in (now, later)}
         for i, (msg, is_now, item) in enumerate(messages):
             p = path("topic", now if is_now else later)
             add(f"twin-{slug(now)}-{i}", "collection", lang, notes, msg, {"notes": {f"^{re.escape(p)}$": [item]}})
-    for i, (lang, msg, pattern, word) in enumerate(NEW_PROJECTS):
+    # A message in one language about a note in the other (#599).
+    for i, (lang, title, kind, msg, case_kind, tool, word) in enumerate(t.CROSS):
+        p = path(kind, title)
+        add(f"cross-{i}", case_kind, lang, {p: written[p]}, msg,
+            {"tools": [tool], "notes": {f"^{re.escape(p)}$": [word] if word else []}})
+    for i, (lang, msg, pattern, word) in enumerate(t.NEW_PROJECTS):
         add(f"new-{i}", "new-note", lang, {}, msg, {"tools": ["create_note"], "notes": {pattern: [word] if word else []}})
 
     # Every workspace holds other notes too, so a case is passed by choosing the
@@ -390,7 +405,7 @@ def cases(rng):
         patterns = [] if case["kind"] == "plan" else case["expect"].get("notes", {})
         expected = [re.compile(pattern) for pattern in patterns]
         others = sorted(p for p in pool if p not in case["notes"] and not any(e.search(p) for e in expected))
-        case["notes"].update({p: pool[p] for p in rng.sample(others, DISTRACTORS)})
+        case["notes"].update({p: pool[p] for p in rng.sample(others, t.DISTRACTORS)})
     return out
 
 
@@ -401,14 +416,30 @@ def main(argv):
     out = Path(next((a for a in argv if not a.startswith("--")), ROOT / ".dev-home/train/scenarios.json"))
     seed = int(next((a.split("=", 1)[1] for a in argv if a.startswith("--seed=")), "7"))
     generated = cases(random.Random(seed))
+    check(generated)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(generated, ensure_ascii=False, indent=1) + "\n", encoding="utf-8", newline="\n")
+    print(f"{len(generated)} scenarios -> {out}")
+
+
+def norm(text):
+    return unicodedata.normalize("NFC", text).casefold()
+
+
+def title_of(text):
+    return re.search(r"^title: (.*)$", text, re.M).group(1)
+
+
+def check(generated):
+    """No message or note title of the exam, unique ids, and every expectation
+    names exactly one note of its workspace (none for a new note or list)."""
     exam = json.loads((ROOT / "eval/cases.json").read_text(encoding="utf-8"))
-    norm = lambda text: unicodedata.normalize("NFC", text).casefold()
     exam_messages = {norm(c["message"]) for c in exam["cases"]}
-    exam_titles = {re.search(r"^title: (.*)$", t, re.M).group(1) for t in exam["notes"].values()}
+    exam_titles = {title_of(t) for t in exam["notes"].values()}
     for case in generated:
         assert norm(case["message"]) not in exam_messages, case["id"]
         for text in case["notes"].values():
-            assert re.search(r"^title: (.*)$", text, re.M).group(1) not in exam_titles, case["id"]
+            assert title_of(text) not in exam_titles, case["id"]
     assert len({c["id"] for c in generated}) == len(generated), "duplicate ids"
     for case in generated:
         for pattern in case["expect"].get("notes", {}):
@@ -418,9 +449,6 @@ def main(argv):
                 continue  # any note may hold a plan: a new one, or one that fits
             new = case["kind"] == "new-note" or case["id"].startswith("newlist-")
             assert matching == (0 if new else 1), case["id"]
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(generated, ensure_ascii=False, indent=1) + "\n", encoding="utf-8", newline="\n")
-    print(f"{len(generated)} scenarios -> {out}")
 
 
 if __name__ == "__main__":

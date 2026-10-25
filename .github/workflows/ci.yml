@@ -46,6 +46,7 @@ jobs:
       - run: python3 .github/scripts/test_security_verdict_gate.py
       - run: python3 .github/scripts/test_sensitive_paths.py
       - run: python3 tool/train/test_finetune.py
+      - run: python3 tool/train/test_holdout.py
 
   # Dart coverage for Sonar, built in a job that holds no secrets (#72): tests
   # and builds run package code and build hooks, so they never run next to
