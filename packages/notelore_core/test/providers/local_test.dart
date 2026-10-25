@@ -8,6 +8,7 @@ class FakeEngine implements LocalEngine {
 
   final List<Map<String, Object?>> answers;
   final asked = <(List<Map<String, Object?>>, List<Map<String, Object?>>)>[];
+  final prefilled = <(String, List<Map<String, Object?>>)>[];
 
   @override
   Future<Map<String, Object?>> chat(
@@ -16,6 +17,11 @@ class FakeEngine implements LocalEngine {
   ) async {
     asked.add((messages, tools));
     return answers.removeAt(0);
+  }
+
+  @override
+  Future<void> prefill(String system, List<Map<String, Object?>> tools) async {
+    prefilled.add((system, tools));
   }
 
   @override
@@ -36,6 +42,14 @@ const _tools = [
 void main() {
   test('a model the device cannot run says why', () {
     expect('${const LocalModelFailed('out of memory')}', 'out of memory');
+  });
+
+  test('the prompt and tools are read once before the first turn (#595)', () async {
+    final engine = FakeEngine([]);
+    await LocalProvider('m', engine).prefill('You are Notelore.', _tools);
+    final (system, tools) = engine.prefilled.single;
+    expect(system, 'You are Notelore.');
+    expect((tools.single['function']! as Map)['name'], 'add_note_entry');
   });
 
   test(

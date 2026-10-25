@@ -131,6 +131,88 @@ void main() {
     expect(tools, hasLength(slimTools.length));
   });
 
+  test('the device model reads its prompt and tools before the first message (#595)', () async {
+    final harness = Harness();
+    final session = harness.session(deviceModels: true);
+    harness.pages['https://models.test/q.gguf'] = 'model bytes';
+    await session.downloadDeviceModel();
+    await session.connect(findProvider('device'), '');
+    expect(session.preparing, isTrue);
+    await session.syncDone;
+    expect(session.preparing, isFalse);
+    final (system, tools) = harness.deviceEngine.prefilled.single;
+    expect(system, contains('Dictated sound-alike'));
+    expect(tools, hasLength(slimTools.length));
+    expect(harness.deviceEngine.asked, isEmpty); // no turn yet
+  });
+
+  test('a message sent while the prompt is read waits for it, and runs once (#595)', () async {
+    final harness = Harness();
+    final session = harness.session(deviceModels: true);
+    harness.pages['https://models.test/q.gguf'] = 'model bytes';
+    await session.downloadDeviceModel();
+    final gate = Completer<void>();
+    harness.deviceEngine.prefillGate = gate.future;
+    await session.connect(findProvider('device'), '');
+    harness.deviceEngine.answers.add({
+      'message': {'content': 'Saved.'},
+    });
+    final sent = session.send('Mopsos: weekly.');
+    expect(session.busy, isTrue);
+    expect(session.transcript.last, (role: ChatRole.user, text: 'Mopsos: weekly.'));
+    expect(harness.deviceEngine.asked, isEmpty);
+    gate.complete();
+    expect(await sent, isTrue);
+    expect(session.preparing, isFalse);
+    expect(harness.deviceEngine.prefilled, hasLength(1));
+    expect(harness.deviceEngine.asked, hasLength(1));
+    expect(session.transcript.last.text, 'Saved.');
+  });
+
+  test('a prefill that fails does not fail the first turn (#595)', () async {
+    final harness = Harness();
+    final session = harness.session(deviceModels: true);
+    harness.pages['https://models.test/q.gguf'] = 'model bytes';
+    await session.downloadDeviceModel();
+    harness.deviceEngine.prefillFailure = const LocalModelFailed('out of memory');
+    await session.connect(findProvider('device'), '');
+    await session.syncDone;
+    expect(session.preparing, isFalse);
+    harness.deviceEngine.answers.add({
+      'message': {'content': 'Saved.'},
+    });
+    await session.send('Mopsos: weekly.');
+    expect(session.transcript.last.text, 'Saved.');
+    expect(harness.deviceEngine.asked, hasLength(1));
+  });
+
+  test('the same prompt and tools are not read again after a rebuild (#595)', () async {
+    final harness = Harness();
+    final session = harness.session(deviceModels: true);
+    harness.pages['https://models.test/q.gguf'] = 'model bytes';
+    await session.downloadDeviceModel();
+    await session.connect(findProvider('device'), '');
+    await session.syncDone;
+    expect(harness.deviceEngine.prefilled, hasLength(1));
+    await session.setWebSearch(false); // rebuilds the provider, same engine and prompt
+    await session.syncDone;
+    expect(harness.deviceEngine.prefilled, hasLength(1));
+  });
+
+  test('the setup test turn does not replace the prefill (#595)', () async {
+    final harness = Harness();
+    final session = harness.session(deviceModels: true);
+    harness.pages['https://models.test/q.gguf'] = 'model bytes';
+    await session.downloadDeviceModel();
+    session.finishingSetup = true;
+    await session.connect(findProvider('device'), '');
+    await session.syncDone;
+    expect(harness.deviceEngine.prefilled, isEmpty); // the test turn comes first
+    session.finishSetup();
+    await session.syncDone;
+    expect(harness.deviceEngine.prefilled, hasLength(1));
+  });
+
   test('a device that cannot run the model says so in the chat', () async {
     final harness = Harness();
     final session = harness.session(deviceModels: true);

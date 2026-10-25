@@ -78,6 +78,7 @@ abstract class Strings {
   String get resumeDownload;
   String get deviceDownloadNote;
   String get deviceModelHere;
+  String get devicePreparing;
   String get downloadingModel;
   String downloadedPercent(int percent);
 
@@ -725,6 +726,8 @@ class EnglishStrings extends Strings {
   String get deviceDownloadNote => 'Use Wi-Fi and keep the app open while it downloads.';
   @override
   String get deviceModelHere => 'The model is on this device. No key is needed.';
+  @override
+  String get devicePreparing => 'Getting the model ready on this device…';
   @override
   String get downloadingModel => 'Downloading the model';
   @override
@@ -1710,6 +1713,8 @@ class TurkishStrings extends Strings {
   String get deviceDownloadNote => 'İnerken Wi-Fi kullan ve uygulamayı açık tut.';
   @override
   String get deviceModelHere => 'Model bu cihazda. Anahtar gerekmez.';
+  @override
+  String get devicePreparing => 'Model bu cihazda hazırlanıyor…';
   @override
   String get downloadingModel => 'Model indiriliyor';
   @override

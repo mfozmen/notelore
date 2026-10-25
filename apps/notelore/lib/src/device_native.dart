@@ -49,6 +49,23 @@ class _LlamaDart implements LocalEngine {
   }();
 
   @override
+  Future<void> prefill(String system, List<Map<String, Object?>> tools) async {
+    final engine = await _engine();
+    try {
+      // maxTokens 0 evaluates the prompt and stops before generating a token.
+      await engine
+          .create(
+            [LlamaChatMessage.fromText(role: LlamaChatRole.system, text: system)],
+            params: const GenerationParams(maxTokens: 0),
+            tools: tools.isEmpty ? null : toolsFor(tools),
+          )
+          .drain<void>();
+    } on Object catch (error) {
+      throw LocalModelFailed('$error');
+    }
+  }
+
+  @override
   Future<Map<String, Object?>> chat(
     List<Map<String, Object?>> messages,
     List<Map<String, Object?>> tools,

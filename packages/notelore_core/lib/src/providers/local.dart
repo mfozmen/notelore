@@ -18,6 +18,10 @@ abstract interface class LocalEngine {
     List<Map<String, Object?>> tools,
   );
 
+  /// Loads the model and evaluates [system] and [tools] once, so the first
+  /// [chat] reuses their cached prompt instead of reading them again (#595).
+  Future<void> prefill(String system, List<Map<String, Object?>> tools);
+
   /// Lets go of the loaded model: gigabytes of memory, never left to the GC.
   Future<void> dispose();
 }
@@ -42,6 +46,10 @@ class LocalProvider implements LlmProvider {
   @override
   final String model;
   final LocalEngine engine;
+
+  /// The fixed prompt and tools read once, before the first turn (#595).
+  Future<void> prefill(String system, List<Tool> tools) =>
+      engine.prefill(system, functionTools(tools));
 
   @override
   Future<AgentResponse> turn(String system, List<Message> messages, List<Tool> tools) async =>
