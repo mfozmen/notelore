@@ -1,7 +1,7 @@
 name: notelore
 description: "Notelore: talk to your notes on Android, iOS, Windows and macOS."
 publish_to: 'none'
-version: 0.25.0
+version: 0.26.0
 resolution: workspace
 
 environment:
