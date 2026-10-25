@@ -224,22 +224,40 @@ Future<void> _eval(
   final everyRun = <List<EvalResult>>[];
   // Per case: null when it failed, the reasons it was left out, or none when kept.
   final outcomes = <Set<TrainingIssue>?>[];
+  final todo = [
+    for (final c in runnable)
+      if (!finished.contains(c.id)) c,
+  ];
   for (var run = 0; run < runs; run++) {
-    final results = <EvalResult>[];
-    everyRun.add(results);
-    for (final evalCase in runnable) {
-      if (finished.contains(evalCase.id)) continue;
-      final result = await runCase(evalCase, provider, slim: slim);
-      results.add(result);
-      final verdict = result.passed ? 'ok  ' : 'FAIL';
-      out.writeln('$verdict ${evalCase.id} (${result.took.inMilliseconds} ms) ${result.tools}');
-      if (keep != null) outcomes.add(_keepTurn(result, keep, done!));
-    }
+    everyRun.add(
+      await _runOnce(todo, provider, slim, out, (result) {
+        if (keep != null) outcomes.add(_keepTurn(result, keep, done!));
+      }),
+    );
   }
   out.writeln(summarizeRuns(everyRun));
   if (keep == null) return;
   if (finished.isNotEmpty) out.writeln('skipped ${finished.length} already done in ${done!.path}');
   _reportKept(outcomes, everyRun.single, keep, out);
+}
+
+/// One run over [cases], each said as it ends and handed to [ended].
+Future<List<EvalResult>> _runOnce(
+  List<EvalCase> cases,
+  LlmProvider provider,
+  bool slim,
+  StringSink out,
+  void Function(EvalResult result) ended,
+) async {
+  final results = <EvalResult>[];
+  for (final evalCase in cases) {
+    final result = await runCase(evalCase, provider, slim: slim);
+    results.add(result);
+    final verdict = result.passed ? 'ok  ' : 'FAIL';
+    out.writeln('$verdict ${evalCase.id} (${result.took.inMilliseconds} ms) ${result.tools}');
+    ended(result);
+  }
+  return results;
 }
 
 /// How many of [results]' turns distill kept in [keep], and why the others
