@@ -569,6 +569,10 @@ void main() {
   });
 
   group('first write: the turn stops at its first write, which is scored (#598)', () {
+    test('the stopping provider is the model it wraps', () {
+      expect(UntilWrite(ScriptedProvider([])).model, 'scripted');
+    });
+
     test('a right write passes without the rest of the turn', () async {
       final provider = ScriptedProvider([
         toolUse('list_notes', 't0', {}),
@@ -649,6 +653,17 @@ void main() {
         filing,
         ScriptedProvider([text('Which note?')]),
         firstWrite: true,
+      );
+      final elsewhere = await runCase(
+        filing,
+        ScriptedProvider([
+          toolUse('add_note_entry', 't1', {'slug': 'mopsos', 'text': 'weekly still'}),
+        ]),
+        firstWrite: true,
+      );
+      expect(
+        confusion([elsewhere]),
+        'wanted → done, failed cases:\n  add_note_entry, but the note or answer was wrong: 1',
       );
       final report = confusion([asked, asked]);
       expect(report, 'wanted → done, failed cases:\n  add_note_entry → ask: 2');

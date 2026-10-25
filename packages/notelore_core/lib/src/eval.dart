@@ -164,7 +164,10 @@ String _action(List<String> tools, String? stoppedAt, String answer) {
 String confusion(List<EvalResult> results) {
   final counts = <String, int>{};
   for (final r in results.where((r) => !r.passed)) {
-    counts.update('${r.wanted} → ${r.action}', (n) => n + 1, ifAbsent: () => 1);
+    final key = r.wanted == r.action
+        ? '${r.wanted}, but the note or answer was wrong'
+        : '${r.wanted} → ${r.action}';
+    counts.update(key, (n) => n + 1, ifAbsent: () => 1);
   }
   if (counts.isEmpty) return '';
   final rows = counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
@@ -176,8 +179,8 @@ String confusion(List<EvalResult> results) {
 
 /// Ends the turn once a write other than making a note has succeeded, so a
 /// run scores the first decision only and skips the rest (#598).
-class _UntilWrite implements LlmProvider {
-  _UntilWrite(this._inner);
+class UntilWrite implements LlmProvider {
+  UntilWrite(this._inner);
 
   final LlmProvider _inner;
   String? stoppedAt;
@@ -222,7 +225,7 @@ Future<EvalResult> runCase(
   bool slim = false,
   bool firstWrite = false,
 }) async {
-  final until = firstWrite ? _UntilWrite(provider) : null;
+  final until = firstWrite ? UntilWrite(provider) : null;
   final dir = Directory.systemTemp.createTempSync('notelore_eval_');
   final root = p.join(dir.path, 'notes');
   final index = NoteIndex(p.join(dir.path, 'state', 'index.sqlite'), root);
