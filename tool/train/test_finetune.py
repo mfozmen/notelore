@@ -24,8 +24,11 @@ from finetune import (
     main,
     modelfile,
     gpu_settings,
+    losses,
     native_bf16,
     precision,
+    split,
+    trainer_args,
 )
 
 failures = 0
@@ -144,5 +147,43 @@ try:
     check("too few paths stop with a usage message", "ran", "usage")
 except SystemExit as stop:
     check("too few paths stop with a usage message", str(stop).startswith("usage: python tool/train/finetune.py"), True)
+
+# A tenth of the turns is held out for the validation loss (#605), the same
+# tenth on every run, so two runs compare.
+turns = list(range(20))
+kept, held = split(turns)
+check("a tenth is held out", (len(kept), len(held)), (18, 2))
+check("every turn is in one of the two", sorted(kept + held), turns)
+check("the same split every run", split(turns), (kept, held))
+check("a few turns still hold one out", len(split([1, 2, 3])[1]), 1)
+try:
+    split([1])
+    check("one turn cannot be split", "split", "ValueError")
+except ValueError as error:
+    check("one turn cannot be split", "two" in str(error), True)
+
+# Evaluated and saved on the same steps, so the best checkpoint is one that was
+# saved; training stops once the validation loss stops falling.
+args = trainer_args("out", 3, {"bf16": True, "fp16": False})
+check(
+    "the validation loss picks the checkpoint",
+    {k: args[k] for k in ("eval_strategy", "save_strategy", "load_best_model_at_end", "metric_for_best_model", "greater_is_better")},
+    {"eval_strategy": "steps", "save_strategy": "steps", "load_best_model_at_end": True, "metric_for_best_model": "eval_loss", "greater_is_better": False},
+)
+check("evaluated where it saves", args["eval_steps"], args["save_steps"])
+check("the precision flags pass through", (args["bf16"], args["fp16"]), (True, False))
+
+history = [
+    {"loss": 0.7, "step": 5},
+    {"eval_loss": 0.61, "step": 5},
+    {"loss": 0.4, "step": 10},
+    {"eval_loss": 0.655, "step": 10},
+    {"train_runtime": 99.0, "step": 10},
+]
+check(
+    "the log reads as train and validation loss per step",
+    losses(history),
+    ["step 5: train 0.700, validation 0.610", "step 10: train 0.400, validation 0.655"],
+)
 
 sys.exit(1 if failures else 0)
