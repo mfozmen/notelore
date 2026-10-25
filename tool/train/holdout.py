@@ -1,8 +1,9 @@
 """The held-out validation set (#599): scenarios built like the training ones
 (`scenarios.py`), from notes, items and sentences of their own, so a model is
 measured on what it never trained on. `main` checks that no note title,
-message or listed item appears in the training scenarios or in
-`eval/cases.json`, and that every kind has at least 15 cases.
+message or listed item appears in the training scenarios, nor a message or
+note title of `eval/cases.json` (`scenarios.check`), and that every kind has
+at least 15 cases.
 
     python tool/train/holdout.py [out.json]      (default eval/holdout.json)
     notelore_dev eval --cases=eval/holdout.json --greedy

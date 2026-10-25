@@ -53,4 +53,11 @@ try:
 except AssertionError as error:
     check("a training message in the held-out set says so", "messages in training" in str(error), True)
 
+titled = dict(held[0], id="leak", notes={"topics/x.md": next(iter(training[0]["notes"].values()))})
+try:
+    holdout.disjoint([titled], training)
+    check("a training note title in the held-out set is refused", "accepted", "refused")
+except AssertionError as error:
+    check("a training note title in the held-out set says so", "titles in training" in str(error), True)
+
 sys.exit(1 if failures else 0)
