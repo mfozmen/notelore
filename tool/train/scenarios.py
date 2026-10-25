@@ -183,12 +183,55 @@ NEW_LISTS = [
 
 # A book or film read now, with no list for it yet (v4, #474): a list named
 # for its kind, never a note named after the book. (lang, message, pattern, item).
+# Never an item of eval/cases.json: the student must not see the exam's books.
 FIRST_OF_KIND = [
-    ("tr", "Kürk Mantolu Madonna'yı okuyorum", r"^topics/[^/]*kitap[^/]*\.md$", "Kürk Mantolu Madonna"),
     ("tr", "Şu an Beyaz Gemi okuyorum.", r"^topics/[^/]*kitap[^/]*\.md$", "Beyaz Gemi"),
     ("tr", "Bu akşam Kelebeğin Rüyası'nı izleyeceğim.", r"^topics/[^/]*film[^/]*\.md$", "Kelebeğin Rüyası"),
     ("en", "I'm reading Demon Copperhead.", r"^topics/[^/]*book[^/]*\.md$", "Demon Copperhead"),
     ("en", "Watching Perfect Blue tonight.", r"^topics/[^/]*(film|movie)[^/]*\.md$", "Perfect Blue"),
+    # v5: the kinds the eval misses most, so the list is named for the kind, never the item.
+    ("tr", "Dün gece Suç ve Ceza'ya başladım.", r"^topics/[^/]*kitap[^/]*\.md$", "Suç ve Ceza"),
+    ("tr", "Elimde Sefiller var, yavaş yavaş okuyorum.", r"^topics/[^/]*kitap[^/]*\.md$", "Sefiller"),
+    ("tr", "Yolda Tehlikeli Oyunlar'ı okuyorum.", r"^topics/[^/]*kitap[^/]*\.md$", "Tehlikeli Oyunlar"),
+    ("en", "Just picked up Lessons in Chemistry, reading it now.", r"^topics/[^/]*book[^/]*\.md$", "Lessons in Chemistry"),
+    ("en", "On the train I'm reading Tomorrow, and Tomorrow, and Tomorrow.", r"^topics/[^/]*book[^/]*\.md$", "Tomorrow"),
+    ("en", "Reading The Midnight Library these days.", r"^topics/[^/]*book[^/]*\.md$", "Midnight Library"),
+    ("tr", "Hafta sonu Sevmek Zamanı filmini izlemek istiyorum.", r"^topics/[^/]*film[^/]*\.md$", "Sevmek Zamanı"),
+    ("tr", "İzlemek istediğim film: Masumiyet.", r"^topics/[^/]*film[^/]*\.md$", "Masumiyet"),
+    ("en", "Movie I want to see: Paterson.", r"^topics/[^/]*(film|movie)[^/]*\.md$", "Paterson"),
+    ("en", "Someone told me to watch In the Mood for Love.", r"^topics/[^/]*(film|movie)[^/]*\.md$", "Mood for Love"),
+    ("tr", "Tarif fikri: fırında patatesli köfte.", r"^topics/[^/]*tarif[^/]*\.md$", "köfte"),
+    ("en", "Recipe idea: roasted cauliflower with tahini.", r"^topics/[^/]*recipe[^/]*\.md$", "cauliflower"),
+    ("tr", "Bir gün Bozcaada'ya gitmek istiyorum.", r"^topics/[^/]*(gez|yer)[^/]*\.md$", "Bozcaada"),
+    ("en", "Place I'd love to visit one day: the Faroe Islands.", r"^topics/[^/]*(place|visit|travel)[^/]*\.md$", "Faroe"),
+    ("en", "Gift idea for my brother: a pocket knife.", r"^topics/[^/]*gift[^/]*\.md$", "pocket knife"),
+    ("tr", "Hediye fikri: babama bir termos.", r"^topics/[^/]*hediye[^/]*\.md$", "termos"),
+]
+
+# Several lists of different kinds in one workspace (v5): each item goes to the
+# list of its kind, never to another list that happens to be there.
+# (lang, {kind: title}, [(message, kind, item)]).
+MIXED_LISTS = [
+    ("en", {"books": "Reading List", "films": "Watchlist", "recipes": "Cooking Ideas", "places": "Travel Wishlist"}, [
+        ("Started The Covenant of Water last night.", "books", "Covenant of Water"),
+        ("I should read Small Things Like These.", "books", "Small Things"),
+        ("Film for the weekend: Perfect Strangers.", "films", "Perfect Strangers"),
+        ("I want to watch Fallen Leaves.", "films", "Fallen Leaves"),
+        ("Recipe to try: shakshuka with chickpeas.", "recipes", "chickpeas"),
+        ("Cooking idea: brown butter gnocchi.", "recipes", "gnocchi"),
+        ("I'd love to see Hokkaido in winter.", "places", "Hokkaido"),
+        ("Add Lake Bled to the places I want to go.", "places", "Bled"),
+    ]),
+    ("tr", {"books": "Kitap Listem", "films": "Film Listem", "recipes": "Yemek Fikirleri", "places": "Seyahat Planları"}, [
+        ("Bugün Kuyucaklı Yusuf'a başladım, ama bu sefer sesli kitap.", "books", "Kuyucaklı Yusuf"),
+        ("Okumak istediğim kitap: Bir Bilim Adamının Romanı.", "books", "Bilim Adamının Romanı"),
+        ("Bu hafta sonu Kader filmini izleyeceğim.", "films", "Kader"),
+        ("İzlenecek film: Gönül Yarası.", "films", "Gönül Yarası"),
+        ("Yemek fikri: ıspanaklı börek.", "recipes", "börek"),
+        ("Denemek istediğim tarif: nohutlu pilav.", "recipes", "nohutlu pilav"),
+        ("Bir gün Uzungöl'e gitmek istiyorum.", "places", "Uzungöl"),
+        ("Gezilecek yer: Ani Harabeleri.", "places", "Ani"),
+    ]),
 ]
 
 # A turn whose first tool call fails (v4, #474): the call is fixed and the
@@ -325,6 +368,11 @@ def cases(rng):
         add(f"newlist-{i}", "collection", lang, {}, msg, {"tools": ["create_note"], "notes": {pattern: [item]}})
     for i, (lang, msg, pattern, item) in enumerate(FIRST_OF_KIND):
         add(f"newlist-first-{i}", "collection", lang, {}, msg, {"tools": ["create_note"], "notes": {pattern: [item]}})
+    for lang, titles, messages in MIXED_LISTS:
+        notes = {path("topic", t): note(t, "topic", lang) for t in titles.values()}
+        for i, (msg, kind, item) in enumerate(messages):
+            p = path("topic", titles[kind])
+            add(f"mixed-{lang}-{i}", "collection", lang, notes, msg, {"notes": {f"^{re.escape(p)}$": [item]}})
     for lang, now, later, messages in TWIN_LISTS:
         notes = {path("topic", t): note(t, "topic", lang) for t in (now, later)}
         for i, (msg, is_now, item) in enumerate(messages):
