@@ -210,6 +210,11 @@ void main() {
     );
     call('complete_todo', {'slug': 'ev-tadilati', 'number': 2});
     expect(call('read_note', {'slug': 'ev-tadilati'}), isNot(contains('open todo')));
+    // A topic may hold ": " itself.
+    call('record_decision', {'slug': 'ev-tadilati', 'topic': 'oda: mutfak', 'value': 'Beyaz'});
+    expect(call('search_notes', {'query': 'Beyaz'}), [
+      containsPair('next', contains('"topic":"oda: mutfak"')),
+    ]);
   });
 
   test('search and stale', () {
@@ -338,7 +343,11 @@ void main() {
     File(p.join(box.root, 'topics', 'My Note.md'))
       ..createSync(recursive: true)
       ..writeAsStringSync('---\ntitle: My Note\nkind: topic\n---\n\n# My Note\n');
-    expect(call('read_note', {'slug': 'My Note'}), contains('# My Note'));
+    // Not a note the parser knows: read as it is, with nothing added.
+    expect(
+      call('read_note', {'slug': 'My Note'}),
+      '---\ntitle: My Note\nkind: topic\n---\n\n# My Note\n',
+    );
     expect(call('read_note', {'slug': 'my note'}), contains('# My Note'));
   });
 

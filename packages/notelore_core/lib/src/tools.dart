@@ -469,7 +469,7 @@ class Toolbox {
         for (final (number, text) in _openTodos(_path(h.slug, h.kind)))
           if (text == h.text) _tick(h.slug, number),
       ].firstOrNull,
-      'decisions' when !h.superseded => _choose(h.slug, h.text.split(': ').first),
+      'decisions' when !h.superseded => _choose(h.slug, _topicOf(_path(h.slug, h.kind), h.text)),
       _ => null,
     };
     return {..._hit(h), 'next': ?next};
@@ -547,6 +547,14 @@ List<(int, String)> _openTodos(String path) {
       if (!todo.done) (i + 1, todo.text),
   ];
 }
+
+/// The topic of the current decision a hit shows as [text] (`topic: text`); a
+/// topic may hold ": " itself, so it comes from the note, not the split text.
+String _topicOf(String path, String text) => [
+  for (final section in notes.readNote(path).sections)
+    for (final d in section.entries.whereType<Decision>())
+      if (d.superseded == null && '${d.topic}: ${d.text}' == text) d.topic,
+].first;
 
 String _tick(String slug, int number) =>
     'open todo $number of $slug; when the user says it is done: '
