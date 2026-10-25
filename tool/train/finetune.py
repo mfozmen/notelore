@@ -17,7 +17,8 @@ takes its chat template and parameters from the base model as Ollama ships it
 (`--ollama-base`, qwen3:4b-instruct-2507-q4_K_M by default), so tool calls
 are read the same way.
 
-A tenth of the turns is held out (the same tenth every run). The validation
+A tenth of the turns is held out (the same tenth every run), a case's
+turns together, by the row's `id`. The validation
 loss on it is logged with the train loss every 5 steps, the LoRA saved is the
 checkpoint where it was lowest, and three evaluations without a better one end
 the run, so `--epochs` is a ceiling (the cosine schedule still spans all of
@@ -104,17 +105,34 @@ def dataset(tokenizer, data, assistant_only):
     return [{"input_ids": i, "labels": assistant_labels(i, start, end)} for i in ids]
 
 
-def split(rows, share=0.1, seed=0):
+def case(row):
+    """The case a distilled row played: its `id`, or for older data without
+    one (v1-v5) its first user message."""
+    return row.get("id") or next(m["content"] for m in row["messages"] if m["role"] == "user")
+
+
+def cases(data):
+    lines = Path(data).read_text(encoding="utf-8").splitlines()
+    return [case(json.loads(line)) for line in lines if line.strip()]
+
+
+def split(rows, keys=None, share=0.1, seed=0):
     """The rows to train on and the ones held out for the validation loss (#605):
-    a [share] of them, at least one, the same ones on every run."""
-    if len(rows) < 2:
-        raise ValueError(f"need at least two turns to hold one out, got {len(rows)}")
-    order = list(range(len(rows)))
-    random.Random(seed).shuffle(order)
-    held = set(order[: max(1, round(len(rows) * share))])
+    about a [share] of them, the same ones on every run. Rows with the same key
+    (a case played twice) stay on one side, so the held-out loss is not flattered."""
+    keys = list(range(len(rows))) if keys is None else keys
+    groups = list(dict.fromkeys(keys))
+    if len(groups) < 2:
+        raise ValueError(f"need at least two turns of two cases to hold one out, got {len(rows)}")
+    random.Random(seed).shuffle(groups)
+    want, held = max(1, round(len(rows) * share)), set()
+    for group in groups[:-1]:
+        if sum(k in held for k in keys) >= want:
+            break
+        held.add(group)
     return (
-        [r for i, r in enumerate(rows) if i not in held],
-        [r for i, r in enumerate(rows) if i in held],
+        [r for r, k in zip(rows, keys) if k not in held],
+        [r for r, k in zip(rows, keys) if k in held],
     )
 
 
@@ -211,7 +229,7 @@ def load(base, dtype):
 
 def train(base, data, out, epochs, assistant_only=False):
     tokenizer = AutoTokenizer.from_pretrained(base)
-    kept, held = split(dataset(tokenizer, data, assistant_only))
+    kept, held = split(dataset(tokenizer, data, assistant_only), cases(data))
     print(f"{len(kept)} training turns, {len(held)} held out for the validation loss")
     (flags, dtype), native = gpu_settings()
     fp32_logprobs(native)
