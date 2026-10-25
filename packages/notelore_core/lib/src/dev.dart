@@ -29,6 +29,7 @@ import 'providers/base.dart';
 import 'providers/chatgpt.dart';
 import 'providers/chatgpt_auth.dart';
 import 'providers/http.dart';
+import 'providers/ollama.dart';
 import 'providers/providers.dart';
 import 'store/index.dart';
 import 'tools.dart';
@@ -50,6 +51,14 @@ String traceName(DateTime time) {
   final micros = (utc.millisecond * 1000 + utc.microsecond).toString().padLeft(6, '0');
   return '$second.${micros}Z.log';
 }
+
+/// Whether [command] is known and has what it needs; repeated [runs] are for eval.
+bool _valid(String? command, String message, int runs) => switch (command) {
+  'chat' => message.isNotEmpty && runs == 1,
+  'eval' => runs >= 1,
+  'signin' || 'models' || 'distill' || 'reprompt' => runs == 1,
+  _ => false,
+};
 
 /// Runs one command; the exit code is 0, 1 (it failed) or 64 (bad usage).
 Future<int> runDev(
@@ -75,11 +84,7 @@ Future<int> runDev(
   final runs = int.tryParse(options['runs'] ?? '1') ?? 0;
   final command = words.firstOrNull;
   final message = words.skip(1).join(' ');
-  if (command == null ||
-      !const {'signin', 'models', 'chat', 'eval', 'distill', 'reprompt'}.contains(command) ||
-      (command == 'chat' && message.isEmpty) ||
-      runs < 1 ||
-      (runs > 1 && command != 'eval')) {
+  if (!_valid(command, message, runs)) {
     out.writeln(_usage);
     return 64;
   }
@@ -233,8 +238,18 @@ Future<void> _eval(
   }
   out.writeln(summarizeRuns(everyRun));
   if (keep == null) return;
-  final results = everyRun.single; // distill runs once
   if (finished.isNotEmpty) out.writeln('skipped ${finished.length} already done in ${done!.path}');
+  _reportKept(outcomes, everyRun.single, keep, out);
+}
+
+/// How many of [results]' turns distill kept in [keep], and why the others
+/// that passed were left out.
+void _reportKept(
+  List<Set<TrainingIssue>?> outcomes,
+  List<EvalResult> results,
+  File keep,
+  StringSink out,
+) {
   final kept = outcomes.where((issues) => issues != null && issues.isEmpty).length;
   out.writeln('kept $kept of ${results.length} in ${keep.path}');
   final excluded = outcomes.whereType<Set<TrainingIssue>>().where((issues) => issues.isNotEmpty);
@@ -309,15 +324,23 @@ Future<LlmProvider> _provider(
           ? (await listChatGptModels(auth.token, client: traced)).first
           : spec.defaultModel);
   out.writeln('[${spec.name} · $model]');
+  Future<Object?> transport(
+    String method,
+    String url, {
+    Map<String, String> headers = const {},
+    Object? body,
+    required Duration timeout,
+  }) => request(traced, method, url, headers: headers, body: body, timeout: timeout);
+  if (spec.name == 'ollama' && temperature != null) {
+    return OllamaProvider(model, transport: transport, temperature: temperature);
+  }
   return createProvider(
     spec,
     key,
     model: model,
     planToken: auth.token,
     client: traced,
-    temperature: temperature,
-    transport: (method, url, {headers = const {}, body, required timeout}) =>
-        request(traced, method, url, headers: headers, body: body, timeout: timeout),
+    transport: transport,
   );
 }
 

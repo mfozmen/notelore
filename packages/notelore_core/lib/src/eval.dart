@@ -318,7 +318,9 @@ String? answerLanguage(String answer) {
   ).allMatches(unquoted.toLowerCase()).map((m) => m[0]!);
   final english = words.where(_englishWords.contains).length;
   final turkish = words.where(_turkishWords.contains).length;
-  return english > turkish ? 'en' : (turkish > english ? 'tr' : null);
+  if (english > turkish) return 'en';
+  if (turkish > english) return 'tr';
+  return null;
 }
 
 /// [result]'s turn as one chat transcript with tool calls, the shape Qwen's

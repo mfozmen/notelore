@@ -19,7 +19,6 @@ LlmProvider createProvider(
   BearerToken? planToken,
   http.Client? client,
   bool webSearch = false,
-  double? temperature,
 }) {
   final chosen = model ?? spec.defaultModel;
   return switch (spec.name) {
@@ -40,6 +39,6 @@ LlmProvider createProvider(
     ),
     'gemini' => GeminiProvider(apiKey ?? '', chosen, transport: transport),
     'deepseek' => DeepSeekProvider(apiKey ?? '', chosen, transport: transport),
-    _ => OllamaProvider(chosen, transport: transport, temperature: temperature),
+    _ => OllamaProvider(chosen, transport: transport),
   };
 }
