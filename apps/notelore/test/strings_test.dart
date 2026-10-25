@@ -222,6 +222,7 @@ void main() {
       'resumeDownload': s.resumeDownload,
       'deviceDownloadNote': s.deviceDownloadNote,
       'deviceModelHere': s.deviceModelHere,
+      'devicePreparing': s.devicePreparing,
       'downloadingModel': s.downloadingModel,
       'downloadedPercent': s.downloadedPercent(42),
       'deviceDownloadFailed': s.deviceDownloadFailed(DownloadProblem.offline),

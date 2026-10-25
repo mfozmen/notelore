@@ -245,14 +245,13 @@ class Session extends ChangeNotifier {
   /// The one loaded engine, if any: a rebuilt provider reuses it, never a
   /// second copy of the model in memory.
   LocalEngine? _deviceEngine;
+  LocalProvider? _deviceProvider;
 
   /// [chosen]'s provider: the model on the device runs on the one engine.
   LlmProvider _providerFor(ProviderSpec chosen, String key, String chosenModel) {
     if (chosen.name == 'device') {
-      return LocalProvider(
-        chosenModel,
-        _deviceEngine ??= makeDeviceEngine(deviceModel.path(deviceFiles.first.name)),
-      );
+      final engine = _deviceEngine ??= makeDeviceEngine(deviceModel.path(deviceFiles.first.name));
+      return _deviceProvider = LocalProvider(chosenModel, engine);
     }
     return makeProvider(
       chosen,
@@ -263,10 +262,66 @@ class Session extends ChangeNotifier {
     );
   }
 
+  /// The engine and prompt+tools already prefilled (#595).
+  LocalEngine? _prefilledEngine;
+  String? _prefilledKey;
+  int _prefillRun = 0;
+
+  /// The model is loading and reading its fixed prompt, before any message:
+  /// the chat says so while it runs.
+  bool preparing = false;
+
+  /// Reads the device model's system prompt and tools into its cache before
+  /// the first message, so that message only pays for what the user wrote.
+  /// Skipped while the setup wizard is testing the model: that test turn has
+  /// another prompt and would replace the cache just filled.
+  void _startDevicePrefill() {
+    final provider = _deviceProvider;
+    final engine = _deviceEngine;
+    if (provider == null || engine == null || finishingSetup) return;
+    final system = slimSystemPrompt(today);
+    final key = jsonEncode([
+      system.replaceFirst(RegExp(r'\d{2}:\d{2}(?=, local time\.)'), '--:--'),
+      for (final tool in slimTools) [tool.name, tool.description, tool.inputSchema],
+    ]);
+    if (identical(engine, _prefilledEngine) && key == _prefilledKey) return;
+    _prefilledEngine = engine;
+    _prefilledKey = key;
+    final run = ++_prefillRun;
+    preparing = true;
+    notifyListeners();
+    final ready = Completer<void>();
+    // One event: the setup test turn is queued right after connect and must
+    // cancel this before it reads a prompt it is about to replace.
+    unawaited(Future<void>(ready.complete));
+    unawaited(
+      _exclusive(() async {
+        await ready.future;
+        if (run == _prefillRun) {
+          try {
+            await provider.prefill(system, slimTools);
+          } on Exception {
+            // The first turn loads the model again and says what went wrong.
+          } finally {
+            if (run == _prefillRun) {
+              preparing = false;
+              notifyListeners();
+            }
+          }
+        }
+      }),
+    );
+  }
+
   /// Lets go of the model on the device, when another model is used or none.
   Future<void> _freeDeviceEngine() async {
     final engine = _deviceEngine;
     _deviceEngine = null;
+    _deviceProvider = null;
+    _prefilledEngine = null;
+    _prefilledKey = null;
+    _prefillRun++;
+    preparing = false;
     await engine?.dispose();
   }
 
@@ -692,15 +747,31 @@ class Session extends ChangeNotifier {
   /// One real turn with the connected model, no tools and no notes: the answer
   /// shows the user it works. It costs a few tokens, as the wizard says.
   Future<String> tryModel() async {
-    // Not metered: a few tokens to say hello are not the conversation's use.
-    final provider = switch (_provider!) {
-      MeteredProvider(:final provider) => provider,
-      final other => other,
-    };
-    final answer = await provider.turn(trySystem, [
-      {'role': 'user', 'content': strings.tryPrompt},
-    ], const []);
-    return answer.content.map((b) => b['text'] ?? '').join().trim();
+    final device = _deviceProvider != null;
+    if (device) {
+      _prefillRun++;
+      _prefilledEngine = null;
+      _prefilledKey = null;
+      preparing = false;
+      notifyListeners();
+      await _queue; // a prefill already under way ends before the test prompt
+    }
+    try {
+      // Not metered: a few tokens to say hello are not the conversation's use.
+      final provider = switch (_provider!) {
+        MeteredProvider(:final provider) => provider,
+        final other => other,
+      };
+      final answer = await provider.turn(trySystem, [
+        {'role': 'user', 'content': strings.tryPrompt},
+      ], const []);
+      return answer.content.map((b) => b['text'] ?? '').join().trim();
+    } finally {
+      if (device) {
+        _startDevicePrefill(); // the test prompt is not the chat's
+        notifyListeners();
+      }
+    }
   }
 
   /// A model was in use on this device once (#363): with none now, the app
@@ -714,6 +785,7 @@ class Session extends ChangeNotifier {
 
   void finishSetup() {
     finishingSetup = false;
+    _startDevicePrefill();
     notifyListeners();
   }
 
@@ -1023,6 +1095,7 @@ class Session extends ChangeNotifier {
       timing: timing,
       slim: chosen.name == 'device', // every token is read on the phone first (#447)
     )..messages.addAll(history);
+    _startDevicePrefill();
     notifyListeners();
   }
 

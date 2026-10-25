@@ -2690,4 +2690,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Choose a model provider'), findsOneWidget);
   });
+
+  testWidgets('the chat says when the device model is getting ready (#595)', (tester) async {
+    phone(tester);
+    final harness = Harness()..deviceModels = true;
+    harness.pages['https://models.test/q.gguf'] = 'model bytes';
+    final gate = Completer<void>();
+    harness.deviceEngine.prefillGate = gate.future;
+    final session = await pumpApp(tester, harness);
+    await tester.runAsync(() => session.downloadDeviceModel());
+    await session.connect(findProvider('device'), '');
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(session.preparing, isTrue);
+    expect(find.text(session.strings.devicePreparing), findsOneWidget);
+    gate.complete();
+    await tester.pump(const Duration(milliseconds: 1));
+    await tester.pumpAndSettle();
+    expect(session.preparing, isFalse);
+    expect(find.text(session.strings.devicePreparing), findsNothing);
+  });
 }
