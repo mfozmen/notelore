@@ -472,6 +472,7 @@ void main() {
       'voiceSection': s.voiceSection,
       'syncSection': s.syncSection,
       'aboutSection': s.aboutSection,
+      'advancedSection': s.advancedSection,
       'whisper': s.whisper,
       'tryAgain': s.tryAgain,
       'whisperDownloading': s.whisperDownloading(42),

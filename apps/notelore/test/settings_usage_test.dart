@@ -7,7 +7,7 @@ import 'app_test.dart' show connect, phone, pumpApp;
 import 'support.dart';
 
 void main() {
-  Future<void> openAdvanced(WidgetTester tester) => openSettings(tester, 'About');
+  Future<void> openAdvanced(WidgetTester tester) => openSettings(tester, 'Advanced');
 
   /// Settings > About > Show advanced settings > Usage: the full page (#294).
   Future<void> openUsage(WidgetTester tester) async {
@@ -28,6 +28,21 @@ void main() {
     await tester.tap(find.byKey(const Key('open-usage')));
     await tester.pumpAndSettle();
   }
+
+  testWidgets('settings: Advanced is a category of its own, out of About (#566)', (tester) async {
+    phone(tester);
+    final session = await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await openSettings(tester, 'About');
+    expect(find.text('Show advanced settings'), findsNothing);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Chat'));
+    await tester.pumpAndSettle();
+    await openAdvanced(tester);
+    expect(find.text('Show advanced settings'), findsOneWidget);
+    expect(session.advanced, isFalse);
+  });
 
   testWidgets('settings: usage is for advanced users, on its own page (#294)', (tester) async {
     phone(tester);
@@ -192,7 +207,7 @@ void main() {
         failed: false,
       );
     await tester.pumpAndSettle();
-    await openSettings(tester, session.strings.aboutSection);
+    await openSettings(tester, session.strings.advancedSection);
     await tester.ensureVisible(find.byKey(const Key('open-usage')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('open-usage')));

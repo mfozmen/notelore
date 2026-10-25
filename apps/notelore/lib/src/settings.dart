@@ -24,6 +24,7 @@ enum SettingsSection {
   appearance(Icons.palette_outlined),
   lock(Icons.lock_outline),
   reminders(Icons.notifications_outlined),
+  advanced(Icons.tune),
   about(Icons.info_outline);
 
   const SettingsSection(this.icon);
@@ -37,6 +38,7 @@ enum SettingsSection {
     appearance => s.appearance,
     lock => s.appLock,
     reminders => s.reminders,
+    advanced => s.advancedSection,
     about => s.aboutSection,
   };
 
@@ -131,8 +133,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       SettingsSection.appearance: [_LanguageCard(session), _LookCard(session)],
       SettingsSection.lock: [_LockCard(session)],
       SettingsSection.reminders: [_RemindersCard(session)],
+      SettingsSection.advanced: [_AdvancedCard(session)],
       SettingsSection.about: [
-        _AdvancedCard(session),
         _AboutCard(
           session,
           version: widget.version,
