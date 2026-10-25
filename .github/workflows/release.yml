@@ -244,9 +244,11 @@ jobs:
               continue
             fi
             expected=$(cut -d' ' -f1 "$old_dir/$old_setup.sha256")
-            actual=$(sha256sum "$old_dir/$old_setup" | cut -d' ' -f1)
+            # From stdin: given a path with a backslash ($RUNNER_TEMP on Windows),
+            # sha256sum escapes its line with a leading "\" and never matches.
+            actual=$(sha256sum < "$old_dir/$old_setup" | cut -d' ' -f1)
             if [ "$expected" != "$actual" ]; then
-              echo "old setup $old_version does not match its signed checksum; no delta from it"
+              echo "old setup $old_version does not match its signed checksum (expected $expected, got $actual); no delta from it"
               continue
             fi
             old_app="$RUNNER_TEMP/oldapp-$old_version"
