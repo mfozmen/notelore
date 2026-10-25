@@ -295,6 +295,48 @@ void main() {
     expect('$out', contains('--greedy works with --provider=ollama only'));
   });
 
+  test(
+    'eval --first-write --parallel=2: each case to its first write, two at once (#598)',
+    () async {
+      File(p.join(temp.path, 'cases.json')).writeAsStringSync(
+        jsonEncode([
+          for (final id in ['a', 'b', 'c'])
+            {
+              'id': id,
+              'kind': 'unclear',
+              'lang': 'en',
+              'message': 'Note this.',
+              'expect': {
+                'answer': ['?'],
+              },
+            },
+        ]),
+      );
+      var open = 0;
+      var most = 0;
+      final ollama = MockClient((request) async {
+        most = ++open > most ? open : most;
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        open--;
+        return http.Response(
+          jsonEncode({
+            'message': {'role': 'assistant', 'content': 'Noted.'},
+            'done': true,
+          }),
+          200,
+        );
+      });
+      final args = ['eval', '--provider=ollama', '--model=m', '--cases=cases.json'];
+      expect(await run([...args, '--first-write', '--parallel=2'], client: ollama), 0);
+      expect(most, 2);
+      expect('$out', contains('all: 0/3'));
+      expect('$out', contains('wanted → done, failed cases:\n  ask → none: 3'));
+      // Distill keeps whole turns, and a count below one is no count.
+      expect(await run(['distill', '--first-write', '--cases=cases.json']), 64);
+      expect(await run([...args, '--parallel=0']), 64);
+    },
+  );
+
   test('eval: every case of a file against one model, with a report (#325)', () async {
     File(p.join(temp.path, 'cases.json')).writeAsStringSync(
       jsonEncode([

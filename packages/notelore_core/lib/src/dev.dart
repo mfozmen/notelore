@@ -37,10 +37,13 @@ import 'tools.dart';
 const _usage =
     'usage: notelore_dev signin | models | chat [--provider=<name>] [--model=<id>] <message>'
     ' | eval [--provider=<name>] [--model=<id>] [--cases=<file>] [--slim] [--greedy] [--runs=<n>]'
+    ' [--first-write] [--parallel=<n>]'
     ' | distill [--provider=<name>] [--model=<id>] [--cases=<file>] [--out=<file>] [--slim]'
     ' | reprompt --in=<file> --out=<file> [--slim]'
     ' (--slim: the prompt and tools of the model on the device;'
-    ' --greedy: temperature 0, on Ollama; --runs: the set n times, eval only)';
+    ' --greedy: temperature 0, on Ollama; --runs: the set n times, eval only;'
+    ' --first-write: each turn only to its first write, scored with what it wanted;'
+    ' --parallel: n cases at once, as many as OLLAMA_NUM_PARALLEL)';
 
 /// A trace file's name for a run started at [time]: UTC to the microsecond,
 /// always six digits, so names sort in time order (`toIso8601String()` drops
@@ -52,13 +55,19 @@ String traceName(DateTime time) {
   return '$second.${micros}Z.log';
 }
 
-/// Whether [command] is known and has what it needs; repeated [runs] are for eval.
-bool _valid(String? command, String message, int runs) => switch (command) {
-  'chat' => message.isNotEmpty && runs == 1,
-  'eval' => runs >= 1,
-  'signin' || 'models' || 'distill' || 'reprompt' => runs == 1,
-  _ => false,
-};
+/// Whether [command] is known and has what it needs. Repeated runs and a
+/// first-write run are for eval: distill keeps whole turns.
+bool _valid(String? command, String message, _Plan plan) {
+  final evalOnly = plan.runs > 1 || plan.firstWrite;
+  return plan.runs >= 1 &&
+      plan.parallel >= 1 &&
+      switch (command) {
+        'chat' => message.isNotEmpty && !evalOnly,
+        'eval' => true,
+        'signin' || 'models' || 'distill' || 'reprompt' => !evalOnly,
+        _ => false,
+      };
+}
 
 /// Runs one command; the exit code is 0, 1 (it failed) or 64 (bad usage).
 Future<int> runDev(
@@ -81,10 +90,10 @@ Future<int> runDev(
   };
   final words = args.where((a) => !a.startsWith('--')).toList();
   final slim = args.contains('--slim');
-  final runs = int.tryParse(options['runs'] ?? '1') ?? 0;
+  final plan = _Plan.parse(args, options);
   final command = words.firstOrNull;
   final message = words.skip(1).join(' ');
-  if (!_valid(command, message, runs)) {
+  if (!_valid(command, message, plan)) {
     out.writeln(_usage);
     return 64;
   }
@@ -145,8 +154,7 @@ Future<int> runDev(
           ),
           out,
           keep: keep,
-          slim: slim,
-          runs: runs,
+          plan: plan,
           search: findProvider(options['provider'] ?? 'chatgpt').webSearch,
         );
       default:
@@ -212,50 +220,75 @@ Future<void> _eval(
   Future<LlmProvider> Function() open,
   StringSink out, {
   File? keep,
-  bool slim = false,
   bool search = false,
-  int runs = 1,
+  _Plan plan = const _Plan(),
 }) async {
   if (!cases.existsSync()) throw StateError('no cases file at ${cases.path}');
   final provider = await open();
   final done = keep == null ? null : File('${keep.path}.done');
   final finished = keep == null ? const <String>{} : _resume(keep, done!);
-  final runnable = _runnable(loadCases(cases.readAsStringSync()), search, out);
+  final runnable = [
+    for (final c in _runnable(loadCases(cases.readAsStringSync()), search, out))
+      if (!finished.contains(c.id)) c,
+  ];
   final everyRun = <List<EvalResult>>[];
   // Per case: null when it failed, the reasons it was left out, or none when kept.
   final outcomes = <Set<TrainingIssue>?>[];
-  final todo = [
-    for (final c in runnable)
-      if (!finished.contains(c.id)) c,
-  ];
-  for (var run = 0; run < runs; run++) {
+  for (var run = 0; run < plan.runs; run++) {
     everyRun.add(
-      await _runOnce(todo, provider, slim, out, (result) {
+      await _runOnce(runnable, provider, plan, out, (result) {
         if (keep != null) outcomes.add(_keepTurn(result, keep, done!));
       }),
     );
   }
   out.writeln(summarizeRuns(everyRun));
+  if (plan.firstWrite) out.writeln(confusion(everyRun.expand((run) => run).toList()));
   if (keep == null) return;
   if (finished.isNotEmpty) out.writeln('skipped ${finished.length} already done in ${done!.path}');
   _reportKept(outcomes, everyRun.single, keep, out);
 }
 
-/// One run over [cases], each said as it ends and handed to [ended].
+/// How a set of cases is run: [slim] as on the device, only to its
+/// [firstWrite] (#598), [runs] times, [parallel] cases at once.
+class _Plan {
+  const _Plan() : slim = false, firstWrite = false, runs = 1, parallel = 1;
+
+  /// From the command line; a count that is no number is 0, so it is refused.
+  _Plan.parse(List<String> args, Map<String, String> options)
+    : slim = args.contains('--slim'),
+      firstWrite = args.contains('--first-write'),
+      runs = int.tryParse(options['runs'] ?? '1') ?? 0,
+      parallel = int.tryParse(options['parallel'] ?? '1') ?? 0;
+
+  final bool slim;
+  final bool firstWrite;
+  final int runs;
+  final int parallel;
+}
+
+/// One run over [cases], [plan.parallel] at a time, each said as it ends and
+/// handed to [ended]; the results in the cases' order.
 Future<List<EvalResult>> _runOnce(
   List<EvalCase> cases,
   LlmProvider provider,
-  bool slim,
+  _Plan plan,
   StringSink out,
   void Function(EvalResult result) ended,
 ) async {
   final results = <EvalResult>[];
-  for (final evalCase in cases) {
-    final result = await runCase(evalCase, provider, slim: slim);
-    results.add(result);
-    final verdict = result.passed ? 'ok  ' : 'FAIL';
-    out.writeln('$verdict ${evalCase.id} (${result.took.inMilliseconds} ms) ${result.tools}');
-    ended(result);
+  for (var at = 0; at < cases.length; at += plan.parallel) {
+    final batch = cases.skip(at).take(plan.parallel);
+    results.addAll(
+      await Future.wait([
+        for (final evalCase in batch)
+          runCase(evalCase, provider, slim: plan.slim, firstWrite: plan.firstWrite).then((r) {
+            final verdict = r.passed ? 'ok  ' : 'FAIL';
+            out.writeln('$verdict ${evalCase.id} (${r.took.inMilliseconds} ms) ${r.tools}');
+            ended(r);
+            return r;
+          }),
+      ]),
+    );
   }
   return results;
 }
