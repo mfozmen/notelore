@@ -445,24 +445,33 @@ class _Lines extends StatelessWidget {
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
       itemCount: lines.length + (session.busy ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (session.busy) {
-          if (index == 0) {
-            return _Thinking(s, fixed: session.preparing ? s.devicePreparing : null);
-          }
-          return _Bubble(lines[index - 1], s, newest: newest.contains(index - 1));
-        }
-        return _Bubble(
-          lines[index],
-          s,
-          newest: newest.contains(index),
-          // The line a turn just added is read out once; the history stays quiet.
-          live: index == 0 && lines[0] == live,
-          resend: index == resendable ? session.resend : null,
-          retry: session.retryNow,
-          answer: index == 0 && session.ready ? (a) => _answer(context, lines.length, a) : null,
-        );
-      },
+      itemBuilder: (context, index) => _item(context, index, lines, newest, resendable, s),
+    );
+  }
+
+  Widget _item(
+    BuildContext context,
+    int index,
+    List<ChatLine> lines,
+    Set<int> newest,
+    int resendable,
+    Strings s,
+  ) {
+    if (session.busy) {
+      if (index == 0) {
+        return _Thinking(s, fixed: session.preparing ? s.devicePreparing : null);
+      }
+      return _Bubble(lines[index - 1], s, newest: newest.contains(index - 1));
+    }
+    return _Bubble(
+      lines[index],
+      s,
+      newest: newest.contains(index),
+      // The line a turn just added is read out once; the history stays quiet.
+      live: index == 0 && lines[0] == live,
+      resend: index == resendable ? session.resend : null,
+      retry: session.retryNow,
+      answer: index == 0 && session.ready ? (a) => _answer(context, lines.length, a) : null,
     );
   }
 
