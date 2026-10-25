@@ -482,6 +482,45 @@ void main() {
     ]);
   });
 
+  test("the answer's language: told by its small words, quoted titles left out (#597)", () {
+    expect(
+      answerLanguage(
+        "I've created a new note titled \"Saatleri Ayarlama Enstitüsü\" in your collection of topics.",
+      ),
+      'en',
+    );
+    expect(answerLanguage('Bu bilgiyi "Ev Tadilatı" projesine bir not olarak ekledim.'), 'tr');
+    expect(answerLanguage('Kaydedildi: Ev Tadilatı.'), isNull); // no small words: no verdict
+    expect(answerLanguage(''), isNull);
+  });
+
+  test("an answer in another language than the user's fails the case (#597)", () async {
+    final turkish = _case({
+      'id': 'q-tr',
+      'kind': 'question',
+      'lang': 'tr',
+      'notes': {'projects/mopsos.md': _mopsos},
+      'message': "Mopsos'ta isabet oranı ne sıklıkla hesaplanıyor?",
+      'expect': {
+        'answer': ['weekly'],
+      },
+    });
+    final english = await runCase(
+      turkish,
+      ScriptedProvider([text('The hit rate is calculated weekly, and that is all I have.')]),
+    );
+    expect(english.problems, ['the answer is in en, not tr']);
+    final quoted = await runCase(
+      turkish,
+      ScriptedProvider([
+        text(
+          'Notta "Hit rate is calculated weekly and the team is on it" yazıyor, yani bu haftalık.',
+        ),
+      ]),
+    );
+    expect(quoted.passed, isTrue);
+  });
+
   test('a provider error is a failed case, not a crash', () async {
     final result = await runCase(filing, ScriptedProvider([]));
     expect(result.passed, isFalse);
@@ -502,5 +541,30 @@ void main() {
     expect(report, contains('all: 1/2 (50%)'));
     expect(report, contains('FAIL file-1: did not call add_note_entry'));
     expect(summarize([]), 'all: 0/0'); // an empty file reports, it does not crash
+  });
+
+  test("repeated runs: each run's total, then the kinds over all runs (#597)", () async {
+    final pass = await runCase(
+      filing,
+      ScriptedProvider([
+        toolUse('add_note_entry', 't1', {'slug': 'mopsos', 'text': 'daily now'}),
+        text('ok'),
+      ]),
+    );
+    final fail = await runCase(filing, ScriptedProvider([text('ok')]));
+    final report = summarizeRuns([
+      [pass, pass],
+      [pass, fail],
+    ]);
+    expect(report, startsWith('run 1: 2/2 (100%)\nrun 2: 1/2 (50%)\n'));
+    expect(report, contains('filing: 3/4 (75%)'));
+    expect(report, contains('all: 3/4 (75%)'));
+    expect(
+      summarizeRuns([
+        [fail],
+      ]),
+      summarize([fail]),
+    ); // one run reads as before
+    expect(summarizeRuns([[], []]), startsWith('run 1: 0/0\nrun 2: 0/0\n')); // no cases: no crash
   });
 }

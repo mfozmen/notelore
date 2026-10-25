@@ -120,6 +120,26 @@ void main() {
     expect(second['messages'], hi);
   });
 
+  test(
+    'a set temperature goes with the options: 0 decodes greedily, for a steady eval (#597)',
+    () async {
+      final api = Api()
+        ..answers.add({
+          'message': {'content': 'ok'},
+        });
+      final provider = OllamaProvider(
+        'm',
+        host: 'http://box:1',
+        transport: api.call,
+        temperature: 0,
+      );
+      await provider.turn('', [
+        {'role': 'user', 'content': 'hi'},
+      ], []);
+      expect((api.last['body']! as Map)['options'], {'num_ctx': 16384, 'temperature': 0});
+    },
+  );
+
   test('usage: the prompt and answer token counts Ollama reports', () {
     final used = fromOllama({
       'message': {'role': 'assistant', 'content': 'hi'},
