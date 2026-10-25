@@ -203,6 +203,11 @@ adb -s emulator-5554 shell monkey -p io.github.mfozmen.notelore -c android.inten
 adb -s emulator-5554 logcat -s flutter   # the probe: lines
 ```
 
+The app and the probe sample as every eval measured the model through Ollama:
+temperature 0.7, top-p 0.8, top-k 20, min-p 0 and no repeat penalty
+(`deviceSampling` in `device_model.dart`; the probe prints it). llamadart's own
+defaults (0.8, 0.9, 40, a repeat penalty of 1.1) are not used.
+
 On 2026-10-19 the x86_64 Android 15 emulator (`-memory 6144`, CPU only, on the
 maintainer's Windows PC) gave:
 

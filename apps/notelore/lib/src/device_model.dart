@@ -24,6 +24,16 @@ const deviceModelFiles = [
   ),
 ];
 
+/// How the device model samples: as Ollama's Modelfile, which every eval
+/// measured (Qwen's recommended values). llamadart's defaults differ, and its
+/// repeat penalty works against tool calls, which repeat slugs and JSON keys.
+const deviceSampling = GenerationParams(temp: 0.7, topP: 0.8, topK: 20, penalty: 1);
+
+/// [params] in one line, for the probe's log.
+String describeSampling(GenerationParams params) =>
+    'temp ${params.temp}, top-p ${params.topP}, top-k ${params.topK}, '
+    'min-p ${params.minP}, penalty ${params.penalty}';
+
 /// Where the model on the device is offered (#328): the desktops llama.cpp
 /// runs on, and an Android phone with a 64-bit runtime and at least 6 GB of
 /// memory ([meminfo] is `/proc/meminfo`); a smaller one is killed loading it.

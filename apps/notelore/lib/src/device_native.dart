@@ -102,6 +102,7 @@ class _LlamaDart implements LocalEngine {
     try {
       final completion = await engine.complete(
         toLlama(messages),
+        params: deviceSampling,
         tools: tools.isEmpty ? null : toolsFor(tools),
       );
       return fromLlama(completion);
