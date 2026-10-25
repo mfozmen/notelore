@@ -177,4 +177,27 @@ void main() {
     await expectLater(provider.turn('', [], []), throwsA(isA<HttpError>()));
     await expectLater(provider.turn('', [], []), throwsA(isA<NetworkError>()));
   });
+
+  test('another OpenAI-compatible endpoint: its URL, and no DeepSeek thinking switch', () async {
+    final api = Api()
+      ..answers.add({
+        'choices': [
+          {
+            'message': {'role': 'assistant', 'content': 'ok'},
+            'finish_reason': 'stop',
+          },
+        ],
+      });
+    await DeepSeekProvider(
+      'k',
+      'glm-5.3',
+      transport: api.call,
+      url: 'https://example.test/v1/chat/completions',
+      disableThinking: false,
+    ).turn('', [
+      {'role': 'user', 'content': 'hi'},
+    ], []);
+    expect(api.last['url'], 'https://example.test/v1/chat/completions');
+    expect((api.last['body']! as Map).containsKey('thinking'), isFalse);
+  });
 }

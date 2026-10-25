@@ -8,6 +8,9 @@ import 'http.dart';
 import 'openai.dart' show functionTools;
 
 const deepSeekChat = 'https://api.deepseek.com/chat/completions';
+
+/// OpenCode Go's OpenAI-compatible endpoint, for the dev tool's teachers (#604).
+const openCodeGoChat = 'https://opencode.ai/inference/go/openai/v1/chat/completions';
 const deepSeekModels = 'https://api.deepseek.com/models';
 
 Map<String, String> deepSeekHeaders(String apiKey) => {'Authorization': 'Bearer $apiKey'};
@@ -15,19 +18,31 @@ Map<String, String> deepSeekHeaders(String apiKey) => {'Authorization': 'Bearer 
 const _timeout = Duration(seconds: 120);
 
 class DeepSeekProvider implements LlmProvider {
-  DeepSeekProvider(this._apiKey, this.model, {this.transport = defaultTransport});
+  /// Another OpenAI-compatible service at [url]; [disableThinking] sends
+  /// DeepSeek's own switch, which others may not know; [temperature] as set.
+  DeepSeekProvider(
+    this._apiKey,
+    this.model, {
+    this.transport = defaultTransport,
+    this.url = deepSeekChat,
+    this.disableThinking = true,
+    this.temperature,
+  });
 
   final String _apiKey;
 
   @override
   final String model;
   final Transport transport;
+  final String url;
+  final bool disableThinking;
+  final double? temperature;
 
   @override
   Future<AgentResponse> turn(String system, List<Message> messages, List<Tool> tools) async {
     final answer = await transport(
       'POST',
-      deepSeekChat,
+      url,
       headers: deepSeekHeaders(_apiKey),
       body: {
         'model': model,
@@ -37,7 +52,8 @@ class DeepSeekProvider implements LlmProvider {
         ],
         'stream': false,
         // Thinking is on by default and billed as output; note turns do not need it.
-        'thinking': {'type': 'disabled'},
+        if (disableThinking) 'thinking': {'type': 'disabled'},
+        'temperature': ?temperature,
         if (tools.isNotEmpty) 'tools': functionTools(tools),
       },
       timeout: _timeout,

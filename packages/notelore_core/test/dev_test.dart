@@ -292,7 +292,7 @@ void main() {
       ),
       1,
     );
-    expect('$out', contains('--greedy works with --provider=ollama only'));
+    expect('$out', contains('--greedy works with --provider=ollama or opencode only'));
   });
 
   test(
@@ -334,6 +334,54 @@ void main() {
       // Distill keeps whole turns, and a count below one is no count.
       expect(await run(['distill', '--first-write', '--cases=cases.json']), 64);
       expect(await run([...args, '--parallel=0']), 64);
+    },
+  );
+
+  test(
+    'eval --provider=opencode: an OpenCode Go model, its key from the dev secrets (#604)',
+    () async {
+      File(p.join(temp.path, 'cases.json')).writeAsStringSync(
+        jsonEncode([
+          {
+            'id': 'plain',
+            'kind': 'chat',
+            'lang': 'en',
+            'message': 'hi',
+            'expect': <String, Object?>{},
+          },
+        ]),
+      );
+      final args = ['eval', '--provider=opencode', '--model=glm-5.3', '--cases=cases.json'];
+      expect(await run(args), 1);
+      expect('$out', contains('set NOTELORE_OPENCODE_API_KEY'));
+      File(home('state/dev-secrets.json'))
+        ..createSync(recursive: true)
+        ..writeAsStringSync(jsonEncode({'NOTELORE_OPENCODE_API_KEY': 'go-key'}));
+      final requests = <http.Request>[];
+      final go = MockClient((request) async {
+        requests.add(request);
+        return http.Response(
+          jsonEncode({
+            'choices': [
+              {
+                'message': {'role': 'assistant', 'content': 'Hello'},
+                'finish_reason': 'stop',
+              },
+            ],
+          }),
+          200,
+        );
+      });
+      expect(await run(args, client: go), 0);
+      expect('$out', contains('[opencode · glm-5.3]'));
+      expect('$out', contains('all: 1/1'));
+      final request = requests.single;
+      expect('${request.url}', 'https://opencode.ai/inference/go/openai/v1/chat/completions');
+      expect(request.headers['authorization'], 'Bearer go-key');
+      expect(trace(), isNot(contains('go-key')));
+      // Greedy goes as a temperature on this one too.
+      expect(await run([...args, '--greedy'], client: go), 0);
+      expect((jsonDecode(requests.last.body) as Map)['temperature'], 0);
     },
   );
 
