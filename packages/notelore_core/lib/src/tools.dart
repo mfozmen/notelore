@@ -7,6 +7,9 @@
 /// - `read_note(slug, kind?)`: the whole note as Markdown text, then a line per open
 ///   todo with the `complete_todo` call that ticks it.
 /// - `create_note(kind, title, tags?, lang?)`: `{slug, kind, path}`; fails if it exists.
+///   A topic titled as this turn's `related_notes` asked first, or any note named
+///   after a slug this turn reported missing, gets a sentence instead and is made
+///   when asked again.
 /// - `add_note_entry(slug, text, kind?)`: appends a dated entry under Notes.
 /// - `add_todo(slug, text, due?, kind?)` / `complete_todo(slug, number, kind?)`.
 /// - `add_reminder(slug, at, text, kind?)`: `at` is `YYYY-MM-DD` or `YYYY-MM-DD HH:MM`;
@@ -23,7 +26,8 @@
 /// - `archive(slug, entries?, kind?)`: moves numbered entries per section, or the
 ///   whole file when `entries` is omitted, under `_archive/`.
 /// - `related_notes(title, about?)`: notes in either category a new note may belong
-///   with: `[{slug, kind, title, shares_title_words, matching_lines}]`, best first.
+///   with: `[{slug, kind, title, shares_title_words, matching_lines, open_todos?}]`,
+///   best first.
 ///   With none found, a sentence on where one item of a kind goes instead.
 /// - `merge_notes(from, into, from_kind?, into_kind?)`: appends what `into` lacks of
 ///   `from`, then moves `from` under `_archive/`:
@@ -286,10 +290,18 @@ class Toolbox {
   /// This turn's new notes, as made: a failed turn takes back the empty ones (#421).
   final _created = <String, String>{};
 
+  /// This turn's related_notes titles, by slug, with what each found.
+  final _asked = <String, List<Related>>{};
+
+  /// This turn's slugs reported missing, with the closest notes named then.
+  final _missing = <String, String>{};
+
   /// Whether this turn made a note; it stays.
   bool forgetCreated() {
     final any = _created.isNotEmpty;
     _created.clear();
+    _asked.clear();
+    _missing.clear();
     return any;
   }
 
@@ -428,17 +440,19 @@ class Toolbox {
   /// A small model guesses slugs, often in another language ("house-renovation"
   /// for "Ev Tadilatı"): the closest three by letter pairs give it one to use.
   String _noNote(String slug) {
-    final notes = _fresh().listNotes();
-    if (notes.isEmpty) return "no note '$slug'. There are no notes yet.";
+    final all = _fresh().listNotes();
+    if (all.isEmpty) return "no note '$slug'. There are no notes yet.";
     final guess = _pairs(slug);
     double score(NoteInfo n) {
       final theirs = _pairs(n.slug);
       return 2 * guess.intersection(theirs).length / max(1, guess.length + theirs.length);
     }
 
-    final ranked = [for (final n in notes) (n, score(n))]..sort((a, b) => b.$2.compareTo(a.$2));
-    final closest = [for (final (n, _) in ranked.take(3)) '${n.slug} (${n.title}, ${n.kind})'];
-    return "no note '$slug'. Closest: ${closest.join(', ')}. Use its slug, or call list_notes.";
+    final ranked = [for (final n in all) (n, score(n))]..sort((a, b) => b.$2.compareTo(a.$2));
+    final closest = [for (final (n, _) in ranked.take(3)) '${n.slug} (${n.title}, ${n.kind})']
+        .join(', ');
+    _missing[notes.slugify(slug)] = closest;
+    return "no note '$slug'. Closest: $closest. Use its slug, or call list_notes.";
   }
 
   /// [slug] as its note's file is named (see [_path]).
@@ -500,11 +514,34 @@ class Toolbox {
   }
 
   Object _relatedNotes(String title, String? about) {
-    final found = [for (final r in _fresh().related(title, about: about)) _related(r)];
-    return found.isEmpty ? _noneRelated : found;
+    final related = _fresh().related(title, about: about);
+    _asked[notes.slugify(title)] = related;
+    if (related.isEmpty) return _noneRelated;
+    return [
+      for (final r in related) {..._related(r), 'open_todos': ?_ticks(_path(r.slug, r.kind))},
+    ];
   }
 
-  Map<String, Object?> _createNote(String kind, String title, List<String>? tags, String lang) {
+  Object _createNote(String kind, String title, List<String>? tags, String lang) {
+    // After "no note 'house-renovation'", a small model makes that note rather
+    // than use the close one it was shown.
+    if (_missing.remove(notes.slugify(title)) case final closest?) {
+      return "Not created. '$title' was just reported missing; the closest notes are "
+          '$closest. If the user means one of them, use its slug. If this is a new note, '
+          'call create_note again.';
+    }
+    // A small model names a new topic after one item (a book) even after the
+    // related_notes steer: the first such call asks it to choose once more.
+    final found = kind == 'topic' ? _asked.remove(notes.slugify(title)) : null;
+    if (found != null) {
+      final where = found.isEmpty
+          ? 'it is an entry in a collection note for its kind: create that note (such as '
+                '"Books to read") and add it there with add_note_entry'
+          : 'add it with add_note_entry to the note related_notes found: '
+                '${found.map((r) => '${r.slug} (${r.title})').join(', ')}';
+      return "Not created. If '$title' is one item of a kind (a book, film, recipe, place or "
+          'gift), $where. If it is a subject of its own, call create_note again.';
+    }
     final path = notes.createNote(root, kind, title, tags: tags, lang: lang, today: today);
     _created[path] = File(path).readAsStringSync();
     index.markChanged(path);
@@ -579,6 +616,13 @@ String _topicOf(String path, String text) => [
     for (final d in section.entries.whereType<Decision>())
       if (d.superseded == null && '${d.topic}: ${d.text}' == text) d.topic,
 ].first;
+
+/// The `complete_todo` line of every open todo of the note at [path], or null.
+List<String>? _ticks(String path) {
+  final slug = p.basenameWithoutExtension(path);
+  final ticks = [for (final (number, _) in _openTodos(path)) _tick(slug, number)];
+  return ticks.isEmpty ? null : ticks;
+}
 
 String _tick(String slug, int number) =>
     'open todo $number of $slug; when the user says it is done: '
