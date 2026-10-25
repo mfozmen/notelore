@@ -183,6 +183,35 @@ void main() {
     expect(text, contains('~~2026-09-30 — **database**: PostgreSQL.~~'));
   });
 
+  test('results carry the rule where it applies: how to tick an open todo, record a choice', () {
+    call('create_note', {'kind': 'project', 'title': 'Ev Tadilatı', 'lang': 'tr'});
+    call('add_todo', {'slug': 'ev-tadilati', 'text': 'Boyacıyı ara'});
+    call('add_todo', {'slug': 'ev-tadilati', 'text': 'Elektrikçiyi ara'});
+    call('complete_todo', {'slug': 'ev-tadilati', 'number': 1});
+    call('record_decision', {'slug': 'ev-tadilati', 'topic': 'tezgah', 'value': 'Mermer'});
+    call('record_decision', {'slug': 'ev-tadilati', 'topic': 'tezgah', 'value': 'Granit'});
+    const tick =
+        'when the user says it is done: '
+        'complete_todo({"slug":"ev-tadilati","number":2})';
+    expect(call('search_notes', {'query': 'Elektrikçiyi'}), [
+      containsPair('next', 'open todo 2 of ev-tadilati; $tick'),
+    ]);
+    // A done todo needs nothing.
+    expect((call('search_notes', {'query': 'Boyacıyı'})! as List).single, isNot(contains('next')));
+    final decisions = call('search_notes', {'query': 'tezgah'})! as List;
+    expect(decisions.map((h) => (h as Map)['next']), [
+      null, // superseded
+      "decision 'tezgah' of ev-tadilati; when the user states a new choice: "
+          'record_decision({"slug":"ev-tadilati","topic":"tezgah","value":…})',
+    ]);
+    expect(
+      call('read_note', {'slug': 'ev-tadilati'}),
+      endsWith('\nopen todo 2 of ev-tadilati; $tick\n'),
+    );
+    call('complete_todo', {'slug': 'ev-tadilati', 'number': 2});
+    expect(call('read_note', {'slug': 'ev-tadilati'}), isNot(contains('open todo')));
+  });
+
   test('search and stale', () {
     call('create_note', {'kind': 'project', 'title': 'Mopsos'});
     call('add_note_entry', {'slug': 'mopsos', 'text': 'Considered adding crypto.'});

@@ -715,7 +715,6 @@ void failureTests() {
         'get_decision',
         'related_notes',
         'collection note',
-        'complete_todo',
         'add_reminder',
         'Never refuse',
         'HH:MM-HH:MM',
@@ -728,6 +727,8 @@ void failureTests() {
       ]) {
         expect(slim, contains(rule));
       }
+      // Carried by the results instead (#601).
+      expect(slim, isNot(contains('complete_todo')));
       // Nothing it cannot do: no web search, no pictures, no merging.
       for (final gone in [
         'search the web',

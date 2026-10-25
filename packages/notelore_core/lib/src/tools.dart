@@ -4,7 +4,8 @@
 /// model never sees an exception):
 ///
 /// - `list_notes(kind?)`: `[{slug, kind, title, updated}]`, newest first.
-/// - `read_note(slug, kind?)`: the whole note as Markdown text.
+/// - `read_note(slug, kind?)`: the whole note as Markdown text, then a line per open
+///   todo with the `complete_todo` call that ticks it.
 /// - `create_note(kind, title, tags?, lang?)`: `{slug, kind, path}`; fails if it exists.
 /// - `add_note_entry(slug, text, kind?)`: appends a dated entry under Notes.
 /// - `add_todo(slug, text, due?, kind?)` / `complete_todo(slug, number, kind?)`.
@@ -14,8 +15,10 @@
 ///   decision for `topic` in the same write.
 /// - `get_decision(slug, topic, kind?)`: the current decision, deterministic.
 /// - `decision_history(slug, topic?, kind?)`: every decision incl. superseded.
-/// - `search_notes(query, kind?)`: full-text hits, best first; any word may match;
-///   a query that names a note (every word of its title) searches only that note.
+/// - `search_notes(query, kind?)`: `[{slug, kind, title, section, text, superseded}]`,
+///   best first; any word may match; a query that names a note (every word of its
+///   title) searches only that note.
+///   An open todo's or a current decision's hit adds `next`: the call that acts on it.
 /// - `find_stale_notes()`: cleanup candidates with 1-based entry numbers.
 /// - `archive(slug, entries?, kind?)`: moves numbered entries per section, or the
 ///   whole file when `entries` is omitted, under `_archive/`.
@@ -316,7 +319,7 @@ class Toolbox {
     final kind = optional('kind');
     return switch (name) {
       'list_notes' => [for (final n in _fresh().listNotes(kind: kind)) _noteInfo(n)],
-      'read_note' => File(_path(arg('slug'), kind)).readAsStringSync(),
+      'read_note' => _readNote(_path(arg('slug'), kind)),
       'create_note' => _createNote(
         arg('kind'),
         arg('title'),
@@ -363,7 +366,7 @@ class Toolbox {
       ),
       'get_decision' => _getDecision(arg('slug'), arg('topic'), kind),
       'decision_history' => _decisionHistory(arg('slug'), optional('topic'), kind),
-      'search_notes' => [for (final h in _fresh().search(arg('query'), kind: kind)) _hit(h)],
+      'search_notes' => [for (final h in _fresh().search(arg('query'), kind: kind)) _found(h)],
       'find_stale_notes' => [for (final s in findStaleNotes(root, today: today)) _stale(s)],
       'related_notes' => _relatedNotes(arg('title'), optional('about')),
       'merge_notes' => _merge(
@@ -448,6 +451,30 @@ class Toolbox {
 
   // ------------------------------------------------------------ tools
 
+  /// The note, then a line per open todo saying how to tick it: a small model
+  /// does not keep that rule from the prompt (#601).
+  String _readNote(String path) {
+    final slug = p.basenameWithoutExtension(path);
+    return [
+      File(path).readAsStringSync(),
+      for (final (number, _) in _openTodos(path)) '${_tick(slug, number)}\n',
+    ].join();
+  }
+
+  /// A search hit, and for an open todo or a current decision the call that
+  /// acts on it.
+  Map<String, Object?> _found(Hit h) {
+    final next = switch (h.section) {
+      'todo' => [
+        for (final (number, text) in _openTodos(_path(h.slug, h.kind)))
+          if (text == h.text) _tick(h.slug, number),
+      ].firstOrNull,
+      'decisions' when !h.superseded => _choose(h.slug, h.text.split(': ').first),
+      _ => null,
+    };
+    return {..._hit(h), 'next': ?next};
+  }
+
   Object _relatedNotes(String title, String? about) {
     final found = [for (final r in _fresh().related(title, about: about)) _related(r)];
     return found.isEmpty ? _noneRelated : found;
@@ -502,6 +529,32 @@ Set<String> _pairs(String text) {
   final letters = notes.slugify(text).replaceAll('-', '');
   return {for (var i = 0; i + 1 < letters.length; i++) letters.substring(i, i + 2)};
 }
+
+/// The open todos of the note at [path], numbered as complete_todo counts them.
+List<(int, String)> _openTodos(String path) {
+  final Note note;
+  try {
+    note = notes.readNote(path);
+  } on NotANote {
+    return const []; // a hand-made file is still read as it is
+  }
+  final todos = [
+    for (final section in note.sections)
+      if (section.key == 'todo') ...section.entries.whereType<Todo>(),
+  ];
+  return [
+    for (final (i, todo) in todos.indexed)
+      if (!todo.done) (i + 1, todo.text),
+  ];
+}
+
+String _tick(String slug, int number) =>
+    'open todo $number of $slug; when the user says it is done: '
+    'complete_todo(${jsonEncode({'slug': slug, 'number': number})})';
+
+String _choose(String slug, String topic) =>
+    "decision '$topic' of $slug; when the user states a new choice: "
+    'record_decision({"slug":${jsonEncode(slug)},"topic":${jsonEncode(topic)},"value":…})';
 
 String? _iso(DateTime? date) => date == null ? null : isoDate(date);
 
