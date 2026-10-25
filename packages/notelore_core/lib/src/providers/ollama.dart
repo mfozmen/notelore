@@ -21,13 +21,16 @@ String ollamaHost([Map<String, String>? environment]) =>
     );
 
 class OllamaProvider implements LlmProvider {
-  OllamaProvider(this.model, {String? host, this.transport = defaultTransport})
+  OllamaProvider(this.model, {String? host, this.transport = defaultTransport, this.temperature})
     : _host = host ?? ollamaHost();
 
   @override
   final String model;
   final String _host;
   final Transport transport;
+
+  /// The model's own (its Modelfile's) when null; 0 decodes greedily.
+  final double? temperature;
 
   @override
   Future<AgentResponse> turn(String system, List<Message> messages, List<Tool> tools) async {
@@ -44,7 +47,7 @@ class OllamaProvider implements LlmProvider {
         // Ollama may load a model with a huge default context that spills off
         // the GPU, and Qwen3 thinks at length unless told not to: both made a
         // 4B model take minutes per turn on a laptop (#326).
-        'options': {'num_ctx': 16384},
+        'options': {'num_ctx': 16384, 'temperature': ?temperature},
         'think': false,
         if (tools.isNotEmpty) 'tools': functionTools(tools),
       },

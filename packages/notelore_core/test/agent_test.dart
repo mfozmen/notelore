@@ -138,7 +138,7 @@ void main() {
     ]);
     expect(await Agent(provider, box, today: today).ask('read it'), 'Sorry.');
     expect(lastResult(provider, 1), 'Error: the tool arguments were not valid JSON: {oops');
-    expect(lastResult(provider, 2), "Error: no note with slug 'nope'.");
+    expect(lastResult(provider, 2), "Error: no note 'nope'. There are no notes yet.");
   });
 
   test('only text and tool_use blocks enter the history', () async {
@@ -715,7 +715,6 @@ void failureTests() {
         'get_decision',
         'related_notes',
         'collection note',
-        'complete_todo',
         'add_reminder',
         'Never refuse',
         'HH:MM-HH:MM',
@@ -728,6 +727,8 @@ void failureTests() {
       ]) {
         expect(slim, contains(rule));
       }
+      // Carried by the results instead (#601).
+      expect(slim, isNot(contains('complete_todo')));
       // Nothing it cannot do: no web search, no pictures, no merging.
       for (final gone in [
         'search the web',

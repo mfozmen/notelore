@@ -183,6 +183,40 @@ void main() {
     expect(text, contains('~~2026-09-30 — **database**: PostgreSQL.~~'));
   });
 
+  test('results carry the rule where it applies: how to tick an open todo, record a choice', () {
+    call('create_note', {'kind': 'project', 'title': 'Ev Tadilatı', 'lang': 'tr'});
+    call('add_todo', {'slug': 'ev-tadilati', 'text': 'Boyacıyı ara'});
+    call('add_todo', {'slug': 'ev-tadilati', 'text': 'Elektrikçiyi ara'});
+    call('complete_todo', {'slug': 'ev-tadilati', 'number': 1});
+    call('record_decision', {'slug': 'ev-tadilati', 'topic': 'tezgah', 'value': 'Mermer'});
+    call('record_decision', {'slug': 'ev-tadilati', 'topic': 'tezgah', 'value': 'Granit'});
+    const tick =
+        'when the user says it is done: '
+        'complete_todo({"slug":"ev-tadilati","number":2})';
+    expect(call('search_notes', {'query': 'Elektrikçiyi'}), [
+      containsPair('next', 'open todo 2 of ev-tadilati; $tick'),
+    ]);
+    // A done todo needs nothing.
+    expect((call('search_notes', {'query': 'Boyacıyı'})! as List).single, isNot(contains('next')));
+    final decisions = call('search_notes', {'query': 'tezgah'})! as List;
+    expect(decisions.map((h) => (h as Map)['next']), [
+      null, // superseded
+      "decision 'tezgah' of ev-tadilati; when the user states a new choice: "
+          'record_decision({"slug":"ev-tadilati","topic":"tezgah","value":…})',
+    ]);
+    expect(
+      call('read_note', {'slug': 'ev-tadilati'}),
+      endsWith('\nopen todo 2 of ev-tadilati; $tick\n'),
+    );
+    call('complete_todo', {'slug': 'ev-tadilati', 'number': 2});
+    expect(call('read_note', {'slug': 'ev-tadilati'}), isNot(contains('open todo')));
+    // A topic may hold ": " itself.
+    call('record_decision', {'slug': 'ev-tadilati', 'topic': 'oda: mutfak', 'value': 'Beyaz'});
+    expect(call('search_notes', {'query': 'Beyaz'}), [
+      containsPair('next', contains('"topic":"oda: mutfak"')),
+    ]);
+  });
+
   test('search and stale', () {
     call('create_note', {'kind': 'project', 'title': 'Mopsos'});
     call('add_note_entry', {'slug': 'mopsos', 'text': 'Considered adding crypto.'});
@@ -309,12 +343,90 @@ void main() {
     File(p.join(box.root, 'topics', 'My Note.md'))
       ..createSync(recursive: true)
       ..writeAsStringSync('---\ntitle: My Note\nkind: topic\n---\n\n# My Note\n');
-    expect(call('read_note', {'slug': 'My Note'}), contains('# My Note'));
+    // Not a note the parser knows: read as it is, with nothing added.
+    expect(
+      call('read_note', {'slug': 'My Note'}),
+      '---\ntitle: My Note\nkind: topic\n---\n\n# My Note\n',
+    );
     expect(call('read_note', {'slug': 'my note'}), contains('# My Note'));
   });
 
+  test('an unknown slug answers with the closest notes, across languages', () {
+    call('create_note', {'kind': 'project', 'title': 'Ev Tadilatı', 'lang': 'tr'});
+    call('create_note', {'kind': 'topic', 'title': 'Books to read'});
+    call('create_note', {'kind': 'project', 'title': 'Mopsos'});
+    call('create_note', {'kind': 'topic', 'title': 'Gardening'});
+    expect(
+      call('add_reminder', {'slug': 'house-renovation', 'text': 'x', 'at': '2026-10-19'}),
+      "Error: no note 'house-renovation'. Closest: ev-tadilati (Ev Tadilatı, project), "
+      'gardening (Gardening, topic), books-to-read (Books to read, topic). '
+      'Use its slug, or call list_notes.',
+    );
+    expect(call('read_note', {'slug': 'tadilat'}), contains('Closest: ev-tadilati ('));
+    expect(
+      call('read_note', {'slug': 'mopsos', 'kind': 'topic'}),
+      contains('mopsos (Mopsos, project)'),
+    );
+  });
+
+  test('a topic named like what related_notes was asked about waits for a second call (#532)', () {
+    call('related_notes', {'title': 'Saatleri Ayarlama Enstitüsü'});
+    final held = call('create_note', {'kind': 'topic', 'title': 'Saatleri Ayarlama Enstitüsü'});
+    expect(held, allOf(startsWith('Not created.'), contains('collection note for its kind')));
+    expect(Directory(p.join(box.root, 'topics')).existsSync(), isFalse);
+    // Asked again, it is a subject of its own.
+    expect(
+      call('create_note', {'kind': 'topic', 'title': 'Saatleri Ayarlama Enstitüsü'}),
+      containsPair('slug', 'saatleri-ayarlama-enstitusu'),
+    );
+    // What was found is named, so the item goes there.
+    call('create_note', {'kind': 'topic', 'title': 'Dune notes'});
+    call('related_notes', {'title': 'Dune'});
+    expect(
+      call('create_note', {'kind': 'topic', 'title': 'Dune'}),
+      allOf(startsWith('Not created.'), contains('dune-notes (Dune notes)')),
+    );
+    // A project, a title not asked about, or a new turn is never held back.
+    call('related_notes', {'title': 'Garden'});
+    expect(
+      call('create_note', {'kind': 'project', 'title': 'Garden'}),
+      containsPair('slug', 'garden'),
+    );
+    expect(call('create_note', {'kind': 'topic', 'title': 'Books'}), containsPair('slug', 'books'));
+    call('related_notes', {'title': 'Perfect Days'});
+    box.forgetCreated();
+    expect(
+      call('create_note', {'kind': 'topic', 'title': 'Perfect Days'}),
+      containsPair('slug', 'perfect-days'),
+    );
+  });
+
+  test('a note named after a slug just reported missing waits for a second call', () {
+    call('create_note', {'kind': 'project', 'title': 'Ev Tadilatı', 'lang': 'tr'});
+    call('add_todo', {'slug': 'ev-tadilati', 'text': 'Elektrikçiyi ara'});
+    expect(
+      call('add_reminder', {'slug': 'house-renovation', 'text': 'x', 'at': '2026-10-19'}),
+      startsWith("Error: no note 'house-renovation'."),
+    );
+    expect(
+      call('create_note', {'kind': 'project', 'title': 'House renovation'}),
+      allOf(startsWith('Not created.'), contains('ev-tadilati (Ev Tadilatı, project)')),
+    );
+    expect(
+      call('create_note', {'kind': 'project', 'title': 'House renovation'}),
+      containsPair('slug', 'house-renovation'),
+    );
+    // A related note carries its open todos, as search_notes and read_note do.
+    expect(call('related_notes', {'title': 'Ev tadilatı elektrik'}), [
+      containsPair('open_todos', [
+        'open todo 1 of ev-tadilati; when the user says it is done: '
+            'complete_todo({"slug":"ev-tadilati","number":1})',
+      ]),
+    ]);
+  });
+
   test('errors come back as messages, not exceptions', () {
-    expect(call('read_note', {'slug': 'nope'}), "Error: no note with slug 'nope'.");
+    expect(call('read_note', {'slug': 'nope'}), "Error: no note 'nope'. There are no notes yet.");
     final outside = File(p.join(p.dirname(box.root), 'secret.md'))..writeAsStringSync('private\n');
     for (final (tool, extra) in [
       ('read_note', <String, Object?>{}),
