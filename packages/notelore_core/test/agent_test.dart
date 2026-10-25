@@ -747,9 +747,9 @@ void failureTests() {
       await Agent(provider, newBox(), today: today, slim: true).ask('hi');
       await Agent(provider, newBox(), today: today).ask('hi');
       final (slimTurn, fullTurn) = (provider.turns.first, provider.turns.last);
-      expect(slimTurn.$1, slimSystemPrompt(today));
+      expect(slimTurn.$1, '${slimSystemPrompt(today)}\n\nThere are no notes yet.');
       expect(slimTurn.$3, slimTools);
-      expect(fullTurn.$1, systemPrompt(today));
+      expect(fullTurn.$1, '${systemPrompt(today)}\n\nThere are no notes yet.');
       expect(fullTurn.$3, noteTools);
     });
   });

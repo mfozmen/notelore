@@ -279,7 +279,7 @@ void main() {
     ]);
     final result = await runCase(filing, provider, slim: true);
     expect(result.passed, isTrue, reason: '${result.problems}');
-    expect(provider.turns.first.$1, slimSystemPrompt(evalNow));
+    expect(provider.turns.first.$1, startsWith(slimSystemPrompt(evalNow)));
     expect(provider.turns.first.$3, slimTools);
     final example = trainingExample(result);
     final messages = (example['messages']! as List).cast<Map<String, Object?>>();

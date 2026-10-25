@@ -195,7 +195,12 @@ class Agent {
   /// The model on the device (#447): [slimSystemPrompt] and [slimTools].
   final bool slim;
 
-  String get _system => slim ? slimSystemPrompt(today) : systemPrompt(today);
+  /// The fixed prompt, then this turn's notes: the fixed part stays a stable
+  /// prefix for a prefill cache.
+  String get _system => '${slim ? slimSystemPrompt(today) : systemPrompt(today)}\n\n$_notes';
+
+  /// [Toolbox.noteList] as the turn began, so it stays the same within a turn.
+  var _notes = '';
 
   List<Tool> get _tools => slim ? slimTools : toolbox.tools;
 
@@ -240,6 +245,7 @@ class Agent {
   }) async {
     final start = messages.length;
     wroteNotes = false;
+    _notes = toolbox.noteList();
     final stop = _stop = Completer()..future.ignore();
     final timer = Timer(deadline, () => this.stop(const TurnStopped(_late)));
     try {
