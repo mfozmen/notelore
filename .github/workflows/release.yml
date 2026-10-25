@@ -221,8 +221,9 @@ jobs:
               echo "no signed Windows setup for $previous; no delta from it"
               continue
             fi
-            if [ ! -f "$old_dir/$old_setup.sha256" ] || [ ! -f "$old_dir/$old_setup.sha256.sig" ]; then
-              echo "old setup $old_version has no signed checksum; no delta from it"
+            if [ ! -f "$old_dir/$old_setup" ] || [ ! -f "$old_dir/$old_setup.sha256" ] ||
+              [ ! -f "$old_dir/$old_setup.sha256.sig" ]; then
+              echo "old setup $old_version or its signed checksum is missing; no delta from it"
               continue
             fi
             python - "$UPDATE_KEY" "$RUNNER_TEMP/old-update.pub" <<'PY'
@@ -243,10 +244,14 @@ jobs:
               echo "old setup $old_version is not signed by the release key; no delta from it"
               continue
             fi
-            expected=$(cut -d' ' -f1 "$old_dir/$old_setup.sha256")
-            actual=$(sha256sum "$old_dir/$old_setup" | cut -d' ' -f1)
+            expected=$(cat "$old_dir/$old_setup.sha256")
+            # From stdin: given a path with a backslash ($RUNNER_TEMP on Windows),
+            # sha256sum escapes its line with a leading "\" and never matches.
+            # The whole signed line, name included: an older setup uploaded under
+            # this name carries a genuine signature for its own name only.
+            actual="$(sha256sum < "$old_dir/$old_setup" | cut -d' ' -f1)  $old_setup"
             if [ "$expected" != "$actual" ]; then
-              echo "old setup $old_version does not match its signed checksum; no delta from it"
+              echo "old setup $old_version does not match its signed checksum (expected $expected, got $actual); no delta from it"
               continue
             fi
             old_app="$RUNNER_TEMP/oldapp-$old_version"
