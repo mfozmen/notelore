@@ -284,6 +284,15 @@ void main() {
     // Distill keeps each case once: repeated runs are for eval only.
     expect(await run(['distill', '--runs=2', '--cases=cases.json']), 64);
     expect(await run(['eval', '--runs=0', '--cases=cases.json']), 64);
+    // Only Ollama takes a temperature here: said, not ignored.
+    expect(
+      await run(
+        ['eval', '--provider=anthropic', '--greedy', '--cases=cases.json'],
+        environment: {'NOTELORE_HOME': 'home', 'NOTELORE_ANTHROPIC_API_KEY': 'k'},
+      ),
+      1,
+    );
+    expect('$out', contains('--greedy works with --provider=ollama only'));
   });
 
   test('eval: every case of a file against one model, with a report (#325)', () async {

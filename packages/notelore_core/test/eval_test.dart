@@ -565,5 +565,6 @@ void main() {
       ]),
       summarize([fail]),
     ); // one run reads as before
+    expect(summarizeRuns([[], []]), startsWith('run 1: 0/0\nrun 2: 0/0\n')); // no cases: no crash
   });
 }
