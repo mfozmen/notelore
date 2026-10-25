@@ -202,6 +202,9 @@ class Agent {
   /// [Toolbox.noteList] as the turn began, so it stays the same within a turn.
   var _notes = '';
 
+  /// The note list the last turn was sent after the fixed prompt.
+  String get noteList => _notes;
+
   List<Tool> get _tools => slim ? slimTools : toolbox.tools;
 
   /// How long a whole turn, every model call and tool round, may take.

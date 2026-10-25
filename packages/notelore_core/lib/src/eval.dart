@@ -115,6 +115,7 @@ class EvalResult {
     this.messages = const [],
     this.slim = false,
     this.action = '',
+    this.noteList = '',
   });
 
   final EvalCase evalCase;
@@ -133,6 +134,9 @@ class EvalResult {
   /// What the turn did first: the write it stopped at, `create_note` when it
   /// only made a note, `ask` for a question back, or `none` (#598).
   final String action;
+
+  /// The note list the model was sent after the fixed prompt (#602).
+  final String noteList;
 
   /// What it should have done first, in the same terms.
   String get wanted => wantedAction(evalCase);
@@ -277,6 +281,7 @@ Future<EvalResult> runCase(
       messages: agent.messages,
       slim: slim,
       action: _action(tools, stoppedAt, answer),
+      noteList: agent.noteList,
     );
   } finally {
     index.close();
@@ -421,13 +426,23 @@ String? answerLanguage(String answer) {
 
 /// [result]'s turn as one chat transcript with tool calls, the shape Qwen's
 /// and most open models' chat templates train on (#327).
+/// Its case id goes with it, so a split keeps one scenario on one side, and
+/// its note list, so a reprompt keeps it.
 Map<String, Object?> trainingExample(EvalResult result) => {
+  'id': result.evalCase.id,
+  'note_list': result.noteList,
   'messages': [
-    {'role': 'system', 'content': result.slim ? slimSystemPrompt(evalNow) : systemPrompt(evalNow)},
+    {'role': 'system', 'content': _system(result.slim, result.noteList)},
     ...toOllama(collapseRepeatedReads(result.messages)),
   ],
   'tools': functionTools(result.slim ? slimTools : noteTools),
 };
+
+/// The system text as [Agent] sends it: the fixed prompt, then [noteList].
+String _system(bool slim, String noteList) {
+  final prompt = slim ? slimSystemPrompt(evalNow) : systemPrompt(evalNow);
+  return noteList.isEmpty ? prompt : '$prompt\n\n$noteList';
+}
 
 /// [example] (a line of a training file) with today's system prompt and tools,
 /// [slim] or full, and its turns as they were: one file then teaches one
@@ -437,7 +452,7 @@ Map<String, Object?> reprompted(Map<String, Object?> example, {bool slim = false
   return {
     ...example,
     'messages': [
-      {'role': 'system', 'content': slim ? slimSystemPrompt(evalNow) : systemPrompt(evalNow)},
+      {'role': 'system', 'content': _system(slim, '${example['note_list'] ?? ''}')},
       ...messages.where((m) => m['role'] != 'system'),
     ],
     'tools': functionTools(slim ? slimTools : noteTools),
