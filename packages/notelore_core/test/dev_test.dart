@@ -250,6 +250,42 @@ void main() {
     expect('$out', contains('left out 1 case that needs web search'));
   });
 
+  test('eval --greedy --runs=2: temperature 0, the set twice, each run said (#597)', () async {
+    File(p.join(temp.path, 'cases.json')).writeAsStringSync(
+      jsonEncode([
+        {
+          'id': 'plain',
+          'kind': 'chat',
+          'lang': 'en',
+          'message': 'hi',
+          'expect': <String, Object?>{},
+        },
+      ]),
+    );
+    final bodies = <Map<String, Object?>>[];
+    final ollama = MockClient((request) async {
+      bodies.add((jsonDecode(request.body) as Map).cast());
+      return http.Response(
+        jsonEncode({
+          'message': {'role': 'assistant', 'content': 'Hello'},
+          'done': true,
+        }),
+        200,
+      );
+    });
+    final args = ['eval', '--provider=ollama', '--model=m', '--cases=cases.json'];
+    expect(await run([...args, '--greedy', '--runs=2'], client: ollama), 0);
+    expect(bodies, hasLength(2));
+    expect(bodies.map((b) => (b['options']! as Map)['temperature']), [0, 0]);
+    expect('$out', contains('run 1: 1/1 (100%)\nrun 2: 1/1 (100%)'));
+    // Without them: the Modelfile's temperature, one run.
+    expect(await run(args, client: ollama), 0);
+    expect((bodies.last['options']! as Map).containsKey('temperature'), isFalse);
+    // Distill keeps each case once: repeated runs are for eval only.
+    expect(await run(['distill', '--runs=2', '--cases=cases.json']), 64);
+    expect(await run(['eval', '--runs=0', '--cases=cases.json']), 64);
+  });
+
   test('eval: every case of a file against one model, with a report (#325)', () async {
     File(p.join(temp.path, 'cases.json')).writeAsStringSync(
       jsonEncode([

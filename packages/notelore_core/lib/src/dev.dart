@@ -35,10 +35,11 @@ import 'tools.dart';
 
 const _usage =
     'usage: notelore_dev signin | models | chat [--provider=<name>] [--model=<id>] <message>'
-    ' | eval [--provider=<name>] [--model=<id>] [--cases=<file>] [--slim]'
+    ' | eval [--provider=<name>] [--model=<id>] [--cases=<file>] [--slim] [--greedy] [--runs=<n>]'
     ' | distill [--provider=<name>] [--model=<id>] [--cases=<file>] [--out=<file>] [--slim]'
     ' | reprompt --in=<file> --out=<file> [--slim]'
-    ' (--slim: the prompt and tools of the model on the device)';
+    ' (--slim: the prompt and tools of the model on the device;'
+    ' --greedy: temperature 0, on Ollama; --runs: the set n times, eval only)';
 
 /// A trace file's name for a run started at [time]: UTC to the microsecond,
 /// always six digits, so names sort in time order (`toIso8601String()` drops
@@ -71,11 +72,14 @@ Future<int> runDev(
   };
   final words = args.where((a) => !a.startsWith('--')).toList();
   final slim = args.contains('--slim');
+  final runs = int.tryParse(options['runs'] ?? '1') ?? 0;
   final command = words.firstOrNull;
   final message = words.skip(1).join(' ');
   if (command == null ||
       !const {'signin', 'models', 'chat', 'eval', 'distill', 'reprompt'}.contains(command) ||
-      (command == 'chat' && message.isEmpty)) {
+      (command == 'chat' && message.isEmpty) ||
+      runs < 1 ||
+      (runs > 1 && command != 'eval')) {
     out.writeln(_usage);
     return 64;
   }
@@ -126,10 +130,18 @@ Future<int> runDev(
             : null;
         await _eval(
           cases,
-          () => _provider(options, environment, auth, traced, out),
+          () => _provider(
+            options,
+            environment,
+            auth,
+            traced,
+            out,
+            temperature: args.contains('--greedy') ? 0 : null,
+          ),
           out,
           keep: keep,
           slim: slim,
+          runs: runs,
           search: findProvider(options['provider'] ?? 'chatgpt').webSearch,
         );
       default:
@@ -197,24 +209,31 @@ Future<void> _eval(
   File? keep,
   bool slim = false,
   bool search = false,
+  int runs = 1,
 }) async {
   if (!cases.existsSync()) throw StateError('no cases file at ${cases.path}');
   final provider = await open();
   final done = keep == null ? null : File('${keep.path}.done');
   final finished = keep == null ? const <String>{} : _resume(keep, done!);
-  final results = <EvalResult>[];
+  final runnable = _runnable(loadCases(cases.readAsStringSync()), search, out);
+  final everyRun = <List<EvalResult>>[];
   // Per case: null when it failed, the reasons it was left out, or none when kept.
   final outcomes = <Set<TrainingIssue>?>[];
-  for (final evalCase in _runnable(loadCases(cases.readAsStringSync()), search, out)) {
-    if (finished.contains(evalCase.id)) continue;
-    final result = await runCase(evalCase, provider, slim: slim);
-    results.add(result);
-    final verdict = result.passed ? 'ok  ' : 'FAIL';
-    out.writeln('$verdict ${evalCase.id} (${result.took.inMilliseconds} ms) ${result.tools}');
-    if (keep != null) outcomes.add(_keepTurn(result, keep, done!));
+  for (var run = 0; run < runs; run++) {
+    final results = <EvalResult>[];
+    everyRun.add(results);
+    for (final evalCase in runnable) {
+      if (finished.contains(evalCase.id)) continue;
+      final result = await runCase(evalCase, provider, slim: slim);
+      results.add(result);
+      final verdict = result.passed ? 'ok  ' : 'FAIL';
+      out.writeln('$verdict ${evalCase.id} (${result.took.inMilliseconds} ms) ${result.tools}');
+      if (keep != null) outcomes.add(_keepTurn(result, keep, done!));
+    }
   }
-  out.writeln(summarize(results));
+  out.writeln(summarizeRuns(everyRun));
   if (keep == null) return;
+  final results = everyRun.single; // distill runs once
   if (finished.isNotEmpty) out.writeln('skipped ${finished.length} already done in ${done!.path}');
   final kept = outcomes.where((issues) => issues != null && issues.isEmpty).length;
   out.writeln('kept $kept of ${results.length} in ${keep.path}');
@@ -277,8 +296,9 @@ Future<LlmProvider> _provider(
   Map<String, String> environment,
   ChatGptAuth auth,
   http.Client traced,
-  StringSink out,
-) async {
+  StringSink out, {
+  double? temperature,
+}) async {
   final spec = findProvider(options['provider'] ?? 'chatgpt');
   final keyName = 'NOTELORE_${spec.name.toUpperCase()}_API_KEY';
   final key = environment[keyName];
@@ -295,6 +315,7 @@ Future<LlmProvider> _provider(
     model: model,
     planToken: auth.token,
     client: traced,
+    temperature: temperature,
     transport: (method, url, {headers = const {}, body, required timeout}) =>
         request(traced, method, url, headers: headers, body: body, timeout: timeout),
   );

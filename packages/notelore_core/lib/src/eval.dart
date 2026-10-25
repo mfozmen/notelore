@@ -169,6 +169,7 @@ Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider, {bool slim =
         ..._missingFacts(evalCase.expect, changed, after),
         ..._badLines(evalCase.expect, changed, after),
         ..._answerProblems(evalCase.expect, answer),
+        ?_wrongLanguage(evalCase.lang, answer),
       ]);
     }
     return EvalResult(
@@ -292,6 +293,34 @@ Iterable<String> _answerProblems(Expectation expect, String answer) => [
     if (_has(answer, word)) 'the answer has "$word"',
 ];
 
+String? _wrongLanguage(String lang, String answer) => switch (answerLanguage(answer)) {
+  final said? when said != lang => 'the answer is in $said, not $lang',
+  _ => null,
+};
+
+const _englishWords = {
+  'the', 'a', 'an', 'and', 'to', 'of', 'in', 'on', 'for', 'with', 'is', 'are', 'was', 'it', //
+  'i', "i've", "i'll", 'you', 'your', 'this', 'that', 'what', 'which', 'do', 'did', 'have',
+};
+
+const _turkishWords = {
+  've', 'bir', 'bu', 'şu', 'için', 'ile', 'da', 'de', 'mi', 'mı', 'mu', 'mü', 'ne', 'olarak', //
+  'ekledim', 'kaydettim', 'notuna', 'notunu', 'hangi', 'nasıl', 'var', 'yok', 'yani', 'değil',
+};
+
+/// `en` or `tr` by which language's small words [answer] has more of, quoted
+/// text left out (a Turkish title in an English answer); null when neither.
+String? answerLanguage(String answer) {
+  final unquoted = answer.replaceAll(RegExp(r'"[^"]*"|“[^”]*”|`[^`]*`'), ' ');
+  final words = RegExp(
+    r"[\p{L}']+",
+    unicode: true,
+  ).allMatches(unquoted.toLowerCase()).map((m) => m[0]!);
+  final english = words.where(_englishWords.contains).length;
+  final turkish = words.where(_turkishWords.contains).length;
+  return english > turkish ? 'en' : (turkish > english ? 'tr' : null);
+}
+
 /// [result]'s turn as one chat transcript with tool calls, the shape Qwen's
 /// and most open models' chat templates train on (#327).
 Map<String, Object?> trainingExample(EvalResult result) => {
@@ -412,13 +441,26 @@ Map<String, String> _files(String root) => {
     p.posix.joinAll(p.split(p.relative(file.path, from: root))): file.readAsStringSync(),
 };
 
+/// Each run's total, then [summarize] over every run: a kind's share is its
+/// mean (#597). One run reads as [summarize] alone.
+String summarizeRuns(List<List<EvalResult>> runs) {
+  final all = runs.expand((run) => run).toList();
+  if (runs.length == 1) return summarize(all);
+  return [
+    for (final (i, run) in runs.indexed) 'run ${i + 1}: ${_share(run)}',
+    summarize(all),
+  ].join('\n');
+}
+
+String _share(Iterable<EvalResult> group) {
+  final passed = group.where((r) => r.passed).length;
+  return '$passed/${group.length} (${(100 * passed / group.length).round()}%)';
+}
+
 /// Accuracy per kind and overall, then every failure with its reasons.
 String summarize(List<EvalResult> results) {
-  String line(String name, Iterable<EvalResult> group) {
-    final passed = group.where((r) => r.passed).length;
-    if (group.isEmpty) return '$name: 0/0';
-    return '$name: $passed/${group.length} (${(100 * passed / group.length).round()}%)';
-  }
+  String line(String name, Iterable<EvalResult> group) =>
+      group.isEmpty ? '$name: 0/0' : '$name: ${_share(group)}';
 
   final kinds = {for (final r in results) r.evalCase.kind}.toList()..sort();
   return [
