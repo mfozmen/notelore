@@ -17,6 +17,11 @@ takes its chat template and parameters from the base model as Ollama ships it
 (`--ollama-base`, qwen3:4b-instruct-2507-q4_K_M by default), so tool calls
 are read the same way.
 
+A tenth of the turns is held out (the same tenth every run). The validation
+loss on it is logged with the train loss every 5 steps, the LoRA saved is the
+checkpoint where it was lowest, and three evaluations without a better one end
+the run, so `--epochs` is a ceiling.
+
 `--assistant-only` puts the loss on the assistant's tokens alone (about 7% of
 a turn), not on the system prompt, tool schemas and tool results it would
 otherwise also learn to predict. v1 and v2 trained without it; v3 uses it.
@@ -28,6 +33,7 @@ GPU is free. Nothing here ships in the app.
 
 import importlib
 import json
+import random
 import subprocess
 import sys
 from pathlib import Path
@@ -35,7 +41,12 @@ from pathlib import Path
 import torch
 from datasets import Dataset
 from peft import LoraConfig, PeftModel
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+    EarlyStoppingCallback,
+)
 from trl import SFTConfig, SFTTrainer
 
 
@@ -81,16 +92,73 @@ def assistant_labels(ids, start, end):
 
 
 def dataset(tokenizer, data, assistant_only):
-    """The training rows: rendered text (the loss covers every token, as v1 and
-    v2 trained), or with `assistant_only` token ids with assistant-only labels."""
+    """The rows: rendered text (the loss covers every token, as v1 and v2
+    trained), or with `assistant_only` token ids with assistant-only labels."""
     rendered = texts(tokenizer, data)
     if not assistant_only:
-        return Dataset.from_dict({"text": rendered})
+        return [{"text": text} for text in rendered]
     start = tokenizer("<|im_start|>assistant\n", add_special_tokens=False)["input_ids"]
     end = tokenizer.convert_tokens_to_ids("<|im_end|>")
     ids = [tokenizer(text, add_special_tokens=False)["input_ids"] for text in rendered]
-    labels = [assistant_labels(i, start, end) for i in ids]
-    return Dataset.from_dict({"input_ids": ids, "labels": labels})
+    return [{"input_ids": i, "labels": assistant_labels(i, start, end)} for i in ids]
+
+
+def split(rows, share=0.1, seed=0):
+    """The rows to train on and the ones held out for the validation loss (#605):
+    a [share] of them, at least one, the same ones on every run."""
+    if len(rows) < 2:
+        raise ValueError(f"need at least two turns to hold one out, got {len(rows)}")
+    order = list(range(len(rows)))
+    random.Random(seed).shuffle(order)
+    held = set(order[: max(1, round(len(rows) * share))])
+    return (
+        [r for i, r in enumerate(rows) if i not in held],
+        [r for i, r in enumerate(rows) if i in held],
+    )
+
+
+def trainer_args(out, epochs, flags):
+    """The trainer's settings: evaluated and saved on the same steps, and the
+    checkpoint with the best validation loss loaded at the end (early stopping
+    needs that)."""
+    return dict(
+        output_dir=str(Path(out) / "lora"),
+        num_train_epochs=epochs,
+        per_device_train_batch_size=1,
+        per_device_eval_batch_size=1,
+        gradient_accumulation_steps=8,
+        learning_rate=2e-4,
+        lr_scheduler_type="cosine",
+        warmup_ratio=0.05,
+        logging_steps=5,
+        eval_strategy="steps",
+        eval_steps=5,
+        save_strategy="steps",
+        save_steps=5,
+        save_total_limit=2,
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
+        **flags,
+        gradient_checkpointing=True,
+        max_length=6144,
+        dataset_text_field="text",
+        report_to=[],
+    )
+
+
+def losses(history):
+    """The trainer's log as one line per step: its train and validation loss."""
+    steps = {}
+    for entry in history:
+        for key, name in (("loss", "train"), ("eval_loss", "validation")):
+            if key in entry:
+                steps.setdefault(entry["step"], {})[name] = entry[key]
+    return [
+        f"step {step}: train {got.get('train', float('nan')):.3f}, "
+        f"validation {got.get('validation', float('nan')):.3f}"
+        for step, got in sorted(steps.items())
+    ]
 
 
 def native_bf16():
@@ -142,14 +210,15 @@ def load(base, dtype):
 
 def train(base, data, out, epochs, assistant_only=False):
     tokenizer = AutoTokenizer.from_pretrained(base)
-    rows = dataset(tokenizer, data, assistant_only)
-    print(f"{len(rows)} training turns")
+    kept, held = split(dataset(tokenizer, data, assistant_only))
+    print(f"{len(kept)} training turns, {len(held)} held out for the validation loss")
     (flags, dtype), native = gpu_settings()
     fp32_logprobs(native)
     model = load(base, dtype)
     trainer = SFTTrainer(
         model=model,
-        train_dataset=rows,
+        train_dataset=Dataset.from_list(kept),
+        eval_dataset=Dataset.from_list(held),
         processing_class=tokenizer,
         peft_config=LoraConfig(
             r=16,
@@ -158,24 +227,14 @@ def train(base, data, out, epochs, assistant_only=False):
             target_modules="all-linear",
             task_type="CAUSAL_LM",
         ),
-        args=SFTConfig(
-            output_dir=str(Path(out) / "lora"),
-            num_train_epochs=epochs,
-            per_device_train_batch_size=1,
-            gradient_accumulation_steps=8,
-            learning_rate=2e-4,
-            lr_scheduler_type="cosine",
-            warmup_ratio=0.05,
-            logging_steps=5,
-            save_strategy="no",
-            **flags,
-            gradient_checkpointing=True,
-            max_length=6144,
-            dataset_text_field="text",
-            report_to=[],
-        ),
+        args=SFTConfig(**trainer_args(out, epochs, flags)),
+        # Three evaluations without a better validation loss end the run.
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
     )
     trainer.train()
+    print("\n".join(losses(trainer.state.log_history)))
+    best = trainer.state.best_model_checkpoint
+    print(f"best validation loss {trainer.state.best_metric} at {best}")
     trainer.save_model(str(Path(out) / "lora"))
 
 
