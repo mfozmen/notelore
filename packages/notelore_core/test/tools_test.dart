@@ -369,6 +369,28 @@ void main() {
     );
   });
 
+  test('the notes for the prompt: newest first, at most 60, capped in length', () {
+    expect(box.noteList(), 'There are no notes yet.');
+    call('create_note', {'kind': 'project', 'title': 'Mopsos'});
+    call('create_note', {'kind': 'topic', 'title': 'Ev Tadilatı', 'lang': 'tr'});
+    expect(
+      box.noteList(),
+      'Notes, newest first (list_notes has them all):\n'
+      '- Ev Tadilatı: ev-tadilati, topic\n'
+      '- Mopsos: mopsos, project',
+    );
+    for (var i = 0; i < 70; i++) {
+      call('create_note', {'kind': 'topic', 'title': 'Note $i'});
+    }
+    expect('\n'.allMatches(box.noteList()), hasLength(60));
+    for (var i = 0; i < 40; i++) {
+      call('create_note', {'kind': 'topic', 'title': 'A rather long title for a note, number $i'});
+    }
+    final long = box.noteList();
+    expect(long.length, lessThanOrEqualTo(2400));
+    expect(long.split(String.fromCharCode(10)).length, lessThan(60));
+  });
+
   test('errors come back as messages, not exceptions', () {
     expect(call('read_note', {'slug': 'nope'}), "Error: no note 'nope'. There are no notes yet.");
     final outside = File(p.join(p.dirname(box.root), 'secret.md'))..writeAsStringSync('private\n');

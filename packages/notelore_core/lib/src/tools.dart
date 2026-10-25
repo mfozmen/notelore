@@ -259,6 +259,20 @@ class Toolbox {
   /// Removes a file; tests make it fail as a held file does on Windows.
   final void Function(File file) delete;
 
+  /// The newest notes for the end of the system prompt, so the model has their
+  /// slugs without a list_notes call: at most 60, and about 600 tokens.
+  String noteList() {
+    final notes = _fresh().listNotes();
+    if (notes.isEmpty) return 'There are no notes yet.';
+    var list = 'Notes, newest first (list_notes has them all):';
+    for (final n in notes.take(60)) {
+      final line = '\n- ${n.title}: ${n.slug}, ${n.kind}';
+      if (list.length + line.length > 2400) break;
+      list += line;
+    }
+    return list;
+  }
+
   /// This turn's new notes, as made: a failed turn takes back the empty ones (#421).
   final _created = <String, String>{};
 
