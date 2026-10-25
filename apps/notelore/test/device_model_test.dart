@@ -11,6 +11,18 @@ void main() {
     expect(file.size, 2497281120);
   });
 
+  test('the device samples as every eval measured it (#609)', () {
+    expect(deviceSampling.temp, 0.7);
+    expect(deviceSampling.topP, 0.8);
+    expect(deviceSampling.topK, 20);
+    expect(deviceSampling.minP, 0);
+    expect(deviceSampling.penalty, 1); // none: tool calls repeat slugs and keys
+    expect(
+      describeSampling(deviceSampling),
+      'temp 0.7, top-p 0.8, top-k 20, min-p 0.0, penalty 1.0',
+    );
+  });
+
   test("Notelore's turn goes to llama.cpp as its own messages", () {
     final messages = toLlama([
       {'role': 'system', 'content': 'You are Notelore.'},
