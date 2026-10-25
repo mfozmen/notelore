@@ -94,6 +94,38 @@ void main() {
     );
   });
 
+  test('the device model runs on the fast cores, not every core (#594)', () {
+    // The S23 Ultra (Snapdragon 8 Gen 2 for Galaxy): 3 efficiency cores at
+    // 2.0 GHz, 4 performance cores at 2.8 GHz, and one prime core at 3.36 GHz.
+    final s23 = [...List.filled(3, 2016000), ...List.filled(4, 2803000), 3360000];
+    expect(fastCores(s23, fallback: 0), 4);
+    // The two performance core kinds report slightly different maxima: still 4.
+    expect(
+      fastCores([
+        ...List.filled(3, 2016000),
+        ...List.filled(2, 2803000),
+        ...List.filled(2, 2841000),
+        3360000,
+      ], fallback: 0),
+      4,
+    );
+    // No lone prime: every core above the efficiency cluster. Two clusters
+    // (4 fast + 4 slow): all four fast ones. One cluster: every core.
+    expect(
+      fastCores([
+        ...List.filled(4, 1800000),
+        ...List.filled(2, 2400000),
+        ...List.filled(2, 2600000),
+      ], fallback: 0),
+      4,
+    );
+    expect(fastCores([...List.filled(4, 2400000), ...List.filled(4, 1800000)], fallback: 0), 4);
+    expect(fastCores(List.filled(8, 2000000), fallback: 0), 8);
+    // Nothing readable: the runtime's own choice, never one thread by accident.
+    expect(fastCores(const [], fallback: 0), 0);
+    expect(fastCores(const [0, -1], fallback: 1), 1);
+  });
+
   test('the tools go as their JSON schemas, for the tool-call grammar', () {
     final tools = toolsFor([
       {

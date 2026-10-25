@@ -20,6 +20,29 @@ String? readMeminfo() {
   }
 }
 
+/// The phone's fast cores from the kernel's per-CPU peak frequencies, or 0
+/// (llama.cpp's automatic choice) where they are not readable.
+int _deviceThreads() {
+  if (!Platform.isAndroid) return 0;
+  final frequencies = <int>[];
+  for (var cpu = 0; cpu < Platform.numberOfProcessors; cpu++) {
+    try {
+      frequencies.add(
+        int.parse(
+          File('/sys/devices/system/cpu/cpu$cpu/cpufreq/cpuinfo_max_freq')
+              .readAsStringSync()
+              .trim(),
+        ),
+      );
+    } on FileSystemException {
+      // Offline, or hidden by the kernel: this core's cluster leaves no vote.
+    } on FormatException {
+      // Not a frequency: same.
+    }
+  }
+  return fastCores(frequencies, fallback: 0);
+}
+
 /// The model in the file at [path], loaded on its first turn (a few seconds)
 /// and kept for the next ones, which reuse its cached prompt.
 LocalEngine nativeDeviceEngine(String path) => _LlamaDart(path);
@@ -36,11 +59,16 @@ class _LlamaDart implements LocalEngine {
 
   Future<LlamaEngine> _engine() => _loading ??= () async {
     await _released;
+    final threads = _deviceThreads();
     try {
       // The whole prompt with the tools is ~2,800 tokens; a turn adds tool results.
       return await LlamaEngine.load(
         LlamaModel(ModelSource.path(path)),
-        params: const ModelParams(contextSize: 8192),
+        params: ModelParams(
+          contextSize: 8192,
+          numberOfThreads: threads,
+          numberOfThreadsBatch: threads,
+        ),
       );
     } on Object catch (error) {
       _loading = null; // tried again on the next turn
