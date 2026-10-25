@@ -369,6 +369,38 @@ void main() {
     );
   });
 
+  test('a topic named like what related_notes was asked about waits for a second call (#532)', () {
+    call('related_notes', {'title': 'Saatleri Ayarlama Enstitüsü'});
+    final held = call('create_note', {'kind': 'topic', 'title': 'Saatleri Ayarlama Enstitüsü'});
+    expect(held, allOf(startsWith('Not created.'), contains('collection note for its kind')));
+    expect(Directory(p.join(box.root, 'topics')).existsSync(), isFalse);
+    // Asked again, it is a subject of its own.
+    expect(
+      call('create_note', {'kind': 'topic', 'title': 'Saatleri Ayarlama Enstitüsü'}),
+      containsPair('slug', 'saatleri-ayarlama-enstitusu'),
+    );
+    // What was found is named, so the item goes there.
+    call('create_note', {'kind': 'topic', 'title': 'Dune notes'});
+    call('related_notes', {'title': 'Dune'});
+    expect(
+      call('create_note', {'kind': 'topic', 'title': 'Dune'}),
+      allOf(startsWith('Not created.'), contains('dune-notes (Dune notes)')),
+    );
+    // A project, a title not asked about, or a new turn is never held back.
+    call('related_notes', {'title': 'Garden'});
+    expect(
+      call('create_note', {'kind': 'project', 'title': 'Garden'}),
+      containsPair('slug', 'garden'),
+    );
+    expect(call('create_note', {'kind': 'topic', 'title': 'Books'}), containsPair('slug', 'books'));
+    call('related_notes', {'title': 'Perfect Days'});
+    box.forgetCreated();
+    expect(
+      call('create_note', {'kind': 'topic', 'title': 'Perfect Days'}),
+      containsPair('slug', 'perfect-days'),
+    );
+  });
+
   test('errors come back as messages, not exceptions', () {
     expect(call('read_note', {'slug': 'nope'}), "Error: no note 'nope'. There are no notes yet.");
     final outside = File(p.join(p.dirname(box.root), 'secret.md'))..writeAsStringSync('private\n');

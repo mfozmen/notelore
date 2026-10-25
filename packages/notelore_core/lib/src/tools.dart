@@ -7,6 +7,8 @@
 /// - `read_note(slug, kind?)`: the whole note as Markdown text, then a line per open
 ///   todo with the `complete_todo` call that ticks it.
 /// - `create_note(kind, title, tags?, lang?)`: `{slug, kind, path}`; fails if it exists.
+///   A topic titled as this turn's `related_notes` asked first gets a sentence on
+///   collection notes instead, and is made when asked again.
 /// - `add_note_entry(slug, text, kind?)`: appends a dated entry under Notes.
 /// - `add_todo(slug, text, due?, kind?)` / `complete_todo(slug, number, kind?)`.
 /// - `add_reminder(slug, at, text, kind?)`: `at` is `YYYY-MM-DD` or `YYYY-MM-DD HH:MM`;
@@ -262,10 +264,14 @@ class Toolbox {
   /// This turn's new notes, as made: a failed turn takes back the empty ones (#421).
   final _created = <String, String>{};
 
+  /// This turn's related_notes titles, by slug, with what each found.
+  final _asked = <String, List<Related>>{};
+
   /// Whether this turn made a note; it stays.
   bool forgetCreated() {
     final any = _created.isNotEmpty;
     _created.clear();
+    _asked.clear();
     return any;
   }
 
@@ -476,11 +482,24 @@ class Toolbox {
   }
 
   Object _relatedNotes(String title, String? about) {
-    final found = [for (final r in _fresh().related(title, about: about)) _related(r)];
-    return found.isEmpty ? _noneRelated : found;
+    final related = _fresh().related(title, about: about);
+    _asked[notes.slugify(title)] = related;
+    return related.isEmpty ? _noneRelated : [for (final r in related) _related(r)];
   }
 
-  Map<String, Object?> _createNote(String kind, String title, List<String>? tags, String lang) {
+  Object _createNote(String kind, String title, List<String>? tags, String lang) {
+    // A small model names a new topic after one item (a book) even after the
+    // related_notes steer: the first such call asks it to choose once more.
+    final found = kind == 'topic' ? _asked.remove(notes.slugify(title)) : null;
+    if (found != null) {
+      final where = found.isEmpty
+          ? 'it is an entry in a collection note for its kind: create that note (such as '
+                '"Books to read") and add it there with add_note_entry'
+          : 'add it with add_note_entry to the note related_notes found: '
+                '${found.map((r) => '${r.slug} (${r.title})').join(', ')}';
+      return "Not created. If '$title' is one item of a kind (a book, film, recipe, place or "
+          'gift), $where. If it is a subject of its own, call create_note again.';
+    }
     final path = notes.createNote(root, kind, title, tags: tags, lang: lang, today: today);
     _created[path] = File(path).readAsStringSync();
     index.markChanged(path);
