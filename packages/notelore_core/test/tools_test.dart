@@ -401,6 +401,30 @@ void main() {
     );
   });
 
+  test('a note named after a slug just reported missing waits for a second call', () {
+    call('create_note', {'kind': 'project', 'title': 'Ev Tadilatı', 'lang': 'tr'});
+    call('add_todo', {'slug': 'ev-tadilati', 'text': 'Elektrikçiyi ara'});
+    expect(
+      call('add_reminder', {'slug': 'house-renovation', 'text': 'x', 'at': '2026-10-19'}),
+      startsWith("Error: no note 'house-renovation'."),
+    );
+    expect(
+      call('create_note', {'kind': 'project', 'title': 'House renovation'}),
+      allOf(startsWith('Not created.'), contains('ev-tadilati (Ev Tadilatı, project)')),
+    );
+    expect(
+      call('create_note', {'kind': 'project', 'title': 'House renovation'}),
+      containsPair('slug', 'house-renovation'),
+    );
+    // A related note carries its open todos, as search_notes and read_note do.
+    expect(call('related_notes', {'title': 'Ev tadilatı elektrik'}), [
+      containsPair('open_todos', [
+        'open todo 1 of ev-tadilati; when the user says it is done: '
+            'complete_todo({"slug":"ev-tadilati","number":1})',
+      ]),
+    ]);
+  });
+
   test('errors come back as messages, not exceptions', () {
     expect(call('read_note', {'slug': 'nope'}), "Error: no note 'nope'. There are no notes yet.");
     final outside = File(p.join(p.dirname(box.root), 'secret.md'))..writeAsStringSync('private\n');
