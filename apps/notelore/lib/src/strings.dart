@@ -470,6 +470,7 @@ abstract class Strings {
   String get voiceSection;
   String get syncSection;
   String get aboutSection;
+  String get advancedSection;
   String appearanceName(Appearance appearance);
   String get drive;
   String get driveNotSetUp;
@@ -1394,6 +1395,8 @@ class EnglishStrings extends Strings {
   String get syncSection => 'Sync';
   @override
   String get aboutSection => 'About';
+  @override
+  String get advancedSection => 'Advanced';
   @override
   String appearanceName(Appearance appearance) => switch (appearance) {
     Appearance.system => 'System',
@@ -2427,6 +2430,8 @@ class TurkishStrings extends Strings {
   String get syncSection => 'Eşitleme';
   @override
   String get aboutSection => 'Hakkında';
+  @override
+  String get advancedSection => 'Gelişmiş';
   @override
   String appearanceName(Appearance appearance) => switch (appearance) {
     Appearance.system => 'Sistem',
