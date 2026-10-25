@@ -323,8 +323,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 ],
               ),
             if (session.ready) ...[
-              if (session.preparing && !session.busy)
-                _Thinking(s, fixed: s.devicePreparing),
+              if (session.preparing && !session.busy) _Thinking(s, fixed: s.devicePreparing),
               _ModelBar(session, menu: _modelMenu),
               _Composer(session, voice: _voice, message: _message, send: _send, attach: _attach),
             ] else
