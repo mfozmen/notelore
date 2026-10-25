@@ -56,16 +56,18 @@ String traceName(DateTime time) {
 }
 
 /// Whether [command] is known and has what it needs. Repeated runs and a
-/// first-write run ([evalOnly]) are for eval: distill keeps whole turns.
-/// [counted]: every count given is at least 1.
-bool _valid(String? command, String message, {required bool evalOnly, required bool counted}) =>
-    counted &&
-    switch (command) {
-      'chat' => message.isNotEmpty && !evalOnly,
-      'eval' => true,
-      'signin' || 'models' || 'distill' || 'reprompt' => !evalOnly,
-      _ => false,
-    };
+/// first-write run are for eval: distill keeps whole turns.
+bool _valid(String? command, String message, _Plan plan) {
+  final evalOnly = plan.runs > 1 || plan.firstWrite;
+  return plan.runs >= 1 &&
+      plan.parallel >= 1 &&
+      switch (command) {
+        'chat' => message.isNotEmpty && !evalOnly,
+        'eval' => true,
+        'signin' || 'models' || 'distill' || 'reprompt' => !evalOnly,
+        _ => false,
+      };
+}
 
 /// Runs one command; the exit code is 0, 1 (it failed) or 64 (bad usage).
 Future<int> runDev(
@@ -88,17 +90,10 @@ Future<int> runDev(
   };
   final words = args.where((a) => !a.startsWith('--')).toList();
   final slim = args.contains('--slim');
-  final runs = int.tryParse(options['runs'] ?? '1') ?? 0;
-  final parallel = int.tryParse(options['parallel'] ?? '1') ?? 0;
-  final firstWrite = args.contains('--first-write');
+  final plan = _Plan.parse(args, options);
   final command = words.firstOrNull;
   final message = words.skip(1).join(' ');
-  if (!_valid(
-    command,
-    message,
-    evalOnly: runs > 1 || firstWrite,
-    counted: runs >= 1 && parallel >= 1,
-  )) {
+  if (!_valid(command, message, plan)) {
     out.writeln(_usage);
     return 64;
   }
@@ -159,7 +154,7 @@ Future<int> runDev(
           ),
           out,
           keep: keep,
-          plan: _Plan(slim: slim, firstWrite: firstWrite, runs: runs, parallel: parallel),
+          plan: plan,
           search: findProvider(options['provider'] ?? 'chatgpt').webSearch,
         );
       default:
@@ -256,7 +251,14 @@ Future<void> _eval(
 /// How a set of cases is run: [slim] as on the device, only to its
 /// [firstWrite] (#598), [runs] times, [parallel] cases at once.
 class _Plan {
-  const _Plan({this.slim = false, this.firstWrite = false, this.runs = 1, this.parallel = 1});
+  const _Plan() : slim = false, firstWrite = false, runs = 1, parallel = 1;
+
+  /// From the command line; a count that is no number is 0, so it is refused.
+  _Plan.parse(List<String> args, Map<String, String> options)
+    : slim = args.contains('--slim'),
+      firstWrite = args.contains('--first-write'),
+      runs = int.tryParse(options['runs'] ?? '1') ?? 0,
+      parallel = int.tryParse(options['parallel'] ?? '1') ?? 0;
 
   final bool slim;
   final bool firstWrite;
