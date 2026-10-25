@@ -9,7 +9,7 @@ import 'support.dart';
 void main() {
   Future<void> openAdvanced(WidgetTester tester) => openSettings(tester, 'Advanced');
 
-  /// Settings > About > Show advanced settings > Usage: the full page (#294).
+  /// Settings > Advanced > Show advanced settings > Usage: the full page (#294).
   Future<void> openUsage(WidgetTester tester) async {
     await openAdvanced(tester);
     await tester.scrollUntilVisible(
