@@ -33,6 +33,7 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' show max;
 
 import 'package:path/path.dart' as p;
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
@@ -393,8 +394,24 @@ class Toolbox {
       for (final k in kind != null ? [kind] : notes.kinds.keys) k: onDisk(k),
     }..removeWhere((_, path) => path == null);
     if (found.length > 1) throw StateError("'$slug' exists as both project and topic; pass kind.");
-    if (found.isEmpty) throw FileSystemException("no note with slug '$slug'.");
+    if (found.isEmpty) throw FileSystemException(_noNote(slug));
     return found.values.single!;
+  }
+
+  /// A small model guesses slugs, often in another language ("house-renovation"
+  /// for "Ev Tadilatı"): the closest three by letter pairs give it one to use.
+  String _noNote(String slug) {
+    final notes = _fresh().listNotes();
+    if (notes.isEmpty) return "no note '$slug'. There are no notes yet.";
+    final guess = _pairs(slug);
+    double score(NoteInfo n) {
+      final theirs = _pairs(n.slug);
+      return 2 * guess.intersection(theirs).length / max(1, guess.length + theirs.length);
+    }
+
+    final ranked = [for (final n in notes) (n, score(n))]..sort((a, b) => b.$2.compareTo(a.$2));
+    final closest = [for (final (n, _) in ranked.take(3)) '${n.slug} (${n.title}, ${n.kind})'];
+    return "no note '$slug'. Closest: ${closest.join(', ')}. Use its slug, or call list_notes.";
   }
 
   /// [slug] as its note's file is named (see [_path]).
@@ -478,6 +495,12 @@ class Toolbox {
     index.markChanged(path);
     return {'archived_to': _rel(target)};
   }
+}
+
+/// The letter pairs of [text] transliterated as a slug, separators dropped.
+Set<String> _pairs(String text) {
+  final letters = notes.slugify(text).replaceAll('-', '');
+  return {for (var i = 0; i + 1 < letters.length; i++) letters.substring(i, i + 2)};
 }
 
 String? _iso(DateTime? date) => date == null ? null : isoDate(date);

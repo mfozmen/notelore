@@ -313,8 +313,26 @@ void main() {
     expect(call('read_note', {'slug': 'my note'}), contains('# My Note'));
   });
 
+  test('an unknown slug answers with the closest notes, across languages', () {
+    call('create_note', {'kind': 'project', 'title': 'Ev Tadilatı', 'lang': 'tr'});
+    call('create_note', {'kind': 'topic', 'title': 'Books to read'});
+    call('create_note', {'kind': 'project', 'title': 'Mopsos'});
+    call('create_note', {'kind': 'topic', 'title': 'Gardening'});
+    expect(
+      call('add_reminder', {'slug': 'house-renovation', 'text': 'x', 'at': '2026-10-19'}),
+      "Error: no note 'house-renovation'. Closest: ev-tadilati (Ev Tadilatı, project), "
+      'gardening (Gardening, topic), books-to-read (Books to read, topic). '
+      'Use its slug, or call list_notes.',
+    );
+    expect(call('read_note', {'slug': 'tadilat'}), contains('Closest: ev-tadilati ('));
+    expect(
+      call('read_note', {'slug': 'mopsos', 'kind': 'topic'}),
+      contains('mopsos (Mopsos, project)'),
+    );
+  });
+
   test('errors come back as messages, not exceptions', () {
-    expect(call('read_note', {'slug': 'nope'}), "Error: no note with slug 'nope'.");
+    expect(call('read_note', {'slug': 'nope'}), "Error: no note 'nope'. There are no notes yet.");
     final outside = File(p.join(p.dirname(box.root), 'secret.md'))..writeAsStringSync('private\n');
     for (final (tool, extra) in [
       ('read_note', <String, Object?>{}),

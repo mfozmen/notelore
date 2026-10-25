@@ -265,8 +265,28 @@ void main() {
         read(path),
         contains('## Todo\n- [x] 2026-09-30: Set up CI\n- [ ] 2026-10-15: Add Drive backup\n'),
       );
-      expect(() => completeTodo(path, 3, today: today), throwsA(isA<RangeError>()));
-      expect(() => completeTodo(path, 0, today: today), throwsA(isA<RangeError>()));
+      // Out of range: the open todos and their numbers, so the next call can be right.
+      expect(
+        () => completeTodo(path, 3, today: today),
+        throwsA(
+          isA<RangeError>().having(
+            (e) => e.message,
+            'message',
+            'Todo has 2 todos, no #3. Open: 2. Add Drive backup',
+          ),
+        ),
+      );
+      completeTodo(path, 2, today: today);
+      expect(
+        () => completeTodo(path, 0, today: today),
+        throwsA(
+          isA<RangeError>().having(
+            (e) => e.message,
+            'message',
+            'Todo has 2 todos, no #0. None is open.',
+          ),
+        ),
+      );
     });
 
     test('reminders get their own section at the end, once (#430)', () {

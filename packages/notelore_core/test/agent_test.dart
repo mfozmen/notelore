@@ -138,7 +138,7 @@ void main() {
     ]);
     expect(await Agent(provider, box, today: today).ask('read it'), 'Sorry.');
     expect(lastResult(provider, 1), 'Error: the tool arguments were not valid JSON: {oops');
-    expect(lastResult(provider, 2), "Error: no note with slug 'nope'.");
+    expect(lastResult(provider, 2), "Error: no note 'nope'. There are no notes yet.");
   });
 
   test('only text and tool_use blocks enter the history', () async {
