@@ -20,7 +20,8 @@ are read the same way.
 A tenth of the turns is held out (the same tenth every run). The validation
 loss on it is logged with the train loss every 5 steps, the LoRA saved is the
 checkpoint where it was lowest, and three evaluations without a better one end
-the run, so `--epochs` is a ceiling.
+the run, so `--epochs` is a ceiling (the cosine schedule still spans all of
+them, so a run stopped early ends at a higher learning rate).
 
 `--assistant-only` puts the loss on the assistant's tokens alone (about 7% of
 a turn), not on the system prompt, tool schemas and tool results it would
@@ -234,7 +235,10 @@ def train(base, data, out, epochs, assistant_only=False):
     trainer.train()
     print("\n".join(losses(trainer.state.log_history)))
     best = trainer.state.best_model_checkpoint
-    print(f"best validation loss {trainer.state.best_metric} at {best}")
+    if best is None:
+        print("no evaluation ran (under 5 steps): the LoRA saved is the last step")
+    else:
+        print(f"best validation loss {trainer.state.best_metric} at {best}")
     trainer.save_model(str(Path(out) / "lora"))
 
 
