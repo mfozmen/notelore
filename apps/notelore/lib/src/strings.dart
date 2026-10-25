@@ -1097,7 +1097,7 @@ class EnglishStrings extends Strings {
     },
   };
   @override
-  String get usageWhat => 'What the model read and wrote, and what it cost';
+  String get usageWhat => 'What the model read and wrote, and what it cost.';
   @override
   String lastDays(int? days) => days == null ? 'All time' : 'Last $days days';
   @override
@@ -2131,7 +2131,7 @@ class TurkishStrings extends Strings {
   @override
   String busiestDay(String amount, int day) => 'En yoğun gün: $day, $amount';
   @override
-  String get usageWhat => 'Modelin okuduğu, yazdığı ve maliyeti';
+  String get usageWhat => 'Modelin okuduğu, yazdığı ve maliyeti.';
   @override
   String lastDays(int? days) => days == null ? 'Tüm zamanlar' : 'Son $days gün';
   @override

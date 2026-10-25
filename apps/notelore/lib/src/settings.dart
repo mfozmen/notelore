@@ -24,7 +24,7 @@ enum SettingsSection {
   appearance(Icons.palette_outlined),
   lock(Icons.lock_outline),
   reminders(Icons.notifications_outlined),
-  advanced(Icons.tune),
+  advanced(Icons.insights_outlined),
   about(Icons.info_outline);
 
   const SettingsSection(this.icon);
@@ -884,6 +884,7 @@ class _AboutCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ListTile(
+              minVerticalPadding: Gap.m,
               leading: const ExcludeSemantics(child: NoteloreMark(size: 40)),
               title: Text(s.versionLine(version)),
             ),
