@@ -549,13 +549,13 @@ String summarizeRuns(List<List<EvalResult>> runs) {
 
 String _share(Iterable<EvalResult> group) {
   final passed = group.where((r) => r.passed).length;
+  if (group.isEmpty) return '0/0';
   return '$passed/${group.length} (${(100 * passed / group.length).round()}%)';
 }
 
 /// Accuracy per kind and overall, then every failure with its reasons.
 String summarize(List<EvalResult> results) {
-  String line(String name, Iterable<EvalResult> group) =>
-      group.isEmpty ? '$name: 0/0' : '$name: ${_share(group)}';
+  String line(String name, Iterable<EvalResult> group) => '$name: ${_share(group)}';
 
   final kinds = {for (final r in results) r.evalCase.kind}.toList()..sort();
   return [

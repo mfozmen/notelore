@@ -380,7 +380,8 @@ Future<LlmProvider> _provider(
     Object? body,
     required Duration timeout,
   }) => request(traced, method, url, headers: headers, body: body, timeout: timeout);
-  if (spec.name == 'ollama' && temperature != null) {
+  if (temperature != null) {
+    if (spec.name != 'ollama') throw StateError('--greedy works with --provider=ollama only');
     return OllamaProvider(model, transport: transport, temperature: temperature);
   }
   return createProvider(
