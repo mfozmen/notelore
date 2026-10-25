@@ -314,7 +314,14 @@ void completeTodo(String path, int number, {DateTime? today}) {
       if (section.entries[i] case final Todo todo) (i, todo),
   ];
   if (number < 1 || number > todos.length) {
-    throw RangeError('${section.heading} has ${todos.length} todos, no #$number');
+    final open = [
+      for (final (i, (_, todo)) in todos.indexed)
+        if (!todo.done) '${i + 1}. ${todo.text}',
+    ];
+    throw RangeError(
+      '${section.heading} has ${todos.length} todos, no #$number. '
+      '${open.isEmpty ? 'None is open.' : 'Open: ${open.join('; ')}'}',
+    );
   }
   final (position, todo) = todos[number - 1];
   section.entries[position] = Todo(todo.date, todo.text, done: true);
