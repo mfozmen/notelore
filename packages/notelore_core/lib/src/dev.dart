@@ -126,11 +126,7 @@ Future<int> runDev(
     client: traced,
   );
   // API keys from the environment, or else from the dev secrets file.
-  final keys = {
-    for (final MapEntry(:key, :value) in stored().entries)
-      if (key.startsWith('NOTELORE_') && value is String) key: value,
-    ...environment,
-  };
+  final keys = _keys(stored(), environment);
 
   try {
     switch (command) {
@@ -410,6 +406,14 @@ Future<LlmProvider> _provider(
   );
 }
 
+/// API keys from [environment], or else from the dev secrets file's
+/// `NOTELORE_*` entries.
+Map<String, String> _keys(Map<String, Object?> secrets, Map<String, String> environment) => {
+  for (final MapEntry(:key, :value) in secrets.entries)
+    if (key.startsWith('NOTELORE_') && value is String) key: value,
+  ...environment,
+};
+
 /// OpenCode Go (#604): open-weight teachers for distillation, in the dev tool
 /// only; the app never offers it.
 const _openCode = 'opencode';
@@ -432,6 +436,11 @@ LlmProvider _openCodeProvider(
     key,
     model,
     url: openCodeGoChat,
+    // Its edge refuses unknown clients and routes by session: one per run.
+    headers: {
+      'User-Agent': 'notelore-dev',
+      'x-opencode-session': 'notelore-dev-${DateTime.now().microsecondsSinceEpoch}',
+    },
     disableThinking: false,
     temperature: temperature,
     transport: (method, url, {headers = const {}, body, required timeout}) =>

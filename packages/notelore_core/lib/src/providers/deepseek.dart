@@ -18,13 +18,14 @@ Map<String, String> deepSeekHeaders(String apiKey) => {'Authorization': 'Bearer 
 const _timeout = Duration(seconds: 120);
 
 class DeepSeekProvider implements LlmProvider {
-  /// Another OpenAI-compatible service at [url]; [disableThinking] sends
-  /// DeepSeek's own switch, which others may not know; [temperature] as set.
+  /// Another OpenAI-compatible service at [url], with its own [headers];
+  /// [disableThinking] sends DeepSeek's own switch, which others may not know.
   DeepSeekProvider(
     this._apiKey,
     this.model, {
     this.transport = defaultTransport,
     this.url = deepSeekChat,
+    this.headers = const {},
     this.disableThinking = true,
     this.temperature,
   });
@@ -35,6 +36,7 @@ class DeepSeekProvider implements LlmProvider {
   final String model;
   final Transport transport;
   final String url;
+  final Map<String, String> headers;
   final bool disableThinking;
   final double? temperature;
 
@@ -43,7 +45,7 @@ class DeepSeekProvider implements LlmProvider {
     final answer = await transport(
       'POST',
       url,
-      headers: deepSeekHeaders(_apiKey),
+      headers: {...deepSeekHeaders(_apiKey), ...headers},
       body: {
         'model': model,
         'messages': [

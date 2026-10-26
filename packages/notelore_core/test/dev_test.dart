@@ -378,6 +378,8 @@ void main() {
       final request = requests.single;
       expect('${request.url}', 'https://opencode.ai/inference/go/openai/v1/chat/completions');
       expect(request.headers['authorization'], 'Bearer go-key');
+      expect(request.headers['user-agent'], 'notelore-dev');
+      expect(request.headers['x-opencode-session'], startsWith('notelore-dev-'));
       expect(trace(), isNot(contains('go-key')));
       // Greedy goes as a temperature on this one too.
       expect(await run([...args, '--greedy'], client: go), 0);
