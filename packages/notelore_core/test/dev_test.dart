@@ -403,7 +403,9 @@ void main() {
     expect('$out', contains('kept 1 of 2'));
     expect(
       '$out',
-      contains('excluded 0 passing turns (tool errors: 0; repeated calls: 0; counts may overlap)'),
+      contains(
+        'excluded 0 passing turns (tool errors: 0; repeated calls: 0; same as a kept turn: 0; counts may overlap)',
+      ),
     );
 
     // --slim: the prompt and tools of the model on the device (#447).
@@ -498,6 +500,63 @@ void main() {
     expect('$out', contains('2 examples'));
   });
 
+  test('distill --samples=3 --keep-failed: each case three times, each different pass once, failures aside (#604)', () async {
+    File(p.join(temp.path, 'cases.json')).writeAsStringSync(
+      jsonEncode([
+        {
+          'id': 'hi',
+          'kind': 'chat',
+          'lang': 'en',
+          'message': 'hi',
+          'expect': {
+            'answer': ['hello'],
+          },
+        },
+      ]),
+    );
+    // Hello, Hello (the same turn again), then a failure.
+    final answers = ['Hello', 'Hello', 'Goodbye'];
+    final anthropic = MockClient(
+      (_) async => http.Response(
+        jsonEncode({
+          'content': [
+            {'type': 'text', 'text': answers.removeAt(0)},
+          ],
+          'stop_reason': 'end_turn',
+        }),
+        200,
+      ),
+    );
+    final args = [
+      'distill',
+      '--provider=anthropic',
+      '--cases=cases.json',
+      '--out=train.jsonl',
+      '--samples=3',
+      '--keep-failed=failed.jsonl',
+    ];
+    expect(
+      await run(
+        args,
+        client: anthropic,
+        environment: {'NOTELORE_HOME': 'home', 'NOTELORE_ANTHROPIC_API_KEY': 'k'},
+      ),
+      0,
+    );
+    final kept = File(p.join(temp.path, 'train.jsonl')).readAsLinesSync();
+    expect(kept, hasLength(1));
+    expect((jsonDecode(kept.single) as Map)['id'], 'hi');
+    final failed = File(p.join(temp.path, 'failed.jsonl')).readAsLinesSync();
+    expect(failed, hasLength(1));
+    final rejected = jsonDecode(failed.single) as Map;
+    expect(rejected['id'], 'hi');
+    expect(rejected['problems'], ['the answer lacks "hello"']);
+    expect('$out', contains('kept 1 of 3'));
+    expect('$out', contains('same as a kept turn: 1'));
+    // Samples are for distill: eval's repeats are --runs.
+    expect(await run(['eval', '--samples=2', '--cases=cases.json']), 64);
+  });
+
   test('distill excludes passing turns with tool errors or repeated calls', () async {
     File(p.join(temp.path, 'cases.json')).writeAsStringSync(
       jsonEncode([
@@ -562,7 +621,9 @@ void main() {
     expect('$out', contains('kept 1 of 2'));
     expect(
       '$out',
-      contains('excluded 1 passing turns (tool errors: 1; repeated calls: 0; counts may overlap)'),
+      contains(
+        'excluded 1 passing turns (tool errors: 1; repeated calls: 0; same as a kept turn: 0; counts may overlap)',
+      ),
     );
     final kept = File(p.join(temp.path, 'train.jsonl')).readAsLinesSync().single;
     // Once in the tool list, once as the call, once as its result: one call left.
