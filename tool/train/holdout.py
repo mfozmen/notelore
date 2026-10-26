@@ -262,6 +262,8 @@ CROSS = [
     ("tr", "Home Studio", "project", "Ev stüdyosu için akustik panelleri aldım.", "todo-done", "complete_todo", None),
 ]
 
+CONTRAST = []
+
 CHAT = [
     ("en", "thanks a ton!"), ("en", "perfect, thank you"), ("en", "cool, that's all"), ("en", "nice one"),
     ("en", "got it, thanks"), ("en", "thank you so much"), ("en", "great, cheers"), ("en", "ok that's fine"),
@@ -271,6 +273,7 @@ CHAT = [
 
 DISTRACTORS = scenarios.DISTRACTORS
 RECOVERIES = len(COLLECTIONS)
+COLLECTION_PICKS = 3
 NO_TOOL_WORDS = scenarios.NO_TOOL_WORDS
 
 MIN_PER_KIND = 15
