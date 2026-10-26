@@ -28,6 +28,7 @@ import 'paths.dart';
 import 'providers/base.dart';
 import 'providers/chatgpt.dart';
 import 'providers/chatgpt_auth.dart';
+import 'providers/deepseek.dart';
 import 'providers/http.dart';
 import 'providers/ollama.dart';
 import 'providers/providers.dart';
@@ -41,9 +42,11 @@ const _usage =
     ' | distill [--provider=<name>] [--model=<id>] [--cases=<file>] [--out=<file>] [--slim]'
     ' | reprompt --in=<file> --out=<file> [--slim]'
     ' (--slim: the prompt and tools of the model on the device;'
-    ' --greedy: temperature 0, on Ollama; --runs: the set n times, eval only;'
+    ' --greedy: temperature 0, on ollama or opencode; --runs: the set n times, eval only;'
     ' --first-write: each turn only to its first write, scored with what it wanted;'
-    ' --parallel: n cases at once, as many as OLLAMA_NUM_PARALLEL)';
+    ' --parallel: n cases at once, as many as OLLAMA_NUM_PARALLEL;'
+    ' --provider=opencode: an OpenCode Go model, key NOTELORE_OPENCODE_API_KEY in the'
+    ' environment or <state>/dev-secrets.json)';
 
 /// A trace file's name for a run started at [time]: UTC to the microsecond,
 /// always six digits, so names sort in time order (`toIso8601String()` drops
@@ -122,6 +125,8 @@ Future<int> runDev(
     ),
     client: traced,
   );
+  // API keys from the environment, or else from the dev secrets file.
+  final keys = _keys(stored(), environment);
 
   try {
     switch (command) {
@@ -146,7 +151,7 @@ Future<int> runDev(
           cases,
           () => _provider(
             options,
-            environment,
+            keys,
             auth,
             traced,
             out,
@@ -155,10 +160,10 @@ Future<int> runDev(
           out,
           keep: keep,
           plan: plan,
-          search: findProvider(options['provider'] ?? 'chatgpt').webSearch,
+          search: _searches(options['provider'] ?? 'chatgpt'),
         );
       default:
-        await _chat(message, options, environment, paths, auth, traced, out);
+        await _chat(message, options, keys, paths, auth, traced, out);
     }
     return 0;
   } on Object catch (error) {
@@ -365,6 +370,9 @@ Future<LlmProvider> _provider(
   StringSink out, {
   double? temperature,
 }) async {
+  if (options['provider'] == _openCode) {
+    return _openCodeProvider(options, environment, traced, out, temperature);
+  }
   final spec = findProvider(options['provider'] ?? 'chatgpt');
   final keyName = 'NOTELORE_${spec.name.toUpperCase()}_API_KEY';
   final key = environment[keyName];
@@ -383,7 +391,9 @@ Future<LlmProvider> _provider(
     required Duration timeout,
   }) => request(traced, method, url, headers: headers, body: body, timeout: timeout);
   if (temperature != null) {
-    if (spec.name != 'ollama') throw StateError('--greedy works with --provider=ollama only');
+    if (spec.name != 'ollama') {
+      throw StateError('--greedy works with --provider=ollama or opencode only');
+    }
     return OllamaProvider(model, transport: transport, temperature: temperature);
   }
   return createProvider(
@@ -393,6 +403,48 @@ Future<LlmProvider> _provider(
     planToken: auth.token,
     client: traced,
     transport: transport,
+  );
+}
+
+/// API keys from [environment], or else from the dev secrets file's
+/// `NOTELORE_*` entries.
+Map<String, String> _keys(Map<String, Object?> secrets, Map<String, String> environment) => {
+  for (final MapEntry(:key, :value) in secrets.entries)
+    if (key.startsWith('NOTELORE_') && value is String) key: value,
+  ...environment,
+};
+
+/// OpenCode Go (#604): open-weight teachers for distillation, in the dev tool
+/// only; the app never offers it.
+const _openCode = 'opencode';
+
+bool _searches(String provider) => provider != _openCode && findProvider(provider).webSearch;
+
+LlmProvider _openCodeProvider(
+  Map<String, String> options,
+  Map<String, String> environment,
+  http.Client traced,
+  StringSink out,
+  double? temperature,
+) {
+  const keyName = 'NOTELORE_OPENCODE_API_KEY';
+  final key = environment[keyName];
+  if (key == null) throw StateError('set $keyName');
+  final model = options['model'] ?? 'glm-5.3';
+  out.writeln('[$_openCode · $model]');
+  return DeepSeekProvider(
+    key,
+    model,
+    url: openCodeGoChat,
+    // Its edge refuses unknown clients and routes by session: one per run.
+    headers: {
+      'User-Agent': 'notelore-dev',
+      'x-opencode-session': 'notelore-dev-${DateTime.now().microsecondsSinceEpoch}',
+    },
+    disableThinking: false,
+    temperature: temperature,
+    transport: (method, url, {headers = const {}, body, required timeout}) =>
+        request(traced, method, url, headers: headers, body: body, timeout: timeout),
   );
 }
 
