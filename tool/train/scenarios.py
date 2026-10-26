@@ -387,7 +387,7 @@ CONTRAST = [
     ]),
     ("tr", "Okul Gezisi", "project", ["Gezi Bursa'ya."], [("otobüs", "Özel otobüs")], ["Velilerden izin al"], [
         ("Velilerden izinleri aldım, gezi için o iş tamam.", "todo-done", "complete_todo", None),
-        ("Okul gezisi: öğle yemeği için yer ayırtmalıyım.", "todo", "add_todo", "yemek"),
+        ("Okul gezisi: öğle yemeği için yer ayırtmalıyım.", "todo", "add_todo", "öğle"),
         ("Okul gezisi için müze olarak Tofaş Müzesi'ni seçtik, çocuklar arabaları seviyor.", "decision", "record_decision", "Tofaş"),
         ("Okul gezisi: otuz iki öğrenci katılıyor.", "filing", "add_note_entry", "otuz"),
         ("Geziye şunu da yaz.", "unclear", None, None),
