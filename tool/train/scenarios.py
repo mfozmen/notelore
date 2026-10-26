@@ -332,7 +332,7 @@ THEMES = {
 
 
 def themes(text):
-    """The list kinds a topic path, or a pattern for one, names."""
+    """The list kinds a topic path names; also takes a pattern that spells out "topics/"."""
     if "topics/" not in text:
         return set()
     return {theme for theme, words in THEMES.items() if re.search(words, text)}
