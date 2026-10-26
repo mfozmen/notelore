@@ -102,19 +102,24 @@ void main() {
   });
 
   test('a passing turn becomes a training example: system, tools and the whole exchange', () async {
-    final result = await runCase(
-      filing,
-      ScriptedProvider([
-        toolUse('add_note_entry', 't1', {'slug': 'mopsos', 'text': 'Hit rate is now daily.'}),
-        text('Saved to Mopsos.'),
-      ]),
-    );
+    final provider = ScriptedProvider([
+      toolUse('add_note_entry', 't1', {'slug': 'mopsos', 'text': 'Hit rate is now daily.'}),
+      text('Saved to Mopsos.'),
+    ]);
+    final result = await runCase(filing, provider);
     final example = trainingExample(result);
     final messages = (example['messages']! as List).cast<Map<String, Object?>>();
     expect(messages.map((m) => m['role']), ['system', 'user', 'assistant', 'tool', 'assistant']);
+    // The system text the model was sent, its note list included (#602).
+    expect(messages.first['content'], provider.turns.first.$1);
     // The minute the model is told, so a relative reminder time has one answer (#434).
-    expect(messages.first['content'], endsWith('It is now 2026-10-18 14:00, local time.'));
-    expect(messages.first['content'], contains('Notelore'));
+    expect(messages.first['content'], contains('It is now 2026-10-18 14:00, local time.'));
+    expect(messages.first['content'], endsWith('- Mopsos: mopsos, project'));
+    // Its scenario, so a split keeps one scenario's turns on one side; its note
+    // list, so a reprompt keeps it.
+    expect(example['id'], 'file-1');
+    expect(example['note_list'], result.noteList);
+    expect(result.noteList, startsWith('Notes ('));
     expect(messages[1]['content'], filing.message);
     final call = ((messages[2]['tool_calls']! as List).single as Map)['function'] as Map;
     expect(call['name'], 'add_note_entry');
@@ -144,6 +149,12 @@ void main() {
     final slim = reprompted(old, slim: true);
     expect(((slim['messages']! as List).first as Map)['content'], slimSystemPrompt(evalNow));
     expect(slim['tools'], hasLength(slimTools.length));
+    // An example's note list stays after today's prompt (#602).
+    final listed = reprompted({...old, 'note_list': 'Notes:\n- Mopsos: mopsos, project'});
+    expect(
+      ((listed['messages']! as List).first as Map)['content'],
+      '${systemPrompt(evalNow)}\n\nNotes:\n- Mopsos: mopsos, project',
+    );
     // An example without a system message gets one in front.
     final bare = reprompted({
       'messages': [
@@ -283,7 +294,7 @@ void main() {
     expect(provider.turns.first.$3, slimTools);
     final example = trainingExample(result);
     final messages = (example['messages']! as List).cast<Map<String, Object?>>();
-    expect(messages.first['content'], slimSystemPrompt(evalNow));
+    expect(messages.first['content'], provider.turns.first.$1);
     expect(example['tools'], hasLength(slimTools.length));
   });
 

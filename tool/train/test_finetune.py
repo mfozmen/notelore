@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import finetune
 from finetune import (
     assistant_labels,
+    case,
     clean,
     fp32_logprobs,
     load,
@@ -161,6 +162,22 @@ try:
     check("one turn cannot be split", "split", "ValueError")
 except ValueError as error:
     check("one turn cannot be split", "two" in str(error), True)
+
+# The same case played twice (two teachers, or two runs) stays on one side:
+# held out whole, or trained on whole, never both (#605).
+keys = [f"case-{i // 2}" for i in range(20)]
+kept, held = split(turns, keys)
+held_keys = {keys[t] for t in held}
+check("a case is held out whole", sorted(held), sorted(t for t in turns if keys[t] in held_keys))
+check("and only a tenth of the turns", len(held), 2)
+try:
+    split([1, 2], ["same", "same"])
+    check("one case cannot be split", "split", "ValueError")
+except ValueError as error:
+    check("one case cannot be split", "two" in str(error), True)
+check("a row names its case by id", case({"id": "coll-1", "messages": []}), "coll-1")
+older = {"messages": [{"role": "system", "content": "s"}, {"role": "user", "content": "Mopsos: weekly."}]}
+check("older data, without one, by its first message", case(older), "Mopsos: weekly.")
 
 # Evaluated and saved on the same steps, so the best checkpoint is one that was
 # saved; training stops once the validation loss stops falling.
