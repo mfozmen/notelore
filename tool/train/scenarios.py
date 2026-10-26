@@ -158,6 +158,12 @@ TOPICS = [
 
 # New projects in passing: (lang, message, note path pattern, a word the note keeps).
 NEW_PROJECTS = [
+    ("en", "New project: restore an old sailing dinghy.", r"^projects/[^/]*(dinghy|sail)[^/]*\.md$", None),
+    ("en", "Starting a project to build a bird feeder with my daughter.", r"^projects/[^/]*(bird|feeder)[^/]*\.md$", None),
+    ("en", "New project: a small online shop for my prints.", r"^projects/[^/]*(shop|print)[^/]*\.md$", "prints"),
+    ("tr", "Yeni proje: balkona bir hamak kuracağım.", r"^projects/[^/]*hamak[^/]*\.md$", None),
+    ("tr", "Bir proje başlatıyorum: aile ağacımızı çıkaracağım.", r"^projects/[^/]*(aile|agac)[^/]*\.md$", None),
+    ("tr", "Yeni proje: eski bisikletimi yenileyeceğim.", r"^projects/[^/]*bisiklet[^/]*\.md$", None),
     ("en", "Starting a new project: a vegetable patch behind the house, with raised beds.", r"^projects/[^/]*(vegetable|patch)[^/]*\.md$", "raised"),
     ("tr", "Yeni proje: çocuk odası için bir kitaplık yapacağım.", r"^projects/[^/]*kitaplik[^/]*\.md$", None),
     ("en", "New project: learn to bake sourdough bread with a rye starter.", r"^projects/[^/]*sourdough[^/]*\.md$", "rye"),
@@ -272,6 +278,14 @@ UNCLEAR = [
 # cannot search, so every day here is known from the message itself.
 # (lang, message, "YYYY-MM-DD[ HH:MM]"), from 2026-10-18 14:00, a Sunday.
 PLANS = [
+    ("en", "Tuesday evening I'm going to a pottery workshop.", "2026-10-20"),
+    ("en", "Thursday at 18:00 I'm playing tennis with Ana.", "2026-10-22 18:00"),
+    ("en", "On 2 November I'm flying to Berlin.", "2026-11-02"),
+    ("en", "Next Saturday I'll go to the farmers' market.", "2026-10-24"),
+    ("tr", "Salı akşamı yoga dersine gideceğim.", "2026-10-20"),
+    ("tr", "Cuma saat 20'de arkadaşlarla yemeğe çıkacağım.", "2026-10-23 20:00"),
+    ("tr", "3 Kasım'da İzmir'e uçacağım.", "2026-11-03"),
+    ("tr", "Pazartesi sabah 9'da kombi servisi gelecek.", "2026-10-19 09:00"),
     ("tr", "Yarın akşam tiyatroya gideceğim.", "2026-10-19"),
     ("tr", "Perşembe günü Ankara'ya gideceğim.", "2026-10-22"),
     ("tr", "Cumartesi saat 21'de annemlerle konsere gideceğim.", "2026-10-24 21:00"),
@@ -299,11 +313,122 @@ REMINDERS = [
 DISTRACTORS = 4
 
 # How many collections also get a case whose first tool call fails.
-RECOVERIES = 4
+RECOVERIES = 10
 
-CROSS = []
+# Items of each collection that get a case: two since v6, so lists stop
+# outweighing the decisions (v5 filed everything into the reading list).
+COLLECTION_PICKS = 2
 
-CHAT = [("en", "ok, thank you"), ("tr", "sağ ol"), ("en", "great, thanks a lot"), ("tr", "tamamdır, teşekkür ederim")]
+# Contrast sets (v6): one note, five messages that each need a different first action.
+# (lang, title, kind, notes, decisions, todos, [(message, kind, tool or None to ask, word kept)]).
+CONTRAST = [
+    ("en", "Attic Conversion", "project", ["The attic gets a skylight."], [("insulation", "Sheep wool")], ["Call the roofer"], [
+        ("I called the roofer about the attic.", "todo-done", "complete_todo", None),
+        ("Attic conversion: I still need to order the skylight.", "todo", "add_todo", "skylight"),
+        ("For the attic we picked oak for the floor, it is warmer.", "decision", "record_decision", "oak"),
+        ("Attic conversion: the beams are in better shape than we thought.", "filing", "add_note_entry", "beams"),
+        ("Put that in the attic thing.", "unclear", None, None),
+    ]),
+    ("en", "Bakery Side Gig", "project", ["We bake on Saturdays."], [("oven", "Deck oven")], ["Print price labels"], [
+        ("The price labels for the bakery are printed.", "todo-done", "complete_todo", None),
+        ("Bakery side gig: add a todo to buy paper bags.", "todo", "add_todo", "bags"),
+        ("Bakery: we chose rye flour from the mill on the hill, better taste.", "decision", "record_decision", "rye"),
+        ("Bakery side gig: we sold out of croissants by ten.", "filing", "add_note_entry", "croissants"),
+        ("Change the bakery one.", "unclear", None, None),
+    ]),
+    ("en", "Thesis Writing", "project", ["Chapter two is about methods."], [("citation style", "APA")], ["Email the supervisor"], [
+        ("I emailed my supervisor about the thesis.", "todo-done", "complete_todo", None),
+        ("Thesis: I have to book a room for the defence.", "todo", "add_todo", "defence"),
+        ("Thesis writing: we went with LaTeX over Word, the formulas look better.", "decision", "record_decision", "LaTeX"),
+        ("Thesis: the survey got 212 answers.", "filing", "add_note_entry", "212"),
+        ("Add it to the thesis.", "unclear", None, None),
+    ]),
+    ("en", "Van Life Build", "project", ["The van is a 2014 Transit."], [("bed", "Fixed platform")], ["Buy solar panels"], [
+        ("Bought the solar panels for the van.", "todo-done", "complete_todo", None),
+        ("Van build: add a todo to fit a roof vent.", "todo", "add_todo", "vent"),
+        ("For the van we picked a diesel heater, it is cheaper to run.", "decision", "record_decision", "diesel"),
+        ("Van life build: the floor took three days to level.", "filing", "add_note_entry", "level"),
+        ("Do the van thing we said.", "unclear", None, None),
+    ]),
+    ("en", "Choir Concert", "project", ["The concert is in the old church."], [("encore", "Ave Maria")], ["Print the programme"], [
+        ("The concert programme is printed.", "todo-done", "complete_todo", None),
+        ("Choir concert: I need to rent extra chairs.", "todo", "add_todo", "chairs"),
+        ("For the choir concert we chose candles over spotlights, it feels warmer.", "decision", "record_decision", "candles"),
+        ("Choir concert: the tenors rehearse on Thursdays now.", "filing", "add_note_entry", "Thursday"),
+        ("Note that for the choir.", "unclear", None, None),
+    ]),
+    ("en", "Fishing Trip", "project", ["We go to the lake in May."], [("boat", "Rowing boat")], ["Renew the licence"], [
+        ("I renewed the fishing licence.", "todo-done", "complete_todo", None),
+        ("Fishing trip: add buying new hooks to the list.", "todo", "add_todo", "hooks"),
+        ("For the fishing trip we picked the north shore, fewer people.", "decision", "record_decision", "north"),
+        ("Fishing trip: Omar is bringing his tent.", "filing", "add_note_entry", "Omar"),
+        ("Save it with the trip.", "unclear", None, None),
+    ]),
+    ("tr", "Bahçe Duvarı", "project", ["Duvar taş olacak."], [("harç", "Kireç harcı")], ["Ustayla konuş"], [
+        ("Ustayla konuştum, bahçe duvarındaki o iş tamam.", "todo-done", "complete_todo", None),
+        ("Bahçe duvarı için yapılacak: kum siparişi ver.", "todo", "add_todo", "kum"),
+        ("Bahçe duvarı için dere taşı seçtik, daha doğal duruyor.", "decision", "record_decision", "dere"),
+        ("Bahçe duvarı: temel kazısı iki gün sürdü.", "filing", "add_note_entry", "kazı"),
+        ("Bunu duvara ekle.", "unclear", None, None),
+    ]),
+    ("tr", "Dernek Kuruluşu", "project", ["Kurucu üye sayısı yedi."], [("isim", "Mahalle Dayanışma Derneği")], ["Tüzüğü yaz"], [
+        ("Tüzüğü yazdım, dernek için o iş bitti.", "todo-done", "complete_todo", None),
+        ("Dernek kuruluşu: banka hesabı açmam gerekiyor.", "todo", "add_todo", "banka"),
+        ("Dernek için muhasebeci olarak Selin Hanım'ı seçtik, uygun fiyatlı.", "decision", "record_decision", "Selin"),
+        ("Dernek kuruluşu: ilk toplantıya on iki kişi geldi.", "filing", "add_note_entry", "toplantı"),
+        ("Onu derneğe yaz.", "unclear", None, None),
+    ]),
+    ("tr", "Kitap Çevirisi", "project", ["Çeviri Almancadan yapılıyor."], [("yayınevi", "Yapı Kredi")], ["Sözleşmeyi imzala"], [
+        ("Çeviri sözleşmesini imzaladım.", "todo-done", "complete_todo", None),
+        ("Kitap çevirisi için yapılacak: terim listesi hazırla.", "todo", "add_todo", "terim"),
+        ("Çeviride ikinci tekil şahıs yerine resmi dili seçtik, metne uyuyor.", "decision", "record_decision", "resmi"),
+        ("Kitap çevirisi: üçüncü bölüm bitti.", "filing", "add_note_entry", "üçüncü"),
+        ("Şunu çeviriye ekle.", "unclear", None, None),
+    ]),
+    ("tr", "Okul Gezisi", "project", ["Gezi Bursa'ya."], [("otobüs", "Özel otobüs")], ["Velilerden izin al"], [
+        ("Velilerden izinleri aldım, gezi için o iş tamam.", "todo-done", "complete_todo", None),
+        ("Okul gezisi: öğle yemeği için yer ayırtmalıyım.", "todo", "add_todo", "yemek"),
+        ("Okul gezisi için müze olarak Tofaş Müzesi'ni seçtik, çocuklar arabaları seviyor.", "decision", "record_decision", "Tofaş"),
+        ("Okul gezisi: otuz iki öğrenci katılıyor.", "filing", "add_note_entry", "otuz"),
+        ("Geziye şunu da yaz.", "unclear", None, None),
+    ]),
+    ("tr", "Bisiklet Kulübü", "project", ["Kulüp her pazar sürüyor."], [("rota", "Sahil yolu")], ["Forma siparişi ver"], [
+        ("Formaları sipariş ettim, kulüp için o iş tamam.", "todo-done", "complete_todo", None),
+        ("Bisiklet kulübü: ilk yardım çantası almam lazım.", "todo", "add_todo", "çanta"),
+        ("Kulüp için buluşma yeri olarak iskeleyi seçtik, herkese yakın.", "decision", "record_decision", "iskele"),
+        ("Bisiklet kulübü: geçen pazar 64 km sürdük.", "filing", "add_note_entry", "64"),
+        ("Kulübe onu da ekle.", "unclear", None, None),
+    ]),
+    ("tr", "Ev Kliması", "topic", ["Klima salonda."], [("marka", "Inverter model")], ["Filtreyi temizle"], [
+        ("Klimanın filtresini temizledim.", "todo-done", "complete_todo", None),
+        ("Klima için yapılacak: gaz kontrolü yaptır.", "todo", "add_todo", "gaz"),
+        ("Klima için yıllık bakım anlaşması yaptık, daha ucuz.", "decision", "record_decision", "bakım"),
+        ("Klima: gece modunda çok sessiz çalışıyor.", "filing", "add_note_entry", "sessiz"),
+        ("Bunu klimaya yaz.", "unclear", None, None),
+    ]),
+]
+
+# A message in one language about a note in the other (v6, #604).
+CROSS = [
+    ("en", "Düğün Hazırlığı", "project", "Wedding prep: the cake will have three tiers.", "filing", "add_note_entry", "three"),
+    ("en", "Mobil Uygulama", "project", "For the mobile app we picked Supabase instead, it is open source.", "decision", "record_decision", "Supabase"),
+    ("en", "Yaz Tatili", "project", "Summer holiday: add a todo to book the rental car.", "todo", "add_todo", "car"),
+    ("en", "Blog Sitesi", "project", "I registered the blog's domain.", "todo-done", "complete_todo", None),
+    ("en", "Araba", "topic", "The car's brake pads were changed today.", "filing", "add_note_entry", "brake"),
+    ("en", "Köpeğimiz Pamuk", "topic", "Pamuk weighs 18 kg now.", "filing", "add_note_entry", "18"),
+    ("tr", "Garden Shed", "project", "Bahçe kulübesi: kapıyı kırmızıya boyadık.", "filing", "add_note_entry", "kırmızı"),
+    ("tr", "Podcast Launch", "project", "Podcast için yapılacak: kapak görselini bitir.", "todo", "add_todo", "kapak"),
+    ("tr", "Kitchen Renovation", "project", "Mutfak tadilatında pencereyi ölçtüm.", "todo-done", "complete_todo", None),
+    ("tr", "Marathon Training", "project", "Maraton için ayakkabı olarak Hoka seçtik, daha yumuşak.", "decision", "record_decision", "Hoka"),
+    ("tr", "Health", "topic", "Sağlık: tansiyonum bugün 11'e 7 çıktı.", "filing", "add_note_entry", "11"),
+    ("tr", "Freelance Work", "topic", "Serbest iş: yeni müşteri logoyu beğendi.", "filing", "add_note_entry", "logo"),
+]
+
+CHAT = [
+    ("en", "ok, thank you"), ("tr", "sağ ol"), ("en", "great, thanks a lot"), ("tr", "tamamdır, teşekkür ederim"),
+    ("en", "brilliant, thanks"), ("en", "that's all for now"), ("en", "cheers!"),
+    ("tr", "eyvallah"), ("tr", "tamam, şimdilik bu kadar"), ("tr", "çok sağ ol, harikasın"),
+]
 
 
 def cases(rng, t=None):
@@ -318,7 +443,7 @@ def cases(rng, t=None):
     for c, (lang, title, first, items, templates) in enumerate(t.COLLECTIONS):
         p = path("topic", title)
         notes = {p: note(title, "topic", lang, notes=[first])}
-        picked = rng.sample(items, 3)
+        picked = rng.sample(items, t.COLLECTION_PICKS)
         if c < t.RECOVERIES:
             item = next(x for x in items if x not in picked)
             add(f"recover-{slug(title)}", "recovery", lang, notes, rng.choice(templates).format(x=item),
@@ -388,6 +513,13 @@ def cases(rng, t=None):
         for i, (msg, is_now, item) in enumerate(messages):
             p = path("topic", now if is_now else later)
             add(f"twin-{slug(now)}-{i}", "collection", lang, notes, msg, {"notes": {f"^{re.escape(p)}$": [item]}})
+    for lang, title, kind, nts, decs, todos, messages in t.CONTRAST:
+        p = path(kind, title)
+        notes = {p: note(title, kind, lang, notes=nts, decisions=decs, todos=todos)}
+        for i, (msg, case_kind, tool, word) in enumerate(messages):
+            expect = ({"answer": ["?"]} if tool is None else
+                      {"tools": [tool], "notes": {f"^{re.escape(p)}$": [word] if word else []}})
+            add(f"contrast-{slug(title)}-{i}", case_kind, lang, notes, msg, expect)
     # A message in one language about a note in the other (#599).
     for i, (lang, title, kind, msg, case_kind, tool, word) in enumerate(t.CROSS):
         p = path(kind, title)
