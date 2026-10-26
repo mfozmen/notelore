@@ -553,8 +553,25 @@ void main() {
     expect(rejected['problems'], ['the answer lacks "hello"']);
     expect('$out', contains('kept 1 of 3'));
     expect('$out', contains('same as a kept turn: 1'));
-    // Samples are for distill: eval's repeats are --runs.
+    // A fresh run starts the failed file over, like the kept one.
+    final failedFile = File(p.join(temp.path, 'failed.jsonl'));
+    File(p.join(temp.path, 'train.jsonl.done')).writeAsStringSync('');
+    failedFile.writeAsStringSync('${jsonEncode({'id': 'stale'})}\n');
+    answers.addAll(['Hello', 'Hello', 'Hello']);
+    out.clear();
+    expect(
+      await run(
+        args,
+        client: anthropic,
+        environment: {'NOTELORE_HOME': 'home', 'NOTELORE_ANTHROPIC_API_KEY': 'k'},
+      ),
+      0,
+    );
+    expect(failedFile.readAsStringSync(), isEmpty);
+    expect(File(p.join(temp.path, 'train.jsonl')).readAsLinesSync(), hasLength(1));
+    // Samples and a failed file are for distill: eval's repeats are --runs.
     expect(await run(['eval', '--samples=2', '--cases=cases.json']), 64);
+    expect(await run(['eval', '--keep-failed=f.jsonl', '--cases=cases.json']), 64);
   });
 
   test('distill excludes passing turns with tool errors or repeated calls', () async {

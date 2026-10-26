@@ -61,7 +61,7 @@ String traceName(DateTime time) {
 /// case are for distill.
 bool _valid(String? command, String message, _Plan plan) {
   final evalOnly = plan.runs > 1 || plan.firstWrite;
-  final distillOnly = plan.samples > 1;
+  final distillOnly = plan.samples > 1 || plan.keepsFailed;
   return plan.runs >= 1 &&
       plan.parallel >= 1 &&
       plan.samples >= 1 &&
@@ -159,10 +159,7 @@ Future<int> runDev(
           ),
           out,
           keep: keep,
-          failed: switch (options['keep-failed']) {
-            final path? when keep != null => File(p.join(currentDirectory.path, path)),
-            _ => null,
-          },
+          failed: _file(currentDirectory, options['keep-failed']),
           plan: plan,
           search: findProvider(options['provider'] ?? 'chatgpt').webSearch,
         );
@@ -222,8 +219,9 @@ Future<void> _chat(
 /// there, each said as it ends, then the report. With [keep], the passing
 /// turns go there as training examples, one JSON line each, written as each
 /// case ends; the finished case ids go to `<keep>.done`, so a run that was
-/// stopped (hours in, out of memory) goes on where it was (#327). Without
-/// that file a run starts [keep] over.
+/// stopped (hours in, out of memory) goes on where it was (#327), by case: a
+/// case stopped between its samples is not played again. Without that file a
+/// run starts [keep] and [failed] over.
 Future<void> _eval(
   File cases,
   Future<LlmProvider> Function() open,
@@ -237,6 +235,8 @@ Future<void> _eval(
   final provider = await open();
   final done = keep == null ? null : File('${keep.path}.done');
   final finished = keep == null ? const <String>{} : _resume(keep, done!);
+  if (failed != null) _resumeFailed(failed, finished);
+  final seen = <String>{};
   final runnable = [
     for (final c in _runnable(loadCases(cases.readAsStringSync()), search, out))
       if (!finished.contains(c.id)) c,
@@ -244,7 +244,6 @@ Future<void> _eval(
   final everyRun = <List<EvalResult>>[];
   // Per case: null when it failed, the reasons it was left out, or none when kept.
   final outcomes = <Set<TrainingIssue>?>[];
-  final seen = <String>{};
   for (var run = 0; run < plan.runs; run++) {
     everyRun.add(
       await _runOnce(runnable, provider, plan, out, (result) {
@@ -263,7 +262,13 @@ Future<void> _eval(
 /// [firstWrite] (#598), [runs] times, [parallel] cases at once, each case
 /// [samples] times.
 class _Plan {
-  const _Plan() : slim = false, firstWrite = false, runs = 1, parallel = 1, samples = 1;
+  const _Plan()
+    : slim = false,
+      firstWrite = false,
+      runs = 1,
+      parallel = 1,
+      samples = 1,
+      keepsFailed = false;
 
   /// From the command line; a count that is no number is 0, so it is refused.
   _Plan.parse(List<String> args, Map<String, String> options)
@@ -271,7 +276,8 @@ class _Plan {
       firstWrite = args.contains('--first-write'),
       runs = int.tryParse(options['runs'] ?? '1') ?? 0,
       parallel = int.tryParse(options['parallel'] ?? '1') ?? 0,
-      samples = int.tryParse(options['samples'] ?? '1') ?? 0;
+      samples = int.tryParse(options['samples'] ?? '1') ?? 0,
+      keepsFailed = options.containsKey('keep-failed');
 
   final bool slim;
   final bool firstWrite;
@@ -280,7 +286,14 @@ class _Plan {
 
   /// Each case played this many times in a row (#604).
   final int samples;
+
+  /// Distill writes its failed turns to a file of their own (#607).
+  final bool keepsFailed;
 }
+
+/// [path] under [directory], or null when none was given.
+File? _file(Directory directory, String? path) =>
+    path == null ? null : File(p.join(directory.path, path));
 
 /// One run over [cases], [plan.parallel] at a time, each said as it ends and
 /// handed to [ended]; the results in the cases' order.
@@ -358,6 +371,16 @@ Set<String> _resume(File keep, File done) {
     keep.writeAsStringSync(lines.take(kept).map((line) => '$line\n').join(), flush: true);
   }
   return {for (final record in records) record.split('\t').first};
+}
+
+/// [failed] cut back to the cases [finished] marks done, as [_resume] cuts
+/// the kept turns: empty on a fresh run, and no turn of a case played again.
+void _resumeFailed(File failed, Set<String> finished) {
+  if (!failed.existsSync()) return;
+  final lines = failed.readAsLinesSync().where(
+    (line) => line.trim().isNotEmpty && finished.contains((jsonDecode(line) as Map)['id']),
+  );
+  failed.writeAsStringSync(lines.map((line) => '$line\n').join(), flush: true);
 }
 
 /// Appends [result] to [keep] when it passed without detours and is not an
