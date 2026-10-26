@@ -40,6 +40,7 @@ const _usage =
     ' | eval [--provider=<name>] [--model=<id>] [--cases=<file>] [--slim] [--greedy] [--runs=<n>]'
     ' [--first-write] [--parallel=<n>]'
     ' | distill [--provider=<name>] [--model=<id>] [--cases=<file>] [--out=<file>] [--slim]'
+    ' [--samples=<k>] [--keep-failed=<file>]'
     ' | reprompt --in=<file> --out=<file> [--slim]'
     ' (--slim: the prompt and tools of the model on the device;'
     ' --greedy: temperature 0, on ollama or opencode; --runs: the set n times, eval only;'
@@ -59,15 +60,19 @@ String traceName(DateTime time) {
 }
 
 /// Whether [command] is known and has what it needs. Repeated runs and a
-/// first-write run are for eval: distill keeps whole turns.
+/// first-write run are for eval: distill keeps whole turns; samples of each
+/// case are for distill.
 bool _valid(String? command, String message, _Plan plan) {
   final evalOnly = plan.runs > 1 || plan.firstWrite;
+  final distillOnly = plan.samples > 1 || plan.keepsFailed;
   return plan.runs >= 1 &&
       plan.parallel >= 1 &&
+      plan.samples >= 1 &&
       switch (command) {
-        'chat' => message.isNotEmpty && !evalOnly,
-        'eval' => true,
-        'signin' || 'models' || 'distill' || 'reprompt' => !evalOnly,
+        'chat' => message.isNotEmpty && !evalOnly && !distillOnly,
+        'eval' => !distillOnly,
+        'distill' => !evalOnly,
+        'signin' || 'models' || 'reprompt' => !evalOnly && !distillOnly,
         _ => false,
       };
 }
@@ -159,6 +164,7 @@ Future<int> runDev(
           ),
           out,
           keep: keep,
+          failed: _file(currentDirectory, options['keep-failed']),
           plan: plan,
           search: _searches(options['provider'] ?? 'chatgpt'),
         );
@@ -218,13 +224,15 @@ Future<void> _chat(
 /// there, each said as it ends, then the report. With [keep], the passing
 /// turns go there as training examples, one JSON line each, written as each
 /// case ends; the finished case ids go to `<keep>.done`, so a run that was
-/// stopped (hours in, out of memory) goes on where it was (#327). Without
-/// that file a run starts [keep] over.
+/// stopped (hours in, out of memory) goes on where it was (#327), by case: a
+/// case stopped between its samples is not played again. Without that file a
+/// run starts [keep] and [failed] over.
 Future<void> _eval(
   File cases,
   Future<LlmProvider> Function() open,
   StringSink out, {
   File? keep,
+  File? failed,
   bool search = false,
   _Plan plan = const _Plan(),
 }) async {
@@ -232,6 +240,8 @@ Future<void> _eval(
   final provider = await open();
   final done = keep == null ? null : File('${keep.path}.done');
   final finished = keep == null ? const <String>{} : _resume(keep, done!);
+  if (failed != null) _resumeFailed(failed, finished);
+  final seen = <String>{};
   final runnable = [
     for (final c in _runnable(loadCases(cases.readAsStringSync()), search, out))
       if (!finished.contains(c.id)) c,
@@ -242,7 +252,7 @@ Future<void> _eval(
   for (var run = 0; run < plan.runs; run++) {
     everyRun.add(
       await _runOnce(runnable, provider, plan, out, (result) {
-        if (keep != null) outcomes.add(_keepTurn(result, keep, done!));
+        if (keep != null) outcomes.add(_keepTurn(result, keep, done!, seen, failed));
       }),
     );
   }
@@ -254,22 +264,41 @@ Future<void> _eval(
 }
 
 /// How a set of cases is run: [slim] as on the device, only to its
-/// [firstWrite] (#598), [runs] times, [parallel] cases at once.
+/// [firstWrite] (#598), [runs] times, [parallel] cases at once, each case
+/// [samples] times.
 class _Plan {
-  const _Plan() : slim = false, firstWrite = false, runs = 1, parallel = 1;
+  const _Plan()
+    : slim = false,
+      firstWrite = false,
+      runs = 1,
+      parallel = 1,
+      samples = 1,
+      keepsFailed = false;
 
   /// From the command line; a count that is no number is 0, so it is refused.
   _Plan.parse(List<String> args, Map<String, String> options)
     : slim = args.contains('--slim'),
       firstWrite = args.contains('--first-write'),
       runs = int.tryParse(options['runs'] ?? '1') ?? 0,
-      parallel = int.tryParse(options['parallel'] ?? '1') ?? 0;
+      parallel = int.tryParse(options['parallel'] ?? '1') ?? 0,
+      samples = int.tryParse(options['samples'] ?? '1') ?? 0,
+      keepsFailed = options.containsKey('keep-failed');
 
   final bool slim;
   final bool firstWrite;
   final int runs;
   final int parallel;
+
+  /// Each case played this many times in a row (#604).
+  final int samples;
+
+  /// Distill writes its failed turns to a file of their own (#607).
+  final bool keepsFailed;
 }
+
+/// [path] under [directory], or null when none was given.
+File? _file(Directory directory, String? path) =>
+    path == null ? null : File(p.join(directory.path, path));
 
 /// One run over [cases], [plan.parallel] at a time, each said as it ends and
 /// handed to [ended]; the results in the cases' order.
@@ -281,8 +310,12 @@ Future<List<EvalResult>> _runOnce(
   void Function(EvalResult result) ended,
 ) async {
   final results = <EvalResult>[];
-  for (var at = 0; at < cases.length; at += plan.parallel) {
-    final batch = cases.skip(at).take(plan.parallel);
+  final played = [
+    for (final c in cases)
+      for (var i = 0; i < plan.samples; i++) c,
+  ];
+  for (var at = 0; at < played.length; at += plan.parallel) {
+    final batch = played.skip(at).take(plan.parallel);
     results.addAll(
       await Future.wait([
         for (final evalCase in batch)
@@ -314,6 +347,7 @@ void _reportKept(
     'excluded ${excluded.length} passing turns '
     '(tool errors: ${count(TrainingIssue.toolError)}; '
     'repeated calls: ${count(TrainingIssue.repeatedCall)}; '
+    'same as a kept turn: ${count(TrainingIssue.sameAsKept)}; '
     'counts may overlap)',
   );
 }
@@ -344,17 +378,43 @@ Set<String> _resume(File keep, File done) {
   return {for (final record in records) record.split('\t').first};
 }
 
-/// Appends [result] to [keep] when it passed without detours, then marks its
-/// case in [done]; null when it failed, else why it was left out (none: kept).
-Set<TrainingIssue>? _keepTurn(EvalResult result, File keep, File done) {
-  final issues = result.passed ? trainingIssues(result.messages) : null;
-  final keeps = issues != null && issues.isEmpty;
-  if (keeps) {
-    keep.writeAsStringSync(
-      '${jsonEncode(trainingExample(result))}\n',
+/// [failed] cut back to the cases [finished] marks done, as [_resume] cuts
+/// the kept turns: empty on a fresh run, and no turn of a case played again.
+void _resumeFailed(File failed, Set<String> finished) {
+  if (!failed.existsSync()) return;
+  final lines = failed.readAsLinesSync().where(
+    (line) => line.trim().isNotEmpty && finished.contains((jsonDecode(line) as Map)['id']),
+  );
+  failed.writeAsStringSync(lines.map((line) => '$line\n').join(), flush: true);
+}
+
+/// Appends [result] to [keep] when it passed without detours and is not an
+/// exchange already kept ([seen]), then marks its case in [done]; a failed
+/// turn goes to [failed]. Null when it failed, else why it was left out
+/// (none: kept).
+Set<TrainingIssue>? _keepTurn(
+  EvalResult result,
+  File keep,
+  File done,
+  Set<String> seen,
+  File? failed,
+) {
+  final example = trainingExample(result);
+  if (!result.passed) {
+    // The rejected side of a preference pair (#607), with why it failed.
+    failed?.writeAsStringSync(
+      '${jsonEncode({...example, 'problems': result.problems})}\n',
       mode: FileMode.append,
       flush: true,
     );
+  }
+  var issues = result.passed ? trainingIssues(result.messages) : null;
+  if (issues != null && issues.isEmpty && !seen.add(jsonEncode(example['messages']))) {
+    issues = {TrainingIssue.sameAsKept};
+  }
+  final keeps = issues != null && issues.isEmpty;
+  if (keeps) {
+    keep.writeAsStringSync('${jsonEncode(example)}\n', mode: FileMode.append, flush: true);
   }
   final mark = keeps ? '\tkept' : '';
   done.writeAsStringSync('${result.evalCase.id}$mark\n', mode: FileMode.append, flush: true);

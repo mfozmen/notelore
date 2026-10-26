@@ -506,7 +506,13 @@ Message? _without(Message message, Set<Object?> dropped) {
 }
 
 /// Reasons a scored-passing teacher turn is excluded from distillation.
-enum TrainingIssue { toolError, repeatedCall }
+enum TrainingIssue {
+  toolError,
+  repeatedCall,
+
+  /// The same exchange as a turn already kept for its case (#604).
+  sameAsKept,
+}
 
 /// Problems in a passing turn that would teach the student a bad tool path.
 /// [Toolbox.call] and [Agent] mark tool failures with an `Error:` prefix.
