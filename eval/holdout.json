@@ -221,7 +221,7 @@
   "lang": "en",
   "notes": {
    "topics/documentaries-to-watch.md": "---\ntitle: Documentaries to Watch\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Documentaries to Watch\n\n## Notes\n- 2026-09-15: My Octopus Teacher\n",
-   "topics/novels-on-my-list.md": "---\ntitle: Novels on My List\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Novels on My List\n\n## Notes\n- 2026-09-15: The Goldfinch — Donna Tartt\n",
+   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n",
    "projects/family-reunion.md": "---\ntitle: Family Reunion\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Family Reunion\n\n## Decisions\n- 2026-09-10 — **date**: 12 July.\n\n## Notes\n- 2026-09-15: The reunion is in July.\n\n## Todo\n- [ ] 2026-10-20: Book the hall\n",
    "projects/kafe-acilisi.md": "---\ntitle: Kafe Açılışı\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kafe Açılışı\n\n## Kararlar\n- 2026-09-10 — **isim**: Pervane Kafe.\n\n## Notlar\n- 2026-09-15: Kafe Moda'da açılacak.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Kahve makinesini sipariş et\n",
    "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n"
@@ -252,9 +252,9 @@
   "notes": {
    "topics/documentaries-to-watch.md": "---\ntitle: Documentaries to Watch\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Documentaries to Watch\n\n## Notes\n- 2026-09-15: My Octopus Teacher\n",
    "topics/cocktails-to-make.md": "---\ntitle: Cocktails to Make\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cocktails to Make\n\n## Notes\n- 2026-09-15: Negroni\n",
-   "topics/reading-now.md": "---\ntitle: Reading Now\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Now\n",
+   "topics/saglik-kontrolleri.md": "---\ntitle: Sağlık Kontrolleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Sağlık Kontrolleri\n\n## Notlar\n- 2026-09-15: Kolesterol değeri normal çıktı.\n",
    "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n",
-   "topics/skills-to-learn.md": "---\ntitle: Skills to Learn\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Skills to Learn\n\n## Notes\n- 2026-09-15: Touch typing\n"
+   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n"
   },
   "message": "Documentary to watch: Man on Wire.",
   "expect": {
@@ -273,8 +273,8 @@
    "topics/documentaries-to-watch.md": "---\ntitle: Documentaries to Watch\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Documentaries to Watch\n\n## Notes\n- 2026-09-15: My Octopus Teacher\n",
    "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n",
    "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n",
-   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
-   "topics/reading-someday.md": "---\ntitle: Reading Someday\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Someday\n"
+   "topics/novels-on-my-list.md": "---\ntitle: Novels on My List\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Novels on My List\n\n## Notes\n- 2026-09-15: The Goldfinch — Donna Tartt\n",
+   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n"
   },
   "message": "Documentary to watch: Fire of Love.",
   "expect": {
@@ -761,7 +761,7 @@
   "lang": "tr",
   "notes": {
    "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n",
-   "topics/reading-someday.md": "---\ntitle: Reading Someday\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Someday\n",
+   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n",
    "topics/documentaries-to-watch.md": "---\ntitle: Documentaries to Watch\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Documentaries to Watch\n\n## Notes\n- 2026-09-15: My Octopus Teacher\n",
    "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n",
    "topics/film-gecesi.md": "---\ntitle: Film Gecesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Film Gecesi\n"
@@ -791,10 +791,10 @@
   "lang": "tr",
   "notes": {
    "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n",
+   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
    "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n",
-   "topics/kitaplik.md": "---\ntitle: Kitaplık\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kitaplık\n",
    "topics/film-gecesi.md": "---\ntitle: Film Gecesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Film Gecesi\n",
-   "topics/reading-someday.md": "---\ntitle: Reading Someday\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Someday\n"
+   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n"
   },
   "message": "Kamp yerlerine ekle: Abant Gölü.",
   "expect": {
@@ -812,7 +812,7 @@
   "notes": {
    "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n",
    "topics/documentaries-to-watch.md": "---\ntitle: Documentaries to Watch\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Documentaries to Watch\n\n## Notes\n- 2026-09-15: My Octopus Teacher\n",
-   "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n",
+   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
    "topics/cocktails-to-make.md": "---\ntitle: Cocktails to Make\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cocktails to Make\n\n## Notes\n- 2026-09-15: Negroni\n",
    "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n"
   },
@@ -831,10 +831,10 @@
   "lang": "tr",
   "notes": {
    "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n",
-   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n",
    "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
    "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n",
-   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n"
+   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n",
+   "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n"
   },
   "message": "Kamp yerlerine ekle: Kabak Koyu.",
   "expect": {
@@ -851,10 +851,10 @@
   "lang": "tr",
   "notes": {
    "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n",
-   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
    "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n",
    "topics/documentaries-to-watch.md": "---\ntitle: Documentaries to Watch\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Documentaries to Watch\n\n## Notes\n- 2026-09-15: My Octopus Teacher\n",
-   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n"
+   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
+   "topics/kitaplik.md": "---\ntitle: Kitaplık\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kitaplık\n"
   },
   "message": "Kamp Yerleri listesinde neler var?",
   "expect": {
@@ -869,10 +869,10 @@
   "lang": "en",
   "notes": {
    "topics/birthday-present-ideas.md": "---\ntitle: Birthday Present Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Birthday Present Ideas\n\n## Notes\n- 2026-09-15: A vinyl record for Sam\n",
-   "topics/kitaplik.md": "---\ntitle: Kitaplık\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kitaplık\n",
    "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
    "topics/reading-someday.md": "---\ntitle: Reading Someday\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Someday\n",
-   "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n"
+   "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n",
+   "topics/kedimiz-tarcin.md": "---\ntitle: Kedimiz Tarçın\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kedimiz Tarçın\n\n## Notlar\n- 2026-09-15: Tarçın'ın kısırlaştırması yapıldı.\n"
   },
   "message": "Note this present idea: a tea set for Maya.",
   "expect": {
@@ -899,10 +899,10 @@
   "lang": "en",
   "notes": {
    "topics/birthday-present-ideas.md": "---\ntitle: Birthday Present Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Birthday Present Ideas\n\n## Notes\n- 2026-09-15: A vinyl record for Sam\n",
-   "topics/kedimiz-tarcin.md": "---\ntitle: Kedimiz Tarçın\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kedimiz Tarçın\n\n## Notlar\n- 2026-09-15: Tarçın'ın kısırlaştırması yapıldı.\n",
    "projects/balkon-bahcesi.md": "---\ntitle: Balkon Bahçesi\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Balkon Bahçesi\n\n## Kararlar\n- 2026-09-10 — **saksı**: Ahşap saksı.\n\n## Notlar\n- 2026-09-15: Balkon güneye bakıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Toprak satın al\n",
    "topics/gezi-fikirleri.md": "---\ntitle: Gezi Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Gezi Fikirleri\n",
-   "topics/reading-now.md": "---\ntitle: Reading Now\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Now\n"
+   "topics/reading-now.md": "---\ntitle: Reading Now\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Now\n",
+   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n"
   },
   "message": "Birthday present idea: a hiking backpack for Leo.",
   "expect": {
@@ -919,10 +919,10 @@
   "lang": "en",
   "notes": {
    "topics/birthday-present-ideas.md": "---\ntitle: Birthday Present Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Birthday Present Ideas\n\n## Notes\n- 2026-09-15: A vinyl record for Sam\n",
-   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n",
    "projects/kafe-acilisi.md": "---\ntitle: Kafe Açılışı\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kafe Açılışı\n\n## Kararlar\n- 2026-09-10 — **isim**: Pervane Kafe.\n\n## Notlar\n- 2026-09-15: Kafe Moda'da açılacak.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Kahve makinesini sipariş et\n",
    "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n",
-   "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n"
+   "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n",
+   "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n"
   },
   "message": "Note this present idea: a puzzle for Grandma.",
   "expect": {
@@ -939,10 +939,10 @@
   "lang": "en",
   "notes": {
    "topics/birthday-present-ideas.md": "---\ntitle: Birthday Present Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Birthday Present Ideas\n\n## Notes\n- 2026-09-15: A vinyl record for Sam\n",
-   "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n",
    "topics/saglik-kontrolleri.md": "---\ntitle: Sağlık Kontrolleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Sağlık Kontrolleri\n\n## Notlar\n- 2026-09-15: Kolesterol değeri normal çıktı.\n",
    "topics/kedimiz-tarcin.md": "---\ntitle: Kedimiz Tarçın\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kedimiz Tarçın\n\n## Notlar\n- 2026-09-15: Tarçın'ın kısırlaştırması yapıldı.\n",
-   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n"
+   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n",
+   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n"
   },
   "message": "Note this present idea: a watch strap for Tom.",
   "expect": {
@@ -959,10 +959,10 @@
   "lang": "en",
   "notes": {
    "topics/birthday-present-ideas.md": "---\ntitle: Birthday Present Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Birthday Present Ideas\n\n## Notes\n- 2026-09-15: A vinyl record for Sam\n",
-   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n",
    "projects/yuksek-lisans-basvurusu.md": "---\ntitle: Yüksek Lisans Başvurusu\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yüksek Lisans Başvurusu\n\n## Kararlar\n- 2026-09-10 — **okul**: ODTÜ.\n\n## Notlar\n- 2026-09-15: Başvurular Ocak'ta kapanıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Niyet mektubunu yaz\n",
    "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n",
-   "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Car Maintenance\n\n## Notes\n- 2026-09-15: The next service is at 60,000 km.\n"
+   "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Car Maintenance\n\n## Notes\n- 2026-09-15: The next service is at 60,000 km.\n",
+   "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n"
   },
   "message": "What is on my Birthday Present Ideas list?",
   "expect": {
@@ -977,10 +977,10 @@
   "lang": "tr",
   "notes": {
    "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
-   "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n",
    "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
    "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n",
-   "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n"
+   "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n",
+   "topics/skills-to-learn.md": "---\ntitle: Skills to Learn\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Skills to Learn\n\n## Notes\n- 2026-09-15: Touch typing\n"
   },
   "message": "Hediye listesine yaz: yeğenime bir yapboz.",
   "expect": {
@@ -1007,10 +1007,10 @@
   "lang": "tr",
   "notes": {
    "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
-   "topics/skills-to-learn.md": "---\ntitle: Skills to Learn\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Skills to Learn\n\n## Notes\n- 2026-09-15: Touch typing\n",
    "topics/reading-someday.md": "---\ntitle: Reading Someday\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Someday\n",
    "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n",
-   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n"
+   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n",
+   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n"
   },
   "message": "Hediye için aklımda: babaanneme bir gözlük zinciri.",
   "expect": {
@@ -1027,10 +1027,10 @@
   "lang": "tr",
   "notes": {
    "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
-   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n",
    "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n",
    "projects/balkon-bahcesi.md": "---\ntitle: Balkon Bahçesi\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Balkon Bahçesi\n\n## Kararlar\n- 2026-09-10 — **saksı**: Ahşap saksı.\n\n## Notlar\n- 2026-09-15: Balkon güneye bakıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Toprak satın al\n",
-   "topics/denenecek-kahveciler.md": "---\ntitle: Denenecek Kahveciler\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Denenecek Kahveciler\n\n## Notlar\n- 2026-09-15: Kronotrop\n"
+   "topics/denenecek-kahveciler.md": "---\ntitle: Denenecek Kahveciler\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Denenecek Kahveciler\n\n## Notlar\n- 2026-09-15: Kronotrop\n",
+   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n"
   },
   "message": "Hediye listesine yaz: eşime bir kahve makinesi.",
   "expect": {
@@ -1047,10 +1047,10 @@
   "lang": "tr",
   "notes": {
    "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
-   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n",
    "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n",
    "topics/reading-now.md": "---\ntitle: Reading Now\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Now\n",
-   "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n"
+   "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n",
+   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n"
   },
   "message": "Hediye için aklımda: kardeşime kulaklık.",
   "expect": {
@@ -1067,10 +1067,10 @@
   "lang": "tr",
   "notes": {
    "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
-   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
    "projects/yuksek-lisans-basvurusu.md": "---\ntitle: Yüksek Lisans Başvurusu\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yüksek Lisans Başvurusu\n\n## Kararlar\n- 2026-09-10 — **okul**: ODTÜ.\n\n## Notlar\n- 2026-09-15: Başvurular Ocak'ta kapanıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Niyet mektubunu yaz\n",
    "topics/reading-someday.md": "---\ntitle: Reading Someday\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Someday\n",
-   "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n"
+   "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n",
+   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n"
   },
   "message": "Hediye Listesi listesinde neler var?",
   "expect": {
@@ -1085,10 +1085,10 @@
   "lang": "en",
   "notes": {
    "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n",
-   "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n",
    "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n",
    "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n",
-   "topics/okuduklarim.md": "---\ntitle: Okuduklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuduklarım\n"
+   "topics/okuduklarim.md": "---\ntitle: Okuduklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuduklarım\n",
+   "topics/saglik-kontrolleri.md": "---\ntitle: Sağlık Kontrolleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Sağlık Kontrolleri\n\n## Notlar\n- 2026-09-15: Kolesterol değeri normal çıktı.\n"
   },
   "message": "App to try: Arc browser.",
   "expect": {
@@ -1115,10 +1115,10 @@
   "lang": "en",
   "notes": {
    "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n",
-   "topics/saglik-kontrolleri.md": "---\ntitle: Sağlık Kontrolleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Sağlık Kontrolleri\n\n## Notlar\n- 2026-09-15: Kolesterol değeri normal çıktı.\n",
    "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
    "topics/film-gecesi.md": "---\ntitle: Film Gecesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Film Gecesi\n",
-   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n"
+   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
+   "topics/kitaplik.md": "---\ntitle: Kitaplık\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kitaplık\n"
   },
   "message": "App to try: Raycast.",
   "expect": {
@@ -1135,10 +1135,10 @@
   "lang": "en",
   "notes": {
    "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n",
-   "topics/kitaplik.md": "---\ntitle: Kitaplık\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kitaplık\n",
    "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n",
    "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
-   "projects/ev-tasima.md": "---\ntitle: Ev Taşıma\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Ev Taşıma\n\n## Kararlar\n- 2026-09-10 — **nakliye**: Kardeşler Nakliyat.\n\n## Notlar\n- 2026-09-15: Taşınma tarihi 15 Kasım.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Koli topla\n"
+   "projects/ev-tasima.md": "---\ntitle: Ev Taşıma\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Ev Taşıma\n\n## Kararlar\n- 2026-09-10 — **nakliye**: Kardeşler Nakliyat.\n\n## Notlar\n- 2026-09-15: Taşınma tarihi 15 Kasım.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Koli topla\n",
+   "topics/kitaplik.md": "---\ntitle: Kitaplık\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kitaplık\n"
   },
   "message": "I want to try the app Readwise.",
   "expect": {
@@ -1155,10 +1155,10 @@
   "lang": "en",
   "notes": {
    "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n",
-   "topics/kitaplik.md": "---\ntitle: Kitaplık\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kitaplık\n",
    "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n",
    "topics/skills-to-learn.md": "---\ntitle: Skills to Learn\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Skills to Learn\n\n## Notes\n- 2026-09-15: Touch typing\n",
-   "projects/balkon-bahcesi.md": "---\ntitle: Balkon Bahçesi\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Balkon Bahçesi\n\n## Kararlar\n- 2026-09-10 — **saksı**: Ahşap saksı.\n\n## Notlar\n- 2026-09-15: Balkon güneye bakıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Toprak satın al\n"
+   "projects/balkon-bahcesi.md": "---\ntitle: Balkon Bahçesi\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Balkon Bahçesi\n\n## Kararlar\n- 2026-09-10 — **saksı**: Ahşap saksı.\n\n## Notlar\n- 2026-09-15: Balkon güneye bakıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Toprak satın al\n",
+   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n"
   },
   "message": "App to try: Tailscale.",
   "expect": {
@@ -1175,10 +1175,10 @@
   "lang": "en",
   "notes": {
    "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n",
-   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
    "topics/skills-to-learn.md": "---\ntitle: Skills to Learn\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Skills to Learn\n\n## Notes\n- 2026-09-15: Touch typing\n",
    "projects/yuksek-lisans-basvurusu.md": "---\ntitle: Yüksek Lisans Başvurusu\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yüksek Lisans Başvurusu\n\n## Kararlar\n- 2026-09-10 — **okul**: ODTÜ.\n\n## Notlar\n- 2026-09-15: Başvurular Ocak'ta kapanıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Niyet mektubunu yaz\n",
-   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n"
+   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n",
+   "topics/film-gecesi.md": "---\ntitle: Film Gecesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Film Gecesi\n"
   },
   "message": "What is on my Apps to Try list?",
   "expect": {
@@ -1193,10 +1193,10 @@
   "lang": "tr",
   "notes": {
    "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n",
-   "topics/film-gecesi.md": "---\ntitle: Film Gecesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Film Gecesi\n",
    "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
    "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n",
-   "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n"
+   "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n",
+   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n"
   },
   "message": "Dinlenecek şarkı: Sarı Gelin.",
   "expect": {
@@ -1223,10 +1223,10 @@
   "lang": "tr",
   "notes": {
    "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n",
-   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n",
    "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n",
    "topics/denenecek-kahveciler.md": "---\ntitle: Denenecek Kahveciler\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Denenecek Kahveciler\n\n## Notlar\n- 2026-09-15: Kronotrop\n",
-   "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n"
+   "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n",
+   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n"
   },
   "message": "Şarkı listesine Kara Toprak ekle.",
   "expect": {
@@ -1243,9 +1243,9 @@
   "lang": "tr",
   "notes": {
    "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n",
-   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n",
    "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
    "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n",
+   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n",
    "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n"
   },
   "message": "Şarkı listesine Uzun İnce Bir Yoldayım ekle.",
@@ -1301,7 +1301,7 @@
   "lang": "en",
   "notes": {
    "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n",
-   "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n",
+   "topics/kedimiz-tarcin.md": "---\ntitle: Kedimiz Tarçın\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kedimiz Tarçın\n\n## Notlar\n- 2026-09-15: Tarçın'ın kısırlaştırması yapıldı.\n",
    "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n",
    "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n",
    "topics/cocktails-to-make.md": "---\ntitle: Cocktails to Make\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cocktails to Make\n\n## Notes\n- 2026-09-15: Negroni\n"
@@ -1332,9 +1332,9 @@
   "notes": {
    "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n",
    "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
-   "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n",
+   "topics/novels-on-my-list.md": "---\ntitle: Novels on My List\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Novels on My List\n\n## Notes\n- 2026-09-15: The Goldfinch — Donna Tartt\n",
    "topics/birthday-present-ideas.md": "---\ntitle: Birthday Present Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Birthday Present Ideas\n\n## Notes\n- 2026-09-15: A vinyl record for Sam\n",
-   "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n"
+   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n"
   },
   "message": "Museum I want to see: MoMA.",
   "expect": {
@@ -1351,8 +1351,8 @@
   "lang": "en",
   "notes": {
    "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n",
-   "topics/gezi-fikirleri.md": "---\ntitle: Gezi Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Gezi Fikirleri\n",
-   "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n",
+   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
+   "topics/novels-on-my-list.md": "---\ntitle: Novels on My List\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Novels on My List\n\n## Notes\n- 2026-09-15: The Goldfinch — Donna Tartt\n",
    "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n",
    "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n"
   },
@@ -1372,7 +1372,7 @@
   "notes": {
    "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n",
    "projects/balkon-bahcesi.md": "---\ntitle: Balkon Bahçesi\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Balkon Bahçesi\n\n## Kararlar\n- 2026-09-10 — **saksı**: Ahşap saksı.\n\n## Notlar\n- 2026-09-15: Balkon güneye bakıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Toprak satın al\n",
-   "topics/gezi-fikirleri.md": "---\ntitle: Gezi Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Gezi Fikirleri\n",
+   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
    "projects/yuksek-lisans-basvurusu.md": "---\ntitle: Yüksek Lisans Başvurusu\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yüksek Lisans Başvurusu\n\n## Kararlar\n- 2026-09-10 — **okul**: ODTÜ.\n\n## Notlar\n- 2026-09-15: Başvurular Ocak'ta kapanıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Niyet mektubunu yaz\n",
    "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n"
   },
@@ -4912,7 +4912,7 @@
   "lang": "en",
   "notes": {
    "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n",
-   "topics/saglik-kontrolleri.md": "---\ntitle: Sağlık Kontrolleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Sağlık Kontrolleri\n\n## Notlar\n- 2026-09-15: Kolesterol değeri normal çıktı.\n",
+   "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n",
    "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n",
    "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n"
   },
@@ -5087,10 +5087,10 @@
   "kind": "collection",
   "lang": "en",
   "notes": {
-   "topics/reading-now.md": "---\ntitle: Reading Now\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Now\n",
+   "topics/side-business.md": "---\ntitle: Side Business\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Side Business\n\n## Notes\n- 2026-09-15: The shop sells hand-made candles.\n",
    "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n",
-   "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n",
-   "topics/side-business.md": "---\ntitle: Side Business\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Side Business\n\n## Notes\n- 2026-09-15: The shop sells hand-made candles.\n"
+   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
+   "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Car Maintenance\n\n## Notes\n- 2026-09-15: The next service is at 60,000 km.\n"
   },
   "message": "I'm reading Pride and Prejudice again.",
   "expect": {
@@ -5109,10 +5109,10 @@
   "kind": "collection",
   "lang": "en",
   "notes": {
-   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
-   "topics/novels-on-my-list.md": "---\ntitle: Novels on My List\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Novels on My List\n\n## Notes\n- 2026-09-15: The Goldfinch — Donna Tartt\n",
-   "topics/skills-to-learn.md": "---\ntitle: Skills to Learn\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Skills to Learn\n\n## Notes\n- 2026-09-15: Touch typing\n",
-   "projects/balkon-bahcesi.md": "---\ntitle: Balkon Bahçesi\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Balkon Bahçesi\n\n## Kararlar\n- 2026-09-10 — **saksı**: Ahşap saksı.\n\n## Notlar\n- 2026-09-15: Balkon güneye bakıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Toprak satın al\n"
+   "topics/okuduklarim.md": "---\ntitle: Okuduklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuduklarım\n",
+   "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n",
+   "projects/balkon-bahcesi.md": "---\ntitle: Balkon Bahçesi\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Balkon Bahçesi\n\n## Kararlar\n- 2026-09-10 — **saksı**: Ahşap saksı.\n\n## Notlar\n- 2026-09-15: Balkon güneye bakıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Toprak satın al\n",
+   "topics/skills-to-learn.md": "---\ntitle: Skills to Learn\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Skills to Learn\n\n## Notes\n- 2026-09-15: Touch typing\n"
   },
   "message": "Tonight I'm watching Spirited Away.",
   "expect": {
@@ -5131,10 +5131,10 @@
   "kind": "collection",
   "lang": "en",
   "notes": {
-   "topics/saglik-kontrolleri.md": "---\ntitle: Sağlık Kontrolleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Sağlık Kontrolleri\n\n## Notlar\n- 2026-09-15: Kolesterol değeri normal çıktı.\n",
-   "topics/novels-on-my-list.md": "---\ntitle: Novels on My List\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Novels on My List\n\n## Notes\n- 2026-09-15: The Goldfinch — Donna Tartt\n",
-   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n",
-   "topics/cities-for-a-long-weekend.md": "---\ntitle: Cities for a Long Weekend\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cities for a Long Weekend\n\n## Notes\n- 2026-09-15: Bologna\n"
+   "topics/okuduklarim.md": "---\ntitle: Okuduklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuduklarım\n",
+   "topics/reading-now.md": "---\ntitle: Reading Now\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Now\n",
+   "topics/cocktails-to-make.md": "---\ntitle: Cocktails to Make\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cocktails to Make\n\n## Notes\n- 2026-09-15: Negroni\n",
+   "topics/denenecek-kahveciler.md": "---\ntitle: Denenecek Kahveciler\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Denenecek Kahveciler\n\n## Notlar\n- 2026-09-15: Kronotrop\n"
   },
   "message": "Recipe idea: black bean tacos.",
   "expect": {
@@ -5153,10 +5153,10 @@
   "kind": "collection",
   "lang": "en",
   "notes": {
-   "topics/cocktails-to-make.md": "---\ntitle: Cocktails to Make\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cocktails to Make\n\n## Notes\n- 2026-09-15: Negroni\n",
    "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n",
    "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n",
-   "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n"
+   "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n",
+   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n"
   },
   "message": "I'd love to visit Patagonia someday.",
   "expect": {
@@ -5175,10 +5175,10 @@
   "kind": "collection",
   "lang": "tr",
   "notes": {
-   "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n",
-   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n",
-   "topics/side-business.md": "---\ntitle: Side Business\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Side Business\n\n## Notes\n- 2026-09-15: The shop sells hand-made candles.\n",
-   "topics/reading-someday.md": "---\ntitle: Reading Someday\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Someday\n"
+   "topics/skills-to-learn.md": "---\ntitle: Skills to Learn\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Skills to Learn\n\n## Notes\n- 2026-09-15: Touch typing\n",
+   "topics/denenecek-kahveciler.md": "---\ntitle: Denenecek Kahveciler\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Denenecek Kahveciler\n\n## Notlar\n- 2026-09-15: Kronotrop\n",
+   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n",
+   "topics/documentaries-to-watch.md": "---\ntitle: Documentaries to Watch\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Documentaries to Watch\n\n## Notes\n- 2026-09-15: My Octopus Teacher\n"
   },
   "message": "Şu sıralar Saatleri Kuran Adam okuyorum.",
   "expect": {
@@ -5197,10 +5197,10 @@
   "kind": "collection",
   "lang": "tr",
   "notes": {
+   "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n",
    "topics/cocktails-to-make.md": "---\ntitle: Cocktails to Make\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cocktails to Make\n\n## Notes\n- 2026-09-15: Negroni\n",
-   "topics/novels-on-my-list.md": "---\ntitle: Novels on My List\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Novels on My List\n\n## Notes\n- 2026-09-15: The Goldfinch — Donna Tartt\n",
-   "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n",
-   "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n"
+   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
+   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n"
   },
   "message": "Bu akşam Hababam Sınıfı'nı izleyeceğim.",
   "expect": {
@@ -5219,10 +5219,10 @@
   "kind": "collection",
   "lang": "tr",
   "notes": {
-   "topics/cocktails-to-make.md": "---\ntitle: Cocktails to Make\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cocktails to Make\n\n## Notes\n- 2026-09-15: Negroni\n",
-   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
-   "topics/reading-now.md": "---\ntitle: Reading Now\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Now\n",
-   "topics/saglik-kontrolleri.md": "---\ntitle: Sağlık Kontrolleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Sağlık Kontrolleri\n\n## Notlar\n- 2026-09-15: Kolesterol değeri normal çıktı.\n"
+   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n",
+   "projects/ev-tasima.md": "---\ntitle: Ev Taşıma\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Ev Taşıma\n\n## Kararlar\n- 2026-09-10 — **nakliye**: Kardeşler Nakliyat.\n\n## Notlar\n- 2026-09-15: Taşınma tarihi 15 Kasım.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Koli topla\n",
+   "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n",
+   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n"
   },
   "message": "Tarif fikri: zeytinyağlı pırasa.",
   "expect": {
@@ -5241,10 +5241,10 @@
   "kind": "collection",
   "lang": "tr",
   "notes": {
-   "projects/ev-tasima.md": "---\ntitle: Ev Taşıma\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Ev Taşıma\n\n## Kararlar\n- 2026-09-10 — **nakliye**: Kardeşler Nakliyat.\n\n## Notlar\n- 2026-09-15: Taşınma tarihi 15 Kasım.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Koli topla\n",
-   "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n",
-   "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n",
-   "topics/saglik-kontrolleri.md": "---\ntitle: Sağlık Kontrolleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Sağlık Kontrolleri\n\n## Notlar\n- 2026-09-15: Kolesterol değeri normal çıktı.\n"
+   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n",
+   "topics/documentaries-to-watch.md": "---\ntitle: Documentaries to Watch\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Documentaries to Watch\n\n## Notes\n- 2026-09-15: My Octopus Teacher\n",
+   "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n",
+   "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n"
   },
   "message": "Bir gün Assos'a gitmek istiyorum.",
   "expect": {
@@ -5267,10 +5267,10 @@
    "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
    "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n",
    "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n",
-   "topics/gezi-fikirleri.md": "---\ntitle: Gezi Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Gezi Fikirleri\n",
-   "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n",
    "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n",
-   "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n"
+   "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n",
+   "topics/skills-to-learn.md": "---\ntitle: Skills to Learn\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Skills to Learn\n\n## Notes\n- 2026-09-15: Touch typing\n",
+   "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n"
   },
   "message": "Started reading The Bee Sting.",
   "expect": {
@@ -5290,10 +5290,10 @@
    "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
    "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n",
    "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n",
+   "topics/skills-to-learn.md": "---\ntitle: Skills to Learn\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Skills to Learn\n\n## Notes\n- 2026-09-15: Touch typing\n",
+   "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n",
    "topics/reading-someday.md": "---\ntitle: Reading Someday\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Someday\n",
-   "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n",
-   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n",
-   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n"
+   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n"
   },
   "message": "Movie for Friday: The Holdovers.",
   "expect": {
@@ -5313,10 +5313,10 @@
    "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
    "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n",
    "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n",
-   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n",
-   "topics/side-business.md": "---\ntitle: Side Business\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Side Business\n\n## Notes\n- 2026-09-15: The shop sells hand-made candles.\n",
    "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n",
-   "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Car Maintenance\n\n## Notes\n- 2026-09-15: The next service is at 60,000 km.\n"
+   "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Car Maintenance\n\n## Notes\n- 2026-09-15: The next service is at 60,000 km.\n",
+   "topics/birthday-present-ideas.md": "---\ntitle: Birthday Present Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Birthday Present Ideas\n\n## Notes\n- 2026-09-15: A vinyl record for Sam\n",
+   "projects/family-reunion.md": "---\ntitle: Family Reunion\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Family Reunion\n\n## Decisions\n- 2026-09-10 — **date**: 12 July.\n\n## Notes\n- 2026-09-15: The reunion is in July.\n\n## Todo\n- [ ] 2026-10-20: Book the hall\n"
   },
   "message": "Dinner idea: mushroom stroganoff.",
   "expect": {
@@ -5336,10 +5336,10 @@
    "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
    "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n",
    "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n",
-   "topics/birthday-present-ideas.md": "---\ntitle: Birthday Present Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Birthday Present Ideas\n\n## Notes\n- 2026-09-15: A vinyl record for Sam\n",
-   "projects/family-reunion.md": "---\ntitle: Family Reunion\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Family Reunion\n\n## Decisions\n- 2026-09-10 — **date**: 12 July.\n\n## Notes\n- 2026-09-15: The reunion is in July.\n\n## Todo\n- [ ] 2026-10-20: Book the hall\n",
    "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n",
-   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n"
+   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n",
+   "topics/skills-to-learn.md": "---\ntitle: Skills to Learn\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Skills to Learn\n\n## Notes\n- 2026-09-15: Touch typing\n",
+   "topics/cities-for-a-long-weekend.md": "---\ntitle: Cities for a Long Weekend\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cities for a Long Weekend\n\n## Notes\n- 2026-09-15: Bologna\n"
   },
   "message": "I'd like to go to the Dolomites.",
   "expect": {
@@ -5359,9 +5359,9 @@
    "topics/film-gecesi.md": "---\ntitle: Film Gecesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Film Gecesi\n",
    "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n",
    "topics/gezi-fikirleri.md": "---\ntitle: Gezi Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Gezi Fikirleri\n",
-   "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n",
-   "topics/cities-for-a-long-weekend.md": "---\ntitle: Cities for a Long Weekend\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cities for a Long Weekend\n\n## Notes\n- 2026-09-15: Bologna\n",
    "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n",
+   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
+   "projects/yuksek-lisans-basvurusu.md": "---\ntitle: Yüksek Lisans Başvurusu\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yüksek Lisans Başvurusu\n\n## Kararlar\n- 2026-09-10 — **okul**: ODTÜ.\n\n## Notlar\n- 2026-09-15: Başvurular Ocak'ta kapanıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Niyet mektubunu yaz\n",
    "topics/documentaries-to-watch.md": "---\ntitle: Documentaries to Watch\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Documentaries to Watch\n\n## Notes\n- 2026-09-15: My Octopus Teacher\n"
   },
   "message": "Bugün Çalıkuşu'nun devamı Ateşten Gömlek'e başladım.",
@@ -5382,10 +5382,10 @@
    "topics/film-gecesi.md": "---\ntitle: Film Gecesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Film Gecesi\n",
    "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n",
    "topics/gezi-fikirleri.md": "---\ntitle: Gezi Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Gezi Fikirleri\n",
-   "projects/yuksek-lisans-basvurusu.md": "---\ntitle: Yüksek Lisans Başvurusu\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yüksek Lisans Başvurusu\n\n## Kararlar\n- 2026-09-10 — **okul**: ODTÜ.\n\n## Notlar\n- 2026-09-15: Başvurular Ocak'ta kapanıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Niyet mektubunu yaz\n",
-   "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n",
    "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
-   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n"
+   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n",
+   "topics/novels-on-my-list.md": "---\ntitle: Novels on My List\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Novels on My List\n\n## Notes\n- 2026-09-15: The Goldfinch — Donna Tartt\n",
+   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n"
   },
   "message": "Cuma akşamı izlenecek: Vizontele.",
   "expect": {
@@ -5405,10 +5405,10 @@
    "topics/film-gecesi.md": "---\ntitle: Film Gecesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Film Gecesi\n",
    "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n",
    "topics/gezi-fikirleri.md": "---\ntitle: Gezi Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Gezi Fikirleri\n",
-   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
-   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n",
-   "topics/documentaries-to-watch.md": "---\ntitle: Documentaries to Watch\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Documentaries to Watch\n\n## Notes\n- 2026-09-15: My Octopus Teacher\n",
-   "topics/novels-on-my-list.md": "---\ntitle: Novels on My List\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Novels on My List\n\n## Notes\n- 2026-09-15: The Goldfinch — Donna Tartt\n"
+   "topics/novels-on-my-list.md": "---\ntitle: Novels on My List\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Novels on My List\n\n## Notes\n- 2026-09-15: The Goldfinch — Donna Tartt\n",
+   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
+   "projects/ev-tasima.md": "---\ntitle: Ev Taşıma\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Ev Taşıma\n\n## Kararlar\n- 2026-09-10 — **nakliye**: Kardeşler Nakliyat.\n\n## Notlar\n- 2026-09-15: Taşınma tarihi 15 Kasım.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Koli topla\n",
+   "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n"
   },
   "message": "Akşam yemeği fikri: fırında sebzeli tavuk.",
   "expect": {
@@ -5428,10 +5428,10 @@
    "topics/film-gecesi.md": "---\ntitle: Film Gecesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Film Gecesi\n",
    "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n",
    "topics/gezi-fikirleri.md": "---\ntitle: Gezi Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Gezi Fikirleri\n",
-   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
-   "projects/ev-tasima.md": "---\ntitle: Ev Taşıma\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Ev Taşıma\n\n## Kararlar\n- 2026-09-10 — **nakliye**: Kardeşler Nakliyat.\n\n## Notlar\n- 2026-09-15: Taşınma tarihi 15 Kasım.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Koli topla\n",
-   "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n",
-   "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Car Maintenance\n\n## Notes\n- 2026-09-15: The next service is at 60,000 km.\n"
+   "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Car Maintenance\n\n## Notes\n- 2026-09-15: The next service is at 60,000 km.\n",
+   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
+   "topics/skills-to-learn.md": "---\ntitle: Skills to Learn\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Skills to Learn\n\n## Notes\n- 2026-09-15: Touch typing\n",
+   "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n"
   },
   "message": "Gitmek istediğim yer: Nemrut Dağı.",
   "expect": {
@@ -5449,10 +5449,10 @@
   "notes": {
    "topics/reading-now.md": "---\ntitle: Reading Now\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Now\n",
    "topics/reading-someday.md": "---\ntitle: Reading Someday\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Someday\n",
-   "topics/documentaries-to-watch.md": "---\ntitle: Documentaries to Watch\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Documentaries to Watch\n\n## Notes\n- 2026-09-15: My Octopus Teacher\n",
-   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n",
-   "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n",
-   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n"
+   "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Car Maintenance\n\n## Notes\n- 2026-09-15: The next service is at 60,000 km.\n",
+   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
+   "topics/kedimiz-tarcin.md": "---\ntitle: Kedimiz Tarçın\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kedimiz Tarçın\n\n## Notlar\n- 2026-09-15: Tarçın'ın kısırlaştırması yapıldı.\n",
+   "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n"
   },
   "message": "I just began The Bell Jar.",
   "expect": {
@@ -5470,10 +5470,10 @@
   "notes": {
    "topics/reading-now.md": "---\ntitle: Reading Now\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Now\n",
    "topics/reading-someday.md": "---\ntitle: Reading Someday\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Someday\n",
-   "topics/kitaplik.md": "---\ntitle: Kitaplık\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kitaplık\n",
-   "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n",
-   "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n",
-   "topics/gezi-fikirleri.md": "---\ntitle: Gezi Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Gezi Fikirleri\n"
+   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
+   "topics/gezi-fikirleri.md": "---\ntitle: Gezi Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Gezi Fikirleri\n",
+   "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n",
+   "projects/balkon-bahcesi.md": "---\ntitle: Balkon Bahçesi\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Balkon Bahçesi\n\n## Kararlar\n- 2026-09-10 — **saksı**: Ahşap saksı.\n\n## Notlar\n- 2026-09-15: Balkon güneye bakıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Toprak satın al\n"
   },
   "message": "Some day I want to read Ulysses.",
   "expect": {
@@ -5491,10 +5491,10 @@
   "notes": {
    "topics/okuduklarim.md": "---\ntitle: Okuduklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuduklarım\n",
    "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n",
-   "topics/film-gecesi.md": "---\ntitle: Film Gecesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Film Gecesi\n",
-   "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n",
-   "topics/gezi-fikirleri.md": "---\ntitle: Gezi Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Gezi Fikirleri\n",
-   "projects/balkon-bahcesi.md": "---\ntitle: Balkon Bahçesi\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Balkon Bahçesi\n\n## Kararlar\n- 2026-09-10 — **saksı**: Ahşap saksı.\n\n## Notlar\n- 2026-09-15: Balkon güneye bakıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Toprak satın al\n"
+   "projects/kafe-acilisi.md": "---\ntitle: Kafe Açılışı\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kafe Açılışı\n\n## Kararlar\n- 2026-09-10 — **isim**: Pervane Kafe.\n\n## Notlar\n- 2026-09-15: Kafe Moda'da açılacak.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Kahve makinesini sipariş et\n",
+   "projects/family-reunion.md": "---\ntitle: Family Reunion\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Family Reunion\n\n## Decisions\n- 2026-09-10 — **date**: 12 July.\n\n## Notes\n- 2026-09-15: The reunion is in July.\n\n## Todo\n- [ ] 2026-10-20: Book the hall\n",
+   "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n",
+   "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n"
   },
   "message": "Şu an Mai ve Siyah'ı okuyorum.",
   "expect": {
@@ -5512,10 +5512,10 @@
   "notes": {
    "topics/okuduklarim.md": "---\ntitle: Okuduklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuduklarım\n",
    "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n",
-   "projects/kafe-acilisi.md": "---\ntitle: Kafe Açılışı\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kafe Açılışı\n\n## Kararlar\n- 2026-09-10 — **isim**: Pervane Kafe.\n\n## Notlar\n- 2026-09-15: Kafe Moda'da açılacak.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Kahve makinesini sipariş et\n",
-   "projects/family-reunion.md": "---\ntitle: Family Reunion\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Family Reunion\n\n## Decisions\n- 2026-09-10 — **date**: 12 July.\n\n## Notes\n- 2026-09-15: The reunion is in July.\n\n## Todo\n- [ ] 2026-10-20: Book the hall\n",
-   "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n",
-   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n"
+   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n",
+   "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n",
+   "topics/kedimiz-tarcin.md": "---\ntitle: Kedimiz Tarçın\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kedimiz Tarçın\n\n## Notlar\n- 2026-09-15: Tarçın'ın kısırlaştırması yapıldı.\n",
+   "projects/ev-tasima.md": "---\ntitle: Ev Taşıma\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Ev Taşıma\n\n## Kararlar\n- 2026-09-10 — **nakliye**: Kardeşler Nakliyat.\n\n## Notlar\n- 2026-09-15: Taşınma tarihi 15 Kasım.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Koli topla\n"
   },
   "message": "İleride Yaprak Dökümü'nü okumak istiyorum.",
   "expect": {
@@ -5532,10 +5532,10 @@
   "lang": "en",
   "notes": {
    "projects/balkon-bahcesi.md": "---\ntitle: Balkon Bahçesi\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Balkon Bahçesi\n\n## Kararlar\n- 2026-09-10 — **saksı**: Ahşap saksı.\n\n## Notlar\n- 2026-09-15: Balkon güneye bakıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Toprak satın al\n",
-   "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n",
-   "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n",
-   "topics/kedimiz-tarcin.md": "---\ntitle: Kedimiz Tarçın\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kedimiz Tarçın\n\n## Notlar\n- 2026-09-15: Tarçın'ın kısırlaştırması yapıldı.\n",
-   "projects/family-reunion.md": "---\ntitle: Family Reunion\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Family Reunion\n\n## Decisions\n- 2026-09-10 — **date**: 12 July.\n\n## Notes\n- 2026-09-15: The reunion is in July.\n\n## Todo\n- [ ] 2026-10-20: Book the hall\n"
+   "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n",
+   "projects/kafe-acilisi.md": "---\ntitle: Kafe Açılışı\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kafe Açılışı\n\n## Kararlar\n- 2026-09-10 — **isim**: Pervane Kafe.\n\n## Notlar\n- 2026-09-15: Kafe Moda'da açılacak.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Kahve makinesini sipariş et\n",
+   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n",
+   "topics/reading-now.md": "---\ntitle: Reading Now\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Now\n"
   },
   "message": "Balcony garden: the tomatoes got their first flowers.",
   "expect": {
@@ -5555,10 +5555,10 @@
   "lang": "en",
   "notes": {
    "projects/ev-tasima.md": "---\ntitle: Ev Taşıma\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Ev Taşıma\n\n## Kararlar\n- 2026-09-10 — **nakliye**: Kardeşler Nakliyat.\n\n## Notlar\n- 2026-09-15: Taşınma tarihi 15 Kasım.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Koli topla\n",
-   "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n",
-   "projects/kafe-acilisi.md": "---\ntitle: Kafe Açılışı\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kafe Açılışı\n\n## Kararlar\n- 2026-09-10 — **isim**: Pervane Kafe.\n\n## Notlar\n- 2026-09-15: Kafe Moda'da açılacak.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Kahve makinesini sipariş et\n",
-   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n",
-   "topics/reading-now.md": "---\ntitle: Reading Now\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Now\n"
+   "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n",
+   "topics/film-gecesi.md": "---\ntitle: Film Gecesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Film Gecesi\n",
+   "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n",
+   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n"
   },
   "message": "For the house move we picked Kardeşler Nakliyat's bigger truck, more room.",
   "expect": {
@@ -5578,10 +5578,10 @@
   "lang": "en",
   "notes": {
    "projects/kafe-acilisi.md": "---\ntitle: Kafe Açılışı\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kafe Açılışı\n\n## Kararlar\n- 2026-09-10 — **isim**: Pervane Kafe.\n\n## Notlar\n- 2026-09-15: Kafe Moda'da açılacak.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Kahve makinesini sipariş et\n",
-   "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n",
-   "topics/film-gecesi.md": "---\ntitle: Film Gecesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Film Gecesi\n",
+   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
+   "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n",
    "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n",
-   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n"
+   "topics/kedimiz-tarcin.md": "---\ntitle: Kedimiz Tarçın\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kedimiz Tarçın\n\n## Notlar\n- 2026-09-15: Tarçın'ın kısırlaştırması yapıldı.\n"
   },
   "message": "Café opening: add a todo to hire a barista.",
   "expect": {
@@ -5601,10 +5601,10 @@
   "lang": "en",
   "notes": {
    "projects/yuksek-lisans-basvurusu.md": "---\ntitle: Yüksek Lisans Başvurusu\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yüksek Lisans Başvurusu\n\n## Kararlar\n- 2026-09-10 — **okul**: ODTÜ.\n\n## Notlar\n- 2026-09-15: Başvurular Ocak'ta kapanıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Niyet mektubunu yaz\n",
-   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
-   "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n",
+   "topics/reading-now.md": "---\ntitle: Reading Now\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Now\n",
    "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n",
-   "topics/kedimiz-tarcin.md": "---\ntitle: Kedimiz Tarçın\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kedimiz Tarçın\n\n## Notlar\n- 2026-09-15: Tarçın'ın kısırlaştırması yapıldı.\n"
+   "topics/cities-for-a-long-weekend.md": "---\ntitle: Cities for a Long Weekend\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cities for a Long Weekend\n\n## Notes\n- 2026-09-15: Bologna\n",
+   "topics/kitaplik.md": "---\ntitle: Kitaplık\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kitaplık\n"
   },
   "message": "I wrote the statement of purpose for the master's application.",
   "expect": {
@@ -5622,10 +5622,10 @@
   "lang": "en",
   "notes": {
    "topics/saglik-kontrolleri.md": "---\ntitle: Sağlık Kontrolleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Sağlık Kontrolleri\n\n## Notlar\n- 2026-09-15: Kolesterol değeri normal çıktı.\n",
-   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n",
-   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
-   "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Car Maintenance\n\n## Notes\n- 2026-09-15: The next service is at 60,000 km.\n",
-   "topics/kedimiz-tarcin.md": "---\ntitle: Kedimiz Tarçın\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kedimiz Tarçın\n\n## Notlar\n- 2026-09-15: Tarçın'ın kısırlaştırması yapıldı.\n"
+   "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n",
+   "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n",
+   "projects/family-reunion.md": "---\ntitle: Family Reunion\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Family Reunion\n\n## Decisions\n- 2026-09-10 — **date**: 12 July.\n\n## Notes\n- 2026-09-15: The reunion is in July.\n\n## Todo\n- [ ] 2026-10-20: Book the hall\n",
+   "projects/ev-tasima.md": "---\ntitle: Ev Taşıma\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Ev Taşıma\n\n## Kararlar\n- 2026-09-10 — **nakliye**: Kardeşler Nakliyat.\n\n## Notlar\n- 2026-09-15: Taşınma tarihi 15 Kasım.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Koli topla\n"
   },
   "message": "Health checks: my blood pressure was 12 over 8 today.",
   "expect": {
@@ -5645,10 +5645,10 @@
   "lang": "en",
   "notes": {
    "topics/kedimiz-tarcin.md": "---\ntitle: Kedimiz Tarçın\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kedimiz Tarçın\n\n## Notlar\n- 2026-09-15: Tarçın'ın kısırlaştırması yapıldı.\n",
-   "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n",
-   "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n",
-   "projects/family-reunion.md": "---\ntitle: Family Reunion\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Family Reunion\n\n## Decisions\n- 2026-09-10 — **date**: 12 July.\n\n## Notes\n- 2026-09-15: The reunion is in July.\n\n## Todo\n- [ ] 2026-10-20: Book the hall\n",
-   "projects/ev-tasima.md": "---\ntitle: Ev Taşıma\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Ev Taşıma\n\n## Kararlar\n- 2026-09-10 — **nakliye**: Kardeşler Nakliyat.\n\n## Notlar\n- 2026-09-15: Taşınma tarihi 15 Kasım.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Koli topla\n"
+   "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n",
+   "topics/denenecek-kahveciler.md": "---\ntitle: Denenecek Kahveciler\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Denenecek Kahveciler\n\n## Notlar\n- 2026-09-15: Kronotrop\n",
+   "projects/yuksek-lisans-basvurusu.md": "---\ntitle: Yüksek Lisans Başvurusu\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yüksek Lisans Başvurusu\n\n## Kararlar\n- 2026-09-10 — **okul**: ODTÜ.\n\n## Notlar\n- 2026-09-15: Başvurular Ocak'ta kapanıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Niyet mektubunu yaz\n",
+   "projects/family-reunion.md": "---\ntitle: Family Reunion\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Family Reunion\n\n## Decisions\n- 2026-09-10 — **date**: 12 July.\n\n## Notes\n- 2026-09-15: The reunion is in July.\n\n## Todo\n- [ ] 2026-10-20: Book the hall\n"
   },
   "message": "Tarçın weighs 4.2 kg now.",
   "expect": {
@@ -5668,10 +5668,10 @@
   "lang": "en",
   "notes": {
    "projects/ev-tasima.md": "---\ntitle: Ev Taşıma\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Ev Taşıma\n\n## Kararlar\n- 2026-09-10 — **nakliye**: Kardeşler Nakliyat.\n\n## Notlar\n- 2026-09-15: Taşınma tarihi 15 Kasım.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Koli topla\n",
-   "topics/birthday-present-ideas.md": "---\ntitle: Birthday Present Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Birthday Present Ideas\n\n## Notes\n- 2026-09-15: A vinyl record for Sam\n",
-   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n",
-   "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n",
-   "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n"
+   "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n",
+   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
+   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
+   "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n"
   },
   "message": "House move: the boxes are packed.",
   "expect": {
@@ -5689,10 +5689,10 @@
   "lang": "en",
   "notes": {
    "projects/balkon-bahcesi.md": "---\ntitle: Balkon Bahçesi\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Balkon Bahçesi\n\n## Kararlar\n- 2026-09-10 — **saksı**: Ahşap saksı.\n\n## Notlar\n- 2026-09-15: Balkon güneye bakıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Toprak satın al\n",
-   "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n",
-   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
-   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
-   "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n"
+   "topics/saglik-kontrolleri.md": "---\ntitle: Sağlık Kontrolleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Sağlık Kontrolleri\n\n## Notlar\n- 2026-09-15: Kolesterol değeri normal çıktı.\n",
+   "projects/ev-tasima.md": "---\ntitle: Ev Taşıma\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Ev Taşıma\n\n## Kararlar\n- 2026-09-10 — **nakliye**: Kardeşler Nakliyat.\n\n## Notlar\n- 2026-09-15: Taşınma tarihi 15 Kasım.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Koli topla\n",
+   "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n",
+   "topics/reading-someday.md": "---\ntitle: Reading Someday\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Someday\n"
   },
   "message": "Add a todo to the balcony garden: buy a watering can.",
   "expect": {
@@ -5712,10 +5712,10 @@
   "lang": "tr",
   "notes": {
    "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n",
-   "topics/saglik-kontrolleri.md": "---\ntitle: Sağlık Kontrolleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Sağlık Kontrolleri\n\n## Notlar\n- 2026-09-15: Kolesterol değeri normal çıktı.\n",
-   "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n",
-   "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n",
-   "topics/reading-someday.md": "---\ntitle: Reading Someday\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Someday\n"
+   "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Car Maintenance\n\n## Notes\n- 2026-09-15: The next service is at 60,000 km.\n",
+   "topics/reading-now.md": "---\ntitle: Reading Now\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Now\n",
+   "projects/ev-tasima.md": "---\ntitle: Ev Taşıma\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Ev Taşıma\n\n## Kararlar\n- 2026-09-10 — **nakliye**: Kardeşler Nakliyat.\n\n## Notlar\n- 2026-09-15: Taşınma tarihi 15 Kasım.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Koli topla\n",
+   "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n"
   },
   "message": "Ev stüdyosu: masayı kuzey duvarı yerine pencerenin önüne koyduk.",
   "expect": {
@@ -5735,10 +5735,10 @@
   "lang": "tr",
   "notes": {
    "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n",
-   "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Car Maintenance\n\n## Notes\n- 2026-09-15: The next service is at 60,000 km.\n",
-   "topics/reading-now.md": "---\ntitle: Reading Now\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Now\n",
-   "projects/family-reunion.md": "---\ntitle: Family Reunion\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Family Reunion\n\n## Decisions\n- 2026-09-10 — **date**: 12 July.\n\n## Notes\n- 2026-09-15: The reunion is in July.\n\n## Todo\n- [ ] 2026-10-20: Book the hall\n",
-   "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n"
+   "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n",
+   "topics/side-business.md": "---\ntitle: Side Business\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Side Business\n\n## Notes\n- 2026-09-15: The shop sells hand-made candles.\n",
+   "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n",
+   "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n"
   },
   "message": "Kitap kulübü için Kasım kitabını seçtik, o iş tamam.",
   "expect": {
@@ -5756,10 +5756,10 @@
   "lang": "tr",
   "notes": {
    "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n",
-   "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n",
-   "topics/side-business.md": "---\ntitle: Side Business\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Side Business\n\n## Notes\n- 2026-09-15: The shop sells hand-made candles.\n",
-   "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n",
-   "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n"
+   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
+   "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n",
+   "topics/okuduklarim.md": "---\ntitle: Okuduklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuduklarım\n",
+   "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n"
   },
   "message": "Bisikletle işe gidiş: kilit için Kryptonite seçtik, daha hafif.",
   "expect": {
@@ -5779,10 +5779,10 @@
   "lang": "tr",
   "notes": {
    "projects/family-reunion.md": "---\ntitle: Family Reunion\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Family Reunion\n\n## Decisions\n- 2026-09-10 — **date**: 12 July.\n\n## Notes\n- 2026-09-15: The reunion is in July.\n\n## Todo\n- [ ] 2026-10-20: Book the hall\n",
-   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
-   "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n",
-   "topics/okuduklarim.md": "---\ntitle: Okuduklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuduklarım\n",
-   "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n"
+   "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n",
+   "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n",
+   "topics/cocktails-to-make.md": "---\ntitle: Cocktails to Make\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cocktails to Make\n\n## Notes\n- 2026-09-15: Negroni\n",
+   "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n"
   },
   "message": "Aile buluşması için yapılacak: otobüs kirala.",
   "expect": {
@@ -5802,10 +5802,10 @@
   "lang": "tr",
   "notes": {
    "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Car Maintenance\n\n## Notes\n- 2026-09-15: The next service is at 60,000 km.\n",
-   "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n",
+   "topics/reading-someday.md": "---\ntitle: Reading Someday\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Someday\n",
+   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n",
    "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n",
-   "topics/cocktails-to-make.md": "---\ntitle: Cocktails to Make\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cocktails to Make\n\n## Notes\n- 2026-09-15: Negroni\n",
-   "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n"
+   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n"
   },
   "message": "Arabanın akü değişimi bugün yapıldı.",
   "expect": {
@@ -5825,10 +5825,10 @@
   "lang": "tr",
   "notes": {
    "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n",
-   "topics/reading-someday.md": "---\ntitle: Reading Someday\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Someday\n",
-   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n",
    "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n",
-   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n"
+   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
+   "topics/documentaries-to-watch.md": "---\ntitle: Documentaries to Watch\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Documentaries to Watch\n\n## Notes\n- 2026-09-15: My Octopus Teacher\n",
+   "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n"
   },
   "message": "Lucía ile dil pratiği artık perşembe akşamları.",
   "expect": {
@@ -5848,10 +5848,10 @@
   "lang": "tr",
   "notes": {
    "topics/side-business.md": "---\ntitle: Side Business\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Side Business\n\n## Notes\n- 2026-09-15: The shop sells hand-made candles.\n",
-   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
-   "topics/language-exchange.md": "---\ntitle: Language Exchange\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Language Exchange\n\n## Notes\n- 2026-09-15: I practise Spanish with Lucía on Mondays.\n",
-   "topics/documentaries-to-watch.md": "---\ntitle: Documentaries to Watch\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Documentaries to Watch\n\n## Notes\n- 2026-09-15: My Octopus Teacher\n",
-   "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n"
+   "projects/family-reunion.md": "---\ntitle: Family Reunion\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Family Reunion\n\n## Decisions\n- 2026-09-10 — **date**: 12 July.\n\n## Notes\n- 2026-09-15: The reunion is in July.\n\n## Todo\n- [ ] 2026-10-20: Book the hall\n",
+   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
+   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n",
+   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n"
   },
   "message": "Mum dükkanı: kokulu mumlar en çok satanlar.",
   "expect": {
@@ -5871,10 +5871,10 @@
   "lang": "tr",
   "notes": {
    "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n",
-   "projects/family-reunion.md": "---\ntitle: Family Reunion\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Family Reunion\n\n## Decisions\n- 2026-09-10 — **date**: 12 July.\n\n## Notes\n- 2026-09-15: The reunion is in July.\n\n## Todo\n- [ ] 2026-10-20: Book the hall\n",
-   "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n",
-   "topics/side-business.md": "---\ntitle: Side Business\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Side Business\n\n## Notes\n- 2026-09-15: The shop sells hand-made candles.\n",
-   "topics/dinner-ideas.md": "---\ntitle: Dinner Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinner Ideas\n"
+   "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Car Maintenance\n\n## Notes\n- 2026-09-15: The next service is at 60,000 km.\n",
+   "topics/kedimiz-tarcin.md": "---\ntitle: Kedimiz Tarçın\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kedimiz Tarçın\n\n## Notlar\n- 2026-09-15: Tarçın'ın kısırlaştırması yapıldı.\n",
+   "topics/okuduklarim.md": "---\ntitle: Okuduklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuduklarım\n",
+   "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n"
   },
   "message": "Ev stüdyosu için akustik panelleri aldım.",
   "expect": {
@@ -5891,10 +5891,10 @@
   "kind": "new-note",
   "lang": "en",
   "notes": {
-   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
-   "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n",
-   "topics/novels-on-my-list.md": "---\ntitle: Novels on My List\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Novels on My List\n\n## Notes\n- 2026-09-15: The Goldfinch — Donna Tartt\n",
-   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n"
+   "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n",
+   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
+   "topics/saglik-kontrolleri.md": "---\ntitle: Sağlık Kontrolleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Sağlık Kontrolleri\n\n## Notlar\n- 2026-09-15: Kolesterol değeri normal çıktı.\n",
+   "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n"
   },
   "message": "New project: a treehouse for the kids, with a rope ladder.",
   "expect": {
@@ -5913,10 +5913,10 @@
   "kind": "new-note",
   "lang": "en",
   "notes": {
-   "topics/aksam-yemekleri.md": "---\ntitle: Akşam Yemekleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Akşam Yemekleri\n",
-   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
-   "topics/saglik-kontrolleri.md": "---\ntitle: Sağlık Kontrolleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Sağlık Kontrolleri\n\n## Notlar\n- 2026-09-15: Kolesterol değeri normal çıktı.\n",
-   "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n"
+   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n",
+   "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n",
+   "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n",
+   "topics/birthday-present-ideas.md": "---\ntitle: Birthday Present Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Birthday Present Ideas\n\n## Notes\n- 2026-09-15: A vinyl record for Sam\n"
   },
   "message": "Starting a project to digitise our old family photos.",
   "expect": {
@@ -5933,10 +5933,10 @@
   "kind": "new-note",
   "lang": "en",
   "notes": {
-   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n",
-   "topics/museums-to-visit.md": "---\ntitle: Museums to Visit\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Museums to Visit\n\n## Notes\n- 2026-09-15: The Louvre\n",
-   "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n",
-   "topics/birthday-present-ideas.md": "---\ntitle: Birthday Present Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Birthday Present Ideas\n\n## Notes\n- 2026-09-15: A vinyl record for Sam\n"
+   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n",
+   "topics/cocktails-to-make.md": "---\ntitle: Cocktails to Make\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cocktails to Make\n\n## Notes\n- 2026-09-15: Negroni\n",
+   "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n",
+   "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n"
   },
   "message": "I'm starting a newsletter about urban cycling, monthly.",
   "expect": {
@@ -5955,10 +5955,10 @@
   "kind": "new-note",
   "lang": "en",
   "notes": {
-   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n",
-   "topics/cocktails-to-make.md": "---\ntitle: Cocktails to Make\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cocktails to Make\n\n## Notes\n- 2026-09-15: Negroni\n",
-   "projects/book-club.md": "---\ntitle: Book Club\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Club\n\n## Decisions\n- 2026-09-10 — **venue**: Corner café.\n\n## Notes\n- 2026-09-15: We meet on the first Thursday of the month.\n\n## Todo\n- [ ] 2026-10-20: Pick the November book\n",
-   "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n"
+   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
+   "topics/okuduklarim.md": "---\ntitle: Okuduklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuduklarım\n",
+   "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n",
+   "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Car Maintenance\n\n## Notes\n- 2026-09-15: The next service is at 60,000 km.\n"
   },
   "message": "New project: build a small weather station with a Raspberry Pi.",
   "expect": {
@@ -5977,10 +5977,10 @@
   "kind": "new-note",
   "lang": "en",
   "notes": {
-   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
-   "topics/okuduklarim.md": "---\ntitle: Okuduklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuduklarım\n",
-   "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n",
-   "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Car Maintenance\n\n## Notes\n- 2026-09-15: The next service is at 60,000 km.\n"
+   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
+   "topics/denenecek-kahveciler.md": "---\ntitle: Denenecek Kahveciler\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Denenecek Kahveciler\n\n## Notlar\n- 2026-09-15: Kronotrop\n",
+   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
+   "topics/side-business.md": "---\ntitle: Side Business\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Side Business\n\n## Notes\n- 2026-09-15: The shop sells hand-made candles.\n"
   },
   "message": "Kicking off a project to repaint the fence this spring.",
   "expect": {
@@ -5997,10 +5997,10 @@
   "kind": "new-note",
   "lang": "en",
   "notes": {
+   "projects/kafe-acilisi.md": "---\ntitle: Kafe Açılışı\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kafe Açılışı\n\n## Kararlar\n- 2026-09-10 — **isim**: Pervane Kafe.\n\n## Notlar\n- 2026-09-15: Kafe Moda'da açılacak.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Kahve makinesini sipariş et\n",
    "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
-   "topics/denenecek-kahveciler.md": "---\ntitle: Denenecek Kahveciler\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Denenecek Kahveciler\n\n## Notlar\n- 2026-09-15: Kronotrop\n",
-   "topics/hediye-listesi.md": "---\ntitle: Hediye Listesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Hediye Listesi\n\n## Notlar\n- 2026-09-15: Anneme bir şal\n",
-   "topics/side-business.md": "---\ntitle: Side Business\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Side Business\n\n## Notes\n- 2026-09-15: The shop sells hand-made candles.\n"
+   "projects/family-reunion.md": "---\ntitle: Family Reunion\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Family Reunion\n\n## Decisions\n- 2026-09-10 — **date**: 12 July.\n\n## Notes\n- 2026-09-15: The reunion is in July.\n\n## Todo\n- [ ] 2026-10-20: Book the hall\n",
+   "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n"
   },
   "message": "New project: a podcast about local football clubs.",
   "expect": {
@@ -6019,10 +6019,10 @@
   "kind": "new-note",
   "lang": "en",
   "notes": {
-   "projects/kafe-acilisi.md": "---\ntitle: Kafe Açılışı\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kafe Açılışı\n\n## Kararlar\n- 2026-09-10 — **isim**: Pervane Kafe.\n\n## Notlar\n- 2026-09-15: Kafe Moda'da açılacak.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Kahve makinesini sipariş et\n",
-   "topics/book-pile.md": "---\ntitle: Book Pile\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Book Pile\n",
-   "projects/family-reunion.md": "---\ntitle: Family Reunion\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Family Reunion\n\n## Decisions\n- 2026-09-10 — **date**: 12 July.\n\n## Notes\n- 2026-09-15: The reunion is in July.\n\n## Todo\n- [ ] 2026-10-20: Book the hall\n",
-   "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n"
+   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n",
+   "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n",
+   "topics/gezi-fikirleri.md": "---\ntitle: Gezi Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Gezi Fikirleri\n",
+   "projects/balkon-bahcesi.md": "---\ntitle: Balkon Bahçesi\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Balkon Bahçesi\n\n## Kararlar\n- 2026-09-10 — **saksı**: Ahşap saksı.\n\n## Notlar\n- 2026-09-15: Balkon güneye bakıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Toprak satın al\n"
   },
   "message": "I want to start a project to learn the piano with an app.",
   "expect": {
@@ -6039,10 +6039,10 @@
   "kind": "new-note",
   "lang": "en",
   "notes": {
-   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n",
-   "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n",
-   "topics/gezi-fikirleri.md": "---\ntitle: Gezi Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Gezi Fikirleri\n",
-   "projects/balkon-bahcesi.md": "---\ntitle: Balkon Bahçesi\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Balkon Bahçesi\n\n## Kararlar\n- 2026-09-10 — **saksı**: Ahşap saksı.\n\n## Notlar\n- 2026-09-15: Balkon güneye bakıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Toprak satın al\n"
+   "topics/denenecek-kahveciler.md": "---\ntitle: Denenecek Kahveciler\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Denenecek Kahveciler\n\n## Notlar\n- 2026-09-15: Kronotrop\n",
+   "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n",
+   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
+   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n"
   },
   "message": "New project: a photo book of our trip to Norway.",
   "expect": {
@@ -6061,10 +6061,10 @@
   "kind": "new-note",
   "lang": "tr",
   "notes": {
-   "topics/denenecek-kahveciler.md": "---\ntitle: Denenecek Kahveciler\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Denenecek Kahveciler\n\n## Notlar\n- 2026-09-15: Kronotrop\n",
-   "topics/kamp-yerleri.md": "---\ntitle: Kamp Yerleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kamp Yerleri\n\n## Notlar\n- 2026-09-15: Kaçkar Yaylaları\n",
-   "topics/movie-night-picks.md": "---\ntitle: Movie Night Picks\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Movie Night Picks\n",
-   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n"
+   "topics/cities-for-a-long-weekend.md": "---\ntitle: Cities for a Long Weekend\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cities for a Long Weekend\n\n## Notes\n- 2026-09-15: Bologna\n",
+   "topics/skills-to-learn.md": "---\ntitle: Skills to Learn\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Skills to Learn\n\n## Notes\n- 2026-09-15: Touch typing\n",
+   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n",
+   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n"
   },
   "message": "Yeni proje: mutfak için bir baharat rafı yapacağım.",
   "expect": {
@@ -6081,10 +6081,10 @@
   "kind": "new-note",
   "lang": "tr",
   "notes": {
-   "topics/cities-for-a-long-weekend.md": "---\ntitle: Cities for a Long Weekend\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cities for a Long Weekend\n\n## Notes\n- 2026-09-15: Bologna\n",
-   "topics/skills-to-learn.md": "---\ntitle: Skills to Learn\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Skills to Learn\n\n## Notes\n- 2026-09-15: Touch typing\n",
-   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n",
-   "topics/okuma-listem.md": "---\ntitle: Okuma Listem\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Okuma Listem\n\n## Notlar\n- 2026-09-15: Kürk Mantolu Adam\n"
+   "topics/denenecek-kahveciler.md": "---\ntitle: Denenecek Kahveciler\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Denenecek Kahveciler\n\n## Notlar\n- 2026-09-15: Kronotrop\n",
+   "topics/film-gecesi.md": "---\ntitle: Film Gecesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Film Gecesi\n",
+   "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n",
+   "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n"
   },
   "message": "Yeni bir proje: köy evini yazlığa çevireceğiz.",
   "expect": {
@@ -6101,10 +6101,10 @@
   "kind": "new-note",
   "lang": "tr",
   "notes": {
-   "topics/denenecek-kahveciler.md": "---\ntitle: Denenecek Kahveciler\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Denenecek Kahveciler\n\n## Notlar\n- 2026-09-15: Kronotrop\n",
+   "topics/saglik-kontrolleri.md": "---\ntitle: Sağlık Kontrolleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Sağlık Kontrolleri\n\n## Notlar\n- 2026-09-15: Kolesterol değeri normal çıktı.\n",
    "topics/film-gecesi.md": "---\ntitle: Film Gecesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Film Gecesi\n",
-   "topics/ileride-okuyacaklarim.md": "---\ntitle: İleride Okuyacaklarım\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# İleride Okuyacaklarım\n",
-   "topics/apps-to-try.md": "---\ntitle: Apps to Try\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Apps to Try\n\n## Notes\n- 2026-09-15: Obsidian\n"
+   "topics/reading-someday.md": "---\ntitle: Reading Someday\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Someday\n",
+   "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n"
   },
   "message": "Bir proje başlatıyorum: kendi kitabımı yazacağım, polisiye.",
   "expect": {
@@ -6123,10 +6123,10 @@
   "kind": "new-note",
   "lang": "tr",
   "notes": {
-   "topics/saglik-kontrolleri.md": "---\ntitle: Sağlık Kontrolleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Sağlık Kontrolleri\n\n## Notlar\n- 2026-09-15: Kolesterol değeri normal çıktı.\n",
-   "topics/film-gecesi.md": "---\ntitle: Film Gecesi\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Film Gecesi\n",
-   "topics/reading-someday.md": "---\ntitle: Reading Someday\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Reading Someday\n",
-   "projects/home-studio.md": "---\ntitle: Home Studio\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Home Studio\n\n## Decisions\n- 2026-09-10 — **monitors**: Yamaha HS5.\n\n## Notes\n- 2026-09-15: The studio is in the spare room.\n\n## Todo\n- [ ] 2026-10-20: Buy acoustic panels\n"
+   "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n",
+   "topics/gezi-fikirleri.md": "---\ntitle: Gezi Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Gezi Fikirleri\n",
+   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n",
+   "projects/ev-tasima.md": "---\ntitle: Ev Taşıma\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Ev Taşıma\n\n## Kararlar\n- 2026-09-10 — **nakliye**: Kardeşler Nakliyat.\n\n## Notlar\n- 2026-09-15: Taşınma tarihi 15 Kasım.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Koli topla\n"
   },
   "message": "Yeni proje: mahalle için bir kitap takas günü düzenleyeceğim.",
   "expect": {
@@ -6143,10 +6143,10 @@
   "kind": "new-note",
   "lang": "tr",
   "notes": {
-   "projects/bike-commute.md": "---\ntitle: Bike Commute\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Bike Commute\n\n## Decisions\n- 2026-09-10 — **bike**: Gravel bike.\n\n## Notes\n- 2026-09-15: The route is 9 km each way.\n\n## Todo\n- [ ] 2026-10-20: Fit the mudguards\n",
-   "topics/gezi-fikirleri.md": "---\ntitle: Gezi Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Gezi Fikirleri\n",
-   "topics/seyredilecek-belgeseller.md": "---\ntitle: Seyredilecek Belgeseller\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Seyredilecek Belgeseller\n\n## Notlar\n- 2026-09-15: Gezegenimiz\n",
-   "projects/ev-tasima.md": "---\ntitle: Ev Taşıma\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Ev Taşıma\n\n## Kararlar\n- 2026-09-10 — **nakliye**: Kardeşler Nakliyat.\n\n## Notlar\n- 2026-09-15: Taşınma tarihi 15 Kasım.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Koli topla\n"
+   "topics/birthday-present-ideas.md": "---\ntitle: Birthday Present Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Birthday Present Ideas\n\n## Notes\n- 2026-09-15: A vinyl record for Sam\n",
+   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n",
+   "projects/yuksek-lisans-basvurusu.md": "---\ntitle: Yüksek Lisans Başvurusu\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yüksek Lisans Başvurusu\n\n## Kararlar\n- 2026-09-10 — **okul**: ODTÜ.\n\n## Notlar\n- 2026-09-15: Başvurular Ocak'ta kapanıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Niyet mektubunu yaz\n",
+   "topics/kitaplik.md": "---\ntitle: Kitaplık\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kitaplık\n"
   },
   "message": "Yeni proje: bisikletle Kapadokya turu değil, Ege turu yapacağım.",
   "expect": {
@@ -6163,10 +6163,10 @@
   "kind": "new-note",
   "lang": "tr",
   "notes": {
-   "topics/birthday-present-ideas.md": "---\ntitle: Birthday Present Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Birthday Present Ideas\n\n## Notes\n- 2026-09-15: A vinyl record for Sam\n",
-   "topics/dinlenecek-sarkilar.md": "---\ntitle: Dinlenecek Şarkılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Dinlenecek Şarkılar\n\n## Notlar\n- 2026-09-15: Gesi Bağları\n",
-   "projects/yuksek-lisans-basvurusu.md": "---\ntitle: Yüksek Lisans Başvurusu\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yüksek Lisans Başvurusu\n\n## Kararlar\n- 2026-09-10 — **okul**: ODTÜ.\n\n## Notlar\n- 2026-09-15: Başvurular Ocak'ta kapanıyor.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Niyet mektubunu yaz\n",
-   "topics/kitaplik.md": "---\ntitle: Kitaplık\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kitaplık\n"
+   "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n",
+   "topics/documentaries-to-watch.md": "---\ntitle: Documentaries to Watch\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Documentaries to Watch\n\n## Notes\n- 2026-09-15: My Octopus Teacher\n",
+   "topics/cocktails-to-make.md": "---\ntitle: Cocktails to Make\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cocktails to Make\n\n## Notes\n- 2026-09-15: Negroni\n",
+   "projects/kafe-acilisi.md": "---\ntitle: Kafe Açılışı\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kafe Açılışı\n\n## Kararlar\n- 2026-09-10 — **isim**: Pervane Kafe.\n\n## Notlar\n- 2026-09-15: Kafe Moda'da açılacak.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Kahve makinesini sipariş et\n"
   },
   "message": "Yeni bir proje: annem için bir yemek tarifleri sitesi.",
   "expect": {
@@ -6184,9 +6184,9 @@
   "lang": "tr",
   "notes": {
    "topics/trip-ideas.md": "---\ntitle: Trip Ideas\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Trip Ideas\n",
-   "topics/documentaries-to-watch.md": "---\ntitle: Documentaries to Watch\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Documentaries to Watch\n\n## Notes\n- 2026-09-15: My Octopus Teacher\n",
-   "topics/cocktails-to-make.md": "---\ntitle: Cocktails to Make\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Cocktails to Make\n\n## Notes\n- 2026-09-15: Negroni\n",
-   "projects/kafe-acilisi.md": "---\ntitle: Kafe Açılışı\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Kafe Açılışı\n\n## Kararlar\n- 2026-09-10 — **isim**: Pervane Kafe.\n\n## Notlar\n- 2026-09-15: Kafe Moda'da açılacak.\n\n## Yapılacaklar\n- [ ] 2026-10-20: Kahve makinesini sipariş et\n"
+   "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Car Maintenance\n\n## Notes\n- 2026-09-15: The next service is at 60,000 km.\n",
+   "topics/saglik-kontrolleri.md": "---\ntitle: Sağlık Kontrolleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Sağlık Kontrolleri\n\n## Notlar\n- 2026-09-15: Kolesterol değeri normal çıktı.\n",
+   "topics/yapilacak-tatlilar.md": "---\ntitle: Yapılacak Tatlılar\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\ntags: []\n---\n# Yapılacak Tatlılar\n\n## Notlar\n- 2026-09-15: Kazandibi\n"
   },
   "message": "Proje başlatıyorum: evde akvaryum kuracağım.",
   "expect": {

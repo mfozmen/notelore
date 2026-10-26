@@ -107,17 +107,17 @@ COLLECTIONS = [
 # ways to say the first todo is done, something done that is no todo, a word it leaves).
 PROJECTS = [
     ("en", "Garden Shed", ["The shed will be 2 by 3 metres."], [("roof", "Metal sheet")],
-     ["Order the timber"], ["The door faces south.", "Paint colour is sage green."],
+     ["Order the timber"], ["The door faces south.", "The neighbour lends us his ladder."],
      [("floor", "Concrete slab", "it lasts longer")], ["Get a building permit"],
      ["I ordered the timber for the garden shed.", "Garden shed: the timber is ordered."],
      "Garden shed: I cleared the old leaves from the site.", "leaves"),
     ("en", "Podcast Launch", ["First episode is about local history."], [("host", "Anchor")],
-     ["Record the trailer"], ["We need a cover image.", "Episodes come out on Tuesdays."],
+     ["Record the trailer"], ["The intro music is a short piano piece.", "Episodes come out on Tuesdays."],
      [("microphone", "Shure MV7", "good value")], ["Write the show notes template"],
      ["The podcast trailer is recorded.", "Recorded the trailer for the podcast launch."],
      "Podcast launch: I made a list of five possible guests.", "guests"),
     ("tr", "Düğün Hazırlığı", ["Davetli sayısı 120 kişi."], [("mekan", "Bahçe düğünü")],
-     ["Fotoğrafçıyla görüş"], ["Pasta çikolatalı olacak.", "Davetiyeler mavi renkte."],
+     ["Fotoğrafçıyla görüş"], ["Gelinin annesi Ankara'dan gelecek.", "Davetiyeler mavi renkte."],
      [("müzik", "Canlı orkestra", "daha samimi")], ["Gelinliği prova et"],
      ["Fotoğrafçıyla görüştüm, düğün hazırlığındaki o iş bitti.", "Düğün hazırlığı: fotoğrafçı görüşmesi yapıldı."],
      "Düğün hazırlığı: nikah şekerlerini sipariş ettim.", "şeker"),
@@ -127,7 +127,7 @@ PROJECTS = [
      ["Mobil uygulamanın giriş ekranını tasarladım.", "Mobil uygulama: giriş ekranı tasarımı bitti."],
      "Mobil uygulama: ikon için üç taslak çizdim.", "ikon"),
     ("en", "Kitchen Renovation", ["New cabinets are oak."], [("countertop", "Quartz")],
-     ["Measure the window"], ["The sink moves to the left wall.", "Budget: 8000 euros in total."],
+     ["Measure the window"], ["The floor under the sink has water damage.", "Budget: 8000 euros in total."],
      [("tiles", "Terracotta", "it looks warmer")], ["Book the electrician"],
      ["I measured the window for the kitchen.", "Kitchen renovation: the window is measured."],
      "Kitchen renovation: I took the old fridge to the recycling centre.", "fridge"),
@@ -173,7 +173,7 @@ NEW_PROJECTS = [
 # A list with no note yet, while other lists are there (v3): a new note named
 # for its kind, never another list. (lang, message, note path pattern, item).
 NEW_LISTS = [
-    ("en", "Album to listen to: Blue by Joni Mitchell.", r"^topics/[^/]*album[^/]*\.md$", "Blue"),
+    ("en", "Album to listen to: Blue by Joni Mitchell.", r"^topics/[^/]*(album|music)[^/]*\.md$", "Blue"),
     ("en", "Wine to try: a Georgian Saperavi.", r"^topics/[^/]*wine[^/]*\.md$", "Saperavi"),
     ("en", "Hiking trail idea: the Lycian Way, first stage.", r"^topics/[^/]*(hik|trail)[^/]*\.md$", "Lycian"),
     ("en", "Course to take: an evening pottery class.", r"^topics/[^/]*(course|class)[^/]*\.md$", "pottery"),
@@ -311,6 +311,31 @@ REMINDERS = [
 
 # Other notes every case's workspace gets beside its own, like the eval's shared notes.
 DISTRACTORS = 4
+
+# Kinds of list, by the words of their slugs in both languages: a list of the
+# case's kind is never a distractor, since adding to it would be right too.
+THEMES = {
+    "books": r"kitap|book|read|okudu|okunacak",
+    "films": r"film|movie|watch|izlenecek|dizi|series|show",
+    "recipes": r"tarif|recipe|cook|yemek",
+    "places": r"yer|place|visit|travel|seyahat|gez",
+    "gifts": r"gift|hediye",
+    "music": r"album|music|muzik",
+    "podcasts": r"podcast",
+    "games": r"game|oyun",
+    "restaurants": r"restaurant|restoran",
+    "learning": r"ogren|course|class|kurs",
+    "hiking": r"hik|trail|yuruyus|rota",
+    "wine": r"wine|sarap",
+    "plants": r"plant|bitki",
+}
+
+
+def themes(text):
+    """The list kinds a topic path names; also takes a pattern that spells out "topics/"."""
+    if "topics/" not in text:
+        return set()
+    return {theme for theme, words in THEMES.items() if re.search(words, text)}
 
 # How many collections also get a case whose first tool call fails.
 RECOVERIES = 10
@@ -536,7 +561,9 @@ def cases(rng, t=None):
         # A plan may go in any note: its pattern matches all, so it gets distractors as they come.
         patterns = [] if case["kind"] == "plan" else case["expect"].get("notes", {})
         expected = [re.compile(pattern) for pattern in patterns]
-        others = sorted(p for p in pool if p not in case["notes"] and not any(e.search(p) for e in expected))
+        kinds = set().union(*(themes(p) for p in patterns))
+        others = sorted(p for p in pool if p not in case["notes"] and not any(e.search(p) for e in expected)
+                        and not themes(p) & kinds)
         case["notes"].update({p: pool[p] for p in rng.sample(others, t.DISTRACTORS)})
     return out
 
