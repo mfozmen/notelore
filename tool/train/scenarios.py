@@ -497,8 +497,10 @@ def cases(rng, t=None):
             add(f"todo-{slug(title)}{f'-{i}' if i else ''}", "todo", lang, notes, msg, {"tools": ["add_todo"], "notes": {pat: [todo.split()[-1]]}})
         for i, message in enumerate(done):
             add(f"done-{slug(title)}-{i}", "todo-done", lang, notes, message, {"tools": ["complete_todo"], "notes": {pat: []}})
-        # Done, but no open todo says so: a dated entry, never a wrong tick (#349).
-        add(f"done-other-{slug(title)}", "filing", lang, notes, other, {"tools": ["add_note_entry"], "notes": {pat: [other_word]}})
+        # Done, but no open todo says so: a dated entry, never a wrong tick (#349). Only the
+        # note shows that, so a turn that files it unread teaches the model to skip the read.
+        add(f"done-other-{slug(title)}", "filing", lang, notes, other,
+            {"tools": ["read_note", "add_note_entry"], "notes": {pat: [other_word]}})
         topic, value = decs[0]
         q = f"What did we decide for the {title} {topic}?" if lang == "en" else f"{title} için {topic} ne seçmiştik?"
         add(f"q-dec-{slug(title)}", "question", lang, notes, q, {"answer": [value.split()[0]]})

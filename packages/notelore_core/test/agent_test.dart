@@ -729,6 +729,8 @@ void failureTests() {
       }
       // Carried by the results instead (#601).
       expect(slim, isNot(contains('complete_todo')));
+      // Only a read shows those results: v6 filed every done message unread (#327).
+      expect(slim, contains('says a task is done, read_note its note first'));
       // Nothing it cannot do: no web search, no pictures, no merging.
       for (final gone in [
         'search the web',
