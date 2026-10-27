@@ -26,6 +26,8 @@ check("a reading list is a book list", scenarios.themes("topics/books-on-my-nigh
 check("a project is no list", scenarios.themes("projects/garden-shed.md"), set())
 
 for case in scenarios.cases(random.Random(7)):
+    if case["id"].startswith("done-other-"):
+        check(f"{case['id']} reads the note before filing", case["expect"]["tools"][0], "read_note")
     # Twin lists are two of one kind on purpose; a plan may go anywhere.
     if case["id"].startswith("twin-") or case["kind"] == "plan":
         continue
