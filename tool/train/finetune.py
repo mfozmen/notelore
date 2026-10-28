@@ -49,7 +49,7 @@ from transformers import (
     BitsAndBytesConfig,
     EarlyStoppingCallback,
 )
-from trl import SFTConfig, SFTTrainer
+from trl import DPOConfig, DPOTrainer, SFTConfig, SFTTrainer
 
 
 def clean(message):
@@ -257,6 +257,50 @@ def train(base, data, out, epochs, assistant_only=False):
         print("no evaluation ran (under 5 steps): the LoRA saved is the last step")
     else:
         print(f"best validation loss {trainer.state.best_metric} at {best}")
+    trainer.save_model(str(Path(out) / "lora"))
+
+
+def preference(tokenizer, row):
+    """A pair of pairs.py as the text DPO trains on: the prompt rendered through
+    the reply's opener, then each reply as the template renders it after that
+    prompt; None when it does not render after it, so it cannot be cut there."""
+    prompt = tokenizer.apply_chat_template(
+        row["prompt"], tools=row["tools"], tokenize=False, add_generation_prompt=True
+    )
+    replies = {}
+    for side in ("chosen", "rejected"):
+        text = tokenizer.apply_chat_template(row["prompt"] + row[side], tools=row["tools"], tokenize=False)
+        if not text.startswith(prompt):
+            return None
+        replies[side] = text[len(prompt):]
+    return {"prompt": prompt, **replies}
+
+
+def dpo(base, sft, data, out, epochs=1):
+    """DPO (#607) on pairs.py's pairs: the SFT LoRA [sft] trains on, and TRL keeps
+    a frozen copy of it as the reference, so the merged SFT model is never needed.
+    Validation, checkpoints and early stopping as [train] has them."""
+    tokenizer = AutoTokenizer.from_pretrained(base)
+    rows = [json.loads(line) for line in Path(data).read_text(encoding="utf-8").splitlines() if line.strip()]
+    rendered = [(r["id"], preference(tokenizer, r)) for r in rows]
+    rendered = [(case, text) for case, text in rendered if text]
+    kept, held = split([text for _, text in rendered], [case for case, _ in rendered])
+    print(f"{len(kept)} training pairs, {len(held)} held out ({len(rows) - len(rendered)} not cut)")
+    (flags, dtype), native = gpu_settings()
+    fp32_logprobs(native)
+    model = PeftModel.from_pretrained(load(base, dtype), sft, is_trainable=True)
+    settings = {k: v for k, v in trainer_args(out, epochs, flags).items() if k != "dataset_text_field"}
+    trainer = DPOTrainer(
+        model=model,
+        train_dataset=Dataset.from_list(kept),
+        eval_dataset=Dataset.from_list(held),
+        processing_class=tokenizer,
+        # An evaluation costs four forward passes a pair here, so half as often as SFT's.
+        args=DPOConfig(**{**settings, "learning_rate": 5e-6, "eval_steps": 10, "save_steps": 10}, beta=0.1),
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
+    )
+    trainer.train()
+    print("\n".join(losses(trainer.state.log_history)))
     trainer.save_model(str(Path(out) / "lora"))
 
 
