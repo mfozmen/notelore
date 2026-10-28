@@ -30,6 +30,7 @@ final evalNow = DateTime(2026, 10, 18, 14);
 class Expectation {
   Expectation.fromJson(Map<String, Object?> json)
     : tools = [...?(json['tools'] as List?)?.cast<String>()],
+      toolsNot = [...?(json['tools_not'] as List?)?.cast<String>()],
       answer = [...?(json['answer'] as List?)?.cast<String>()],
       answerNot = [...?(json['answer_not'] as List?)?.cast<String>()],
       linesNot = [...?(json['lines_not'] as List?)?.cast<String>()],
@@ -40,6 +41,9 @@ class Expectation {
 
   /// Tool names that must be called, in any order.
   final List<String> tools;
+
+  /// Tool names that must not be called: a tick on a plain update (#629).
+  final List<String> toolsNot;
 
   /// Facts the final answer must contain (case-insensitive).
   final List<String> answer;
@@ -261,6 +265,8 @@ Future<EvalResult> runCase(
     if (problems.isEmpty) {
       problems.addAll([
         ..._missingTools(evalCase.expect, tools),
+        for (final tool in evalCase.expect.toolsNot)
+          if (tools.contains(tool)) 'called $tool',
         ..._strayWrites(evalCase.expect, changed),
         ..._missingFacts(evalCase.expect, changed, after),
         ..._badLines(evalCase.expect, changed, after),

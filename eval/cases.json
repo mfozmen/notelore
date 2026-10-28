@@ -13,6 +13,9 @@
    "lang": "en",
    "message": "For Mopsos: the hit rate is now computed daily instead of weekly.",
    "expect": {
+    "tools_not": [
+     "complete_todo"
+    ],
     "tools": [
      "add_note_entry"
     ],
@@ -29,6 +32,9 @@
    "lang": "en",
    "message": "Mopsos needs an email alert when a prediction fails.",
    "expect": {
+    "tools_not": [
+     "complete_todo"
+    ],
     "notes": {
      "^projects/mopsos\\.md$": [
       "email"
@@ -42,6 +48,9 @@
    "lang": "tr",
    "message": "Ev tadilatı: boyacı salı günü geliyor.",
    "expect": {
+    "tools_not": [
+     "complete_todo"
+    ],
     "notes": {
      "^projects/ev-tadilati\\.md$": [
       "boyacı"
@@ -55,6 +64,9 @@
    "lang": "tr",
    "message": "Şirket kuruluşu için banka hesabı açıldı.",
    "expect": {
+    "tools_not": [
+     "complete_todo"
+    ],
     "notes": {
      "^topics/sirket-kurulusu\\.md$": [
       "banka"
