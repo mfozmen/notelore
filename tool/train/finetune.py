@@ -295,7 +295,8 @@ def dpo(base, sft, data, out, epochs=1):
         train_dataset=Dataset.from_list(kept),
         eval_dataset=Dataset.from_list(held),
         processing_class=tokenizer,
-        args=DPOConfig(**{**settings, "learning_rate": 5e-6}, beta=0.1),
+        # An evaluation costs four forward passes a pair here, so half as often as SFT's.
+        args=DPOConfig(**{**settings, "learning_rate": 5e-6, "eval_steps": 10, "save_steps": 10}, beta=0.1),
         callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
     )
     trainer.train()
