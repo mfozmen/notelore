@@ -488,7 +488,7 @@ def cases(rng, t=None):
         notes = {p: note(title, "project", lang, notes=nts, decisions=decs, todos=todos)}
         pat = f"^{re.escape(p)}$"
         for i, fact in enumerate(facts):
-            add(f"file-{slug(title)}-{i}", "filing", lang, notes, f"{title}: {fact}", {"tools": ["add_note_entry"], "notes": {pat: [fact.split()[1]]}})
+            add(f"file-{slug(title)}-{i}", "filing", lang, notes, f"{title}: {fact}", {"tools": ["add_note_entry"], "tools_not": ["complete_todo"], "notes": {pat: [fact.split()[1]]}})
         for i, (topic, value, why) in enumerate(new_decs):
             msg = f"{title}: we picked {value} for the {topic}, {why}." if lang == "en" else f"{title}: {topic} için {value} seçtik, {why}."
             add(f"dec-{slug(title)}{f'-{i}' if i else ''}", "decision", lang, notes, msg, {"tools": ["record_decision"], "notes": {pat: [value.split()[0]]}})
@@ -500,7 +500,7 @@ def cases(rng, t=None):
         # Done, but no open todo says so: a dated entry, never a wrong tick (#349). Only the
         # note shows that, so a turn that files it unread teaches the model to skip the read.
         add(f"done-other-{slug(title)}", "filing", lang, notes, other,
-            {"tools": ["read_note", "add_note_entry"], "notes": {pat: [other_word]}})
+            {"tools": ["read_note", "add_note_entry"], "tools_not": ["complete_todo"], "notes": {pat: [other_word]}})
         topic, value = decs[0]
         q = f"What did we decide for the {title} {topic}?" if lang == "en" else f"{title} için {topic} ne seçmiştik?"
         add(f"q-dec-{slug(title)}", "question", lang, notes, q, {"answer": [value.split()[0]]})
@@ -510,7 +510,8 @@ def cases(rng, t=None):
     for lang, title, nts, fact, question, answer in t.TOPICS:
         p = path("topic", title)
         notes = {p: note(title, "topic", lang, notes=nts)}
-        add(f"file-{slug(title)}", "filing", lang, notes, fact, {"notes": {f"^{re.escape(p)}$": [fact.split()[-1].rstrip(".")]}})
+        add(f"file-{slug(title)}", "filing", lang, notes, fact,
+            {"tools_not": ["complete_todo"], "notes": {f"^{re.escape(p)}$": [fact.split()[-1].rstrip(".")]}})
         add(f"q-{slug(title)}", "question", lang, notes, question, {"answer": [answer]})
 
     for i, (lang, msg) in enumerate(t.CHAT):

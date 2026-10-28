@@ -1635,6 +1635,9 @@
    "tools": [
     "add_note_entry"
    ],
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^projects/home\\-studio\\.md$": [
      "goes"
@@ -1657,6 +1660,9 @@
   "expect": {
    "tools": [
     "add_note_entry"
+   ],
+   "tools_not": [
+    "complete_todo"
    ],
    "notes": {
     "^projects/home\\-studio\\.md$": [
@@ -1816,6 +1822,9 @@
     "read_note",
     "add_note_entry"
    ],
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^projects/home\\-studio\\.md$": [
      "guitar"
@@ -1875,6 +1884,9 @@
    "tools": [
     "add_note_entry"
    ],
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^projects/book\\-club\\.md$": [
      "members"
@@ -1897,6 +1909,9 @@
   "expect": {
    "tools": [
     "add_note_entry"
+   ],
+   "tools_not": [
+    "complete_todo"
    ],
    "notes": {
     "^projects/book\\-club\\.md$": [
@@ -2056,6 +2071,9 @@
     "read_note",
     "add_note_entry"
    ],
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^projects/book\\-club\\.md$": [
      "welcome"
@@ -2115,6 +2133,9 @@
    "tools": [
     "add_note_entry"
    ],
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^projects/bike\\-commute\\.md$": [
      "has"
@@ -2137,6 +2158,9 @@
   "expect": {
    "tools": [
     "add_note_entry"
+   ],
+   "tools_not": [
+    "complete_todo"
    ],
    "notes": {
     "^projects/bike\\-commute\\.md$": [
@@ -2296,6 +2320,9 @@
     "read_note",
     "add_note_entry"
    ],
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^projects/bike\\-commute\\.md$": [
      "three"
@@ -2355,6 +2382,9 @@
    "tools": [
     "add_note_entry"
    ],
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^projects/family\\-reunion\\.md$": [
      "60"
@@ -2377,6 +2407,9 @@
   "expect": {
    "tools": [
     "add_note_entry"
+   ],
+   "tools_not": [
+    "complete_todo"
    ],
    "notes": {
     "^projects/family\\-reunion\\.md$": [
@@ -2536,6 +2569,9 @@
     "read_note",
     "add_note_entry"
    ],
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^projects/family\\-reunion\\.md$": [
      "Canada"
@@ -2595,6 +2631,9 @@
    "tools": [
     "add_note_entry"
    ],
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^projects/balkon\\-bahcesi\\.md$": [
      "ve"
@@ -2617,6 +2656,9 @@
   "expect": {
    "tools": [
     "add_note_entry"
+   ],
+   "tools_not": [
+    "complete_todo"
    ],
    "notes": {
     "^projects/balkon\\-bahcesi\\.md$": [
@@ -2776,6 +2818,9 @@
     "read_note",
     "add_note_entry"
    ],
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^projects/balkon\\-bahcesi\\.md$": [
      "fesleğen"
@@ -2835,6 +2880,9 @@
    "tools": [
     "add_note_entry"
    ],
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^projects/ev\\-tasima\\.md$": [
      "ev"
@@ -2857,6 +2905,9 @@
   "expect": {
    "tools": [
     "add_note_entry"
+   ],
+   "tools_not": [
+    "complete_todo"
    ],
    "notes": {
     "^projects/ev\\-tasima\\.md$": [
@@ -3016,6 +3067,9 @@
     "read_note",
     "add_note_entry"
    ],
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^projects/ev\\-tasima\\.md$": [
      "dolab"
@@ -3075,6 +3129,9 @@
    "tools": [
     "add_note_entry"
    ],
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^projects/yuksek\\-lisans\\-basvurusu\\.md$": [
      "referans"
@@ -3097,6 +3154,9 @@
   "expect": {
    "tools": [
     "add_note_entry"
+   ],
+   "tools_not": [
+    "complete_todo"
    ],
    "notes": {
     "^projects/yuksek\\-lisans\\-basvurusu\\.md$": [
@@ -3256,6 +3316,9 @@
     "read_note",
     "add_note_entry"
    ],
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^projects/yuksek\\-lisans\\-basvurusu\\.md$": [
      "teşekkür"
@@ -3315,6 +3378,9 @@
    "tools": [
     "add_note_entry"
    ],
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^projects/kafe\\-acilisi\\.md$": [
      "aylık"
@@ -3337,6 +3403,9 @@
   "expect": {
    "tools": [
     "add_note_entry"
+   ],
+   "tools_not": [
+    "complete_todo"
    ],
    "notes": {
     "^projects/kafe\\-acilisi\\.md$": [
@@ -3496,6 +3565,9 @@
     "read_note",
     "add_note_entry"
    ],
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^projects/kafe\\-acilisi\\.md$": [
      "logo"
@@ -3552,6 +3624,9 @@
   },
   "message": "The front tyres were rotated today.",
   "expect": {
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^topics/car\\-maintenance\\.md$": [
      "today"
@@ -3590,6 +3665,9 @@
   },
   "message": "Diş kontrolü Aralık'ta yapılacak.",
   "expect": {
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^topics/saglik\\-kontrolleri\\.md$": [
      "yapılacak"
@@ -3628,6 +3706,9 @@
   },
   "message": "We sold forty candles at the market.",
   "expect": {
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^topics/side\\-business\\.md$": [
      "market"
@@ -3666,6 +3747,9 @@
   },
   "message": "Tarçın artık yaş mama yiyor.",
   "expect": {
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^topics/kedimiz\\-tarcin\\.md$": [
      "yiyor"
@@ -3704,6 +3788,9 @@
   },
   "message": "Lucía suggested we switch to video calls.",
   "expect": {
+   "tools_not": [
+    "complete_todo"
+   ],
    "notes": {
     "^topics/language\\-exchange\\.md$": [
      "calls"

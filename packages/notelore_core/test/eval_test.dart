@@ -245,6 +245,33 @@ void main() {
     });
   });
 
+  test('a tool the case rules out fails it: a tick nobody asked for (#629)', () async {
+    final update = _case({
+      'id': 'file-tick',
+      'kind': 'filing',
+      'lang': 'en',
+      'notes': {'projects/mopsos.md': _mopsos},
+      'message': 'Mopsos: the hit rate is now daily.',
+      'expect': {
+        'tools': ['add_note_entry'],
+        'tools_not': ['complete_todo'],
+        'notes': {
+          r'^projects/mopsos\.md$': ['daily'],
+        },
+      },
+    });
+    final result = await runCase(
+      update,
+      ScriptedProvider([
+        toolUse('add_note_entry', 't1', {'slug': 'mopsos', 'text': 'Hit rate is now daily.'}),
+        toolUse('complete_todo', 't2', {'slug': 'mopsos', 'number': 1}),
+        text('Saved to Mopsos.'),
+      ]),
+    );
+    expect(result.problems, ['called complete_todo']);
+    expect(filing.expect.toolsNot, isEmpty);
+  });
+
   group('lines a changed note must not have (#499)', () {
     final match = _case({
       'id': 'rem-title',
