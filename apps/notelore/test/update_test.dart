@@ -690,14 +690,18 @@ void main() {
       ran = [];
     });
 
-    /// hdiutil and ditto: attaching "mounts" a notelore.app, ditto copies it.
+    /// Where an update leaves the app: named as the dmg names it (#635).
+    String renamed() => p.join(dir, 'Applications', 'Notelore.app');
+    String newBinary() => p.join(renamed(), 'Contents', 'MacOS', 'Notelore');
+
+    /// hdiutil and ditto: attaching "mounts" a Notelore.app, ditto copies it.
     Future<ProcessResult> tools(String command, List<String> args) async {
       ran.add([command, args.first]);
       if (command == 'hdiutil' && args.first == 'attach') {
         final mount = args[args.indexOf('-mountpoint') + 1];
-        write(p.join(mount, 'notelore.app', 'Contents', 'MacOS', 'notelore'), 'new binary');
+        write(p.join(mount, 'Notelore.app', 'Contents', 'MacOS', 'Notelore'), 'new binary');
       } else if (command == 'ditto' && Directory(args[0]).existsSync()) {
-        write(p.join(args[1], 'Contents', 'MacOS', 'notelore'), 'new binary');
+        write(p.join(args[1], 'Contents', 'MacOS', 'Notelore'), 'new binary');
         if (needs case final version?) {
           write(
             p.join(args[1], 'Contents', 'Info.plist'),
@@ -737,18 +741,25 @@ void main() {
       expect(await u.apply(), v);
       expect(ran, [
         ['hdiutil', 'attach'],
-        ['ditto', p.join(dir, 'Applications', '.notelore-update', 'mnt', 'notelore.app')],
+        ['ditto', p.join(dir, 'Applications', '.notelore-update', 'mnt', 'Notelore.app')],
         ['hdiutil', 'detach'],
       ]);
-      expect(read(p.join(bundle, 'Contents', 'MacOS', 'notelore')), 'new binary');
-      expect(read(p.join('$bundle.old', 'Contents', 'MacOS', 'notelore')), 'old binary');
-      expect(Directory(p.join(dir, 'Applications', '.notelore-update')).existsSync(), isFalse);
+      expect(read(newBinary()), 'new binary');
+      // An install from before #635 is renamed, its old copy too, so a cleanup
+      // finds it on a case-sensitive volume as well.
+      expect(read(p.join('${renamed()}.old', 'Contents', 'MacOS', 'notelore')), 'old binary');
+      expect(
+        Directory(p.join(dir, 'Applications')).listSync().map((e) => p.basename(e.path)).toSet(),
+        {'Notelore.app', 'Notelore.app.old'},
+      );
       await u.relaunch();
       expect(spawned, [
-        [p.join(bundle, 'Contents', 'MacOS', 'notelore')],
+        [newBinary()],
       ]);
       u.cleanup();
-      expect(Directory('$bundle.old').existsSync(), isFalse);
+      expect(Directory(p.join(dir, 'Applications')).listSync().map((e) => p.basename(e.path)), [
+        'Notelore.app',
+      ]);
       u.cleanup(); // nothing left: fine
     });
 
@@ -799,9 +810,71 @@ void main() {
         expect(Directory(p.join(dir, 'Applications', '.notelore-update')).existsSync(), isFalse);
         // On a new enough Mac it goes in as before.
         expect(await updater(good(), os: 'Version 14.5 (Build 23F79)').apply(), v);
-        expect(read(p.join(bundle, 'Contents', 'MacOS', 'notelore')), 'new binary');
+        expect(read(newBinary()), 'new binary');
       },
     );
+
+    test('an app the user named keeps its name', () async {
+      for (final name in ['Notelore.app', 'Notelore Beta.app']) {
+        final mine = p.join(dir, 'Mine', name);
+        write(p.join(mine, 'Contents', 'MacOS', 'Notelore'), 'old binary');
+        final u = Updater(
+          system: 'macos',
+          executable: p.join(mine, 'Contents', 'MacOS', 'Notelore'),
+          current: '0.2.0',
+          temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
+          fetch: Pages(good()).call,
+          run: tools,
+          spawn: (exe, args) async => spawned.add([exe, ...args]),
+        );
+        expect(await u.apply(), v);
+        expect(read(p.join(mine, 'Contents', 'MacOS', 'Notelore')), 'new binary');
+        await u.relaunch();
+        expect(spawned.last, [p.join(mine, 'Contents', 'MacOS', 'Notelore')]);
+      }
+    });
+
+    test('a rename that fails leaves the updated app under its old name', () async {
+      final u = Updater(
+        system: 'macos',
+        executable: p.join(bundle, 'Contents', 'MacOS', 'notelore'),
+        current: '0.2.0',
+        temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
+        fetch: Pages(good()).call,
+        run: tools,
+        spawn: (exe, args) async => spawned.add([exe, ...args]),
+        renameDirectory: (from, to) {
+          if (p.basename(to) == 'Notelore.app' && from == bundle) {
+            throw const FileSystemException('Operation not permitted');
+          }
+          Directory(from).renameSync(to);
+        },
+      );
+      expect(await u.apply(), v);
+      expect(read(p.join(bundle, 'Contents', 'MacOS', 'Notelore')), 'new binary');
+      await u.relaunch();
+      expect(spawned, [
+        [p.join(bundle, 'Contents', 'MacOS', 'Notelore')],
+      ]);
+    });
+
+    test('an old copy that will not move still leaves the app renamed', () async {
+      final u = Updater(
+        system: 'macos',
+        executable: p.join(bundle, 'Contents', 'MacOS', 'notelore'),
+        current: '0.2.0',
+        temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
+        fetch: Pages(good()).call,
+        run: tools,
+        spawn: (exe, args) async => spawned.add([exe, ...args]),
+        renameDirectory: (from, to) {
+          if (to.endsWith('Notelore.app.old')) throw const FileSystemException('Busy');
+          Directory(from).renameSync(to);
+        },
+      );
+      expect(await u.apply(), v);
+      expect(read(newBinary()), 'new binary');
+    });
 
     test('a bundle swap that fails halfway puts the old app back', () async {
       final u = Updater(
@@ -841,7 +914,7 @@ void main() {
 
       await expectLater(
         updater(good(), run: empty).apply(),
-        throwsA(isA<UpdateFailed>().having((e) => '$e', 'message', contains('notelore.app'))),
+        throwsA(isA<UpdateFailed>().having((e) => '$e', 'message', contains('Notelore.app'))),
       );
       expect(ran.last, ['hdiutil', 'detach']); // the image is never left mounted
       expect(read(p.join(bundle, 'Contents', 'MacOS', 'notelore')), 'old binary');

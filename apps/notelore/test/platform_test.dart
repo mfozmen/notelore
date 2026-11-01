@@ -19,6 +19,23 @@ void main() {
     }
   });
 
+  test('the desktop app is named Notelore, capitalized (#635)', () {
+    expect(
+      File('macos/Runner/Configs/AppInfo.xcconfig').readAsStringSync(),
+      contains('PRODUCT_NAME = Notelore\n'),
+    );
+    final rc = File('windows/runner/Runner.rc').readAsStringSync();
+    expect(rc, contains('VALUE "FileDescription", "Notelore"'));
+    expect(rc, contains('VALUE "ProductName", "Notelore"'));
+    expect(
+      File('windows/runner/main.cpp').readAsStringSync(),
+      contains('window.Create(L"Notelore"'),
+    );
+    // An app from before #635 looks for notelore.app in the dmg: only a
+    // case-insensitive volume lets it find Notelore.app.
+    expect(File('../../tool/package_desktop.sh').readAsStringSync(), contains('-fs HFS+'));
+  });
+
   test('the Windows setup refreshes the icon cache and wears the mark itself (#403)', () {
     final setup = File('windows/installer/notelore.iss').readAsStringSync();
     // An update in the same folder: without a refresh the taskbar keeps the old icon.

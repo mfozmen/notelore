@@ -117,7 +117,7 @@ void main() {
           .call,
       run: (command, args) async {
         if (command == 'hdiutil' && args.first == 'attach') {
-          File(p.join(args[args.indexOf('-mountpoint') + 1], 'notelore.app', 'x'))
+          File(p.join(args[args.indexOf('-mountpoint') + 1], 'Notelore.app', 'x'))
             ..parent.createSync(recursive: true)
             ..writeAsStringSync('new');
         } else if (command == 'ditto') {
