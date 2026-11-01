@@ -745,18 +745,21 @@ void main() {
         ['hdiutil', 'detach'],
       ]);
       expect(read(newBinary()), 'new binary');
-      expect(read(p.join('$bundle.old', 'Contents', 'MacOS', 'notelore')), 'old binary');
-      // An install from before #635 is renamed: one app, capitalized.
+      // An install from before #635 is renamed, its old copy too, so a cleanup
+      // finds it on a case-sensitive volume as well.
+      expect(read(p.join('${renamed()}.old', 'Contents', 'MacOS', 'notelore')), 'old binary');
       expect(
         Directory(p.join(dir, 'Applications')).listSync().map((e) => p.basename(e.path)).toSet(),
-        {'Notelore.app', 'notelore.app.old'},
+        {'Notelore.app', 'Notelore.app.old'},
       );
       await u.relaunch();
       expect(spawned, [
         [newBinary()],
       ]);
       u.cleanup();
-      expect(Directory('$bundle.old').existsSync(), isFalse);
+      expect(Directory(p.join(dir, 'Applications')).listSync().map((e) => p.basename(e.path)), [
+        'Notelore.app',
+      ]);
       u.cleanup(); // nothing left: fine
     });
 
@@ -853,6 +856,24 @@ void main() {
       expect(spawned, [
         [p.join(bundle, 'Contents', 'MacOS', 'Notelore')],
       ]);
+    });
+
+    test('an old copy that will not move still leaves the app renamed', () async {
+      final u = Updater(
+        system: 'macos',
+        executable: p.join(bundle, 'Contents', 'MacOS', 'notelore'),
+        current: '0.2.0',
+        temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
+        fetch: Pages(good()).call,
+        run: tools,
+        spawn: (exe, args) async => spawned.add([exe, ...args]),
+        renameDirectory: (from, to) {
+          if (to.endsWith('Notelore.app.old')) throw const FileSystemException('Busy');
+          Directory(from).renameSync(to);
+        },
+      );
+      expect(await u.apply(), v);
+      expect(read(newBinary()), 'new binary');
     });
 
     test('a bundle swap that fails halfway puts the old app back', () async {

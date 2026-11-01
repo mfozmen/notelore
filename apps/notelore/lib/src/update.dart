@@ -487,7 +487,8 @@ class Updater {
       }
       _runsHere(bundle);
       _swapBundle(bundle, _installed, renameDirectory);
-      _restart = p.join(_named(), 'Contents', 'MacOS', 'Notelore');
+      _bundle = _named();
+      _restart = p.join(_bundle!, 'Contents', 'MacOS', 'Notelore');
     } finally {
       staging.deleteSync(recursive: true);
     }
@@ -700,6 +701,9 @@ class Updater {
   /// The new bundle's binary, which [relaunch] starts on macOS.
   String? _restart;
 
+  /// Where [apply] left the macOS bundle, renamed or not.
+  String? _bundle;
+
   /// The installed bundle, renamed to [_bundleName] if it is an install from
   /// before #635 ("notelore.app"); a name the user gave it stays.
   String _named() {
@@ -710,6 +714,12 @@ class Updater {
     } on FileSystemException {
       return _installed; // the update is in; only its name stays old
     }
+    try {
+      // [cleanup] looks for the bundle's own name + .old.
+      renameDirectory('$_installed.old', '$named.old');
+    } on FileSystemException {
+      // Kept: only on a case-sensitive volume does the old name stay apart.
+    }
     return named;
   }
 
@@ -718,7 +728,7 @@ class Updater {
   void cleanup() {
     try {
       if (system == 'macos') {
-        final old = Directory('$_installed.old');
+        final old = Directory('${_bundle ?? _installed}.old');
         if (old.existsSync()) old.deleteSync(recursive: true);
         return;
       }
