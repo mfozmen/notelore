@@ -467,7 +467,7 @@ class Updater {
     try {
       final image = File(p.join(staging.path, name))..writeAsBytesSync(data);
       final mount = p.join(staging.path, 'mnt');
-      final bundle = p.join(staging.path, 'app', 'notelore.app');
+      final bundle = p.join(staging.path, 'app', _bundleName);
       final attached = await run('hdiutil', [
         'attach',
         '-nobrowse',
@@ -479,7 +479,7 @@ class Updater {
       if (attached.exitCode != 0) throw UpdateFailed('opening $name failed: ${attached.stderr}');
       try {
         // ditto keeps the bundle's symlinks and permissions.
-        final copied = await run('ditto', [p.join(mount, 'notelore.app'), bundle]);
+        final copied = await run('ditto', [p.join(mount, _bundleName), bundle]);
         // A half-copied bundle must never replace a working one.
         if (copied.exitCode != 0) throw UpdateFailed('copying the app failed: ${copied.stderr}');
       } finally {
@@ -487,6 +487,7 @@ class Updater {
       }
       _runsHere(bundle);
       _swapBundle(bundle, _installed, renameDirectory);
+      _restart = p.join(_named(), 'Contents', 'MacOS', 'Notelore');
     } finally {
       staging.deleteSync(recursive: true);
     }
@@ -654,7 +655,7 @@ class Updater {
   /// and put back if the new one cannot be moved in.
   static void _swapBundle(String from, String to, void Function(String, String) rename) {
     if (!Directory(from).existsSync()) {
-      throw const UpdateFailed('the download has no notelore.app; not installing it');
+      throw const UpdateFailed('the download has no $_bundleName; not installing it');
     }
     final old = Directory('$to.old');
     if (old.existsSync()) old.deleteSync(recursive: true);
@@ -690,8 +691,27 @@ class Updater {
       // No /DIR: the setup installs for this user, where it was before or by
       // default, and moves an all-users copy out of Program Files (#493).
     ]),
-    _ => spawn(executable, const []),
+    _ => spawn(_restart ?? executable, const []),
   };
+
+  /// The bundle as releases name it; every dmg has it (#635).
+  static const _bundleName = 'Notelore.app';
+
+  /// The new bundle's binary, which [relaunch] starts on macOS.
+  String? _restart;
+
+  /// The installed bundle, renamed to [_bundleName] if it is an install from
+  /// before #635 ("notelore.app"); a name the user gave it stays.
+  String _named() {
+    if (p.basename(_installed) != 'notelore.app') return _installed;
+    final named = p.join(p.dirname(_installed), _bundleName);
+    try {
+      renameDirectory(_installed, named);
+    } on FileSystemException {
+      return _installed; // the update is in; only its name stays old
+    }
+    return named;
+  }
 
   /// Removes what an earlier update left behind; whatever is still held stays
   /// for the next start.
