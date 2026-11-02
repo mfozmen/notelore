@@ -155,7 +155,7 @@ Findings:
 
 **Setup**
 - Pairs: 464 from v7's failed turns on a third scenario set (`dpo_set.py`, 292 cases, disjoint from training and held-out). Each failed turn is paired with a passing turn of its case, v7's own or glm-5.3-flash's.
-- Training: TRL's DPO on v7's LoRA, beta 0.1, lr 5e-6, one epoch on Kaggle's T4. The run hit Kaggle's limit at step 50 of 52; the step-50 checkpoint is the model.
+- Training: TRL's DPO on v7's LoRA, beta 0.1, lr 5e-6, one epoch on Kaggle's T4. The run was cancelled at step 50 of 52; the step-50 checkpoint is the model.
   - Validation reward accuracy rose from 0.77 to 0.79, and the margin from 0.17 to 0.29.
 - Served and evaluated like v7: Q4_K_M, greedy, slim.
 
@@ -169,5 +169,5 @@ Findings:
 - **DPO did not move the model.** Both sets are within one run's noise of v7.
   - todo-done: 1 → 3/20; recovery: 12 → 13/15.
   - plan: 12 → 10/15; decision: 15 → 14/18.
-- **The pairs taught the preference but not the behaviour.** Validation reward accuracy reached 0.79, yet greedy decoding keeps v7's choices: at beta 0.1 and this learning rate, one epoch moves the log-probabilities too little to flip the top token.
+- **The pairs taught the preference but not the behaviour.** Validation reward accuracy reached 0.79, yet greedy decoding keeps v7's choices. Likely, at beta 0.1 and this learning rate, one epoch moves the log-probabilities too little to flip the top token.
 - **v7 stays.** The DPO model is kept in Ollama as `notelore-qwen3-4b-dpo` for comparison and is not published.
