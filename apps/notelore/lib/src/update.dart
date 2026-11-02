@@ -334,6 +334,7 @@ Updater? updaterFor({
     publicKey: key,
     abi: system == 'android' ? (abi ?? androidAbi(platformAbi)) : '',
     arch: system == 'macos' ? (arch ?? macArch(platformAbi)) : '',
+    home: Platform.environment['HOME'] ?? '',
   );
 }
 
@@ -369,7 +370,16 @@ class Updater {
     this.openInstaller = androidInstaller,
     this.osVersion = '',
     this.publicKey = '',
+    this.home = '',
+    this.quit = exit,
   });
+
+  /// Ends this app once [handOff] started the other copy; tests record it.
+  final void Function(int code) quit;
+
+  /// The user's home folder; on macOS its `Applications` takes an update the
+  /// app's own folder cannot (#644).
+  final String home;
 
   /// The release key this build pins ([updateKey]); empty: checksums only.
   final String publicKey;
@@ -418,6 +428,36 @@ class Updater {
   String? _deltaJob;
   String? _deltaHelper;
 
+  String get _userApps => p.join(home, 'Applications');
+
+  /// A fresh `.notelore-update` folder next to [bundle], or null if that
+  /// folder cannot be written.
+  Directory? _stage(String bundle) {
+    final staging = Directory(p.join(p.dirname(bundle), '.notelore-update'));
+    try {
+      if (staging.existsSync()) staging.deleteSync(recursive: true);
+      staging.createSync(recursive: true);
+      return staging;
+    } on FileSystemException {
+      return null;
+    }
+  }
+
+  /// On macOS, starts the copy an update put in ~/Applications and quits, when
+  /// this is an older one left where the user cannot delete it (#644).
+  Future<bool> handOff() async {
+    final mine = p.join(_userApps, _bundleName);
+    if (system != 'macos' || home.isEmpty || p.equals(_installed, mine)) return false;
+    final plist = File(p.join(mine, 'Contents', 'Info.plist'));
+    if (!plist.existsSync()) return false;
+    final version = RegExp(r'<key>CFBundleShortVersionString</key>\s*<string>([^<]+)</string>')
+        .firstMatch(plist.readAsStringSync())?[1];
+    if (version == null || isNewer(current, version)) return false;
+    await spawn(p.join(mine, 'Contents', 'MacOS', 'Notelore'), const []);
+    quit(0);
+    return true;
+  }
+
   /// Downloads the latest release and checks it; on macOS also swaps the bundle
   /// in. Its version, or null when this is current.
   Future<String?> apply({void Function(UpdateProgress progress)? onProgress}) async {
@@ -453,15 +493,17 @@ class Updater {
       return version;
     }
 
-    // Staged next to the bundle, so the swap is a rename on the same drive.
-    final staging = Directory(p.join(p.dirname(_installed), '.notelore-update'));
-    try {
-      if (staging.existsSync()) staging.deleteSync(recursive: true);
-      staging.createSync(recursive: true);
-    } on FileSystemException catch (error) {
-      throw UpdateFailed(
-        'cannot write next to the app (${error.path ?? staging.path}): '
-        'move Notelore to a folder you own, then update again',
+    // Staged next to the bundle, so the swap is a rename on the same drive. A
+    // standard account cannot write /Applications: its own ~/Applications then.
+    var target = _installed;
+    var staging = _stage(target);
+    if (staging == null && home.isNotEmpty) {
+      target = p.join(_userApps, _bundleName);
+      staging = _stage(target);
+    }
+    if (staging == null) {
+      throw const UpdateFailed(
+        'cannot write next to the app: move Notelore to a folder you own, then update again',
       );
     }
     try {
@@ -486,8 +528,16 @@ class Updater {
         await run('hdiutil', ['detach', mount, '-force']);
       }
       _runsHere(bundle);
-      _swapBundle(bundle, _installed, renameDirectory);
-      _bundle = _named();
+      if (target == _installed) {
+        _swapBundle(bundle, target, renameDirectory);
+        _bundle = _named();
+      } else if (Directory(target).existsSync()) {
+        _swapBundle(bundle, target, renameDirectory);
+        _bundle = target;
+      } else {
+        renameDirectory(bundle, target);
+        _bundle = target;
+      }
       _restart = p.join(_bundle!, 'Contents', 'MacOS', 'Notelore');
     } finally {
       staging.deleteSync(recursive: true);

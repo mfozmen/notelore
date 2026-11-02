@@ -164,6 +164,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       WidgetsBinding.instance.addPostFrameCallback((_) => _welcomePlan());
     }
     if (widget.updater case final updater?) {
+      unawaited(updater.handOff());
       updater.cleanup();
       unawaited(_check(updater));
       // An app left open still hears of a release, quietly.
