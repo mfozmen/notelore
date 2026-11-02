@@ -108,6 +108,6 @@ Findings:
 
 Findings:
 
-- **v5 is no better than v3, and worse on collection notes**, the kind it was trained for. With the empty-result steer of #533, v3 already files 6–8 of 10 collection items into the list; v5 files 5.
+- **v5 is no better than v3, and worse on collection notes**, the kind it was trained for. With the empty-result steer of #533, v3 already files 6–7 of 10 collection items into the list; v5 files 5.
 - **The extra collection data over-taught the list.** v5 writes into a reading list ("okumakta-oldugum-kitaplar") in cases about decisions, todos and reminders: 2–4 times per run, against 0–2 for v3.
 - **v3 stays the on-device candidate.** v5 is kept in Ollama as `notelore-qwen3-4b-v5` for comparison and is not published. More distilled turns of one kind shift the model toward that kind instead of teaching the choice; the next gains are on the prompt and tool side.
