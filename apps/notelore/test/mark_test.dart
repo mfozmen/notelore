@@ -76,4 +76,30 @@ void main() {
     expect(mark.shouldRepaint(const MarkPainter(fold: MarkColors.foldOnLight)), isTrue);
     expect(mark.shouldRepaint(const MarkPainter(background: MarkColors.teal)), isTrue);
   });
+
+  testWidgets('the widget draws at its size, badged or not (#637)', (tester) async {
+    // Built at run time: the app's const uses leave the constructor's line unhit on Linux.
+    for (final badge in [true, false]) {
+      final side = badge ? 48.0 : 24.0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: NoteloreMark(size: side, badge: badge),
+          ),
+        ),
+      );
+      expect(tester.getSize(find.byType(NoteloreMark)), Size.square(side));
+      final painter =
+          tester
+                  .widget<CustomPaint>(
+                    find.descendant(
+                      of: find.byType(NoteloreMark),
+                      matching: find.byType(CustomPaint),
+                    ),
+                  )
+                  .painter!
+              as MarkPainter;
+      expect(painter.background, badge ? MarkColors.teal : null);
+    }
+  });
 }

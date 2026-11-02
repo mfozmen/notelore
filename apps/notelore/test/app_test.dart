@@ -2438,15 +2438,23 @@ void main() {
     expect(find.byTooltip('Archive'), findsOneWidget);
     expect(find.byTooltip('Import notes'), findsNothing);
     expect(find.byTooltip('Export notes'), findsNothing);
-    expect(find.byTooltip('Refresh'), findsNothing);
     expect(find.byTooltip('Delete'), findsNothing);
+
+    // Refresh is in sight (#640); the overflow keeps import and export.
+    await tester.tap(find.byTooltip('Refresh'));
+    for (var frame = 0; frame < 12; frame++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(find.byType(RefreshProgressIndicator), findsOneWidget); // up long enough to see
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byTooltip('Refresh')).height, greaterThanOrEqualTo(48));
 
     await tester.tap(find.byKey(const Key('notes-more')));
     await tester.pumpAndSettle();
     expect(find.text('Import notes'), findsOneWidget);
     expect(find.text('Export notes'), findsOneWidget);
-    expect(find.text('Refresh'), findsOneWidget);
-    await tester.tap(find.text('Refresh'));
+    expect(find.text('Refresh'), findsNothing);
+    await tester.tapAt(Offset.zero);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Kitaplar'));

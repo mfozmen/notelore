@@ -51,6 +51,7 @@ void main() {
       'archive',
       'related_notes',
       'merge_notes',
+      'recategorize',
     ]);
     for (final tool in box.tools) {
       expect(tool.description, isNotEmpty);
@@ -287,6 +288,37 @@ void main() {
       startsWith('Error:'),
     );
     expect(call('merge_notes', {'from': 'gone', 'into': 'home-server'}), startsWith('Error:'));
+  });
+
+  test('recategorize moves a note to the other kind and changes its tags (#639)', () {
+    call('create_note', {
+      'kind': 'topic',
+      'title': 'Home Lab',
+      'tags': ['hardware'],
+    });
+    call('add_note_entry', {'slug': 'home-lab', 'text': 'Bought a second switch.'});
+    expect(
+      call('recategorize', {
+        'slug': 'home-lab',
+        'to_kind': 'project',
+        'add_tags': ['network'],
+        'remove_tags': ['hardware'],
+      }),
+      {
+        'slug': 'home-lab',
+        'kind': 'project',
+        'path': 'projects/home-lab.md',
+        'tags': ['network'],
+        'was': {
+          'kind': 'topic',
+          'tags': ['hardware'],
+        },
+      },
+    );
+    expect((call('list_notes')! as List).single, containsPair('kind', 'project'));
+    expect(call('read_note', {'slug': 'home-lab'}), contains('Bought a second switch.'));
+    expect(call('recategorize', {'slug': 'home-lab'}), startsWith('Error:'));
+    expect(call('recategorize', {'slug': 'gone', 'to_kind': 'topic'}), startsWith('Error:'));
   });
 
   test('a write after an indexed query is visible to the next tool call', () {
@@ -622,7 +654,7 @@ void schemaTests() {
   test('the slim tools leave out what a phone rarely needs, in fewer words (#447)', () {
     final names = slimTools.map((t) => t.name).toSet();
     expect(names, noteTools.map((t) => t.name).toSet().difference(slimLeftOut));
-    expect(slimLeftOut, {'merge_notes', 'find_stale_notes', 'decision_history'});
+    expect(slimLeftOut, {'merge_notes', 'find_stale_notes', 'decision_history', 'recategorize'});
     // The same arguments, so the toolbox checks a slim call as any other; only
     // the words about them go.
     for (final tool in slimTools) {
