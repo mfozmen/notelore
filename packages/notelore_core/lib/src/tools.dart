@@ -32,6 +32,9 @@
 /// - `merge_notes(from, into, from_kind?, into_kind?)`: appends what `into` lacks of
 ///   `from`, then moves `from` under `_archive/`:
 ///   `{merged_into, archived_to, added, already_there}`.
+/// - `recategorize(slug, to_kind?, add_tags?, remove_tags?, kind?)`: moves the note
+///   to the other kind and changes its tags, text untouched:
+///   `{slug, kind, path, tags, was: {kind, tags}}`; never onto an existing note.
 ///
 /// `kind` (`project` | `topic`) is only needed when the same slug exists as
 /// both. No tool overwrites a file or deletes anything. Ported from the Python
@@ -206,10 +209,25 @@ final noteTools = List<Tool>.unmodifiable([
       {'from': _slug, 'into': _slug, 'from_kind': _kind, 'into_kind': _kind},
     ),
   ),
+  Tool(
+    'recategorize',
+    'Move a note to the other kind and/or add or remove its tags, when what it has become '
+        'no longer fits (a topic now with a goal and todos is a project). The text stays as it is.',
+    _schema(
+      ['slug'],
+      {
+        'slug': _slug,
+        'to_kind': _kind,
+        'add_tags': {'type': 'array', 'items': _string},
+        'remove_tags': {'type': 'array', 'items': _string},
+        'kind': _kind,
+      },
+    ),
+  ),
 ]);
 
 /// The tools a phone rarely needs, left out for the model on the device (#447).
-const slimLeftOut = {'merge_notes', 'find_stale_notes', 'decision_history'};
+const slimLeftOut = {'merge_notes', 'find_stale_notes', 'decision_history', 'recategorize'};
 
 /// Shorter words for the model on the device, where every token is read
 /// before the first word comes.
@@ -409,6 +427,12 @@ class Toolbox {
         _path(arg('from'), optional('from_kind')),
         _path(arg('into'), optional('into_kind')),
       ),
+      'recategorize' => _recategorize(
+        _path(arg('slug'), kind),
+        optional('to_kind'),
+        [...?(args['add_tags'] as List?)?.cast<String>()],
+        [...?(args['remove_tags'] as List?)?.cast<String>()],
+      ),
       _ => _archive(arg('slug'), args['entries'] as Map?, kind), // 'archive'
     };
   }
@@ -569,6 +593,27 @@ class Toolbox {
       'archived_to': _rel(archivedTo),
       'added': added,
       'already_there': duplicates,
+    };
+  }
+
+  Map<String, Object?> _recategorize(
+    String path,
+    String? to,
+    List<String> add,
+    List<String> remove,
+  ) {
+    final was = notes.readNote(path).meta;
+    final moved = notes.recategorize(root, path, kind: to, add: add, remove: remove, today: today);
+    index
+      ..markChanged(path)
+      ..markChanged(moved);
+    final now = notes.readNote(moved).meta;
+    return {
+      'slug': p.basenameWithoutExtension(moved),
+      'kind': now['kind'],
+      'path': _rel(moved),
+      'tags': now['tags'] ?? const <String>[],
+      'was': {'kind': was['kind'], 'tags': was['tags'] ?? const <String>[]},
     };
   }
 
