@@ -734,4 +734,56 @@ void main() {
       expect(File(into).readAsStringSync(), before);
     });
   });
+
+  group('recategorize', () {
+    late String path;
+    setUp(() {
+      path = createNote(
+        root,
+        'topic',
+        'Home Lab',
+        tags: ['hardware', 'home'],
+        today: d(2026, 9, 1),
+      );
+      addEntry(path, 'Bought a second switch.', today: d(2026, 9, 2));
+    });
+
+    test('moves the note to the other kind, its text untouched but kind and updated', () {
+      final before = File(path).readAsStringSync();
+      final moved = recategorize(root, path, kind: 'project', today: today);
+      expect(moved, notePath(root, 'project', 'home-lab'));
+      expect(File(path).existsSync(), isFalse);
+      final after = File(moved).readAsStringSync();
+      expect(
+        after,
+        before
+            .replaceFirst('kind: topic', 'kind: project')
+            .replaceFirst('2026-09-02', '2026-09-30'),
+      );
+      // And back: the same text again, nothing lost.
+      final back = recategorize(root, moved, kind: 'topic', today: d(2026, 9, 2));
+      expect(back, path);
+      expect(File(path).readAsStringSync(), before);
+    });
+
+    test('adds and removes tags, lowercase and once each', () {
+      expect(recategorize(root, path, add: ['Network', 'home'], remove: ['hardware']), path);
+      expect(readNote(path).meta['tags'], ['home', 'network']);
+      recategorize(root, path, remove: ['home', 'network']);
+      expect(readNote(path).meta.containsKey('tags'), isFalse);
+      recategorize(root, path, add: ['lab']);
+      expect(readNote(path).meta['tags'], ['lab']);
+    });
+
+    test('never overwrites a note of the same name, and refuses a no-op', () {
+      final other = createNote(root, 'project', 'Home Lab');
+      final mine = File(path).readAsStringSync();
+      final theirs = File(other).readAsStringSync();
+      expect(() => recategorize(root, path, kind: 'project'), throwsA(isA<FileSystemException>()));
+      expect(File(path).readAsStringSync(), mine);
+      expect(File(other).readAsStringSync(), theirs);
+      expect(() => recategorize(root, path, kind: 'topic'), throwsArgumentError);
+      expect(() => recategorize(root, path, remove: ['absent']), throwsArgumentError);
+    });
+  });
 }

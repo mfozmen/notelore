@@ -377,6 +377,49 @@ String archiveNote(String root, String path, {DateTime? today}) {
   return target;
 }
 
+/// Moves the note at [path] to [kind] and adds or removes tags; its text
+/// stays as it is. Returns where it is now. The same call with the old kind,
+/// or the tags swapped, takes it back; a note already there is never overwritten.
+String recategorize(
+  String root,
+  String path, {
+  String? kind,
+  List<String> add = const [],
+  List<String> remove = const [],
+  DateTime? today,
+}) {
+  final note = readNote(path);
+  final tags = [for (final tag in (note.meta['tags'] as List?) ?? const []) '$tag'];
+  final after = [
+    for (final tag in tags)
+      if (!remove.map((t) => t.toLowerCase()).contains(tag)) tag,
+  ];
+  for (final tag in add.map((t) => t.toLowerCase())) {
+    if (!after.contains(tag)) after.add(tag);
+  }
+  final target = kind == null || kind == note.meta['kind']
+      ? path
+      : notePath(root, kind, p.basenameWithoutExtension(path));
+  if (target == path && after.length == tags.length && after.every(tags.contains)) {
+    throw ArgumentError('nothing to change: the note already has that kind and those tags');
+  }
+  if (target != path && File(target).existsSync()) {
+    throw FileSystemException('a note of that name already exists there', target);
+  }
+  if (kind != null) note.meta['kind'] = kind;
+  if (after.isEmpty) {
+    note.meta.remove('tags');
+  } else {
+    note.meta['tags'] = after;
+  }
+  writeNote(path, note, today: today);
+  if (target != path) {
+    Directory(p.dirname(target)).createSync(recursive: true);
+    moveWithRetry(path, target);
+  }
+  return target;
+}
+
 /// A note (or part of one) in the archive.
 final class ArchivedNote {
   const ArchivedNote(this.path, this.original, this.archivedOn, this.title, {this.entries = false});

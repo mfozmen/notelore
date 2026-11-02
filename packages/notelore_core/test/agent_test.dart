@@ -187,6 +187,7 @@ void main() {
     expect(describeTool('some_new_tool'), 'Working'); // never mislabelled as a write
     expect(describeTool('related_notes'), 'Searching the notes');
     expect(describeTool('merge_notes'), 'Writing the notes'); // a merge writes (#229)
+    expect(describeTool('recategorize'), 'Writing the notes');
     expect(describeTool('add_reminder'), 'Writing the notes');
     expect(systemPrompt(), contains('add_reminder')); // the model knows when to use it
   });
@@ -394,6 +395,12 @@ void main() {
     final prompt = systemPrompt(today);
     expect(prompt, contains('Notelore read the linked pages'));
     expect(prompt, contains('could not be read'));
+  });
+
+  test('the prompt moves an older note whose kind or tags no longer fit (#639)', () {
+    final prompt = systemPrompt(today);
+    expect(prompt, contains('call recategorize'));
+    expect(prompt, contains('ask first when it is not clear'));
   });
 
   test('the prompt looks for related notes before creating one (#229)', () {
@@ -737,6 +744,7 @@ void failureTests() {
         '<attached image=',
         'merge_notes',
         'decision_history',
+        'recategorize',
       ]) {
         expect(slim, isNot(contains(gone)));
       }
