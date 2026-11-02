@@ -984,7 +984,7 @@ void main() {
     group('the old copy hands over to the one in ~/Applications (#644)', () {
       late List<int> quits;
       setUp(() => quits = []);
-      Updater at(String executable, {String system = 'macos'}) => Updater(
+      Updater at(String executable, {String system = 'macos', Run? run}) => Updater(
         quit: (code) => quits.add(code),
         system: system,
         executable: executable,
@@ -992,17 +992,21 @@ void main() {
         home: p.join(dir, 'home'),
         temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
         fetch: Pages({}).call,
-        run: tools,
+        run: run ?? tools,
         spawn: (exe, args) async => spawned.add([exe, ...args]),
       );
       final old = p.join('Applications', 'notelore.app', 'Contents', 'MacOS', 'notelore');
+      String plist([String? bundle]) => p.join(
+        bundle ?? p.join(dir, 'home', 'Applications', 'Notelore.app'),
+        'Contents',
+        'Info.plist',
+      );
+      String info(String version) =>
+          '<dict>\n\t<key>CFBundleShortVersionString</key>\n\t<string>$version</string>\n</dict>';
 
       void installed(String version) {
         write(mine(), 'new binary');
-        write(
-          p.join(dir, 'home', 'Applications', 'Notelore.app', 'Contents', 'Info.plist'),
-          '<dict>\n\t<key>CFBundleShortVersionString</key>\n\t<string>$version</string>\n</dict>',
-        );
+        write(plist(), info(version));
       }
 
       test('to a newer or the same version', () async {
@@ -1026,8 +1030,28 @@ void main() {
         installed('0.3.0');
         expect(await at(mine()).handOff(), isFalse);
         expect(await at(p.join(dir, old), system: 'windows').handOff(), isFalse);
+        installed('0.3.0-beta'); // not a release's version
+        expect(await at(p.join(dir, old)).handOff(), isFalse);
+        File(plist()).writeAsBytesSync([0x62, 0x70, 0x6c, 0x69, 0x73, 0x74, 0xff, 0xfe]); // binary
+        expect(await at(p.join(dir, old)).handOff(), isFalse);
+        installed('0.3.0');
+        File(mine()).deleteSync(); // a bundle half deleted
+        expect(await at(p.join(dir, old)).handOff(), isFalse);
+        installed('0.3.0');
+        Future<ProcessResult> tampered(String command, List<String> args) async =>
+            ProcessResult(0, command == 'codesign' ? 1 : 0, '', 'invalid signature');
+        expect(await at(p.join(dir, old), run: tampered).handOff(), isFalse);
         expect(spawned, isEmpty);
         expect(quits, isEmpty);
+      });
+
+      test('never to itself through a link, which would start it again and again', () async {
+        write(p.join(bundle, 'Contents', 'MacOS', 'Notelore'), 'old binary');
+        write(plist(bundle), info('0.2.0'));
+        Directory(p.join(dir, 'home', 'Applications')).createSync(recursive: true);
+        Link(p.join(dir, 'home', 'Applications', 'Notelore.app')).createSync(bundle);
+        expect(await at(p.join(dir, old)).handOff(), isFalse);
+        expect(spawned, isEmpty);
       });
     });
 

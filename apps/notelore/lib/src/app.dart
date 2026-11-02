@@ -66,8 +66,15 @@ class _NoteloreAppState extends State<NoteloreApp> with WidgetsBindingObserver {
     _messenger.currentState?.clearSnackBars();
   }
 
-  late final Future<Session> _session = widget.open()
+  late final Future<Session> _session = _start()
     ..then<void>(_adopt, onError: (Object _) {}); // the error shows below
+
+  /// A copy that hands over to a newer one quits before it opens anything.
+  Future<Session> _start() async {
+    await widget.updater?.handOff();
+    return widget.open();
+  }
+
   Session? _opened;
 
   /// A session that finishes opening after the app is gone is closed at once.
@@ -164,7 +171,6 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       WidgetsBinding.instance.addPostFrameCallback((_) => _welcomePlan());
     }
     if (widget.updater case final updater?) {
-      unawaited(updater.handOff());
       updater.cleanup();
       unawaited(_check(updater));
       // An app left open still hears of a release, quietly.

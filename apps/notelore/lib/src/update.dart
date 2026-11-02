@@ -444,16 +444,28 @@ class Updater {
   }
 
   /// On macOS, starts the copy an update put in ~/Applications and quits, when
-  /// this is an older one left where the user cannot delete it (#644).
+  /// this is an older one left where the user cannot delete it (#644). A copy
+  /// that is this one by a link, or not intact, is never started.
   Future<bool> handOff() async {
+    if (system != 'macos' || home.isEmpty) return false;
     final mine = p.join(_userApps, _bundleName);
-    if (system != 'macos' || home.isEmpty || p.equals(_installed, mine)) return false;
-    final plist = File(p.join(mine, 'Contents', 'Info.plist'));
-    if (!plist.existsSync()) return false;
-    final version = RegExp(r'<key>CFBundleShortVersionString</key>\s*<string>([^<]+)</string>')
-        .firstMatch(plist.readAsStringSync())?[1];
-    if (version == null || isNewer(current, version)) return false;
-    await spawn(p.join(mine, 'Contents', 'MacOS', 'Notelore'), const []);
+    final binary = p.join(mine, 'Contents', 'MacOS', 'Notelore');
+    try {
+      if (Directory(mine).resolveSymbolicLinksSync() ==
+              Directory(_installed).resolveSymbolicLinksSync() ||
+          !File(binary).existsSync()) {
+        return false;
+      }
+      final plist = File(p.join(mine, 'Contents', 'Info.plist')).readAsStringSync();
+      final version = RegExp(
+        r'<key>CFBundleShortVersionString</key>\s*<string>(\d+(?:\.\d+)*)</string>',
+      ).firstMatch(plist)?[1];
+      if (version == null || isNewer(current, version)) return false;
+    } on FileSystemException {
+      return false; // also a binary plist, which is not UTF-8
+    }
+    if ((await run('codesign', ['--verify', '--strict', mine])).exitCode != 0) return false;
+    await spawn(binary, const []);
     quit(0);
     return true;
   }
