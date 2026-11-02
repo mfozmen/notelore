@@ -1041,6 +1041,10 @@ void main() {
         Future<ProcessResult> tampered(String command, List<String> args) async =>
             ProcessResult(0, command == 'codesign' ? 1 : 0, '', 'invalid signature');
         expect(await at(p.join(dir, old), run: tampered).handOff(), isFalse);
+        // A binary that cannot be started: this copy opens instead of none.
+        Future<ProcessResult> noCodesign(String command, List<String> args) async =>
+            throw const ProcessException('codesign', [], 'Permission denied');
+        expect(await at(p.join(dir, old), run: noCodesign).handOff(), isFalse);
         expect(spawned, isEmpty);
         expect(quits, isEmpty);
       });

@@ -464,8 +464,12 @@ class Updater {
     } on FileSystemException {
       return false; // also a binary plist, which is not UTF-8
     }
-    if ((await run('codesign', ['--verify', '--strict', mine])).exitCode != 0) return false;
-    await spawn(binary, const []);
+    try {
+      if ((await run('codesign', ['--verify', '--strict', mine])).exitCode != 0) return false;
+      await spawn(binary, const []);
+    } on ProcessException {
+      return false; // this copy opens instead
+    }
     quit(0);
     return true;
   }
@@ -504,9 +508,14 @@ class Updater {
       _setup = (File(p.join(folder.path, name))..writeAsBytesSync(data)).path;
       return version;
     }
+    await _installBundle(name, data);
+    return version;
+  }
 
-    // Staged next to the bundle, so the swap is a rename on the same drive. A
-    // standard account cannot write /Applications: its own ~/Applications then.
+  /// Puts the macOS bundle from the dmg [data] in place of this one, or in
+  /// ~/Applications when a standard account cannot write this one's folder.
+  Future<void> _installBundle(String name, List<int> data) async {
+    // Staged next to the bundle, so the swap is a rename on the same drive.
     var target = _installed;
     var staging = _stage(target);
     if (staging == null && home.isNotEmpty) {
@@ -514,8 +523,9 @@ class Updater {
       staging = _stage(target);
     }
     if (staging == null) {
-      throw const UpdateFailed(
-        'cannot write next to the app: move Notelore to a folder you own, then update again',
+      throw UpdateFailed(
+        'cannot write next to the app (${p.dirname(_installed)}): '
+        'move Notelore to a folder you own, then update again',
       );
     }
     try {
@@ -554,7 +564,6 @@ class Updater {
     } finally {
       staging.deleteSync(recursive: true);
     }
-    return version;
   }
 
   /// Stages a signed changed-files Windows update for [version] if the release
