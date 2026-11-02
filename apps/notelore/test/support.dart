@@ -633,6 +633,13 @@ class FakeReminders implements ReminderNotifier {
 class FakeDeviceEngine implements LocalEngine {
   final answers = <Map<String, Object?>>[];
   final asked = <(List<Map<String, Object?>>, List<Map<String, Object?>>)>[];
+  final prefilled = <(String, List<Map<String, Object?>>)>[];
+
+  /// When set, the prefill waits for it before finishing.
+  Future<void>? prefillGate;
+
+  /// Thrown by the prefill instead of reading the prompt.
+  Exception? prefillFailure;
 
   /// Thrown instead of an answer: a device that cannot run the model.
   Exception? failure;
@@ -642,6 +649,13 @@ class FakeDeviceEngine implements LocalEngine {
 
   @override
   Future<void> dispose() async => disposed++;
+
+  @override
+  Future<void> prefill(String system, List<Map<String, Object?>> tools) async {
+    prefilled.add((system, tools));
+    await prefillGate;
+    if (prefillFailure case final error?) throw error;
+  }
 
   @override
   Future<Map<String, Object?>> chat(

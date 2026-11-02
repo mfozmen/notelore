@@ -323,6 +323,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 ],
               ),
             if (session.ready) ...[
+              if (session.preparing && !session.busy) _Thinking(s, fixed: s.devicePreparing),
               _ModelBar(session, menu: _modelMenu),
               _Composer(session, voice: _voice, message: _message, send: _send, attach: _attach),
             ] else
@@ -444,22 +445,33 @@ class _Lines extends StatelessWidget {
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
       itemCount: lines.length + (session.busy ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (session.busy) {
-          if (index == 0) return _Thinking(s);
-          return _Bubble(lines[index - 1], s, newest: newest.contains(index - 1));
-        }
-        return _Bubble(
-          lines[index],
-          s,
-          newest: newest.contains(index),
-          // The line a turn just added is read out once; the history stays quiet.
-          live: index == 0 && lines[0] == live,
-          resend: index == resendable ? session.resend : null,
-          retry: session.retryNow,
-          answer: index == 0 && session.ready ? (a) => _answer(context, lines.length, a) : null,
-        );
-      },
+      itemBuilder: (context, index) => _item(context, index, lines, newest, resendable, s),
+    );
+  }
+
+  Widget _item(
+    BuildContext context,
+    int index,
+    List<ChatLine> lines,
+    Set<int> newest,
+    int resendable,
+    Strings s,
+  ) {
+    if (session.busy) {
+      if (index == 0) {
+        return _Thinking(s, fixed: session.preparing ? s.devicePreparing : null);
+      }
+      return _Bubble(lines[index - 1], s, newest: newest.contains(index - 1));
+    }
+    return _Bubble(
+      lines[index],
+      s,
+      newest: newest.contains(index),
+      // The line a turn just added is read out once; the history stays quiet.
+      live: index == 0 && lines[0] == live,
+      resend: index == resendable ? session.resend : null,
+      retry: session.retryNow,
+      answer: index == 0 && session.ready ? (a) => _answer(context, lines.length, a) : null,
     );
   }
 
@@ -1003,12 +1015,15 @@ class _VoiceStatus extends StatelessWidget {
 /// The assistant's turn while it runs: a playful line that changes every
 /// [_rotation] (its steps, a search or a write, pass too fast to read).
 class _Thinking extends StatefulWidget {
-  const _Thinking(this.strings);
+  const _Thinking(this.strings, {this.fixed});
 
   /// How long each waiting line stays before the next one.
   static const _rotation = Duration(seconds: 4);
 
   final Strings strings;
+
+  /// One line to keep, as while the model reads its prompt before a message.
+  final String? fixed;
 
   @override
   State<_Thinking> createState() => _ThinkingState();
@@ -1034,6 +1049,7 @@ class _ThinkingState extends State<_Thinking> {
   }
 
   String get _waiting {
+    if (widget.fixed case final line?) return line;
     final lines = widget.strings.waitingLines;
     return lines[(_first + _seconds ~/ _Thinking._rotation.inSeconds) % lines.length];
   }
@@ -1048,7 +1064,7 @@ class _ThinkingState extends State<_Thinking> {
     return Semantics(
       key: const Key('working'),
       liveRegion: true,
-      label: widget.strings.working,
+      label: widget.fixed ?? widget.strings.working,
       excludeSemantics: true,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.s),

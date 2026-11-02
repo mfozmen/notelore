@@ -19,6 +19,7 @@ Rules:
 - Notes are projects or topics. Call list_notes before creating one; when it is unclear which project or topic the user means, ask instead of guessing.
 - File by kind: a book, film, series, place or person mentioned in passing ("I'm reading the book X", "Gülünün Solduğu Akşam kitabını okuyorum") is an entry in a collection note for its kind ("Books I'm reading", "Okumakta olduğum kitaplar", "Films to watch"), not a note named after it. Call search_notes and list_notes for a fitting collection first and create one only when none fits; give the book or film a note of its own only when the user asks for one or there is already a lot to say about it.
 - Before create_note, call related_notes: add to a note of either kind that fits instead; when two notes belong together, propose which goes into which and call merge_notes only after the user agreed.
+- When new information shows an older note is in the wrong kind (a topic that now has a goal, a deadline and todos is a project; a finished project kept for reference is a topic) or its tags no longer fit, call recategorize; ask first when it is not clear.
 - "What did we decide about X?" is answered with get_decision, never from free text. Use decision_history only when the user asks how a decision changed.
 - Note entries are one clean, self-contained sentence each; no "as discussed above".
 - Keep every detail the user gave (who it is for, names, titles, places, dates) in the entry; never shorten "buy the book X for my brother" to "buy X".
@@ -55,12 +56,12 @@ Rules:
 - Notes are projects or topics. Before create_note, call list_notes and related_notes and add to a note that fits instead. Ask when it is unclear which note is meant.
 - A book, film, place or person mentioned in passing is an entry in a collection note for its kind ("Books I'm reading"), not a note of its own.
 - When the user says a choice was made ("we picked X", "X'i seçtik"), call record_decision, not add_note_entry. A decision has a short lowercase topic key (database, hosting); record the reason if given. "What did we decide about X?" is answered with get_decision.
+- When the user says a task is done, read_note its note first and follow what it says about the open todos.
 - An entry is one clean, self-contained sentence that keeps every detail the user gave: names, titles, places, dates, who it is for.
 - Dictated sound-alike spellings ("deyta beys") are saved as the English term ("database").
 - Ask when a phrase could be a title or a name.
 - If search_notes finds nothing, read the likely notes before saying you do not know.
 - When Notelore read the linked pages, file each link with its URL in the note that fits.
-- A task the user says is done ("I ordered the timber"): read_note, then complete_todo the open todo that matches, by its number; if none matches, add an entry that it was done.
 - "Remind me..." or an appointment with its day: add_reminder with the day, and the time if said, worked out from now ("in 2 hours" becomes a clock time). Never refuse: Notelore notifies the user. A task with a due date is a todo.
 - A timed reminder may have an end: pass "YYYY-MM-DD HH:MM-HH:MM" for a stated end or duration. A match, concert or film without one gets about two hours; say the end.
 - A monthly commitment ("her ayın 18'inde") is one reminder with repeat: monthly.
@@ -160,6 +161,7 @@ const writingTools = {
   'record_decision',
   'archive',
   'merge_notes',
+  'recategorize',
 };
 
 const _kept = {'text', 'tool_use'}; // the only block types the API accepts back as history
@@ -196,7 +198,15 @@ class Agent {
   /// The model on the device (#447): [slimSystemPrompt] and [slimTools].
   final bool slim;
 
-  String get _system => slim ? slimSystemPrompt(today) : systemPrompt(today);
+  /// The fixed prompt, then this turn's notes: the fixed part stays a stable
+  /// prefix for a prefill cache.
+  String get _system => '${slim ? slimSystemPrompt(today) : systemPrompt(today)}\n\n$_notes';
+
+  /// [Toolbox.noteList] as the turn began, so it stays the same within a turn.
+  var _notes = '';
+
+  /// The note list the last turn was sent after the fixed prompt.
+  String get noteList => _notes;
 
   List<Tool> get _tools => slim ? slimTools : toolbox.tools;
 
@@ -241,6 +251,7 @@ class Agent {
   }) async {
     final start = messages.length;
     wroteNotes = false;
+    _notes = toolbox.noteList();
     final stop = _stop = Completer()..future.ignore();
     final timer = Timer(deadline, () => this.stop(const TurnStopped(_late)));
     try {

@@ -191,6 +191,8 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           hdiutil attach -nobrowse -readonly -mountpoint "$RUNNER_TEMP/dmg" dist/notelore-app-0.0.0-macos.dmg
+          test -x "$RUNNER_TEMP/dmg/Notelore.app/Contents/MacOS/Notelore"
+          # An app from before #635 updates from this dmg by the lowercase path.
           test -x "$RUNNER_TEMP/dmg/notelore.app/Contents/MacOS/notelore"
           test -L "$RUNNER_TEMP/dmg/Applications"
           hdiutil detach "$RUNNER_TEMP/dmg"
@@ -201,13 +203,13 @@ jobs:
         shell: bash
         run: |
           (cd apps/notelore && flutter build macos --release)
-          bundle="apps/notelore/build/macos/Build/Products/Release/notelore.app"
+          bundle="apps/notelore/build/macos/Build/Products/Release/Notelore.app"
           for arch in arm64 x86_64; do
             dir="$RUNNER_TEMP/macos-$arch"
             rm -rf "$dir" "$RUNNER_TEMP/dist-$arch"
             mkdir -p "$dir"
-            cp -R "$bundle" "$dir/notelore.app"
-            bash tool/thin_macos_app.sh "$dir/notelore.app" "$arch"
-            bash tool/package_desktop.sh 0.0.0 "$RUNNER_TEMP/dist-$arch" Release "$dir/notelore.app" "$arch"
+            cp -R "$bundle" "$dir/Notelore.app"
+            bash tool/thin_macos_app.sh "$dir/Notelore.app" "$arch"
+            bash tool/package_desktop.sh 0.0.0 "$RUNNER_TEMP/dist-$arch" Release "$dir/Notelore.app" "$arch"
             test -f "$RUNNER_TEMP/dist-$arch/notelore-app-0.0.0-macos-$arch.dmg"
           done

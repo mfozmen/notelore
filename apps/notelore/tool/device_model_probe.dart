@@ -37,6 +37,7 @@ Future<void> main() async {
     params: const ModelParams(contextSize: 8192),
   );
   print('probe: load ${load.elapsedMilliseconds} ms; rss ${mb(ProcessInfo.currentRss)}');
+  print('probe: sampling ${describeSampling(deviceSampling)}');
 
   final tools = toolsFor([
     for (final tool in noteTools)
@@ -55,7 +56,11 @@ Future<void> main() async {
   ];
   Future<void> turn(String name, List<Map<String, Object?>> history) async {
     final watch = Stopwatch()..start();
-    final completion = await engine.complete(toLlama(history), tools: tools);
+    final completion = await engine.complete(
+      toLlama(history),
+      params: deviceSampling,
+      tools: tools,
+    );
     final total = watch.elapsedMilliseconds;
     final usage = completion.usage;
     final first = usage?.timeToFirstToken?.inMilliseconds;

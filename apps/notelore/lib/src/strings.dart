@@ -78,6 +78,7 @@ abstract class Strings {
   String get resumeDownload;
   String get deviceDownloadNote;
   String get deviceModelHere;
+  String get devicePreparing;
   String get downloadingModel;
   String downloadedPercent(int percent);
 
@@ -469,6 +470,7 @@ abstract class Strings {
   String get voiceSection;
   String get syncSection;
   String get aboutSection;
+  String get advancedSection;
   String appearanceName(Appearance appearance);
   String get drive;
   String get driveNotSetUp;
@@ -725,6 +727,8 @@ class EnglishStrings extends Strings {
   String get deviceDownloadNote => 'Use Wi-Fi and keep the app open while it downloads.';
   @override
   String get deviceModelHere => 'The model is on this device. No key is needed.';
+  @override
+  String get devicePreparing => 'Getting the model ready on this device…';
   @override
   String get downloadingModel => 'Downloading the model';
   @override
@@ -1093,7 +1097,7 @@ class EnglishStrings extends Strings {
     },
   };
   @override
-  String get usageWhat => 'What the model read and wrote, and what it cost';
+  String get usageWhat => 'What the model read and wrote, and what it cost.';
   @override
   String lastDays(int? days) => days == null ? 'All time' : 'Last $days days';
   @override
@@ -1391,6 +1395,8 @@ class EnglishStrings extends Strings {
   String get syncSection => 'Sync';
   @override
   String get aboutSection => 'About';
+  @override
+  String get advancedSection => 'Advanced';
   @override
   String appearanceName(Appearance appearance) => switch (appearance) {
     Appearance.system => 'System',
@@ -1710,6 +1716,8 @@ class TurkishStrings extends Strings {
   String get deviceDownloadNote => 'İnerken Wi-Fi kullan ve uygulamayı açık tut.';
   @override
   String get deviceModelHere => 'Model bu cihazda. Anahtar gerekmez.';
+  @override
+  String get devicePreparing => 'Model bu cihazda hazırlanıyor…';
   @override
   String get downloadingModel => 'Model indiriliyor';
   @override
@@ -2123,7 +2131,7 @@ class TurkishStrings extends Strings {
   @override
   String busiestDay(String amount, int day) => 'En yoğun gün: $day, $amount';
   @override
-  String get usageWhat => 'Modelin okuduğu, yazdığı ve maliyeti';
+  String get usageWhat => 'Modelin okuduğu, yazdığı ve maliyeti.';
   @override
   String lastDays(int? days) => days == null ? 'Tüm zamanlar' : 'Son $days gün';
   @override
@@ -2422,6 +2430,8 @@ class TurkishStrings extends Strings {
   String get syncSection => 'Eşitleme';
   @override
   String get aboutSection => 'Hakkında';
+  @override
+  String get advancedSection => 'Gelişmiş';
   @override
   String appearanceName(Appearance appearance) => switch (appearance) {
     Appearance.system => 'Sistem',

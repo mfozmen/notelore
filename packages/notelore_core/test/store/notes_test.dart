@@ -265,8 +265,28 @@ void main() {
         read(path),
         contains('## Todo\n- [x] 2026-09-30: Set up CI\n- [ ] 2026-10-15: Add Drive backup\n'),
       );
-      expect(() => completeTodo(path, 3, today: today), throwsA(isA<RangeError>()));
-      expect(() => completeTodo(path, 0, today: today), throwsA(isA<RangeError>()));
+      // Out of range: the open todos and their numbers, so the next call can be right.
+      expect(
+        () => completeTodo(path, 3, today: today),
+        throwsA(
+          isA<RangeError>().having(
+            (e) => e.message,
+            'message',
+            'Todo has 2 todos, no #3. Open: 2. Add Drive backup',
+          ),
+        ),
+      );
+      completeTodo(path, 2, today: today);
+      expect(
+        () => completeTodo(path, 0, today: today),
+        throwsA(
+          isA<RangeError>().having(
+            (e) => e.message,
+            'message',
+            'Todo has 2 todos, no #0. None is open.',
+          ),
+        ),
+      );
     });
 
     test('reminders get their own section at the end, once (#430)', () {
@@ -712,6 +732,80 @@ void main() {
       );
       expect(File(from).existsSync(), isTrue);
       expect(File(into).readAsStringSync(), before);
+    });
+  });
+
+  group('recategorize', () {
+    late String path;
+    setUp(() {
+      path = createNote(
+        root,
+        'topic',
+        'Home Lab',
+        tags: ['hardware', 'home'],
+        today: d(2026, 9, 1),
+      );
+      addEntry(path, 'Bought a second switch.', today: d(2026, 9, 2));
+    });
+
+    test('moves the note to the other kind, its text untouched but kind and updated', () {
+      final before = File(path).readAsStringSync();
+      final moved = recategorize(root, path, kind: 'project', today: today);
+      expect(moved, notePath(root, 'project', 'home-lab'));
+      expect(File(path).existsSync(), isFalse);
+      final after = File(moved).readAsStringSync();
+      expect(
+        after,
+        before
+            .replaceFirst('kind: topic', 'kind: project')
+            .replaceFirst('2026-09-02', '2026-09-30'),
+      );
+      // And back: the same text again, nothing lost.
+      final back = recategorize(root, moved, kind: 'topic', today: d(2026, 9, 2));
+      expect(back, path);
+      expect(File(path).readAsStringSync(), before);
+    });
+
+    test('adds and removes tags, lowercase and once each', () {
+      expect(recategorize(root, path, add: ['Network', 'home'], remove: ['hardware']), path);
+      expect(readNote(path).meta['tags'], ['home', 'network']);
+      recategorize(root, path, remove: ['home', 'network']);
+      expect(readNote(path).meta.containsKey('tags'), isFalse);
+      recategorize(root, path, add: ['lab']);
+      expect(readNote(path).meta['tags'], ['lab']);
+    });
+
+    test('a failed move leaves the note as it was', () {
+      final before = File(path).readAsStringSync();
+      expect(
+        () => recategorize(
+          root,
+          path,
+          kind: 'project',
+          rename: (_, _) => throw const FileSystemException('disk gone'),
+        ),
+        throwsA(isA<FileSystemException>()),
+      );
+      expect(File(path).readAsStringSync(), before);
+      expect(File(notePath(root, 'project', 'home-lab')).existsSync(), isFalse);
+    });
+
+    test('a tag written in capitals by hand is removed too', () {
+      File(path)
+          .writeAsStringSync(File(path).readAsStringSync().replaceFirst('hardware', 'Hardware'));
+      recategorize(root, path, remove: ['hardware']);
+      expect(readNote(path).meta['tags'], ['home']);
+    });
+
+    test('never overwrites a note of the same name, and refuses a no-op', () {
+      final other = createNote(root, 'project', 'Home Lab');
+      final mine = File(path).readAsStringSync();
+      final theirs = File(other).readAsStringSync();
+      expect(() => recategorize(root, path, kind: 'project'), throwsA(isA<FileSystemException>()));
+      expect(File(path).readAsStringSync(), mine);
+      expect(File(other).readAsStringSync(), theirs);
+      expect(() => recategorize(root, path, kind: 'topic'), throwsArgumentError);
+      expect(() => recategorize(root, path, remove: ['absent']), throwsArgumentError);
     });
   });
 }

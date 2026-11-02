@@ -250,6 +250,143 @@ void main() {
     expect('$out', contains('left out 1 case that needs web search'));
   });
 
+  test('eval --greedy --runs=2: temperature 0, the set twice, each run said (#597)', () async {
+    File(p.join(temp.path, 'cases.json')).writeAsStringSync(
+      jsonEncode([
+        {
+          'id': 'plain',
+          'kind': 'chat',
+          'lang': 'en',
+          'message': 'hi',
+          'expect': <String, Object?>{},
+        },
+      ]),
+    );
+    final bodies = <Map<String, Object?>>[];
+    final ollama = MockClient((request) async {
+      bodies.add((jsonDecode(request.body) as Map).cast());
+      return http.Response(
+        jsonEncode({
+          'message': {'role': 'assistant', 'content': 'Hello'},
+          'done': true,
+        }),
+        200,
+      );
+    });
+    final args = ['eval', '--provider=ollama', '--model=m', '--cases=cases.json'];
+    expect(await run([...args, '--greedy', '--runs=2'], client: ollama), 0);
+    expect(bodies, hasLength(2));
+    expect(bodies.map((b) => (b['options']! as Map)['temperature']), [0, 0]);
+    expect('$out', contains('run 1: 1/1 (100%)\nrun 2: 1/1 (100%)'));
+    // Without them: the Modelfile's temperature, one run.
+    expect(await run(args, client: ollama), 0);
+    expect((bodies.last['options']! as Map).containsKey('temperature'), isFalse);
+    // Distill keeps each case once: repeated runs are for eval only.
+    expect(await run(['distill', '--runs=2', '--cases=cases.json']), 64);
+    expect(await run(['eval', '--runs=0', '--cases=cases.json']), 64);
+    // Only Ollama takes a temperature here: said, not ignored.
+    expect(
+      await run(
+        ['eval', '--provider=anthropic', '--greedy', '--cases=cases.json'],
+        environment: {'NOTELORE_HOME': 'home', 'NOTELORE_ANTHROPIC_API_KEY': 'k'},
+      ),
+      1,
+    );
+    expect('$out', contains('--greedy works with --provider=ollama or opencode only'));
+  });
+
+  test(
+    'eval --first-write --parallel=2: each case to its first write, two at once (#598)',
+    () async {
+      File(p.join(temp.path, 'cases.json')).writeAsStringSync(
+        jsonEncode([
+          for (final id in ['a', 'b', 'c'])
+            {
+              'id': id,
+              'kind': 'unclear',
+              'lang': 'en',
+              'message': 'Note this.',
+              'expect': {
+                'answer': ['?'],
+              },
+            },
+        ]),
+      );
+      var open = 0;
+      var most = 0;
+      final ollama = MockClient((request) async {
+        most = ++open > most ? open : most;
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        open--;
+        return http.Response(
+          jsonEncode({
+            'message': {'role': 'assistant', 'content': 'Noted.'},
+            'done': true,
+          }),
+          200,
+        );
+      });
+      final args = ['eval', '--provider=ollama', '--model=m', '--cases=cases.json'];
+      expect(await run([...args, '--first-write', '--parallel=2'], client: ollama), 0);
+      expect(most, 2);
+      expect('$out', contains('all: 0/3'));
+      expect('$out', contains('wanted → done, failed cases:\n  ask → none: 3'));
+      // Distill keeps whole turns, and a count below one is no count.
+      expect(await run(['distill', '--first-write', '--cases=cases.json']), 64);
+      expect(await run([...args, '--parallel=0']), 64);
+    },
+  );
+
+  test(
+    'eval --provider=opencode: an OpenCode Go model, its key from the dev secrets (#604)',
+    () async {
+      File(p.join(temp.path, 'cases.json')).writeAsStringSync(
+        jsonEncode([
+          {
+            'id': 'plain',
+            'kind': 'chat',
+            'lang': 'en',
+            'message': 'hi',
+            'expect': <String, Object?>{},
+          },
+        ]),
+      );
+      final args = ['eval', '--provider=opencode', '--model=glm-5.3', '--cases=cases.json'];
+      expect(await run(args), 1);
+      expect('$out', contains('set NOTELORE_OPENCODE_API_KEY'));
+      File(home('state/dev-secrets.json'))
+        ..createSync(recursive: true)
+        ..writeAsStringSync(jsonEncode({'NOTELORE_OPENCODE_API_KEY': 'go-key'}));
+      final requests = <http.Request>[];
+      final go = MockClient((request) async {
+        requests.add(request);
+        return http.Response(
+          jsonEncode({
+            'choices': [
+              {
+                'message': {'role': 'assistant', 'content': 'Hello'},
+                'finish_reason': 'stop',
+              },
+            ],
+          }),
+          200,
+        );
+      });
+      expect(await run(args, client: go), 0);
+      expect('$out', contains('[opencode · glm-5.3]'));
+      expect('$out', contains('all: 1/1'));
+      final request = requests.single;
+      expect('${request.url}', 'https://opencode.ai/inference/go/openai/v1/chat/completions');
+      expect(request.headers['authorization'], 'Bearer go-key');
+      expect(request.headers['user-agent'], 'notelore-dev');
+      expect(request.headers['x-opencode-session'], startsWith('notelore-dev-'));
+      expect(trace(), isNot(contains('go-key')));
+      // Greedy goes as a temperature on this one too.
+      expect(await run([...args, '--greedy'], client: go), 0);
+      expect((jsonDecode(requests.last.body) as Map)['temperature'], 0);
+    },
+  );
+
   test('eval: every case of a file against one model, with a report (#325)', () async {
     File(p.join(temp.path, 'cases.json')).writeAsStringSync(
       jsonEncode([
@@ -316,7 +453,9 @@ void main() {
     expect('$out', contains('kept 1 of 2'));
     expect(
       '$out',
-      contains('excluded 0 passing turns (tool errors: 0; repeated calls: 0; counts may overlap)'),
+      contains(
+        'excluded 0 passing turns (tool errors: 0; repeated calls: 0; same as a kept turn: 0; counts may overlap)',
+      ),
     );
 
     // --slim: the prompt and tools of the model on the device (#447).
@@ -411,6 +550,80 @@ void main() {
     expect('$out', contains('2 examples'));
   });
 
+  test('distill --samples=3 --keep-failed: each case three times, each different pass once, failures aside (#604)', () async {
+    File(p.join(temp.path, 'cases.json')).writeAsStringSync(
+      jsonEncode([
+        {
+          'id': 'hi',
+          'kind': 'chat',
+          'lang': 'en',
+          'message': 'hi',
+          'expect': {
+            'answer': ['hello'],
+          },
+        },
+      ]),
+    );
+    // Hello, Hello (the same turn again), then a failure.
+    final answers = ['Hello', 'Hello', 'Goodbye'];
+    final anthropic = MockClient(
+      (_) async => http.Response(
+        jsonEncode({
+          'content': [
+            {'type': 'text', 'text': answers.removeAt(0)},
+          ],
+          'stop_reason': 'end_turn',
+        }),
+        200,
+      ),
+    );
+    final args = [
+      'distill',
+      '--provider=anthropic',
+      '--cases=cases.json',
+      '--out=train.jsonl',
+      '--samples=3',
+      '--keep-failed=failed.jsonl',
+    ];
+    expect(
+      await run(
+        args,
+        client: anthropic,
+        environment: {'NOTELORE_HOME': 'home', 'NOTELORE_ANTHROPIC_API_KEY': 'k'},
+      ),
+      0,
+    );
+    final kept = File(p.join(temp.path, 'train.jsonl')).readAsLinesSync();
+    expect(kept, hasLength(1));
+    expect((jsonDecode(kept.single) as Map)['id'], 'hi');
+    final failed = File(p.join(temp.path, 'failed.jsonl')).readAsLinesSync();
+    expect(failed, hasLength(1));
+    final rejected = jsonDecode(failed.single) as Map;
+    expect(rejected['id'], 'hi');
+    expect(rejected['problems'], ['the answer lacks "hello"']);
+    expect('$out', contains('kept 1 of 3'));
+    expect('$out', contains('same as a kept turn: 1'));
+    // A fresh run starts the failed file over, like the kept one.
+    final failedFile = File(p.join(temp.path, 'failed.jsonl'));
+    File(p.join(temp.path, 'train.jsonl.done')).writeAsStringSync('');
+    failedFile.writeAsStringSync('${jsonEncode({'id': 'stale'})}\n');
+    answers.addAll(['Hello', 'Hello', 'Hello']);
+    out.clear();
+    expect(
+      await run(
+        args,
+        client: anthropic,
+        environment: {'NOTELORE_HOME': 'home', 'NOTELORE_ANTHROPIC_API_KEY': 'k'},
+      ),
+      0,
+    );
+    expect(failedFile.readAsStringSync(), isEmpty);
+    expect(File(p.join(temp.path, 'train.jsonl')).readAsLinesSync(), hasLength(1));
+    // Samples and a failed file are for distill: eval's repeats are --runs.
+    expect(await run(['eval', '--samples=2', '--cases=cases.json']), 64);
+    expect(await run(['eval', '--keep-failed=f.jsonl', '--cases=cases.json']), 64);
+  });
+
   test('distill excludes passing turns with tool errors or repeated calls', () async {
     File(p.join(temp.path, 'cases.json')).writeAsStringSync(
       jsonEncode([
@@ -475,7 +688,9 @@ void main() {
     expect('$out', contains('kept 1 of 2'));
     expect(
       '$out',
-      contains('excluded 1 passing turns (tool errors: 1; repeated calls: 0; counts may overlap)'),
+      contains(
+        'excluded 1 passing turns (tool errors: 1; repeated calls: 0; same as a kept turn: 0; counts may overlap)',
+      ),
     );
     final kept = File(p.join(temp.path, 'train.jsonl')).readAsLinesSync().single;
     // Once in the tool list, once as the call, once as its result: one call left.

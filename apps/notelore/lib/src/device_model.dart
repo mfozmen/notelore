@@ -24,6 +24,16 @@ const deviceModelFiles = [
   ),
 ];
 
+/// How the device model samples: as Ollama's Modelfile, which every eval
+/// measured (Qwen's recommended values). llamadart's defaults differ, and its
+/// repeat penalty works against tool calls, which repeat slugs and JSON keys.
+const deviceSampling = GenerationParams(temp: 0.7, topP: 0.8, topK: 20, penalty: 1);
+
+/// [params] in one line, for the probe's log.
+String describeSampling(GenerationParams params) =>
+    'temp ${params.temp}, top-p ${params.topP}, top-k ${params.topK}, '
+    'min-p ${params.minP}, penalty ${params.penalty}';
+
 /// Where the model on the device is offered (#328): the desktops llama.cpp
 /// runs on, and an Android phone with a 64-bit runtime and at least 6 GB of
 /// memory ([meminfo] is `/proc/meminfo`); a smaller one is killed loading it.
@@ -37,6 +47,27 @@ bool deviceModelRuns({required String os, required String dartVersion, String? m
 
 /// 6 GB as the kernel counts it; a "6 GB" phone reports a little less.
 const _enoughKb = 5500000;
+
+/// The phone's fast (performance) cores, not every core (#594): llama.cpp runs
+/// about twice as fast on the S23's four performance cores as on all eight,
+/// where the efficiency cores hold the decode back. Every core above the
+/// slowest cluster counts, less a lone prime core, whose single thread adds
+/// little and can slow the rest. [fallback] when none is readable (0 keeps
+/// llama.cpp's own choice).
+int fastCores(Iterable<int> maxFrequencies, {required int fallback}) {
+  final counts = <int, int>{};
+  for (final hz in maxFrequencies) {
+    if (hz > 0) counts[hz] = (counts[hz] ?? 0) + 1;
+  }
+  if (counts.isEmpty) return fallback;
+  final total = counts.values.fold(0, (sum, count) => sum + count);
+  if (counts.length == 1) return total;
+  final slowest = counts.keys.reduce((a, b) => a < b ? a : b);
+  var fast = total - counts[slowest]!;
+  final fastest = counts.keys.reduce((a, b) => a > b ? a : b);
+  if (counts.length >= 3 && counts[fastest] == 1) fast--;
+  return fast;
+}
 
 /// Text a model would read as its own markers (a turn's end, a tool call, its
 /// thinking), written so it stays text: llama.cpp parses those tokens even in

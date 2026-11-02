@@ -102,19 +102,24 @@ void main() {
   });
 
   test('a passing turn becomes a training example: system, tools and the whole exchange', () async {
-    final result = await runCase(
-      filing,
-      ScriptedProvider([
-        toolUse('add_note_entry', 't1', {'slug': 'mopsos', 'text': 'Hit rate is now daily.'}),
-        text('Saved to Mopsos.'),
-      ]),
-    );
+    final provider = ScriptedProvider([
+      toolUse('add_note_entry', 't1', {'slug': 'mopsos', 'text': 'Hit rate is now daily.'}),
+      text('Saved to Mopsos.'),
+    ]);
+    final result = await runCase(filing, provider);
     final example = trainingExample(result);
     final messages = (example['messages']! as List).cast<Map<String, Object?>>();
     expect(messages.map((m) => m['role']), ['system', 'user', 'assistant', 'tool', 'assistant']);
+    // The system text the model was sent, its note list included (#602).
+    expect(messages.first['content'], provider.turns.first.$1);
     // The minute the model is told, so a relative reminder time has one answer (#434).
-    expect(messages.first['content'], endsWith('It is now 2026-10-18 14:00, local time.'));
-    expect(messages.first['content'], contains('Notelore'));
+    expect(messages.first['content'], contains('It is now 2026-10-18 14:00, local time.'));
+    expect(messages.first['content'], endsWith('- Mopsos: mopsos, project'));
+    // Its scenario, so a split keeps one scenario's turns on one side; its note
+    // list, so a reprompt keeps it.
+    expect(example['id'], 'file-1');
+    expect(example['note_list'], result.noteList);
+    expect(result.noteList, startsWith('Notes ('));
     expect(messages[1]['content'], filing.message);
     final call = ((messages[2]['tool_calls']! as List).single as Map)['function'] as Map;
     expect(call['name'], 'add_note_entry');
@@ -144,6 +149,12 @@ void main() {
     final slim = reprompted(old, slim: true);
     expect(((slim['messages']! as List).first as Map)['content'], slimSystemPrompt(evalNow));
     expect(slim['tools'], hasLength(slimTools.length));
+    // An example's note list stays after today's prompt (#602).
+    final listed = reprompted({...old, 'note_list': 'Notes:\n- Mopsos: mopsos, project'});
+    expect(
+      ((listed['messages']! as List).first as Map)['content'],
+      '${systemPrompt(evalNow)}\n\nNotes:\n- Mopsos: mopsos, project',
+    );
     // An example without a system message gets one in front.
     final bare = reprompted({
       'messages': [
@@ -234,6 +245,33 @@ void main() {
     });
   });
 
+  test('a tool the case rules out fails it: a tick nobody asked for (#629)', () async {
+    final update = _case({
+      'id': 'file-tick',
+      'kind': 'filing',
+      'lang': 'en',
+      'notes': {'projects/mopsos.md': _mopsos},
+      'message': 'Mopsos: the hit rate is now daily.',
+      'expect': {
+        'tools': ['add_note_entry'],
+        'tools_not': ['complete_todo'],
+        'notes': {
+          r'^projects/mopsos\.md$': ['daily'],
+        },
+      },
+    });
+    final result = await runCase(
+      update,
+      ScriptedProvider([
+        toolUse('add_note_entry', 't1', {'slug': 'mopsos', 'text': 'Hit rate is now daily.'}),
+        toolUse('complete_todo', 't2', {'slug': 'mopsos', 'number': 1}),
+        text('Saved to Mopsos.'),
+      ]),
+    );
+    expect(result.problems, ['called complete_todo']);
+    expect(filing.expect.toolsNot, isEmpty);
+  });
+
   group('lines a changed note must not have (#499)', () {
     final match = _case({
       'id': 'rem-title',
@@ -279,11 +317,11 @@ void main() {
     ]);
     final result = await runCase(filing, provider, slim: true);
     expect(result.passed, isTrue, reason: '${result.problems}');
-    expect(provider.turns.first.$1, slimSystemPrompt(evalNow));
+    expect(provider.turns.first.$1, startsWith(slimSystemPrompt(evalNow)));
     expect(provider.turns.first.$3, slimTools);
     final example = trainingExample(result);
     final messages = (example['messages']! as List).cast<Map<String, Object?>>();
-    expect(messages.first['content'], slimSystemPrompt(evalNow));
+    expect(messages.first['content'], provider.turns.first.$1);
     expect(example['tools'], hasLength(slimTools.length));
   });
 
@@ -482,6 +520,45 @@ void main() {
     ]);
   });
 
+  test("the answer's language: told by its small words, quoted titles left out (#597)", () {
+    expect(
+      answerLanguage(
+        "I've created a new note titled \"Saatleri Ayarlama Enstitüsü\" in your collection of topics.",
+      ),
+      'en',
+    );
+    expect(answerLanguage('Bu bilgiyi "Ev Tadilatı" projesine bir not olarak ekledim.'), 'tr');
+    expect(answerLanguage('Kaydedildi: Ev Tadilatı.'), isNull); // no small words: no verdict
+    expect(answerLanguage(''), isNull);
+  });
+
+  test("an answer in another language than the user's fails the case (#597)", () async {
+    final turkish = _case({
+      'id': 'q-tr',
+      'kind': 'question',
+      'lang': 'tr',
+      'notes': {'projects/mopsos.md': _mopsos},
+      'message': "Mopsos'ta isabet oranı ne sıklıkla hesaplanıyor?",
+      'expect': {
+        'answer': ['weekly'],
+      },
+    });
+    final english = await runCase(
+      turkish,
+      ScriptedProvider([text('The hit rate is calculated weekly, and that is all I have.')]),
+    );
+    expect(english.problems, ['the answer is in en, not tr']);
+    final quoted = await runCase(
+      turkish,
+      ScriptedProvider([
+        text(
+          'Notta "Hit rate is calculated weekly and the team is on it" yazıyor, yani bu haftalık.',
+        ),
+      ]),
+    );
+    expect(quoted.passed, isTrue);
+  });
+
   test('a provider error is a failed case, not a crash', () async {
     final result = await runCase(filing, ScriptedProvider([]));
     expect(result.passed, isFalse);
@@ -502,5 +579,133 @@ void main() {
     expect(report, contains('all: 1/2 (50%)'));
     expect(report, contains('FAIL file-1: did not call add_note_entry'));
     expect(summarize([]), 'all: 0/0'); // an empty file reports, it does not crash
+  });
+
+  test("repeated runs: each run's total, then the kinds over all runs (#597)", () async {
+    final pass = await runCase(
+      filing,
+      ScriptedProvider([
+        toolUse('add_note_entry', 't1', {'slug': 'mopsos', 'text': 'daily now'}),
+        text('ok'),
+      ]),
+    );
+    final fail = await runCase(filing, ScriptedProvider([text('ok')]));
+    final report = summarizeRuns([
+      [pass, pass],
+      [pass, fail],
+    ]);
+    expect(report, startsWith('run 1: 2/2 (100%)\nrun 2: 1/2 (50%)\n'));
+    expect(report, contains('filing: 3/4 (75%)'));
+    expect(report, contains('all: 3/4 (75%)'));
+    expect(
+      summarizeRuns([
+        [fail],
+      ]),
+      summarize([fail]),
+    ); // one run reads as before
+    expect(summarizeRuns([[], []]), startsWith('run 1: 0/0\nrun 2: 0/0\n')); // no cases: no crash
+  });
+
+  group('first write: the turn stops at its first write, which is scored (#598)', () {
+    test('the stopping provider is the model it wraps', () {
+      expect(UntilWrite(ScriptedProvider([])).model, 'scripted');
+    });
+
+    test('a right write passes without the rest of the turn', () async {
+      final provider = ScriptedProvider([
+        toolUse('list_notes', 't0', {}),
+        toolUse('add_note_entry', 't1', {'slug': 'mopsos', 'text': 'daily now'}),
+        text('never asked for'),
+      ]);
+      final result = await runCase(filing, provider, firstWrite: true);
+      expect(result.passed, isTrue);
+      expect(provider.turns, hasLength(2)); // stopped before a third model call
+      expect(result.action, 'add_note_entry');
+      expect(result.wanted, 'add_note_entry');
+    });
+
+    test('a note made first does not stop it; the write into it does', () async {
+      final firstOfKind = _case({
+        'id': 'first',
+        'kind': 'collection',
+        'lang': 'en',
+        'message': 'Reading Piranesi.',
+        'expect': {
+          'tools': ['create_note'],
+          'notes': {
+            r'^topics/[^/]*book[^/]*\.md$': ['Piranesi'],
+          },
+        },
+      });
+      final result = await runCase(
+        firstOfKind,
+        ScriptedProvider([
+          toolUse('create_note', 't1', {'kind': 'topic', 'title': 'Books'}),
+          toolUse('add_note_entry', 't2', {'slug': 'books', 'kind': 'topic', 'text': 'Piranesi'}),
+          text('never asked for'),
+        ]),
+        firstWrite: true,
+      );
+      expect(result.passed, isTrue);
+      expect(result.action, 'add_note_entry');
+    });
+
+    test(
+      'a write elsewhere, or a failed one followed by none, fails and says what it did',
+      () async {
+        final wrong = await runCase(
+          filing,
+          ScriptedProvider([
+            toolUse('create_note', 't1', {'kind': 'project', 'title': 'Daily'}),
+            toolUse('record_decision', 't2', {'slug': 'daily', 'topic': 'rate', 'value': 'daily'}),
+            text('never asked for'),
+          ]),
+          firstWrite: true,
+        );
+        expect(wrong.passed, isFalse);
+        expect(wrong.action, 'record_decision');
+        expect(wrong.problems, contains('did not call add_note_entry'));
+        final none = await runCase(
+          filing,
+          ScriptedProvider([text('Which note?')]),
+          firstWrite: true,
+        );
+        expect(none.action, 'ask');
+        final chat = await runCase(
+          _case({
+            'id': 'chat',
+            'kind': 'chat',
+            'lang': 'en',
+            'message': 'thanks',
+            'expect': <String, Object?>{},
+          }),
+          ScriptedProvider([text('You are welcome.')]),
+          firstWrite: true,
+        );
+        expect((chat.wanted, chat.action, chat.passed), ('none', 'none', true));
+      },
+    );
+
+    test('the report counts wanted against done for the cases that failed', () async {
+      final asked = await runCase(
+        filing,
+        ScriptedProvider([text('Which note?')]),
+        firstWrite: true,
+      );
+      final elsewhere = await runCase(
+        filing,
+        ScriptedProvider([
+          toolUse('add_note_entry', 't1', {'slug': 'mopsos', 'text': 'weekly still'}),
+        ]),
+        firstWrite: true,
+      );
+      expect(
+        confusion([elsewhere]),
+        'wanted → done, failed cases:\n  add_note_entry, but the note or answer was wrong: 1',
+      );
+      final report = confusion([asked, asked]);
+      expect(report, 'wanted → done, failed cases:\n  add_note_entry → ask: 2');
+      expect(confusion([]), isEmpty);
+    });
   });
 }

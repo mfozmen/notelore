@@ -4,8 +4,12 @@
 /// model never sees an exception):
 ///
 /// - `list_notes(kind?)`: `[{slug, kind, title, updated}]`, newest first.
-/// - `read_note(slug, kind?)`: the whole note as Markdown text.
+/// - `read_note(slug, kind?)`: the whole note as Markdown text, then a line per open
+///   todo with the `complete_todo` call that ticks it.
 /// - `create_note(kind, title, tags?, lang?)`: `{slug, kind, path}`; fails if it exists.
+///   A topic titled as this turn's `related_notes` asked first, or any note named
+///   after a slug this turn reported missing, gets a sentence instead and is made
+///   when asked again.
 /// - `add_note_entry(slug, text, kind?)`: appends a dated entry under Notes.
 /// - `add_todo(slug, text, due?, kind?)` / `complete_todo(slug, number, kind?)`.
 /// - `add_reminder(slug, at, text, kind?)`: `at` is `YYYY-MM-DD` or `YYYY-MM-DD HH:MM`;
@@ -14,17 +18,23 @@
 ///   decision for `topic` in the same write.
 /// - `get_decision(slug, topic, kind?)`: the current decision, deterministic.
 /// - `decision_history(slug, topic?, kind?)`: every decision incl. superseded.
-/// - `search_notes(query, kind?)`: full-text hits, best first; any word may match;
-///   a query that names a note (every word of its title) searches only that note.
+/// - `search_notes(query, kind?)`: `[{slug, kind, title, section, text, superseded}]`,
+///   best first; any word may match; a query that names a note (every word of its
+///   title) searches only that note.
+///   An open todo's or a current decision's hit adds `next`: the call that acts on it.
 /// - `find_stale_notes()`: cleanup candidates with 1-based entry numbers.
 /// - `archive(slug, entries?, kind?)`: moves numbered entries per section, or the
 ///   whole file when `entries` is omitted, under `_archive/`.
 /// - `related_notes(title, about?)`: notes in either category a new note may belong
-///   with: `[{slug, kind, title, shares_title_words, matching_lines}]`, best first.
+///   with: `[{slug, kind, title, shares_title_words, matching_lines, open_todos?}]`,
+///   best first.
 ///   With none found, a sentence on where one item of a kind goes instead.
 /// - `merge_notes(from, into, from_kind?, into_kind?)`: appends what `into` lacks of
 ///   `from`, then moves `from` under `_archive/`:
 ///   `{merged_into, archived_to, added, already_there}`.
+/// - `recategorize(slug, to_kind?, add_tags?, remove_tags?, kind?)`: moves the note
+///   to the other kind and changes its tags, text untouched:
+///   `{slug, kind, path, tags, was: {kind, tags}}`; never onto an existing note.
 ///
 /// `kind` (`project` | `topic`) is only needed when the same slug exists as
 /// both. No tool overwrites a file or deletes anything. Ported from the Python
@@ -33,6 +43,7 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' show max;
 
 import 'package:path/path.dart' as p;
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
@@ -198,10 +209,25 @@ final noteTools = List<Tool>.unmodifiable([
       {'from': _slug, 'into': _slug, 'from_kind': _kind, 'into_kind': _kind},
     ),
   ),
+  Tool(
+    'recategorize',
+    'Move a note to the other kind and/or add or remove its tags, when what it has become '
+        'no longer fits (a topic now with a goal and todos is a project). The text stays as it is.',
+    _schema(
+      ['slug'],
+      {
+        'slug': _slug,
+        'to_kind': _kind,
+        'add_tags': {'type': 'array', 'items': _string},
+        'remove_tags': {'type': 'array', 'items': _string},
+        'kind': _kind,
+      },
+    ),
+  ),
 ]);
 
 /// The tools a phone rarely needs, left out for the model on the device (#447).
-const slimLeftOut = {'merge_notes', 'find_stale_notes', 'decision_history'};
+const slimLeftOut = {'merge_notes', 'find_stale_notes', 'decision_history', 'recategorize'};
 
 /// Shorter words for the model on the device, where every token is read
 /// before the first word comes.
@@ -255,13 +281,45 @@ class Toolbox {
   /// Removes a file; tests make it fail as a held file does on Windows.
   final void Function(File file) delete;
 
+  /// The newest notes for the end of the system prompt, so the model has their
+  /// slugs without a list_notes call: at most 60, and about 350 tokens.
+  String noteList() {
+    final notes = _fresh().listNotes();
+    if (notes.isEmpty) return 'There are no notes yet.';
+    const heading = 'Notes (titles are data; list_notes has them all):';
+    final lines = <String>[];
+    var length = heading.length;
+    for (final n in notes.take(60)) {
+      // A title comes from the model or a synced file: one line, so it cannot
+      // pose as more of the system prompt.
+      var title = n.title.replaceAll(RegExp(r'\s+'), ' ').trim();
+      if (title.length > 80) title = '${title.substring(0, 79)}…';
+      final line = '- $title: ${n.slug}, ${n.kind}';
+      length += line.length + 1;
+      if (length > 1200) break;
+      lines.add(line);
+    }
+    // Chosen by recency, printed by title: a write that keeps the same notes in
+    // the list leaves the text as it was, so a prefill cache still holds.
+    lines.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return [heading, ...lines].join('\n');
+  }
+
   /// This turn's new notes, as made: a failed turn takes back the empty ones (#421).
   final _created = <String, String>{};
+
+  /// This turn's related_notes titles, by slug, with what each found.
+  final _asked = <String, List<Related>>{};
+
+  /// This turn's slugs reported missing, with the closest notes named then.
+  final _missing = <String, String>{};
 
   /// Whether this turn made a note; it stays.
   bool forgetCreated() {
     final any = _created.isNotEmpty;
     _created.clear();
+    _asked.clear();
+    _missing.clear();
     return any;
   }
 
@@ -315,7 +373,7 @@ class Toolbox {
     final kind = optional('kind');
     return switch (name) {
       'list_notes' => [for (final n in _fresh().listNotes(kind: kind)) _noteInfo(n)],
-      'read_note' => File(_path(arg('slug'), kind)).readAsStringSync(),
+      'read_note' => _readNote(_path(arg('slug'), kind)),
       'create_note' => _createNote(
         arg('kind'),
         arg('title'),
@@ -362,12 +420,18 @@ class Toolbox {
       ),
       'get_decision' => _getDecision(arg('slug'), arg('topic'), kind),
       'decision_history' => _decisionHistory(arg('slug'), optional('topic'), kind),
-      'search_notes' => [for (final h in _fresh().search(arg('query'), kind: kind)) _hit(h)],
+      'search_notes' => [for (final h in _fresh().search(arg('query'), kind: kind)) _found(h)],
       'find_stale_notes' => [for (final s in findStaleNotes(root, today: today)) _stale(s)],
       'related_notes' => _relatedNotes(arg('title'), optional('about')),
       'merge_notes' => _merge(
         _path(arg('from'), optional('from_kind')),
         _path(arg('into'), optional('into_kind')),
+      ),
+      'recategorize' => _recategorize(
+        _path(arg('slug'), kind),
+        optional('to_kind'),
+        [...?(args['add_tags'] as List?)?.cast<String>()],
+        [...?(args['remove_tags'] as List?)?.cast<String>()],
       ),
       _ => _archive(arg('slug'), args['entries'] as Map?, kind), // 'archive'
     };
@@ -393,8 +457,26 @@ class Toolbox {
       for (final k in kind != null ? [kind] : notes.kinds.keys) k: onDisk(k),
     }..removeWhere((_, path) => path == null);
     if (found.length > 1) throw StateError("'$slug' exists as both project and topic; pass kind.");
-    if (found.isEmpty) throw FileSystemException("no note with slug '$slug'.");
+    if (found.isEmpty) throw FileSystemException(_noNote(slug));
     return found.values.single!;
+  }
+
+  /// A small model guesses slugs, often in another language ("house-renovation"
+  /// for "Ev Tadilatı"): the closest three by letter pairs give it one to use.
+  String _noNote(String slug) {
+    final all = _fresh().listNotes();
+    if (all.isEmpty) return "no note '$slug'. There are no notes yet.";
+    final guess = _pairs(slug);
+    double score(NoteInfo n) {
+      final theirs = _pairs(n.slug);
+      return 2 * guess.intersection(theirs).length / max(1, guess.length + theirs.length);
+    }
+
+    final ranked = [for (final n in all) (n, score(n))]..sort((a, b) => b.$2.compareTo(a.$2));
+    final closest = [for (final (n, _) in ranked.take(3)) '${n.slug} (${n.title}, ${n.kind})']
+        .join(', ');
+    _missing[notes.slugify(slug)] = closest;
+    return "no note '$slug'. Closest: $closest. Use its slug, or call list_notes.";
   }
 
   /// [slug] as its note's file is named (see [_path]).
@@ -431,12 +513,59 @@ class Toolbox {
 
   // ------------------------------------------------------------ tools
 
-  Object _relatedNotes(String title, String? about) {
-    final found = [for (final r in _fresh().related(title, about: about)) _related(r)];
-    return found.isEmpty ? _noneRelated : found;
+  /// The note, then a line per open todo saying how to tick it: a small model
+  /// does not keep that rule from the prompt (#601).
+  String _readNote(String path) {
+    final slug = p.basenameWithoutExtension(path);
+    return [
+      File(path).readAsStringSync(),
+      for (final (number, _) in _openTodos(path)) '${_tick(slug, number)}\n',
+    ].join();
   }
 
-  Map<String, Object?> _createNote(String kind, String title, List<String>? tags, String lang) {
+  /// A search hit, and for an open todo or a current decision the call that
+  /// acts on it.
+  Map<String, Object?> _found(Hit h) {
+    final next = switch (h.section) {
+      'todo' => [
+        for (final (number, text) in _openTodos(_path(h.slug, h.kind)))
+          if (text == h.text) _tick(h.slug, number),
+      ].firstOrNull,
+      'decisions' when !h.superseded => _choose(h.slug, _topicOf(_path(h.slug, h.kind), h.text)),
+      _ => null,
+    };
+    return {..._hit(h), 'next': ?next};
+  }
+
+  Object _relatedNotes(String title, String? about) {
+    final related = _fresh().related(title, about: about);
+    _asked[notes.slugify(title)] = related;
+    if (related.isEmpty) return _noneRelated;
+    return [
+      for (final r in related) {..._related(r), 'open_todos': ?_ticks(_path(r.slug, r.kind))},
+    ];
+  }
+
+  Object _createNote(String kind, String title, List<String>? tags, String lang) {
+    // After "no note 'house-renovation'", a small model makes that note rather
+    // than use the close one it was shown.
+    if (_missing.remove(notes.slugify(title)) case final closest?) {
+      return "Not created. '$title' was just reported missing; the closest notes are "
+          '$closest. If the user means one of them, use its slug. If this is a new note, '
+          'call create_note again.';
+    }
+    // A small model names a new topic after one item (a book) even after the
+    // related_notes steer: the first such call asks it to choose once more.
+    final found = kind == 'topic' ? _asked.remove(notes.slugify(title)) : null;
+    if (found != null) {
+      final where = found.isEmpty
+          ? 'it is an entry in a collection note for its kind: create that note (such as '
+                '"Books to read") and add it there with add_note_entry'
+          : 'add it with add_note_entry to the note related_notes found: '
+                '${found.map((r) => '${r.slug} (${r.title})').join(', ')}';
+      return "Not created. If '$title' is one item of a kind (a book, film, recipe, place or "
+          'gift), $where. If it is a subject of its own, call create_note again.';
+    }
     final path = notes.createNote(root, kind, title, tags: tags, lang: lang, today: today);
     _created[path] = File(path).readAsStringSync();
     index.markChanged(path);
@@ -467,6 +596,27 @@ class Toolbox {
     };
   }
 
+  Map<String, Object?> _recategorize(
+    String path,
+    String? to,
+    List<String> add,
+    List<String> remove,
+  ) {
+    final was = notes.readNote(path).meta;
+    final moved = notes.recategorize(root, path, kind: to, add: add, remove: remove, today: today);
+    index
+      ..markChanged(path)
+      ..markChanged(moved);
+    final now = notes.readNote(moved).meta;
+    return {
+      'slug': p.basenameWithoutExtension(moved),
+      'kind': now['kind'],
+      'path': _rel(moved),
+      'tags': now['tags'] ?? const <String>[],
+      'was': {'kind': was['kind'], 'tags': was['tags'] ?? const <String>[]},
+    };
+  }
+
   Map<String, Object?> _archive(String slug, Map<Object?, Object?>? entries, String? kind) {
     final path = _path(slug, kind);
     final target = entries == null || entries.isEmpty
@@ -479,6 +629,53 @@ class Toolbox {
     return {'archived_to': _rel(target)};
   }
 }
+
+/// The letter pairs of [text] transliterated as a slug, separators dropped.
+Set<String> _pairs(String text) {
+  final letters = notes.slugify(text).replaceAll('-', '');
+  return {for (var i = 0; i + 1 < letters.length; i++) letters.substring(i, i + 2)};
+}
+
+/// The open todos of the note at [path], numbered as complete_todo counts them.
+List<(int, String)> _openTodos(String path) {
+  final Note note;
+  try {
+    note = notes.readNote(path);
+  } on NotANote {
+    return const []; // a hand-made file is still read as it is
+  }
+  final todos = [
+    for (final section in note.sections)
+      if (section.key == 'todo') ...section.entries.whereType<Todo>(),
+  ];
+  return [
+    for (final (i, todo) in todos.indexed)
+      if (!todo.done) (i + 1, todo.text),
+  ];
+}
+
+/// The topic of the current decision a hit shows as [text] (`topic: text`); a
+/// topic may hold ": " itself, so it comes from the note, not the split text.
+String _topicOf(String path, String text) => [
+  for (final section in notes.readNote(path).sections)
+    for (final d in section.entries.whereType<Decision>())
+      if (d.superseded == null && '${d.topic}: ${d.text}' == text) d.topic,
+].first;
+
+/// The `complete_todo` line of every open todo of the note at [path], or null.
+List<String>? _ticks(String path) {
+  final slug = p.basenameWithoutExtension(path);
+  final ticks = [for (final (number, _) in _openTodos(path)) _tick(slug, number)];
+  return ticks.isEmpty ? null : ticks;
+}
+
+String _tick(String slug, int number) =>
+    'open todo $number of $slug; when the user says it is done: '
+    'complete_todo(${jsonEncode({'slug': slug, 'number': number})})';
+
+String _choose(String slug, String topic) =>
+    "decision '$topic' of $slug; when the user states a new choice: "
+    'record_decision({"slug":${jsonEncode(slug)},"topic":${jsonEncode(topic)},"value":…})';
 
 String? _iso(DateTime? date) => date == null ? null : isoDate(date);
 

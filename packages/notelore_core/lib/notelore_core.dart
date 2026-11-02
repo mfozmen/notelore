@@ -10,6 +10,7 @@ export 'src/agent.dart'
         describeTool,
         suggestedAnswers,
         systemPrompt,
+        slimSystemPrompt,
         Attachment,
         attachedFiles,
         withAttachments;

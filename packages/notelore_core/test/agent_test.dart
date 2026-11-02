@@ -138,7 +138,7 @@ void main() {
     ]);
     expect(await Agent(provider, box, today: today).ask('read it'), 'Sorry.');
     expect(lastResult(provider, 1), 'Error: the tool arguments were not valid JSON: {oops');
-    expect(lastResult(provider, 2), "Error: no note with slug 'nope'.");
+    expect(lastResult(provider, 2), "Error: no note 'nope'. There are no notes yet.");
   });
 
   test('only text and tool_use blocks enter the history', () async {
@@ -187,6 +187,7 @@ void main() {
     expect(describeTool('some_new_tool'), 'Working'); // never mislabelled as a write
     expect(describeTool('related_notes'), 'Searching the notes');
     expect(describeTool('merge_notes'), 'Writing the notes'); // a merge writes (#229)
+    expect(describeTool('recategorize'), 'Writing the notes');
     expect(describeTool('add_reminder'), 'Writing the notes');
     expect(systemPrompt(), contains('add_reminder')); // the model knows when to use it
   });
@@ -394,6 +395,12 @@ void main() {
     final prompt = systemPrompt(today);
     expect(prompt, contains('Notelore read the linked pages'));
     expect(prompt, contains('could not be read'));
+  });
+
+  test('the prompt moves an older note whose kind or tags no longer fit (#639)', () {
+    final prompt = systemPrompt(today);
+    expect(prompt, contains('call recategorize'));
+    expect(prompt, contains('ask first when it is not clear'));
   });
 
   test('the prompt looks for related notes before creating one (#229)', () {
@@ -715,7 +722,6 @@ void failureTests() {
         'get_decision',
         'related_notes',
         'collection note',
-        'complete_todo',
         'add_reminder',
         'Never refuse',
         'HH:MM-HH:MM',
@@ -728,12 +734,17 @@ void failureTests() {
       ]) {
         expect(slim, contains(rule));
       }
+      // Carried by the results instead (#601).
+      expect(slim, isNot(contains('complete_todo')));
+      // Only a read shows those results: v6 filed every done message unread (#327).
+      expect(slim, contains('says a task is done, read_note its note first'));
       // Nothing it cannot do: no web search, no pictures, no merging.
       for (final gone in [
         'search the web',
         '<attached image=',
         'merge_notes',
         'decision_history',
+        'recategorize',
       ]) {
         expect(slim, isNot(contains(gone)));
       }
@@ -746,9 +757,9 @@ void failureTests() {
       await Agent(provider, newBox(), today: today, slim: true).ask('hi');
       await Agent(provider, newBox(), today: today).ask('hi');
       final (slimTurn, fullTurn) = (provider.turns.first, provider.turns.last);
-      expect(slimTurn.$1, slimSystemPrompt(today));
+      expect(slimTurn.$1, '${slimSystemPrompt(today)}\n\nThere are no notes yet.');
       expect(slimTurn.$3, slimTools);
-      expect(fullTurn.$1, systemPrompt(today));
+      expect(fullTurn.$1, '${systemPrompt(today)}\n\nThere are no notes yet.');
       expect(fullTurn.$3, noteTools);
     });
   });

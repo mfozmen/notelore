@@ -30,6 +30,7 @@ final evalNow = DateTime(2026, 10, 18, 14);
 class Expectation {
   Expectation.fromJson(Map<String, Object?> json)
     : tools = [...?(json['tools'] as List?)?.cast<String>()],
+      toolsNot = [...?(json['tools_not'] as List?)?.cast<String>()],
       answer = [...?(json['answer'] as List?)?.cast<String>()],
       answerNot = [...?(json['answer_not'] as List?)?.cast<String>()],
       linesNot = [...?(json['lines_not'] as List?)?.cast<String>()],
@@ -40,6 +41,9 @@ class Expectation {
 
   /// Tool names that must be called, in any order.
   final List<String> tools;
+
+  /// Tool names that must not be called: a tick on a plain update (#629).
+  final List<String> toolsNot;
 
   /// Facts the final answer must contain (case-insensitive).
   final List<String> answer;
@@ -114,6 +118,8 @@ class EvalResult {
     this.took, {
     this.messages = const [],
     this.slim = false,
+    this.action = '',
+    this.noteList = '',
   });
 
   final EvalCase evalCase;
@@ -129,12 +135,105 @@ class EvalResult {
   /// Asked with the prompt and tools of the model on the device (#447).
   final bool slim;
 
+  /// What the turn did first: the write it stopped at, `create_note` when it
+  /// only made a note, `ask` for a question back, or `none` (#598).
+  final String action;
+
+  /// The note list the model was sent after the fixed prompt (#602).
+  final String noteList;
+
+  /// What it should have done first, in the same terms.
+  String get wanted => wantedAction(evalCase);
+
   bool get passed => problems.isEmpty;
 }
 
+/// The first write [evalCase] calls for (not counting a note made for it), a
+/// new note's `create_note`, `ask` for an unclear message, or `none`.
+String wantedAction(EvalCase evalCase) {
+  final writes = evalCase.expect.tools.where(writingTools.contains);
+  return switch (evalCase) {
+    _ when writes.any((t) => t != 'create_note') => writes.firstWhere((t) => t != 'create_note'),
+    EvalCase(kind: 'new-note') => 'create_note',
+    EvalCase(kind: 'unclear') => 'ask',
+    _ when evalCase.expect.notes.isNotEmpty => 'add_note_entry',
+    _ => 'none',
+  };
+}
+
+String _action(List<String> tools, String? stoppedAt, String answer) {
+  if (stoppedAt != null) return stoppedAt;
+  if (tools.contains('create_note')) return 'create_note';
+  return answer.contains('?') ? 'ask' : 'none';
+}
+
+/// For the cases that failed: how often each wanted first action met each
+/// done one, most often first (#598). Empty when none failed.
+String confusion(List<EvalResult> results) {
+  final counts = <String, int>{};
+  for (final r in results.where((r) => !r.passed)) {
+    final key = r.wanted == r.action
+        ? '${r.wanted}, but the note or answer was wrong'
+        : '${r.wanted} → ${r.action}';
+    counts.update(key, (n) => n + 1, ifAbsent: () => 1);
+  }
+  if (counts.isEmpty) return '';
+  final rows = counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+  return [
+    'wanted → done, failed cases:',
+    for (final row in rows) '  ${row.key}: ${row.value}',
+  ].join('\n');
+}
+
+/// Ends the turn once a write other than making a note has succeeded, so a
+/// run scores the first decision only and skips the rest (#598).
+class UntilWrite implements LlmProvider {
+  UntilWrite(this._inner);
+
+  final LlmProvider _inner;
+  String? stoppedAt;
+
+  @override
+  String get model => _inner.model;
+
+  @override
+  Future<AgentResponse> turn(String system, List<Message> messages, List<Tool> tools) async {
+    stoppedAt = _succeededWrite(messages);
+    if (stoppedAt != null) return const AgentResponse([], 'end_turn');
+    return _inner.turn(system, messages, tools);
+  }
+}
+
+/// The write of the last step that did not fail, if any, besides create_note.
+String? _succeededWrite(List<Message> messages) {
+  if (messages.length < 2) return null;
+  final uses = {
+    for (final b in _blocks(messages[messages.length - 2]))
+      if (b['type'] == 'tool_use') b['id']: '${b['name']}',
+  };
+  for (final b in _blocks(messages.last)) {
+    final name = uses[b['tool_use_id']];
+    final ok = b['type'] == 'tool_result' && !'${b['content']}'.startsWith('Error');
+    if (ok && name != null && name != 'create_note' && writingTools.contains(name)) return name;
+  }
+  return null;
+}
+
+Iterable<Map<Object?, Object?>> _blocks(Message message) => switch (message['content']) {
+  final List<Object?> blocks => blocks.cast<Map<Object?, Object?>>(),
+  _ => const [],
+};
+
 /// Runs [evalCase] once with [provider] on a fresh temp notes folder; [slim]
-/// as the model on the device asks (#447).
-Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider, {bool slim = false}) async {
+/// as the model on the device asks (#447); with [firstWrite], only until its
+/// first write, which is all that is scored then (#598).
+Future<EvalResult> runCase(
+  EvalCase evalCase,
+  LlmProvider provider, {
+  bool slim = false,
+  bool firstWrite = false,
+}) async {
+  final until = firstWrite ? UntilWrite(provider) : null;
   final dir = Directory.systemTemp.createTempSync('notelore_eval_');
   final root = p.join(dir.path, 'notes');
   final index = NoteIndex(p.join(dir.path, 'state', 'index.sqlite'), root);
@@ -143,7 +242,7 @@ Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider, {bool slim =
     _write(root, evalCase.notes);
     final before = _files(root);
     final agent = Agent(
-      provider,
+      until ?? provider,
       switch (evalCase) {
         EvalCase(failFirstCall: true) => _FailsOnce(root, index, today: evalToday),
         EvalCase(search: final found?) => _Searches(root, index, found, today: evalToday),
@@ -162,13 +261,20 @@ Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider, {bool slim =
     final after = _files(root);
     final changed = _changed(before, after);
     final tools = _toolsCalled(agent.messages);
+    final stoppedAt = until?.stoppedAt;
     if (problems.isEmpty) {
       problems.addAll([
         ..._missingTools(evalCase.expect, tools),
+        for (final tool in evalCase.expect.toolsNot)
+          if (tools.contains(tool)) 'called $tool',
         ..._strayWrites(evalCase.expect, changed),
         ..._missingFacts(evalCase.expect, changed, after),
         ..._badLines(evalCase.expect, changed, after),
-        ..._answerProblems(evalCase.expect, answer),
+        // A turn stopped at its write has no answer to score.
+        if (stoppedAt == null) ...[
+          ..._answerProblems(evalCase.expect, answer),
+          ?_wrongLanguage(evalCase.lang, answer),
+        ],
       ]);
     }
     return EvalResult(
@@ -180,6 +286,8 @@ Future<EvalResult> runCase(EvalCase evalCase, LlmProvider provider, {bool slim =
       watch.elapsed,
       messages: agent.messages,
       slim: slim,
+      action: _action(tools, stoppedAt, answer),
+      noteList: agent.noteList,
     );
   } finally {
     index.close();
@@ -292,15 +400,55 @@ Iterable<String> _answerProblems(Expectation expect, String answer) => [
     if (_has(answer, word)) 'the answer has "$word"',
 ];
 
+String? _wrongLanguage(String lang, String answer) => switch (answerLanguage(answer)) {
+  final said? when said != lang => 'the answer is in $said, not $lang',
+  _ => null,
+};
+
+const _englishWords = {
+  'the', 'a', 'an', 'and', 'to', 'of', 'in', 'on', 'for', 'with', 'is', 'are', 'was', 'it', //
+  'i', "i've", "i'll", 'you', 'your', 'this', 'that', 'what', 'which', 'do', 'did', 'have',
+};
+
+const _turkishWords = {
+  've', 'bir', 'bu', 'şu', 'için', 'ile', 'da', 'de', 'mi', 'mı', 'mu', 'mü', 'ne', 'olarak', //
+  'ekledim', 'kaydettim', 'notuna', 'notunu', 'hangi', 'nasıl', 'var', 'yok', 'yani', 'değil',
+};
+
+/// `en` or `tr` by which language's small words [answer] has more of, quoted
+/// text left out (a Turkish title in an English answer); null when neither.
+String? answerLanguage(String answer) {
+  final unquoted = answer.replaceAll(RegExp(r'"[^"]*"|“[^”]*”|`[^`]*`'), ' ');
+  final words = RegExp(
+    r"[\p{L}']+",
+    unicode: true,
+  ).allMatches(unquoted.toLowerCase()).map((m) => m[0]!);
+  final english = words.where(_englishWords.contains).length;
+  final turkish = words.where(_turkishWords.contains).length;
+  if (english > turkish) return 'en';
+  if (turkish > english) return 'tr';
+  return null;
+}
+
 /// [result]'s turn as one chat transcript with tool calls, the shape Qwen's
 /// and most open models' chat templates train on (#327).
+/// Its case id goes with it, so a split keeps one scenario on one side, and
+/// its note list, so a reprompt keeps it.
 Map<String, Object?> trainingExample(EvalResult result) => {
+  'id': result.evalCase.id,
+  'note_list': result.noteList,
   'messages': [
-    {'role': 'system', 'content': result.slim ? slimSystemPrompt(evalNow) : systemPrompt(evalNow)},
+    {'role': 'system', 'content': _system(result.slim, result.noteList)},
     ...toOllama(collapseRepeatedReads(result.messages)),
   ],
   'tools': functionTools(result.slim ? slimTools : noteTools),
 };
+
+/// The system text as [Agent] sends it: the fixed prompt, then [noteList].
+String _system(bool slim, String noteList) {
+  final prompt = slim ? slimSystemPrompt(evalNow) : systemPrompt(evalNow);
+  return noteList.isEmpty ? prompt : '$prompt\n\n$noteList';
+}
 
 /// [example] (a line of a training file) with today's system prompt and tools,
 /// [slim] or full, and its turns as they were: one file then teaches one
@@ -310,7 +458,7 @@ Map<String, Object?> reprompted(Map<String, Object?> example, {bool slim = false
   return {
     ...example,
     'messages': [
-      {'role': 'system', 'content': slim ? slimSystemPrompt(evalNow) : systemPrompt(evalNow)},
+      {'role': 'system', 'content': _system(slim, '${example['note_list'] ?? ''}')},
       ...messages.where((m) => m['role'] != 'system'),
     ],
     'tools': functionTools(slim ? slimTools : noteTools),
@@ -364,7 +512,13 @@ Message? _without(Message message, Set<Object?> dropped) {
 }
 
 /// Reasons a scored-passing teacher turn is excluded from distillation.
-enum TrainingIssue { toolError, repeatedCall }
+enum TrainingIssue {
+  toolError,
+  repeatedCall,
+
+  /// The same exchange as a turn already kept for its case (#604).
+  sameAsKept,
+}
 
 /// Problems in a passing turn that would teach the student a bad tool path.
 /// [Toolbox.call] and [Agent] mark tool failures with an `Error:` prefix.
@@ -412,13 +566,26 @@ Map<String, String> _files(String root) => {
     p.posix.joinAll(p.split(p.relative(file.path, from: root))): file.readAsStringSync(),
 };
 
+/// Each run's total, then [summarize] over every run: a kind's share is its
+/// mean (#597). One run reads as [summarize] alone.
+String summarizeRuns(List<List<EvalResult>> runs) {
+  final all = runs.expand((run) => run).toList();
+  if (runs.length == 1) return summarize(all);
+  return [
+    for (final (i, run) in runs.indexed) 'run ${i + 1}: ${_share(run)}',
+    summarize(all),
+  ].join('\n');
+}
+
+String _share(Iterable<EvalResult> group) {
+  final passed = group.where((r) => r.passed).length;
+  if (group.isEmpty) return '0/0';
+  return '$passed/${group.length} (${(100 * passed / group.length).round()}%)';
+}
+
 /// Accuracy per kind and overall, then every failure with its reasons.
 String summarize(List<EvalResult> results) {
-  String line(String name, Iterable<EvalResult> group) {
-    final passed = group.where((r) => r.passed).length;
-    if (group.isEmpty) return '$name: 0/0';
-    return '$name: $passed/${group.length} (${(100 * passed / group.length).round()}%)';
-  }
+  String line(String name, Iterable<EvalResult> group) => '$name: ${_share(group)}';
 
   final kinds = {for (final r in results) r.evalCase.kind}.toList()..sort();
   return [

@@ -5,7 +5,7 @@ set -euo pipefail
 
 app=$1
 arch=$2
-main="$app/Contents/MacOS/notelore"
+main="$app/Contents/MacOS/Notelore"
 [ -f "$main" ] || { echo "no $main" >&2; exit 1; }
 
 while IFS= read -r -d '' file; do
