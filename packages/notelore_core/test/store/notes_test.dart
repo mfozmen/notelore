@@ -775,6 +775,28 @@ void main() {
       expect(readNote(path).meta['tags'], ['lab']);
     });
 
+    test('a failed move leaves the note as it was', () {
+      final before = File(path).readAsStringSync();
+      expect(
+        () => recategorize(
+          root,
+          path,
+          kind: 'project',
+          rename: (_, _) => throw const FileSystemException('disk gone'),
+        ),
+        throwsA(isA<FileSystemException>()),
+      );
+      expect(File(path).readAsStringSync(), before);
+      expect(File(notePath(root, 'project', 'home-lab')).existsSync(), isFalse);
+    });
+
+    test('a tag written in capitals by hand is removed too', () {
+      File(path)
+          .writeAsStringSync(File(path).readAsStringSync().replaceFirst('hardware', 'Hardware'));
+      recategorize(root, path, remove: ['hardware']);
+      expect(readNote(path).meta['tags'], ['home']);
+    });
+
     test('never overwrites a note of the same name, and refuses a no-op', () {
       final other = createNote(root, 'project', 'Home Lab');
       final mine = File(path).readAsStringSync();
