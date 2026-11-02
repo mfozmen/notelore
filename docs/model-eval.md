@@ -132,7 +132,7 @@ Findings:
 | **v6** | 228 (78%)\*, 220 (75%) | 60/88 (68%), 64/88 (73%) | 0/20\*, 2/20 |
 | v7 | 220 (75%) | 62/88 (70%) | 1/20 |
 
-\* On the held-out set before #628, which did not yet ask a `done-other` case to read the note. v6's second figures are with the #628 prompt.
+\* On the held-out set before #628, which did not yet ask a `done-other` case to read the note. v3's 44-case figure is from before #628 too; v6's second figures, in both columns, are with the #628 prompt.
 
 Findings:
 
@@ -141,12 +141,33 @@ Findings:
   - Todos: 10 → 18/19.
   - Unclear messages: 1 → 10/15.
   - Plans: 7 → 11/15.
-- **No model ticks a todo the user says is done.**
+- **No model reliably ticks a todo the user says is done: at most 2/20.**
   - The slim prompt had no rule to read the note first. The rule to tick lives in the `read_note` result (#601), so the read never came. #628 adds the rule.
   - The data taught the same: half of the done-like turns were updates filed with a bare `add_note_entry`.
   - v7 has 52 read-first done turns. They do not outweigh 100+ updates filed straight away, and the two kinds of message look alike ("Home studio: I bought the mic" against "Home studio: the desk goes by the window").
 - **Listing the open todos in `add_note_entry`'s result was tried and dropped.**
   - todo-done rose to 18/20.
   - But v7 then ticked a todo on nearly every plain update, and the eval passed those turns. #630 lets a case rule out a tool, and updates now rule out `complete_todo`.
-- **New-list collections regress on the 44 cases (14 → 8/20).** v6 files "Movie to watch: Perfect Days" in the reading list instead of starting a film list.
+- **New-list collections regress on the 44 cases (v3 14/20 → v6 8/20).** v6 files "Movie to watch: Perfect Days" in the reading list instead of starting a film list.
 - **Next: DPO on the student's own failures (#607).** Telling a done message from an update, and starting a list of a new kind, are contrasts. A preference pair shows them directly, where more SFT turns of one kind did not.
+
+## DPO on the student's own failures, 2026-11-03 (#607)
+
+**Setup**
+- Pairs: 464 from v7's failed turns on a third scenario set (`dpo_set.py`, 292 cases, disjoint from training and held-out). Each failed turn is paired with a passing turn of its case, v7's own or glm-5.3-flash's.
+- Training: TRL's DPO on v7's LoRA, beta 0.1, lr 5e-6, one epoch on Kaggle's T4. The run hit Kaggle's limit at step 50 of 52; the step-50 checkpoint is the model.
+  - Validation reward accuracy rose from 0.77 to 0.79, and the margin from 0.17 to 0.29.
+- Served and evaluated like v7: Q4_K_M, greedy, slim.
+
+| Model | Held-out (292) | 44 cases × 2 | Held-out todo-done |
+|---|---|---|---|
+| v7 | 220 (75%) | 62/88 (70%) | 1/20 |
+| v7 + DPO | 215 (74%) | 64/88 (73%) | 3/20 |
+
+Findings:
+
+- **DPO did not move the model.** Both sets are within one run's noise of v7.
+  - todo-done: 1 → 3/20; recovery: 12 → 13/15.
+  - plan: 12 → 10/15; decision: 15 → 14/18.
+- **The pairs taught the preference but not the behaviour.** Validation reward accuracy reached 0.79, yet greedy decoding keeps v7's choices: at beta 0.1 and this learning rate, one epoch moves the log-probabilities too little to flip the top token.
+- **v7 stays.** The DPO model is kept in Ollama as `notelore-qwen3-4b-dpo` for comparison and is not published.
