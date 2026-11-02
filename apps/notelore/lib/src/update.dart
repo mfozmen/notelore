@@ -334,6 +334,7 @@ Updater? updaterFor({
     publicKey: key,
     abi: system == 'android' ? (abi ?? androidAbi(platformAbi)) : '',
     arch: system == 'macos' ? (arch ?? macArch(platformAbi)) : '',
+    home: Platform.environment['HOME'] ?? '',
   );
 }
 
@@ -369,7 +370,16 @@ class Updater {
     this.openInstaller = androidInstaller,
     this.osVersion = '',
     this.publicKey = '',
+    this.home = '',
+    this.quit = exit,
   });
+
+  /// Ends this app once [handOff] started the other copy; tests record it.
+  final void Function(int code) quit;
+
+  /// The user's home folder; on macOS its `Applications` takes an update the
+  /// app's own folder cannot (#644).
+  final String home;
 
   /// The release key this build pins ([updateKey]); empty: checksums only.
   final String publicKey;
@@ -418,6 +428,52 @@ class Updater {
   String? _deltaJob;
   String? _deltaHelper;
 
+  String get _userApps => p.join(home, 'Applications');
+
+  /// A fresh `.notelore-update` folder next to [bundle], or null if that
+  /// folder cannot be written.
+  Directory? _stage(String bundle) {
+    final staging = Directory(p.join(p.dirname(bundle), '.notelore-update'));
+    try {
+      if (staging.existsSync()) staging.deleteSync(recursive: true);
+      staging.createSync(recursive: true);
+      return staging;
+    } on FileSystemException {
+      return null;
+    }
+  }
+
+  /// On macOS, starts the copy an update put in ~/Applications and quits, when
+  /// this is an older one left where the user cannot delete it (#644). A copy
+  /// that is this one by a link, or not intact, is never started.
+  Future<bool> handOff() async {
+    if (system != 'macos' || home.isEmpty) return false;
+    final mine = p.join(_userApps, _bundleName);
+    final binary = p.join(mine, 'Contents', 'MacOS', 'Notelore');
+    try {
+      if (Directory(mine).resolveSymbolicLinksSync() ==
+              Directory(_installed).resolveSymbolicLinksSync() ||
+          !File(binary).existsSync()) {
+        return false;
+      }
+      final plist = File(p.join(mine, 'Contents', 'Info.plist')).readAsStringSync();
+      final version = RegExp(
+        r'<key>CFBundleShortVersionString</key>\s*<string>(\d+(?:\.\d+)*)</string>',
+      ).firstMatch(plist)?[1];
+      if (version == null || isNewer(current, version)) return false;
+    } on FileSystemException {
+      return false; // also a binary plist, which is not UTF-8
+    }
+    try {
+      if ((await run('codesign', ['--verify', '--strict', mine])).exitCode != 0) return false;
+      await spawn(binary, const []);
+    } on ProcessException {
+      return false; // this copy opens instead
+    }
+    quit(0);
+    return true;
+  }
+
   /// Downloads the latest release and checks it; on macOS also swaps the bundle
   /// in. Its version, or null when this is current.
   Future<String?> apply({void Function(UpdateProgress progress)? onProgress}) async {
@@ -452,15 +508,23 @@ class Updater {
       _setup = (File(p.join(folder.path, name))..writeAsBytesSync(data)).path;
       return version;
     }
+    await _installBundle(name, data);
+    return version;
+  }
 
+  /// Puts the macOS bundle from the dmg [data] in place of this one, or in
+  /// ~/Applications when a standard account cannot write this one's folder.
+  Future<void> _installBundle(String name, List<int> data) async {
     // Staged next to the bundle, so the swap is a rename on the same drive.
-    final staging = Directory(p.join(p.dirname(_installed), '.notelore-update'));
-    try {
-      if (staging.existsSync()) staging.deleteSync(recursive: true);
-      staging.createSync(recursive: true);
-    } on FileSystemException catch (error) {
+    var target = _installed;
+    var staging = _stage(target);
+    if (staging == null && home.isNotEmpty) {
+      target = p.join(_userApps, _bundleName);
+      staging = _stage(target);
+    }
+    if (staging == null) {
       throw UpdateFailed(
-        'cannot write next to the app (${error.path ?? staging.path}): '
+        'cannot write next to the app (${p.dirname(_installed)}): '
         'move Notelore to a folder you own, then update again',
       );
     }
@@ -486,13 +550,20 @@ class Updater {
         await run('hdiutil', ['detach', mount, '-force']);
       }
       _runsHere(bundle);
-      _swapBundle(bundle, _installed, renameDirectory);
-      _bundle = _named();
+      if (target == _installed) {
+        _swapBundle(bundle, target, renameDirectory);
+        _bundle = _named();
+      } else if (Directory(target).existsSync()) {
+        _swapBundle(bundle, target, renameDirectory);
+        _bundle = target;
+      } else {
+        renameDirectory(bundle, target);
+        _bundle = target;
+      }
       _restart = p.join(_bundle!, 'Contents', 'MacOS', 'Notelore');
     } finally {
       staging.deleteSync(recursive: true);
     }
-    return version;
   }
 
   /// Stages a signed changed-files Windows update for [version] if the release

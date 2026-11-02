@@ -936,6 +936,129 @@ void main() {
       expect(ran.last, ['hdiutil', 'detach']);
     });
 
+    /// The update for a standard account, which cannot write /Applications (#644).
+    Updater fromLockedFolder() {
+      write(p.join(dir, 'Applications', '.notelore-update'), 'a file in the way');
+      return Updater(
+        system: 'macos',
+        executable: p.join(bundle, 'Contents', 'MacOS', 'notelore'),
+        current: '0.2.0',
+        home: p.join(dir, 'home'),
+        temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
+        fetch: Pages(good()).call,
+        run: tools,
+        spawn: (exe, args) async => spawned.add([exe, ...args]),
+      );
+    }
+
+    String mine([String binary = 'Notelore']) =>
+        p.join(dir, 'home', 'Applications', 'Notelore.app', 'Contents', 'MacOS', binary);
+
+    test('an app in a folder this user cannot write updates into ~/Applications (#644)', () async {
+      final u = fromLockedFolder();
+      expect(await u.apply(), v);
+      expect(read(mine()), 'new binary');
+      expect(read(p.join(bundle, 'Contents', 'MacOS', 'notelore')), 'old binary'); // untouched
+      expect(
+        Directory(p.join(dir, 'home', 'Applications', '.notelore-update')).existsSync(),
+        isFalse,
+      );
+      await u.relaunch();
+      expect(spawned, [
+        [mine()],
+      ]);
+    });
+
+    test('a copy already in ~/Applications is swapped like any other (#644)', () async {
+      write(mine(), 'older binary');
+      final u = fromLockedFolder();
+      expect(await u.apply(), v);
+      expect(read(mine()), 'new binary');
+      u.cleanup();
+      expect(
+        Directory(p.join(dir, 'home', 'Applications')).listSync().map((e) => p.basename(e.path)),
+        ['Notelore.app'],
+      );
+    });
+
+    group('the old copy hands over to the one in ~/Applications (#644)', () {
+      late List<int> quits;
+      setUp(() => quits = []);
+      Updater at(String executable, {String system = 'macos', Run? run}) => Updater(
+        quit: (code) => quits.add(code),
+        system: system,
+        executable: executable,
+        current: '0.2.0',
+        home: p.join(dir, 'home'),
+        temp: Directory(p.join(dir, 'temp'))..createSync(recursive: true),
+        fetch: Pages({}).call,
+        run: run ?? tools,
+        spawn: (exe, args) async => spawned.add([exe, ...args]),
+      );
+      final old = p.join('Applications', 'notelore.app', 'Contents', 'MacOS', 'notelore');
+      String plist([String? bundle]) => p.join(
+        bundle ?? p.join(dir, 'home', 'Applications', 'Notelore.app'),
+        'Contents',
+        'Info.plist',
+      );
+      String info(String version) =>
+          '<dict>\n\t<key>CFBundleShortVersionString</key>\n\t<string>$version</string>\n</dict>';
+
+      void installed(String version) {
+        write(mine(), 'new binary');
+        write(plist(), info(version));
+      }
+
+      test('to a newer or the same version', () async {
+        for (final version in ['0.3.0', '0.2.0']) {
+          installed(version);
+          spawned.clear();
+          expect(await at(p.join(dir, old)).handOff(), isTrue);
+          expect(spawned, [
+            [mine()],
+          ]);
+        }
+        expect(quits, [0, 0]);
+      });
+
+      test('never to an older one, a missing one, itself, or off macOS', () async {
+        expect(await at(p.join(dir, old)).handOff(), isFalse); // none there
+        write(mine(), 'a bundle without its Info.plist');
+        expect(await at(p.join(dir, old)).handOff(), isFalse);
+        installed('0.1.0');
+        expect(await at(p.join(dir, old)).handOff(), isFalse);
+        installed('0.3.0');
+        expect(await at(mine()).handOff(), isFalse);
+        expect(await at(p.join(dir, old), system: 'windows').handOff(), isFalse);
+        installed('0.3.0-beta'); // not a release's version
+        expect(await at(p.join(dir, old)).handOff(), isFalse);
+        File(plist()).writeAsBytesSync([0x62, 0x70, 0x6c, 0x69, 0x73, 0x74, 0xff, 0xfe]); // binary
+        expect(await at(p.join(dir, old)).handOff(), isFalse);
+        installed('0.3.0');
+        File(mine()).deleteSync(); // a bundle half deleted
+        expect(await at(p.join(dir, old)).handOff(), isFalse);
+        installed('0.3.0');
+        Future<ProcessResult> tampered(String command, List<String> args) async =>
+            ProcessResult(0, command == 'codesign' ? 1 : 0, '', 'invalid signature');
+        expect(await at(p.join(dir, old), run: tampered).handOff(), isFalse);
+        // A binary that cannot be started: this copy opens instead of none.
+        Future<ProcessResult> noCodesign(String command, List<String> args) async =>
+            throw const ProcessException('codesign', [], 'Permission denied');
+        expect(await at(p.join(dir, old), run: noCodesign).handOff(), isFalse);
+        expect(spawned, isEmpty);
+        expect(quits, isEmpty);
+      });
+
+      test('never to itself through a link, which would start it again and again', () async {
+        write(p.join(bundle, 'Contents', 'MacOS', 'Notelore'), 'old binary');
+        write(plist(bundle), info('0.2.0'));
+        Directory(p.join(dir, 'home', 'Applications')).createSync(recursive: true);
+        Link(p.join(dir, 'home', 'Applications', 'Notelore.app')).createSync(bundle);
+        expect(await at(p.join(dir, old)).handOff(), isFalse);
+        expect(spawned, isEmpty);
+      });
+    });
+
     test('a folder next to the app that cannot be written says where to move it', () async {
       write(p.join(dir, 'Applications', '.notelore-update'), 'a file in the way');
       await expectLater(
