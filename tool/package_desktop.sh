@@ -36,12 +36,13 @@ case "$(uname -s)" in
     checksum "$setup.exe"
     ;;
   Darwin)
-    bundle="${given_bundle:-$app/build/macos/Build/Products/$mode/notelore.app}"
+    bundle="${given_bundle:-$app/build/macos/Build/Products/$mode/Notelore.app}"
     stage=$(mktemp -d)
-    ditto "$bundle" "$stage/notelore.app" # keeps the bundle's symlinks and permissions
+    ditto "$bundle" "$stage/Notelore.app" # keeps the bundle's symlinks and permissions
     ln -s /Applications "$stage/Applications" # drag the app onto it to install
     dmg="notelore-app-$version-macos${arch:+-$arch}.dmg"
-    hdiutil create -quiet -volname Notelore -srcfolder "$stage" -ov -format UDZO "$out/$dmg"
+    # Case-insensitive: an app from before #635 looks for notelore.app in it.
+    hdiutil create -quiet -fs HFS+ -volname Notelore -srcfolder "$stage" -ov -format UDZO "$out/$dmg"
     checksum "$dmg"
     ;;
   *)

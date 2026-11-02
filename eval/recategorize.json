@@ -1,0 +1,73 @@
+{
+ "notes": {
+  "projects/mopsos.md": "---\ntitle: Mopsos\nkind: project\ncreated: 2026-09-12\nupdated: 2026-09-30\ntags: [investing, side-project]\n---\n# Mopsos\n\n## Decisions\n- ~~2026-09-12 — **database**: PostgreSQL.~~ _(superseded 2026-09-28)_\n- 2026-09-28 — **database**: SQLite. Single user, zero setup.\n- 2026-09-20 — **frontend**: React + Vite.\n\n## Notes\n- 2026-09-15: Prediction hit rate is calculated weekly, on Sundays.\n\n## Todo\n- [ ] 2026-10-15: Add Drive backup\n- [x] 2026-09-25: Set up CI\n",
+  "topics/sirket-kurulusu.md": "---\ntitle: Şirket Kuruluşu\nkind: topic\ncreated: 2026-08-01\nupdated: 2026-09-29\ntags: [şirket]\n---\n# Şirket Kuruluşu\n\n## Kararlar\n- 2026-09-10 — **şirket-türü**: Limited şirket. Yatırımcı görüşmeleri için gerekli.\n\n## Notlar\n- 2026-08-05: Muhasebeci ile ilk görüşme yapıldı, aylık ücret 2.500 TL.\n\n## Yapılacaklar\n- [ ] 2026-10-01: Vergi levhasını e-Devlet'ten indir\n",
+  "projects/ev-tadilati.md": "---\ntitle: Ev Tadilatı\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-05\ntags: [ev]\n---\n# Ev Tadilatı\n\n## Kararlar\n- 2026-09-20 — **mutfak-tezgahı**: Granit. Dayanıklı.\n\n## Yapılacaklar\n- [ ] 2026-10-10: Elektrikçiyi ara, prizleri yenilesin\n"
+ },
+ "cases": [
+  {
+   "id": "recat-tr-topic-to-project",
+   "kind": "recategorize",
+   "lang": "tr",
+   "message": "Şirket kuruluşu artık bir proje oldu: hedefimiz şirketi Aralık sonuna kadar kurmak, yapılacakları da buradan takip edeceğiz.",
+   "expect": {
+    "tools": [
+     "recategorize"
+    ],
+    "notes": {
+     "^(topics|projects)/sirket-kurulusu\\.md$": [
+      "kind: project"
+     ]
+    }
+   }
+  },
+  {
+   "id": "recat-en-project-to-topic",
+   "kind": "recategorize",
+   "lang": "en",
+   "message": "Mopsos is finished and shipped. From now on I only keep it as a reference of what we learned, it is no longer a project.",
+   "expect": {
+    "tools": [
+     "recategorize"
+    ],
+    "notes": {
+     "^(projects|topics)/mopsos\\.md$": [
+      "kind: topic"
+     ]
+    }
+   }
+  },
+  {
+   "id": "recat-en-tags",
+   "kind": "recategorize",
+   "lang": "en",
+   "message": "Mopsos is really a machine learning project too, tag it that way.",
+   "expect": {
+    "tools": [
+     "recategorize"
+    ],
+    "notes": {
+     "^projects/mopsos\\.md$": [
+      "machine-learning"
+     ]
+    }
+   }
+  },
+  {
+   "id": "recat-tr-stays",
+   "kind": "recategorize",
+   "lang": "tr",
+   "message": "Ev tadilatı için bugün ustayla konuştum, mutfak işleri gelecek hafta başlıyor.",
+   "expect": {
+    "tools_not": [
+     "recategorize"
+    ],
+    "notes": {
+     "^projects/ev-tadilati\\.md$": [
+      "mutfak"
+     ]
+    }
+   }
+  }
+ ]
+}

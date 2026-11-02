@@ -158,17 +158,13 @@ void main() {
     // Added to elsewhere the same day (the date stays): the reader shows it.
     final text = File(path).readAsStringSync();
     File(path).writeAsStringSync('$text- Dune${String.fromCharCode(10)}');
-    await tester.tap(find.byKey(const Key('notes-more')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Refresh'));
+    await tester.tap(find.byTooltip('Refresh'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Dune'), findsOneWidget);
 
     // Archived elsewhere: the empty state takes the window.
     await session.deleteNote(session.listNotes().single);
-    await tester.tap(find.byKey(const Key('notes-more')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Refresh'));
+    await tester.tap(find.byTooltip('Refresh'));
     await tester.pumpAndSettle();
     expect(find.text('No notes yet. Tell the assistant something to remember.'), findsOneWidget);
     expect(find.text('Pick a note to read it here.'), findsNothing);

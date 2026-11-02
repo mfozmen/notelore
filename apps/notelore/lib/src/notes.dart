@@ -20,7 +20,7 @@ class NotesScreen extends StatefulWidget {
   State<NotesScreen> createState() => _NotesScreenState();
 }
 
-enum _NotesAction { import, export, refresh }
+enum _NotesAction { import, export }
 
 class _NotesScreenState extends State<NotesScreen> {
   /// The note open beside the list on a wide window, read once.
@@ -130,9 +130,17 @@ class _NotesScreenState extends State<NotesScreen> {
     if (chosen != null && mounted) await _export(chosen);
   }
 
-  Future<void> _refresh() async => setState(() {});
+  Future<void> _refresh() async {
+    setState(() {});
+    // Rereading is instant; without a pause the spinner never shows and a tap looks dead.
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+  }
 
-  Widget _refreshable(Widget child) => RefreshIndicator(onRefresh: _refresh, child: child);
+  // One key: only one list (empty or full) is built at a time.
+  final _refresher = GlobalKey<RefreshIndicatorState>();
+
+  Widget _refreshable(Widget child) =>
+      RefreshIndicator(key: _refresher, onRefresh: _refresh, child: child);
 
   Widget _listHeader(BuildContext context, List<NoteInfo> notes) => Padding(
     padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.s, 0),
@@ -152,6 +160,12 @@ class _NotesScreenState extends State<NotesScreen> {
               : Navigator.of(context)
                     .push(MaterialPageRoute<void>(builder: (_) => ArchiveScreen(widget.session))),
         ),
+        IconButton(
+          tooltip: s.refresh,
+          icon: const Icon(Icons.refresh),
+          // The pull's spinner shows it, and a tap while it runs is ignored.
+          onPressed: () => _refresher.currentState?.show(),
+        ),
         PopupMenuButton<_NotesAction>(
           key: const Key('notes-more'),
           tooltip: s.moreNoteActions,
@@ -162,8 +176,6 @@ class _NotesScreenState extends State<NotesScreen> {
                 await _import();
               case _NotesAction.export:
                 await _exportSeveral(notes);
-              case _NotesAction.refresh:
-                await _refresh();
             }
           },
           itemBuilder: (context) => [
@@ -173,7 +185,6 @@ class _NotesScreenState extends State<NotesScreen> {
               enabled: notes.isNotEmpty,
               child: Text(s.exportNotes),
             ),
-            PopupMenuItem(value: _NotesAction.refresh, child: Text(s.refresh)),
           ],
         ),
       ],
