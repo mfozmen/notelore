@@ -15,7 +15,10 @@ import 'notes.dart';
 const _heading = '# About me';
 final _bullet = RegExp(r'^[-*] +(.*)$');
 
-String aboutMePath(String root) => p.join(root, 'about-me.md');
+/// The file's name, relative to the notes root.
+const aboutMeFile = 'about-me.md';
+
+String aboutMePath(String root) => p.join(root, aboutMeFile);
 
 /// The facts, in the file's order; none when there is no file.
 List<String> aboutMe(String root) => [
@@ -87,10 +90,10 @@ void _write(String root, List<String> lines, DateTime? now, {bool keep = true}) 
     // Two changes in one second must not share a folder: the second copy would
     // replace the first, and that version would be gone.
     var folder = p.join(root, '.notelore', 'history', stamp);
-    for (var n = 2; File(p.join(folder, 'about-me.md')).existsSync(); n++) {
+    for (var n = 2; File(p.join(folder, aboutMeFile)).existsSync(); n++) {
       folder = p.join(root, '.notelore', 'history', '$stamp-$n');
     }
-    atomicWrite(p.join(folder, 'about-me.md'), File(path).readAsStringSync());
+    atomicWrite(p.join(folder, aboutMeFile), File(path).readAsStringSync());
   }
   atomicWrite(path, '${lines.join('\n')}\n');
 }
