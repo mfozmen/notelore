@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/about_me_page.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'app_test.dart' show connect, phone, pumpApp;
@@ -21,11 +22,12 @@ void main() {
     final harness = Harness();
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    await openSettings(tester, 'About me');
+    // A place of its own in the bottom bar, beside Notes and Calendar (#669).
+    expect(find.byType(NavigationDestination), findsNWidgets(4));
+    await tester.tap(find.text('About me'));
+    await tester.pumpAndSettle();
 
     expect(find.textContaining('Tell the assistant about yourself'), findsOneWidget);
-    expect(find.text('Share with cloud models'), findsOneWidget);
-    expect(find.text('What Notelore knows about you'), findsOneWidget);
 
     await tester.tap(find.text('Add a fact'));
     await tester.pumpAndSettle();
@@ -87,16 +89,85 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
 
+    // The cloud switch stays a setting: the page links to it (#669).
+    await tester.scrollUntilVisible(find.text('Shared with cloud models'), 200);
+    await tester.tap(find.text('Shared with cloud models'));
+    await tester.pumpAndSettle();
+    expect(find.text('Privacy'), findsOneWidget); // the settings page
     await tester.tap(find.text('Share with cloud models'));
     await tester.pumpAndSettle();
     expect(session.aboutMeToCloud, isFalse);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Kept from cloud models'), findsOneWidget);
+    expect(find.text('Only a model on this device or computer gets them.'), findsOneWidget);
   });
 
-  testWidgets('about me: a category beside the others on a wide window (#646)', (tester) async {
+  testWidgets('about me: facts under their sections; add and edit pick one (#671)', (tester) async {
+    phone(tester);
+    final session = await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await tester.tap(find.text('About me'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Add a fact'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Other')).selected, isTrue);
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Family'));
+    await tester.pump();
+    await type(tester, 'Wife: Ayşe');
+    await tester.tap(find.text('Add a fact'));
+    await tester.pumpAndSettle();
+    await type(tester, 'Likes tea');
+    expect(find.text('Family'), findsOneWidget); // a section header
+    expect(find.text('Other'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('Wife: Ayşe')).dy,
+      greaterThan(tester.getTopLeft(find.text('Family')).dy),
+    );
+
+    // Editing shows its section and can move it.
+    await tester.tap(find.text('Wife: Ayşe'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Family')).selected, isTrue);
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Home'));
+    await tester.pump();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(session.aboutMeEntries().first, (section: 'other', fact: 'Likes tea'));
+    expect(session.aboutMeEntries(), contains((section: 'home', fact: 'Wife: Ayşe')));
+    expect(find.text('Family'), findsNothing);
+
+    // The undo after a delete never covers the add button.
+    await tester.tap(find.byTooltip('Delete').first);
+    await tester.pump(const Duration(milliseconds: 750));
+    // Shown by the page's own scaffold, which keeps it clear of the button.
+    expect(
+      find.descendant(of: find.byType(AboutMeScreen), matching: find.byType(SnackBar)),
+      findsOneWidget,
+    );
+    final button = tester.getRect(find.byType(FloatingActionButton));
+    final undo = tester.getRect(find.byType(SnackBar));
+    expect(button.overlaps(undo), isFalse);
+  });
+
+  testWidgets('about me: in the side rail on a wide window; Settings keeps Privacy', (
+    tester,
+  ) async {
     desktop(tester, 1280);
     await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
-    await openSettings(tester, 'About me');
+    await tester.tap(find.text('About me'));
+    await tester.pumpAndSettle();
     expect(find.text('Add a fact'), findsOneWidget);
+    expect(find.byType(FloatingActionButton), findsNothing); // by the list, not a far corner
+    await tester.tap(find.text('Add a fact'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('fact-field')), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    await openSettings(tester, 'Privacy');
+    expect(find.text('Share with cloud models'), findsOneWidget);
+    expect(find.text('Add a fact'), findsNothing);
   });
 }

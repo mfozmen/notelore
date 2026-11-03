@@ -20,7 +20,9 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:notelore_core/notelore_core.dart';
-import 'package:notelore_core/notelore_core.dart' as core show listArchived, restoreArchived;
+import 'package:notelore_core/notelore_core.dart'
+    as core
+    show aboutMeFacts, listArchived, restoreArchived;
 import 'package:path/path.dart' as p;
 
 import 'audio_file.dart';
@@ -486,12 +488,20 @@ class Session extends ChangeNotifier {
   /// What the person told about themselves, one fact a line.
   List<String> aboutMeFacts() => aboutMe(paths.notes.path);
 
-  /// Adds [fact]; throws [ArgumentError] when it is empty or already there.
-  Future<void> rememberFact(String fact) => _aboutMe(() => rememberAboutMe(paths.notes.path, fact));
+  /// Each fact with its section, in the file's order (#671).
+  List<({String section, String fact})> aboutMeEntries() => core.aboutMeFacts(paths.notes.path);
 
-  /// Replaces [old] with [fact]; throws [ArgumentError] when [old] is gone or [fact] is taken.
-  Future<void> updateFact(String old, String fact) =>
-      _aboutMe(() => updateAboutMe(paths.notes.path, old, fact));
+  /// Adds [fact] to [section], a new heading in the app's language; throws
+  /// [ArgumentError] when it is empty or already there.
+  Future<void> rememberFact(String fact, {String section = 'other'}) => _aboutMe(
+    () => rememberAboutMe(paths.notes.path, fact, section: section, lang: strings.languageCode),
+  );
+
+  /// Replaces [old] with [fact], moved to [section] when given; throws
+  /// [ArgumentError] when [old] is gone or [fact] is taken.
+  Future<void> updateFact(String old, String fact, {String? section}) => _aboutMe(
+    () => updateAboutMe(paths.notes.path, old, fact, section: section, lang: strings.languageCode),
+  );
 
   /// Removes [fact]; throws [ArgumentError] when it is gone.
   Future<void> forgetFact(String fact) => _aboutMe(() => forgetAboutMe(paths.notes.path, fact));
