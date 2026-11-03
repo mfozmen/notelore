@@ -154,6 +154,10 @@ class Session extends ChangeNotifier {
   /// Notelore's own calendar in the user's Google Calendar, shared too.
   String? calendarId;
 
+  /// Calendars this device made before it learned the shared one; removed at
+  /// the next calendar sync (#674).
+  final _dropCalendars = <String>[];
+
   /// What went wrong with the calendar, for Settings to say in plain words.
   CalendarProblem? calendarProblem;
 
@@ -591,6 +595,7 @@ class Session extends ChangeNotifier {
           if (!aboutMeToCloud) 'aboutMeToCloud': false,
           if (calendar) 'calendar': true,
           'calendarId': ?calendarId,
+          if (_dropCalendars.isNotEmpty) 'dropCalendars': _dropCalendars,
           'microphone': ?microphone,
           if (setUpBefore) 'setUp': true,
           if (advanced) 'advanced': true,
@@ -617,6 +622,9 @@ class Session extends ChangeNotifier {
         final String id => id,
         _ => null,
       };
+      _dropCalendars
+        ..clear()
+        ..addAll((saved['dropCalendars'] as List? ?? const []).whereType<String>());
       setUpBefore = saved['setUp'] == true;
       advanced = saved['advanced'] == true;
       microphone = switch (saved['microphone']) {
@@ -1611,7 +1619,12 @@ class Session extends ChangeNotifier {
     await _adoptAboutMeToCloud(theirs['aboutMeToCloud']);
     if (theirs['calendar'] case final bool on) {
       calendar = on;
-      if (theirs['calendarId'] case final String id) calendarId = id;
+      if (theirs['calendarId'] case final String id when id != calendarId) {
+        // Made here before the shared one arrived: removed at the next calendar
+        // sync, so the account keeps one Notelore calendar (#674).
+        if (calendarId case final mine?) _dropCalendars.add(mine);
+        calendarId = id;
+      }
       _saveUi();
     }
     final (name, chosen) = (theirs['provider'], theirs['model']);
@@ -1801,6 +1814,11 @@ class Session extends ChangeNotifier {
         calendarId = id;
         _saveUi();
         _touch(); // other devices write into the same calendar
+      }
+      for (final old in [..._dropCalendars]) {
+        if (old != id) await google.remove(old);
+        _dropCalendars.remove(old);
+        _saveUi();
       }
       await google.sync(id, due, now: now);
       calendarProblem = null;

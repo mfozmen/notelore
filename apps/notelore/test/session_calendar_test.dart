@@ -38,6 +38,38 @@ void main() {
     },
   );
 
+  test(
+    'a calendar made here before the shared one arrived is removed: one calendar (#674)',
+    () async {
+      final harness = Harness(auth: FakeAuth());
+      remindIn(harness, 'Health', 'Dentist');
+      final session = harness.session();
+      await session.load();
+      await session.setCalendar(true);
+      final mine = session.calendarId!;
+      // Another device turned it on at the same time, and its settings are newer.
+      harness.remote.texts[sharedSettings] = jsonEncode({
+        'updated': DateTime.utc(2030).toIso8601String(),
+        'calendar': true,
+        'calendarId': 'cal-elsewhere',
+      });
+      harness.calendar.id = 'cal-elsewhere';
+      harness.calendar.fail = const NetworkError('offline');
+      await session.connectDrive();
+      expect(session.calendarId, 'cal-elsewhere');
+      await session.refreshReminders();
+      expect(harness.calendar.removed, isEmpty); // offline: remembered for later
+      harness.calendar.fail = null;
+      final later = harness.session();
+      await later.load();
+      await later.refreshReminders();
+      expect(harness.calendar.removed, [mine]);
+      expect(harness.calendar.events.values, ['Dentist']);
+      await later.refreshReminders();
+      expect(harness.calendar.removed, [mine], reason: 'once');
+    },
+  );
+
   test('while on, a reminder the assistant adds goes to the calendar', () async {
     final harness = Harness(
       answers: [
