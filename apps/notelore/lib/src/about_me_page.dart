@@ -91,63 +91,68 @@ class AboutMeScreen extends StatelessWidget {
     ];
   }
 
-  Widget _page(BuildContext context, Widget? _) {
-    final s = session.strings;
-    final theme = Theme.of(context);
-    final entries = session.aboutMeEntries();
-    final wide = Layout.isWide(context);
-    final add = Builder(
-      builder: (context) => wide
-          ? FilledButton.tonalIcon(
-              icon: const Icon(Icons.add),
-              label: Text(s.addFact),
-              onPressed: () => _edit(context),
-            )
+  /// Add a fact: floating on a phone, after the list on a wide window.
+  Widget _add({required bool wide}) => Builder(
+    builder: (context) {
+      final label = Text(session.strings.addFact);
+      void add() => _edit(context);
+      return wide
+          ? FilledButton.tonalIcon(icon: const Icon(Icons.add), label: label, onPressed: add)
           : FloatingActionButton.extended(
               icon: const Icon(Icons.add),
-              label: Text(s.addFact),
-              onPressed: () => _edit(context),
-            ),
-    );
+              label: label,
+              onPressed: add,
+            );
+    },
+  );
+
+  Widget _page(BuildContext context, Widget? _) {
+    final wide = Layout.isWide(context);
     return Scaffold(
-      appBar: AppBar(leading: AppMenu.button(context), title: Text(s.aboutMeSection)),
-      floatingActionButton: wide ? null : add,
+      appBar: AppBar(leading: AppMenu.button(context), title: Text(session.strings.aboutMeSection)),
+      floatingActionButton: wide ? null : _add(wide: false),
       body: Builder(
         builder: (context) => Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: Layout.column),
-            child: ListView(
-              // Room under the last row for the button that floats over it on a phone.
-              padding: EdgeInsets.only(top: Gap.s, bottom: wide ? Gap.l : 96),
-              children: [
-                if (entries.isEmpty) _empty(theme),
-                for (final section in aboutMeSections.keys)
-                  ..._section(context, section, [
-                    for (final e in entries)
-                      if (e.section == section) e,
-                  ]),
-                if (wide)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, Gap.xs),
-                    child: Align(
-                      alignment: entries.isEmpty ? Alignment.center : Alignment.centerLeft,
-                      child: add,
-                    ),
-                  ),
-                const Divider(height: Gap.l),
-                ListTile(
-                  leading: const Icon(Icons.shield_outlined),
-                  title: Text(s.aboutMeShared(session.aboutMeToCloud)),
-                  subtitle: Text(s.aboutMeSharedMeans(session.aboutMeToCloud)),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: privacy,
-                ),
-              ],
-            ),
+            child: _list(context, wide: wide),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _list(BuildContext context, {required bool wide}) {
+    final s = session.strings;
+    final entries = session.aboutMeEntries();
+    return ListView(
+      // Room under the last row for the button that floats over it on a phone.
+      padding: EdgeInsets.only(top: Gap.s, bottom: wide ? Gap.l : 96),
+      children: [
+        if (entries.isEmpty) _empty(Theme.of(context)),
+        for (final section in aboutMeSections.keys)
+          ..._section(context, section, [
+            for (final e in entries)
+              if (e.section == section) e,
+          ]),
+        if (wide)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, Gap.xs),
+            child: Align(
+              alignment: entries.isEmpty ? Alignment.center : Alignment.centerLeft,
+              child: _add(wide: true),
+            ),
+          ),
+        const Divider(height: Gap.l),
+        ListTile(
+          leading: const Icon(Icons.shield_outlined),
+          title: Text(s.aboutMeShared(session.aboutMeToCloud)),
+          subtitle: Text(s.aboutMeSharedMeans(session.aboutMeToCloud)),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: privacy,
+        ),
+      ],
     );
   }
 }
