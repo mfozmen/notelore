@@ -1798,6 +1798,7 @@ class Session extends ChangeNotifier {
     _disposed = true;
     index.close();
     unawaited(device.free());
+    device.dispose();
     super.dispose();
   }
 }

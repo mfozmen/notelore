@@ -118,7 +118,8 @@ class DeviceModelHost extends ChangeNotifier {
     await engine?.dispose();
   }
 
-  /// From 0 to 1 while the model downloads, else null.
+  /// From 0 to 1 while the model downloads, else null. Set through [fetch],
+  /// which notifies [Session]'s listeners as it does for Whisper.
   double? progress;
 
   /// Why the last download failed, if it did.
