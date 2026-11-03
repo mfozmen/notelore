@@ -155,6 +155,15 @@ void main() {
         },
         contains('no file lists'),
       ),
+      ({...ok(), 'patches': <String, Object?>{}}, contains('not an object')),
+      ({...ok(), 'patches': <Object?>[]}, contains('not an object')),
+      (
+        {
+          ...ok(),
+          'patches': {'data/app.so': 'x'},
+        },
+        contains('not an object'),
+      ),
       (patched({...good, 'patch': '../x.zpatch'}), contains('not safe')),
       (patched({...good, 'patch': 'notelore-updater.exe'}), contains('not safe')),
       (patched({...good, 'old': 'nope'}), contains('SHA-256')),
