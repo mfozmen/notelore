@@ -66,221 +66,377 @@ const _string = {'type': 'string'};
 Map<String, Object?> _schema(List<String> required, [Map<String, Object?> properties = const {}]) =>
     {'type': 'object', 'properties': properties, 'required': required};
 
-final noteTools = List<Tool>.unmodifiable([
-  Tool(
-    'list_notes',
-    'Projects and topics with title, slug and last update.',
-    _schema([], {'kind': _kind}),
-  ),
-  Tool(
-    'read_note',
-    'The full note as Markdown.',
-    _schema(['slug'], {'slug': _slug, 'kind': _kind}),
-  ),
-  Tool(
-    'create_note',
-    'Create a new project or topic file. Fails if the title already maps to a file.',
-    _schema(
-      ['kind', 'title'],
-      {
-        'kind': _kind,
-        'title': _string,
-        'tags': {'type': 'array', 'items': _string, 'description': 'lowercase'},
-        'lang': {
-          'type': 'string',
-          'enum': ['en', 'tr'],
-          'description': 'language of the headings',
-        },
-      },
+/// What a tool round is doing, as the user sees it while they wait.
+enum Activity {
+  searching('Searching the notes'),
+  reading('Reading the notes'),
+  writing('Writing the notes'),
+  working('Working');
+
+  const Activity(this.label);
+
+  final String label;
+}
+
+/// A tool's arguments, already checked against its schema.
+extension type const ToolArgs(Map<String, Object?> _args) {
+  String operator [](String key) => _args[key]! as String;
+  String? optional(String key) => _args[key] as String?;
+  String? get kind => optional('kind');
+  int number(String key) => _args[key]! as int;
+  List<String>? strings(String key) => (_args[key] as List?)?.cast<String>();
+  Map<Object?, Object?>? map(String key) => _args[key] as Map?;
+}
+
+/// One tool: its schema for the model, what it does, and how the app and the
+/// model on the device treat it.
+final class NoteTool {
+  const NoteTool(
+    this.tool,
+    this.run, {
+    this.activity = Activity.working,
+    this.slim = true,
+    this.slimDescription,
+    this.personal = false,
+  });
+
+  final Tool tool;
+  final Object? Function(Toolbox toolbox, ToolArgs args) run;
+  final Activity activity;
+
+  /// Offered to the model on the device too (#447).
+  final bool slim;
+
+  /// Shorter words for the model on the device; the full description otherwise.
+  final String? slimDescription;
+
+  /// Reads or writes the about-me facts: left out when the agent may not use them (#646).
+  final bool personal;
+
+  bool get writes => activity == Activity.writing;
+}
+
+/// Every tool the model may call, each in one place: what it looks like, what it
+/// does and how the app shows it.
+final toolRegistry = List<NoteTool>.unmodifiable([
+  NoteTool(
+    Tool(
+      'list_notes',
+      'Projects and topics with title, slug and last update.',
+      _schema([], {'kind': _kind}),
     ),
+    (t, a) => [for (final n in t._fresh().listNotes(kind: a.kind)) _noteInfo(n)],
+    activity: Activity.searching,
   ),
-  Tool(
-    'add_note_entry',
-    "Append a dated note. Write one clean, self-contained sentence in the user's language.",
-    _schema(['slug', 'text'], {'slug': _slug, 'text': _string, 'kind': _kind}),
-  ),
-  Tool(
-    'add_todo',
-    'Add an open todo; due is the due date if the user gave one.',
-    _schema(['slug', 'text'], {'slug': _slug, 'text': _string, 'due': _date, 'kind': _kind}),
-  ),
-  Tool(
-    'complete_todo',
-    'Tick todo number N (1-based, as shown in read_note order).',
-    _schema(
-      ['slug', 'number'],
-      {
-        'slug': _slug,
-        'number': {'type': 'integer'},
-        'kind': _kind,
-      },
+  NoteTool(
+    Tool(
+      'read_note',
+      'The full note as Markdown.',
+      _schema(['slug'], {'slug': _slug, 'kind': _kind}),
     ),
+    (t, a) => t._readNote(t._path(a['slug'], a.kind)),
+    activity: Activity.reading,
   ),
-  Tool(
-    'add_reminder',
-    'Add a reminder for a day, or a day and a time of day, in the note it belongs to. '
-        'Only when the user asks to be reminded or names an appointment.',
-    _schema(
-      ['slug', 'at', 'text'],
-      {
-        'slug': _slug,
-        'at': {
-          'type': 'string',
-          'description': 'YYYY-MM-DD, YYYY-MM-DD HH:MM, or YYYY-MM-DD HH:MM-HH:MM (24-hour)',
-        },
-        'text': {
-          'type': 'string',
-          'description':
-              'A short title, as a calendar shows it: the event\'s own name when it was found '
-              '(a match as the source names it, "Arsenal - Chelsea"), else a few words; '
-              'no date or time',
-        },
-        'repeat': {
-          'type': 'string',
-          'enum': ['monthly'],
-          'description': 'monthly for a commitment that repeats every month',
-        },
-        'kind': _kind,
-      },
-    ),
-  ),
-  Tool(
-    'record_decision',
-    'Record a decision for a short lowercase topic key such as database or hosting. '
-        'The previous active decision for that topic is marked superseded.',
-    _schema(
-      ['slug', 'topic', 'value'],
-      {'slug': _slug, 'topic': _string, 'value': _string, 'reason': _string, 'kind': _kind},
-    ),
-  ),
-  Tool(
-    'get_decision',
-    'The current decision for a topic. Always use this instead of reading free text.',
-    _schema(['slug', 'topic'], {'slug': _slug, 'topic': _string, 'kind': _kind}),
-  ),
-  Tool(
-    'decision_history',
-    'All decisions of a note, including superseded ones, oldest first.',
-    _schema(['slug'], {'slug': _slug, 'topic': _string, 'kind': _kind}),
-  ),
-  Tool(
-    'search_notes',
-    'Full-text search over every note: any word may match, best matches first; '
-        'a query with every word of a note title searches only that note; '
-        'word endings do not matter; words under three letters are ignored.',
-    _schema(['query'], {'query': _string, 'kind': _kind}),
-  ),
-  Tool('find_stale_notes', 'Deterministic cleanup candidates.', _schema([])),
-  Tool(
-    'archive',
-    'Move entries (by section and 1-based number) or the whole note to _archive/. '
-        'Only after the user confirmed in the conversation.',
-    _schema(
-      ['slug'],
-      {
-        'slug': _slug,
-        'entries': {
-          'type': 'object',
-          'description': '{"notes": [2, 5], "todo": [1]}; omit to archive the whole file',
-          'additionalProperties': {
-            'type': 'array',
-            'items': {'type': 'integer'},
+  NoteTool(
+    Tool(
+      'create_note',
+      'Create a new project or topic file. Fails if the title already maps to a file.',
+      _schema(
+        ['kind', 'title'],
+        {
+          'kind': _kind,
+          'title': _string,
+          'tags': {'type': 'array', 'items': _string, 'description': 'lowercase'},
+          'lang': {
+            'type': 'string',
+            'enum': ['en', 'tr'],
+            'description': 'language of the headings',
           },
         },
-        'kind': _kind,
-      },
+      ),
     ),
+    (t, a) => t._createNote(a['kind'], a['title'], a.strings('tags'), a.optional('lang') ?? 'en'),
+    activity: Activity.writing,
+    slimDescription: 'Create a project or topic. Fails if it exists.',
   ),
-  Tool(
-    'related_notes',
-    'Existing projects and topics a new note may belong with, by title words and content. '
-        'Call before create_note.',
-    _schema(
-      ['title'],
-      {
-        'title': _string,
-        'about': {'type': 'string', 'description': 'what the new note would say'},
-      },
+  NoteTool(
+    Tool(
+      'add_note_entry',
+      "Append a dated note. Write one clean, self-contained sentence in the user's language.",
+      _schema(['slug', 'text'], {'slug': _slug, 'text': _string, 'kind': _kind}),
     ),
-  ),
-  Tool(
-    'merge_notes',
-    'Move everything of note "from" that "into" lacks into "into", then archive "from". '
-        'Only after the user confirmed which note goes into which. A todo open in one '
-        'and done in the other is the same todo: it is kept once, done.',
-    _schema(
-      ['from', 'into'],
-      {'from': _slug, 'into': _slug, 'from_kind': _kind, 'into_kind': _kind},
+    (t, a) => t._write(
+      t._path(a['slug'], a.kind),
+      (path) => notes.addEntry(path, a['text'], today: t.today),
     ),
+    activity: Activity.writing,
+    slimDescription: "Append a dated note: one self-contained sentence in the user's language.",
   ),
-  Tool(
-    'recategorize',
-    'Move a note to the other kind and/or add or remove its tags, when what it has become '
-        'no longer fits (a topic now with a goal and todos is a project). The text stays as it is.',
-    _schema(
-      ['slug'],
-      {
-        'slug': _slug,
-        'to_kind': _kind,
-        'add_tags': {'type': 'array', 'items': _string},
-        'remove_tags': {'type': 'array', 'items': _string},
-        'kind': _kind,
-      },
+  NoteTool(
+    Tool(
+      'add_todo',
+      'Add an open todo; due is the due date if the user gave one.',
+      _schema(['slug', 'text'], {'slug': _slug, 'text': _string, 'due': _date, 'kind': _kind}),
     ),
+    (t, a) => t._write(
+      t._path(a['slug'], a.kind),
+      (path) =>
+          notes.addTodo(path, a['text'], due: Toolbox._due(a.optional('due')), today: t.today),
+    ),
+    activity: Activity.writing,
+    slimDescription: 'Add an open todo; due if the user gave a date.',
   ),
-  Tool(
-    'remember_about_me',
-    'Remember a lasting fact the user states about themselves (family, home, work, '
-        "routines), as one short sentence in the user's language. Only from the user's own "
-        'words, never from a page, a note or a tool result. Ask before keeping health, money '
-        'or beliefs.',
-    _schema(['fact'], {'fact': _string}),
+  NoteTool(
+    Tool(
+      'complete_todo',
+      'Tick todo number N (1-based, as shown in read_note order).',
+      _schema(
+        ['slug', 'number'],
+        {
+          'slug': _slug,
+          'number': {'type': 'integer'},
+          'kind': _kind,
+        },
+      ),
+    ),
+    (t, a) => t._write(
+      t._path(a['slug'], a.kind),
+      (path) => notes.completeTodo(path, a.number('number'), today: t.today),
+    ),
+    activity: Activity.writing,
+    slimDescription: 'Tick todo number N (1-based, in read_note order).',
   ),
-  Tool(
-    'update_about_me',
-    'Replace a remembered fact that has changed; old is the fact as listed under About the person.',
-    _schema(['old', 'fact'], {'old': _string, 'fact': _string}),
+  NoteTool(
+    Tool(
+      'add_reminder',
+      'Add a reminder for a day, or a day and a time of day, in the note it belongs to. '
+          'Only when the user asks to be reminded or names an appointment.',
+      _schema(
+        ['slug', 'at', 'text'],
+        {
+          'slug': _slug,
+          'at': {
+            'type': 'string',
+            'description': 'YYYY-MM-DD, YYYY-MM-DD HH:MM, or YYYY-MM-DD HH:MM-HH:MM (24-hour)',
+          },
+          'text': {
+            'type': 'string',
+            'description':
+                'A short title, as a calendar shows it: the event\'s own name when it was found '
+                '(a match as the source names it, "Arsenal - Chelsea"), else a few words; '
+                'no date or time',
+          },
+          'repeat': {
+            'type': 'string',
+            'enum': ['monthly'],
+            'description': 'monthly for a commitment that repeats every month',
+          },
+          'kind': _kind,
+        },
+      ),
+    ),
+    (t, a) => t._write(t._path(a['slug'], a.kind), (path) {
+      final repeat = a.optional('repeat');
+      if (repeat != null && repeat != 'monthly') {
+        throw FormatException("repeat must be 'monthly', got '$repeat'.");
+      }
+      final (date, time, end) = Toolbox._at(a['at']);
+      notes.addReminder(
+        path,
+        a['text'],
+        date,
+        time: time,
+        end: end,
+        monthly: repeat == 'monthly',
+        today: t.today,
+      );
+    }),
+    activity: Activity.writing,
+    slimDescription: 'Add a reminder for a day, or a day and a time, in the note it belongs to.',
   ),
-  Tool(
-    'forget_about_me',
-    'Forget a remembered fact the user says is wrong or wants gone.',
-    _schema(['fact'], {'fact': _string}),
+  NoteTool(
+    Tool(
+      'record_decision',
+      'Record a decision for a short lowercase topic key such as database or hosting. '
+          'The previous active decision for that topic is marked superseded.',
+      _schema(
+        ['slug', 'topic', 'value'],
+        {'slug': _slug, 'topic': _string, 'value': _string, 'reason': _string, 'kind': _kind},
+      ),
+    ),
+    (t, a) => t._write(
+      t._path(a['slug'], a.kind),
+      (path) => notes.recordDecision(
+        path,
+        a['topic'],
+        a['value'],
+        reason: a.optional('reason'),
+        today: t.today,
+      ),
+    ),
+    activity: Activity.writing,
+    slimDescription:
+        'Record a decision for a short lowercase topic key; the previous one is superseded.',
   ),
-]);
-
-/// The tools a phone rarely needs, left out for the model on the device (#447).
-const slimLeftOut = {
-  'merge_notes',
-  'find_stale_notes',
-  'decision_history',
-  'recategorize',
-  'remember_about_me',
-  'update_about_me',
-  'forget_about_me',
-};
-
-/// Shorter words for the model on the device, where every token is read
-/// before the first word comes.
-const _slimDescriptions = {
-  'create_note': 'Create a project or topic. Fails if it exists.',
-  'add_note_entry': "Append a dated note: one self-contained sentence in the user's language.",
-  'add_todo': 'Add an open todo; due if the user gave a date.',
-  'complete_todo': 'Tick todo number N (1-based, in read_note order).',
-  'add_reminder': 'Add a reminder for a day, or a day and a time, in the note it belongs to.',
-  'record_decision':
-      'Record a decision for a short lowercase topic key; the previous one is superseded.',
-  'get_decision': 'The current decision for a topic.',
-  'search_notes': 'Full-text search over every note, best matches first.',
-  'archive': 'Move entries (by section and 1-based number) or the whole note to the archive.',
-  'related_notes': 'Notes a new note may belong with. Call before create_note.',
-};
-
-/// [noteTools] for the model on the device (#447): fewer, in fewer words, with
-/// the same arguments, so the toolbox checks a call as any other.
-final slimTools = List<Tool>.unmodifiable([
-  for (final tool in noteTools)
-    if (!slimLeftOut.contains(tool.name))
-      Tool(tool.name, _slimDescriptions[tool.name] ?? tool.description, _bare(tool.inputSchema)),
+  NoteTool(
+    Tool(
+      'get_decision',
+      'The current decision for a topic. Always use this instead of reading free text.',
+      _schema(['slug', 'topic'], {'slug': _slug, 'topic': _string, 'kind': _kind}),
+    ),
+    (t, a) => t._getDecision(a['slug'], a['topic'], a.kind),
+    activity: Activity.reading,
+    slimDescription: 'The current decision for a topic.',
+  ),
+  NoteTool(
+    Tool(
+      'decision_history',
+      'All decisions of a note, including superseded ones, oldest first.',
+      _schema(['slug'], {'slug': _slug, 'topic': _string, 'kind': _kind}),
+    ),
+    (t, a) => t._decisionHistory(a['slug'], a.optional('topic'), a.kind),
+    activity: Activity.reading,
+    slim: false,
+  ),
+  NoteTool(
+    Tool(
+      'search_notes',
+      'Full-text search over every note: any word may match, best matches first; '
+          'a query with every word of a note title searches only that note; '
+          'word endings do not matter; words under three letters are ignored.',
+      _schema(['query'], {'query': _string, 'kind': _kind}),
+    ),
+    (t, a) => [for (final h in t._fresh().search(a['query'], kind: a.kind)) t._found(h)],
+    activity: Activity.searching,
+    slimDescription: 'Full-text search over every note, best matches first.',
+  ),
+  NoteTool(
+    Tool('find_stale_notes', 'Deterministic cleanup candidates.', _schema([])),
+    (t, a) => [for (final s in findStaleNotes(t.root, today: t.today)) _stale(s)],
+    slim: false,
+  ),
+  NoteTool(
+    Tool(
+      'archive',
+      'Move entries (by section and 1-based number) or the whole note to _archive/. '
+          'Only after the user confirmed in the conversation.',
+      _schema(
+        ['slug'],
+        {
+          'slug': _slug,
+          'entries': {
+            'type': 'object',
+            'description': '{"notes": [2, 5], "todo": [1]}; omit to archive the whole file',
+            'additionalProperties': {
+              'type': 'array',
+              'items': {'type': 'integer'},
+            },
+          },
+          'kind': _kind,
+        },
+      ),
+    ),
+    (t, a) => t._archive(a['slug'], a.map('entries'), a.kind),
+    activity: Activity.writing,
+    slimDescription:
+        'Move entries (by section and 1-based number) or the whole note to the archive.',
+  ),
+  NoteTool(
+    Tool(
+      'related_notes',
+      'Existing projects and topics a new note may belong with, by title words and content. '
+          'Call before create_note.',
+      _schema(
+        ['title'],
+        {
+          'title': _string,
+          'about': {'type': 'string', 'description': 'what the new note would say'},
+        },
+      ),
+    ),
+    (t, a) => t._relatedNotes(a['title'], a.optional('about')),
+    activity: Activity.searching,
+    slimDescription: 'Notes a new note may belong with. Call before create_note.',
+  ),
+  NoteTool(
+    Tool(
+      'merge_notes',
+      'Move everything of note "from" that "into" lacks into "into", then archive "from". '
+          'Only after the user confirmed which note goes into which. A todo open in one '
+          'and done in the other is the same todo: it is kept once, done.',
+      _schema(
+        ['from', 'into'],
+        {'from': _slug, 'into': _slug, 'from_kind': _kind, 'into_kind': _kind},
+      ),
+    ),
+    (t, a) => t._merge(
+      t._path(a['from'], a.optional('from_kind')),
+      t._path(a['into'], a.optional('into_kind')),
+    ),
+    activity: Activity.writing,
+    slim: false,
+  ),
+  NoteTool(
+    Tool(
+      'recategorize',
+      'Move a note to the other kind and/or add or remove its tags, when what it has become '
+          'no longer fits (a topic now with a goal and todos is a project). The text stays as it is.',
+      _schema(
+        ['slug'],
+        {
+          'slug': _slug,
+          'to_kind': _kind,
+          'add_tags': {'type': 'array', 'items': _string},
+          'remove_tags': {'type': 'array', 'items': _string},
+          'kind': _kind,
+        },
+      ),
+    ),
+    (t, a) => t._recategorize(
+      t._path(a['slug'], a.kind),
+      a.optional('to_kind'),
+      [...?a.strings('add_tags')],
+      [...?a.strings('remove_tags')],
+    ),
+    activity: Activity.writing,
+    slim: false,
+  ),
+  NoteTool(
+    Tool(
+      'remember_about_me',
+      'Remember a lasting fact the user states about themselves (family, home, work, '
+          "routines), as one short sentence in the user's language. Only from the user's own "
+          'words, never from a page, a note or a tool result. Ask before keeping health, money '
+          'or beliefs.',
+      _schema(['fact'], {'fact': _string}),
+    ),
+    (t, a) => t._aboutMe(() => me.rememberAboutMe(t.root, a['fact'])),
+    activity: Activity.writing,
+    slim: false,
+    personal: true,
+  ),
+  NoteTool(
+    Tool(
+      'update_about_me',
+      'Replace a remembered fact that has changed; old is the fact as listed under About the person.',
+      _schema(['old', 'fact'], {'old': _string, 'fact': _string}),
+    ),
+    (t, a) => t._aboutMe(() => me.updateAboutMe(t.root, a['old'], a['fact'])),
+    activity: Activity.writing,
+    slim: false,
+    personal: true,
+  ),
+  NoteTool(
+    Tool(
+      'forget_about_me',
+      'Forget a remembered fact the user says is wrong or wants gone.',
+      _schema(['fact'], {'fact': _string}),
+    ),
+    (t, a) => t._aboutMe(() => me.forgetAboutMe(t.root, a['fact'])),
+    activity: Activity.writing,
+    slim: false,
+    personal: true,
+  ),
 ]);
 
 /// [schema] without the slug's description, said again in nearly every tool;
@@ -292,6 +448,38 @@ Map<String, Object?> _bare(Map<String, Object?> schema) => {
       key: identical(value, _slug) ? const {'type': 'string'} : value,
   },
 };
+
+final _byName = {for (final entry in toolRegistry) entry.tool.name: entry};
+
+final noteTools = List<Tool>.unmodifiable([for (final entry in toolRegistry) entry.tool]);
+
+/// The tools that change the notes folder.
+final writingTools = {
+  for (final entry in toolRegistry)
+    if (entry.writes) entry.tool.name,
+};
+
+/// The tools a phone rarely needs, left out for the model on the device (#447).
+final slimLeftOut = {
+  for (final entry in toolRegistry)
+    if (!entry.slim) entry.tool.name,
+};
+
+/// The about-me tools (#646).
+final personalTools = {
+  for (final entry in toolRegistry)
+    if (entry.personal) entry.tool.name,
+};
+
+/// What a tool round shows the user; an unknown name is never called a write.
+String describeTool(String name) => (_byName[name]?.activity ?? Activity.working).label;
+
+/// [noteTools] for the model on the device (#447): fewer, in fewer words, with
+/// the same arguments, so the toolbox checks a call as any other.
+final slimTools = List<Tool>.unmodifiable([
+  for (final NoteTool(:tool, :slim, :slimDescription) in toolRegistry)
+    if (slim) Tool(tool.name, slimDescription ?? tool.description, _bare(tool.inputSchema)),
+]);
 
 final _isoDate = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
@@ -400,11 +588,11 @@ class Toolbox {
   }
 
   String call(String name, Map<String, Object?> args) {
-    final tool = noteTools.where((t) => t.name == name).firstOrNull;
-    if (tool == null) return "Error: unknown tool '$name'.";
-    if (_checkArguments(tool, args) case final problem?) return 'Error: $problem';
+    final entry = _byName[name];
+    if (entry == null) return "Error: unknown tool '$name'.";
+    if (_checkArguments(entry.tool, args) case final problem?) return 'Error: $problem';
     try {
-      final result = _dispatch(name, args);
+      final result = entry.run(this, ToolArgs(args));
       return result is String ? result : jsonEncode(result);
     } on ArgumentError catch (error) {
       // Includes RangeError. Store validation failures, never a crash for the model.
@@ -419,79 +607,6 @@ class Toolbox {
       final cause = error.osError == null ? '' : ' (${error.osError!.message})';
       return 'Error: ${error.message}$cause';
     }
-  }
-
-  Object? _dispatch(String name, Map<String, Object?> args) {
-    String arg(String key) => args[key]! as String;
-    String? optional(String key) => args[key] as String?;
-    final kind = optional('kind');
-    return switch (name) {
-      'list_notes' => [for (final n in _fresh().listNotes(kind: kind)) _noteInfo(n)],
-      'read_note' => _readNote(_path(arg('slug'), kind)),
-      'create_note' => _createNote(
-        arg('kind'),
-        arg('title'),
-        (args['tags'] as List?)?.cast<String>(),
-        optional('lang') ?? 'en',
-      ),
-      'add_note_entry' => _write(
-        _path(arg('slug'), kind),
-        (path) => notes.addEntry(path, arg('text'), today: today),
-      ),
-      'add_todo' => _write(
-        _path(arg('slug'), kind),
-        (path) => notes.addTodo(path, arg('text'), due: _due(optional('due')), today: today),
-      ),
-      'complete_todo' => _write(
-        _path(arg('slug'), kind),
-        (path) => notes.completeTodo(path, args['number']! as int, today: today),
-      ),
-      'add_reminder' => _write(_path(arg('slug'), kind), (path) {
-        final repeat = optional('repeat');
-        if (repeat != null && repeat != 'monthly') {
-          throw FormatException("repeat must be 'monthly', got '$repeat'.");
-        }
-        final (date, time, end) = _at(arg('at'));
-        notes.addReminder(
-          path,
-          arg('text'),
-          date,
-          time: time,
-          end: end,
-          monthly: repeat == 'monthly',
-          today: today,
-        );
-      }),
-      'record_decision' => _write(
-        _path(arg('slug'), kind),
-        (path) => notes.recordDecision(
-          path,
-          arg('topic'),
-          arg('value'),
-          reason: optional('reason'),
-          today: today,
-        ),
-      ),
-      'get_decision' => _getDecision(arg('slug'), arg('topic'), kind),
-      'decision_history' => _decisionHistory(arg('slug'), optional('topic'), kind),
-      'search_notes' => [for (final h in _fresh().search(arg('query'), kind: kind)) _found(h)],
-      'find_stale_notes' => [for (final s in findStaleNotes(root, today: today)) _stale(s)],
-      'related_notes' => _relatedNotes(arg('title'), optional('about')),
-      'merge_notes' => _merge(
-        _path(arg('from'), optional('from_kind')),
-        _path(arg('into'), optional('into_kind')),
-      ),
-      'recategorize' => _recategorize(
-        _path(arg('slug'), kind),
-        optional('to_kind'),
-        [...?(args['add_tags'] as List?)?.cast<String>()],
-        [...?(args['remove_tags'] as List?)?.cast<String>()],
-      ),
-      'remember_about_me' => _aboutMe(() => me.rememberAboutMe(root, arg('fact'))),
-      'update_about_me' => _aboutMe(() => me.updateAboutMe(root, arg('old'), arg('fact'))),
-      'forget_about_me' => _aboutMe(() => me.forgetAboutMe(root, arg('fact'))),
-      _ => _archive(arg('slug'), args['entries'] as Map?, kind), // 'archive'
-    };
   }
 
   // ------------------------------------------------------------ helpers
