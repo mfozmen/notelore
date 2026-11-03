@@ -142,6 +142,24 @@ void main() {
     expect(() => createProvider(findProvider('device'), null), throwsArgumentError);
   });
 
+  test('each provider says how it is reached and whether it runs here (#660)', () {
+    expect(
+      {for (final spec in providerSpecs) spec.name: (spec.access, spec.local)},
+      {
+        'chatgpt': (ProviderAccess.signIn, false),
+        'anthropic': (ProviderAccess.apiKey, false),
+        'openai': (ProviderAccess.apiKey, false),
+        'gemini': (ProviderAccess.apiKey, false),
+        'deepseek': (ProviderAccess.apiKey, false),
+        'ollama': (ProviderAccess.localMark, true),
+        'device': (ProviderAccess.deviceFile, true),
+      },
+    );
+    for (final spec in providerSpecs) {
+      expect(spec.requiresApiKey, spec.access == ProviderAccess.apiKey);
+    }
+  });
+
   test('provider ids keep the names settings and sync already saved (#661)', () {
     expect([for (final spec in providerSpecs) spec.id], ProviderId.values);
     expect(

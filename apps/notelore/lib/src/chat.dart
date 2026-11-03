@@ -547,7 +547,7 @@ class _ModelBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = session.strings;
-    final plan = session.spec?.name == 'chatgpt';
+    final plan = session.spec?.access == ProviderAccess.signIn;
     // At the composer's start, so it reads as a setting, not as a line of the chat.
     return Container(
       alignment: AlignmentDirectional.centerStart,

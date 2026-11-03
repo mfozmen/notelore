@@ -125,10 +125,9 @@ class _UsagePageState extends State<UsagePage> {
                     _Shares(tokens, models: models, colors: colors, strings: s, name: name),
                   if (turns.turns > 0)
                     _Messages(turns, calls: total.calls, used: _used(total.count), strings: s),
-                  if (usage.device.plan || session.spec?.name == 'chatgpt')
+                  if (usage.device.plan || session.spec?.access == ProviderAccess.signIn)
                     Text(s.usagePlan, style: small),
-                  if (session.spec?.name case 'ollama' || 'device')
-                    Text(s.usageLocal, style: small),
+                  if (session.spec?.local ?? false) Text(s.usageLocal, style: small),
                   Text(s.usageEstimate(pricesTaken), style: small),
                 ],
               ),

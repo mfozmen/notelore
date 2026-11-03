@@ -909,15 +909,30 @@ void main() {
   );
 
   test('about me: only a model on this machine counts as local (#646)', () {
-    expect(onThisMachine('device', 'x'), isTrue);
-    expect(onThisMachine('anthropic', 'x'), isFalse);
-    expect(onThisMachine('ollama', 'qwen3:4b', host: 'http://localhost:11434'), isTrue);
-    expect(onThisMachine('ollama', 'qwen3:4b', host: 'http://127.0.0.1:11434'), isTrue);
-    expect(onThisMachine('ollama', 'qwen3:4b', host: 'http://[::1]:11434'), isTrue);
-    expect(onThisMachine('ollama', 'qwen3:4b', host: '0.0.0.0:11434'), isTrue);
-    expect(onThisMachine('ollama', 'qwen3:4b', host: 'http://gpu-box:11434'), isFalse);
-    expect(onThisMachine('ollama', 'gpt-oss:120b-cloud', host: 'http://localhost:11434'), isFalse);
-    expect(onThisMachine('ollama', 'kimi:cloud', host: 'http://localhost:11434'), isFalse);
+    expect(onThisMachine(findProvider('device'), 'x'), isTrue);
+    expect(onThisMachine(findProvider('anthropic'), 'x'), isFalse);
+    expect(
+      onThisMachine(findProvider('ollama'), 'qwen3:4b', host: 'http://localhost:11434'),
+      isTrue,
+    );
+    expect(
+      onThisMachine(findProvider('ollama'), 'qwen3:4b', host: 'http://127.0.0.1:11434'),
+      isTrue,
+    );
+    expect(onThisMachine(findProvider('ollama'), 'qwen3:4b', host: 'http://[::1]:11434'), isTrue);
+    expect(onThisMachine(findProvider('ollama'), 'qwen3:4b', host: '0.0.0.0:11434'), isTrue);
+    expect(
+      onThisMachine(findProvider('ollama'), 'qwen3:4b', host: 'http://gpu-box:11434'),
+      isFalse,
+    );
+    expect(
+      onThisMachine(findProvider('ollama'), 'gpt-oss:120b-cloud', host: 'http://localhost:11434'),
+      isFalse,
+    );
+    expect(
+      onThisMachine(findProvider('ollama'), 'kimi:cloud', host: 'http://localhost:11434'),
+      isFalse,
+    );
   });
 
   test(
