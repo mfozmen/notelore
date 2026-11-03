@@ -143,7 +143,9 @@ class _NotesScreenState extends State<NotesScreen> {
       RefreshIndicator(key: _refresher, onRefresh: _refresh, child: child);
 
   Widget _listHeader(BuildContext context, List<NoteInfo> notes) => Padding(
-    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.s, 0),
+    // Gap.xs, not Gap.s: the menu icon sits 12px inside its 48px button, so
+    // its edge lands on the field's Gap.m edge below.
+    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.xs, 0),
     child: Align(alignment: Alignment.centerRight, child: _listActions(context, notes)),
   );
 
