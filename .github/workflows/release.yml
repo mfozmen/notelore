@@ -147,7 +147,7 @@ jobs:
             echo "| Mac with Intel | [macos-x86_64.dmg]($file-macos-x86_64.dmg) |"
             echo "| Mac, not sure which | [macos.dmg]($file-macos.dmg) (runs on both, twice the size) |"
             echo "| Windows | [windows-x64-setup.exe]($file-windows-x64-setup.exe) |"
-            echo "| Android | [android-arm64-v8a.apk]($file-android-arm64-v8a.apk); an older 32-bit phone: [android.apk]($file-android.apk) |"
+            echo "| Android | [android-arm64-v8a.apk]($file-android-arm64-v8a.apk); other phones: [android.apk]($file-android.apk) |"
             echo
             echo 'The .sha256 and .sig files and the Windows delta files are for the app'"'"'s own updates; a manual install does not need them.'
             echo
