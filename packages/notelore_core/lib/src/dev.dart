@@ -440,7 +440,7 @@ Future<LlmProvider> _provider(
   if (spec.requiresApiKey && key == null) throw StateError('set $keyName');
   final model =
       options['model'] ??
-      (spec.name == 'chatgpt'
+      (spec.access == ProviderAccess.signIn
           ? (await listChatGptModels(auth.token, client: traced)).first
           : spec.defaultModel);
   out.writeln('[${spec.name} · $model]');
@@ -452,7 +452,7 @@ Future<LlmProvider> _provider(
     required Duration timeout,
   }) => request(traced, method, url, headers: headers, body: body, timeout: timeout);
   if (temperature != null) {
-    if (spec.name != 'ollama') {
+    if (spec.access != ProviderAccess.localMark) {
       throw StateError('--greedy works with --provider=ollama or opencode only');
     }
     return OllamaProvider(model, transport: transport, temperature: temperature);

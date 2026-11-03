@@ -31,12 +31,27 @@ enum ProviderGroup {
 /// string settings and sync save.
 enum ProviderId { chatgpt, anthropic, openai, gemini, deepseek, ollama, device }
 
+/// What this device must hold to use a provider.
+enum ProviderAccess {
+  /// The ChatGPT plan's sign-in.
+  signIn,
+
+  /// An API key in the keystore.
+  apiKey,
+
+  /// Ollama on this machine: an empty keystore entry marks it connected.
+  localMark,
+
+  /// The model on the device: its downloaded file.
+  deviceFile,
+}
+
 final class ProviderSpec {
   const ProviderSpec(
     this.id,
     this.displayName, {
     required this.group,
-    required this.requiresApiKey,
+    required this.access,
     required this.defaultModel,
     this.keyUrl,
     this.keySteps = const [],
@@ -50,7 +65,11 @@ final class ProviderSpec {
   String get name => id.name;
   final String displayName;
   final ProviderGroup group;
-  final bool requiresApiKey;
+  final ProviderAccess access;
+  bool get requiresApiKey => access == ProviderAccess.apiKey;
+
+  /// The model runs on this machine: nothing goes to an AI provider.
+  bool get local => access == ProviderAccess.localMark || access == ProviderAccess.deviceFile;
   final String defaultModel;
   final String? keyUrl;
   final List<String> keySteps;
@@ -79,7 +98,7 @@ const providerSpecs = [
     group: ProviderGroup.plan,
     webSearch: true,
     images: true,
-    requiresApiKey: false,
+    access: ProviderAccess.signIn,
     defaultModel: '', // the first model the plan lists
     cost: "Uses your ChatGPT Plus or Pro plan: no separate charges, within your plan's limits.",
   ),
@@ -89,7 +108,7 @@ const providerSpecs = [
     group: ProviderGroup.apiKey,
     webSearch: true,
     images: true,
-    requiresApiKey: true,
+    access: ProviderAccess.apiKey,
     defaultModel: 'claude-sonnet-5-5',
     cost:
         'Billed per use through the Anthropic API. A Claude Pro or Max subscription cannot '
@@ -107,7 +126,7 @@ const providerSpecs = [
     group: ProviderGroup.apiKey,
     webSearch: true,
     images: true,
-    requiresApiKey: true,
+    access: ProviderAccess.apiKey,
     defaultModel: 'gpt-4o-mini',
     cost:
         'Billed per use through the OpenAI API. To use a ChatGPT Plus or Pro plan instead, '
@@ -124,7 +143,7 @@ const providerSpecs = [
     'Gemini (Google)',
     group: ProviderGroup.apiKey,
     images: true,
-    requiresApiKey: true,
+    access: ProviderAccess.apiKey,
     defaultModel: 'gemini-2.5-flash',
     cost:
         'Free with a key from a Google AI Studio project without billing: rate limited, and '
@@ -142,7 +161,7 @@ const providerSpecs = [
     group: ProviderGroup.apiKey,
     images: true,
     imageModels: {'deepseek-flash'},
-    requiresApiKey: true,
+    access: ProviderAccess.apiKey,
     defaultModel: 'deepseek-flash',
     cost:
         'Billed per use by DeepSeek through your own API key: about \$0.15 per million input '
@@ -159,7 +178,7 @@ const providerSpecs = [
     ProviderId.ollama,
     'Ollama (local)',
     group: ProviderGroup.local,
-    requiresApiKey: false,
+    access: ProviderAccess.localMark,
     defaultModel: 'qwen3:4b', // what its setup says to pull; connecting picks an installed one
     cost: 'Free: the model runs on this computer.',
     keyUrl: 'https://ollama.com/download',
@@ -175,7 +194,7 @@ const providerSpecs = [
     ProviderId.device,
     'On this device (Qwen3 4B)',
     group: ProviderGroup.device,
-    requiresApiKey: false,
+    access: ProviderAccess.deviceFile,
     defaultModel: 'qwen3-4b-instruct-2507',
     cost: 'Free: the model runs on this device, no AI provider sees your notes. A 2.5 GB download, once.',
   ),

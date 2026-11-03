@@ -197,7 +197,9 @@ Future<List<String>> validateKey(
   Transport transport = defaultTransport,
   String? ollamaHost,
 }) async {
-  if (spec.name == 'ollama') return _checkOllama(transport, ollamaHost ?? ollama.ollamaHost());
+  if (spec.access == ProviderAccess.localMark) {
+    return _checkOllama(transport, ollamaHost ?? ollama.ollamaHost());
+  }
   final (url, headers, vendor) = _listings[spec.name]!;
   try {
     return chatModels(
