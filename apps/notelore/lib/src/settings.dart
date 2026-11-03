@@ -482,7 +482,7 @@ class _ConnectionsState extends State<_Connections> {
           ),
         ),
         // OpenAI's guidelines link the plan's usage; here rather than by the composer (#507).
-        if (session.spec?.name == 'chatgpt')
+        if (session.spec?.access == ProviderAccess.signIn)
           ListTile(
             leading: const Icon(Icons.open_in_new),
             title: Text(s.manageUsage),

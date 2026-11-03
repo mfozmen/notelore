@@ -253,7 +253,7 @@ class Session extends ChangeNotifier {
 
   /// [chosen]'s provider: the model on the device runs on the one engine.
   LlmProvider _providerFor(ProviderSpec chosen, String key, String chosenModel) {
-    if (chosen.name == 'device') {
+    if (chosen.access == ProviderAccess.deviceFile) {
       final engine = _deviceEngine ??= makeDeviceEngine(deviceModel.path(deviceFiles.first.name));
       return _deviceProvider = LocalProvider(chosenModel, engine);
     }
@@ -261,7 +261,7 @@ class Session extends ChangeNotifier {
       chosen,
       key,
       model: chosenModel,
-      planToken: chosen.name == 'chatgpt' ? chatGpt!.token : null,
+      planToken: chosen.access == ProviderAccess.signIn ? chatGpt!.token : null,
       webSearch: webSearch && chosen.webSearch,
     );
   }
@@ -649,9 +649,12 @@ class Session extends ChangeNotifier {
   /// The providers this device offers.
   List<ProviderSpec> get providers => [
     for (final spec in providerSpecs)
-      if ((spec.name != 'chatgpt' || chatGpt != null) &&
-          (spec.name != 'ollama' || localModels) &&
-          (spec.name != 'device' || deviceModels))
+      if (switch (spec.access) {
+        ProviderAccess.signIn => chatGpt != null,
+        ProviderAccess.apiKey => true,
+        ProviderAccess.localMark => localModels,
+        ProviderAccess.deviceFile => deviceModels,
+      })
         spec,
   ];
 
@@ -903,8 +906,8 @@ class Session extends ChangeNotifier {
       if (found == null) return;
       final key = found.requiresApiKey ? await keys.read(key: _keyName(found)) : '';
       if (key == null) return; // the keystore lost it: set up again
-      if (found.name == 'chatgpt' && !(await chatGpt?.signedIn() ?? false)) return;
-      if (found.name == 'ollama') await _markOllama(found);
+      if (found.access == ProviderAccess.signIn && !(await chatGpt?.signedIn() ?? false)) return;
+      if (found.access == ProviderAccess.localMark) await _markOllama(found);
       models = switch (saved['models']) {
         final List<Object?> listed => listed.whereType<String>().toList(),
         _ => const [], // settings from before the model list
@@ -931,7 +934,7 @@ class Session extends ChangeNotifier {
   /// a stored key (Ollama keeps an empty one as its mark), or the plan signed in.
   Future<List<ProviderSpec>> connections() async => [
     for (final spec in providers)
-      if (spec.name == 'chatgpt'
+      if (spec.access == ProviderAccess.signIn
           ? await chatGpt!.signedIn()
           : await keys.read(key: _keyName(spec)) != null)
         spec,
@@ -940,7 +943,7 @@ class Session extends ChangeNotifier {
   /// Back to a connected model with its stored key, checked again; never opens
   /// a browser. Throws [StateError] when it is not connected (any more).
   Future<void> switchTo(ProviderSpec spec) async {
-    final key = spec.name == 'chatgpt' ? '' : await keys.read(key: _keyName(spec));
+    final key = spec.access == ProviderAccess.signIn ? '' : await keys.read(key: _keyName(spec));
     if (key == null) throw StateError('${spec.displayName} is not connected');
     await _connect(spec, key, signIn: false);
   }
@@ -948,12 +951,12 @@ class Session extends ChangeNotifier {
   /// Forgets one model's key or sign-in. The active one leaves no model until
   /// another is chosen; the notes and the conversation stay.
   Future<void> disconnect(ProviderSpec spec) async {
-    if (spec.name == 'chatgpt') {
+    if (spec.access == ProviderAccess.signIn) {
       await chatGpt?.signOut();
     } else {
       await keys.delete(key: _keyName(spec));
     }
-    if (spec.name == 'device') {
+    if (spec.access == ProviderAccess.deviceFile) {
       // Removed means removed: its 2.5 GB go too (downloaded again on request),
       // once a download that runs has ended, so it never writes into nothing.
       await _deviceDownload;
@@ -978,7 +981,7 @@ class Session extends ChangeNotifier {
     final chosen = model ?? _startModel(spec, listed) ?? _fallback(spec);
     // Every provider but the plan keeps its entry, Ollama an empty one: that is
     // how [connections] knows it.
-    final keyed = spec.name != 'chatgpt';
+    final keyed = spec.access != ProviderAccess.signIn;
     final name = _keyName(spec);
     final previous = keyed ? await keys.read(key: name) : null;
     if (keyed) await keys.write(key: name, value: trimmed);
@@ -991,7 +994,8 @@ class Session extends ChangeNotifier {
     _touch();
     models = listed;
     // Set before _use: the home screen it brings up shows the welcome.
-    if (spec.name == 'chatgpt' && await keys.read(key: '$keySpace.chatgpt.welcomed') == null) {
+    if (spec.access == ProviderAccess.signIn &&
+        await keys.read(key: '$keySpace.chatgpt.welcomed') == null) {
       showPlanWelcome = true;
       await keys.write(key: '$keySpace.chatgpt.welcomed', value: 'yes');
     }
@@ -1001,15 +1005,21 @@ class Session extends ChangeNotifier {
   /// The models [spec] offers. A key is checked by listing them; the ChatGPT
   /// plan signs in first when [signIn] (only on connect: a refresh never opens
   /// a browser).
-  Future<List<String>> _models(ProviderSpec spec, String key, {required bool signIn}) async {
-    if (spec.name == 'device') {
-      // Its one model, once its file is here; nothing to ask a server.
-      if (!deviceModel.ready) throw const TransientValidationError('Download the model first');
-      return [spec.defaultModel];
-    }
-    if (spec.name != 'chatgpt') return currentModels(spec.name, await validate(spec, key));
+  Future<List<String>> _models(ProviderSpec spec, String key, {required bool signIn}) async =>
+      switch (spec.access) {
+        // Its one model, once its file is here; nothing to ask a server.
+        ProviderAccess.deviceFile when !deviceModel.ready => throw const TransientValidationError(
+          'Download the model first',
+        ),
+        ProviderAccess.deviceFile => [spec.defaultModel],
+        ProviderAccess.apiKey ||
+        ProviderAccess.localMark => currentModels(spec.name, await validate(spec, key)),
+        ProviderAccess.signIn => currentModels(spec.name, await _planModels(signIn: signIn)),
+      };
+
+  Future<List<String>> _planModels({required bool signIn}) async {
     if (signIn) await chatGpt!.signIn();
-    return currentModels(spec.name, await listPlanModels(chatGpt!.token));
+    return listPlanModels(chatGpt!.token);
   }
 
   /// Puts back the key that was stored before (none: removes it). Best effort:
@@ -1119,7 +1129,7 @@ class Session extends ChangeNotifier {
     _outbox.clear(); // dropped with the conversation, never run against another login
     _saveQueue();
     _stopRetrying();
-    for (final spec in providerSpecs.where((s) => s.name != 'chatgpt')) {
+    for (final spec in providerSpecs.where((s) => s.access != ProviderAccess.signIn)) {
       await keys.delete(key: _keyName(spec));
     }
     await chatGpt?.signOut();
@@ -1137,13 +1147,13 @@ class Session extends ChangeNotifier {
       setUpBefore = true;
       _saveUi();
     }
-    final wasLocal = spec != null && onThisMachine(spec!.name, model ?? '');
+    final wasLocal = spec != null && onThisMachine(spec!, model ?? '');
     spec = chosen;
     model = chosenModel;
-    if (chosen.name != 'device') unawaited(_freeDeviceEngine());
+    if (chosen.access != ProviderAccess.deviceFile) unawaited(_freeDeviceEngine());
     final toolbox = Toolbox(paths.notes.path, index, today: today);
     _provider = MeteredProvider(_providerFor(chosen, key, chosenModel), chosen.name, usage);
-    final me = aboutMeToCloud || onThisMachine(chosen.name, chosenModel);
+    final me = aboutMeToCloud || onThisMachine(chosen, chosenModel);
     // A model switch keeps the conversation (logout has already dropped it), except
     // what a local model was told about the person, on its way to a cloud one.
     final history = wasLocal && _agent?.aboutMe == true && !me
@@ -1154,7 +1164,9 @@ class Session extends ChangeNotifier {
       toolbox,
       today: today,
       timing: timing,
-      slim: chosen.name == 'device', // every token is read on the phone first (#447)
+      slim:
+          chosen.access ==
+          ProviderAccess.deviceFile, // every token is read on the phone first (#447)
       aboutMe: me,
     )..messages.addAll(history);
     _startDevicePrefill();
@@ -1633,10 +1645,14 @@ class Session extends ChangeNotifier {
     if (theirs['webSearch'] case final bool on when on != webSearch) await _applyWebSearch(on);
     await _adoptAboutMeToCloud(theirs['aboutMeToCloud']);
     if (theirs['calendar'] case final bool on) _adoptCalendar(on, theirs['calendarId']);
-    final (name, chosen) = (theirs['provider'], theirs['model']);
+    await _adoptProvider(theirs['provider'], theirs['model']);
+  }
+
+  /// Another device's provider and model, when this device can use it without asking.
+  Future<void> _adoptProvider(Object? name, Object? chosen) async {
     // A local model is this machine's own: another device's choice of one stays there.
-    if (name is! String || chosen is! String || name == 'ollama' || name == 'device') return;
-    final found = providerSpecs.where((s) => s.name == name).firstOrNull;
+    if (name is! String || chosen is! String) return;
+    final found = providerSpecs.where((s) => s.name == name && !s.local).firstOrNull;
     if (found == null) return;
     if (found == spec) {
       if (chosen != model) await _applyModel(chosen);
@@ -1644,7 +1660,7 @@ class Session extends ChangeNotifier {
     }
     final key = found.requiresApiKey ? await keys.read(key: _keyName(found)) : '';
     if (key == null) return;
-    if (found.name == 'chatgpt' && !(await chatGpt?.signedIn() ?? false)) return;
+    if (found.access == ProviderAccess.signIn && !(await chatGpt?.signedIn() ?? false)) return;
     models = const [];
     _save(found, chosen, models);
     _use(found, key, chosen);
@@ -2095,9 +2111,11 @@ String withoutFrontMatter(String text) {
 
 /// Whether [provider]'s [model] runs on this machine: the device model, or
 /// Ollama on a loopback [host] with a model it does not forward to ollama.com.
-bool onThisMachine(String provider, String model, {String? host}) {
-  if (provider == 'device') return true;
-  if (provider != 'ollama' || RegExp(r'[:-]cloud$').hasMatch(model)) return false;
+bool onThisMachine(ProviderSpec provider, String model, {String? host}) {
+  if (provider.access == ProviderAccess.deviceFile) return true;
+  if (provider.access != ProviderAccess.localMark || RegExp(r'[:-]cloud$').hasMatch(model)) {
+    return false;
+  }
   final at = host ?? ollamaHost();
   final name = Uri.tryParse(at.contains('://') ? at : 'http://$at')?.host ?? '';
   return name == 'localhost' || name == '::1' || name == '0.0.0.0' || name.startsWith('127.');

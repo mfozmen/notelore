@@ -163,13 +163,13 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       _keyFocus.requestFocus(); // brings the field into view, keyboard up
       return;
     }
-    if (_spec.name == 'device' && !widget.session.deviceModel.ready) {
+    if (_spec.access == ProviderAccess.deviceFile && !widget.session.deviceModel.ready) {
       final session = widget.session;
       // Back stays open: minutes of downloading must never look like a hang.
       // The download goes on in the session; leaving only skips the connect.
       setState(() => _problem = null);
       await session.downloadDeviceModel();
-      if (!mounted || _step != _Step.connect || _spec.name != 'device') return;
+      if (!mounted || _step != _Step.connect || _spec.access != ProviderAccess.deviceFile) return;
       if (!session.deviceModel.ready) {
         final problem = session.deviceProblem ?? DownloadProblem.failed;
         return setState(() => _problem = session.strings.deviceDownloadFailed(problem));
@@ -179,7 +179,8 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
   }
 
   /// The model on the device is downloading: its button waits, Back does not.
-  bool get _downloading => _spec.name == 'device' && widget.session.deviceProgress != null;
+  bool get _downloading =>
+      _spec.access == ProviderAccess.deviceFile && widget.session.deviceProgress != null;
 
   /// A model connected before: used again with its stored key, no key asked.
   Future<void> _useConnected() => _attempt(() => widget.session.switchTo(_spec));
@@ -296,10 +297,10 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
         },
         onSubmitted: (_) => _connect(),
       ),
-    ] else if (_spec.name == 'ollama') ...[
+    ] else if (_spec.access == ProviderAccess.localMark) ...[
       const SizedBox(height: Gap.l),
       Text(s.ollamaNoKey, style: theme.textTheme.bodyMedium),
-    ] else if (_spec.name == 'device') ...[
+    ] else if (_spec.access == ProviderAccess.deviceFile) ...[
       const SizedBox(height: Gap.l),
       _DeviceDownload(widget.session),
     ],
@@ -359,7 +360,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       child: Text(s.useThisModel),
     ),
     // The plan is one tap, as before: it signs in right here.
-    _Step.choose when _spec.name == 'chatgpt' => _connectAction(s),
+    _Step.choose when _spec.access == ProviderAccess.signIn => _connectAction(s),
     _Step.choose => FilledButton(
       onPressed: () => setState(() => _step = _Step.connect),
       child: Text(s.next),
@@ -1107,7 +1108,7 @@ class _OptionCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final muted = colors.onSurfaceVariant;
-    final local = spec.name == 'ollama' || spec.name == 'device';
+    final local = spec.local;
     return Semantics(
       key: ValueKey('option-${spec.name}'),
       inMutuallyExclusiveGroup: true,
@@ -1165,7 +1166,9 @@ class _OptionCard extends StatelessWidget {
                               ),
                               _Line(Icons.auto_awesome_outlined, s.optionQuality(spec)),
                               _Line(
-                                spec.name == 'chatgpt' ? Icons.bolt_outlined : Icons.build_outlined,
+                                spec.access == ProviderAccess.signIn
+                                    ? Icons.bolt_outlined
+                                    : Icons.build_outlined,
                                 s.optionEffort(spec),
                               ),
                             ],
