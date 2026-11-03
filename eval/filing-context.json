@@ -1,0 +1,65 @@
+{
+ "notes": {
+  "about-me.md": "# About me\n\n- I'm a backend developer at Acme, on the payments team.\n- Eşim Ayşe.\n- İki çocuğum var: Deniz (10) ve Ege (7), ikisi de Bilgi Koleji'nde.\n",
+  "projects/payments-api.md": "---\ntitle: Payments API\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-20\n---\n# Payments API\n\n## Notes\n- 2026-10-20: The refund endpoint goes live in November.\n",
+  "projects/home-server.md": "---\ntitle: Home Server\nkind: project\ncreated: 2026-08-10\nupdated: 2026-10-12\n---\n# Home Server\n\n## Notes\n- 2026-10-12: Moved Jellyfin to the new disk.\n",
+  "topics/okul-isleri.md": "---\ntitle: Okul İşleri\nkind: topic\ncreated: 2026-09-05\nupdated: 2026-10-15\n---\n# Okul İşleri\n\n## Notlar\n- 2026-10-15: Bilgi Koleji servis ücreti ekimde ödendi.\n",
+  "topics/hediye-fikirleri.md": "---\ntitle: Hediye Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-09-20\n---\n# Hediye Fikirleri\n\n## Notlar\n- 2026-09-20: Babam için kitap ayracı.\n"
+ },
+ "cases": [
+  {
+   "id": "context-en-sprint",
+   "kind": "with-facts",
+   "lang": "en",
+   "message": "Sprint review moved to Thursday.",
+   "expect": {"notes": {"^projects/payments-api\\.md$": ["sprint"]}}
+  },
+  {
+   "id": "context-tr-veli",
+   "kind": "with-facts",
+   "lang": "tr",
+   "message": "Ege'nin veli toplantısı cuma akşamı.",
+   "expect": {"notes": {"^topics/okul-isleri\\.md$": ["veli"]}}
+  },
+  {
+   "id": "context-tr-hediye",
+   "kind": "with-facts",
+   "lang": "tr",
+   "message": "Eşime yıldönümü için deri cüzdan alabilirim.",
+   "expect": {"notes": {"^topics/hediye-fikirleri\\.md$": ["Ayşe", "cüzdan"]}}
+  },
+  {
+   "id": "context-en-sprint-nofacts",
+   "kind": "no-facts",
+   "lang": "en",
+   "message": "Sprint review moved to Thursday.",
+   "notes": {
+    "projects/payments-api.md": "---\ntitle: Payments API\nkind: project\ncreated: 2026-09-01\nupdated: 2026-10-20\n---\n# Payments API\n\n## Notes\n- 2026-10-20: The refund endpoint goes live in November.\n",
+    "projects/home-server.md": "---\ntitle: Home Server\nkind: project\ncreated: 2026-08-10\nupdated: 2026-10-12\n---\n# Home Server\n\n## Notes\n- 2026-10-12: Moved Jellyfin to the new disk.\n"
+   },
+   "expect": {"notes": {"^projects/payments-api\\.md$": ["sprint"]}}
+  },
+  {
+   "id": "context-tr-veli-nofacts",
+   "kind": "no-facts",
+   "lang": "tr",
+   "message": "Ege'nin veli toplantısı cuma akşamı.",
+   "notes": {
+    "topics/okul-isleri.md": "---\ntitle: Okul İşleri\nkind: topic\ncreated: 2026-09-05\nupdated: 2026-10-15\n---\n# Okul İşleri\n\n## Notlar\n- 2026-10-15: Bilgi Koleji servis ücreti ekimde ödendi.\n",
+    "topics/hediye-fikirleri.md": "---\ntitle: Hediye Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-09-20\n---\n# Hediye Fikirleri\n\n## Notlar\n- 2026-09-20: Babam için kitap ayracı.\n"
+   },
+   "expect": {"notes": {"^topics/okul-isleri\\.md$": ["veli"]}}
+  },
+  {
+   "id": "context-tr-hediye-nofacts",
+   "kind": "no-facts",
+   "lang": "tr",
+   "message": "Eşime yıldönümü için deri cüzdan alabilirim.",
+   "notes": {
+    "topics/okul-isleri.md": "---\ntitle: Okul İşleri\nkind: topic\ncreated: 2026-09-05\nupdated: 2026-10-15\n---\n# Okul İşleri\n\n## Notlar\n- 2026-10-15: Bilgi Koleji servis ücreti ekimde ödendi.\n",
+    "topics/hediye-fikirleri.md": "---\ntitle: Hediye Fikirleri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-09-20\n---\n# Hediye Fikirleri\n\n## Notlar\n- 2026-09-20: Babam için kitap ayracı.\n"
+   },
+   "expect": {"notes": {"^topics/hediye-fikirleri\\.md$": ["cüzdan"]}}
+  }
+ ]
+}
