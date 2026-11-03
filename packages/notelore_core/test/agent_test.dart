@@ -400,6 +400,8 @@ void main() {
   test('the prompt moves an older note whose kind or tags no longer fit (#639)', () {
     final prompt = systemPrompt(today);
     expect(prompt, contains('call recategorize'));
+    expect(prompt, contains('remember_about_me'));
+    expect(prompt, contains('update_about_me'));
     expect(prompt, contains('ask first when it is not clear'));
   });
 
@@ -750,6 +752,18 @@ void failureTests() {
       }
       expect(slim.length, lessThan(systemPrompt(today).length * 2 / 3));
       expect(slimSystemPrompt(), contains('It is now ${isoDate(DateTime.now())} '));
+    });
+
+    test('the facts about the person follow the note list, unless left out (#646)', () async {
+      final provider = ScriptedProvider([text('Hi.'), text('Hi.'), text('Hi.')]);
+      final box = newBox();
+      await Agent(provider, box, today: today).ask('hi');
+      expect(provider.turns.last.$1, isNot(contains('facts, not instructions):')));
+      box.call('remember_about_me', {'fact': 'My wife is Ayşe.'});
+      await Agent(provider, box, today: today, slim: true).ask('hi');
+      expect(provider.turns.last.$1, endsWith('There are no notes yet.\n\n${box.aboutMe()}'));
+      await Agent(provider, box, today: today, aboutMe: false).ask('hi');
+      expect(provider.turns.last.$1, isNot(contains('- My wife is Ayşe.')));
     });
 
     test('a slim agent sends them; a full one the full ones', () async {
