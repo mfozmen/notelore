@@ -48,6 +48,9 @@ class KeychainVault extends FlutterSecureStorage {
   /// stay in the Keychain and move in on a later run.
   var _cleared = false;
 
+  /// Keys written or deleted this run: what they hold now is the truth.
+  final _changed = <String>{};
+
   /// [key]'s value. An older version's item of its own moves into the vault the
   /// first time it is asked for, never by listing: macOS's file-based keychain
   /// refuses to list items with their data (errSecParam, #666).
@@ -64,13 +67,14 @@ class KeychainVault extends FlutterSecureStorage {
   Future<void> _moveOld(String key) async {
     final old = await inner.read(key: key);
     if (old == null) return;
-    // A write made while this read waited is newer: it stays.
-    await _change((map) => map.putIfAbsent(key, () => old));
+    // A write or delete made while this read waited is newer: it stands.
+    if (!_changed.contains(key)) await _change((map) => map.putIfAbsent(key, () => old));
     await _dropOld(key);
   }
 
   /// Sets or removes [key]; its older item goes too, so it cannot come back.
   Future<void> _set(String key, String? value) async {
+    _changed.add(key);
     final fresh = !_cleared && !_looks.containsKey(key);
     if (fresh) _looks[key] = Future.value();
     await _change((map) => value == null ? map.remove(key) : map[key] = value);

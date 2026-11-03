@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
@@ -31,11 +32,15 @@ class _Counted extends FlutterSecureStorage {
     WebOptions? webOptions,
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
-  }) {
+  }) async {
     reads++;
     _maybeFail();
+    if (!key.endsWith('.vault')) await hold?.future; // a password prompt still open
     return super.read(key: key);
   }
+
+  /// Holds reads of a secret's own item until completed.
+  Completer<void>? hold;
 
   @override
   Future<Map<String, String>> readAll({
@@ -91,12 +96,30 @@ void main() {
 
   test('a write while an older item is being moved keeps the newer value', () async {
     FlutterSecureStorage.setMockInitialValues({'notelore.a': 'old'});
-    final vault = KeychainVault(_Counted(), keySpace: 'notelore');
+    final inner = _Counted()..hold = Completer();
+    final vault = KeychainVault(inner, keySpace: 'notelore');
     final reading = vault.read(key: 'notelore.a');
+    await Future<void>.delayed(Duration.zero);
     await vault.write(key: 'notelore.a', value: 'new');
+    inner.hold!.complete();
     await reading;
     expect(await vault.read(key: 'notelore.a'), 'new');
     expect(await KeychainVault(_Counted(), keySpace: 'notelore').read(key: 'notelore.a'), 'new');
+  });
+
+  test('a delete while an older item is being moved stays deleted', () async {
+    FlutterSecureStorage.setMockInitialValues({'notelore.vault': '{}', 'notelore.a': 'old'});
+    final inner = _Counted();
+    final vault = KeychainVault(inner, keySpace: 'notelore');
+    await vault.readAll();
+    inner.hold = Completer();
+    final reading = vault.read(key: 'notelore.a');
+    await Future<void>.delayed(Duration.zero);
+    await vault.delete(key: 'notelore.a');
+    inner.hold!.complete();
+    await reading;
+    expect(await vault.read(key: 'notelore.a'), isNull);
+    expect(await const FlutterSecureStorage().read(key: 'notelore.a'), isNull);
   });
 
   test('two reads of a key being moved get its value; a refused read is tried again', () async {
