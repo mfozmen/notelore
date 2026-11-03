@@ -158,6 +158,32 @@ void main() {
     expect(releaseHighlights(null), isEmpty);
   });
 
+  test('a release says only what this device gets (#654)', () {
+    const notes =
+        '### Features\n\n'
+        '- A Mac account that cannot write /Applications updates into ~/Applications\n'
+        '- One Keychain item for every secret on macOS\n'
+        '- A signed changed-files update for Windows\n'
+        '- About me in Settings\n\n'
+        '### Bug Fixes\n\n'
+        '- Settle the About me reviews\n'
+        '- One pair per duplicate failure, and the DPO settings as constants\n'
+        '- Eval cases for filing\n'
+        '- Share to Notelore keeps the link on Android\n';
+    expect(releaseHighlights(notes, system: 'windows'), [
+      'A signed changed-files update for Windows',
+      'About me in Settings',
+    ]);
+    expect(releaseHighlights(notes, system: 'macos'), [
+      'A Mac account that cannot write /Applications updates into ~/Applications',
+      'One Keychain item for every secret on macOS',
+    ]);
+    expect(releaseHighlights(notes, system: 'android'), [
+      'About me in Settings',
+      'Share to Notelore keeps the link on Android',
+    ]);
+  });
+
   group('the check', () {
     test('Android takes the APK for its ABI, or the universal one', () async {
       final arm = Pages({latestReleaseUrl: release(v, abi: 'arm64-v8a')});
