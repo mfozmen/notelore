@@ -180,8 +180,7 @@ int _power() {
 }
 
 int _match(Uint8List old, Uint8List next, int position, List<int>? offsets) {
-  if (offsets == null) return -1;
-  for (final offset in offsets) {
+  for (final offset in offsets ?? const <int>[]) {
     var same = true;
     for (var i = 0; i < _block; i++) {
       if (old[offset + i] != next[position + i]) {
@@ -208,7 +207,6 @@ void _addCopy(BytesBuilder ops, int offset, int length) {
 }
 
 void _addVarint(BytesBuilder ops, int value) {
-  if (value < 0) throw ArgumentError.value(value, 'value');
   while (value >= 0x80) {
     ops.addByte((value & 0x7f) | 0x80);
     value >>= 7;

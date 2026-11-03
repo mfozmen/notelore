@@ -37,6 +37,10 @@ void main() {
     );
   });
 
+  test('a patch failure says why', () {
+    expect(const UpdatePatchFailed('the why').toString(), 'the why');
+  });
+
   test('a patch is refused for other old bytes', () {
     final old = bytes(4096, 2);
     final next = Uint8List.fromList(old)..[100] = 9;
@@ -99,6 +103,77 @@ void main() {
         oldSha256: hash(old),
         newSha256: hash(next),
         newSize: next.length,
+      ),
+      throwsA(isA<UpdatePatchFailed>()),
+    );
+  });
+
+  Uint8List varint(int value) {
+    final bytes = <int>[];
+    while (value >= 0x80) {
+      bytes.add((value & 0x7f) | 0x80);
+      value >>= 7;
+    }
+    return Uint8List.fromList([...bytes, value]);
+  }
+
+  Uint8List rawPatch(List<int> steps) =>
+      Uint8List.fromList(ZLibCodec().encode([...ascii.encode('NLP1'), ...steps]));
+
+  test('a patch with an unknown step is refused', () {
+    final old = bytes(64, 10);
+    final next = utf8.encode('tiny');
+    expect(
+      () => applyPatch(
+        oldBytes: old,
+        patch: rawPatch([9]),
+        oldSha256: hash(old),
+        newSha256: hash(next),
+        newSize: next.length,
+      ),
+      throwsA(isA<UpdatePatchFailed>()),
+    );
+  });
+
+  test('a patch that copies past the old file is refused', () {
+    final old = bytes(64, 11);
+    final next = utf8.encode('tiny');
+    expect(
+      () => applyPatch(
+        oldBytes: old,
+        patch: rawPatch([1, ...varint(old.length), ...varint(1)]),
+        oldSha256: hash(old),
+        newSha256: hash(next),
+        newSize: next.length,
+      ),
+      throwsA(isA<UpdatePatchFailed>()),
+    );
+  });
+
+  test('a patch that writes more than the declared size is refused', () {
+    final old = bytes(64, 12);
+    final next = utf8.encode('tiny');
+    expect(
+      () => applyPatch(
+        oldBytes: old,
+        patch: rawPatch([0, ...varint(next.length + 1), ...List.filled(next.length + 1, 0)]),
+        oldSha256: hash(old),
+        newSha256: hash(next),
+        newSize: next.length,
+      ),
+      throwsA(isA<UpdatePatchFailed>()),
+    );
+  });
+
+  test('a size that cannot be a file is refused', () {
+    final old = bytes(64, 13);
+    expect(
+      () => applyPatch(
+        oldBytes: old,
+        patch: const <int>[],
+        oldSha256: hash(old),
+        newSha256: hash(const <int>[]),
+        newSize: 0,
       ),
       throwsA(isA<UpdatePatchFailed>()),
     );
