@@ -292,6 +292,24 @@ final _random = Random();
 String synthesizedToolId() =>
     'toolu_${List.generate(12, (_) => _random.nextInt(16).toRadixString(16)).join()}';
 
+/// A provider's reply as the agent takes it (#664): a tool turn when [blocks]
+/// call a tool and [tools] agrees, else the end of the turn, with a line on
+/// why when the model [stopped] early.
+AgentResponse agentReply(
+  List<Block> blocks, {
+  bool tools = true,
+  bool stopped = false,
+  Object? reason,
+  TokenUsage? usage,
+}) {
+  final toolUse = tools && blocks.any((b) => b['type'] == 'tool_use');
+  return AgentResponse(
+    [...blocks, if (!toolUse && stopped) stoppedEarly(reason)],
+    toolUse ? 'tool_use' : 'end_turn',
+    usage: usage,
+  );
+}
+
 /// The block that tells the user an answer was cut short.
 Block stoppedEarly(Object? reason) => {
   'type': 'text',
