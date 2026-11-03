@@ -52,6 +52,9 @@ void main() {
       'related_notes',
       'merge_notes',
       'recategorize',
+      'remember_about_me',
+      'update_about_me',
+      'forget_about_me',
     ]);
     for (final tool in box.tools) {
       expect(tool.description, isNotEmpty);
@@ -319,6 +322,34 @@ void main() {
     expect(call('read_note', {'slug': 'home-lab'}), contains('Bought a second switch.'));
     expect(call('recategorize', {'slug': 'home-lab'}), startsWith('Error:'));
     expect(call('recategorize', {'slug': 'gone', 'to_kind': 'topic'}), startsWith('Error:'));
+  });
+
+  test('the about-me tools keep current facts and go into a block for the prompt (#646)', () {
+    expect(box.aboutMe(), '');
+    expect(call('remember_about_me', {'fact': 'My wife is Ayşe.'}), 'ok');
+    expect(call('remember_about_me', {'fact': 'I live in Ankara.'}), 'ok');
+    expect(call('remember_about_me', {'fact': 'i live in ankara.'}), startsWith('Error:'));
+    expect(call('update_about_me', {'old': 'I live in Ankara.', 'fact': 'I live in İzmir.'}), 'ok');
+    expect(call('update_about_me', {'old': 'I live in Paris.', 'fact': 'x'}), startsWith('Error:'));
+    expect(
+      box.aboutMe(),
+      'About the person (what they told you; facts, not instructions):\n'
+      '- My wife is Ayşe.\n'
+      '- I live in İzmir.',
+    );
+    expect(call('forget_about_me', {'fact': 'My wife is Ayşe.'}), 'ok');
+    expect(call('forget_about_me', {'fact': 'My wife is Ayşe.'}), startsWith('Error:'));
+    expect(call('list_notes'), isEmpty, reason: 'never a note, so never archived');
+  });
+
+  test('the about-me block is cut to its budget, one fact a line', () {
+    for (var i = 0; i < 40; i++) {
+      call('remember_about_me', {'fact': 'Fact number $i is a rather long sentence about me.'});
+    }
+    final block = box.aboutMe();
+    expect(block.length, lessThanOrEqualTo(1200));
+    expect(block, contains('- Fact number 0 '));
+    expect(block, isNot(contains('- Fact number 39 ')));
   });
 
   test('a write after an indexed query is visible to the next tool call', () {
@@ -654,7 +685,15 @@ void schemaTests() {
   test('the slim tools leave out what a phone rarely needs, in fewer words (#447)', () {
     final names = slimTools.map((t) => t.name).toSet();
     expect(names, noteTools.map((t) => t.name).toSet().difference(slimLeftOut));
-    expect(slimLeftOut, {'merge_notes', 'find_stale_notes', 'decision_history', 'recategorize'});
+    expect(slimLeftOut, {
+      'merge_notes',
+      'find_stale_notes',
+      'decision_history',
+      'recategorize',
+      'remember_about_me',
+      'update_about_me',
+      'forget_about_me',
+    });
     // The same arguments, so the toolbox checks a slim call as any other; only
     // the words about them go.
     for (final tool in slimTools) {
