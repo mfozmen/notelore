@@ -185,6 +185,7 @@ void main() {
         ..setPalette(Palette.sunset)
         ..setAppearance(Appearance.dark);
       await laptop.setWebSearch(false);
+      await laptop.setAboutMeToCloud(false);
       await laptop.setModel('model-b');
       await laptop.connectDrive();
       expect(drive.texts[sharedSettings], contains('"language":"tr"'));
@@ -197,6 +198,7 @@ void main() {
       expect(phone.model, 'model-b');
       expect((phone.palette, phone.appearance), (Palette.sunset, Appearance.dark));
       expect(phone.webSearch, isFalse);
+      expect(phone.aboutMeToCloud, isFalse); // a privacy choice follows the person
 
       // Later the phone changes the language: the laptop follows on its next sync.
       await later.connect(findProvider('anthropic'), 'phone-key');

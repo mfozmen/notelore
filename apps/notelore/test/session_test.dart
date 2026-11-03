@@ -876,6 +876,37 @@ void main() {
     expect(harness.searches.last, isFalse);
   });
 
+  test('about me: the cloud switch is on by default and remembered (#646)', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.load();
+    expect(session.aboutMeToCloud, isTrue);
+    await session.connect(findProvider('anthropic'), 'k');
+    await session.setAboutMeToCloud(false);
+    expect(session.ready, isTrue); // the agent is rebuilt, not dropped
+    final again = harness.session();
+    await again.load();
+    expect(again.aboutMeToCloud, isFalse);
+  });
+
+  test('about me: facts are added, changed and removed through the store (#646)', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.load();
+    var told = 0;
+    session.addListener(() => told++);
+    expect(session.aboutMeFacts(), isEmpty);
+    await session.rememberFact('Wife: Ayşe');
+    await session.rememberFact('Lives in Izmir');
+    await session.updateFact('Lives in Izmir', 'Lives in Ankara');
+    expect(session.aboutMeFacts(), ['Wife: Ayşe', 'Lives in Ankara']);
+    await expectLater(session.rememberFact('wife: ayşe'), throwsArgumentError);
+    await session.forgetFact('Wife: Ayşe');
+    expect(session.aboutMeFacts(), ['Lives in Ankara']);
+    expect(File(aboutMePath(harness.paths.notes.path)).existsSync(), isTrue);
+    expect(told, greaterThanOrEqualTo(4));
+  });
+
   test('in Turkish, the sync summary and a stopped turn read in Turkish', () async {
     final harness = Harness(answers: [Completer<AgentResponse>().future]);
     final session = harness.session(systemLanguage: 'tr');

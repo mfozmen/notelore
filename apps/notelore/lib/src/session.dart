@@ -481,6 +481,39 @@ class Session extends ChangeNotifier {
   /// The device's language code; [AppLanguage.system] follows it.
   final String systemLanguage;
 
+  /// The about-me facts go to cloud models too; a model on this machine always gets them.
+  bool aboutMeToCloud = true;
+
+  /// Turns sending the about-me facts to cloud models on or off.
+  Future<void> setAboutMeToCloud(bool on) async {
+    await _applyAboutMeToCloud(on);
+    _touch();
+  }
+
+  Future<void> _applyAboutMeToCloud(bool on) async {
+    aboutMeToCloud = on;
+    _saveUi();
+    if (model case final current?) await _applyModel(current);
+  }
+
+  /// What the person told about themselves, one fact a line.
+  List<String> aboutMeFacts() => aboutMe(paths.notes.path);
+
+  /// Adds [fact]; throws [ArgumentError] when it is empty or already there.
+  Future<void> rememberFact(String fact) => _aboutMe(() => rememberAboutMe(paths.notes.path, fact));
+
+  /// Replaces [old] with [fact]; throws [ArgumentError] when [old] is gone or [fact] is taken.
+  Future<void> updateFact(String old, String fact) =>
+      _aboutMe(() => updateAboutMe(paths.notes.path, old, fact));
+
+  /// Removes [fact]; throws [ArgumentError] when it is gone.
+  Future<void> forgetFact(String fact) => _aboutMe(() => forgetAboutMe(paths.notes.path, fact));
+
+  Future<void> _aboutMe(void Function() change) => _exclusive(() async {
+    change();
+    notifyListeners();
+  });
+
   /// The language the user picked in Settings; the device's by default.
   AppLanguage language = AppLanguage.system;
 
@@ -546,6 +579,7 @@ class Session extends ChangeNotifier {
           'palette': palette.name,
           'appearance': appearance.name,
           'webSearch': webSearch,
+          if (!aboutMeToCloud) 'aboutMeToCloud': false,
           if (calendar) 'calendar': true,
           'calendarId': ?calendarId,
           'microphone': ?microphone,
@@ -567,6 +601,7 @@ class Session extends ChangeNotifier {
       palette = _named(Palette.values, saved['palette']) ?? Palette.lagoon;
       appearance = _named(Appearance.values, saved['appearance']) ?? Appearance.system;
       webSearch = saved['webSearch'] != false;
+      aboutMeToCloud = saved['aboutMeToCloud'] != false;
       calendar = saved['calendar'] == true;
       _calendarNudged = saved['calendarNudged'] == true;
       calendarId = switch (saved['calendarId']) {
@@ -1529,6 +1564,7 @@ class Session extends ChangeNotifier {
       'palette': palette.name,
       'appearance': appearance.name,
       'webSearch': webSearch,
+      'aboutMeToCloud': aboutMeToCloud,
       'calendar': calendar,
       'calendarId': ?calendarId,
       'provider': ?spec?.name,
@@ -1557,6 +1593,9 @@ class Session extends ChangeNotifier {
       _named(Appearance.values, theirs['appearance']) ?? appearance,
     );
     if (theirs['webSearch'] case final bool on when on != webSearch) await _applyWebSearch(on);
+    if (theirs['aboutMeToCloud'] case final bool on when on != aboutMeToCloud) {
+      await _applyAboutMeToCloud(on);
+    }
     if (theirs['calendar'] case final bool on) {
       calendar = on;
       if (theirs['calendarId'] case final String id) calendarId = id;

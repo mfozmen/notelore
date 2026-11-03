@@ -470,6 +470,17 @@ abstract class Strings {
   String get voiceSection;
   String get syncSection;
   String get aboutSection;
+  String get aboutMeSection;
+  String get aboutMeToCloud;
+  String get aboutMeToCloudWhy;
+  String get aboutMeEmpty;
+  String get addFact;
+  String get editFact;
+  String get fact;
+  String get save;
+  String get factTaken;
+  String get factChanged;
+  String factRemoved(String fact);
   String get advancedSection;
   String appearanceName(Appearance appearance);
   String get drive;
@@ -1395,6 +1406,43 @@ class EnglishStrings extends Strings {
   String get syncSection => 'Sync';
   @override
   String get aboutSection => 'About';
+
+  @override
+  String get aboutMeSection => 'About me';
+
+  @override
+  String get aboutMeToCloud => 'Send my personal info to cloud models';
+
+  @override
+  String get aboutMeToCloudWhy =>
+      'Cloud providers (Claude, ChatGPT, Gemini...) then see these facts with every message. '
+      'A model on this device always gets them.';
+
+  @override
+  String get aboutMeEmpty =>
+      'Tell the assistant about yourself, like your family, your city or your work, and it '
+      'remembers it here, so your notes come out right. You can add a fact yourself too.';
+
+  @override
+  String get addFact => 'Add a fact';
+
+  @override
+  String get editFact => 'Edit the fact';
+
+  @override
+  String get fact => 'Fact';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get factTaken => 'This is already in the list.';
+
+  @override
+  String get factChanged => 'This changed on another device. Close and try again.';
+
+  @override
+  String factRemoved(String fact) => 'Removed "$fact".';
   @override
   String get advancedSection => 'Advanced';
   @override
@@ -2430,6 +2478,43 @@ class TurkishStrings extends Strings {
   String get syncSection => 'Eşitleme';
   @override
   String get aboutSection => 'Hakkında';
+
+  @override
+  String get aboutMeSection => 'Hakkımda';
+
+  @override
+  String get aboutMeToCloud => 'Kişisel bilgilerimi bulut modellerine gönder';
+
+  @override
+  String get aboutMeToCloudWhy =>
+      'Bulut sağlayıcıları (Claude, ChatGPT, Gemini...) bu bilgileri her mesajda görür. '
+      'Bu cihazdaki bir model onları her zaman alır.';
+
+  @override
+  String get aboutMeEmpty =>
+      'Asistana kendinden bahset: ailen, şehrin ya da işin gibi. Burada hatırlar, notların '
+      'doğru çıkar. Bir bilgiyi kendin de ekleyebilirsin.';
+
+  @override
+  String get addFact => 'Bilgi ekle';
+
+  @override
+  String get editFact => 'Bilgiyi düzenle';
+
+  @override
+  String get fact => 'Bilgi';
+
+  @override
+  String get save => 'Kaydet';
+
+  @override
+  String get factTaken => 'Bu zaten listede.';
+
+  @override
+  String get factChanged => 'Bu başka bir cihazda değişti. Kapatıp yeniden dene.';
+
+  @override
+  String factRemoved(String fact) => '"$fact" silindi.';
   @override
   String get advancedSection => 'Gelişmiş';
   @override

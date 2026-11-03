@@ -19,6 +19,7 @@ import 'whisper_speech.dart' show MicrophoneChoice;
 /// Settings' categories: the side list on a wide window, the phone's menu.
 enum SettingsSection {
   model(Icons.auto_awesome_outlined),
+  aboutMe(Icons.person_outline),
   voice(Icons.record_voice_over_outlined),
   sync(Icons.cloud_outlined),
   appearance(Icons.palette_outlined),
@@ -33,6 +34,7 @@ enum SettingsSection {
 
   String title(Strings s) => switch (this) {
     model => s.model,
+    aboutMe => s.aboutMeSection,
     voice => s.voiceSection,
     sync => s.syncSection,
     appearance => s.appearance,
@@ -120,6 +122,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final s = session.strings;
     final cards = {
       SettingsSection.model: [_ModelCard(session)],
+      SettingsSection.aboutMe: [_AboutMeCard(session)],
       SettingsSection.voice: [
         _VoiceCard(
           session,
@@ -534,6 +537,143 @@ class _AdvancedCard extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// What the person told about themselves: the cloud switch, then the facts,
+/// each one tapped to edit; it follows a sync while open.
+class _AboutMeCard extends StatelessWidget {
+  const _AboutMeCard(this.session);
+
+  final Session session;
+
+  Future<void> _edit(BuildContext context, [String? old]) =>
+      showDialog<void>(context: context, builder: (_) => _FactDialog(session, old));
+
+  Future<void> _delete(BuildContext context, String fact) async {
+    final messenger = ScaffoldMessenger.of(context);
+    await session.forgetFact(fact);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(session.strings.factRemoved(fact)),
+          action: SnackBarAction(
+            label: session.strings.undo,
+            onPressed: () => session.rememberFact(fact),
+          ),
+        ),
+      );
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: session,
+    builder: (context, _) {
+      final s = session.strings;
+      final facts = session.aboutMeFacts();
+      return Card(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SwitchListTile(
+              secondary: const Icon(Icons.cloud_outlined),
+              title: Text(s.aboutMeToCloud),
+              subtitle: Text(s.aboutMeToCloudWhy),
+              value: session.aboutMeToCloud,
+              onChanged: session.setAboutMeToCloud,
+            ),
+            const Divider(height: 1),
+            if (facts.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, 0),
+                child: Text(
+                  s.aboutMeEmpty,
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
+              ),
+            for (final fact in facts)
+              ListTile(
+                title: Text(fact),
+                onTap: () => _edit(context, fact),
+                trailing: IconButton(
+                  tooltip: s.delete,
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => _delete(context, fact),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(Gap.s),
+              child: TextButton.icon(
+                icon: const Icon(Icons.add),
+                label: Text(s.addFact),
+                onPressed: () => _edit(context),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+/// Adds a fact, or changes [old]; the store's refusal shows under the field.
+class _FactDialog extends StatefulWidget {
+  const _FactDialog(this.session, this.old);
+
+  final Session session;
+  final String? old;
+
+  @override
+  State<_FactDialog> createState() => _FactDialogState();
+}
+
+class _FactDialogState extends State<_FactDialog> {
+  late final _text = TextEditingController(text: widget.old);
+  String? _error;
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final session = widget.session;
+    final fact = _text.text.trim();
+    final old = widget.old;
+    if (old != null && !session.aboutMeFacts().contains(old)) {
+      return setState(() => _error = session.strings.factChanged);
+    }
+    try {
+      old == null ? await session.rememberFact(fact) : await session.updateFact(old, fact);
+    } on ArgumentError {
+      return setState(() => _error = session.strings.factTaken);
+    }
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.session.strings;
+    final empty = _text.text.trim().isEmpty;
+    return AlertDialog(
+      title: Text(widget.old == null ? s.addFact : s.editFact),
+      content: TextField(
+        key: const Key('fact-field'),
+        controller: _text,
+        autofocus: true,
+        textCapitalization: TextCapitalization.sentences,
+        textInputAction: TextInputAction.done,
+        onChanged: (_) => setState(() => _error = null),
+        onSubmitted: empty ? null : (_) => _save(),
+        decoration: InputDecoration(labelText: s.fact, errorText: _error),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(s.cancel)),
+        FilledButton(onPressed: empty ? null : _save, child: Text(s.save)),
+      ],
     );
   }
 }
