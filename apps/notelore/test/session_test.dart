@@ -957,6 +957,21 @@ void main() {
     },
   );
 
+  test('about me: facts go in sections, headings in the app language (#671)', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.load();
+    session.setLanguage(AppLanguage.tr);
+    await session.rememberFact('Eşim Ayşe.', section: 'family');
+    await session.rememberFact('Çay severim.');
+    await session.updateFact('Çay severim.', 'Yeşil çay severim.', section: 'home');
+    expect(session.aboutMeEntries(), [
+      (section: 'home', fact: 'Yeşil çay severim.'),
+      (section: 'family', fact: 'Eşim Ayşe.'),
+    ]);
+    expect(File(aboutMePath(harness.paths.notes.path)).readAsStringSync(), contains('## Aile'));
+  });
+
   test('about me: facts are added, changed and removed through the store (#646)', () async {
     final harness = Harness();
     final session = harness.session();

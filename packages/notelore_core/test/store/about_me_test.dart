@@ -109,4 +109,100 @@ void main() {
     rememberAboutMe(root.path, 'Şehir: İzmir', now: now);
     expect(() => rememberAboutMe(root.path, 'Şehir: İzmir', now: now), throwsArgumentError);
   });
+
+  group('sections (#671)', () {
+    test('a fact goes under its section, in a fixed order; Other stays at the top', () {
+      rememberAboutMe(root.path, 'My wife is Ayşe.', section: 'family', now: now);
+      rememberAboutMe(root.path, 'I work at Acme.', section: 'work', now: now);
+      rememberAboutMe(root.path, 'I like tea.', now: now);
+      rememberAboutMe(root.path, 'My son is Can.', section: 'family', now: now);
+      expect(
+        file(),
+        '# About me\n\n- I like tea.\n\n## Work\n\n- I work at Acme.\n\n'
+        '## Family\n\n- My wife is Ayşe.\n- My son is Can.\n',
+      );
+      expect(aboutMeFacts(root.path), [
+        (section: 'other', fact: 'I like tea.'),
+        (section: 'work', fact: 'I work at Acme.'),
+        (section: 'family', fact: 'My wife is Ayşe.'),
+        (section: 'family', fact: 'My son is Can.'),
+      ]);
+      expect(aboutMe(root.path), hasLength(4));
+    });
+
+    test('headings in the language asked for, then in the file\'s own', () {
+      rememberAboutMe(root.path, 'Ankara\'da yaşıyorum.', section: 'home', lang: 'tr', now: now);
+      rememberAboutMe(root.path, 'Acme\'de çalışıyorum.', section: 'work', now: now);
+      expect(file(), contains('## İş\n'));
+      expect(file(), contains('## Ev\n'));
+      expect(aboutMeFacts(root.path).map((f) => f.section), ['work', 'home']);
+    });
+
+    test('a section emptied by a forget or a move loses its heading', () {
+      rememberAboutMe(root.path, 'I work at Acme.', section: 'work', now: now);
+      rememberAboutMe(root.path, 'I run on Sundays.', section: 'health', now: now);
+      updateAboutMe(root.path, 'I work at Acme.', 'I work at Initech.', section: 'other', now: now);
+      expect(file(), '# About me\n\n- I work at Initech.\n\n## Health\n\n- I run on Sundays.\n');
+      forgetAboutMe(root.path, 'I run on Sundays.', now: now);
+      expect(file(), '# About me\n\n- I work at Initech.\n');
+      updateAboutMe(
+        root.path,
+        'I work at Initech.',
+        'I work at Initech.',
+        section: 'work',
+        now: now,
+      );
+      expect(file(), '# About me\n\n## Work\n\n- I work at Initech.\n');
+    });
+
+    test(
+      'a hand-made file that starts at a heading, or with blank lines, takes Other above it',
+      () {
+        for (final start in [
+          '## Work\n\n- I work at Acme.\n',
+          '\n\n## Work\n\n- I work at Acme.\n',
+        ]) {
+          File(aboutMePath(root.path)).writeAsStringSync(start);
+          rememberAboutMe(root.path, 'I like tea.', now: now);
+          expect(aboutMeFacts(root.path), [
+            (section: 'other', fact: 'I like tea.'),
+            (section: 'work', fact: 'I work at Acme.'),
+          ]);
+        }
+      },
+    );
+
+    test('a move into a new section names it in the language asked for', () {
+      rememberAboutMe(root.path, 'Çay severim.', now: now);
+      updateAboutMe(
+        root.path,
+        'Çay severim.',
+        'Çay severim.',
+        section: 'home',
+        lang: 'tr',
+        now: now,
+      );
+      expect(file(), contains('## Ev\n'));
+    });
+
+    test('a change without a section keeps the fact where it is', () {
+      rememberAboutMe(root.path, 'I work at Acme.', section: 'work', now: now);
+      updateAboutMe(root.path, 'I work at Acme.', 'I work at Initech.', now: now);
+      expect(aboutMeFacts(root.path), [(section: 'work', fact: 'I work at Initech.')]);
+    });
+
+    test('an unknown section is refused; a heading of its own, by hand, reads as Other', () {
+      expect(() => rememberAboutMe(root.path, 'x', section: 'pets', now: now), throwsArgumentError);
+      File(
+        aboutMePath(root.path),
+      ).writeAsStringSync('# About me\n\n## Pets\n\n- A cat, Tekir.\n\n## Aile\n\n- Eşim Ayşe.\n');
+      expect(aboutMeFacts(root.path), [
+        (section: 'other', fact: 'A cat, Tekir.'),
+        (section: 'family', fact: 'Eşim Ayşe.'),
+      ]);
+      rememberAboutMe(root.path, 'Oğlum Can.', section: 'family', now: now);
+      expect(file(), endsWith('## Aile\n\n- Eşim Ayşe.\n- Oğlum Can.\n'));
+      expect(file(), contains('## Pets\n')); // a person's own lines are kept
+    });
+  });
 }

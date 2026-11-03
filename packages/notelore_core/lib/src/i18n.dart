@@ -11,6 +11,16 @@ const sectionHeadings = <String, Map<String, String>>{
   'reminders': {'en': 'Reminders', 'tr': 'Hatırlatıcılar'},
 };
 
+/// The about-me file's sections, in the order they are written and shown (#671).
+/// Facts outside a known heading are Other.
+const aboutMeSections = <String, Map<String, String>>{
+  'work': {'en': 'Work', 'tr': 'İş'},
+  'home': {'en': 'Home', 'tr': 'Ev'},
+  'family': {'en': 'Family', 'tr': 'Aile'},
+  'health': {'en': 'Health', 'tr': 'Sağlık'},
+  'other': {'en': 'Other', 'tr': 'Diğer'},
+};
+
 final _headingToKey = {
   for (final MapEntry(:key, :value) in sectionHeadings.entries)
     for (final heading in value.values) heading: key,
