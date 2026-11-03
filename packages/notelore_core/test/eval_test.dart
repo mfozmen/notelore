@@ -114,7 +114,7 @@ void main() {
     expect(messages.first['content'], provider.turns.first.$1);
     // The minute the model is told, so a relative reminder time has one answer (#434).
     expect(messages.first['content'], contains('It is now 2026-10-18 14:00, local time.'));
-    expect(messages.first['content'], endsWith('- Mopsos: mopsos, project'));
+    expect(messages.first['content'], contains('- Mopsos: mopsos, project'));
     // Its scenario, so a split keeps one scenario's turns on one side; its note
     // list, so a reprompt keeps it.
     expect(example['id'], 'file-1');

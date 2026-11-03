@@ -776,6 +776,34 @@ void failureTests() {
       expect(tools().where((t) => t.endsWith('_about_me')), isEmpty);
     });
 
+    test(
+      "the message's language closes the prompt, so Turkish notes do not turn it (#653)",
+      () async {
+        final provider = ScriptedProvider([
+          text('Hi.'),
+          text('Selam.'),
+          text('Tamam.'),
+          text('Added.'),
+        ]);
+        final agent = Agent(provider, newBox(), today: today);
+        await agent.ask('What did we decide about the database?');
+        expect(
+          provider.turns.last.$1,
+          endsWith('\n\nThe user writes in English: answer in English.'),
+        );
+        await agent.ask('onaylıyorum');
+        expect(
+          provider.turns.last.$1,
+          endsWith('\n\nThe user writes in Turkish: answer in Turkish.'),
+        );
+        await agent.ask('ok');
+        expect(provider.turns.last.$1, isNot(contains('answer in')));
+        // A Turkish title inside an English message: its small words decide.
+        await agent.ask('Add "Gülünün Solduğu Akşam" to the books I am reading.');
+        expect(provider.turns.last.$1, endsWith('answer in English.'));
+      },
+    );
+
     test('a slim agent sends them; a full one the full ones', () async {
       final provider = ScriptedProvider([text('Hi.'), text('Hi.')]);
       await Agent(provider, newBox(), today: today, slim: true).ask('hi');

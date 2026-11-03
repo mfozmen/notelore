@@ -23,3 +23,36 @@ String sectionHeading(String key, [String lang = 'en']) {
   final variants = sectionHeadings[key]!;
   return variants[lang] ?? variants['en']!;
 }
+
+const _englishWords = {
+  'the', 'a', 'an', 'and', 'to', 'of', 'in', 'on', 'for', 'with', 'is', 'are', 'was', 'it', //
+  'i', "i've", "i'll", 'you', 'your', 'this', 'that', 'what', 'which', 'do', 'did', 'have',
+};
+
+const _turkishWords = {
+  've', 'bir', 'bu', 'şu', 'için', 'ile', 'da', 'de', 'mi', 'mı', 'mu', 'mü', 'ne', 'olarak', //
+  'ekledim', 'kaydettim', 'notuna', 'notunu', 'hangi', 'nasıl', 'var', 'yok', 'yani', 'değil',
+};
+
+/// `en` or `tr` by which language's small words [answer] has more of, quoted
+/// text left out (a Turkish title in an English answer); null when neither.
+String? answerLanguage(String answer) {
+  final unquoted = answer.replaceAll(RegExp(r'"[^"]*"|“[^”]*”|`[^`]*`'), ' ');
+  final words = RegExp(
+    r"[\p{L}']+",
+    unicode: true,
+  ).allMatches(unquoted.toLowerCase()).map((m) => m[0]!);
+  final english = words.where(_englishWords.contains).length;
+  final turkish = words.where(_turkishWords.contains).length;
+  if (english > turkish) return 'en';
+  if (turkish > english) return 'tr';
+  return null;
+}
+
+final _turkishLetters = RegExp('[çğışöüÇĞİŞÖÜ]');
+
+/// [message]'s language, for the line that ends the prompt (#653): by its
+/// small words, as [answerLanguage] judges, else `tr` when it has letters only
+/// Turkish uses ("onaylıyorum"); null when it says nothing ("ok").
+String? messageLanguage(String message) =>
+    answerLanguage(message) ?? (_turkishLetters.hasMatch(message) ? 'tr' : null);

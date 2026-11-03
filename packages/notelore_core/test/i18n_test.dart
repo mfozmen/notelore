@@ -19,4 +19,14 @@ void main() {
     expect(sectionHeading('todo', 'tr'), 'Yapılacaklar');
     expect(sectionHeading('todo', 'de'), 'Todo');
   });
+
+  test("a message's language: its small words, else Turkish letters (#653)", () {
+    expect(messageLanguage('What did we decide about the database?'), 'en');
+    expect(messageLanguage('Sprint review moved to Thursday.'), 'en');
+    expect(messageLanguage('Ne karar verdik?'), 'tr');
+    expect(messageLanguage('onaylıyorum'), 'tr');
+    expect(messageLanguage('Kaydedildi: Ev Tadilatı.'), 'tr');
+    expect(messageLanguage('ok'), isNull);
+    expect(answerLanguage('Kaydedildi: Ev Tadilatı.'), isNull, reason: 'the eval stays strict');
+  });
 }
