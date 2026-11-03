@@ -876,6 +876,90 @@ void main() {
     expect(harness.searches.last, isFalse);
   });
 
+  test('about me: the cloud switch is on by default and remembered (#646)', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.load();
+    expect(session.aboutMeToCloud, isTrue);
+    await session.connect(findProvider('anthropic'), 'k');
+    await session.setAboutMeToCloud(false);
+    expect(session.ready, isTrue); // the agent is rebuilt, not dropped
+    final again = harness.session();
+    await again.load();
+    expect(again.aboutMeToCloud, isFalse);
+  });
+
+  test(
+    'about me: cloud models get the facts only with the switch on; a local one always (#646)',
+    () async {
+      final harness = Harness(answers: ['a', 'b', 'c']);
+      final session = harness.session();
+      await session.load();
+      await session.rememberFact('Wife: Ayşe');
+      await session.connect(findProvider('anthropic'), 'k');
+      await session.send('hi');
+      expect(harness.provider.systems.last, contains('Wife: Ayşe'));
+      await session.setAboutMeToCloud(false);
+      await session.send('hi');
+      expect(harness.provider.systems.last, isNot(contains('Wife: Ayşe')));
+      await session.connect(findProvider('ollama'), '');
+      await session.send('hi');
+      expect(harness.provider.systems.last, contains('Wife: Ayşe'));
+    },
+  );
+
+  test('about me: only a model on this machine counts as local (#646)', () {
+    expect(onThisMachine('device', 'x'), isTrue);
+    expect(onThisMachine('anthropic', 'x'), isFalse);
+    expect(onThisMachine('ollama', 'qwen3:4b', host: 'http://localhost:11434'), isTrue);
+    expect(onThisMachine('ollama', 'qwen3:4b', host: 'http://127.0.0.1:11434'), isTrue);
+    expect(onThisMachine('ollama', 'qwen3:4b', host: 'http://[::1]:11434'), isTrue);
+    expect(onThisMachine('ollama', 'qwen3:4b', host: '0.0.0.0:11434'), isTrue);
+    expect(onThisMachine('ollama', 'qwen3:4b', host: 'http://gpu-box:11434'), isFalse);
+    expect(onThisMachine('ollama', 'gpt-oss:120b-cloud', host: 'http://localhost:11434'), isFalse);
+    expect(onThisMachine('ollama', 'kimi:cloud', host: 'http://localhost:11434'), isFalse);
+  });
+
+  test(
+    'about me: a local chat moving to a cloud model with the switch off starts afresh (#646)',
+    () async {
+      final harness = Harness(answers: ['a', 'b', 'c', 'd']);
+      final session = harness.session();
+      await session.load();
+      await session.setAboutMeToCloud(false);
+      await session.connect(findProvider('ollama'), '');
+      await session.send('my wife is Ayşe');
+      await session.connect(findProvider('anthropic'), 'k');
+      await session.send('hi');
+      expect(harness.provider.lengths.last, 1); // nothing the local model was told
+      await session.setAboutMeToCloud(true);
+      await session.send('again');
+      expect(harness.provider.lengths.last, greaterThan(1)); // the cloud conversation goes on
+      // Off on a cloud model: it was told already, so the conversation stays.
+      await session.setAboutMeToCloud(false);
+      await session.send('more');
+      expect(harness.provider.lengths.last, greaterThan(3));
+    },
+  );
+
+  test('about me: facts are added, changed and removed through the store (#646)', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.load();
+    var told = 0;
+    session.addListener(() => told++);
+    expect(session.aboutMeFacts(), isEmpty);
+    await session.rememberFact('Wife: Ayşe');
+    await session.rememberFact('Lives in Izmir');
+    await session.updateFact('Lives in Izmir', 'Lives in Ankara');
+    expect(session.aboutMeFacts(), ['Wife: Ayşe', 'Lives in Ankara']);
+    await expectLater(session.rememberFact('wife: ayşe'), throwsArgumentError);
+    await session.forgetFact('Wife: Ayşe');
+    expect(session.aboutMeFacts(), ['Lives in Ankara']);
+    expect(File(aboutMePath(harness.paths.notes.path)).existsSync(), isTrue);
+    expect(told, greaterThanOrEqualTo(4));
+  });
+
   test('in Turkish, the sync summary and a stopped turn read in Turkish', () async {
     final harness = Harness(answers: [Completer<AgentResponse>().future]);
     final session = harness.session(systemLanguage: 'tr');

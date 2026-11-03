@@ -481,6 +481,48 @@ class Session extends ChangeNotifier {
   /// The device's language code; [AppLanguage.system] follows it.
   final String systemLanguage;
 
+  /// The about-me facts go to cloud models too; a model on this machine always gets them.
+  bool aboutMeToCloud = true;
+
+  /// Turns sending the about-me facts to cloud models on or off; after a running turn.
+  Future<void> setAboutMeToCloud(bool on) => _exclusive(() async {
+    await _applyAboutMeToCloud(on);
+    _touch();
+  });
+
+  Future<void> _applyAboutMeToCloud(bool on) async {
+    aboutMeToCloud = on;
+    _saveUi();
+    if (model case final current?) await _applyModel(current);
+  }
+
+  /// Off wins: a stale "on" from a device that has not caught up never sends the facts.
+  Future<void> _adoptAboutMeToCloud(Object? theirs) async {
+    if (theirs == false && aboutMeToCloud) await _applyAboutMeToCloud(false);
+  }
+
+  /// What the person told about themselves, one fact a line.
+  List<String> aboutMeFacts() => aboutMe(paths.notes.path);
+
+  /// Adds [fact]; throws [ArgumentError] when it is empty or already there.
+  Future<void> rememberFact(String fact) => _aboutMe(() => rememberAboutMe(paths.notes.path, fact));
+
+  /// Replaces [old] with [fact]; throws [ArgumentError] when [old] is gone or [fact] is taken.
+  Future<void> updateFact(String old, String fact) =>
+      _aboutMe(() => updateAboutMe(paths.notes.path, old, fact));
+
+  /// Removes [fact]; throws [ArgumentError] when it is gone.
+  Future<void> forgetFact(String fact) => _aboutMe(() => forgetAboutMe(paths.notes.path, fact));
+
+  // Refused or not, the screens reread: a refusal often means another device changed it.
+  Future<void> _aboutMe(void Function() change) => _exclusive(() async {
+    try {
+      change();
+    } finally {
+      notifyListeners();
+    }
+  });
+
   /// The language the user picked in Settings; the device's by default.
   AppLanguage language = AppLanguage.system;
 
@@ -546,6 +588,7 @@ class Session extends ChangeNotifier {
           'palette': palette.name,
           'appearance': appearance.name,
           'webSearch': webSearch,
+          if (!aboutMeToCloud) 'aboutMeToCloud': false,
           if (calendar) 'calendar': true,
           'calendarId': ?calendarId,
           'microphone': ?microphone,
@@ -567,6 +610,7 @@ class Session extends ChangeNotifier {
       palette = _named(Palette.values, saved['palette']) ?? Palette.lagoon;
       appearance = _named(Appearance.values, saved['appearance']) ?? Appearance.system;
       webSearch = saved['webSearch'] != false;
+      aboutMeToCloud = saved['aboutMeToCloud'] != false;
       calendar = saved['calendar'] == true;
       _calendarNudged = saved['calendarNudged'] == true;
       calendarId = switch (saved['calendarId']) {
@@ -1081,19 +1125,25 @@ class Session extends ChangeNotifier {
       setUpBefore = true;
       _saveUi();
     }
+    final wasLocal = spec != null && onThisMachine(spec!.name, model ?? '');
     spec = chosen;
     model = chosenModel;
     if (chosen.name != 'device') unawaited(_freeDeviceEngine());
     final toolbox = Toolbox(paths.notes.path, index, today: today);
     _provider = MeteredProvider(_providerFor(chosen, key, chosenModel), chosen.name, usage);
-    // A model switch keeps the conversation; logout has already dropped it.
-    final history = _agent?.messages ?? const <Message>[];
+    final me = aboutMeToCloud || onThisMachine(chosen.name, chosenModel);
+    // A model switch keeps the conversation (logout has already dropped it), except
+    // what a local model was told about the person, on its way to a cloud one.
+    final history = wasLocal && _agent?.aboutMe == true && !me
+        ? const <Message>[]
+        : _agent?.messages ?? const <Message>[];
     _agent = Agent(
       _provider!,
       toolbox,
       today: today,
       timing: timing,
       slim: chosen.name == 'device', // every token is read on the phone first (#447)
+      aboutMe: me,
     )..messages.addAll(history);
     _startDevicePrefill();
     notifyListeners();
@@ -1529,6 +1579,7 @@ class Session extends ChangeNotifier {
       'palette': palette.name,
       'appearance': appearance.name,
       'webSearch': webSearch,
+      'aboutMeToCloud': aboutMeToCloud,
       'calendar': calendar,
       'calendarId': ?calendarId,
       'provider': ?spec?.name,
@@ -1557,6 +1608,7 @@ class Session extends ChangeNotifier {
       _named(Appearance.values, theirs['appearance']) ?? appearance,
     );
     if (theirs['webSearch'] case final bool on when on != webSearch) await _applyWebSearch(on);
+    await _adoptAboutMeToCloud(theirs['aboutMeToCloud']);
     if (theirs['calendar'] case final bool on) {
       calendar = on;
       if (theirs['calendarId'] case final String id) calendarId = id;
@@ -2015,4 +2067,14 @@ String withoutFrontMatter(String text) {
   if (!text.startsWith('---\n')) return text;
   final end = text.indexOf('\n---\n', 3);
   return end < 0 ? text : text.substring(end + 5);
+}
+
+/// Whether [provider]'s [model] runs on this machine: the device model, or
+/// Ollama on a loopback [host] with a model it does not forward to ollama.com.
+bool onThisMachine(String provider, String model, {String? host}) {
+  if (provider == 'device') return true;
+  if (provider != 'ollama' || RegExp(r'[:-]cloud$').hasMatch(model)) return false;
+  final at = host ?? ollamaHost();
+  final name = Uri.tryParse(at.contains('://') ? at : 'http://$at')?.host ?? '';
+  return name == 'localhost' || name == '::1' || name == '0.0.0.0' || name.startsWith('127.');
 }

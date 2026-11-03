@@ -40,6 +40,9 @@ class ScriptedProvider implements LlmProvider {
   Object tryAnswer = 'Ready.';
   final asked = <String>[];
 
+  /// The system prompt of each turn.
+  final systems = <String>[];
+
   /// How many messages of history each turn carried.
   final lengths = <int>[];
 
@@ -60,6 +63,7 @@ class ScriptedProvider implements LlmProvider {
       ], 'end_turn');
     }
     asked.add('${messages.last['content']}');
+    systems.add(system);
     lengths.add(messages.length);
     final answer = answers.removeAt(0);
     if (answer is Exception) throw answer;
@@ -700,6 +704,8 @@ Future<void> openSettings(WidgetTester tester, String section) async {
   final menu = find.byIcon(Icons.menu);
   if (menu.evaluate().isNotEmpty) {
     await tester.tap(menu.first);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text(section).last); // a long menu at a large text size
     await tester.pumpAndSettle();
     await tester.tap(find.text(section).last);
   } else {
