@@ -30,6 +30,7 @@ import 'device_model.dart';
 import 'device_native.dart';
 import 'lock_state.dart';
 import 'pdf_native.dart';
+import 'prefs.dart';
 import 'reminder_notifier.dart';
 import 'strings.dart';
 import 'theme.dart';
@@ -69,10 +70,6 @@ typedef ChatLine = ({ChatRole role, String text});
 
 /// What happened to one imported file: null when it was not a note.
 typedef ImportReport = ({String file, Imported? imported});
-
-/// The value of [values] named [name], or null.
-T? _named<T extends Enum>(List<T> values, Object? name) =>
-    values.where((v) => v.name == name).firstOrNull;
 
 /// The shared app settings in the notes folder on Drive (not a note: the sync
 /// engine leaves it alone).
@@ -588,13 +585,7 @@ class Session extends ChangeNotifier {
       atomicWrite(
         _ui,
         jsonEncode({
-          'language': language.name,
-          'palette': palette.name,
-          'appearance': appearance.name,
-          'webSearch': webSearch,
-          if (!aboutMeToCloud) 'aboutMeToCloud': false,
-          if (calendar) 'calendar': true,
-          'calendarId': ?calendarId,
+          ..._shared.toJson(),
           if (_dropCalendars.isNotEmpty) 'dropCalendars': _dropCalendars,
           'microphone': ?microphone,
           if (setUpBefore) 'setUp': true,
@@ -611,17 +602,15 @@ class Session extends ChangeNotifier {
     try {
       final saved = jsonDecode(File(_ui).readAsStringSync());
       if (saved is! Map) return;
-      language = _named(AppLanguage.values, saved['language']) ?? AppLanguage.system;
-      palette = _named(Palette.values, saved['palette']) ?? Palette.lagoon;
-      appearance = _named(Appearance.values, saved['appearance']) ?? Appearance.system;
-      webSearch = saved['webSearch'] != false;
-      aboutMeToCloud = saved['aboutMeToCloud'] != false;
-      calendar = saved['calendar'] == true;
+      final shared = SharedPrefs.fromJson(saved);
+      language = shared.language ?? AppLanguage.system;
+      palette = shared.palette ?? Palette.lagoon;
+      appearance = shared.appearance ?? Appearance.system;
+      webSearch = shared.webSearch ?? true;
+      aboutMeToCloud = shared.aboutMeToCloud ?? true;
+      calendar = shared.calendar ?? false;
+      calendarId = shared.calendarId;
       _calendarNudged = saved['calendarNudged'] == true;
-      calendarId = switch (saved['calendarId']) {
-        final String id => id,
-        _ => null,
-      };
       _dropCalendars
         ..clear()
         ..addAll((saved['dropCalendars'] as List? ?? const []).whereType<String>());
@@ -1599,13 +1588,7 @@ class Session extends ChangeNotifier {
     if (mine == null) _touch(stamp);
     final shared = {
       'updated': stamp.toUtc().toIso8601String(),
-      'language': language.name,
-      'palette': palette.name,
-      'appearance': appearance.name,
-      'webSearch': webSearch,
-      'aboutMeToCloud': aboutMeToCloud,
-      'calendar': calendar,
-      'calendarId': ?calendarId,
+      ..._shared.toJson(),
       'provider': ?spec?.name,
       'model': ?model,
     };
@@ -1634,17 +1617,26 @@ class Session extends ChangeNotifier {
     _saveUi();
   }
 
+  /// This device's values of the settings every device shares (#662).
+  SharedPrefs get _shared => SharedPrefs(
+    language: language,
+    palette: palette,
+    appearance: appearance,
+    webSearch: webSearch,
+    aboutMeToCloud: aboutMeToCloud,
+    calendar: calendar,
+    calendarId: calendarId,
+  );
+
   /// Another device's settings. Its provider only when this device can use it
   /// without asking (a key, or the ChatGPT sign-in); Ollama is local to each machine.
   Future<void> _adopt(Map<String, Object?> theirs) async {
-    if (_named(AppLanguage.values, theirs['language']) case final l?) _applyLanguage(l);
-    _applyLook(
-      _named(Palette.values, theirs['palette']) ?? palette,
-      _named(Appearance.values, theirs['appearance']) ?? appearance,
-    );
-    if (theirs['webSearch'] case final bool on when on != webSearch) await _applyWebSearch(on);
+    final shared = SharedPrefs.fromJson(theirs);
+    if (shared.language case final l?) _applyLanguage(l);
+    _applyLook(shared.palette ?? palette, shared.appearance ?? appearance);
+    if (shared.webSearch case final on? when on != webSearch) await _applyWebSearch(on);
     await _adoptAboutMeToCloud(theirs['aboutMeToCloud']);
-    if (theirs['calendar'] case final bool on) _adoptCalendar(on, theirs['calendarId']);
+    if (shared.calendar case final on?) _adoptCalendar(on, shared.calendarId);
     await _adoptProvider(theirs['provider'], theirs['model']);
   }
 
