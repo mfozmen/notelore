@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'about_me_page.dart';
 import 'calendar.dart';
 import 'chat.dart';
 import 'lock.dart';
@@ -338,6 +339,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   Future<UpdateCheck> Function()? get _checkByHand => widget.updater == null ? null : _checkNow;
 
+  /// Settings' place in the side rail; a phone has it in the menu.
+  static const _settings = 4;
+
   /// The screen of [tab].
   Widget _screen(int tab, {required bool wide}) => switch (tab) {
     // Below the menu, to find it.
@@ -350,6 +354,18 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     0 => ChatScreen(widget.session),
     1 => NotesScreen(widget.session),
     2 => CalendarScreen(widget.session, toChat: () => setState(() => _tab = 0)),
+    3 => Builder(
+      builder: (context) => AboutMeScreen(
+        widget.session,
+        privacy: () => openSettingsSection(
+          context,
+          widget.session,
+          SettingsSection.privacy,
+          checkForUpdates: _checkByHand,
+          updateNow: _updateFromSettings,
+        ),
+      ),
+    ),
     _ => SettingsScreen(
       widget.session,
       checkForUpdates: _checkByHand,
@@ -369,6 +385,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       (Icons.chat_bubble_outline, Icons.chat_bubble, s.chat),
       (Icons.description_outlined, Icons.description, s.notes),
       (Icons.calendar_month_outlined, Icons.calendar_month, s.calendar),
+      (Icons.person_outline, Icons.person, s.aboutMeSection),
       if (wide) (Icons.settings_outlined, Icons.settings, s.settings),
     ];
     final tab = _tab < destinations.length ? _tab : 0; // a window made narrow on Settings
@@ -394,10 +411,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             update: _update,
           ),
         if (widget.session.heldNotes.isNotEmpty) _HeldBanner(widget.session),
-        if (widget.session.driveNeedsSignIn && !_signInLater && tab != 3)
+        if (widget.session.driveNeedsSignIn && !_signInLater && tab != _settings)
           _SignInBanner(widget.session, later: () => setState(() => _signInLater = true)),
         // Settings has its own sign-in: never the same offer twice on one screen.
-        if (widget.session.calendarNudge && tab != 3) _CalendarBanner(widget.session),
+        if (widget.session.calendarNudge && tab != _settings) _CalendarBanner(widget.session),
         Expanded(child: _screen(tab, wide: wide)),
       ],
     );

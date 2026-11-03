@@ -19,11 +19,11 @@ import 'whisper_speech.dart' show MicrophoneChoice;
 /// Settings' categories: the side list on a wide window, the phone's menu.
 enum SettingsSection {
   model(Icons.auto_awesome_outlined),
-  aboutMe(Icons.person_outline),
   voice(Icons.record_voice_over_outlined),
   sync(Icons.cloud_outlined),
   appearance(Icons.palette_outlined),
   lock(Icons.lock_outline),
+  privacy(Icons.shield_outlined),
   reminders(Icons.notifications_outlined),
   advanced(Icons.insights_outlined),
   about(Icons.info_outline);
@@ -34,11 +34,11 @@ enum SettingsSection {
 
   String title(Strings s) => switch (this) {
     model => s.model,
-    aboutMe => s.aboutMeSection,
     voice => s.voiceSection,
     sync => s.syncSection,
     appearance => s.appearance,
     lock => s.appLock,
+    privacy => s.privacySection,
     reminders => s.reminders,
     advanced => s.advancedSection,
     about => s.aboutSection,
@@ -122,7 +122,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final s = session.strings;
     final cards = {
       SettingsSection.model: [_ModelCard(session)],
-      SettingsSection.aboutMe: [_AboutMeCard(session)],
       SettingsSection.voice: [
         _VoiceCard(
           session,
@@ -135,6 +134,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       SettingsSection.sync: [Card(child: _DriveSection(session))],
       SettingsSection.appearance: [_LanguageCard(session), _LookCard(session)],
       SettingsSection.lock: [_LockCard(session)],
+      SettingsSection.privacy: [_PrivacyCard(session)],
       SettingsSection.reminders: [_RemindersCard(session)],
       SettingsSection.advanced: [_AdvancedCard(session)],
       SettingsSection.about: [
@@ -541,164 +541,23 @@ class _AdvancedCard extends StatelessWidget {
   }
 }
 
-/// What the person told about themselves: the cloud switch, then the facts,
-/// each one tapped to edit; it follows a sync while open.
-class _AboutMeCard extends StatelessWidget {
-  const _AboutMeCard(this.session);
+/// Whether cloud models get the about-me facts (#646); the facts themselves
+/// are a page of their own (#669).
+class _PrivacyCard extends StatelessWidget {
+  const _PrivacyCard(this.session);
 
   final Session session;
 
-  Future<void> _edit(BuildContext context, [String? old]) =>
-      showDialog<void>(context: context, builder: (_) => _FactDialog(session, old));
-
-  Future<void> _delete(BuildContext context, String fact) async {
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      await session.forgetFact(fact);
-    } on ArgumentError {
-      return; // already gone on another device; the list has caught up
-    }
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            session.strings.factRemoved(fact),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          action: SnackBarAction(
-            label: session.strings.undo,
-            onPressed: () => session.rememberFact(fact),
-          ),
-        ),
-      );
-  }
-
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: session,
-    builder: (context, _) {
-      final s = session.strings;
-      final facts = session.aboutMeFacts();
-      final theme = Theme.of(context);
-      return Card(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, Gap.s),
-              child: Text(
-                s.aboutMeHeading,
-                style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
-              ),
-            ),
-            if (facts.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-                child: Text(
-                  s.aboutMeEmpty,
-                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-                ),
-              ),
-            for (final fact in facts)
-              ListTile(
-                title: Text(fact),
-                onTap: () => _edit(context, fact),
-                trailing: IconButton(
-                  tooltip: s.delete,
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () => _delete(context, fact),
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.m),
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.add),
-                label: Text(s.addFact),
-                onPressed: () => _edit(context),
-              ),
-            ),
-            const Divider(height: 1),
-            SwitchListTile(
-              secondary: const Icon(Icons.shield_outlined),
-              title: Text(s.aboutMeToCloud),
-              subtitle: Text(s.aboutMeToCloudWhy),
-              value: session.aboutMeToCloud,
-              onChanged: session.setAboutMeToCloud,
-            ),
-          ],
-        ),
-      );
-    },
+  Widget build(BuildContext context) => Card(
+    child: SwitchListTile(
+      secondary: const Icon(Icons.shield_outlined),
+      title: Text(session.strings.aboutMeToCloud),
+      subtitle: Text(session.strings.aboutMeToCloudWhy),
+      value: session.aboutMeToCloud,
+      onChanged: session.setAboutMeToCloud,
+    ),
   );
-}
-
-/// Adds a fact, or changes [old]; the store's refusal shows under the field.
-class _FactDialog extends StatefulWidget {
-  const _FactDialog(this.session, this.old);
-
-  final Session session;
-  final String? old;
-
-  @override
-  State<_FactDialog> createState() => _FactDialogState();
-}
-
-class _FactDialogState extends State<_FactDialog> {
-  late final _text = TextEditingController(text: widget.old);
-  String? _error;
-
-  @override
-  void dispose() {
-    _text.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    final session = widget.session;
-    final fact = _text.text.trim();
-    final old = widget.old;
-    if (old != null && !session.aboutMeFacts().contains(old)) {
-      return setState(() => _error = session.strings.factChanged);
-    }
-    try {
-      old == null ? await session.rememberFact(fact) : await session.updateFact(old, fact);
-    } on ArgumentError {
-      return setState(() => _error = session.strings.factTaken);
-    }
-    if (mounted) Navigator.of(context).pop();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final s = widget.session.strings;
-    final empty = _text.text.trim().isEmpty;
-    return AlertDialog(
-      title: Text(widget.old == null ? s.addFact : s.editFact),
-      content: SizedBox(
-        width: Layout.bubble(MediaQuery.sizeOf(context).width),
-        child: TextField(
-          key: const Key('fact-field'),
-          controller: _text,
-          autofocus: true,
-          // Wraps to show a long fact, yet Enter saves: one fact stays one line.
-          minLines: 1,
-          maxLines: 6,
-          keyboardType: TextInputType.text,
-          textCapitalization: TextCapitalization.sentences,
-          textInputAction: TextInputAction.done,
-          onChanged: (_) => setState(() => _error = null),
-          onSubmitted: empty ? null : (_) => _save(),
-          decoration: InputDecoration(labelText: s.fact, errorText: _error),
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(s.cancel)),
-        FilledButton(onPressed: empty ? null : _save, child: Text(s.save)),
-      ],
-    );
-  }
 }
 
 /// The app's language.

@@ -14,7 +14,7 @@ export 'src/agent.dart'
         Attachment,
         attachedFiles,
         withAttachments;
-export 'src/i18n.dart' show sectionHeading, sectionHeadings, sectionKey;
+export 'src/i18n.dart' show aboutMeSections, sectionHeading, sectionHeadings, sectionKey;
 export 'src/links.dart' show LinkUnreadable, Resolve, WebPage, linksIn, readPage, withLinkedPages;
 export 'src/oauth.dart'
     show MissingDriveGrant, NoChatGptPlan, NotSignedIn, OAuthSignIn, PartialGrant, SignInFailed;
@@ -54,7 +54,7 @@ export 'src/reminders.dart'
     show DayItem, DueReminder, calendarItems, maxScheduledReminders, upcomingReminders;
 export 'src/secret.dart' show defaultIterations, hashSecret, verifySecret;
 export 'src/store/about_me.dart'
-    show aboutMe, aboutMePath, forgetAboutMe, rememberAboutMe, updateAboutMe;
+    show aboutMe, aboutMeFacts, aboutMePath, forgetAboutMe, rememberAboutMe, updateAboutMe;
 export 'src/store/format.dart'
     show
         Decision,

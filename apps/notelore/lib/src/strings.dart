@@ -472,7 +472,10 @@ abstract class Strings {
   String get aboutSection;
   String get aboutMeSection;
   String get aboutMeToCloud;
-  String get aboutMeHeading;
+  String get privacySection;
+  String get factSection;
+  String aboutMeShared(bool on);
+  String get aboutMeSharingWhere;
   String get aboutMeToCloudWhy;
   String get aboutMeEmpty;
   String get addFact;
@@ -1415,7 +1418,16 @@ class EnglishStrings extends Strings {
   String get aboutMeToCloud => 'Share with cloud models';
 
   @override
-  String get aboutMeHeading => 'What Notelore knows about you';
+  String get privacySection => 'Privacy';
+
+  @override
+  String get factSection => 'Section';
+
+  @override
+  String aboutMeShared(bool on) => on ? 'Shared with cloud models' : 'Kept from cloud models';
+
+  @override
+  String get aboutMeSharingWhere => 'Change it in Settings, Privacy.';
 
   @override
   String get aboutMeToCloudWhy =>
@@ -2498,7 +2510,17 @@ class TurkishStrings extends Strings {
   String get aboutMeToCloud => 'Bulut modelleriyle paylaş';
 
   @override
-  String get aboutMeHeading => 'Notelore senin hakkında ne biliyor';
+  String get privacySection => 'Gizlilik';
+
+  @override
+  String get factSection => 'Bölüm';
+
+  @override
+  String aboutMeShared(bool on) =>
+      on ? 'Bulut modelleriyle paylaşılıyor' : 'Bulut modellerinden saklanıyor';
+
+  @override
+  String get aboutMeSharingWhere => 'Ayarlar > Gizlilik bölümünden değiştir.';
 
   @override
   String get aboutMeToCloudWhy =>
