@@ -1633,8 +1633,8 @@ class Session extends ChangeNotifier {
     final (name, chosen) = (theirs['provider'], theirs['model']);
     // A local model is this machine's own: another device's choice of one stays there.
     if (name is! String || chosen is! String) return;
-    final found = providerSpecs.where((s) => s.name == name).firstOrNull;
-    if (found == null || found.local) return;
+    final found = providerSpecs.where((s) => s.name == name && !s.local).firstOrNull;
+    if (found == null) return;
     if (found == spec) {
       if (chosen != model) await _applyModel(chosen);
       return;
