@@ -39,27 +39,40 @@ class KeychainVault extends FlutterSecureStorage {
     return stored == null ? {} : (jsonDecode(stored) as Map).cast<String, String>();
   }
 
-  /// Keys whose item of their own, from before the vault, was looked for or
-  /// dropped this run; after [deleteAll], every key.
-  final _looked = <String>{};
+  /// Each key's look for its item of its own from before the vault, this run,
+  /// shared by reads at the same time. A look that failed is forgotten, so the
+  /// next read tries again.
+  final _looks = <String, Future<void>>{};
+
+  /// After [deleteAll] no older item is moved in this run. Items never asked for
+  /// stay in the Keychain and move in on a later run.
   var _cleared = false;
 
   /// [key]'s value. An older version's item of its own moves into the vault the
   /// first time it is asked for, never by listing: macOS's file-based keychain
   /// refuses to list items with their data (errSecParam, #666).
   Future<String?> _value(String key) async {
-    final map = await _map();
-    if (map.containsKey(key) || _cleared || !_looked.add(key)) return map[key];
+    if (!(await _map()).containsKey(key) && !_cleared) {
+      await (_looks[key] ??= _moveOld(key).catchError((Object e, StackTrace s) {
+        _looks.remove(key);
+        Error.throwWithStackTrace(e, s);
+      }));
+    }
+    return (await _map())[key];
+  }
+
+  Future<void> _moveOld(String key) async {
     final old = await inner.read(key: key);
-    if (old == null) return null;
-    await _change((map) => map[key] = old);
+    if (old == null) return;
+    // A write made while this read waited is newer: it stays.
+    await _change((map) => map.putIfAbsent(key, () => old));
     await _dropOld(key);
-    return old;
   }
 
   /// Sets or removes [key]; its older item goes too, so it cannot come back.
   Future<void> _set(String key, String? value) async {
-    final fresh = !_cleared && _looked.add(key);
+    final fresh = !_cleared && !_looks.containsKey(key);
+    if (fresh) _looks[key] = Future.value();
     await _change((map) => value == null ? map.remove(key) : map[key] = value);
     if (fresh) await _dropOld(key);
   }

@@ -83,10 +83,33 @@ void main() {
     expect(await next.read(key: 'notelore.lock'), 'hash');
     expect(await next.read(key: 'notelore.gone'), isNull);
     expect(await next.containsKey(key: 'notelore.lock'), isTrue);
-    expect(await next.read(key: 'notelore.gone'), isNull);
     expect(await next.readAll(), {'notelore.openai.api_key': 'sk-1', 'notelore.lock': 'hash'});
-    // The vault, and one look for an older item of the missing key: no item, no prompt.
-    expect(again.reads, 2, reason: 'one item, one password prompt');
+    // The vault once, and one look for an older item of the missing key, which
+    // has no item and so no prompt.
+    expect(again.reads, 2);
+  });
+
+  test('a write while an older item is being moved keeps the newer value', () async {
+    FlutterSecureStorage.setMockInitialValues({'notelore.a': 'old'});
+    final vault = KeychainVault(_Counted(), keySpace: 'notelore');
+    final reading = vault.read(key: 'notelore.a');
+    await vault.write(key: 'notelore.a', value: 'new');
+    await reading;
+    expect(await vault.read(key: 'notelore.a'), 'new');
+    expect(await KeychainVault(_Counted(), keySpace: 'notelore').read(key: 'notelore.a'), 'new');
+  });
+
+  test('two reads of a key being moved get its value; a refused read is tried again', () async {
+    FlutterSecureStorage.setMockInitialValues({'notelore.vault': '{}', 'notelore.a': 'old'});
+    final inner = _Counted();
+    final vault = KeychainVault(inner, keySpace: 'notelore');
+    await vault.readAll();
+    inner.fail = true;
+    await expectLater(vault.read(key: 'notelore.a'), throwsException);
+    expect(await Future.wait([vault.read(key: 'notelore.a'), vault.read(key: 'notelore.a')]), [
+      'old',
+      'old',
+    ]);
   });
 
   test('a value written as null, or deleted, leaves the item', () async {
