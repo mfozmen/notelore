@@ -54,6 +54,8 @@ It lives outside `test/`, so the test suite never writes these files.
 ## More
 
 - Contributor guide for humans and AI agents: [`CLAUDE.md`](../CLAUDE.md)
+- Workflow in one page: [`CONTRIBUTING.md`](../CONTRIBUTING.md)
+- Design patterns: [`design-patterns.md`](design-patterns.md)
 - Note format: [`note-format.md`](note-format.md)
 - Roadmap: [`PLAN.md`](PLAN.md)
 

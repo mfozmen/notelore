@@ -77,6 +77,8 @@ App (`apps/notelore/lib/`):
 
 Dependencies point one way: the app imports the core, the core never imports Flutter or the app.
 
+Patterns in use, and when to add one: [`docs/design-patterns.md`](docs/design-patterns.md). Branch on a platform, provider or kind in one place (the factory that builds the strategy), never in several methods.
+
 ## Development environment
 
 ### Never touch real user data
