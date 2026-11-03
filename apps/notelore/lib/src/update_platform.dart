@@ -210,7 +210,6 @@ final class _Windows extends _Package {
         newSha256: expected,
         newSize: patch.size,
       );
-      if (sha256.convert(patched).toString() != expected) return false;
       _write(root, path, patched);
       return true;
     } on Object {

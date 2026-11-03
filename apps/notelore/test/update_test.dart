@@ -377,6 +377,7 @@ void main() {
       bool jobJsonDir = false,
       bool patch = false,
       bool wrongOld = false,
+      bool noOld = false,
       bool truncated = false,
     }) async {
       final next = utf8.encode('new app').toList();
@@ -387,8 +388,10 @@ void main() {
         final full = makePatch(old, next);
         final bytes = truncated ? full.sublist(0, full.length ~/ 2) : full;
         archive.addFile(ArchiveFile(patchEntry('data/app.so'), bytes.length, bytes));
-        final target = Directory(p.join(install, 'data'))..createSync(recursive: true);
-        File(p.join(target.path, 'app.so')).writeAsStringSync(wrongOld ? 'other app' : 'old app');
+        if (!noOld) {
+          final target = Directory(p.join(install, 'data'))..createSync(recursive: true);
+          File(p.join(target.path, 'app.so')).writeAsStringSync(wrongOld ? 'other app' : 'old app');
+        }
         patched = UpdatePatch(
           oldSha256: sha256.convert(old).toString(),
           patch: patchEntry('data/app.so'),
@@ -495,6 +498,12 @@ void main() {
     test('a patch from other old bytes falls back to the full setup (#585)', () async {
       write(p.join(install, 'notelore-updater.exe'), 'helper');
       final delta = await deltaPages(patch: true, wrongOld: true);
+      await fullFallback(delta.pages, delta.key);
+    });
+
+    test('a patch with no old file falls back to the full setup (#585)', () async {
+      write(p.join(install, 'notelore-updater.exe'), 'helper');
+      final delta = await deltaPages(patch: true, noOld: true);
       await fullFallback(delta.pages, delta.key);
     });
 
