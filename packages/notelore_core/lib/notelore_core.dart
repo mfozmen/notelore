@@ -51,6 +51,8 @@ export 'src/providers/validator.dart'
         validateKey;
 export 'src/reminders.dart'
     show DayItem, DueReminder, calendarItems, maxScheduledReminders, upcomingReminders;
+export 'src/store/about_me.dart'
+    show aboutMe, aboutMePath, forgetAboutMe, rememberAboutMe, updateAboutMe;
 export 'src/secret.dart' show defaultIterations, hashSecret, verifySecret;
 export 'src/store/format.dart'
     show
