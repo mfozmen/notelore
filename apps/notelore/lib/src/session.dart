@@ -1607,6 +1607,17 @@ class Session extends ChangeNotifier {
     }
   }
 
+  void _adoptCalendar(bool on, Object? id) {
+    calendar = on;
+    if (id is String && id != calendarId) {
+      // Made here before the shared one arrived: removed at the next calendar
+      // sync, so the account keeps one Notelore calendar (#674).
+      if (calendarId case final mine?) _dropCalendars.add(mine);
+      calendarId = id;
+    }
+    _saveUi();
+  }
+
   /// Another device's settings. Its provider only when this device can use it
   /// without asking (a key, or the ChatGPT sign-in); Ollama is local to each machine.
   Future<void> _adopt(Map<String, Object?> theirs) async {
@@ -1617,16 +1628,7 @@ class Session extends ChangeNotifier {
     );
     if (theirs['webSearch'] case final bool on when on != webSearch) await _applyWebSearch(on);
     await _adoptAboutMeToCloud(theirs['aboutMeToCloud']);
-    if (theirs['calendar'] case final bool on) {
-      calendar = on;
-      if (theirs['calendarId'] case final String id when id != calendarId) {
-        // Made here before the shared one arrived: removed at the next calendar
-        // sync, so the account keeps one Notelore calendar (#674).
-        if (calendarId case final mine?) _dropCalendars.add(mine);
-        calendarId = id;
-      }
-      _saveUi();
-    }
+    if (theirs['calendar'] case final bool on) _adoptCalendar(on, theirs['calendarId']);
     final (name, chosen) = (theirs['provider'], theirs['model']);
     // A local model is this machine's own: another device's choice of one stays there.
     if (name is! String || chosen is! String || name == 'ollama' || name == 'device') return;
