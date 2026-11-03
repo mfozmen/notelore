@@ -2703,6 +2703,21 @@ void main() {
     expect(find.text('Choose a model provider'), findsOneWidget);
   });
 
+  testWidgets('settings: removing every model can be cancelled (#514)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await openSettings(tester, 'Model');
+    await tester.tap(find.text('Remove all models from this device'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(session.spec, isNotNull);
+    expect(find.text('Connected models'), findsOneWidget);
+    expect(find.text('Choose a model provider'), findsNothing);
+  });
+
   testWidgets('the chat says when the device model is getting ready (#595)', (tester) async {
     phone(tester);
     final harness = Harness()..deviceModels = true;
