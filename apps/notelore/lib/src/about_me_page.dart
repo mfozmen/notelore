@@ -116,8 +116,11 @@ class AboutMeScreen extends StatelessWidget {
                   ],
                 if (wide)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, 0),
-                    child: Align(alignment: Alignment.centerLeft, child: add),
+                    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, Gap.xs),
+                    child: Align(
+                      alignment: entries.isEmpty ? Alignment.center : Alignment.centerLeft,
+                      child: add,
+                    ),
                   ),
                 const Divider(height: Gap.l),
                 ListTile(
