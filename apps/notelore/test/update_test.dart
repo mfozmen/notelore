@@ -182,6 +182,25 @@ void main() {
       'About me in Settings',
       'Share to Notelore keeps the link on Android',
     ]);
+    // Only the wording of how Notelore is built goes; a feature that says
+    // "review" or "training" stays, and a line naming two platforms shows on both.
+    const features =
+        '### Features\n\n'
+        '- Review a note before it is filed\n'
+        '- Voice training for dictation\n'
+        '- Quick capture on Mac and Windows\n';
+    expect(releaseHighlights(features, system: 'android'), [
+      'Review a note before it is filed',
+      'Voice training for dictation',
+    ]);
+    expect(releaseHighlights(features, system: 'windows'), [
+      'Review a note before it is filed',
+      'Voice training for dictation',
+    ]);
+    expect(
+      releaseHighlights('### Features\n\n- Quick capture on Mac and Windows\n', system: 'macos'),
+      ['Quick capture on Mac and Windows'],
+    );
   });
 
   group('the check', () {

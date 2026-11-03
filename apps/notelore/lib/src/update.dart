@@ -318,7 +318,12 @@ final _platforms = {
   'android': RegExp(r'\bandroid\b', caseSensitive: false),
   'ios': RegExp(r'\bios\b', caseSensitive: false),
 };
-final _internal = RegExp(r'\b(evals?|dpo|training|fine-tune|reviews?)\b', caseSensitive: false);
+// Only the words release notes use for how Notelore is built: a feature that
+// mentions a review or training stays.
+final _internal = RegExp(
+  r'\b(evals?|eval cases|dpo|fine-tunes?)\b|\bsettle\b.*\breviews?\b',
+  caseSensitive: false,
+);
 
 bool _concerns(String line, String system) {
   if (_internal.hasMatch(line)) return false;
