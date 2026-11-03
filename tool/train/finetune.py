@@ -276,6 +276,11 @@ def preference(tokenizer, row):
     return {"prompt": prompt, **replies}
 
 
+DPO_BETA = 0.1
+# An evaluation costs four forward passes a pair here, so half as often as SFT's.
+DPO_SETTINGS = {"learning_rate": 5e-6, "eval_steps": 10, "save_steps": 10}
+
+
 def dpo(base, sft, data, out, epochs=1):
     """DPO (#607) on pairs.py's pairs: the SFT LoRA [sft] trains on, and TRL keeps
     a frozen copy of it as the reference, so the merged SFT model is never needed.
@@ -295,8 +300,7 @@ def dpo(base, sft, data, out, epochs=1):
         train_dataset=Dataset.from_list(kept),
         eval_dataset=Dataset.from_list(held),
         processing_class=tokenizer,
-        # An evaluation costs four forward passes a pair here, so half as often as SFT's.
-        args=DPOConfig(**{**settings, "learning_rate": 5e-6, "eval_steps": 10, "save_steps": 10}, beta=0.1),
+        args=DPOConfig(**{**settings, **DPO_SETTINGS}, beta=DPO_BETA),
         callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
     )
     trainer.train()

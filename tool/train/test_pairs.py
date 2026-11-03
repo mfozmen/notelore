@@ -65,6 +65,8 @@ made = pairs([good], [skip, late, skip, other], most=2)
 check("each failure pairs with a pass of its case, at most `most` a case",
       [(p["id"], p["rejected"]) for p in made], [("done-1", [entry]), ("done-1", [entry])])
 check("a failure whose case never passed is left out", [p for p in made if p["id"] == "done-2"], [])
+check("the same failure twice gives one pair, not double weight",
+      [p["prompt"][-1] for p in pairs([good], [skip, skip, late])], [user, note])
 
 later = call("complete_todo", slug="garden-shed", number=2)
 other_good = row("done-1", read, note, entry, result("add_note_entry", "ok"), later, done)

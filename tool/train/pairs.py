@@ -41,16 +41,18 @@ def pair(passed, failed):
 def pairs(passed, failed, most=4):
     """Each failed turn against the passed turn of its case that shares most of
     its start, so the split falls nearest the mistake; at most [most] pairs a
-    case so no case outweighs the rest."""
-    wins, made, count = defaultdict(list), [], defaultdict(int)
+    case so no case outweighs the rest. A pair made twice is kept once."""
+    wins, made, count, seen = defaultdict(list), [], defaultdict(int), set()
     for row in passed:
         wins[row["id"]].append(row)
     for row in failed:
         case = row["id"]
-        if not wins[case] or count[case] >= most:
+        if not wins.get(case) or count[case] >= most:
             continue
         p = pair(max(wins[case], key=lambda w: _shared(w["messages"], row["messages"])), row)
-        if p:
+        key = p and json.dumps(p, sort_keys=True)
+        if p and key not in seen:
+            seen.add(key)
             made.append(p)
             count[case] += 1
     return made
@@ -65,11 +67,13 @@ def main(argv):
         return next((a.split("=", 1)[1] for a in argv if a.startswith(f"--{name}=")), default)
 
     passed = [r for path in argv if not path.startswith("--") for r in _rows(path)]
-    made = pairs(passed, _rows(option("failed")), int(option("most", "4")))
+    failed = _rows(option("failed"))
+    made = pairs(passed, failed, int(option("most", "4")))
     with open(option("out"), "w", encoding="utf-8", newline="\n") as out:
         for p in made:
             out.write(json.dumps(p, ensure_ascii=False) + "\n")
-    print(f"{len(made)} pairs from {len({p['id'] for p in made})} cases -> {option('out')}")
+    print(f"{len(made)} pairs from {len({p['id'] for p in made})} cases -> {option('out')}; "
+          f"{len(failed) - len(made)} failed turns left out (no pass, a duplicate, the cap, or no split)")
 
 
 if __name__ == "__main__":
