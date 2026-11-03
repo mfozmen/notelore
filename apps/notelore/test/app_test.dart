@@ -1734,11 +1734,15 @@ void main() {
     expect(find.text('Google Drive'), findsOneWidget);
     expect(find.text('Notes folder'), findsNothing); // no path to show (#207)
 
-    // Updates and log out live under About, with the version.
+    // About holds the version and updates only (#514, #566).
     await tester.tap(section('About'));
     await tester.pumpAndSettle();
-    final version = tester.getTopLeft(find.text('Notelore · development build'));
-    expect(tester.getTopLeft(find.text('Log out')).dy, greaterThan(version.dy));
+    expect(find.text('Notelore · development build'), findsOneWidget);
+    expect(find.text('Remove all models from this device'), findsNothing);
+
+    await tester.tap(section('Model'));
+    await tester.pumpAndSettle();
+    expect(find.text('Remove all models from this device'), findsOneWidget);
   });
 
   testWidgets('settings: the app version at the bottom', (tester) async {
@@ -2677,7 +2681,7 @@ void main() {
     expect(launcher.opened, ['https://console.anthropic.com/settings/keys']);
   });
 
-  testWidgets('settings: change the model, then log out', (tester) async {
+  testWidgets('settings: change the model, then remove every model', (tester) async {
     phone(tester);
     final harness = Harness();
     final session = await pumpApp(tester, harness);
@@ -2689,14 +2693,29 @@ void main() {
     expect(picker.requestFocusOnTap, isFalse);
     expect(find.text('Save model'), findsNothing);
     expect(session.model, 'claude-sonnet-5-5');
-    // Log out is in About.
-    await tester.pageBack();
+    // Removing every model sits beside the models, and asks first (#514).
+    await tester.tap(find.text('Remove all models from this device'));
     await tester.pumpAndSettle();
-    await openSettings(tester, 'About');
+    expect(find.text('Choose a model provider'), findsNothing);
+    await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
+    await tester.pumpAndSettle();
     expect(find.text(harness.paths.notes.path), findsNothing); // never shown (#207)
-    await tester.tap(find.text('Log out'));
-    await tester.pumpAndSettle();
     expect(find.text('Choose a model provider'), findsOneWidget);
+  });
+
+  testWidgets('settings: removing every model can be cancelled (#514)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await openSettings(tester, 'Model');
+    await tester.tap(find.text('Remove all models from this device'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(session.spec, isNotNull);
+    expect(find.text('Connected models'), findsOneWidget);
+    expect(find.text('Choose a model provider'), findsNothing);
   });
 
   testWidgets('the chat says when the device model is getting ready (#595)', (tester) async {

@@ -256,8 +256,8 @@ abstract class Strings {
   String get refreshModelsFailed;
   String get modelSaved;
   String get checkForUpdates;
-  String get logOut;
-  String get logOutExplained;
+  String get removeAllModels;
+  String get removeAllModelsWhy;
   String get language;
   String languageName(AppLanguage language);
   String get appLanguage;
@@ -1074,9 +1074,10 @@ class EnglishStrings extends Strings {
   @override
   String get checkForUpdates => 'Check for updates';
   @override
-  String get logOut => 'Log out';
+  String get removeAllModels => 'Remove all models from this device';
   @override
-  String get logOutExplained => 'Logging out forgets the API key on this device. Your notes stay.';
+  String get removeAllModelsWhy =>
+      'Every key and sign-in is removed from this device. Your notes and this conversation stay.';
   @override
   String get language => 'Language';
   @override
@@ -2178,9 +2179,10 @@ class TurkishStrings extends Strings {
   @override
   String get checkForUpdates => 'Güncellemeleri denetle';
   @override
-  String get logOut => 'Çıkış yap';
+  String get removeAllModels => 'Tüm modelleri bu cihazdan kaldır';
   @override
-  String get logOutExplained => 'Çıkış yapınca bu cihazdaki API anahtarı silinir. Notların kalır.';
+  String get removeAllModelsWhy =>
+      'Bütün anahtarlar ve girişler bu cihazdan silinir. Notların ve bu sohbet yerinde kalır.';
   @override
   String get language => 'Dil';
   @override

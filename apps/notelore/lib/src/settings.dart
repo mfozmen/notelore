@@ -425,9 +425,77 @@ class _ConnectionsState extends State<_Connections> {
     if (mounted) _reload();
   }
 
+  Future<void> _removeAll() async {
+    final s = session.strings;
+    final colors = Theme.of(context).colorScheme;
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: Text(s.removeAllModels),
+        content: Text(s.removeAllModelsWhy),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialog, false), child: Text(s.cancel)),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: colors.error,
+              foregroundColor: colors.onError,
+            ),
+            onPressed: () => Navigator.pop(dialog, true),
+            child: Text(s.remove),
+          ),
+        ],
+      ),
+    );
+    if (!(sure ?? false) || !mounted) return;
+    // Setup takes over: a phone's Settings page must not stay on top.
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    await session.logout();
+  }
+
   Future<void> _connectAnother() async {
     await ProviderWizard.open(context, session);
     if (mounted) _reload();
+  }
+
+  Widget _connected() {
+    final s = session.strings;
+    final colors = Theme.of(context).colorScheme;
+    return FutureBuilder(
+      future: _connections,
+      builder: (context, snapshot) => Column(
+        children: [
+          // The one in use shows at once, before the keystore answers.
+          for (final spec in snapshot.data ?? [?session.spec])
+            ListTile(
+              key: ValueKey('connection-${spec.name}'),
+              // The one in use is marked; any other is one tap away.
+              leading: switch (spec) {
+                _ when spec == _switching => const SizedBox.square(
+                  dimension: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                _ when spec == session.spec => Icon(
+                  Icons.check_circle,
+                  color: colors.primary,
+                  semanticLabel: s.nowUsing(s.providerName(spec)),
+                ),
+                _ => const Icon(Icons.radio_button_unchecked),
+              },
+              title: Text(s.providerName(spec)),
+              subtitle: Text(s.groupHeading(spec.group)),
+              selected: spec == session.spec,
+              onTap: spec == session.spec || _switching != null ? null : () => _switch(spec),
+              trailing: IconButton(
+                tooltip: s.remove,
+                // A removal never wears the accent colour of the one in use.
+                color: colors.onSurfaceVariant,
+                icon: const Icon(Icons.delete_outline),
+                onPressed: _switching != null ? null : () => _remove(spec),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -445,42 +513,7 @@ class _ConnectionsState extends State<_Connections> {
             style: theme.textTheme.titleSmall?.copyWith(color: colors.primary),
           ),
         ),
-        FutureBuilder(
-          future: _connections,
-          builder: (context, snapshot) => Column(
-            children: [
-              // The one in use shows at once, before the keystore answers.
-              for (final spec in snapshot.data ?? [?session.spec])
-                ListTile(
-                  key: ValueKey('connection-${spec.name}'),
-                  // The one in use is marked; any other is one tap away.
-                  leading: switch (spec) {
-                    _ when spec == _switching => const SizedBox.square(
-                      dimension: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    _ when spec == session.spec => Icon(
-                      Icons.check_circle,
-                      color: colors.primary,
-                      semanticLabel: s.nowUsing(s.providerName(spec)),
-                    ),
-                    _ => const Icon(Icons.radio_button_unchecked),
-                  },
-                  title: Text(s.providerName(spec)),
-                  subtitle: Text(s.groupHeading(spec.group)),
-                  selected: spec == session.spec,
-                  onTap: spec == session.spec || _switching != null ? null : () => _switch(spec),
-                  trailing: IconButton(
-                    tooltip: s.remove,
-                    // A removal never wears the accent colour of the one in use.
-                    color: colors.onSurfaceVariant,
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: _switching != null ? null : () => _remove(spec),
-                  ),
-                ),
-            ],
-          ),
-        ),
+        _connected(),
         // OpenAI's guidelines link the plan's usage; here rather than by the composer (#507).
         if (session.spec?.access == ProviderAccess.signIn)
           ListTile(
@@ -489,6 +522,16 @@ class _ConnectionsState extends State<_Connections> {
             subtitle: Text(s.usingChatGptPlan),
             onTap: () =>
                 launchUrl(Uri.parse(chatGptUsageUrl), mode: LaunchMode.externalApplication),
+          ),
+        if (session.spec != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, 0),
+            child: TextButton.icon(
+              style: TextButton.styleFrom(foregroundColor: colors.error),
+              icon: const Icon(Icons.logout),
+              label: Text(s.removeAllModels),
+              onPressed: _switching != null ? null : _removeAll,
+            ),
           ),
         Padding(
           padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, Gap.m),
@@ -874,7 +917,7 @@ class _RemindersCard extends StatelessWidget {
   }
 }
 
-/// The version, an update check where the build can update itself, and log out.
+/// The version and an update check where the build can update itself.
 class _AboutCard extends StatelessWidget {
   const _AboutCard(
     this.session, {
@@ -928,22 +971,6 @@ class _AboutCard extends StatelessWidget {
                   label: Text('${s.update} $version'),
                 ),
               ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-              child: FilledButton.tonalIcon(
-                icon: const Icon(Icons.logout),
-                onPressed: () {
-                  // Setup takes over: a phone's Settings page must not stay on top.
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                  session.logout();
-                },
-                label: Text(s.logOut),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, 0),
-              child: Text(s.logOutExplained, style: Theme.of(context).textTheme.bodySmall),
-            ),
           ],
         ),
       ),
