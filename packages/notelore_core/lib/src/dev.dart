@@ -210,6 +210,7 @@ Future<void> _chat(
     final agent = Agent(
       provider,
       Toolbox(paths.notes.path, index),
+      aboutMe: true,
       timing: (entry) => out.writeln('⏱ $entry'),
     );
     final answer = await agent.ask(message);

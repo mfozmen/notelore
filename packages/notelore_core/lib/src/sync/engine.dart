@@ -446,6 +446,11 @@ class _Pass {
         final lines = autoResolve(conflict);
         if (lines != null) return lines;
         askedModel = true;
+        // The person's facts must not reach a model they may have kept them from:
+        // both sides' lines stay, for them to settle.
+        if (rel == 'about-me.md') {
+          return [...conflict.local, ...conflict.remote.where((l) => !conflict.local.contains(l))];
+        }
         return resolve(conflict);
       });
     } on UnresolvedConflicts {

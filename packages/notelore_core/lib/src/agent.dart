@@ -192,7 +192,7 @@ class Agent {
     this.deadline = const Duration(minutes: 3),
     this.timing,
     this.slim = false,
-    this.aboutMe = true,
+    this.aboutMe = false,
   });
 
   final LlmProvider provider;
@@ -203,8 +203,9 @@ class Agent {
   /// The model on the device (#447): [slimSystemPrompt] and [slimTools].
   final bool slim;
 
-  /// Whether the facts about the person go into the prompt: off when they must
-  /// not reach a cloud model (#646).
+  /// Whether the facts about the person go into the prompt, with the tools that
+  /// change them (#646). Off unless the app turns it on, so they never reach a
+  /// cloud model the person did not allow.
   final bool aboutMe;
 
   /// The fixed prompt, then this turn's notes: the fixed part stays a stable
@@ -222,7 +223,10 @@ class Agent {
   /// The note list the last turn was sent after the fixed prompt.
   String get noteList => _notes;
 
-  List<Tool> get _tools => slim ? slimTools : toolbox.tools;
+  List<Tool> get _tools => [
+    for (final tool in slim ? slimTools : toolbox.tools)
+      if (aboutMe || !tool.name.endsWith('_about_me')) tool,
+  ];
 
   /// How long a whole turn, every model call and tool round, may take.
   final Duration deadline;

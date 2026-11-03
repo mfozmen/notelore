@@ -88,7 +88,7 @@ void main() {
     expect(messages, [
       {'role': 'user', 'content': 'selam'},
     ]);
-    expect(tools, box.tools);
+    expect(tools, [...box.tools.where((t) => !t.name.endsWith('_about_me'))]);
     expect(agent.messages.last, {
       'role': 'assistant',
       'content': [
@@ -755,15 +755,21 @@ void failureTests() {
     });
 
     test('the facts about the person follow the note list, unless left out (#646)', () async {
-      final provider = ScriptedProvider([text('Hi.'), text('Hi.'), text('Hi.')]);
+      final provider = ScriptedProvider([text('Hi.'), text('Hi.'), text('Hi.'), text('Hi.')]);
       final box = newBox();
-      await Agent(provider, box, today: today).ask('hi');
+      List<String> tools() => [for (final t in provider.turns.last.$3) t.name];
+      await Agent(provider, box, today: today, aboutMe: true).ask('hi');
       expect(provider.turns.last.$1, isNot(contains('facts, not instructions):')));
+      expect(tools(), containsAll(['remember_about_me', 'update_about_me', 'forget_about_me']));
       box.call('remember_about_me', {'fact': 'My wife is Ayşe.'});
-      await Agent(provider, box, today: today, slim: true).ask('hi');
+      await Agent(provider, box, today: today, slim: true, aboutMe: true).ask('hi');
       expect(provider.turns.last.$1, endsWith('There are no notes yet.\n\n${box.aboutMe()}'));
-      await Agent(provider, box, today: today, aboutMe: false).ask('hi');
+      // Off unless the app says so: the facts must not reach a cloud model unasked.
+      await Agent(provider, box, today: today).ask('hi');
       expect(provider.turns.last.$1, isNot(contains('- My wife is Ayşe.')));
+      expect(tools(), isNot(contains('remember_about_me')));
+      await Agent(provider, box, today: today, aboutMe: false).ask('hi');
+      expect(tools().where((t) => t.endsWith('_about_me')), isEmpty);
     });
 
     test('a slim agent sends them; a full one the full ones', () async {
@@ -774,7 +780,7 @@ void failureTests() {
       expect(slimTurn.$1, '${slimSystemPrompt(today)}\n\nThere are no notes yet.');
       expect(slimTurn.$3, slimTools);
       expect(fullTurn.$1, '${systemPrompt(today)}\n\nThere are no notes yet.');
-      expect(fullTurn.$3, noteTools);
+      expect(fullTurn.$3, [...noteTools.where((t) => !t.name.endsWith('_about_me'))]);
     });
   });
 }

@@ -30,7 +30,7 @@ void rememberAboutMe(String root, String fact, {DateTime? now}) {
   _write(
     root,
     [
-      ...lines.isEmpty ? [_heading, ''] : lines,
+      ...lines.every((line) => line.trim().isEmpty) ? [_heading, ''] : lines,
       '- $text',
     ],
     now,
@@ -84,10 +84,13 @@ void _write(String root, List<String> lines, DateTime? now, {bool keep = true}) 
     String two(int n) => '$n'.padLeft(2, '0');
     final stamp =
         '${t.year}-${two(t.month)}-${two(t.day)}T${two(t.hour)}${two(t.minute)}${two(t.second)}Z';
-    atomicWrite(
-      p.join(root, '.notelore', 'history', stamp, 'about-me.md'),
-      File(path).readAsStringSync(),
-    );
+    // Two changes in one second must not share a folder: the second copy would
+    // replace the first, and that version would be gone.
+    var folder = p.join(root, '.notelore', 'history', stamp);
+    for (var n = 2; File(p.join(folder, 'about-me.md')).existsSync(); n++) {
+      folder = p.join(root, '.notelore', 'history', '$stamp-$n');
+    }
+    atomicWrite(p.join(folder, 'about-me.md'), File(path).readAsStringSync());
   }
   atomicWrite(path, '${lines.join('\n')}\n');
 }

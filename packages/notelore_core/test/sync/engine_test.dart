@@ -339,6 +339,23 @@ void main() {
     ]);
   });
 
+  test('a conflict in about-me.md never reaches the model: both lines stay (#646)', () async {
+    const facts = '# About me\n\n- I live in Ankara.\n- I work at Acme.\n';
+    write('about-me.md', facts);
+    await run();
+    write('about-me.md', facts.replaceAll('Ankara', 'Izmir'));
+    drive.put('about-me.md', facts.replaceAll('Ankara', 'Bursa'));
+    final report = await run(resolve: (conflict) => fail('the facts went to the model'));
+    expect(
+      readRel('about-me.md'),
+      '# About me\n\n- I live in Izmir.\n- I live in Bursa.\n- I work at Acme.\n',
+    );
+    expect(report.history, [
+      '.notelore/history/$stamp/about-me.local.md',
+      '.notelore/history/$stamp/about-me.remote.md',
+    ]);
+  });
+
   test('an unresolved conflict is skipped and retried later', () async {
     write('projects/a.md', note);
     await run();
