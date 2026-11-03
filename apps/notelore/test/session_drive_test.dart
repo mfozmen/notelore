@@ -206,6 +206,8 @@ void main() {
       await later.connectDrive();
       await laptop.syncNow();
       expect(laptop.language, AppLanguage.en);
+      // That newer file still says "on" (the phone's default): off is never undone from afar.
+      expect(laptop.aboutMeToCloud, isFalse);
       await laptop.syncNow(); // nothing new: nothing changes
       expect(laptop.language, AppLanguage.en);
     });

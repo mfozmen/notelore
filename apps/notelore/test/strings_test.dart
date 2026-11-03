@@ -475,6 +475,7 @@ void main() {
       'advancedSection': s.advancedSection,
       'aboutMeSection': s.aboutMeSection,
       'aboutMeToCloud': s.aboutMeToCloud,
+      'aboutMeHeading': s.aboutMeHeading,
       'aboutMeToCloudWhy': s.aboutMeToCloudWhy,
       'aboutMeEmpty': s.aboutMeEmpty,
       'addFact': s.addFact,

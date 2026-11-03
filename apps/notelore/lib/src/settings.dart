@@ -553,12 +553,20 @@ class _AboutMeCard extends StatelessWidget {
 
   Future<void> _delete(BuildContext context, String fact) async {
     final messenger = ScaffoldMessenger.of(context);
-    await session.forgetFact(fact);
+    try {
+      await session.forgetFact(fact);
+    } on ArgumentError {
+      return; // already gone on another device; the list has caught up
+    }
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(session.strings.factRemoved(fact)),
+          content: Text(
+            session.strings.factRemoved(fact),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
           action: SnackBarAction(
             label: session.strings.undo,
             onPressed: () => session.rememberFact(fact),
@@ -573,24 +581,24 @@ class _AboutMeCard extends StatelessWidget {
     builder: (context, _) {
       final s = session.strings;
       final facts = session.aboutMeFacts();
+      final theme = Theme.of(context);
       return Card(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SwitchListTile(
-              secondary: const Icon(Icons.cloud_outlined),
-              title: Text(s.aboutMeToCloud),
-              subtitle: Text(s.aboutMeToCloudWhy),
-              value: session.aboutMeToCloud,
-              onChanged: session.setAboutMeToCloud,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, Gap.s),
+              child: Text(
+                s.aboutMeHeading,
+                style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+              ),
             ),
-            const Divider(height: 1),
             if (facts.isEmpty)
               Padding(
-                padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, 0),
+                padding: const EdgeInsets.symmetric(horizontal: Gap.m),
                 child: Text(
                   s.aboutMeEmpty,
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                 ),
               ),
             for (final fact in facts)
@@ -604,12 +612,20 @@ class _AboutMeCard extends StatelessWidget {
                 ),
               ),
             Padding(
-              padding: const EdgeInsets.all(Gap.s),
-              child: TextButton.icon(
+              padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.m),
+              child: OutlinedButton.icon(
                 icon: const Icon(Icons.add),
                 label: Text(s.addFact),
                 onPressed: () => _edit(context),
               ),
+            ),
+            const Divider(height: 1),
+            SwitchListTile(
+              secondary: const Icon(Icons.shield_outlined),
+              title: Text(s.aboutMeToCloud),
+              subtitle: Text(s.aboutMeToCloudWhy),
+              value: session.aboutMeToCloud,
+              onChanged: session.setAboutMeToCloud,
             ),
           ],
         ),
@@ -660,15 +676,22 @@ class _FactDialogState extends State<_FactDialog> {
     final empty = _text.text.trim().isEmpty;
     return AlertDialog(
       title: Text(widget.old == null ? s.addFact : s.editFact),
-      content: TextField(
-        key: const Key('fact-field'),
-        controller: _text,
-        autofocus: true,
-        textCapitalization: TextCapitalization.sentences,
-        textInputAction: TextInputAction.done,
-        onChanged: (_) => setState(() => _error = null),
-        onSubmitted: empty ? null : (_) => _save(),
-        decoration: InputDecoration(labelText: s.fact, errorText: _error),
+      content: SizedBox(
+        width: Layout.bubble(MediaQuery.sizeOf(context).width),
+        child: TextField(
+          key: const Key('fact-field'),
+          controller: _text,
+          autofocus: true,
+          // Wraps to show a long fact, yet Enter saves: one fact stays one line.
+          minLines: 1,
+          maxLines: 4,
+          keyboardType: TextInputType.text,
+          textCapitalization: TextCapitalization.sentences,
+          textInputAction: TextInputAction.done,
+          onChanged: (_) => setState(() => _error = null),
+          onSubmitted: empty ? null : (_) => _save(),
+          decoration: InputDecoration(labelText: s.fact, errorText: _error),
+        ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(s.cancel)),

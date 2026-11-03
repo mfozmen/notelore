@@ -472,6 +472,7 @@ abstract class Strings {
   String get aboutSection;
   String get aboutMeSection;
   String get aboutMeToCloud;
+  String get aboutMeHeading;
   String get aboutMeToCloudWhy;
   String get aboutMeEmpty;
   String get addFact;
@@ -1411,12 +1412,14 @@ class EnglishStrings extends Strings {
   String get aboutMeSection => 'About me';
 
   @override
-  String get aboutMeToCloud => 'Send my personal info to cloud models';
+  String get aboutMeToCloud => 'Share with cloud models';
+
+  @override
+  String get aboutMeHeading => 'What Notelore knows about you';
 
   @override
   String get aboutMeToCloudWhy =>
-      'Cloud providers (Claude, ChatGPT, Gemini...) then see these facts with every message. '
-      'A model on this device always gets them.';
+      'Claude, ChatGPT and Gemini see these facts with every message. Off: add facts here only.';
 
   @override
   String get aboutMeEmpty =>
@@ -2483,12 +2486,14 @@ class TurkishStrings extends Strings {
   String get aboutMeSection => 'Hakkımda';
 
   @override
-  String get aboutMeToCloud => 'Kişisel bilgilerimi bulut modellerine gönder';
+  String get aboutMeToCloud => 'Bulut modelleriyle paylaş';
+
+  @override
+  String get aboutMeHeading => 'Notelore senin hakkında ne biliyor';
 
   @override
   String get aboutMeToCloudWhy =>
-      'Bulut sağlayıcıları (Claude, ChatGPT, Gemini...) bu bilgileri her mesajda görür. '
-      'Bu cihazdaki bir model onları her zaman alır.';
+      'Claude, ChatGPT ve Gemini bu bilgileri her mesajda görür. Kapalıyken bilgi yalnızca buradan eklenir.';
 
   @override
   String get aboutMeEmpty =>

@@ -484,11 +484,11 @@ class Session extends ChangeNotifier {
   /// The about-me facts go to cloud models too; a model on this machine always gets them.
   bool aboutMeToCloud = true;
 
-  /// Turns sending the about-me facts to cloud models on or off.
-  Future<void> setAboutMeToCloud(bool on) async {
+  /// Turns sending the about-me facts to cloud models on or off; after a running turn.
+  Future<void> setAboutMeToCloud(bool on) => _exclusive(() async {
     await _applyAboutMeToCloud(on);
     _touch();
-  }
+  });
 
   Future<void> _applyAboutMeToCloud(bool on) async {
     aboutMeToCloud = on;
@@ -509,9 +509,13 @@ class Session extends ChangeNotifier {
   /// Removes [fact]; throws [ArgumentError] when it is gone.
   Future<void> forgetFact(String fact) => _aboutMe(() => forgetAboutMe(paths.notes.path, fact));
 
+  // Refused or not, the screens reread: a refusal often means another device changed it.
   Future<void> _aboutMe(void Function() change) => _exclusive(() async {
-    change();
-    notifyListeners();
+    try {
+      change();
+    } finally {
+      notifyListeners();
+    }
   });
 
   /// The language the user picked in Settings; the device's by default.
@@ -1121,15 +1125,19 @@ class Session extends ChangeNotifier {
     if (chosen.name != 'device') unawaited(_freeDeviceEngine());
     final toolbox = Toolbox(paths.notes.path, index, today: today);
     _provider = MeteredProvider(_providerFor(chosen, key, chosenModel), chosen.name, usage);
-    // A model switch keeps the conversation; logout has already dropped it.
-    final history = _agent?.messages ?? const <Message>[];
+    final me = aboutMeToCloud || onThisMachine(chosen.name, chosenModel);
+    // A model switch keeps the conversation (logout has already dropped it), except
+    // what a local model was told about the person, on its way to a cloud one.
+    final history = _agent?.aboutMe == true && !me
+        ? const <Message>[]
+        : _agent?.messages ?? const <Message>[];
     _agent = Agent(
       _provider!,
       toolbox,
       today: today,
       timing: timing,
       slim: chosen.name == 'device', // every token is read on the phone first (#447)
-      aboutMe: aboutMeToCloud || chosen.name == 'device' || chosen.name == 'ollama',
+      aboutMe: me,
     )..messages.addAll(history);
     _startDevicePrefill();
     notifyListeners();
@@ -1594,9 +1602,8 @@ class Session extends ChangeNotifier {
       _named(Appearance.values, theirs['appearance']) ?? appearance,
     );
     if (theirs['webSearch'] case final bool on when on != webSearch) await _applyWebSearch(on);
-    if (theirs['aboutMeToCloud'] case final bool on when on != aboutMeToCloud) {
-      await _applyAboutMeToCloud(on);
-    }
+    // Off wins: a stale "on" from a device that has not caught up never sends the facts.
+    if (theirs['aboutMeToCloud'] == false && aboutMeToCloud) await _applyAboutMeToCloud(false);
     if (theirs['calendar'] case final bool on) {
       calendar = on;
       if (theirs['calendarId'] case final String id) calendarId = id;
@@ -2055,4 +2062,14 @@ String withoutFrontMatter(String text) {
   if (!text.startsWith('---\n')) return text;
   final end = text.indexOf('\n---\n', 3);
   return end < 0 ? text : text.substring(end + 5);
+}
+
+/// Whether [provider]'s [model] runs on this machine: the device model, or
+/// Ollama on a loopback [host] with a model it does not forward to ollama.com.
+bool onThisMachine(String provider, String model, {String? host}) {
+  if (provider == 'device') return true;
+  if (provider != 'ollama' || RegExp(r'[:-]cloud$').hasMatch(model)) return false;
+  final at = host ?? ollamaHost();
+  final name = Uri.tryParse(at.contains('://') ? at : 'http://$at')?.host ?? '';
+  return name == 'localhost' || name == '::1' || name == '0.0.0.0' || name.startsWith('127.');
 }

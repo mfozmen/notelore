@@ -24,7 +24,8 @@ void main() {
     await openSettings(tester, 'About me');
 
     expect(find.textContaining('Tell the assistant about yourself'), findsOneWidget);
-    expect(find.text('Send my personal info to cloud models'), findsOneWidget);
+    expect(find.text('Share with cloud models'), findsOneWidget);
+    expect(find.text('What Notelore knows about you'), findsOneWidget);
 
     await tester.tap(find.text('Add a fact'));
     await tester.pumpAndSettle();
@@ -49,6 +50,8 @@ void main() {
 
     await tester.tap(find.text('Wife: Ayşe'));
     await tester.pumpAndSettle();
+    // A long fact wraps while it is edited, so all of it can be read.
+    expect(tester.widget<TextField>(find.byKey(const Key('fact-field'))).maxLines, 4);
     expect(find.widgetWithText(TextField, 'Wife: Ayşe'), findsOneWidget);
     await type(tester, 'Wife: Ayşe Yılmaz');
     expect(session.aboutMeFacts(), ['Wife: Ayşe Yılmaz']);
@@ -60,6 +63,14 @@ void main() {
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(session.aboutMeFacts(), ['Wife: Ayşe Yılmaz']);
+    await tester.pumpAndSettle(const Duration(seconds: 10)); // the snackbar goes
+
+    // Deleted elsewhere first: the tap only catches up.
+    forgetAboutMe(harness.paths.notes.path, 'Wife: Ayşe Yılmaz');
+    await tester.tap(find.byTooltip('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('Wife: Ayşe Yılmaz'), findsNothing);
+    expect(find.text('Undo'), findsNothing);
 
     // Changed elsewhere (a sync): the page follows.
     rememberAboutMe(harness.paths.notes.path, 'Lives in Izmir');
@@ -76,7 +87,7 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Send my personal info to cloud models'));
+    await tester.tap(find.text('Share with cloud models'));
     await tester.pumpAndSettle();
     expect(session.aboutMeToCloud, isFalse);
   });

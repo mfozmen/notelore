@@ -908,6 +908,36 @@ void main() {
     },
   );
 
+  test('about me: only a model on this machine counts as local (#646)', () {
+    expect(onThisMachine('device', 'x'), isTrue);
+    expect(onThisMachine('anthropic', 'x'), isFalse);
+    expect(onThisMachine('ollama', 'qwen3:4b', host: 'http://localhost:11434'), isTrue);
+    expect(onThisMachine('ollama', 'qwen3:4b', host: 'http://127.0.0.1:11434'), isTrue);
+    expect(onThisMachine('ollama', 'qwen3:4b', host: 'http://[::1]:11434'), isTrue);
+    expect(onThisMachine('ollama', 'qwen3:4b', host: '0.0.0.0:11434'), isTrue);
+    expect(onThisMachine('ollama', 'qwen3:4b', host: 'http://gpu-box:11434'), isFalse);
+    expect(onThisMachine('ollama', 'gpt-oss:120b-cloud', host: 'http://localhost:11434'), isFalse);
+    expect(onThisMachine('ollama', 'kimi:cloud', host: 'http://localhost:11434'), isFalse);
+  });
+
+  test(
+    'about me: a local chat moving to a cloud model with the switch off starts afresh (#646)',
+    () async {
+      final harness = Harness(answers: ['a', 'b', 'c']);
+      final session = harness.session();
+      await session.load();
+      await session.setAboutMeToCloud(false);
+      await session.connect(findProvider('ollama'), '');
+      await session.send('my wife is Ayşe');
+      await session.connect(findProvider('anthropic'), 'k');
+      await session.send('hi');
+      expect(harness.provider.lengths.last, 1); // nothing the local model was told
+      await session.setAboutMeToCloud(true);
+      await session.send('again');
+      expect(harness.provider.lengths.last, greaterThan(1)); // the cloud conversation goes on
+    },
+  );
+
   test('about me: facts are added, changed and removed through the store (#646)', () async {
     final harness = Harness();
     final session = harness.session();
