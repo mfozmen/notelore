@@ -32,7 +32,10 @@ void main() {
       tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Save')).onPressed,
       isNull,
     );
-    await type(tester, 'Wife: Ayşe');
+    await tester.enterText(find.byKey(const Key('fact-field')), 'Wife: Ayşe');
+    await tester.pump();
+    await tester.testTextInput.receiveAction(TextInputAction.done); // Enter saves too
+    await tester.pumpAndSettle();
     expect(find.text('Wife: Ayşe'), findsOneWidget);
     expect(find.textContaining('Tell the assistant about yourself'), findsNothing);
 

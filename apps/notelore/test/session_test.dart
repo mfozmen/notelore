@@ -889,6 +889,25 @@ void main() {
     expect(again.aboutMeToCloud, isFalse);
   });
 
+  test(
+    'about me: cloud models get the facts only with the switch on; a local one always (#646)',
+    () async {
+      final harness = Harness(answers: ['a', 'b', 'c']);
+      final session = harness.session();
+      await session.load();
+      await session.rememberFact('Wife: Ayşe');
+      await session.connect(findProvider('anthropic'), 'k');
+      await session.send('hi');
+      expect(harness.provider.systems.last, contains('Wife: Ayşe'));
+      await session.setAboutMeToCloud(false);
+      await session.send('hi');
+      expect(harness.provider.systems.last, isNot(contains('Wife: Ayşe')));
+      await session.connect(findProvider('ollama'), '');
+      await session.send('hi');
+      expect(harness.provider.systems.last, contains('Wife: Ayşe'));
+    },
+  );
+
   test('about me: facts are added, changed and removed through the store (#646)', () async {
     final harness = Harness();
     final session = harness.session();

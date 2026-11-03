@@ -1129,6 +1129,7 @@ class Session extends ChangeNotifier {
       today: today,
       timing: timing,
       slim: chosen.name == 'device', // every token is read on the phone first (#447)
+      aboutMe: aboutMeToCloud || chosen.name == 'device' || chosen.name == 'ollama',
     )..messages.addAll(history);
     _startDevicePrefill();
     notifyListeners();
