@@ -35,6 +35,10 @@ abstract interface class ReminderCalendar {
 
   /// Removes the events after [now], when reminders come back to the device.
   Future<void> clear(String calendarId, {required DateTime now});
+
+  /// Deletes a Notelore calendar this device made before it learned the shared
+  /// one (#674); one already gone, or not this app's, is left alone.
+  Future<void> remove(String calendarId);
 }
 
 class GoogleCalendar implements ReminderCalendar {
@@ -63,6 +67,16 @@ class GoogleCalendar implements ReminderCalendar {
       final String id => id,
       _ => throw const FormatException('Google Calendar made a calendar without an id'),
     };
+  }
+
+  @override
+  Future<void> remove(String calendarId) async {
+    try {
+      // The calendar.app.created scope lets this delete only calendars Notelore made.
+      await _call('DELETE', '/calendars/${Uri.encodeComponent(calendarId)}');
+    } on HttpError catch (error) {
+      if (error.status != 404 && error.status != 410 && error.status != 403) rethrow;
+    }
   }
 
   @override
