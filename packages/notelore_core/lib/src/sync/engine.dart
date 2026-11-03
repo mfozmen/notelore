@@ -21,6 +21,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 
+import '../store/about_me.dart' show aboutMeFile;
 import '../store/notes.dart';
 import '../text.dart';
 import 'manifest.dart';
@@ -439,16 +440,16 @@ class _Pass {
     String remoteText,
     String base,
   ) async {
-    var askedModel = false;
+    var settledByRule = false;
     final String text;
     try {
       text = await threeWay(base, localText, remoteText).text((conflict) {
         final lines = autoResolve(conflict);
         if (lines != null) return lines;
-        askedModel = true;
+        settledByRule = true;
         // The person's facts must not reach a model they may have kept them from:
         // both sides' lines stay, for them to settle.
-        if (rel == 'about-me.md') {
+        if (rel == aboutMeFile) {
           return [...conflict.local, ...conflict.remote.where((l) => !conflict.local.contains(l))];
         }
         return resolve(conflict);
@@ -459,7 +460,7 @@ class _Pass {
     }
     // Upload first: if it fails, neither side has changed and the next sync starts over.
     final uploaded = await remote.upload(rel, utf8.encode(text), meta.id);
-    if (askedModel) {
+    if (settledByRule) {
       // the losing sides stay available, never silently dropped
       for (final (side, content) in [('local', localText), ('remote', remoteText)]) {
         final history = _history(rel);

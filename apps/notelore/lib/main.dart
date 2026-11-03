@@ -10,6 +10,7 @@ import 'src/app.dart';
 import 'src/device_model.dart';
 import 'src/device_native.dart';
 import 'src/drive_auth.dart';
+import 'src/keychain_vault.dart';
 import 'src/reminder_native.dart';
 import 'src/reminder_notifier.dart';
 import 'src/session.dart';
@@ -54,11 +55,13 @@ Future<Session> openSession({
     moveNotes(Directory(p.join(home, 'Notelore')), paths.notes, stamp: stamp);
   }
   final keySpace = (env['NOTELORE_HOME'] ?? '').isNotEmpty ? 'notelore-dev' : 'notelore';
+  final keys = keysFor(appKeys, os: Platform.operatingSystem, keySpace: keySpace);
   final session = Session(
     paths,
     keySpace: keySpace,
-    driveAuth: driveAuthFor(mobile: phone, keys: appKeys, keySpace: keySpace),
-    chatGpt: chatGptAuthFor(mobile: phone, keys: appKeys, keySpace: keySpace),
+    keys: keys,
+    driveAuth: driveAuthFor(mobile: phone, keys: keys, keySpace: keySpace),
+    chatGpt: chatGptAuthFor(mobile: phone, keys: keys, keySpace: keySpace),
     localModels: !phone,
     // The model on the device, where llama.cpp runs and memory is enough (#328).
     deviceModels: deviceModelRuns(
@@ -69,7 +72,7 @@ Future<Session> openSession({
     systemLanguage: PlatformDispatcher.instance.locale.languageCode,
     timing: keySpace == 'notelore-dev' ? debugPrint : null, // #232: development runs only
     reminders: reminders(), // the notes' reminders as this device's notifications (#431)
-    calendarAuth: calendarAuthFor(mobile: phone, keys: appKeys, keySpace: keySpace), // #432
+    calendarAuth: calendarAuthFor(mobile: phone, keys: keys, keySpace: keySpace), // #432
   );
   await session.load();
   if (phone && Platform.isAndroid) listenForShares(session); // "Share → Notelore" (#211)

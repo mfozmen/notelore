@@ -28,6 +28,7 @@ from finetune import (
     losses,
     native_bf16,
     precision,
+    preference,
     split,
     trainer_args,
 )
@@ -202,5 +203,32 @@ check(
     losses(history),
     ["step 5: train 0.700, validation 0.610", "step 10: train 0.400, validation 0.655"],
 )
+
+
+class Template:
+    """A chat template: tools, then a line per message; the generation prompt
+    opens the assistant's line."""
+
+    def apply_chat_template(self, messages, tools, tokenize, add_generation_prompt=False):
+        text = "".join(f"{m['role']}: {m['content']}\n" for m in messages)
+        return f"tools {tools}\n{text}" + ("assistant:" if add_generation_prompt else "")
+
+
+# A DPO pair (#607) as text: the prompt through the reply's opener, then each reply.
+row = {"prompt": [{"role": "user", "content": "hi"}], "chosen": [{"role": "assistant", "content": "a"}],
+       "rejected": [{"role": "assistant", "content": "b"}], "tools": ["t"]}
+check("a pair renders as prompt, chosen and rejected text", preference(Template(), row),
+      {"prompt": "tools ['t']\nuser: hi\nassistant:", "chosen": " a\n", "rejected": " b\n"})
+
+
+class Elsewhere(Template):
+    """A template that renders a reply in a way its generation prompt does not open."""
+
+    def apply_chat_template(self, messages, tools, tokenize, add_generation_prompt=False):
+        text = super().apply_chat_template(messages, tools, tokenize, add_generation_prompt)
+        return text if add_generation_prompt else text.replace("assistant:", "model:")
+
+
+check("a reply the prompt does not lead into is left out", preference(Elsewhere(), row), None)
 
 sys.exit(1 if failures else 0)
