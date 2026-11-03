@@ -11,6 +11,7 @@ import 'package:http/testing.dart';
 import 'package:notelore/src/update.dart';
 import 'package:notelore/src/update_apply.dart';
 import 'package:notelore/src/update_delta.dart';
+import 'package:notelore/src/update_patch.dart';
 import 'package:path/path.dart' as p;
 
 const v = '9.9.9';
@@ -374,9 +375,29 @@ void main() {
       bool extraFile = false,
       bool noArchive = false,
       bool jobJsonDir = false,
+      bool patch = false,
+      bool wrongOld = false,
+      bool truncated = false,
     }) async {
       final next = utf8.encode('new app').toList();
-      final archive = Archive()..addFile(ArchiveFile('data/app.so', next.length, next));
+      final old = utf8.encode('old app').toList();
+      final archive = Archive();
+      UpdatePatch? patched;
+      if (patch) {
+        final full = makePatch(old, next);
+        final bytes = truncated ? full.sublist(0, full.length ~/ 2) : full;
+        archive.addFile(ArchiveFile(patchEntry('data/app.so'), bytes.length, bytes));
+        final target = Directory(p.join(install, 'data'))..createSync(recursive: true);
+        File(p.join(target.path, 'app.so')).writeAsStringSync(wrongOld ? 'other app' : 'old app');
+        patched = UpdatePatch(
+          oldSha256: sha256.convert(old).toString(),
+          patch: patchEntry('data/app.so'),
+          patchSha256: sha256.convert(bytes).toString(),
+          size: next.length,
+        );
+      } else {
+        archive.addFile(ArchiveFile('data/app.so', next.length, next));
+      }
       if (extraFile) {
         final extra = utf8.encode('extra').toList();
         archive.addFile(ArchiveFile('extra.txt', extra.length, extra));
@@ -399,6 +420,7 @@ void main() {
           if (missingFile) 'data/missing.so': sha256.convert(utf8.encode('missing')).toString(),
           if (jobJsonDir) 'job.json/child': sha256.convert(utf8.encode('child')).toString(),
         },
+        patches: {'data/app.so': ?patched},
       );
       final bytes = utf8.encode(jsonEncode(manifest.toJson()));
       final (:pair, :key) = await releaseKey();
@@ -455,6 +477,37 @@ void main() {
       expect(read(p.join(job.staging, 'data', 'app.so')), 'new app');
       u.cleanup();
       expect(Directory(job.staging).existsSync(), isFalse);
+    });
+
+    test('a signed binary patch rebuilds the changed file and stages it (#585)', () async {
+      write(p.join(install, 'notelore-updater.exe'), 'helper');
+      final delta = await deltaPages(patch: true);
+      final u = updater(delta.pages, key: delta.key);
+      expect(await u.apply(), v);
+      await u.relaunch();
+
+      final [_, ...args] = spawned.single;
+      final job = UpdateJob.fromJson(read(args.single));
+      expect(job.files, {'data/app.so': sha256.convert(delta.next).toString()});
+      expect(read(p.join(job.staging, 'data', 'app.so')), 'new app');
+    });
+
+    test('a patch from other old bytes falls back to the full setup (#585)', () async {
+      write(p.join(install, 'notelore-updater.exe'), 'helper');
+      final delta = await deltaPages(patch: true, wrongOld: true);
+      await fullFallback(delta.pages, delta.key);
+    });
+
+    test('a truncated patch falls back to the full setup (#585)', () async {
+      write(p.join(install, 'notelore-updater.exe'), 'helper');
+      final delta = await deltaPages(patch: true, truncated: true);
+      await fullFallback(delta.pages, delta.key);
+    });
+
+    test('a patch with a bad signature falls back to the full setup (#585)', () async {
+      write(p.join(install, 'notelore-updater.exe'), 'helper');
+      final delta = await deltaPages(patch: true, badSignature: true);
+      await fullFallback(delta.pages, delta.key);
     });
 
     test('bad or incomplete deltas fall back to the full setup', () async {

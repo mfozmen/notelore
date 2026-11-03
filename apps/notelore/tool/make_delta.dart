@@ -7,9 +7,13 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:notelore/src/update_delta.dart';
+import 'package:notelore/src/update_patch.dart';
 import 'package:path/path.dart' as p;
 
 const _helper = 'notelore-updater.exe';
+
+/// Below this, a whole file costs less than a patch's own headers.
+const _patchFrom = 64 * 1024;
 
 Map<String, String> _tree(String root) {
   final folder = Directory(root);
@@ -52,8 +56,26 @@ Future<({DeltaManifest manifest, File archive})?> makeDelta({
   if (changed.isEmpty) return null;
 
   final zip = Archive();
+  final patches = <String, UpdatePatch>{};
   for (final path in changed) {
     final bytes = File(p.joinAll([newRoot, ...path.split('/')])).readAsBytesSync();
+    final oldHash = before[path];
+    final oldFile = File(p.joinAll([old, ...path.split('/')]));
+    if (oldHash != null && bytes.length >= _patchFrom && oldFile.existsSync()) {
+      final patch = makePatch(oldFile.readAsBytesSync(), bytes);
+      // Only when the patch is meaningfully smaller than the file it rebuilds.
+      if (patch.length + 256 < bytes.length) {
+        final name = patchEntry(path);
+        zip.addFile(ArchiveFile(name, patch.length, patch));
+        patches[path] = UpdatePatch(
+          oldSha256: oldHash,
+          patch: name,
+          patchSha256: sha256.convert(patch).toString(),
+          size: bytes.length,
+        );
+        continue;
+      }
+    }
     zip.addFile(ArchiveFile(path, bytes.length, bytes));
   }
   final archive = ZipEncoder().encode(zip);
@@ -67,6 +89,7 @@ Future<({DeltaManifest manifest, File archive})?> makeDelta({
     archive: archiveName,
     archiveSha256: sha256.convert(archive).toString(),
     files: {for (final path in changed) path: after[path]!},
+    patches: patches,
   );
   File(p.join(folder.path, deltaName(version, 'windows-x64', from)))
       .writeAsStringSync(jsonEncode(manifest.toJson()));

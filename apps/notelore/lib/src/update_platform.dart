@@ -162,18 +162,44 @@ final class _Windows extends _Package {
       onProgress?.call(const UpdateProgress(UpdatePhase.verifying));
       if (sha256.convert(data).toString() != manifest.archiveSha256) return null;
       staging = temp.createTempSync('notelore-delta-');
-      final seen = <String>{};
+      final entries = <String, Uint8List>{};
       for (final entry in ZipDecoder().decodeBytes(data)) {
         if (!entry.isFile) continue;
-        final expected = manifest.files[entry.name];
-        if (expected == null) return null;
-        final file = File(p.joinAll([staging.path, ...entry.name.split('/')]))
-          ..parent.createSync(recursive: true)
-          ..writeAsBytesSync(entry.content as List<int>);
-        if (sha256.convert(file.readAsBytesSync()).toString() != expected) return null;
-        seen.add(entry.name);
+        entries[entry.name] = Uint8List.fromList(entry.content as List<int>);
       }
-      if (seen.length != manifest.files.length) return null;
+      // A full file and a patch for the same path is ambiguous: refuse it.
+      for (final path in manifest.patches.keys) {
+        if (entries.containsKey(path)) return null;
+      }
+      var written = 0;
+      for (final MapEntry(key: path, value: expected) in manifest.files.entries) {
+        final patch = manifest.patches[path];
+        if (patch != null) {
+          final bytes = entries[patch.patch];
+          if (bytes == null || sha256.convert(bytes).toString() != patch.patchSha256) return null;
+          final old = File(p.joinAll([installed, ...path.split('/')]));
+          if (!old.existsSync()) return null;
+          final patched = applyPatch(
+            oldBytes: old.readAsBytesSync(),
+            patch: bytes,
+            oldSha256: patch.oldSha256,
+            newSha256: expected,
+            newSize: patch.size,
+          );
+          final file = File(p.joinAll([staging.path, ...path.split('/')]))
+            ..parent.createSync(recursive: true)
+            ..writeAsBytesSync(patched);
+          if (sha256.convert(file.readAsBytesSync()).toString() != expected) return null;
+        } else {
+          final bytes = entries[path];
+          if (bytes == null || sha256.convert(bytes).toString() != expected) return null;
+          File(p.joinAll([staging.path, ...path.split('/')]))
+            ..parent.createSync(recursive: true)
+            ..writeAsBytesSync(bytes);
+        }
+        written++;
+      }
+      if (entries.length != written) return null;
       ok = true;
       return staging;
     } on Object {

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/update_delta.dart';
+import 'package:notelore/src/update_patch.dart';
 import 'package:path/path.dart' as p;
 
 import '../tool/make_delta.dart';
@@ -75,6 +76,43 @@ void main() {
     expect(
       await makeDelta(old: old, newRoot: next, version: '1.1.0', from: '1.0.0', out: out),
       isNull,
+    );
+  });
+
+  test('a large changed file travels as a binary patch (#585)', () async {
+    final before = List.generate(200 * 1024, (i) => i & 0xff);
+    final after = [...before];
+    for (var i = 100 * 1024; i < 102 * 1024; i++) {
+      after[i] = (after[i] + 5) & 0xff;
+    }
+    File(p.join(old, 'data', 'app.so'))
+      ..parent.createSync(recursive: true)
+      ..writeAsBytesSync(before);
+    File(p.join(next, 'data', 'app.so'))
+      ..parent.createSync(recursive: true)
+      ..writeAsBytesSync(after);
+
+    final delta = (await makeDelta(
+      old: old,
+      newRoot: next,
+      version: '1.1.0',
+      from: '1.0.0',
+      out: out,
+    ))!;
+
+    final patch = delta.manifest.patches['data/app.so']!;
+    expect(patch.size, after.length);
+    final zip = ZipDecoder().decodeBytes(delta.archive.readAsBytesSync());
+    expect(zip.files.map((f) => f.name), [patch.patch]);
+    expect(
+      applyPatch(
+        oldBytes: before,
+        patch: zip.files.single.content as List<int>,
+        oldSha256: patch.oldSha256,
+        newSha256: delta.manifest.files['data/app.so']!,
+        newSize: patch.size,
+      ),
+      after,
     );
   });
 
