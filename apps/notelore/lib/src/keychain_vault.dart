@@ -26,10 +26,13 @@ class KeychainVault extends FlutterSecureStorage {
 
   Future<Map<String, String>>? _loaded;
 
-  /// Writes run one after another, each saving the whole map.
   Future<void> _queue = Future.value();
 
-  Future<Map<String, String>> _map() => _loaded ??= _load();
+  // A cancelled prompt must not fail every later read of the run.
+  Future<Map<String, String>> _map() => _loaded ??= _load().catchError((Object e, StackTrace s) {
+    _loaded = null;
+    Error.throwWithStackTrace(e, s);
+  });
 
   Future<Map<String, String>> _load() async {
     final stored = await inner.read(key: _item);
@@ -41,6 +44,7 @@ class KeychainVault extends FlutterSecureStorage {
     };
     if (old.isNotEmpty) {
       await inner.write(key: _item, value: jsonEncode(old));
+      // An item whose delete fails stays behind unused: the vault is read first.
       for (final key in old.keys) {
         await inner.delete(key: key);
       }
@@ -51,10 +55,14 @@ class KeychainVault extends FlutterSecureStorage {
   Future<void> _change(void Function(Map<String, String> map) change) {
     final done = _queue.then((_) async {
       final map = await _map();
-      change(map);
-      await (map.isEmpty
+      final next = {...map};
+      change(next);
+      await (next.isEmpty
           ? inner.delete(key: _item)
-          : inner.write(key: _item, value: jsonEncode(map)));
+          : inner.write(key: _item, value: jsonEncode(next)));
+      map
+        ..clear()
+        ..addAll(next);
     });
     _queue = done.catchError((Object _) {});
     return done;

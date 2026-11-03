@@ -11,6 +11,16 @@ class _Counted extends FlutterSecureStorage {
   var reads = 0;
   var writes = 0;
 
+  /// The next Keychain read or write fails, as when the prompt is cancelled.
+  var fail = false;
+
+  void _maybeFail() {
+    if (fail) {
+      fail = false;
+      throw Exception('cancelled');
+    }
+  }
+
   @override
   Future<String?> read({
     required String key,
@@ -22,6 +32,7 @@ class _Counted extends FlutterSecureStorage {
     WindowsOptions? wOptions,
   }) {
     reads++;
+    _maybeFail();
     return super.read(key: key);
   }
 
@@ -35,6 +46,7 @@ class _Counted extends FlutterSecureStorage {
     WindowsOptions? wOptions,
   }) {
     reads++;
+    _maybeFail();
     return super.readAll();
   }
 
@@ -50,6 +62,7 @@ class _Counted extends FlutterSecureStorage {
     WindowsOptions? wOptions,
   }) {
     writes++;
+    _maybeFail();
     return super.write(key: key, value: value);
   }
 }
@@ -119,5 +132,27 @@ void main() {
     const plain = FlutterSecureStorage();
     expect(keysFor(plain, os: 'macos', keySpace: 'notelore'), isA<KeychainVault>());
     expect(keysFor(plain, os: 'windows', keySpace: 'notelore'), same(plain));
+  });
+
+  test('a write the Keychain refused is not reported as saved', () async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final inner = _Counted();
+    final vault = KeychainVault(inner, keySpace: 'notelore');
+    await vault.write(key: 'notelore.a', value: '1');
+    inner.fail = true;
+    await expectLater(vault.write(key: 'notelore.a', value: '2'), throwsException);
+    expect(await vault.read(key: 'notelore.a'), '1');
+    await vault.write(key: 'notelore.b', value: '3');
+    expect(await vault.readAll(), {'notelore.a': '1', 'notelore.b': '3'});
+  });
+
+  test('a first read that failed is tried again, not kept failing', () async {
+    FlutterSecureStorage.setMockInitialValues({
+      'notelore.vault': jsonEncode({'notelore.a': '1'}),
+    });
+    final inner = _Counted()..fail = true;
+    final vault = KeychainVault(inner, keySpace: 'notelore');
+    await expectLater(vault.read(key: 'notelore.a'), throwsException);
+    expect(await vault.read(key: 'notelore.a'), '1');
   });
 }
