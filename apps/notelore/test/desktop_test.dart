@@ -143,6 +143,21 @@ void main() {
     expect(find.text('Pick a note to read it here.'), findsOneWidget);
   });
 
+  testWidgets('the list header lines up with the search field on a wide window (#642)', (
+    tester,
+  ) async {
+    desktop(tester, 1600);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    final field = tester.getRect(find.byKey(const Key('notes-search')));
+    final icon = tester.getRect(find.byIcon(Icons.more_vert));
+    expect(icon.right, closeTo(field.right, 0.5));
+  });
+
   testWidgets('the open note follows changes from a sync or the assistant', (tester) async {
     desktop(tester, 1600);
     final harness = Harness();
