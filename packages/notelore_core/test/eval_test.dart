@@ -229,6 +229,34 @@ void main() {
       expect(trainingIssues(result.messages), isEmpty);
     });
 
+    test('a case may bring the turns before it: a proposal the user now confirms (#670)', () async {
+      final confirm = _case({
+        'id': 'confirm-1',
+        'kind': 'about-me',
+        'lang': 'tr',
+        'history': [
+          {'role': 'user', 'content': 'Notlarımda hakkımda bir şey var mı?'},
+          {'role': 'assistant', 'content': 'Ev adresin: 7218 Sokak. Kaydedeyim mi?'},
+        ],
+        'message': 'onaylıyorum',
+        'notes': <String, String>{},
+        'expect': {
+          'tools': ['remember_about_me'],
+          'notes': {
+            r'^about-me\.md$': ['7218 Sokak'],
+          },
+        },
+      });
+      final provider = ScriptedProvider([
+        toolUse('remember_about_me', 't1', {'fact': 'Ev adresim: 7218 Sokak.'}),
+        text('Kaydettim.'),
+      ]);
+      final result = await runCase(confirm, provider);
+      expect(result.passed, isTrue, reason: '${result.problems}');
+      expect(provider.turns.first.$2.take(3).map((m) => m['role']), ['user', 'assistant', 'user']);
+      expect(provider.turns.first.$2[1]['content'], contains('Kaydedeyim mi?'));
+    });
+
     test('naming the tool, or giving up to the user, fails', () async {
       final result = await runCase(
         flaky,
