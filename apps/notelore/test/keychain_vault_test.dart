@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/keychain_vault.dart';
@@ -44,11 +45,9 @@ class _Counted extends FlutterSecureStorage {
     WebOptions? webOptions,
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
-  }) {
-    reads++;
-    _maybeFail();
-    return super.readAll();
-  }
+  }) =>
+      // What macOS's file-based keychain answers to "every item, with its data" (#666).
+      throw PlatformException(code: '-50', message: 'One or more parameters were not valid.');
 
   @override
   Future<void> write({
@@ -84,8 +83,10 @@ void main() {
     expect(await next.read(key: 'notelore.lock'), 'hash');
     expect(await next.read(key: 'notelore.gone'), isNull);
     expect(await next.containsKey(key: 'notelore.lock'), isTrue);
+    expect(await next.read(key: 'notelore.gone'), isNull);
     expect(await next.readAll(), {'notelore.openai.api_key': 'sk-1', 'notelore.lock': 'hash'});
-    expect(again.reads, 1, reason: 'one item, one password prompt');
+    // The vault, and one look for an older item of the missing key: no item, no prompt.
+    expect(again.reads, 2, reason: 'one item, one password prompt');
   });
 
   test('a value written as null, or deleted, leaves the item', () async {
@@ -101,23 +102,42 @@ void main() {
     expect(await const FlutterSecureStorage().readAll(), isEmpty);
   });
 
-  test('the items of an older version move into the one item, once', () async {
-    FlutterSecureStorage.setMockInitialValues({
-      'notelore.openai.api_key': 'sk-old',
-      'notelore.lock': 'hash',
-      'notelore-dev.openai.api_key': 'sk-dev',
-    });
-    final inner = _Counted();
-    final vault = KeychainVault(inner, keySpace: 'notelore');
-    expect(await vault.read(key: 'notelore.openai.api_key'), 'sk-old');
-    expect(await const FlutterSecureStorage().readAll(), {
-      'notelore.vault': jsonEncode({'notelore.openai.api_key': 'sk-old', 'notelore.lock': 'hash'}),
-      'notelore-dev.openai.api_key': 'sk-dev', // another key space is not ours to move
-    });
+  test(
+    'an older item moves into the vault when it is first read, never by listing (#666)',
+    () async {
+      FlutterSecureStorage.setMockInitialValues({
+        'notelore.openai.api_key': 'sk-old',
+        'notelore.lock': 'hash',
+        'notelore-dev.openai.api_key': 'sk-dev',
+      });
+      final vault = KeychainVault(_Counted(), keySpace: 'notelore');
+      expect(await vault.read(key: 'notelore.openai.api_key'), 'sk-old');
+      expect(await vault.containsKey(key: 'notelore.lock'), isTrue);
+      expect(await const FlutterSecureStorage().readAll(), {
+        'notelore.vault': jsonEncode({
+          'notelore.openai.api_key': 'sk-old',
+          'notelore.lock': 'hash',
+        }),
+        'notelore-dev.openai.api_key': 'sk-dev', // never asked for, so never moved
+      });
 
-    final later = _Counted();
-    expect(await KeychainVault(later, keySpace: 'notelore').read(key: 'notelore.lock'), 'hash');
-    expect(later.reads, 1);
+      final later = _Counted();
+      expect(await KeychainVault(later, keySpace: 'notelore').read(key: 'notelore.lock'), 'hash');
+      expect(later.reads, 1);
+    },
+  );
+
+  test('a key deleted before it moved does not come back from its older item', () async {
+    FlutterSecureStorage.setMockInitialValues({'notelore.openai.api_key': 'sk-old'});
+    final vault = KeychainVault(_Counted(), keySpace: 'notelore');
+    await vault.delete(key: 'notelore.openai.api_key');
+    expect(await vault.read(key: 'notelore.openai.api_key'), isNull);
+    expect(await const FlutterSecureStorage().readAll(), isEmpty);
+    FlutterSecureStorage.setMockInitialValues({'notelore.a': 'old'});
+    final written = KeychainVault(_Counted(), keySpace: 'notelore');
+    await written.write(key: 'notelore.a', value: 'new');
+    expect(await written.read(key: 'notelore.a'), 'new');
+    expect(await const FlutterSecureStorage().read(key: 'notelore.a'), isNull);
   });
 
   test('writes in a row each keep the others', () async {
