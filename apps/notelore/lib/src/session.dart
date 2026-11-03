@@ -28,6 +28,7 @@ import 'package:path/path.dart' as p;
 import 'audio_file.dart';
 import 'audio_native.dart';
 import 'device_auth.dart';
+import 'device_host.dart';
 import 'device_model.dart';
 import 'device_native.dart';
 import 'lock_state.dart';
@@ -223,17 +224,9 @@ class Session extends ChangeNotifier {
   /// The engine that runs [deviceModel]'s file: llama.cpp; a fake in tests.
   final LocalEngine Function(String path) makeDeviceEngine;
 
-  /// The one loaded engine, if any: a rebuilt provider reuses it, never a
-  /// second copy of the model in memory.
-  LocalEngine? _deviceEngine;
-  LocalProvider? _deviceProvider;
-
   /// [chosen]'s provider: the model on the device runs on the one engine.
   LlmProvider _providerFor(ProviderSpec chosen, String key, String chosenModel) {
-    if (chosen.access == ProviderAccess.deviceFile) {
-      final engine = _deviceEngine ??= makeDeviceEngine(deviceModel.path(deviceFiles.first.name));
-      return _deviceProvider = LocalProvider(chosenModel, engine);
-    }
+    if (chosen.access == ProviderAccess.deviceFile) return device.provider(chosenModel);
     return makeProvider(
       chosen,
       key,
@@ -243,86 +236,38 @@ class Session extends ChangeNotifier {
     );
   }
 
-  /// The engine and prompt+tools already prefilled (#595).
-  LocalEngine? _prefilledEngine;
-  String? _prefilledKey;
-  int _prefillRun = 0;
+  /// The model on the device (#328): its one engine, its prefill and its
+  /// download (#659); what follows forwards to it.
+  late final DeviceModelHost device = DeviceModelHost(
+    model: deviceModel,
+    file: deviceFiles.first.name,
+    makeEngine: makeDeviceEngine,
+    exclusive: _exclusive,
+    fetch: (progress, problem) => _fetch(deviceModel, progress, problem),
+  )..addListener(notifyListeners);
 
   /// The model is loading and reading its fixed prompt, before any message:
   /// the chat says so while it runs.
-  bool preparing = false;
+  bool get preparing => device.preparing;
 
-  /// Reads the device model's system prompt and tools into its cache before
-  /// the first message, so that message only pays for what the user wrote.
+  /// From 0 to 1 while the device model downloads, else null.
+  double? get deviceProgress => device.progress;
+
+  /// Why the last device model download failed, if it did.
+  DownloadProblem? get deviceProblem => device.problem;
+
+  /// One download at a time; a second call waits for the one running.
+  Future<void> downloadDeviceModel() => device.download();
+
   /// Skipped while the setup wizard is testing the model: that test turn has
   /// another prompt and would replace the cache just filled.
   void _startDevicePrefill() {
-    final provider = _deviceProvider;
-    final engine = _deviceEngine;
-    if (provider == null || engine == null || finishingSetup) return;
-    final system = slimSystemPrompt(today);
-    final key = jsonEncode([
-      system.replaceFirst(RegExp(r'\d{2}:\d{2}(?=, local time\.)'), '--:--'),
-      for (final tool in slimTools) [tool.name, tool.description, tool.inputSchema],
-    ]);
-    if (identical(engine, _prefilledEngine) && key == _prefilledKey) return;
-    _prefilledEngine = engine;
-    _prefilledKey = key;
-    final run = ++_prefillRun;
-    preparing = true;
-    notifyListeners();
-    final ready = Completer<void>();
-    // One event: the setup test turn is queued right after connect and must
-    // cancel this before it reads a prompt it is about to replace.
-    unawaited(Future<void>(ready.complete));
-    unawaited(
-      _exclusive(() async {
-        await ready.future;
-        if (run == _prefillRun) {
-          try {
-            await provider.prefill(system, slimTools);
-          } on Exception {
-            // The first turn loads the model again and says what went wrong.
-          } finally {
-            if (run == _prefillRun) {
-              preparing = false;
-              notifyListeners();
-            }
-          }
-        }
-      }),
-    );
-  }
-
-  /// Lets go of the model on the device, when another model is used or none.
-  Future<void> _freeDeviceEngine() async {
-    final engine = _deviceEngine;
-    _deviceEngine = null;
-    _deviceProvider = null;
-    _prefilledEngine = null;
-    _prefilledKey = null;
-    _prefillRun++;
-    preparing = false;
-    await engine?.dispose();
+    if (!finishingSetup) device.startPrefill(slimSystemPrompt(today), slimTools);
   }
 
   /// The model on the device is offered (where llama.cpp runs: Android,
   /// Windows, macOS).
   final bool deviceModels;
-
-  /// From 0 to 1 while the device model downloads, else null.
-  double? deviceProgress;
-
-  /// Why the last device model download failed, if it did.
-  DownloadProblem? deviceProblem;
-
-  /// One download at a time; a second call waits for the one running.
-  Future<void> downloadDeviceModel() => _deviceDownload ??= _fetch(
-    deviceModel,
-    (done) => deviceProgress = done,
-    (why) => deviceProblem = why,
-  ).whenComplete(() => _deviceDownload = null);
-  Future<void>? _deviceDownload;
 
   final List<ModelFile> whisperFiles;
   final http.Client Function() httpClient;
@@ -780,13 +725,9 @@ class Session extends ChangeNotifier {
   /// One real turn with the connected model, no tools and no notes: the answer
   /// shows the user it works. It costs a few tokens, as the wizard says.
   Future<String> tryModel() async {
-    final device = _deviceProvider != null;
+    final device = this.device.loaded;
     if (device) {
-      _prefillRun++;
-      _prefilledEngine = null;
-      _prefilledKey = null;
-      preparing = false;
-      notifyListeners();
+      this.device.cancelPrefill();
       await _queue; // a prefill already under way ends before the test prompt
     }
     try {
@@ -937,8 +878,8 @@ class Session extends ChangeNotifier {
     if (spec.access == ProviderAccess.deviceFile) {
       // Removed means removed: its 2.5 GB go too (downloaded again on request),
       // once a download that runs has ended, so it never writes into nothing.
-      await _deviceDownload;
-      await _freeDeviceEngine();
+      await device.downloading;
+      await device.free();
       final dir = Directory(deviceModel.dir);
       if (dir.existsSync()) dir.deleteSync(recursive: true);
     }
@@ -1098,7 +1039,7 @@ class Session extends ChangeNotifier {
     models = const [];
     _agent = null;
     _provider = null;
-    unawaited(_freeDeviceEngine());
+    unawaited(device.free());
   }
 
   /// Forgets every provider's key on this device and the chosen provider; the
@@ -1128,7 +1069,7 @@ class Session extends ChangeNotifier {
     final wasLocal = spec != null && onThisMachine(spec!, model ?? '');
     spec = chosen;
     model = chosenModel;
-    if (chosen.access != ProviderAccess.deviceFile) unawaited(_freeDeviceEngine());
+    if (chosen.access != ProviderAccess.deviceFile) unawaited(device.free());
     final toolbox = Toolbox(paths.notes.path, index, today: today);
     _provider = MeteredProvider(_providerFor(chosen, key, chosenModel), chosen.name, usage);
     final me = aboutMeToCloud || onThisMachine(chosen, chosenModel);
@@ -1856,7 +1797,7 @@ class Session extends ChangeNotifier {
     _stopRetrying();
     _disposed = true;
     index.close();
-    unawaited(_freeDeviceEngine());
+    unawaited(device.free());
     super.dispose();
   }
 }
