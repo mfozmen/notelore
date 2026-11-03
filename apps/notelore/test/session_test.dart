@@ -923,7 +923,7 @@ void main() {
   test(
     'about me: a local chat moving to a cloud model with the switch off starts afresh (#646)',
     () async {
-      final harness = Harness(answers: ['a', 'b', 'c']);
+      final harness = Harness(answers: ['a', 'b', 'c', 'd']);
       final session = harness.session();
       await session.load();
       await session.setAboutMeToCloud(false);
@@ -935,6 +935,10 @@ void main() {
       await session.setAboutMeToCloud(true);
       await session.send('again');
       expect(harness.provider.lengths.last, greaterThan(1)); // the cloud conversation goes on
+      // Off on a cloud model: it was told already, so the conversation stays.
+      await session.setAboutMeToCloud(false);
+      await session.send('more');
+      expect(harness.provider.lengths.last, greaterThan(3));
     },
   );
 

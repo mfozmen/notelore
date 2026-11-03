@@ -496,6 +496,11 @@ class Session extends ChangeNotifier {
     if (model case final current?) await _applyModel(current);
   }
 
+  /// Off wins: a stale "on" from a device that has not caught up never sends the facts.
+  Future<void> _adoptAboutMeToCloud(Object? theirs) async {
+    if (theirs == false && aboutMeToCloud) await _applyAboutMeToCloud(false);
+  }
+
   /// What the person told about themselves, one fact a line.
   List<String> aboutMeFacts() => aboutMe(paths.notes.path);
 
@@ -1120,6 +1125,7 @@ class Session extends ChangeNotifier {
       setUpBefore = true;
       _saveUi();
     }
+    final wasLocal = spec != null && onThisMachine(spec!.name, model ?? '');
     spec = chosen;
     model = chosenModel;
     if (chosen.name != 'device') unawaited(_freeDeviceEngine());
@@ -1128,7 +1134,7 @@ class Session extends ChangeNotifier {
     final me = aboutMeToCloud || onThisMachine(chosen.name, chosenModel);
     // A model switch keeps the conversation (logout has already dropped it), except
     // what a local model was told about the person, on its way to a cloud one.
-    final history = _agent?.aboutMe == true && !me
+    final history = wasLocal && _agent?.aboutMe == true && !me
         ? const <Message>[]
         : _agent?.messages ?? const <Message>[];
     _agent = Agent(
@@ -1602,8 +1608,7 @@ class Session extends ChangeNotifier {
       _named(Appearance.values, theirs['appearance']) ?? appearance,
     );
     if (theirs['webSearch'] case final bool on when on != webSearch) await _applyWebSearch(on);
-    // Off wins: a stale "on" from a device that has not caught up never sends the facts.
-    if (theirs['aboutMeToCloud'] == false && aboutMeToCloud) await _applyAboutMeToCloud(false);
+    await _adoptAboutMeToCloud(theirs['aboutMeToCloud']);
     if (theirs['calendar'] case final bool on) {
       calendar = on;
       if (theirs['calendarId'] case final String id) calendarId = id;
