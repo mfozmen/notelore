@@ -74,6 +74,29 @@ void main() {
     expect(history(), hasLength(1));
   });
 
+  test('two changes in the same second each keep their own copy', () {
+    rememberAboutMe(root.path, 'A.', now: now);
+    rememberAboutMe(root.path, 'B.', now: now);
+    updateAboutMe(root.path, 'A.', 'C.', now: now);
+    forgetAboutMe(root.path, 'B.', now: now);
+    expect(history()..sort(), [
+      '.notelore/history/2026-11-03T090507Z-2/about-me.md',
+      '.notelore/history/2026-11-03T090507Z/about-me.md',
+    ]);
+    expect(
+      File(p.join(root.path, '.notelore/history/2026-11-03T090507Z/about-me.md'))
+          .readAsStringSync(),
+      contains('- A.'),
+    );
+  });
+
+  test('a file left with no fact gets its heading back with the next one', () {
+    File(aboutMePath(root.path)).writeAsStringSync('- Only fact.\n');
+    forgetAboutMe(root.path, 'Only fact.', now: now);
+    rememberAboutMe(root.path, 'New fact.', now: now);
+    expect(file(), '# About me\n\n- New fact.\n');
+  });
+
   test('a file edited by hand: any bullet is a fact, other lines are kept', () {
     File(aboutMePath(root.path))
         .writeAsStringSync('# About me\r\n\r\nWritten by me.\r\n* Born 1985.\r\n- Two kids.\r\n');

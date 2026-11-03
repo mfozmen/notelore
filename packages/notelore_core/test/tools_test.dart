@@ -350,6 +350,7 @@ void main() {
     expect(block.length, lessThanOrEqualTo(1200));
     expect(block, contains('- Fact number 0 '));
     expect(block, isNot(contains('- Fact number 39 ')));
+    expect(block, endsWith(' more in about-me.md, left out for length)'));
   });
 
   test('a write after an indexed query is visible to the next tool call', () {
