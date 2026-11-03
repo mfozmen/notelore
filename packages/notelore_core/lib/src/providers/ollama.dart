@@ -115,7 +115,6 @@ AgentResponse fromOllama(Map<String, Object?> answer) {
         'input': parseArguments((call['function']! as Map)['arguments']),
       },
   ];
-  final toolUse = blocks.any((b) => b['type'] == 'tool_use');
   final usage = switch (answer) {
     {'prompt_eval_count': final int input, 'eval_count': final int output} => TokenUsage(
       input,
@@ -123,5 +122,5 @@ AgentResponse fromOllama(Map<String, Object?> answer) {
     ),
     _ => null,
   };
-  return AgentResponse(blocks, toolUse ? 'tool_use' : 'end_turn', usage: usage);
+  return agentReply(blocks, usage: usage);
 }

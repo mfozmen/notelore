@@ -572,6 +572,14 @@ class FakeCalendar implements ReminderCalendar {
     cleared++;
     events.clear();
   }
+
+  final removed = <String>[];
+
+  @override
+  Future<void> remove(String calendarId) async {
+    if (fail case final error?) throw error;
+    removed.add(calendarId);
+  }
 }
 
 /// A device's notifications: what is pending, by id, and what was asked.
