@@ -49,8 +49,10 @@ String? answerLanguage(String answer) {
   return null;
 }
 
+final _turkishLetters = RegExp('[çğışöüÇĞİŞÖÜ]');
+
 /// [message]'s language, for the line that ends the prompt (#653): by its
 /// small words, as [answerLanguage] judges, else `tr` when it has letters only
 /// Turkish uses ("onaylıyorum"); null when it says nothing ("ok").
 String? messageLanguage(String message) =>
-    answerLanguage(message) ?? (RegExp('[çğışöüÇĞİŞÖÜ]').hasMatch(message) ? 'tr' : null);
+    answerLanguage(message) ?? (_turkishLetters.hasMatch(message) ? 'tr' : null);

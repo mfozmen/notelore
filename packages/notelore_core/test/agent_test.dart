@@ -779,7 +779,12 @@ void failureTests() {
     test(
       "the message's language closes the prompt, so Turkish notes do not turn it (#653)",
       () async {
-        final provider = ScriptedProvider([text('Hi.'), text('Selam.'), text('Tamam.')]);
+        final provider = ScriptedProvider([
+          text('Hi.'),
+          text('Selam.'),
+          text('Tamam.'),
+          text('Added.'),
+        ]);
         final agent = Agent(provider, newBox(), today: today);
         await agent.ask('What did we decide about the database?');
         expect(
@@ -792,7 +797,10 @@ void failureTests() {
           endsWith('\n\nThe user writes in Turkish: answer in Turkish.'),
         );
         await agent.ask('ok');
-        expect(provider.turns.last.$1, endsWith('There are no notes yet.'));
+        expect(provider.turns.last.$1, isNot(contains('answer in')));
+        // A Turkish title inside an English message: its small words decide.
+        await agent.ask('Add "Gülünün Solduğu Akşam" to the books I am reading.');
+        expect(provider.turns.last.$1, endsWith('answer in English.'));
       },
     );
 
