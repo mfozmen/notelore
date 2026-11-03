@@ -242,6 +242,9 @@ void main() {
         'notes': <String, String>{},
         'expect': {
           'tools': ['remember_about_me'],
+          'notes': {
+            r'^about-me\.md$': ['7218 Sokak'],
+          },
         },
       });
       final provider = ScriptedProvider([
