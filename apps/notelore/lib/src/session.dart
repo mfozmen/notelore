@@ -1630,7 +1630,11 @@ class Session extends ChangeNotifier {
       if (theirs['calendarId'] case final String id) calendarId = id;
       _saveUi();
     }
-    final (name, chosen) = (theirs['provider'], theirs['model']);
+    await _adoptProvider(theirs['provider'], theirs['model']);
+  }
+
+  /// Another device's provider and model, when this device can use it without asking.
+  Future<void> _adoptProvider(Object? name, Object? chosen) async {
     // A local model is this machine's own: another device's choice of one stays there.
     if (name is! String || chosen is! String) return;
     final found = providerSpecs.where((s) => s.name == name && !s.local).firstOrNull;
