@@ -402,6 +402,10 @@ void main() {
     expect(prompt, contains('call recategorize'));
     expect(prompt, contains('remember_about_me'));
     expect(prompt, contains('update_about_me'));
+    // A fact the person asks to keep, or confirms after seeing it word for
+    // word, is theirs, even when it was found in a note (#670).
+    expect(prompt, contains('asks you to keep'));
+    expect(prompt, contains('confirms'));
     expect(prompt, contains('ask first when it is not clear'));
   });
 
