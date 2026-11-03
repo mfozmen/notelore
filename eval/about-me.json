@@ -44,6 +44,47 @@
     "tools_not": ["remember_about_me", "update_about_me", "forget_about_me"],
     "answer": ["Alsancak"]
    }
+  },
+  {
+   "id": "aboutme-tr-move-from-note",
+   "kind": "about-me",
+   "lang": "tr",
+   "message": "Ev bilgileri notumdaki ev adresimi Hakkımda'ya taşı.",
+   "notes": {
+    "about-me.md": "# About me\n\n- Eşim Ayşe.\n",
+    "topics/ev-bilgileri.md": "---\ntitle: Ev Bilgileri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\n---\n# Ev Bilgileri\n\n## Notlar\n- 2026-09-01: Ev adresim: 30 Ağustos Mahallesi, 7218 Sokak No: 1/1, Menemen/İzmir.\n- 2026-10-01: Kombi bakımı ekimde yapıldı.\n"
+   },
+   "expect": {
+    "tools": ["remember_about_me"],
+    "notes": {
+     "^about-me\\.md$": ["7218 Sokak", "Menemen"],
+     "^topics/ev-bilgileri\\.md$": [],
+     "^_archive/": []
+    }
+   }
+  },
+  {
+   "id": "aboutme-tr-confirmed",
+   "kind": "about-me",
+   "lang": "tr",
+   "history": [
+    {"role": "user", "content": "Notlarımda hakkımda bilgilere taşınmaya uygun bir şey var mı?"},
+    {"role": "assistant", "content": "Taşınmaya uygun iki bilgi buldum: ev adresin (30 Ağustos Mahallesi, 7218 Sokak No: 1/1, Menemen/İzmir) ve invent.ai'daki HR partnerinin Hande Altan olduğu. Bu iki bilgiyi hakkındaki bilgilere ekleyip ilgili notlardan kaldırmamı onaylar mısın?"}
+   ],
+   "message": "onaylıyorum",
+   "notes": {
+    "about-me.md": "# About me\n\n- Eşim Ayşe.\n",
+    "topics/ev-bilgileri.md": "---\ntitle: Ev Bilgileri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\n---\n# Ev Bilgileri\n\n## Notlar\n- 2026-09-01: Ev adresim: 30 Ağustos Mahallesi, 7218 Sokak No: 1/1, Menemen/İzmir.\n- 2026-10-01: Kombi bakımı ekimde yapıldı.\n",
+    "topics/is.md": "---\ntitle: İş\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\n---\n# İş\n\n## Notlar\n- 2026-09-02: invent.ai'daki HR partnerim Hande Altan.\n"
+   },
+   "expect": {
+    "tools": ["remember_about_me"],
+    "notes": {
+     "^about-me\\.md$": ["7218 Sokak", "Hande Altan"],
+     "^topics/": [],
+     "^_archive/": []
+    }
+   }
   }
  ]
 }

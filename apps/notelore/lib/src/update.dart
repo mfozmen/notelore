@@ -287,14 +287,16 @@ Future<({String version, List<String> highlights, String page})?> checkRelease({
   if (!needed.every(assets.contains)) return null;
   return (
     version: version,
-    highlights: releaseHighlights(data['body'] as String?),
+    highlights: releaseHighlights(data['body'] as String?, system: system),
     page: '${data['html_url'] ?? 'https://github.com/mfozmen/notelore/releases'}',
   );
 }
 
 /// What a release brings, from its notes: the first features, then fixes, two
-/// at most, each without its links.
-List<String> releaseHighlights(String? notes) {
+/// at most, each without its links. With [system], a line about another
+/// platform, or about how Notelore is built (evals, training, reviews), is left
+/// out: on Windows a macOS line reads like a warning.
+List<String> releaseHighlights(String? notes, {String system = ''}) {
   final sections = <String, List<String>>{};
   String? heading;
   for (final line in (notes ?? '').split('\n')) {
@@ -302,10 +304,34 @@ List<String> releaseHighlights(String? notes) {
       heading = line.substring(4).trim();
     } else if (line.startsWith('- ') && heading != null) {
       final text = line.substring(2).replaceFirst(RegExp(r'\s*\(\[.*$'), '').trim();
-      if (text.isNotEmpty) (sections[heading] ??= []).add(text);
+      if (text.isNotEmpty && (system.isEmpty || _concerns(text, system))) {
+        (sections[heading] ??= []).add(text);
+      }
     }
   }
   return [...?sections['Features'], ...?sections['Bug Fixes']].take(2).toList();
+}
+
+final _platforms = {
+  'macos': RegExp(r'\bmac(os)?\b', caseSensitive: false),
+  'windows': RegExp(r'\bwindows\b', caseSensitive: false),
+  'android': RegExp(r'\bandroid\b', caseSensitive: false),
+  'ios': RegExp(r'\bios\b', caseSensitive: false),
+};
+// Only the words release notes use for how Notelore is built: a feature that
+// mentions a review or training stays.
+final _internal = RegExp(
+  r'\b(evals?|eval cases|dpo|fine-tunes?)\b|\bsettle\b.*\breviews?\b',
+  caseSensitive: false,
+);
+
+bool _concerns(String line, String system) {
+  if (_internal.hasMatch(line)) return false;
+  final named = [
+    for (final MapEntry(:key, :value) in _platforms.entries)
+      if (value.hasMatch(line)) key,
+  ];
+  return named.isEmpty || named.contains(system);
 }
 
 /// The updater for a release build of the app, or null. A build without the

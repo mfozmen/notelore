@@ -66,6 +66,10 @@ class EvalCase {
       kind = json['kind']! as String,
       lang = json['lang']! as String,
       message = json['message']! as String,
+      history = [
+        for (final turn in (json['history'] as List?) ?? const [])
+          {...(turn as Map).cast<String, Object?>()},
+      ],
       notes = ((json['notes'] as Map?) ?? shared).cast<String, String>(),
       failFirstCall = json['fail_first_call'] == true,
       search = (json['search'] as List?)?.cast<String>(),
@@ -75,6 +79,10 @@ class EvalCase {
   final String kind;
   final String lang;
   final String message;
+
+  /// The conversation before [message], as `{role, content}` turns: a proposal
+  /// the user now answers ("onaylıyorum", #670).
+  final List<Message> history;
 
   /// Relative path (`/`) -> note text, written before the turn.
   final Map<String, String> notes;
@@ -251,7 +259,7 @@ Future<EvalResult> runCase(
       today: evalNow,
       slim: slim,
       aboutMe: true,
-    );
+    )..messages.addAll(evalCase.history);
     var answer = '';
     final problems = <String>[];
     try {
