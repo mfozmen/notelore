@@ -250,6 +250,7 @@ Future<EvalResult> runCase(
       },
       today: evalNow,
       slim: slim,
+      aboutMe: true,
     );
     var answer = '';
     final problems = <String>[];
