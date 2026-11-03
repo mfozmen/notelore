@@ -104,6 +104,22 @@ void main() {
     );
   });
 
+  test('a decompressed patch far larger than the file is refused', () {
+    final old = bytes(64, 6);
+    final next = utf8.encode('tiny');
+    final bomb = ZLibCodec().encode(List.filled(10000, 0));
+    expect(
+      () => applyPatch(
+        oldBytes: old,
+        patch: bomb,
+        oldSha256: hash(old),
+        newSha256: hash(next),
+        newSize: next.length,
+      ),
+      throwsA(isA<UpdatePatchFailed>()),
+    );
+  });
+
   test('an empty old file is refused', () {
     final next = utf8.encode('new app');
     final patch = makePatch(const <int>[], next);

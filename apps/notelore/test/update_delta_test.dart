@@ -168,6 +168,16 @@ void main() {
         },
         contains('repeated'),
       ),
+      (
+        {
+          ...ok(),
+          'patches': {
+            'data/app.so': good,
+            'notelore.exe': {...good, 'patch': 'DATA/APP.SO.ZPATCH'},
+          },
+        },
+        contains('repeated'),
+      ),
     ]) {
       expect(
         () => DeltaManifest.parse(

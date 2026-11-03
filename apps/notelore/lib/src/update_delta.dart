@@ -83,12 +83,15 @@ Map<String, UpdatePatch> _patches(Object? raw, Map<String, String> files) {
   }
   final patches = <String, UpdatePatch>{};
   final names = <String>{};
+  final lowerFiles = {for (final path in files.keys) path.toLowerCase()};
   for (final MapEntry(key: path, value: value) in raw.entries) {
     if (!files.containsKey(path)) {
       throw FormatException("$_what patch is for '$path', which no file lists");
     }
     final patch = UpdatePatch.fromJson(value, _what);
-    if (files.containsKey(patch.patch) || !names.add(patch.patch)) {
+    // Windows finds files regardless of case, so A.zpatch and a.zpatch would
+    // land on one entry.
+    if (lowerFiles.contains(patch.patch.toLowerCase()) || !names.add(patch.patch.toLowerCase())) {
       throw FormatException("$_what patch name '${patch.patch}' is repeated");
     }
     patches[path] = patch;
@@ -135,7 +138,7 @@ final class UpdatePatch {
 
   factory UpdatePatch.fromJson(Object? raw, String what) {
     if (raw is! Map<String, Object?>) {
-      throw FormatException(' patch is not an object');
+      throw FormatException('$what patch is not an object');
     }
     final patch = updateJsonString(raw, 'patch', what);
     final old = updateJsonString(raw, 'old', what);

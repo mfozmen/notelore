@@ -32,7 +32,7 @@ class UpdatePatchFailed implements Exception {
   String toString() => message;
 }
 
-/// A patch that turns [oldBytes] into the new file: calls that match the old
+/// A patch that turns [oldBytes] into the new file: blocks that match the old
 /// file become copies, the rest is sent as bytes. The result is zlib-compressed
 /// and starts with [_magic] once decompressed.
 Uint8List makePatch(List<int> oldBytes, List<int> newBytes) {
@@ -85,18 +85,23 @@ Uint8List applyPatch({
   required String newSha256,
   required int newSize,
 }) {
+  if (newSize <= 0 || newSize > _maxPatch) throw const UpdatePatchFailed('the new size is wrong');
   Uint8List raw;
   try {
-    raw = Uint8List.fromList(ZLibCodec().decode(patch));
+    // A patch carries the new bytes once and a few bytes per copy: four times
+    // the new size is already generous, and bounds a bomb before it grows.
+    raw = _inflate(patch, newSize * 4 + 4096);
+  } on UpdatePatchFailed {
+    rethrow;
   } on Object {
     throw const UpdatePatchFailed('the patch is damaged');
   }
   if (raw.length < 4 || ascii.decode(raw.sublist(0, 4), allowInvalid: true) != _magic) {
     throw const UpdatePatchFailed('the patch is not a Notelore patch');
   }
-  if (newSize <= 0 || newSize > _maxPatch) throw const UpdatePatchFailed('the new size is wrong');
   final old = oldBytes is Uint8List ? oldBytes : Uint8List.fromList(oldBytes);
-  if (sha256.convert(old).toString() != oldSha256 || old.isEmpty) {
+  if (old.isEmpty) throw const UpdatePatchFailed('the old file is empty');
+  if (sha256.convert(old).toString() != oldSha256) {
     throw const UpdatePatchFailed('the file is not the one the patch expects');
   }
   final out = BytesBuilder(copy: false);
@@ -127,6 +132,35 @@ Uint8List applyPatch({
     throw const UpdatePatchFailed('the patched file is not the expected one');
   }
   return result;
+}
+
+Uint8List _inflate(List<int> patch, int limit) {
+  final out = BytesBuilder(copy: false);
+  final sink = ZLibDecoder().startChunkedConversion(_Capped(out, limit));
+  sink
+    ..add(patch)
+    ..close();
+  return out.takeBytes();
+}
+
+/// Refuses a decompressed patch larger than [limit] as it arrives, so a
+/// corrupt or hostile stream cannot grow past it before a check sees it.
+final class _Capped implements Sink<List<int>> {
+  _Capped(this._out, this._limit);
+
+  final BytesBuilder _out;
+  final int _limit;
+
+  @override
+  void add(List<int> data) {
+    if (_out.length + data.length > _limit) {
+      throw const UpdatePatchFailed('the patch is too large');
+    }
+    _out.add(data);
+  }
+
+  @override
+  void close() {}
 }
 
 int _blockHash(Uint8List bytes, int start, {int length = _block}) {
