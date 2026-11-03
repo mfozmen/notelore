@@ -161,6 +161,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Add a fact'), findsOneWidget);
     expect(find.byType(FloatingActionButton), findsNothing); // by the list, not a far corner
+    await tester.tap(find.text('Add a fact'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('fact-field')), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
     await openSettings(tester, 'Privacy');
     expect(find.text('Share with cloud models'), findsOneWidget);
     expect(find.text('Add a fact'), findsNothing);
