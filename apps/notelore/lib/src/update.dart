@@ -35,6 +35,8 @@ import 'package:path/path.dart' as p;
 import 'update_apply.dart';
 import 'update_delta.dart';
 
+part 'update_platform.dart';
+
 const latestReleaseUrl = 'https://api.github.com/repos/mfozmen/notelore/releases/latest';
 
 /// Set by the release build (`--dart-define=NOTELORE_VERSION=x.y.z`); empty in
@@ -417,62 +419,19 @@ class Updater {
   /// Moves a folder; tests make it fail.
   final void Function(String from, String to) renameDirectory;
 
-  /// What gets replaced: the app folder on Windows, the `.app` bundle on macOS.
-  String get _installed =>
-      system == 'windows' ? p.dirname(executable) : p.dirname(p.dirname(p.dirname(executable)));
+  /// This platform's part of an update (#655).
+  late final _Platform _platform = _platformFor(this);
 
-  /// The downloaded Windows setup or Android APK, opened by [relaunch].
-  String? _setup;
-
-  /// The changed-files job and helper, when a Windows delta was staged (#584).
-  String? _deltaJob;
-  String? _deltaHelper;
-
-  String get _userApps => p.join(home, 'Applications');
-
-  /// A fresh `.notelore-update` folder next to [bundle], or null if that
-  /// folder cannot be written.
-  Directory? _stage(String bundle) {
-    final staging = Directory(p.join(p.dirname(bundle), '.notelore-update'));
-    try {
-      if (staging.existsSync()) staging.deleteSync(recursive: true);
-      staging.createSync(recursive: true);
-      return staging;
-    } on FileSystemException {
-      return null;
-    }
-  }
+  static _Platform _platformFor(Updater u) => switch (u.system) {
+    'windows' => _Windows(u),
+    'macos' => _Mac(u),
+    _ => _Android(u),
+  };
 
   /// On macOS, starts the copy an update put in ~/Applications and quits, when
   /// this is an older one left where the user cannot delete it (#644). A copy
   /// that is this one by a link, or not intact, is never started.
-  Future<bool> handOff() async {
-    if (system != 'macos' || home.isEmpty) return false;
-    final mine = p.join(_userApps, _bundleName);
-    final binary = p.join(mine, 'Contents', 'MacOS', 'Notelore');
-    try {
-      if (Directory(mine).resolveSymbolicLinksSync() ==
-              Directory(_installed).resolveSymbolicLinksSync() ||
-          !File(binary).existsSync()) {
-        return false;
-      }
-      final plist = File(p.join(mine, 'Contents', 'Info.plist')).readAsStringSync();
-      final version = RegExp(
-        r'<key>CFBundleShortVersionString</key>\s*<string>(\d+(?:\.\d+)*)</string>',
-      ).firstMatch(plist)?[1];
-      if (version == null || isNewer(current, version)) return false;
-    } on FileSystemException {
-      return false; // also a binary plist, which is not UTF-8
-    }
-    try {
-      if ((await run('codesign', ['--verify', '--strict', mine])).exitCode != 0) return false;
-      await spawn(binary, const []);
-    } on ProcessException {
-      return false; // this copy opens instead
-    }
-    quit(0);
-    return true;
-  }
+  Future<bool> handOff() => _platform.handOff();
 
   /// Downloads the latest release and checks it; on macOS also swaps the bundle
   /// in. Its version, or null when this is current.
@@ -485,10 +444,7 @@ class Updater {
       throw UpdateFailed('release $version has no app for this device; download it from GitHub');
     }
     final url = assets[name]!;
-    if (system == 'windows') {
-      final delta = await _tryDelta(version, assets, onProgress);
-      if (delta != null) return delta;
-    }
+    if (await _platform.quick(version, assets, onProgress) case final staged?) return staged;
     final digest = await _checksum(name, version, assets);
     onProgress?.call(const UpdateProgress.downloading(0, null));
     final data = await (download ?? (url, {onProgress}) => fetch(url))(
@@ -501,169 +457,8 @@ class Updater {
       throw UpdateFailed('checksum mismatch for $name; the download was not installed');
     }
     onProgress?.call(const UpdateProgress(UpdatePhase.installing));
-    if (system == 'windows' || system == 'android') {
-      // The setup replaces the files once this app has exited; the APK goes to
-      // the system installer (see relaunch).
-      final folder = temp.createTempSync('notelore-update-');
-      _setup = (File(p.join(folder.path, name))..writeAsBytesSync(data)).path;
-      return version;
-    }
-    await _installBundle(name, data);
+    await _platform.install(name, data);
     return version;
-  }
-
-  /// Puts the macOS bundle from the dmg [data] in place of this one, or in
-  /// ~/Applications when a standard account cannot write this one's folder.
-  Future<void> _installBundle(String name, List<int> data) async {
-    // Staged next to the bundle, so the swap is a rename on the same drive.
-    var target = _installed;
-    var staging = _stage(target);
-    if (staging == null && home.isNotEmpty) {
-      target = p.join(_userApps, _bundleName);
-      staging = _stage(target);
-    }
-    if (staging == null) {
-      throw UpdateFailed(
-        'cannot write next to the app (${p.dirname(_installed)}): '
-        'move Notelore to a folder you own, then update again',
-      );
-    }
-    try {
-      final image = File(p.join(staging.path, name))..writeAsBytesSync(data);
-      final mount = p.join(staging.path, 'mnt');
-      final bundle = p.join(staging.path, 'app', _bundleName);
-      final attached = await run('hdiutil', [
-        'attach',
-        '-nobrowse',
-        '-readonly',
-        '-mountpoint',
-        mount,
-        image.path,
-      ]);
-      if (attached.exitCode != 0) throw UpdateFailed('opening $name failed: ${attached.stderr}');
-      try {
-        // ditto keeps the bundle's symlinks and permissions.
-        final copied = await run('ditto', [p.join(mount, _bundleName), bundle]);
-        // A half-copied bundle must never replace a working one.
-        if (copied.exitCode != 0) throw UpdateFailed('copying the app failed: ${copied.stderr}');
-      } finally {
-        await run('hdiutil', ['detach', mount, '-force']);
-      }
-      _runsHere(bundle);
-      if (target == _installed) {
-        _swapBundle(bundle, target, renameDirectory);
-        _bundle = _named();
-      } else if (Directory(target).existsSync()) {
-        _swapBundle(bundle, target, renameDirectory);
-        _bundle = target;
-      } else {
-        renameDirectory(bundle, target);
-        _bundle = target;
-      }
-      _restart = p.join(_bundle!, 'Contents', 'MacOS', 'Notelore');
-    } finally {
-      staging.deleteSync(recursive: true);
-    }
-  }
-
-  /// Stages a signed changed-files Windows update for [version] if the release
-  /// has one and it verifies; null falls back to the full package.
-  Future<String?> _tryDelta(
-    String version,
-    Map<String, String> assets,
-    void Function(UpdateProgress)? onProgress,
-  ) async {
-    if (publicKey.isEmpty) return null;
-    final manifestName = deltaName(version, 'windows-x64', current);
-    final manifestUrl = assets[manifestName];
-    final signatureUrl = assets['$manifestName.sig'];
-    if (manifestUrl == null || signatureUrl == null) return null;
-    final manifest = await _readDelta(version, manifestUrl, signatureUrl);
-    if (manifest == null) return null;
-    final archiveUrl = assets[manifest.archive];
-    if (archiveUrl == null) return null;
-    final staging = await _stageDelta(manifest, archiveUrl, onProgress);
-    if (staging == null) return null;
-    final helper = File(p.join(_installed, 'notelore-updater.exe'));
-    if (!helper.existsSync()) {
-      staging.deleteSync(recursive: true);
-      return null;
-    }
-    try {
-      final job = UpdateJob(
-        install: _installed,
-        staging: staging.path,
-        files: manifest.files,
-        executable: p.basename(executable),
-        parentPid: pid,
-      );
-      final jobFile = File(p.join(staging.path, 'job.json'))
-        ..writeAsStringSync(jsonEncode(job.toJson()));
-      _deltaJob = jobFile.path;
-      _deltaHelper = helper.path;
-      return version;
-    } on Object {
-      staging.deleteSync(recursive: true);
-      _deltaJob = null;
-      _deltaHelper = null;
-      return null;
-    }
-  }
-
-  /// The signed manifest for [version], or null when it does not verify.
-  Future<DeltaManifest?> _readDelta(String version, String manifestUrl, String signatureUrl) async {
-    try {
-      final bytes = await fetch(manifestUrl);
-      final signature = utf8.decode(await fetch(signatureUrl), allowMalformed: true);
-      if (!await signedBy(bytes, signature, publicKey)) return null;
-      return DeltaManifest.parse(
-        utf8.decode(bytes),
-        version: version,
-        current: current,
-        system: system,
-      );
-    } on Object {
-      return null;
-    }
-  }
-
-  /// Downloads and verifies the archive into a staging folder, or null.
-  Future<Directory?> _stageDelta(
-    DeltaManifest manifest,
-    String archiveUrl,
-    void Function(UpdateProgress)? onProgress,
-  ) async {
-    Directory? staging;
-    var ok = false;
-    try {
-      onProgress?.call(const UpdateProgress.downloading(0, null));
-      final data = await (download ?? (url, {onProgress}) => fetch(url))(
-        archiveUrl,
-        onProgress: (received, total) =>
-            onProgress?.call(UpdateProgress.downloading(received, total)),
-      );
-      onProgress?.call(const UpdateProgress(UpdatePhase.verifying));
-      if (sha256.convert(data).toString() != manifest.archiveSha256) return null;
-      staging = temp.createTempSync('notelore-delta-');
-      final seen = <String>{};
-      for (final entry in ZipDecoder().decodeBytes(data)) {
-        if (!entry.isFile) continue;
-        final expected = manifest.files[entry.name];
-        if (expected == null) return null;
-        final file = File(p.joinAll([staging.path, ...entry.name.split('/')]))
-          ..parent.createSync(recursive: true)
-          ..writeAsBytesSync(entry.content as List<int>);
-        if (sha256.convert(file.readAsBytesSync()).toString() != expected) return null;
-        seen.add(entry.name);
-      }
-      if (seen.length != manifest.files.length) return null;
-      ok = true;
-      return staging;
-    } on Object {
-      return null;
-    } finally {
-      if (!ok) staging?.deleteSync(recursive: true);
-    }
   }
 
   /// The SHA-256 the release publishes for [name], once its `.sha256` names
@@ -710,111 +505,17 @@ class Updater {
     }
   }
 
-  /// A bundle that needs a newer macOS than this one would not start, and the
-  /// working app would be left only as `.old` (#328: the floor went 12 → 14).
-  void _runsHere(String bundle) {
-    final plist = File(p.join(bundle, 'Contents', 'Info.plist'));
-    if (!plist.existsSync()) return;
-    final needs = RegExp(r'<key>LSMinimumSystemVersion</key>\s*<string>([\d.]+)</string>')
-        .firstMatch(plist.readAsStringSync())?[1];
-    final here = RegExp(r'\d+(\.\d+)*').firstMatch(osVersion)?[0];
-    if (needs != null && here != null && isNewer(needs, here)) {
-      throw UpdateFailed('this release needs macOS $needs; this Mac has $here');
-    }
-  }
-
-  /// Puts the bundle at [from] in place of [to]; the old one is kept as `.old`
-  /// and put back if the new one cannot be moved in.
-  static void _swapBundle(String from, String to, void Function(String, String) rename) {
-    if (!Directory(from).existsSync()) {
-      throw const UpdateFailed('the download has no $_bundleName; not installing it');
-    }
-    final old = Directory('$to.old');
-    if (old.existsSync()) old.deleteSync(recursive: true);
-    rename(to, old.path);
-    try {
-      rename(from, to);
-    } catch (_) {
-      rename(old.path, to); // never leave the user without an app
-      rethrow;
-    }
-  }
-
   /// Starts the new version; the caller then exits, except on Android, where
   /// the installer takes over (and cancelling it leaves this app running). On
   /// Windows that is the setup, silent, for this user; it starts the app when
   /// done. Throws [InstallNotAllowed] on Android until allowed.
-  Future<void> relaunch() async {
-    if (system == 'windows' && _deltaJob != null) {
-      return spawn(_deltaHelper!, [_deltaJob!]);
-    }
-    if (system == 'android') {
-      if (!await openInstaller(_setup!)) throw const InstallNotAllowed();
-      return;
-    }
-    return _start();
-  }
-
-  Future<void> _start() => switch (_setup) {
-    final setup? => spawn(setup, [
-      '/VERYSILENT',
-      '/SUPPRESSMSGBOXES',
-      '/NORESTART',
-      // No /DIR: the setup installs for this user, where it was before or by
-      // default, and moves an all-users copy out of Program Files (#493).
-    ]),
-    _ => spawn(_restart ?? executable, const []),
-  };
-
-  /// The bundle as releases name it; every dmg has it (#635).
-  static const _bundleName = 'Notelore.app';
-
-  /// The new bundle's binary, which [relaunch] starts on macOS.
-  String? _restart;
-
-  /// Where [apply] left the macOS bundle, renamed or not.
-  String? _bundle;
-
-  /// The installed bundle, renamed to [_bundleName] if it is an install from
-  /// before #635 ("notelore.app"); a name the user gave it stays.
-  String _named() {
-    if (p.basename(_installed) != 'notelore.app') return _installed;
-    final named = p.join(p.dirname(_installed), _bundleName);
-    try {
-      renameDirectory(_installed, named);
-    } on FileSystemException {
-      return _installed; // the update is in; only its name stays old
-    }
-    try {
-      // [cleanup] looks for the bundle's own name + .old.
-      renameDirectory('$_installed.old', '$named.old');
-    } on FileSystemException {
-      // Kept: only on a case-sensitive volume does the old name stay apart.
-    }
-    return named;
-  }
+  Future<void> relaunch() => _platform.relaunch();
 
   /// Removes what an earlier update left behind; whatever is still held stays
   /// for the next start.
   void cleanup() {
     try {
-      if (system == 'macos') {
-        final old = Directory('${_bundle ?? _installed}.old');
-        if (old.existsSync()) old.deleteSync(recursive: true);
-        return;
-      }
-      // Setups and APKs of earlier updates: they were opened after this app
-      // handed over, so it could not delete them then.
-      for (final folder in temp.listSync().whereType<Directory>()) {
-        if (p.basename(folder.path).startsWith('notelore-update-') ||
-            p.basename(folder.path).startsWith('notelore-delta-')) {
-          folder.deleteSync(recursive: true);
-        }
-      }
-      if (system == 'android') return; // the APK replaced the app; nothing else is left
-      for (final file in Directory(_installed).listSync(recursive: true).whereType<File>()) {
-        if (file.path.endsWith('.old')) file.deleteSync();
-      }
+      _platform.cleanup();
     } on FileSystemException {
       // still in use: the next start tries again
     }
