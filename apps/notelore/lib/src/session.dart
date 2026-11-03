@@ -1026,7 +1026,7 @@ class Session extends ChangeNotifier {
   /// Nothing listed to start on: the fixed default, but never for Ollama, which
   /// can only talk with a model it has (#471).
   static String _fallback(ProviderSpec spec) => switch (spec) {
-    ProviderSpec(name: 'ollama') => throw const NoLocalModel(),
+    ProviderSpec(id: ProviderId.ollama) => throw const NoLocalModel(),
     ProviderSpec(:final defaultModel) when defaultModel.isNotEmpty => defaultModel,
     _ => throw TransientValidationError('${spec.displayName} lists no models'),
   };
@@ -1035,11 +1035,15 @@ class Session extends ChangeNotifier {
   /// Notelore's own first (#471). Gemini: its default when listed, the model a
   /// free AI Studio key has quota for; the cheapest listed is often a lite or
   /// preview one with none (#400). Any other: the cheapest listed.
-  static String? _startModel(ProviderSpec spec, List<String> listed) => switch (spec.name) {
-    'ollama' => ollamaStartModel(listed),
-    'device' => null,
-    'gemini' when listed.contains(spec.defaultModel) => spec.defaultModel,
-    _ => cheapestModel(spec.name, listed),
+  static String? _startModel(ProviderSpec spec, List<String> listed) => switch (spec.id) {
+    ProviderId.ollama => ollamaStartModel(listed),
+    ProviderId.device => null,
+    ProviderId.gemini when listed.contains(spec.defaultModel) => spec.defaultModel,
+    ProviderId.chatgpt ||
+    ProviderId.anthropic ||
+    ProviderId.openai ||
+    ProviderId.gemini ||
+    ProviderId.deepseek => cheapestModel(spec.name, listed),
   };
 
   /// A blank [chosen] goes back to [defaultModel].

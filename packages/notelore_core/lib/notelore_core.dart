@@ -26,6 +26,7 @@ export 'src/providers/base.dart'
         LlmProvider,
         Message,
         ProviderGroup,
+        ProviderId,
         ProviderSpec,
         TokenUsage,
         Tool,

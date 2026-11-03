@@ -229,11 +229,16 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
   }
 
   // OpenAI's wording for its sign-in button; the model on the device downloads first.
-  String _connectLabel(Strings s) => switch (_spec.name) {
-    'chatgpt' => s.continueWithChatGpt,
-    'device' when !widget.session.deviceModel.ready =>
+  String _connectLabel(Strings s) => switch (_spec.id) {
+    ProviderId.chatgpt => s.continueWithChatGpt,
+    ProviderId.device when !widget.session.deviceModel.ready =>
       _problem == null ? s.downloadAndConnect : s.resumeDownload,
-    _ => s.connect,
+    ProviderId.anthropic ||
+    ProviderId.openai ||
+    ProviderId.gemini ||
+    ProviderId.deepseek ||
+    ProviderId.ollama ||
+    ProviderId.device => s.connect,
   };
 
   /// The one test turn: its answer on Done, or why not, back on Connect.
