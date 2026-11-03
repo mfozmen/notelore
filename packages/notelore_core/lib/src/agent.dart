@@ -8,6 +8,8 @@ import 'providers/base.dart';
 import 'store/format.dart';
 import 'tools.dart';
 
+export 'tools.dart' show describeTool, writingTools;
+
 const _prompt = '''
 You are Notelore, a note-taking assistant. The user talks; you keep tidy notes in Markdown files through the tools, and later answer questions from those notes.
 
@@ -144,30 +146,6 @@ class TurnStopped implements Exception {
   String toString() => message;
 }
 
-/// What a tool round is doing, for the user to see while they wait.
-String describeTool(String name) => switch (name) {
-  'search_notes' || 'list_notes' || 'related_notes' => 'Searching the notes',
-  'read_note' || 'get_decision' || 'decision_history' => 'Reading the notes',
-  _ when writingTools.contains(name) => 'Writing the notes',
-  _ => 'Working',
-};
-
-/// The tools that change the notes folder.
-const writingTools = {
-  'create_note',
-  'add_note_entry',
-  'add_todo',
-  'complete_todo',
-  'add_reminder',
-  'record_decision',
-  'archive',
-  'merge_notes',
-  'recategorize',
-  'remember_about_me',
-  'update_about_me',
-  'forget_about_me',
-};
-
 const _kept = {'text', 'tool_use'}; // the only block types the API accepts back as history
 
 /// The prompt, ending with the local day and minute of [now] (the device's clock
@@ -225,7 +203,7 @@ class Agent {
 
   List<Tool> get _tools => [
     for (final tool in slim ? slimTools : toolbox.tools)
-      if (aboutMe || !tool.name.endsWith('_about_me')) tool,
+      if (aboutMe || !personalTools.contains(tool.name)) tool,
   ];
 
   /// How long a whole turn, every model call and tool round, may take.

@@ -34,6 +34,33 @@ void main() {
     }
   }
 
+  test('one registry entry per tool; the lists and labels come from it (#658)', () {
+    final names = [for (final entry in toolRegistry) entry.tool.name];
+    expect(names.toSet(), hasLength(names.length));
+    expect([for (final tool in noteTools) tool.name], names);
+    expect(writingTools, {
+      for (final entry in toolRegistry)
+        if (entry.writes) entry.tool.name,
+    });
+    expect(slimLeftOut, {
+      for (final entry in toolRegistry)
+        if (!entry.slim) entry.tool.name,
+    });
+    for (final entry in toolRegistry) {
+      expect(describeTool(entry.tool.name), entry.activity.label, reason: entry.tool.name);
+    }
+  });
+
+  test('a name with no registry entry fails and touches nothing (#658)', () {
+    final made = box.call('create_note', {'kind': 'topic', 'title': 'Books'});
+    expect(made, contains('books'));
+    expect(
+      box.call('archive_everything', {'slug': 'books'}),
+      "Error: unknown tool 'archive_everything'.",
+    );
+    expect(box.call('read_note', {'slug': 'books'}), startsWith('---'));
+  });
+
   test('schemas are well formed', () {
     expect(box.tools.map((t) => t.name), [
       'list_notes',
