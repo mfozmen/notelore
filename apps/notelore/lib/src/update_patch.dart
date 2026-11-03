@@ -38,14 +38,7 @@ class UpdatePatchFailed implements Exception {
 Uint8List makePatch(List<int> oldBytes, List<int> newBytes) {
   final old = oldBytes is Uint8List ? oldBytes : Uint8List.fromList(oldBytes);
   final next = newBytes is Uint8List ? newBytes : Uint8List.fromList(newBytes);
-  final index = <int, List<int>>{};
-  for (var offset = 0; offset + _block <= old.length; offset += _block) {
-    final hash = _blockHash(old, offset);
-    final offsets = index.putIfAbsent(hash, () => []);
-    // A repeated block needs only a few candidates; more is work for no gain.
-    if (offsets.length < 4) offsets.add(offset);
-  }
-
+  final index = _index(old);
   final ops = BytesBuilder(copy: false)..add(ascii.encode(_magic));
   var literal = 0;
   var position = 0;
@@ -60,12 +53,7 @@ Uint8List makePatch(List<int> oldBytes, List<int> newBytes) {
       position++;
       continue;
     }
-    var length = _block;
-    while (position + length < next.length &&
-        match + length < old.length &&
-        next[position + length] == old[match + length]) {
-      length++;
-    }
+    final length = _extend(old, next, position, match);
     _addInsert(ops, next, literal, position);
     _addCopy(ops, match, length);
     position += length;
@@ -74,6 +62,28 @@ Uint8List makePatch(List<int> oldBytes, List<int> newBytes) {
   }
   _addInsert(ops, next, literal, next.length);
   return Uint8List.fromList(ZLibCodec(level: 9).encode(ops.takeBytes()));
+}
+
+/// Old block starts by their hash, for the scan to look up.
+Map<int, List<int>> _index(Uint8List old) {
+  final index = <int, List<int>>{};
+  for (var offset = 0; offset + _block <= old.length; offset += _block) {
+    final offsets = index.putIfAbsent(_blockHash(old, offset), () => []);
+    // A repeated block needs only a few candidates; more is work for no gain.
+    if (offsets.length < 4) offsets.add(offset);
+  }
+  return index;
+}
+
+/// How far a matched block continues; at least [_block], the match itself.
+int _extend(Uint8List old, Uint8List next, int position, int match) {
+  var length = _block;
+  while (position + length < next.length &&
+      match + length < old.length &&
+      next[position + length] == old[match + length]) {
+    length++;
+  }
+  return length;
 }
 
 /// Applies [patch] to [oldBytes], after checking the old and new SHA-256 and
@@ -104,34 +114,43 @@ Uint8List applyPatch({
   if (sha256.convert(old).toString() != oldSha256) {
     throw const UpdatePatchFailed('the file is not the one the patch expects');
   }
-  final out = BytesBuilder(copy: false);
-  var at = 4;
-  while (at < raw.length) {
-    final op = raw[at++];
-    if (op == _insert) {
-      final length = _varint(raw, at);
-      at = length.next;
-      if (at + length.value > raw.length) throw const UpdatePatchFailed('the patch is truncated');
-      out.add(raw.sublist(at, at + length.value));
-      at += length.value;
-    } else if (op == _copy) {
-      final offset = _varint(raw, at);
-      final length = _varint(raw, offset.next);
-      at = length.next;
-      if (offset.value + length.value > old.length) {
-        throw const UpdatePatchFailed('the patch copies past the old file');
-      }
-      out.add(old.sublist(offset.value, offset.value + length.value));
-    } else {
-      throw const UpdatePatchFailed('the patch has an unknown step');
-    }
-    if (out.length > newSize) throw const UpdatePatchFailed('the patch is larger than the file');
-  }
-  final result = out.takeBytes();
+  final result = _steps(raw, old, newSize);
   if (result.length != newSize || sha256.convert(result).toString() != newSha256) {
     throw const UpdatePatchFailed('the patched file is not the expected one');
   }
   return result;
+}
+
+Uint8List _steps(Uint8List raw, Uint8List old, int newSize) {
+  final out = BytesBuilder(copy: false);
+  var at = 4;
+  while (at < raw.length) {
+    at = switch (raw[at++]) {
+      _insert => _insertStep(raw, at, out),
+      _copy => _copyStep(raw, old, at, out),
+      _ => throw const UpdatePatchFailed('the patch has an unknown step'),
+    };
+    if (out.length > newSize) throw const UpdatePatchFailed('the patch is larger than the file');
+  }
+  return out.takeBytes();
+}
+
+int _insertStep(Uint8List raw, int at, BytesBuilder out) {
+  final length = _varint(raw, at);
+  final start = length.next;
+  if (start + length.value > raw.length) throw const UpdatePatchFailed('the patch is truncated');
+  out.add(raw.sublist(start, start + length.value));
+  return start + length.value;
+}
+
+int _copyStep(Uint8List raw, Uint8List old, int at, BytesBuilder out) {
+  final offset = _varint(raw, at);
+  final length = _varint(raw, offset.next);
+  if (offset.value + length.value > old.length) {
+    throw const UpdatePatchFailed('the patch copies past the old file');
+  }
+  out.add(old.sublist(offset.value, offset.value + length.value));
+  return length.next;
 }
 
 Uint8List _inflate(List<int> patch, int limit) {

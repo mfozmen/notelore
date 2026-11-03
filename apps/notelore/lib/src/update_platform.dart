@@ -162,44 +162,7 @@ final class _Windows extends _Package {
       onProgress?.call(const UpdateProgress(UpdatePhase.verifying));
       if (sha256.convert(data).toString() != manifest.archiveSha256) return null;
       staging = temp.createTempSync('notelore-delta-');
-      final entries = <String, Uint8List>{};
-      for (final entry in ZipDecoder().decodeBytes(data)) {
-        if (!entry.isFile) continue;
-        entries[entry.name] = Uint8List.fromList(entry.content as List<int>);
-      }
-      // A full file and a patch for the same path is ambiguous: refuse it.
-      for (final path in manifest.patches.keys) {
-        if (entries.containsKey(path)) return null;
-      }
-      var written = 0;
-      for (final MapEntry(key: path, value: expected) in manifest.files.entries) {
-        final patch = manifest.patches[path];
-        if (patch != null) {
-          final bytes = entries[patch.patch];
-          if (bytes == null || sha256.convert(bytes).toString() != patch.patchSha256) return null;
-          final old = File(p.joinAll([installed, ...path.split('/')]));
-          if (!old.existsSync()) return null;
-          final patched = applyPatch(
-            oldBytes: old.readAsBytesSync(),
-            patch: bytes,
-            oldSha256: patch.oldSha256,
-            newSha256: expected,
-            newSize: patch.size,
-          );
-          final file = File(p.joinAll([staging.path, ...path.split('/')]))
-            ..parent.createSync(recursive: true)
-            ..writeAsBytesSync(patched);
-          if (sha256.convert(file.readAsBytesSync()).toString() != expected) return null;
-        } else {
-          final bytes = entries[path];
-          if (bytes == null || sha256.convert(bytes).toString() != expected) return null;
-          File(p.joinAll([staging.path, ...path.split('/')]))
-            ..parent.createSync(recursive: true)
-            ..writeAsBytesSync(bytes);
-        }
-        written++;
-      }
-      if (entries.length != written) return null;
+      if (!_stageFiles(staging.path, _entries(data), manifest)) return null;
       ok = true;
       return staging;
     } on Object {
@@ -207,6 +170,58 @@ final class _Windows extends _Package {
     } finally {
       if (!ok) staging?.deleteSync(recursive: true);
     }
+  }
+
+  Map<String, Uint8List> _entries(List<int> data) {
+    final entries = <String, Uint8List>{};
+    for (final entry in ZipDecoder().decodeBytes(data)) {
+      if (!entry.isFile) continue;
+      entries[entry.name] = Uint8List.fromList(entry.content as List<int>);
+    }
+    return entries;
+  }
+
+  /// Writes every new file into [root], rebuilding a patched one from the
+  /// installed copy; false on any mismatch or extra entry.
+  bool _stageFiles(String root, Map<String, Uint8List> entries, DeltaManifest manifest) {
+    if (entries.length != manifest.files.length) return false;
+    for (final MapEntry(key: path, value: expected) in manifest.files.entries) {
+      final patch = manifest.patches[path];
+      final bytes = entries[patch?.patch ?? path];
+      if (patch == null) {
+        if (bytes == null || sha256.convert(bytes).toString() != expected) return false;
+        _write(root, path, bytes);
+      } else if (!_stagePatch(root, path, bytes, expected, patch)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _stagePatch(String root, String path, Uint8List? bytes, String expected, UpdatePatch patch) {
+    if (bytes == null || sha256.convert(bytes).toString() != patch.patchSha256) return false;
+    final old = File(p.joinAll([installed, ...path.split('/')]));
+    if (!old.existsSync()) return false;
+    try {
+      final patched = applyPatch(
+        oldBytes: old.readAsBytesSync(),
+        patch: bytes,
+        oldSha256: patch.oldSha256,
+        newSha256: expected,
+        newSize: patch.size,
+      );
+      if (sha256.convert(patched).toString() != expected) return false;
+      _write(root, path, patched);
+      return true;
+    } on Object {
+      return false;
+    }
+  }
+
+  void _write(String root, String path, List<int> bytes) {
+    File(p.joinAll([root, ...path.split('/')]))
+      ..parent.createSync(recursive: true)
+      ..writeAsBytesSync(bytes);
   }
 
   /// The setup, silent, for this user; it starts the app when done. A staged

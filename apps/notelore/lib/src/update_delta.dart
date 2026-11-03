@@ -79,7 +79,7 @@ Map<String, String> updateJsonFiles(Object? raw, String what) {
 Map<String, UpdatePatch> _patches(Object? raw, Map<String, String> files) {
   if (raw == null) return const {};
   if (raw is! Map<String, Object?> || raw.isEmpty) {
-    throw FormatException('$_what patches are not an object');
+    throw const FormatException('delta manifest patches are not an object');
   }
   final patches = <String, UpdatePatch>{};
   final names = <String>{};
