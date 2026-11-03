@@ -118,6 +118,89 @@ void main() {
     }
   });
 
+  test('parses and writes a binary patch entry (#585)', () {
+    final value = {
+      ...ok(),
+      'patches': {
+        'data/app.so': {
+          'old': hash,
+          'patch': 'data/app.so.zpatch',
+          'patch_sha256': hash,
+          'size': 1234,
+        },
+      },
+    };
+    final manifest = DeltaManifest.parse(
+      jsonEncode(value),
+      version: '1.1.0',
+      current: '1.0.0',
+      system: 'windows',
+    );
+    expect(manifest.patches['data/app.so']!.patch, 'data/app.so.zpatch');
+    expect(manifest.patches['data/app.so']!.size, 1234);
+    expect(manifest.toJson(), value);
+  });
+
+  test('rejects a patch that is not for a listed file or is unsafe (#585)', () {
+    Map<String, Object?> patched(Map<String, Object?> patch) => {
+      ...ok(),
+      'patches': {'data/app.so': patch},
+    };
+    final good = {'old': hash, 'patch': 'data/app.so.zpatch', 'patch_sha256': hash, 'size': 10};
+    for (final (Map<String, Object?> value, Matcher message) in [
+      (
+        {
+          ...ok(),
+          'patches': {'other.so': good},
+        },
+        contains('no file lists'),
+      ),
+      ({...ok(), 'patches': <String, Object?>{}}, contains('not an object')),
+      ({...ok(), 'patches': <Object?>[]}, contains('not an object')),
+      (
+        {
+          ...ok(),
+          'patches': {'data/app.so': 'x'},
+        },
+        contains('not an object'),
+      ),
+      (patched({...good, 'patch': '../x.zpatch'}), contains('not safe')),
+      (patched({...good, 'patch': 'notelore-updater.exe'}), contains('not safe')),
+      (patched({...good, 'old': 'nope'}), contains('SHA-256')),
+      (patched({...good, 'patch_sha256': 'nope'}), contains('SHA-256')),
+      (patched({...good, 'size': 0}), contains('no size')),
+      (patched({...good, 'size': 'big'}), contains('no size')),
+      (
+        {
+          ...ok(),
+          'patches': {'data/app.so': good, 'notelore.exe': good},
+        },
+        contains('repeated'),
+      ),
+      (
+        {
+          ...ok(),
+          'patches': {
+            'data/app.so': good,
+            'notelore.exe': {...good, 'patch': 'DATA/APP.SO.ZPATCH'},
+          },
+        },
+        contains('repeated'),
+      ),
+    ]) {
+      expect(
+        () => DeltaManifest.parse(
+          jsonEncode(value),
+          version: '1.1.0',
+          current: '1.0.0',
+          system: 'windows',
+        ),
+        throwsA(isA<FormatException>().having((e) => e.message, 'message', message)),
+        reason: '$value',
+      );
+    }
+  });
+
   test('names the delta asset from the version it upgrades', () {
     expect(
       deltaName('1.1.0', 'windows-x64', '1.0.0'),

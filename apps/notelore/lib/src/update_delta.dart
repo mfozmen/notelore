@@ -76,6 +76,29 @@ Map<String, String> updateJsonFiles(Object? raw, String what) {
   return files;
 }
 
+Map<String, UpdatePatch> _patches(Object? raw, Map<String, String> files) {
+  if (raw == null) return const {};
+  if (raw is! Map<String, Object?> || raw.isEmpty) {
+    throw const FormatException('delta manifest patches are not an object');
+  }
+  final patches = <String, UpdatePatch>{};
+  final names = <String>{};
+  final lowerFiles = {for (final path in files.keys) path.toLowerCase()};
+  for (final MapEntry(key: path, value: value) in raw.entries) {
+    if (!files.containsKey(path)) {
+      throw FormatException("$_what patch is for '$path', which no file lists");
+    }
+    final patch = UpdatePatch.fromJson(value, _what);
+    // Windows finds files regardless of case, so A.zpatch and a.zpatch would
+    // land on one entry.
+    if (lowerFiles.contains(patch.patch.toLowerCase()) || !names.add(patch.patch.toLowerCase())) {
+      throw FormatException("$_what patch name '${patch.patch}' is repeated");
+    }
+    patches[path] = patch;
+  }
+  return patches;
+}
+
 /// Whether [path] is a safe relative path inside an app folder: no drive, no
 /// backslashes, no `..`, no empty segment, no Win32 alias or device name.
 bool isSafeUpdatePath(String path) {
@@ -96,8 +119,52 @@ bool _safeSegment(String part) {
   return !_reserved.contains(part.split('.').first.toLowerCase());
 }
 
+/// A binary patch for one changed file (#585): built from the exact old file
+/// and checked against both hashes by the updater.
+final class UpdatePatch {
+  const UpdatePatch({
+    required this.oldSha256,
+    required this.patch,
+    required this.patchSha256,
+    required this.size,
+  });
+
+  final String oldSha256;
+  final String patch;
+  final String patchSha256;
+
+  /// The new file's size; a patch that produces anything else is refused.
+  final int size;
+
+  factory UpdatePatch.fromJson(Object? raw, String what) {
+    if (raw is! Map<String, Object?>) {
+      throw FormatException('$what patch is not an object');
+    }
+    final patch = updateJsonString(raw, 'patch', what);
+    final old = updateJsonString(raw, 'old', what);
+    final sha = updateJsonString(raw, 'patch_sha256', what);
+    final size = raw['size'];
+    if (!isSafeUpdatePath(patch) || _neverUpdated.contains(patch.toLowerCase())) {
+      throw FormatException("$what patch name '$patch' is not safe");
+    }
+    if (!_sha256.hasMatch(old) || !_sha256.hasMatch(sha)) {
+      throw FormatException("$what patch hash for '$patch' is not SHA-256");
+    }
+    if (size is! int || size <= 0) throw FormatException("$what patch for '$patch' has no size");
+    return UpdatePatch(oldSha256: old, patch: patch, patchSha256: sha, size: size);
+  }
+
+  Map<String, Object?> toJson() => {
+    'old': oldSha256,
+    'patch': patch,
+    'patch_sha256': patchSha256,
+    'size': size,
+  };
+}
+
 /// A release's changed-files manifest. The release key signs the JSON bytes;
 /// [files] are the new files and their SHA-256, and [archive] carries them.
+/// [patches] names the files in [archive] that are binary patches instead.
 final class DeltaManifest {
   const DeltaManifest({
     required this.version,
@@ -106,6 +173,7 @@ final class DeltaManifest {
     required this.archive,
     required this.archiveSha256,
     required this.files,
+    this.patches = const {},
   });
 
   final String version;
@@ -114,6 +182,7 @@ final class DeltaManifest {
   final String archive;
   final String archiveSha256;
   final Map<String, String> files;
+  final Map<String, UpdatePatch> patches;
 
   /// Parses [text] for the exact [version], [current] and [system] upgrade.
   /// Throws [FormatException] for anything that does not match.
@@ -143,13 +212,15 @@ final class DeltaManifest {
     if (!_sha256.hasMatch(archiveSha)) {
       throw const FormatException('delta archive hash is not SHA-256');
     }
+    final files = updateJsonFiles(map['files'], _what);
     return DeltaManifest(
       version: version,
       from: from,
       system: manifestSystem,
       archive: archive,
       archiveSha256: archiveSha,
-      files: updateJsonFiles(map['files'], _what),
+      files: files,
+      patches: _patches(map['patches'], files),
     );
   }
 
@@ -160,6 +231,7 @@ final class DeltaManifest {
     'archive': archive,
     'archive_sha256': archiveSha256,
     'files': files,
+    if (patches.isNotEmpty) 'patches': {for (final e in patches.entries) e.key: e.value.toJson()},
   };
 }
 

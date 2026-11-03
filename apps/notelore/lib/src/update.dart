@@ -34,6 +34,7 @@ import 'package:path/path.dart' as p;
 
 import 'update_apply.dart';
 import 'update_delta.dart';
+import 'update_patch.dart';
 
 part 'update_platform.dart';
 
