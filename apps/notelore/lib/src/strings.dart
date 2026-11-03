@@ -1419,7 +1419,8 @@ class EnglishStrings extends Strings {
 
   @override
   String get aboutMeToCloudWhy =>
-      'Claude, ChatGPT and Gemini see these facts with every message. Off: add facts here only.';
+      'Claude, ChatGPT and Gemini see these facts with every message. '
+      'When off, facts are added only here, not by chatting.';
 
   @override
   String get aboutMeEmpty =>
@@ -2493,7 +2494,8 @@ class TurkishStrings extends Strings {
 
   @override
   String get aboutMeToCloudWhy =>
-      'Claude, ChatGPT ve Gemini bu bilgileri her mesajda görür. Kapalıyken bilgi yalnızca buradan eklenir.';
+      'Claude, ChatGPT ve Gemini bu bilgileri her mesajda görür. '
+      'Kapalıyken bilgi sohbetle değil, yalnızca buradan eklenir.';
 
   @override
   String get aboutMeEmpty =>

@@ -51,7 +51,7 @@ void main() {
     await tester.tap(find.text('Wife: Ayşe'));
     await tester.pumpAndSettle();
     // A long fact wraps while it is edited, so all of it can be read.
-    expect(tester.widget<TextField>(find.byKey(const Key('fact-field'))).maxLines, 4);
+    expect(tester.widget<TextField>(find.byKey(const Key('fact-field'))).maxLines, 6);
     expect(find.widgetWithText(TextField, 'Wife: Ayşe'), findsOneWidget);
     await type(tester, 'Wife: Ayşe Yılmaz');
     expect(session.aboutMeFacts(), ['Wife: Ayşe Yılmaz']);

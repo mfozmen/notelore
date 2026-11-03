@@ -684,7 +684,7 @@ class _FactDialogState extends State<_FactDialog> {
           autofocus: true,
           // Wraps to show a long fact, yet Enter saves: one fact stays one line.
           minLines: 1,
-          maxLines: 4,
+          maxLines: 6,
           keyboardType: TextInputType.text,
           textCapitalization: TextCapitalization.sentences,
           textInputAction: TextInputAction.done,
