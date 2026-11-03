@@ -36,20 +36,57 @@ class KeychainVault extends FlutterSecureStorage {
 
   Future<Map<String, String>> _load() async {
     final stored = await inner.read(key: _item);
-    if (stored != null) return (jsonDecode(stored) as Map).cast<String, String>();
-    // First run of this version: the per-secret items of older ones move in.
-    final old = {
-      for (final MapEntry(:key, :value) in (await inner.readAll()).entries)
-        if (key.startsWith('$keySpace.')) key: value,
-    };
-    if (old.isNotEmpty) {
-      await inner.write(key: _item, value: jsonEncode(old));
-      // An item whose delete fails stays behind unused: the vault is read first.
-      for (final key in old.keys) {
-        await inner.delete(key: key);
-      }
+    return stored == null ? {} : (jsonDecode(stored) as Map).cast<String, String>();
+  }
+
+  /// Each key's look for its item of its own from before the vault, this run,
+  /// shared by reads at the same time. A look that failed is forgotten, so the
+  /// next read tries again.
+  final _looks = <String, Future<void>>{};
+
+  /// After [deleteAll] no older item is moved in this run. Items never asked for
+  /// stay in the Keychain and move in on a later run.
+  var _cleared = false;
+
+  /// Keys written or deleted this run: what they hold now is the truth.
+  final _changed = <String>{};
+
+  /// [key]'s value. An older version's item of its own moves into the vault the
+  /// first time it is asked for, never by listing: macOS's file-based keychain
+  /// refuses to list items with their data (errSecParam, #666).
+  Future<String?> _value(String key) async {
+    if (!(await _map()).containsKey(key) && !_cleared) {
+      await (_looks[key] ??= _moveOld(key).catchError((Object e, StackTrace s) {
+        _looks.remove(key);
+        Error.throwWithStackTrace(e, s);
+      }));
     }
-    return old;
+    return (await _map())[key];
+  }
+
+  Future<void> _moveOld(String key) async {
+    final old = await inner.read(key: key);
+    if (old == null) return;
+    // A write or delete made while this read waited is newer: it stands.
+    if (!_changed.contains(key)) await _change((map) => map.putIfAbsent(key, () => old));
+    await _dropOld(key);
+  }
+
+  /// Sets or removes [key]; its older item goes too, so it cannot come back.
+  Future<void> _set(String key, String? value) async {
+    _changed.add(key);
+    final fresh = !_cleared && !_looks.containsKey(key);
+    if (fresh) _looks[key] = Future.value();
+    await _change((map) => value == null ? map.remove(key) : map[key] = value);
+    if (fresh) await _dropOld(key);
+  }
+
+  Future<void> _dropOld(String key) async {
+    try {
+      await inner.delete(key: key);
+    } on Object {
+      // Left behind unused: the vault answers first.
+    }
   }
 
   Future<void> _change(void Function(Map<String, String> map) change) {
@@ -77,7 +114,7 @@ class KeychainVault extends FlutterSecureStorage {
     WebOptions? webOptions,
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
-  }) async => (await _map())[key];
+  }) => _value(key);
 
   @override
   Future<bool> containsKey({
@@ -88,7 +125,7 @@ class KeychainVault extends FlutterSecureStorage {
     WebOptions? webOptions,
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
-  }) async => (await _map()).containsKey(key);
+  }) async => await _value(key) != null;
 
   @override
   Future<Map<String, String>> readAll({
@@ -110,7 +147,7 @@ class KeychainVault extends FlutterSecureStorage {
     WebOptions? webOptions,
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
-  }) => _change((map) => value == null ? map.remove(key) : map[key] = value);
+  }) => _set(key, value);
 
   @override
   Future<void> delete({
@@ -121,7 +158,7 @@ class KeychainVault extends FlutterSecureStorage {
     WebOptions? webOptions,
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
-  }) => _change((map) => map.remove(key));
+  }) => _set(key, null);
 
   @override
   Future<void> deleteAll({
@@ -131,5 +168,8 @@ class KeychainVault extends FlutterSecureStorage {
     WebOptions? webOptions,
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
-  }) => _change((map) => map.clear());
+  }) {
+    _cleared = true;
+    return _change((map) => map.clear());
+  }
 }

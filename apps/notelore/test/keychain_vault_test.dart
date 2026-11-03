@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/keychain_vault.dart';
@@ -30,11 +32,15 @@ class _Counted extends FlutterSecureStorage {
     WebOptions? webOptions,
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
-  }) {
+  }) async {
     reads++;
     _maybeFail();
+    if (!key.endsWith('.vault')) await hold?.future; // a password prompt still open
     return super.read(key: key);
   }
+
+  /// Holds reads of a secret's own item until completed.
+  Completer<void>? hold;
 
   @override
   Future<Map<String, String>> readAll({
@@ -44,11 +50,9 @@ class _Counted extends FlutterSecureStorage {
     WebOptions? webOptions,
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
-  }) {
-    reads++;
-    _maybeFail();
-    return super.readAll();
-  }
+  }) =>
+      // What macOS's file-based keychain answers to "every item, with its data" (#666).
+      throw PlatformException(code: '-50', message: 'One or more parameters were not valid.');
 
   @override
   Future<void> write({
@@ -85,7 +89,50 @@ void main() {
     expect(await next.read(key: 'notelore.gone'), isNull);
     expect(await next.containsKey(key: 'notelore.lock'), isTrue);
     expect(await next.readAll(), {'notelore.openai.api_key': 'sk-1', 'notelore.lock': 'hash'});
-    expect(again.reads, 1, reason: 'one item, one password prompt');
+    // The vault once, and one look for an older item of the missing key, which
+    // has no item and so no prompt.
+    expect(again.reads, 2);
+  });
+
+  test('a write while an older item is being moved keeps the newer value', () async {
+    FlutterSecureStorage.setMockInitialValues({'notelore.a': 'old'});
+    final inner = _Counted()..hold = Completer();
+    final vault = KeychainVault(inner, keySpace: 'notelore');
+    final reading = vault.read(key: 'notelore.a');
+    await Future<void>.delayed(Duration.zero);
+    await vault.write(key: 'notelore.a', value: 'new');
+    inner.hold!.complete();
+    await reading;
+    expect(await vault.read(key: 'notelore.a'), 'new');
+    expect(await KeychainVault(_Counted(), keySpace: 'notelore').read(key: 'notelore.a'), 'new');
+  });
+
+  test('a delete while an older item is being moved stays deleted', () async {
+    FlutterSecureStorage.setMockInitialValues({'notelore.vault': '{}', 'notelore.a': 'old'});
+    final inner = _Counted();
+    final vault = KeychainVault(inner, keySpace: 'notelore');
+    await vault.readAll();
+    inner.hold = Completer();
+    final reading = vault.read(key: 'notelore.a');
+    await Future<void>.delayed(Duration.zero);
+    await vault.delete(key: 'notelore.a');
+    inner.hold!.complete();
+    await reading;
+    expect(await vault.read(key: 'notelore.a'), isNull);
+    expect(await const FlutterSecureStorage().read(key: 'notelore.a'), isNull);
+  });
+
+  test('two reads of a key being moved get its value; a refused read is tried again', () async {
+    FlutterSecureStorage.setMockInitialValues({'notelore.vault': '{}', 'notelore.a': 'old'});
+    final inner = _Counted();
+    final vault = KeychainVault(inner, keySpace: 'notelore');
+    await vault.readAll();
+    inner.fail = true;
+    await expectLater(vault.read(key: 'notelore.a'), throwsException);
+    expect(await Future.wait([vault.read(key: 'notelore.a'), vault.read(key: 'notelore.a')]), [
+      'old',
+      'old',
+    ]);
   });
 
   test('a value written as null, or deleted, leaves the item', () async {
@@ -101,23 +148,42 @@ void main() {
     expect(await const FlutterSecureStorage().readAll(), isEmpty);
   });
 
-  test('the items of an older version move into the one item, once', () async {
-    FlutterSecureStorage.setMockInitialValues({
-      'notelore.openai.api_key': 'sk-old',
-      'notelore.lock': 'hash',
-      'notelore-dev.openai.api_key': 'sk-dev',
-    });
-    final inner = _Counted();
-    final vault = KeychainVault(inner, keySpace: 'notelore');
-    expect(await vault.read(key: 'notelore.openai.api_key'), 'sk-old');
-    expect(await const FlutterSecureStorage().readAll(), {
-      'notelore.vault': jsonEncode({'notelore.openai.api_key': 'sk-old', 'notelore.lock': 'hash'}),
-      'notelore-dev.openai.api_key': 'sk-dev', // another key space is not ours to move
-    });
+  test(
+    'an older item moves into the vault when it is first read, never by listing (#666)',
+    () async {
+      FlutterSecureStorage.setMockInitialValues({
+        'notelore.openai.api_key': 'sk-old',
+        'notelore.lock': 'hash',
+        'notelore-dev.openai.api_key': 'sk-dev',
+      });
+      final vault = KeychainVault(_Counted(), keySpace: 'notelore');
+      expect(await vault.read(key: 'notelore.openai.api_key'), 'sk-old');
+      expect(await vault.containsKey(key: 'notelore.lock'), isTrue);
+      expect(await const FlutterSecureStorage().readAll(), {
+        'notelore.vault': jsonEncode({
+          'notelore.openai.api_key': 'sk-old',
+          'notelore.lock': 'hash',
+        }),
+        'notelore-dev.openai.api_key': 'sk-dev', // never asked for, so never moved
+      });
 
-    final later = _Counted();
-    expect(await KeychainVault(later, keySpace: 'notelore').read(key: 'notelore.lock'), 'hash');
-    expect(later.reads, 1);
+      final later = _Counted();
+      expect(await KeychainVault(later, keySpace: 'notelore').read(key: 'notelore.lock'), 'hash');
+      expect(later.reads, 1);
+    },
+  );
+
+  test('a key deleted before it moved does not come back from its older item', () async {
+    FlutterSecureStorage.setMockInitialValues({'notelore.openai.api_key': 'sk-old'});
+    final vault = KeychainVault(_Counted(), keySpace: 'notelore');
+    await vault.delete(key: 'notelore.openai.api_key');
+    expect(await vault.read(key: 'notelore.openai.api_key'), isNull);
+    expect(await const FlutterSecureStorage().readAll(), isEmpty);
+    FlutterSecureStorage.setMockInitialValues({'notelore.a': 'old'});
+    final written = KeychainVault(_Counted(), keySpace: 'notelore');
+    await written.write(key: 'notelore.a', value: 'new');
+    expect(await written.read(key: 'notelore.a'), 'new');
+    expect(await const FlutterSecureStorage().read(key: 'notelore.a'), isNull);
   });
 
   test('writes in a row each keep the others', () async {
