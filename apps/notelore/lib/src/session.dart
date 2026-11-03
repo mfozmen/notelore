@@ -33,6 +33,7 @@ import 'device_native.dart';
 import 'lock_state.dart';
 import 'pdf_native.dart';
 import 'prefs.dart';
+import 'reminder_center.dart';
 import 'reminder_notifier.dart';
 import 'strings.dart';
 import 'theme.dart';
@@ -41,6 +42,8 @@ import 'voice.dart';
 import 'whisper_model.dart';
 import 'whisper_native.dart';
 import 'whisper_speech.dart' show MicrophoneChoice, Transcriber;
+
+export 'reminder_center.dart' show CalendarProblem, ReminderCenter;
 
 /// Checks a key and returns the chat models it can use.
 typedef Validate = Future<List<String>> Function(ProviderSpec spec, String key);
@@ -76,10 +79,6 @@ typedef ImportReport = ({String file, Imported? imported});
 /// The shared app settings in the notes folder on Drive (not a note: the sync
 /// engine leaves it alone).
 const sharedSettings = '.notelore/settings.json';
-
-/// What went wrong with Google Calendar (#432): its sign-in, a write the next
-/// refresh tries again, or access the person removed on Google's side.
-enum CalendarProblem { signIn, update, revoked }
 
 class Session extends ChangeNotifier {
   Session(
@@ -138,66 +137,45 @@ class Session extends ChangeNotifier {
   /// the platform has none (and in tests that do not ask for them).
   final ReminderNotifier? reminders;
 
-  /// Whether Notelore may notify on this device; null where it cannot at all.
-  bool? remindersAllowed;
-
   /// Google Calendar's own grant (#432): another scope than Drive's, asked
   /// for when the switch is turned on; null in a build without Google sign-in.
   final OAuthSignIn? calendarAuth;
   final ReminderCalendar Function(OAuthSignIn auth) calendarFor;
 
-  /// Google Calendar reminds, on every device, instead of this device's
-  /// notifications. Shared through Drive, so no device reminds twice.
-  bool calendar = false;
+  /// The reminders and the calendar (#659); what follows forwards to it.
+  late final ReminderCenter reminderCenter = ReminderCenter(
+    root: paths.notes.path,
+    reminders: reminders,
+    calendarAuth: calendarAuth,
+    calendarFor: calendarFor,
+    clock: clock,
+    offThread: offThread,
+    isPrivate: () => lock.enabled,
+    hiddenText: () => strings.reminderHidden,
+    save: _saveUi,
+    share: _touch,
+  )..addListener(notifyListeners);
 
-  /// Notelore's own calendar in the user's Google Calendar, shared too.
-  String? calendarId;
-
-  /// Calendars this device made before it learned the shared one; removed at
-  /// the next calendar sync (#674).
-  final _dropCalendars = <String>[];
-
-  /// What went wrong with the calendar, for Settings to say in plain words.
-  CalendarProblem? calendarProblem;
-
-  /// While the calendar's sign-in or first write runs: the switch waits.
-  var calendarBusy = false;
-
-  /// Whether this device holds the calendar grant; null until looked at.
-  bool? calendarHere;
-
-  /// A turn here just made a reminder while the calendar is on but this
-  /// device has no grant: the app offers the sign-in where it is seen.
-  var calendarNudge = false;
-
-  /// The offer was taken or put off; it is not made again on this device.
-  var _calendarNudged = false;
-
-  /// The reminders of the last pass, to tell one a turn just made; null
-  /// before the first.
-  Set<int>? _knownDue;
-
-  void calendarNudgeLater() {
-    calendarNudge = false;
-    _calendarNudged = true;
-    _saveUi();
-  }
-
+  bool? get remindersAllowed => reminderCenter.remindersAllowed;
+  bool get calendar => reminderCenter.calendar;
+  set calendar(bool on) => reminderCenter.calendar = on;
+  String? get calendarId => reminderCenter.calendarId;
+  set calendarId(String? id) => reminderCenter.calendarId = id;
+  CalendarProblem? get calendarProblem => reminderCenter.calendarProblem;
+  bool get calendarBusy => reminderCenter.calendarBusy;
+  bool? get calendarHere => reminderCenter.calendarHere;
+  bool get calendarNudge => reminderCenter.calendarNudge;
+  void calendarNudgeLater() => reminderCenter.calendarNudgeLater();
   bool get calendarAvailable => calendarAuth != null;
-
-  /// Asked once a run at most: a refusal is not asked again until Allow.
-  var _askedReminders = false;
-
-  /// Whether the scheduled reminders hide their words (the app lock was on);
-  /// null until scheduled this run, so the first time schedules them all anew.
-  bool? _scheduledPrivately;
+  Future<void> refreshReminders({bool ask = true}) => reminderCenter.refreshReminders(ask: ask);
+  Future<void> signInCalendar() => reminderCenter.signInCalendar();
+  Future<void> setCalendar(bool on) => reminderCenter.setCalendar(on);
+  Future<bool> allowReminders() => reminderCenter.allowReminders();
 
   /// The lock turned on or off: the notifications follow (#431).
   void _lockChanged() {
     notifyListeners();
-    if (_scheduledPrivately case final private? when private != lock.enabled) {
-      unawaited(refreshReminders(ask: false));
-    }
+    reminderCenter.lockChanged();
   }
 
   /// Where exports go and imports come from (#215): the share sheet on a phone,
@@ -596,11 +574,12 @@ class Session extends ChangeNotifier {
         _ui,
         jsonEncode({
           ..._shared.toJson(),
-          if (_dropCalendars.isNotEmpty) 'dropCalendars': _dropCalendars,
+          if (reminderCenter.dropCalendars.isNotEmpty)
+            'dropCalendars': reminderCenter.dropCalendars,
           'microphone': ?microphone,
           if (setUpBefore) 'setUp': true,
           if (advanced) 'advanced': true,
-          if (_calendarNudged) 'calendarNudged': true,
+          if (reminderCenter.calendarNudged) 'calendarNudged': true,
         }),
       );
     } on FileSystemException {
@@ -620,8 +599,8 @@ class Session extends ChangeNotifier {
       aboutMeToCloud = shared.aboutMeToCloud ?? true;
       calendar = shared.calendar ?? false;
       calendarId = shared.calendarId;
-      _calendarNudged = saved['calendarNudged'] == true;
-      _dropCalendars
+      reminderCenter.calendarNudged = saved['calendarNudged'] == true;
+      reminderCenter.dropCalendars
         ..clear()
         ..addAll((saved['dropCalendars'] as List? ?? const []).whereType<String>());
       setUpBefore = saved['setUp'] == true;
@@ -1616,17 +1595,6 @@ class Session extends ChangeNotifier {
     }
   }
 
-  void _adoptCalendar(bool on, Object? id) {
-    calendar = on;
-    if (id is String && id != calendarId) {
-      // Made here before the shared one arrived: removed at the next calendar
-      // sync, so the account keeps one Notelore calendar (#674).
-      if (calendarId case final mine?) _dropCalendars.add(mine);
-      calendarId = id;
-    }
-    _saveUi();
-  }
-
   /// This device's values of the settings every device shares (#662).
   SharedPrefs get _shared => SharedPrefs(
     language: language,
@@ -1646,7 +1614,7 @@ class Session extends ChangeNotifier {
     _applyLook(shared.palette ?? palette, shared.appearance ?? appearance);
     if (shared.webSearch case final on? when on != webSearch) await _applyWebSearch(on);
     await _adoptAboutMeToCloud(theirs['aboutMeToCloud']);
-    if (shared.calendar case final on?) _adoptCalendar(on, shared.calendarId);
+    if (shared.calendar case final on?) reminderCenter.adopt(on, shared.calendarId);
     await _adoptProvider(theirs['provider'], theirs['model']);
   }
 
@@ -1730,218 +1698,6 @@ class Session extends ChangeNotifier {
     ].join(' ');
     _toldMoved = _remote!.moved; // said once
     return summary;
-  }
-
-  /// Schedules the notes' coming reminders on this device (#431): at start,
-  /// after a turn that wrote notes and after a sync, so the device's schedule
-  /// always equals the notes. After a turn (the user just asked for one) it
-  /// may [ask] for notifications, once a run. A device that cannot notify
-  /// changes nothing else.
-  Future<void> refreshReminders({bool ask = true}) => _reminderRuns = _reminderRuns
-      .catchError((Object _) {})
-      .then((_) => _refreshReminders(ask: ask));
-
-  /// One run at a time: a resume, a sync and a turn can all ask at once; a
-  /// run that broke never stops the next.
-  Future<void> _reminderRuns = Future.value();
-
-  Future<void> _refreshReminders({required bool ask}) async {
-    final root = paths.notes.path;
-    final now = clock().toLocal();
-    var due = await offThread(() => upcomingReminders(root, now: now));
-    // With the app lock on, nothing of the notes shows: not on a locked
-    // phone's screen, not in Google Calendar.
-    final private = lock.enabled;
-    if (private) {
-      due = [for (final r in due) DueReminder(r.id, r.at, 'Notelore', strings.reminderHidden)];
-    }
-    final anew = private != _scheduledPrivately;
-    _scheduledPrivately = private;
-    // Google Calendar reminds where this device holds its grant: this device
-    // then none, never twice. Without the grant here (another device turned
-    // the calendar on), or in a build that cannot reach it, this device keeps
-    // reminding; signed in later, the same pass cancels its own.
-    final viaCalendar = calendar && await _holdsCalendar();
-    await _remindOnDevice(viaCalendar ? const [] : due, ask: ask, anew: anew);
-    // A grant gone on Google's side shows only now: this device, which just
-    // cancelled its own, reminds again in this same pass.
-    if (viaCalendar && !await _remindInCalendar(due, now)) {
-      // It may never have asked for notifications: the calendar reminded until now.
-      await _remindOnDevice(due, ask: ask, anew: false);
-    }
-    final known = _knownDue;
-    _knownDue = {for (final r in due) r.id};
-    final made = ask && known != null && due.any((r) => !known.contains(r.id));
-    // Only while it fits: it goes once the calendar is off or this device holds the grant.
-    final revoked = calendarProblem == CalendarProblem.revoked;
-    final nudge =
-        calendar &&
-        calendarHere == false &&
-        (calendarNudge || (made || revoked) && !_calendarNudged);
-    if (nudge != calendarNudge) {
-      calendarNudge = nudge;
-      notifyListeners();
-    }
-  }
-
-  /// Whether this device holds the calendar grant, kept in [calendarHere]
-  /// for Settings. A keystore that cannot tell keeps what was known, so a
-  /// passing error never makes this device remind beside Google; not known
-  /// yet, it counts as no grant and this device reminds.
-  Future<bool> _holdsCalendar() async {
-    final auth = calendarAuth;
-    if (auth == null) return false;
-    final before = calendarHere;
-    try {
-      calendarHere = await auth.signedIn();
-    } on Exception {
-      calendarHere = before ?? false;
-    }
-    if (calendarHere != before) notifyListeners();
-    return calendarHere!;
-  }
-
-  Future<void> _remindOnDevice(
-    List<DueReminder> due, {
-    required bool ask,
-    required bool anew,
-  }) async {
-    final device = reminders;
-    if (device == null) return;
-    final wasAllowed = remindersAllowed;
-    try {
-      var allowed = await device.isAllowed();
-      if (!allowed && ask && due.isNotEmpty && !_askedReminders) {
-        _askedReminders = true;
-        allowed = await device.ask();
-      }
-      remindersAllowed = allowed;
-      await scheduleReminders(device, due, anew: anew);
-    } on Exception {
-      return; // no notifications here: the reminders stay in the notes
-    } finally {
-      if (remindersAllowed != wasAllowed) notifyListeners(); // Settings shows it
-    }
-  }
-
-  /// Writes the coming reminders as events in Notelore's calendar; only on a
-  /// device that holds the calendar grant.
-  /// False when the grant turned out to be gone (revoked on Google's side):
-  /// this device then has no grant, and its token is dropped.
-  Future<bool> _remindInCalendar(List<DueReminder> due, DateTime now) async {
-    final auth = calendarAuth!;
-    final before = calendarProblem;
-    try {
-      final google = calendarFor(auth);
-      final id = await google.calendarId(calendarId);
-      if (id != calendarId) {
-        calendarId = id;
-        _saveUi();
-        _touch(); // other devices write into the same calendar
-      }
-      for (final old in [..._dropCalendars]) {
-        if (old != id) await google.remove(old);
-        _dropCalendars.remove(old);
-        _saveUi();
-      }
-      await google.sync(id, due, now: now);
-      calendarProblem = null;
-    } on NetworkError {
-      return true; // offline: the next refresh catches up
-    } on Exception catch (error) {
-      // No grant, or still refused after the one refresh: gone, not a passing fault.
-      if (error is NotSignedIn || error is HttpError && error.status == 401) {
-        return _revoked(auth);
-      }
-      calendarProblem = CalendarProblem.update; // tried again at the next refresh
-    } finally {
-      if (calendarProblem != before) notifyListeners();
-    }
-    return true;
-  }
-
-  Future<bool> _revoked(OAuthSignIn auth) async {
-    calendarProblem = CalendarProblem.revoked;
-    calendarHere = false;
-    await _signOutCalendar(auth);
-    return false;
-  }
-
-  /// Off: the desktop forgets and revokes the calendar's refresh token; a
-  /// phone only drops its access token, since the plugin can revoke the whole
-  /// account alone, Drive with it. Drive's own grant is never touched.
-  Future<void> _signOutCalendar(OAuthSignIn auth) async {
-    try {
-      await auth.signOut();
-    } on Exception {
-      return; // offline: the token is gone from this device all the same
-    }
-  }
-
-  /// Settings' sign-in on a device where the calendar is on (another device
-  /// turned it on) but this one has no grant yet.
-  Future<void> signInCalendar() async {
-    final auth = calendarAuth;
-    if (auth == null) return;
-    calendarProblem = null;
-    try {
-      await auth.signIn();
-    } on Exception {
-      calendarProblem = CalendarProblem.signIn;
-      notifyListeners();
-      return;
-    }
-    if (calendarNudge) calendarNudgeLater(); // taken: not offered again
-    await refreshReminders(ask: false);
-    notifyListeners();
-  }
-
-  /// Settings' Add to Google Calendar (#432): on, its own sign-in, then Google
-  /// reminds on every device instead of this one; off, the coming events go
-  /// and this device reminds again.
-  Future<void> setCalendar(bool on) async {
-    final auth = calendarAuth;
-    if (auth == null || on == calendar || calendarBusy) return;
-    calendarProblem = null;
-    calendarBusy = true;
-    notifyListeners();
-    try {
-      if (on && !await auth.signedIn()) await auth.signIn();
-      if (!on && await auth.signedIn() && calendarId != null) {
-        await calendarFor(auth).clear(calendarId!, now: clock().toLocal());
-      }
-    } on Exception {
-      if (on) {
-        calendarProblem = CalendarProblem.signIn;
-        calendarBusy = false;
-        notifyListeners();
-        return; // still off: this device keeps reminding
-      }
-      // Off all the same; the events that could not go stay in that calendar.
-    }
-    if (!on) await _signOutCalendar(auth);
-    calendar = on;
-    _saveUi();
-    _touch();
-    await refreshReminders(ask: false);
-    calendarBusy = false;
-    notifyListeners();
-  }
-
-  /// Settings' Allow: asks for notifications again; whether they are allowed
-  /// now. The system may no longer show its question (asked twice already).
-  Future<bool> allowReminders() async {
-    final device = reminders;
-    if (device == null) return false;
-    try {
-      remindersAllowed = await device.ask();
-    } on Exception {
-      return false;
-    } finally {
-      notifyListeners();
-    }
-    await refreshReminders(ask: false);
-    return remindersAllowed ?? false;
   }
 
   void _markSyncedNotes(SyncReport report) {
