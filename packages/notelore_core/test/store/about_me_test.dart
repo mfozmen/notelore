@@ -155,6 +155,36 @@ void main() {
       expect(file(), '# About me\n\n## Work\n\n- I work at Initech.\n');
     });
 
+    test(
+      'a hand-made file that starts at a heading, or with blank lines, takes Other above it',
+      () {
+        for (final start in [
+          '## Work\n\n- I work at Acme.\n',
+          '\n\n## Work\n\n- I work at Acme.\n',
+        ]) {
+          File(aboutMePath(root.path)).writeAsStringSync(start);
+          rememberAboutMe(root.path, 'I like tea.', now: now);
+          expect(aboutMeFacts(root.path), [
+            (section: 'other', fact: 'I like tea.'),
+            (section: 'work', fact: 'I work at Acme.'),
+          ]);
+        }
+      },
+    );
+
+    test('a move into a new section names it in the language asked for', () {
+      rememberAboutMe(root.path, 'Çay severim.', now: now);
+      updateAboutMe(
+        root.path,
+        'Çay severim.',
+        'Çay severim.',
+        section: 'home',
+        lang: 'tr',
+        now: now,
+      );
+      expect(file(), contains('## Ev\n'));
+    });
+
     test('a change without a section keeps the fact where it is', () {
       rememberAboutMe(root.path, 'I work at Acme.', section: 'work', now: now);
       updateAboutMe(root.path, 'I work at Acme.', 'I work at Initech.', now: now);

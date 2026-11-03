@@ -521,8 +521,9 @@ class Session extends ChangeNotifier {
 
   /// Replaces [old] with [fact], moved to [section] when given; throws
   /// [ArgumentError] when [old] is gone or [fact] is taken.
-  Future<void> updateFact(String old, String fact, {String? section}) =>
-      _aboutMe(() => updateAboutMe(paths.notes.path, old, fact, section: section));
+  Future<void> updateFact(String old, String fact, {String? section}) => _aboutMe(
+    () => updateAboutMe(paths.notes.path, old, fact, section: section, lang: strings.languageCode),
+  );
 
   /// Removes [fact]; throws [ArgumentError] when it is gone.
   Future<void> forgetFact(String fact) => _aboutMe(() => forgetAboutMe(paths.notes.path, fact));

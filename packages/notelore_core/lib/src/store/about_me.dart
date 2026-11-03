@@ -64,7 +64,14 @@ void rememberAboutMe(
 }
 
 /// Replaces [old] with [fact]: in place, or at the end of [section] when given.
-void updateAboutMe(String root, String old, String fact, {String? section, DateTime? now}) {
+void updateAboutMe(
+  String root,
+  String old,
+  String fact, {
+  String? section,
+  String lang = 'en',
+  DateTime? now,
+}) {
   final text = _fact(fact);
   final at = _needed(root, old);
   final same = _find(root, text);
@@ -75,7 +82,7 @@ void updateAboutMe(String root, String old, String fact, {String? section, DateT
     return;
   }
   _known(section);
-  _write(root, _insert(_pruned(lines..removeAt(at)), text, section, 'en'), now);
+  _write(root, _insert(_pruned(lines..removeAt(at)), text, section, lang), now);
 }
 
 void forgetAboutMe(String root, String fact, {DateTime? now}) {
@@ -95,64 +102,79 @@ String _sectionAt(List<String> lines, int at) {
   return 'other';
 }
 
-/// Just past the last non-blank line of the block from [start] to the next heading.
-int _endOf(List<String> lines, int start) {
-  var end = start;
-  for (var i = start; i < lines.length && (i == start || !_section.hasMatch(lines[i])); i++) {
-    if (lines[i].trim().isNotEmpty) end = i + 1;
+/// The first heading at or after [from], or the end.
+int _nextHeading(List<String> lines, int from) {
+  final at = lines.indexWhere(_section.hasMatch, from);
+  return at < 0 ? lines.length : at;
+}
+
+/// Just past the last non-blank line in [from]..[to], or [from] when all are blank.
+int _textEnd(List<String> lines, int from, int to) {
+  var end = to;
+  while (end > from && lines[end - 1].trim().isEmpty) {
+    end--;
   }
   return end;
 }
 
 List<String> _insert(List<String> lines, String text, String section, String lang) {
   final bullet = '- $text';
-  final headings = [
-    for (var i = 0; i < lines.length; i++)
-      if (_section.firstMatch(lines[i]) case final m?) (at: i, name: m[1]!, key: _keyOf(m[1]!)),
-  ];
   if (section == 'other') {
-    final end = _endOf(lines, 0);
-    return lines..insertAll(end, [if (!_bullet.hasMatch(lines[end - 1])) '', bullet]);
+    // Above the first heading, wherever the file starts.
+    final first = _nextHeading(lines, 0);
+    final at = _textEnd(lines, 0, first);
+    return lines..insertAll(at, [
+      if (at > 0 && !_bullet.hasMatch(lines[at - 1])) '',
+      bullet,
+      if (at == first && first < lines.length) '',
+    ]);
   }
-  if (headings.where((h) => h.key == section).firstOrNull case final own?) {
-    final end = _endOf(lines, own.at);
-    return lines..insertAll(end, [if (end == own.at + 1) '', bullet]);
+  final own = lines.indexWhere((line) => _keyOfLine(line) == section);
+  if (own >= 0) {
+    final at = _textEnd(lines, own + 1, _nextHeading(lines, own + 1));
+    return lines..insertAll(at, [if (at == own + 1) '', bullet]);
   }
-  final spoken = [
-    for (final h in headings)
-      if (h.key != null && aboutMeSections[h.key]!['tr'] == h.name)
-        'tr'
-      else if (h.key != null)
-        'en',
-  ].firstOrNull;
-  final order = aboutMeSections.keys.toList();
-  final next = headings
-      .where((h) => h.key != null && order.indexOf(h.key!) > order.indexOf(section))
-      .firstOrNull;
-  final before = next?.at ?? lines.length;
-  var at = before;
-  while (at > 0 && lines[at - 1].trim().isEmpty) {
-    at--;
-  }
-  final names = aboutMeSections[section]!;
-  final heading = names[spoken ?? lang] ?? names['en']!;
-  return lines
-    ..insertAll(at, ['', '## $heading', '', bullet, if (at == before && next != null) '']);
+  return _newSection(lines, bullet, section, lang);
 }
+
+/// A heading [section] in its place in the order, with [bullet] under it.
+List<String> _newSection(List<String> lines, String bullet, String section, String lang) {
+  final order = aboutMeSections.keys.toList();
+  final next = lines.indexWhere((line) {
+    final key = _keyOfLine(line);
+    return key != null && order.indexOf(key) > order.indexOf(section);
+  });
+  final before = next < 0 ? lines.length : next;
+  final at = _textEnd(lines, 0, before);
+  final names = aboutMeSections[section]!;
+  final heading = names[_spoken(lines) ?? lang] ?? names['en']!;
+  return lines..insertAll(at, ['', '## $heading', '', bullet, if (at == before && next >= 0) '']);
+}
+
+/// The language of the file's known headings, if it has any.
+String? _spoken(List<String> lines) {
+  for (final line in lines) {
+    final name = _section.firstMatch(line)?[1];
+    if (name == null || _keyOf(name) == null) continue;
+    return aboutMeSections[_keyOf(name)]!['tr'] == name ? 'tr' : 'en';
+  }
+  return null;
+}
+
+/// The known section [line] heads, else null.
+String? _keyOfLine(String line) => switch (_section.firstMatch(line)) {
+  final m? => _keyOf(m[1]!),
+  null => null,
+};
 
 /// Without the known headings left with nothing under them.
 List<String> _pruned(List<String> lines) {
   for (var i = lines.length - 1; i >= 0; i--) {
-    if (i >= lines.length) continue; // shortened by the removal before
-    final m = _section.firstMatch(lines[i]);
-    if (m == null || _keyOf(m[1]!) == null) continue;
-    var end = i + 1;
-    while (end < lines.length && lines[end].trim().isEmpty) {
-      end++;
-    }
-    if (end < lines.length && !_section.hasMatch(lines[end])) continue;
+    if (i >= lines.length || _keyOfLine(lines[i]) == null) continue;
+    final next = _nextHeading(lines, i + 1);
+    if (_textEnd(lines, i + 1, next) > i + 1) continue;
     final from = i > 0 && lines[i - 1].trim().isEmpty ? i - 1 : i;
-    lines.removeRange(from, end == lines.length ? end : end - 1);
+    lines.removeRange(from, next == lines.length ? next : next - 1);
   }
   return lines;
 }

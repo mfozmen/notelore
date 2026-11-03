@@ -46,6 +46,51 @@ class AboutMeScreen extends StatelessWidget {
     child: ListenableBuilder(listenable: session, builder: _page),
   );
 
+  Widget _empty(ThemeData theme) => Padding(
+    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, Gap.m),
+    child: Column(
+      children: [
+        Icon(Icons.person_outline, size: 48, color: theme.colorScheme.primary),
+        const SizedBox(height: Gap.m),
+        Text(
+          session.strings.aboutMeEmpty,
+          textAlign: TextAlign.center,
+          style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+        ),
+      ],
+    ),
+  );
+
+  /// [section]'s heading and its facts; nothing when it has none.
+  List<Widget> _section(
+    BuildContext context,
+    String section,
+    List<({String section, String fact})> mine,
+  ) {
+    if (mine.isEmpty) return const [];
+    final s = session.strings;
+    final theme = Theme.of(context);
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, Gap.xs),
+        child: Text(
+          aboutMeSections[section]![s.languageCode]!,
+          style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+        ),
+      ),
+      for (final entry in mine)
+        ListTile(
+          title: Text(entry.fact),
+          onTap: () => _edit(context, entry),
+          trailing: IconButton(
+            tooltip: s.delete,
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () => _delete(context, entry.fact, section),
+          ),
+        ),
+    ];
+  }
+
   Widget _page(BuildContext context, Widget? _) {
     final s = session.strings;
     final theme = Theme.of(context);
@@ -76,44 +121,12 @@ class AboutMeScreen extends StatelessWidget {
               // Room under the last row for the button that floats over it on a phone.
               padding: EdgeInsets.only(top: Gap.s, bottom: wide ? Gap.l : 96),
               children: [
-                if (entries.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, Gap.m),
-                    child: Column(
-                      children: [
-                        Icon(Icons.person_outline, size: 48, color: theme.colorScheme.primary),
-                        const SizedBox(height: Gap.m),
-                        Text(
-                          s.aboutMeEmpty,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ),
+                if (entries.isEmpty) _empty(theme),
                 for (final section in aboutMeSections.keys)
-                  if (entries.where((e) => e.section == section).toList() case final mine
-                      when mine.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, Gap.xs),
-                      child: Text(
-                        aboutMeSections[section]![s.languageCode]!,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                    for (final entry in mine)
-                      ListTile(
-                        title: Text(entry.fact),
-                        onTap: () => _edit(context, entry),
-                        trailing: IconButton(
-                          tooltip: s.delete,
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () => _delete(context, entry.fact, section),
-                        ),
-                      ),
-                  ],
+                  ..._section(context, section, [
+                    for (final e in entries)
+                      if (e.section == section) e,
+                  ]),
                 if (wide)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, Gap.xs),
