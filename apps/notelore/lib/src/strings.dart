@@ -612,65 +612,65 @@ class EnglishStrings extends Strings {
   @override
   String connectedTo(String name) => 'Connected to $name';
   @override
-  String optionCost(ProviderSpec spec) => switch (spec.name) {
-    'chatgpt' => 'Your ChatGPT Plus or Pro plan, no extra charge',
-    'anthropic' => 'Billed by Anthropic for what you use',
-    'openai' => 'Billed by OpenAI for what you use',
-    'gemini' => "Free up to Google's daily limit",
-    'deepseek' => 'Billed by DeepSeek for what you use',
-    'device' => 'Free, and works offline',
-    _ => 'Free',
+  String optionCost(ProviderSpec spec) => switch (spec.id) {
+    ProviderId.chatgpt => 'Your ChatGPT Plus or Pro plan, no extra charge',
+    ProviderId.anthropic => 'Billed by Anthropic for what you use',
+    ProviderId.openai => 'Billed by OpenAI for what you use',
+    ProviderId.gemini => "Free up to Google's daily limit",
+    ProviderId.deepseek => 'Billed by DeepSeek for what you use',
+    ProviderId.device => 'Free, and works offline',
+    ProviderId.ollama => 'Free',
   };
   @override
-  String optionPrivacy(ProviderSpec spec) => switch (spec.name) {
-    'chatgpt' => 'Your notes go to OpenAI.',
-    'anthropic' => 'Your notes go to Anthropic.',
-    'openai' => 'Your notes go to OpenAI.',
-    'gemini' =>
+  String optionPrivacy(ProviderSpec spec) => switch (spec.id) {
+    ProviderId.chatgpt => 'Your notes go to OpenAI.',
+    ProviderId.anthropic => 'Your notes go to Anthropic.',
+    ProviderId.openai => 'Your notes go to OpenAI.',
+    ProviderId.gemini =>
       'Your notes go to Google; on the free tier it may use them to improve its products.',
-    'deepseek' => 'Your notes go to DeepSeek.',
-    'device' => 'The model runs on this device: your notes go to no AI provider.',
-    _ => 'Your notes stay on this computer.',
+    ProviderId.deepseek => 'Your notes go to DeepSeek.',
+    ProviderId.device => 'The model runs on this device: your notes go to no AI provider.',
+    ProviderId.ollama => 'Your notes stay on this computer.',
   };
   @override
-  String optionQuality(ProviderSpec spec) => switch (spec.name) {
-    'anthropic' => 'Very strong answers',
-    'openai' => 'Very strong answers',
-    'chatgpt' => 'Strong answers',
-    'gemini' => 'Strong answers',
-    'deepseek' => 'Strong answers at a low price',
-    'device' => 'Simpler answers, and slow on a phone',
-    _ => 'Depends on the model; usually weaker',
+  String optionQuality(ProviderSpec spec) => switch (spec.id) {
+    ProviderId.anthropic => 'Very strong answers',
+    ProviderId.openai => 'Very strong answers',
+    ProviderId.chatgpt => 'Strong answers',
+    ProviderId.gemini => 'Strong answers',
+    ProviderId.deepseek => 'Strong answers at a low price',
+    ProviderId.device => 'Simpler answers, and slow on a phone',
+    ProviderId.ollama => 'Depends on the model; usually weaker',
   };
   @override
-  String optionEffort(ProviderSpec spec) => switch (spec.name) {
-    'chatgpt' => 'One tap: sign in with ChatGPT',
-    'anthropic' => 'A key from the Anthropic Console, with billing set up',
-    'openai' => 'A key from the OpenAI platform, with billing set up',
-    'gemini' => 'A free key from Google AI Studio, about a minute',
-    'deepseek' => 'A key from the DeepSeek Platform, with a little credit',
-    'device' => 'A 2.5 GB download, once',
-    _ => 'Install Ollama and a model first',
+  String optionEffort(ProviderSpec spec) => switch (spec.id) {
+    ProviderId.chatgpt => 'One tap: sign in with ChatGPT',
+    ProviderId.anthropic => 'A key from the Anthropic Console, with billing set up',
+    ProviderId.openai => 'A key from the OpenAI platform, with billing set up',
+    ProviderId.gemini => 'A free key from Google AI Studio, about a minute',
+    ProviderId.deepseek => 'A key from the DeepSeek Platform, with a little credit',
+    ProviderId.device => 'A 2.5 GB download, once',
+    ProviderId.ollama => 'Install Ollama and a model first',
   };
   @override
-  String optionFit(ProviderSpec spec) => switch (spec.name) {
-    'chatgpt' => 'You have ChatGPT Plus or Pro',
-    'anthropic' => 'You want the best answers and pay as you go',
-    'openai' => 'You already use the OpenAI API',
-    'gemini' => 'You want to start for free',
-    'deepseek' => 'You want strong answers at a low price',
-    'device' => 'No AI provider should see your notes',
-    _ => 'Nothing should leave this computer',
+  String optionFit(ProviderSpec spec) => switch (spec.id) {
+    ProviderId.chatgpt => 'You have ChatGPT Plus or Pro',
+    ProviderId.anthropic => 'You want the best answers and pay as you go',
+    ProviderId.openai => 'You already use the OpenAI API',
+    ProviderId.gemini => 'You want to start for free',
+    ProviderId.deepseek => 'You want strong answers at a low price',
+    ProviderId.device => 'No AI provider should see your notes',
+    ProviderId.ollama => 'Nothing should leave this computer',
   };
   @override
   String get connectedBadge => 'Connected';
   @override
-  List<String> optionTags(ProviderSpec spec) => switch (spec.name) {
-    'chatgpt' => ['Your plan', 'One tap'],
-    'anthropic' || 'openai' || 'deepseek' => ['Pay per use', apiKey],
-    'gemini' => ['Free tier', apiKey],
-    'device' => ['Free', 'Offline'],
-    _ => ['Free', 'Stays on this computer'],
+  List<String> optionTags(ProviderSpec spec) => switch (spec.id) {
+    ProviderId.chatgpt => ['Your plan', 'One tap'],
+    ProviderId.anthropic || ProviderId.openai || ProviderId.deepseek => ['Pay per use', apiKey],
+    ProviderId.gemini => ['Free tier', apiKey],
+    ProviderId.device => ['Free', 'Offline'],
+    ProviderId.ollama => ['Free', 'Stays on this computer'],
   };
   @override
   String get useThisModel => 'Use this model';
@@ -1641,64 +1641,65 @@ class TurkishStrings extends Strings {
   @override
   String connectedTo(String name) => '$name bağlandı';
   @override
-  String optionCost(ProviderSpec spec) => switch (spec.name) {
-    'chatgpt' => 'ChatGPT Plus ya da Pro planın, ek ücret yok',
-    'anthropic' => 'Kullandığın kadarını Anthropic faturalar',
-    'openai' => 'Kullandığın kadarını OpenAI faturalar',
-    'gemini' => 'Google’ın günlük sınırına kadar ücretsiz',
-    'deepseek' => 'Kullandığın kadarını DeepSeek faturalar',
-    'device' => 'Ücretsiz, çevrimdışı da çalışır',
-    _ => _free,
+  String optionCost(ProviderSpec spec) => switch (spec.id) {
+    ProviderId.chatgpt => 'ChatGPT Plus ya da Pro planın, ek ücret yok',
+    ProviderId.anthropic => 'Kullandığın kadarını Anthropic faturalar',
+    ProviderId.openai => 'Kullandığın kadarını OpenAI faturalar',
+    ProviderId.gemini => 'Google’ın günlük sınırına kadar ücretsiz',
+    ProviderId.deepseek => 'Kullandığın kadarını DeepSeek faturalar',
+    ProviderId.device => 'Ücretsiz, çevrimdışı da çalışır',
+    ProviderId.ollama => _free,
   };
   @override
-  String optionPrivacy(ProviderSpec spec) => switch (spec.name) {
-    'chatgpt' => "Notların OpenAI'ye gider.",
-    'anthropic' => "Notların Anthropic'e gider.",
-    'openai' => "Notların OpenAI'ye gider.",
-    'gemini' => "Notların Google'a gider; ücretsiz katmanda Google bunları ürünlerini geliştirmek için kullanabilir.",
-    'deepseek' => "Notların DeepSeek'e gider.",
-    'device' => 'Model bu cihazda çalışır: notların hiçbir yapay zekâ sağlayıcısına gitmez.',
-    _ => 'Notların bu bilgisayarda kalır.',
+  String optionPrivacy(ProviderSpec spec) => switch (spec.id) {
+    ProviderId.chatgpt => "Notların OpenAI'ye gider.",
+    ProviderId.anthropic => "Notların Anthropic'e gider.",
+    ProviderId.openai => "Notların OpenAI'ye gider.",
+    ProviderId.gemini => "Notların Google'a gider; ücretsiz katmanda Google bunları ürünlerini geliştirmek için kullanabilir.",
+    ProviderId.deepseek => "Notların DeepSeek'e gider.",
+    ProviderId.device =>
+      'Model bu cihazda çalışır: notların hiçbir yapay zekâ sağlayıcısına gitmez.',
+    ProviderId.ollama => 'Notların bu bilgisayarda kalır.',
   };
   @override
-  String optionQuality(ProviderSpec spec) => switch (spec.name) {
-    'anthropic' => 'Çok güçlü cevaplar',
-    'openai' => 'Çok güçlü cevaplar',
-    'chatgpt' => 'Güçlü cevaplar',
-    'gemini' => 'Güçlü cevaplar',
-    'deepseek' => 'Düşük fiyata güçlü cevaplar',
-    'device' => 'Daha basit cevaplar; telefonda yavaş',
-    _ => 'Modele bağlı; genelde daha zayıf',
+  String optionQuality(ProviderSpec spec) => switch (spec.id) {
+    ProviderId.anthropic => 'Çok güçlü cevaplar',
+    ProviderId.openai => 'Çok güçlü cevaplar',
+    ProviderId.chatgpt => 'Güçlü cevaplar',
+    ProviderId.gemini => 'Güçlü cevaplar',
+    ProviderId.deepseek => 'Düşük fiyata güçlü cevaplar',
+    ProviderId.device => 'Daha basit cevaplar; telefonda yavaş',
+    ProviderId.ollama => 'Modele bağlı; genelde daha zayıf',
   };
   @override
-  String optionEffort(ProviderSpec spec) => switch (spec.name) {
-    'chatgpt' => 'Tek dokunuş: ChatGPT ile giriş yap',
-    'anthropic' => "Anthropic Console'dan, faturalandırması açık bir anahtar",
-    'openai' => 'OpenAI platformundan, faturalandırması açık bir anahtar',
-    'gemini' => "Google AI Studio'dan ücretsiz bir anahtar, yaklaşık bir dakika",
-    'deepseek' => "DeepSeek Platform'dan, biraz bakiyeli bir anahtar",
-    'device' => 'Bir kez 2,5 GB indirme',
-    _ => "Önce Ollama'yı ve bir modeli kur",
+  String optionEffort(ProviderSpec spec) => switch (spec.id) {
+    ProviderId.chatgpt => 'Tek dokunuş: ChatGPT ile giriş yap',
+    ProviderId.anthropic => "Anthropic Console'dan, faturalandırması açık bir anahtar",
+    ProviderId.openai => 'OpenAI platformundan, faturalandırması açık bir anahtar',
+    ProviderId.gemini => "Google AI Studio'dan ücretsiz bir anahtar, yaklaşık bir dakika",
+    ProviderId.deepseek => "DeepSeek Platform'dan, biraz bakiyeli bir anahtar",
+    ProviderId.device => 'Bir kez 2,5 GB indirme',
+    ProviderId.ollama => "Önce Ollama'yı ve bir modeli kur",
   };
   @override
-  String optionFit(ProviderSpec spec) => switch (spec.name) {
-    'chatgpt' => "ChatGPT Plus ya da Pro'n varsa",
-    'anthropic' => 'En iyi cevapları istiyor, kullandıkça ödemeye razıysan',
-    'openai' => 'Zaten OpenAI API kullanıyorsan',
-    'gemini' => 'Ücretsiz başlamak istiyorsan',
-    'deepseek' => 'Düşük fiyata güçlü cevaplar istiyorsan',
-    'device' => 'Notlarını hiçbir yapay zekâ sağlayıcısı görmesin istiyorsan',
-    _ => 'Hiçbir şey bu bilgisayardan çıkmasın istiyorsan',
+  String optionFit(ProviderSpec spec) => switch (spec.id) {
+    ProviderId.chatgpt => "ChatGPT Plus ya da Pro'n varsa",
+    ProviderId.anthropic => 'En iyi cevapları istiyor, kullandıkça ödemeye razıysan',
+    ProviderId.openai => 'Zaten OpenAI API kullanıyorsan',
+    ProviderId.gemini => 'Ücretsiz başlamak istiyorsan',
+    ProviderId.deepseek => 'Düşük fiyata güçlü cevaplar istiyorsan',
+    ProviderId.device => 'Notlarını hiçbir yapay zekâ sağlayıcısı görmesin istiyorsan',
+    ProviderId.ollama => 'Hiçbir şey bu bilgisayardan çıkmasın istiyorsan',
   };
   @override
   String get connectedBadge => 'Bağlı';
   @override
-  List<String> optionTags(ProviderSpec spec) => switch (spec.name) {
-    'chatgpt' => ['Planın', 'Tek dokunuş'],
-    'anthropic' || 'openai' || 'deepseek' => ['Kullandıkça öde', apiKey],
-    'gemini' => ['Ücretsiz katman', apiKey],
-    'device' => [_free, 'Çevrimdışı'],
-    _ => [_free, 'Bu bilgisayarda kalır'],
+  List<String> optionTags(ProviderSpec spec) => switch (spec.id) {
+    ProviderId.chatgpt => ['Planın', 'Tek dokunuş'],
+    ProviderId.anthropic || ProviderId.openai || ProviderId.deepseek => ['Kullandıkça öde', apiKey],
+    ProviderId.gemini => ['Ücretsiz katman', apiKey],
+    ProviderId.device => [_free, 'Çevrimdışı'],
+    ProviderId.ollama => [_free, 'Bu bilgisayarda kalır'],
   };
   @override
   String get useThisModel => 'Bu modeli kullan';
@@ -1777,10 +1778,14 @@ class TurkishStrings extends Strings {
   @override
   String get downloadResumes => 'Kaldığı yerden devam eder.';
   @override
-  String providerName(ProviderSpec spec) => switch (spec.name) {
-    'chatgpt' => 'ChatGPT planı (OpenAI)',
-    'ollama' => 'Ollama (yerel)',
-    _ => spec.displayName,
+  String providerName(ProviderSpec spec) => switch (spec.id) {
+    ProviderId.chatgpt => 'ChatGPT planı (OpenAI)',
+    ProviderId.ollama => 'Ollama (yerel)',
+    ProviderId.anthropic ||
+    ProviderId.openai ||
+    ProviderId.gemini ||
+    ProviderId.deepseek ||
+    ProviderId.device => spec.displayName,
   };
   @override
   String groupHeading(ProviderGroup group) => switch (group) {
@@ -1790,54 +1795,57 @@ class TurkishStrings extends Strings {
     ProviderGroup.device => 'Bu cihazda',
   };
   @override
-  String cost(ProviderSpec spec) => switch (spec.name) {
-    'chatgpt' =>
+  String cost(ProviderSpec spec) => switch (spec.id) {
+    ProviderId.chatgpt =>
       'ChatGPT Plus veya Pro planını kullanır: ayrıca ücret yok, planının limitleri içinde.',
-    'anthropic' =>
+    ProviderId.anthropic =>
       'Anthropic API üzerinden kullandıkça ücretlendirilir. Claude Pro veya Max aboneliği '
           'başka uygulamalarda kullanılamaz.',
-    'openai' =>
+    ProviderId.openai =>
       'OpenAI API üzerinden kullandıkça ücretlendirilir. ChatGPT Plus veya Pro planını '
           'kullanmak için "ChatGPT planı"nı seç.',
-    'gemini' =>
+    ProviderId.gemini =>
       'Faturalandırması olmayan bir Google AI Studio projesinin anahtarıyla ücretsiz: hız '
           'sınırlıdır ve Google ücretsiz istekleri ürünlerini geliştirmek için kullanabilir. '
           'Aksi halde kullandıkça ücretlendirilir.',
-    'deepseek' =>
+    ProviderId.deepseek =>
       'Kendi API anahtarınla DeepSeek tarafından kullandıkça ücretlendirilir: milyon giriş '
           'tokenı için yaklaşık \$0,15, milyon çıkış tokenı için \$0,60 (yoğun olmayan '
           'saatlerde; yoğun saatlerde iki katı). DeepSeek web aboneliği başka uygulamalarda '
           'kullanılamaz.',
-    _ => 'Ücretsiz: model bu bilgisayarda çalışır.',
+    ProviderId.ollama => 'Ücretsiz: model bu bilgisayarda çalışır.',
+    ProviderId.device =>
+      'Ücretsiz: model bu cihazda çalışır, notlarını hiçbir yapay zekâ sağlayıcısı görmez. '
+          'Bir kerelik 2,5 GB indirme.',
   };
   @override
-  List<String> keySteps(ProviderSpec spec) => switch (spec.name) {
-    'anthropic' => [
+  List<String> keySteps(ProviderSpec spec) => switch (spec.id) {
+    ProviderId.anthropic => [
       'Anthropic Console’a giriş yap (ücretsiz bir hesap yeterli).',
       'Create Key’i seç, notelore gibi bir ad ver ve anahtarı kopyala.',
       'Anahtarı aşağıya yapıştır (sk-ant- ile başlar).',
     ],
-    'openai' => [
+    ProviderId.openai => [
       'OpenAI Platform’a giriş yap.',
       'Create new secret key’i seç, bir ad ver ve anahtarı kopyala.',
       'Anahtarı aşağıya yapıştır (sk- ile başlar).',
     ],
-    'gemini' => [
+    ProviderId.gemini => [
       'Google AI Studio’ya giriş yap.',
       'Create API key’i seç ve anahtarı kopyala.',
       'Anahtarı aşağıya yapıştır.',
     ],
-    'deepseek' => [
+    ProviderId.deepseek => [
       'DeepSeek Platform’a giriş yap ve küçük bir bakiye ekle.',
       'Create new API key’i seç, notelore gibi bir ad ver ve anahtarı kopyala.',
       'Anahtarı aşağıya yapıştır.',
     ],
-    'ollama' => [
+    ProviderId.ollama => [
       'Ollama’yı ollama.com’dan kur ve başlat.',
       'Bir model indir: terminalde şunu çalıştır: ollama pull qwen3:4b',
       'Geri dön ve bağlan.',
     ],
-    _ => const [],
+    ProviderId.chatgpt || ProviderId.device => const [],
   };
 
   @override

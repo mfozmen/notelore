@@ -27,9 +27,13 @@ enum ProviderGroup {
   final String heading;
 }
 
+/// Every provider, so a switch over them is exhaustive; [Enum.name] is the
+/// string settings and sync save.
+enum ProviderId { chatgpt, anthropic, openai, gemini, deepseek, ollama, device }
+
 final class ProviderSpec {
   const ProviderSpec(
-    this.name,
+    this.id,
     this.displayName, {
     required this.group,
     required this.requiresApiKey,
@@ -42,7 +46,8 @@ final class ProviderSpec {
     this.imageModels = const {},
   });
 
-  final String name;
+  final ProviderId id;
+  String get name => id.name;
   final String displayName;
   final ProviderGroup group;
   final bool requiresApiKey;
@@ -69,7 +74,7 @@ final class ProviderSpec {
 
 const providerSpecs = [
   ProviderSpec(
-    'chatgpt',
+    ProviderId.chatgpt,
     'ChatGPT plan (OpenAI)',
     group: ProviderGroup.plan,
     webSearch: true,
@@ -79,7 +84,7 @@ const providerSpecs = [
     cost: "Uses your ChatGPT Plus or Pro plan: no separate charges, within your plan's limits.",
   ),
   ProviderSpec(
-    'anthropic',
+    ProviderId.anthropic,
     'Claude (Anthropic)',
     group: ProviderGroup.apiKey,
     webSearch: true,
@@ -97,7 +102,7 @@ const providerSpecs = [
     ],
   ),
   ProviderSpec(
-    'openai',
+    ProviderId.openai,
     'GPT (OpenAI)',
     group: ProviderGroup.apiKey,
     webSearch: true,
@@ -115,7 +120,7 @@ const providerSpecs = [
     ],
   ),
   ProviderSpec(
-    'gemini',
+    ProviderId.gemini,
     'Gemini (Google)',
     group: ProviderGroup.apiKey,
     images: true,
@@ -132,7 +137,7 @@ const providerSpecs = [
     ],
   ),
   ProviderSpec(
-    'deepseek',
+    ProviderId.deepseek,
     'DeepSeek',
     group: ProviderGroup.apiKey,
     images: true,
@@ -151,7 +156,7 @@ const providerSpecs = [
     ],
   ),
   ProviderSpec(
-    'ollama',
+    ProviderId.ollama,
     'Ollama (local)',
     group: ProviderGroup.local,
     requiresApiKey: false,
@@ -167,7 +172,7 @@ const providerSpecs = [
   // The model runs in the app itself, through llama.cpp (#328): nothing to
   // install, nothing leaves the device.
   ProviderSpec(
-    'device',
+    ProviderId.device,
     'On this device (Qwen3 4B)',
     group: ProviderGroup.device,
     requiresApiKey: false,

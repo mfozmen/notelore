@@ -117,6 +117,18 @@ void main() {
     });
   }
 
+  test('createProvider: the model on the device is not an HTTP provider (#661)', () {
+    expect(() => createProvider(findProvider('device'), null), throwsArgumentError);
+  });
+
+  test('provider ids keep the names settings and sync already saved (#661)', () {
+    expect([for (final spec in providerSpecs) spec.id], ProviderId.values);
+    expect(
+      [for (final spec in providerSpecs) spec.name],
+      ['chatgpt', 'anthropic', 'openai', 'gemini', 'deepseek', 'ollama', 'device'],
+    );
+  });
+
   test('createProvider: an OpenAI key uses the Responses API, plain tools', () async {
     final requests = <http.Request>[];
     final provider = createProvider(
