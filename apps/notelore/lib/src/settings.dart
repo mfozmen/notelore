@@ -457,6 +457,47 @@ class _ConnectionsState extends State<_Connections> {
     if (mounted) _reload();
   }
 
+  Widget _connected() {
+    final s = session.strings;
+    final colors = Theme.of(context).colorScheme;
+    return FutureBuilder(
+      future: _connections,
+      builder: (context, snapshot) => Column(
+        children: [
+          // The one in use shows at once, before the keystore answers.
+          for (final spec in snapshot.data ?? [?session.spec])
+            ListTile(
+              key: ValueKey('connection-${spec.name}'),
+              // The one in use is marked; any other is one tap away.
+              leading: switch (spec) {
+                _ when spec == _switching => const SizedBox.square(
+                  dimension: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                _ when spec == session.spec => Icon(
+                  Icons.check_circle,
+                  color: colors.primary,
+                  semanticLabel: s.nowUsing(s.providerName(spec)),
+                ),
+                _ => const Icon(Icons.radio_button_unchecked),
+              },
+              title: Text(s.providerName(spec)),
+              subtitle: Text(s.groupHeading(spec.group)),
+              selected: spec == session.spec,
+              onTap: spec == session.spec || _switching != null ? null : () => _switch(spec),
+              trailing: IconButton(
+                tooltip: s.remove,
+                // A removal never wears the accent colour of the one in use.
+                color: colors.onSurfaceVariant,
+                icon: const Icon(Icons.delete_outline),
+                onPressed: _switching != null ? null : () => _remove(spec),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = session.strings;
@@ -472,42 +513,7 @@ class _ConnectionsState extends State<_Connections> {
             style: theme.textTheme.titleSmall?.copyWith(color: colors.primary),
           ),
         ),
-        FutureBuilder(
-          future: _connections,
-          builder: (context, snapshot) => Column(
-            children: [
-              // The one in use shows at once, before the keystore answers.
-              for (final spec in snapshot.data ?? [?session.spec])
-                ListTile(
-                  key: ValueKey('connection-${spec.name}'),
-                  // The one in use is marked; any other is one tap away.
-                  leading: switch (spec) {
-                    _ when spec == _switching => const SizedBox.square(
-                      dimension: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    _ when spec == session.spec => Icon(
-                      Icons.check_circle,
-                      color: colors.primary,
-                      semanticLabel: s.nowUsing(s.providerName(spec)),
-                    ),
-                    _ => const Icon(Icons.radio_button_unchecked),
-                  },
-                  title: Text(s.providerName(spec)),
-                  subtitle: Text(s.groupHeading(spec.group)),
-                  selected: spec == session.spec,
-                  onTap: spec == session.spec || _switching != null ? null : () => _switch(spec),
-                  trailing: IconButton(
-                    tooltip: s.remove,
-                    // A removal never wears the accent colour of the one in use.
-                    color: colors.onSurfaceVariant,
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: _switching != null ? null : () => _remove(spec),
-                  ),
-                ),
-            ],
-          ),
-        ),
+        _connected(),
         // OpenAI's guidelines link the plan's usage; here rather than by the composer (#507).
         if (session.spec?.access == ProviderAccess.signIn)
           ListTile(
