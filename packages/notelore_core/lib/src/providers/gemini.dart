@@ -112,12 +112,13 @@ AgentResponse fromGemini(Map<String, Object?> answer) {
           'input': Map<String, Object?>.from(call['args'] as Map? ?? const {}),
         },
   ];
-  final toolUse = blocks.any((b) => b['type'] == 'tool_use');
   final finish = '${candidate['finishReason'] ?? 'STOP'}'.toUpperCase();
-  if (!toolUse && finish != 'STOP' && finish != 'FINISH_REASON_UNSPECIFIED') {
-    blocks.add(stoppedEarly(finish));
-  }
-  return AgentResponse(blocks, toolUse ? 'tool_use' : 'end_turn', usage: usage);
+  return agentReply(
+    blocks,
+    stopped: finish != 'STOP' && finish != 'FINISH_REASON_UNSPECIFIED',
+    reason: finish,
+    usage: usage,
+  );
 }
 
 /// Thinking tokens are billed as output; a blocked answer has no answer tokens.

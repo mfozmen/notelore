@@ -136,9 +136,13 @@ AgentResponse fromDeepSeek(Object? answer) {
   if (message is! Map) return const AgentResponse([], 'end_turn');
   final blocks = _deepSeekBlocks(message);
   final finish = choice['finish_reason'];
-  final toolUse = finish == 'tool_calls' && blocks.any((block) => block['type'] == 'tool_use');
-  if (!toolUse && finish is String && finish != 'stop') blocks.add(stoppedEarly(finish));
-  return AgentResponse(blocks, toolUse ? 'tool_use' : 'end_turn', usage: _deepSeekUsage(answer));
+  return agentReply(
+    blocks,
+    tools: finish == 'tool_calls',
+    stopped: finish is String && finish != 'stop',
+    reason: finish,
+    usage: _deepSeekUsage(answer),
+  );
 }
 
 List<Block> _deepSeekBlocks(Map<Object?, Object?> message) => [

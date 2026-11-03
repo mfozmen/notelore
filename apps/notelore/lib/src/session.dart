@@ -154,6 +154,10 @@ class Session extends ChangeNotifier {
   /// Notelore's own calendar in the user's Google Calendar, shared too.
   String? calendarId;
 
+  /// Calendars this device made before it learned the shared one; removed at
+  /// the next calendar sync (#674).
+  final _dropCalendars = <String>[];
+
   /// What went wrong with the calendar, for Settings to say in plain words.
   CalendarProblem? calendarProblem;
 
@@ -591,6 +595,7 @@ class Session extends ChangeNotifier {
           if (!aboutMeToCloud) 'aboutMeToCloud': false,
           if (calendar) 'calendar': true,
           'calendarId': ?calendarId,
+          if (_dropCalendars.isNotEmpty) 'dropCalendars': _dropCalendars,
           'microphone': ?microphone,
           if (setUpBefore) 'setUp': true,
           if (advanced) 'advanced': true,
@@ -617,6 +622,9 @@ class Session extends ChangeNotifier {
         final String id => id,
         _ => null,
       };
+      _dropCalendars
+        ..clear()
+        ..addAll((saved['dropCalendars'] as List? ?? const []).whereType<String>());
       setUpBefore = saved['setUp'] == true;
       advanced = saved['advanced'] == true;
       microphone = switch (saved['microphone']) {
@@ -1026,7 +1034,7 @@ class Session extends ChangeNotifier {
   /// Nothing listed to start on: the fixed default, but never for Ollama, which
   /// can only talk with a model it has (#471).
   static String _fallback(ProviderSpec spec) => switch (spec) {
-    ProviderSpec(name: 'ollama') => throw const NoLocalModel(),
+    ProviderSpec(id: ProviderId.ollama) => throw const NoLocalModel(),
     ProviderSpec(:final defaultModel) when defaultModel.isNotEmpty => defaultModel,
     _ => throw TransientValidationError('${spec.displayName} lists no models'),
   };
@@ -1035,11 +1043,15 @@ class Session extends ChangeNotifier {
   /// Notelore's own first (#471). Gemini: its default when listed, the model a
   /// free AI Studio key has quota for; the cheapest listed is often a lite or
   /// preview one with none (#400). Any other: the cheapest listed.
-  static String? _startModel(ProviderSpec spec, List<String> listed) => switch (spec.name) {
-    'ollama' => ollamaStartModel(listed),
-    'device' => null,
-    'gemini' when listed.contains(spec.defaultModel) => spec.defaultModel,
-    _ => cheapestModel(spec.name, listed),
+  static String? _startModel(ProviderSpec spec, List<String> listed) => switch (spec.id) {
+    ProviderId.ollama => ollamaStartModel(listed),
+    ProviderId.device => null,
+    ProviderId.gemini when listed.contains(spec.defaultModel) => spec.defaultModel,
+    ProviderId.chatgpt ||
+    ProviderId.anthropic ||
+    ProviderId.openai ||
+    ProviderId.gemini ||
+    ProviderId.deepseek => cheapestModel(spec.name, listed),
   };
 
   /// A blank [chosen] goes back to [defaultModel].
@@ -1599,6 +1611,17 @@ class Session extends ChangeNotifier {
     }
   }
 
+  void _adoptCalendar(bool on, Object? id) {
+    calendar = on;
+    if (id is String && id != calendarId) {
+      // Made here before the shared one arrived: removed at the next calendar
+      // sync, so the account keeps one Notelore calendar (#674).
+      if (calendarId case final mine?) _dropCalendars.add(mine);
+      calendarId = id;
+    }
+    _saveUi();
+  }
+
   /// Another device's settings. Its provider only when this device can use it
   /// without asking (a key, or the ChatGPT sign-in); Ollama is local to each machine.
   Future<void> _adopt(Map<String, Object?> theirs) async {
@@ -1609,11 +1632,7 @@ class Session extends ChangeNotifier {
     );
     if (theirs['webSearch'] case final bool on when on != webSearch) await _applyWebSearch(on);
     await _adoptAboutMeToCloud(theirs['aboutMeToCloud']);
-    if (theirs['calendar'] case final bool on) {
-      calendar = on;
-      if (theirs['calendarId'] case final String id) calendarId = id;
-      _saveUi();
-    }
+    if (theirs['calendar'] case final bool on) _adoptCalendar(on, theirs['calendarId']);
     final (name, chosen) = (theirs['provider'], theirs['model']);
     // A local model is this machine's own: another device's choice of one stays there.
     if (name is! String || chosen is! String || name == 'ollama' || name == 'device') return;
@@ -1801,6 +1820,11 @@ class Session extends ChangeNotifier {
         calendarId = id;
         _saveUi();
         _touch(); // other devices write into the same calendar
+      }
+      for (final old in [..._dropCalendars]) {
+        if (old != id) await google.remove(old);
+        _dropCalendars.remove(old);
+        _saveUi();
       }
       await google.sync(id, due, now: now);
       calendarProblem = null;

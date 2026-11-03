@@ -43,6 +43,11 @@ class FakeCalendarApi {
         calendars[id] = body!['summary']! as String;
         events[id] = {};
         return _json({'id': id, 'summary': calendars[id]});
+      case ('DELETE', ['calendars', final id]) when forbidden.contains(id):
+        return http.Response('{"error": {"message": "Forbidden"}}', 403);
+      case ('DELETE', ['calendars', final id]):
+        events.remove(id);
+        return calendars.remove(id) == null ? _missing() : http.Response('', 204);
       case ('GET', ['calendars', final id]) when forbidden.contains(id):
         return http.Response('{"error": {"message": "Forbidden"}}', 403);
       case ('GET', ['calendars', final id]):
@@ -118,6 +123,19 @@ void main() {
     api.calendars['other'] = 'Work';
     expect(await calendar().calendarId('other'), isNot('other'));
     expect(api.calendars.values.where((name) => name == 'Notelore'), hasLength(2));
+  });
+
+  test('a calendar a device made while it did not know the shared one is removed (#674)', () async {
+    final mine = await calendar().calendarId(null);
+    final shared = await calendar().calendarId(null);
+    expect(api.calendars, hasLength(2));
+    await calendar().remove(mine);
+    expect(api.calendars.keys, [shared]);
+    // Already gone, or not this app's: nothing to do.
+    await calendar().remove(mine);
+    api.forbidden.add(shared);
+    await calendar().remove(shared);
+    expect(api.calendars.keys, [shared]);
   });
 
   test('an answer without what it must have is a format error, not a crash', () async {

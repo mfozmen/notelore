@@ -21,24 +21,29 @@ LlmProvider createProvider(
   bool webSearch = false,
 }) {
   final chosen = model ?? spec.defaultModel;
-  return switch (spec.name) {
-    'chatgpt' => ChatGptProvider(chosen, planToken!, client: client, webSearch: webSearch),
-    'anthropic' => AnthropicProvider(
+  return switch (spec.id) {
+    ProviderId.chatgpt => ChatGptProvider(chosen, planToken!, client: client, webSearch: webSearch),
+    ProviderId.anthropic => AnthropicProvider(
       apiKey ?? '',
       chosen,
       transport: transport,
       webSearch: webSearch,
     ),
     // The key is a token that never needs a refresh.
-    'openai' => ChatGptProvider(
+    ProviderId.openai => ChatGptProvider(
       chosen,
       ({refresh = false}) async => apiKey ?? '',
       client: client,
       namespace: null,
       webSearch: webSearch,
     ),
-    'gemini' => GeminiProvider(apiKey ?? '', chosen, transport: transport),
-    'deepseek' => DeepSeekProvider(apiKey ?? '', chosen, transport: transport),
-    _ => OllamaProvider(chosen, transport: transport),
+    ProviderId.gemini => GeminiProvider(apiKey ?? '', chosen, transport: transport),
+    ProviderId.deepseek => DeepSeekProvider(apiKey ?? '', chosen, transport: transport),
+    ProviderId.ollama => OllamaProvider(chosen, transport: transport),
+    ProviderId.device => throw ArgumentError.value(
+      spec.name,
+      'spec',
+      'runs in the app, not over HTTP',
+    ),
   };
 }

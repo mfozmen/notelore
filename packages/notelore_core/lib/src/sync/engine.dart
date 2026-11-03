@@ -260,9 +260,7 @@ class _Pass {
       case SyncAction.removeLocal:
         _removeLocal(rel, path);
       case SyncAction.removeRemote:
-        await remote.trash(meta!.id);
-        manifest.forget(rel);
-        report.removedRemote.add(rel);
+        await _removeRemote(rel, meta!);
     }
   }
 
@@ -296,17 +294,12 @@ class _Pass {
         _take(rel, path, meta!, downloaded!, recorded(meta, remoteHash!), kept: local);
       case SyncAction.merge:
         // Changed here too: this copy is kept apart before Drive's replaces it.
-        final target = _history(rel);
-        Directory(p.dirname(target)).createSync(recursive: true);
-        moveWithRetry(path, target);
-        report.history.add(_rel(target));
+        _toHistory(rel, path);
         _take(rel, path, meta!, downloaded!, recorded(meta, remoteHash!));
       case SyncAction.removeLocal:
         _removeLocal(rel, path);
       case SyncAction.removeRemote:
-        await remote.trash(meta!.id);
-        manifest.forget(rel);
-        report.removedRemote.add(rel);
+        await _removeRemote(rel, meta!);
     }
   }
 
@@ -325,13 +318,24 @@ class _Pass {
   /// Gone from the remote: the copy here moves to history, unless held.
   void _removeLocal(String rel, String path) {
     if (hold(rel)) return report.held.add(rel);
+    _toHistory(rel, path);
+    manifest.forget(rel);
+    report.removedLocal.add(rel);
+  }
+
+  /// Moves the file at [path] under this pass's `.notelore/history/`.
+  void _toHistory(String rel, String path) {
     final target = _history(rel);
     Directory(p.dirname(target)).createSync(recursive: true);
     moveWithRetry(path, target);
+    report.history.add(_rel(target));
+  }
+
+  /// Gone here: Drive's copy goes to its trash, not deleted.
+  Future<void> _removeRemote(String rel, RemoteFile meta) async {
+    await remote.trash(meta.id);
     manifest.forget(rel);
-    report
-      ..removedLocal.add(rel)
-      ..history.add(_rel(target));
+    report.removedRemote.add(rel);
   }
 
   /// Keeps [bytes], what is here, under `.notelore/kept/` before Drive's copy

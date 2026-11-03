@@ -40,6 +40,27 @@ const tool = Tool('read_note', 'Read a note', {
 });
 
 void main() {
+  test('a reply closes the same for every provider (#664)', () {
+    const call = {
+      'type': 'tool_use',
+      'id': 't',
+      'name': 'list_notes',
+      'input': <String, Object?>{},
+    };
+    const words = {'type': 'text', 'text': 'Hi'};
+    expect(agentReply([words]).stopReason, 'end_turn');
+    expect(agentReply([call]).stopReason, 'tool_use');
+    // A provider that only counts calls on its own finish reason (DeepSeek).
+    expect(agentReply([call], tools: false).stopReason, 'end_turn');
+    // Cut short: said, unless it was calling a tool.
+    expect(
+      agentReply([words], stopped: true, reason: 'length').content.last,
+      stoppedEarly('length'),
+    );
+    expect(agentReply([call], stopped: true, reason: 'length').content, [call]);
+    expect(agentReply([words], usage: const TokenUsage(1, 2)).usage?.output, 2);
+  });
+
   test('findProvider, known and unknown', () {
     expect(findProvider('anthropic').displayName, 'Claude (Anthropic)');
     expect(providerSpecs.map((s) => s.name), [
@@ -116,6 +137,18 @@ void main() {
       expect(createProvider(findProvider(name), null, model: 'other').model, 'other');
     });
   }
+
+  test('createProvider: the model on the device is not an HTTP provider (#661)', () {
+    expect(() => createProvider(findProvider('device'), null), throwsArgumentError);
+  });
+
+  test('provider ids keep the names settings and sync already saved (#661)', () {
+    expect([for (final spec in providerSpecs) spec.id], ProviderId.values);
+    expect(
+      [for (final spec in providerSpecs) spec.name],
+      ['chatgpt', 'anthropic', 'openai', 'gemini', 'deepseek', 'ollama', 'device'],
+    );
+  });
 
   test('createProvider: an OpenAI key uses the Responses API, plain tools', () async {
     final requests = <http.Request>[];

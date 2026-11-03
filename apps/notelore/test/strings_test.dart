@@ -51,6 +51,8 @@ void main() {
   });
 
   test('every provider and group reads in Turkish', () {
+    // The model on the device never claims to run "on this computer" (#661).
+    expect(tr.cost(findProvider('device')), contains('cihazda'));
     for (final spec in providerSpecs) {
       expect(tr.cost(spec), isNot(spec.cost), reason: spec.name);
       expect(tr.keySteps(spec), hasLength(spec.keySteps.length), reason: spec.name);
