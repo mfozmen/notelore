@@ -4,6 +4,7 @@ library;
 
 import 'dart:async';
 
+import 'i18n.dart' show messageLanguage;
 import 'providers/base.dart';
 import 'store/format.dart';
 import 'tools.dart';
@@ -161,6 +162,15 @@ String _dated(String prompt, DateTime? now) {
   return prompt.replaceFirst('{today}', '${isoDate(at)} ${two(at.hour)}:${two(at.minute)}');
 }
 
+/// What closes the prompt for [message]: the language to answer in, named
+/// last so notes and facts in another language do not turn the answer (#653);
+/// empty when the message does not say.
+String languageLine(String message) => switch (messageLanguage(message)) {
+  'tr' => '\n\nThe user writes in Turkish: answer in Turkish.',
+  'en' => '\n\nThe user writes in English: answer in English.',
+  _ => '',
+};
+
 class Agent {
   Agent(
     this.provider,
@@ -190,7 +200,11 @@ class Agent {
   /// prefix for a prefill cache.
   String get _system =>
       '${slim ? slimSystemPrompt(today) : systemPrompt(today)}\n\n$_notes'
-      '${_me.isEmpty ? '' : '\n\n$_me'}';
+      '${_me.isEmpty ? '' : '\n\n$_me'}'
+      '$_language';
+
+  /// [languageLine] of this turn's message.
+  var _language = '';
 
   /// [Toolbox.aboutMe] as the turn began, or nothing when [aboutMe] is off.
   var _me = '';
@@ -249,6 +263,7 @@ class Agent {
     wroteNotes = false;
     _notes = toolbox.noteList();
     _me = aboutMe ? toolbox.aboutMe() : '';
+    _language = languageLine(text);
     final stop = _stop = Completer()..future.ignore();
     final timer = Timer(deadline, () => this.stop(const TurnStopped(_late)));
     try {

@@ -15,11 +15,14 @@ import 'package:collection/collection.dart';
 import 'package:path/path.dart' as p;
 
 import 'agent.dart';
+import 'i18n.dart' show answerLanguage;
 import 'providers/base.dart';
 import 'providers/ollama.dart';
 import 'providers/openai.dart';
 import 'store/index.dart';
 import 'tools.dart';
+
+export 'i18n.dart' show answerLanguage;
 
 /// The day every case runs on, so dates in notes and answers are stable.
 final evalToday = DateTime(2026, 10, 18);
@@ -414,31 +417,6 @@ String? _wrongLanguage(String lang, String answer) => switch (answerLanguage(ans
   _ => null,
 };
 
-const _englishWords = {
-  'the', 'a', 'an', 'and', 'to', 'of', 'in', 'on', 'for', 'with', 'is', 'are', 'was', 'it', //
-  'i', "i've", "i'll", 'you', 'your', 'this', 'that', 'what', 'which', 'do', 'did', 'have',
-};
-
-const _turkishWords = {
-  've', 'bir', 'bu', 'şu', 'için', 'ile', 'da', 'de', 'mi', 'mı', 'mu', 'mü', 'ne', 'olarak', //
-  'ekledim', 'kaydettim', 'notuna', 'notunu', 'hangi', 'nasıl', 'var', 'yok', 'yani', 'değil',
-};
-
-/// `en` or `tr` by which language's small words [answer] has more of, quoted
-/// text left out (a Turkish title in an English answer); null when neither.
-String? answerLanguage(String answer) {
-  final unquoted = answer.replaceAll(RegExp(r'"[^"]*"|“[^”]*”|`[^`]*`'), ' ');
-  final words = RegExp(
-    r"[\p{L}']+",
-    unicode: true,
-  ).allMatches(unquoted.toLowerCase()).map((m) => m[0]!);
-  final english = words.where(_englishWords.contains).length;
-  final turkish = words.where(_turkishWords.contains).length;
-  if (english > turkish) return 'en';
-  if (turkish > english) return 'tr';
-  return null;
-}
-
 /// [result]'s turn as one chat transcript with tool calls, the shape Qwen's
 /// and most open models' chat templates train on (#327).
 /// Its case id goes with it, so a split keeps one scenario on one side, and
@@ -447,7 +425,10 @@ Map<String, Object?> trainingExample(EvalResult result) => {
   'id': result.evalCase.id,
   'note_list': result.noteList,
   'messages': [
-    {'role': 'system', 'content': _system(result.slim, result.noteList)},
+    {
+      'role': 'system',
+      'content': _system(result.slim, result.noteList) + languageLine(result.evalCase.message),
+    },
     ...toOllama(collapseRepeatedReads(result.messages)),
   ],
   'tools': functionTools(result.slim ? slimTools : noteTools),
