@@ -10,6 +10,8 @@ import 'package:notelore_core/notelore_core.dart';
 
 import 'reminder_notifier.dart';
 
+/// What went wrong with Google Calendar (#432): its sign-in, a write the next
+/// refresh tries again, or access the person removed on Google's side.
 enum CalendarProblem { signIn, update, revoked }
 
 class ReminderCenter extends ChangeNotifier {
