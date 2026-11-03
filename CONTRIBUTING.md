@@ -36,7 +36,10 @@ The rules are in [`CLAUDE.md`](CLAUDE.md). It is the guide for people and AI age
    - SonarCloud shows 0 new issues.
    - The AI review and security review show no Critical.
    - Review findings are settled in the PR: fixed, or argued until the reviewer and author agree.
-9. **After the merge:** remove `WIP`. Releases are cut by hand (`gh workflow run release.yml`).
+9. **After the merge:**
+   - Remove `WIP`.
+   - If you worked in a worktree, remove it and its branch. First check that nothing is lost: `git status --porcelain` is empty, and every commit is on the remote or in the merged PR (CLAUDE.md, *Worktrees*).
+   - Releases are cut by hand (`gh workflow run release.yml`).
 
 ## Never
 
