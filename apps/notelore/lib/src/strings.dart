@@ -475,7 +475,7 @@ abstract class Strings {
   String get privacySection;
   String get factSection;
   String aboutMeShared(bool on);
-  String get aboutMeSharingWhere;
+  String aboutMeSharedMeans(bool on);
   String get aboutMeToCloudWhy;
   String get aboutMeEmpty;
   String get addFact;
@@ -1427,7 +1427,9 @@ class EnglishStrings extends Strings {
   String aboutMeShared(bool on) => on ? 'Shared with cloud models' : 'Kept from cloud models';
 
   @override
-  String get aboutMeSharingWhere => 'Change it in Settings, Privacy.';
+  String aboutMeSharedMeans(bool on) => on
+      ? 'Claude, ChatGPT and Gemini see these facts with every message.'
+      : 'Only a model on this device or computer gets them.';
 
   @override
   String get aboutMeToCloudWhy =>
@@ -2520,7 +2522,9 @@ class TurkishStrings extends Strings {
       on ? 'Bulut modelleriyle paylaşılıyor' : 'Bulut modellerinden saklanıyor';
 
   @override
-  String get aboutMeSharingWhere => 'Ayarlar > Gizlilik bölümünden değiştir.';
+  String aboutMeSharedMeans(bool on) => on
+      ? 'Claude, ChatGPT ve Gemini bu bilgileri her mesajda görür.'
+      : 'Onları yalnızca bu cihazdaki ya da bilgisayardaki bir model alır.';
 
   @override
   String get aboutMeToCloudWhy =>

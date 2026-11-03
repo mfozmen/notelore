@@ -40,67 +40,90 @@ class AboutMeScreen extends StatelessWidget {
       );
   }
 
+  // Its own messenger: an Undo is then laid out by this scaffold, clear of the add button.
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: session,
-    builder: (context, _) {
-      final s = session.strings;
-      final theme = Theme.of(context);
-      final entries = session.aboutMeEntries();
-      return Scaffold(
-        appBar: AppBar(leading: AppMenu.button(context), title: Text(s.aboutMeSection)),
-        floatingActionButton: FloatingActionButton.extended(
-          icon: const Icon(Icons.add),
-          label: Text(s.addFact),
-          onPressed: () => _edit(context),
-        ),
-        body: Align(
+  Widget build(BuildContext context) => ScaffoldMessenger(
+    child: ListenableBuilder(listenable: session, builder: _page),
+  );
+
+  Widget _page(BuildContext context, Widget? _) {
+    final s = session.strings;
+    final theme = Theme.of(context);
+    final entries = session.aboutMeEntries();
+    final wide = Layout.isWide(context);
+    final add = Builder(
+      builder: (context) => wide
+          ? FilledButton.tonalIcon(
+              icon: const Icon(Icons.add),
+              label: Text(s.addFact),
+              onPressed: () => _edit(context),
+            )
+          : FloatingActionButton.extended(
+              icon: const Icon(Icons.add),
+              label: Text(s.addFact),
+              onPressed: () => _edit(context),
+            ),
+    );
+    return Scaffold(
+      appBar: AppBar(leading: AppMenu.button(context), title: Text(s.aboutMeSection)),
+      floatingActionButton: wide ? null : add,
+      body: Builder(
+        builder: (context) => Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: Layout.column),
             child: ListView(
-              // Room under the last row for the button that floats over it.
-              padding: const EdgeInsets.only(top: Gap.s, bottom: 96),
+              // Room under the last row for the button that floats over it on a phone.
+              padding: EdgeInsets.only(top: Gap.s, bottom: wide ? Gap.l : 96),
               children: [
                 if (entries.isEmpty)
                   Padding(
-                    padding: const EdgeInsets.all(Gap.m),
-                    child: Text(
-                      s.aboutMeEmpty,
-                      style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, Gap.m),
+                    child: Column(
+                      children: [
+                        Icon(Icons.person_outline, size: 48, color: theme.colorScheme.primary),
+                        const SizedBox(height: Gap.m),
+                        Text(
+                          s.aboutMeEmpty,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                        ),
+                      ],
                     ),
                   ),
                 for (final section in aboutMeSections.keys)
                   if (entries.where((e) => e.section == section).toList() case final mine
-                      when mine.isNotEmpty)
-                    ExpansionTile(
-                      key: PageStorageKey(section),
-                      initiallyExpanded: true,
-                      shape: const Border(),
-                      title: Text(
+                      when mine.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, Gap.xs),
+                      child: Text(
                         aboutMeSections[section]![s.languageCode]!,
                         style: theme.textTheme.titleSmall?.copyWith(
                           color: theme.colorScheme.primary,
                         ),
                       ),
-                      children: [
-                        for (final entry in mine)
-                          ListTile(
-                            title: Text(entry.fact),
-                            onTap: () => _edit(context, entry),
-                            trailing: IconButton(
-                              tooltip: s.delete,
-                              icon: const Icon(Icons.delete_outline),
-                              onPressed: () => _delete(context, entry.fact, section),
-                            ),
-                          ),
-                      ],
                     ),
+                    for (final entry in mine)
+                      ListTile(
+                        title: Text(entry.fact),
+                        onTap: () => _edit(context, entry),
+                        trailing: IconButton(
+                          tooltip: s.delete,
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () => _delete(context, entry.fact, section),
+                        ),
+                      ),
+                  ],
+                if (wide)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, 0),
+                    child: Align(alignment: Alignment.centerLeft, child: add),
+                  ),
                 const Divider(height: Gap.l),
                 ListTile(
                   leading: const Icon(Icons.shield_outlined),
                   title: Text(s.aboutMeShared(session.aboutMeToCloud)),
-                  subtitle: Text(s.aboutMeSharingWhere),
+                  subtitle: Text(s.aboutMeSharedMeans(session.aboutMeToCloud)),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: privacy,
                 ),
@@ -108,9 +131,9 @@ class AboutMeScreen extends StatelessWidget {
             ),
           ),
         ),
-      );
-    },
-  );
+      ),
+    );
+  }
 }
 
 /// Adds a fact, or changes [old], in the section picked; the store's refusal

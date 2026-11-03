@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/about_me_page.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'app_test.dart' show connect, phone, pumpApp;
@@ -99,6 +100,7 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.text('Kept from cloud models'), findsOneWidget);
+    expect(find.text('Only a model on this device or computer gets them.'), findsOneWidget);
   });
 
   testWidgets('about me: facts under their sections; add and edit pick one (#671)', (tester) async {
@@ -136,10 +138,17 @@ void main() {
     expect(session.aboutMeEntries(), contains((section: 'home', fact: 'Wife: Ayşe')));
     expect(find.text('Family'), findsNothing);
 
-    // A long section folds away.
-    await tester.tap(find.text('Home'));
-    await tester.pumpAndSettle();
-    expect(find.text('Wife: Ayşe'), findsNothing);
+    // The undo after a delete never covers the add button.
+    await tester.tap(find.byTooltip('Delete').first);
+    await tester.pump(const Duration(milliseconds: 750));
+    // Shown by the page's own scaffold, which keeps it clear of the button.
+    expect(
+      find.descendant(of: find.byType(AboutMeScreen), matching: find.byType(SnackBar)),
+      findsOneWidget,
+    );
+    final button = tester.getRect(find.byType(FloatingActionButton));
+    final undo = tester.getRect(find.byType(SnackBar));
+    expect(button.overlaps(undo), isFalse);
   });
 
   testWidgets('about me: in the side rail on a wide window; Settings keeps Privacy', (
@@ -151,6 +160,7 @@ void main() {
     await tester.tap(find.text('About me'));
     await tester.pumpAndSettle();
     expect(find.text('Add a fact'), findsOneWidget);
+    expect(find.byType(FloatingActionButton), findsNothing); // by the list, not a far corner
     await openSettings(tester, 'Privacy');
     expect(find.text('Share with cloud models'), findsOneWidget);
     expect(find.text('Add a fact'), findsNothing);
