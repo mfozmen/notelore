@@ -1156,6 +1156,105 @@ void main() {
     );
   });
 
+  testWidgets('chat: a sent message selects word by word and copies on macOS (#695)', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    final copied = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (
+      call,
+    ) async {
+      if (call.method == 'Clipboard.setData') copied.add((call.arguments as Map)['text'] as String);
+      return null;
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    phone(tester);
+    await pumpApp(tester, Harness(answers: ['Saved.']));
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'Kitaplari rafa koy');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+
+    final message = find.text('Kitaplari rafa koy');
+    // The person's words select through the answers' surface, not a bare
+    // SelectableText (#695).
+    expect(find.ancestor(of: message, matching: find.byType(SelectionArea)), findsOneWidget);
+    final rect = tester.getRect(message);
+    final drag = await tester.startGesture(
+      Offset(rect.centerLeft.dx + 2, rect.center.dy),
+      kind: PointerDeviceKind.mouse,
+    );
+    await drag.moveTo(Offset(rect.centerRight.dx - 8, rect.center.dy));
+    await drag.up();
+    await tester.pumpAndSettle();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyC);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.pumpAndSettle();
+    expect(copied.last, contains('Kitaplari'));
+
+    // A double-click takes one word (#695).
+    copied.clear();
+    final word = Offset(rect.centerLeft.dx + 12, rect.center.dy);
+    await tester.tapAt(word);
+    await tester.pump(const Duration(milliseconds: 80));
+    await tester.tapAt(word);
+    await tester.pumpAndSettle();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyC);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.pumpAndSettle();
+    expect(copied.last.trim(), 'Kitaplari');
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('chat: a sent message selects and copies on Windows (#695)', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    final copied = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (
+      call,
+    ) async {
+      if (call.method == 'Clipboard.setData') copied.add((call.arguments as Map)['text'] as String);
+      return null;
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    phone(tester);
+    await pumpApp(tester, Harness(answers: ['Saved.']));
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'Kitaplari rafa koy');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+
+    final rect = tester.getRect(find.text('Kitaplari rafa koy'));
+    final drag = await tester.startGesture(
+      Offset(rect.centerLeft.dx + 2, rect.center.dy),
+      kind: PointerDeviceKind.mouse,
+    );
+    await drag.moveTo(Offset(rect.centerRight.dx - 8, rect.center.dy));
+    await drag.up();
+    await tester.pumpAndSettle();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyC);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+    expect(copied.last, contains('Kitaplari'));
+    debugDefaultTargetPlatformOverride = null;
+  });
+
   testWidgets('chat: Copy under every answer; an older message shows it on a tap (#508)', (
     tester,
   ) async {
