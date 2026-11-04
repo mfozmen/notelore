@@ -131,6 +131,17 @@ void main() {
     expect(size.width, greaterThanOrEqualTo(48));
     expect(size.height, greaterThanOrEqualTo(48));
   });
+  testWidgets('calendar: a day fits a narrow cell at 2x text (#705)', (tester) async {
+    phone(tester);
+    tester.view.physicalSize = const Size(900, 2400); // 360 dp: a cell is under 48 dp
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await withPlans(tester);
+    await tester.tap(find.text('Calendar'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('calendar: empty, it says where things come from; a wide window side by side', (
     tester,
   ) async {

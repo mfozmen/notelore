@@ -297,10 +297,9 @@ class _Day extends StatelessWidget {
         customBorder: const CircleBorder(),
         onTap: () => pick(day),
         child: Center(
-          child: FittedBox(
-            child: Container(
-              width: 48,
-              height: 48,
+          child: Container(
+            width: 48,
+            height: 48,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: chosen ? colors.primary : null,
