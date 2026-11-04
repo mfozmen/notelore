@@ -113,6 +113,44 @@ void main() {
     expect(tester.getSize(find.byType(TextField).last).width, lessThanOrEqualTo(840));
   });
 
+  testWidgets('chat on a wide window uses the width: bubbles, composer, zoom (#697)', (
+    tester,
+  ) async {
+    desktop(tester, 1600);
+    final session = await pumpApp(tester, Harness(answers: ['Saved.']));
+    await connect(tester, key: 'k');
+    const message =
+        'Kitaplari rafa koy ve haftaya dentist randevusunu hatirlat, sonra da kutuphane icin yeni bir proje notu ac ve icini doldur, boylece satirlar dolacak kadar uzun olsun.';
+    await tester.enterText(find.byKey(const Key('message')), message);
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    double bubbleWidth() => tester
+        .getSize(find.ancestor(of: find.text(message), matching: find.byType(Container)).first)
+        .width;
+    final bubble = bubbleWidth();
+    expect(bubble, greaterThan(560));
+    expect(tester.getSize(find.byKey(const Key('message'))).width, greaterThan(840));
+    // The chat's own zoom reaches the messages, so a bigger size widens the line.
+    for (var i = 0; i < 10; i++) {
+      session.zoomChatIn();
+    }
+    await tester.pumpAndSettle();
+    expect(MediaQuery.textScalerOf(tester.element(find.text(message))).scale(16), greaterThan(16));
+  });
+
+  testWidgets('chat on a phone keeps its bubble gutter (#697)', (tester) async {
+    phone(tester);
+    await pumpApp(tester, Harness(answers: ['Saved.']));
+    await connect(tester, key: 'k');
+    const message =
+        'Kitaplari rafa koy ve haftaya dentist randevusunu hatirlat, sonra da kutuphane icin yeni bir proje notu ac ve icini doldur, boylece satirlar dolacak kadar uzun olsun.';
+    await tester.enterText(find.byKey(const Key('message')), message);
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.text(message)).width, lessThanOrEqualTo(560));
+  });
   testWidgets('notes on a wide window: the list and the open note side by side', (tester) async {
     desktop(tester, 1600);
     final harness = Harness();

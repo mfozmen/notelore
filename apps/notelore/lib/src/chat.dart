@@ -1381,7 +1381,7 @@ class _Bubble extends StatelessWidget {
           // An answer's first paragraph brings its own small step at the top (#335).
           padding: EdgeInsets.fromLTRB(Gap.m, mine ? Gap.m - Gap.xs : Gap.s, Gap.m, Gap.m - Gap.xs),
           // A gutter on the other side on a phone; a readable line on wide windows.
-          constraints: BoxConstraints(maxWidth: Layout.bubble(size.maxWidth)),
+          constraints: BoxConstraints(maxWidth: Layout.bubbleFor(context, size.maxWidth)),
           decoration: BoxDecoration(
             color: background,
             borderRadius: bubbleRadius(mine: mine),
