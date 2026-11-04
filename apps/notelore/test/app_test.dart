@@ -1893,6 +1893,18 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('chat: with one model the chip is hidden (#511)', (tester) async {
+    phone(tester);
+    final harness = Harness()..models = ['claude-sonnet-5-5'];
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    // Nothing to switch to: the model is chosen in Settings > Model.
+    expect(find.byTooltip('Change the model'), findsNothing);
+    expect(find.text('claude-sonnet-5-5'), findsNothing);
+    await openSettings(tester, 'Model');
+    expect(find.text('claude-sonnet-5-5'), findsWidgets);
+  });
+
   testWidgets('chat: a model the provider no longer offers asks for another', (tester) async {
     phone(tester);
     final harness = Harness();
