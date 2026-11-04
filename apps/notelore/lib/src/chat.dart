@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
-import 'package:flutter/gestures.dart' show PointerDeviceKind, kLongPressTimeout, kTouchSlop;
+import 'package:flutter/gestures.dart'
+    show PointerDeviceKind, PointerScrollEvent, PointerSignalEvent, kLongPressTimeout, kTouchSlop;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart' show CustomSemanticsAction, SemanticsService;
 import 'package:flutter/services.dart';
@@ -295,43 +296,129 @@ class _ChatScreenState extends State<ChatScreen> {
     selection: TextSelection.collapsed(offset: text.length),
   );
 
+  /// A chat shortcut for [key] with Ctrl or Cmd, with and without Shift.
+  static List<SingleActivator> _withModifiers(LogicalKeyboardKey key, {bool shift = false}) => [
+    SingleActivator(key, control: true, shift: shift),
+    SingleActivator(key, meta: true, shift: shift),
+  ];
+
+  static final _zoomInKeys = [
+    ..._withModifiers(LogicalKeyboardKey.equal),
+    ..._withModifiers(LogicalKeyboardKey.equal, shift: true),
+    ..._withModifiers(LogicalKeyboardKey.add),
+    ..._withModifiers(LogicalKeyboardKey.numpadAdd),
+  ];
+  static final _zoomOutKeys = [
+    ..._withModifiers(LogicalKeyboardKey.minus),
+    ..._withModifiers(LogicalKeyboardKey.numpadSubtract),
+  ];
+  static final _resetKeys = [
+    ..._withModifiers(LogicalKeyboardKey.digit0),
+    ..._withModifiers(LogicalKeyboardKey.numpad0),
+  ];
+
+  /// Ctrl/Cmd and the wheel: one step per notch.
+  void _wheel(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent || event.scrollDelta.dy == 0) return;
+    final keys = HardwareKeyboard.instance;
+    if (!keys.isControlPressed && !keys.isMetaPressed) return;
+    event.scrollDelta.dy < 0 ? widget.session.zoomChatIn() : widget.session.zoomChatOut();
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = widget.session;
     final s = session.strings;
     // On a wide window the conversation is a readable column, like a page.
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: Layout.chat),
-        child: Column(
-          children: [
-            Expanded(
-              child: session.transcript.isEmpty
-                  ? EmptyChat(s, example: session.ready ? _example : null)
-                  : _Lines(session, live: _live),
-            ),
-            if (session.modelGone)
-              MaterialBanner(
-                leading: const Icon(Icons.warning_amber),
-                content: Text(s.modelGone(s.providerName(session.spec!), session.model!)),
-                actions: [
-                  TextButton(
-                    onPressed: () => _modelMenu.currentState!.showButtonMenu(),
-                    child: Text(s.changeModel),
+    return CallbackShortcuts(
+      bindings: {
+        for (final key in _zoomInKeys) key: session.zoomChatIn,
+        for (final key in _zoomOutKeys) key: session.zoomChatOut,
+        for (final key in _resetKeys) key: session.resetChatText,
+      },
+      child: Focus(
+        canRequestFocus: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: Layout.chat),
+            child: Column(
+              children: [
+                Expanded(
+                  child: Listener(
+                    onPointerSignal: _wheel,
+                    child: MediaQuery(
+                      data: MediaQuery.of(context).copyWith(
+                        textScaler: _ZoomedTextScaler(
+                          MediaQuery.textScalerOf(context),
+                          session.chatTextScale,
+                        ),
+                      ),
+                      child: session.transcript.isEmpty
+                          ? EmptyChat(s, example: session.ready ? _example : null)
+                          : _Lines(session, live: _live),
+                    ),
                   ),
-                ],
-              ),
-            if (session.ready) ...[
-              if (session.preparing && !session.busy) _Thinking(s, fixed: s.devicePreparing),
-              _ModelBar(session, menu: _modelMenu),
-              _Composer(session, voice: _voice, message: _message, send: _send, attach: _attach),
-            ] else
-              _NoModel(session),
-          ],
+                ),
+                if (session.modelGone)
+                  MaterialBanner(
+                    leading: const Icon(Icons.warning_amber),
+                    content: Text(s.modelGone(s.providerName(session.spec!), session.model!)),
+                    actions: [
+                      TextButton(
+                        onPressed: () => _modelMenu.currentState!.showButtonMenu(),
+                        child: Text(s.changeModel),
+                      ),
+                    ],
+                  ),
+                if (session.ready) ...[
+                  if (session.preparing && !session.busy) _Thinking(s, fixed: s.devicePreparing),
+                  _ModelBar(session, menu: _modelMenu),
+                  _Composer(
+                    session,
+                    voice: _voice,
+                    message: _message,
+                    send: _send,
+                    attach: _attach,
+                  ),
+                ] else
+                  _NoModel(session),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
+}
+
+/// The device's own text scale, multiplied by the chat's own.
+class _ZoomedTextScaler extends TextScaler {
+  const _ZoomedTextScaler(this.inner, this.zoom);
+
+  final TextScaler inner;
+  final double zoom;
+
+  @override
+  double scale(double fontSize) => inner.scale(fontSize) * zoom;
+
+  @override
+  double get textScaleFactor => inner.scale(1) * zoom;
+}
+
+/// While Ctrl/Cmd is held the wheel zooms the text, so the list must not also
+/// scroll under it.
+class _ChatScrollPhysics extends ClampingScrollPhysics {
+  const _ChatScrollPhysics({super.parent});
+
+  @override
+  bool shouldAcceptUserOffset(ScrollMetrics position) {
+    final keys = HardwareKeyboard.instance;
+    return !keys.isControlPressed && !keys.isMetaPressed && super.shouldAcceptUserOffset(position);
+  }
+
+  @override
+  _ChatScrollPhysics applyTo(ScrollPhysics? ancestor) =>
+      _ChatScrollPhysics(parent: buildParent(ancestor));
 }
 
 /// No conversation yet: what to do, and three random examples that put
@@ -441,6 +528,7 @@ class _Lines extends StatelessWidget {
     };
     return ListView.builder(
       reverse: true,
+      physics: const _ChatScrollPhysics(),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
       itemCount: lines.length + (session.busy ? 1 : 0),

@@ -266,6 +266,11 @@ abstract class Strings {
   String languageName(AppLanguage language);
   String get appLanguage;
   String get theme;
+  String get chatTextSize;
+  String get chatTextSizeWhy;
+  String get textSizeSmaller;
+  String get textSizeLarger;
+  String get textSizeReset;
 
   /// The app and its version; a development build has none.
   String versionLine(String version);
@@ -1094,6 +1099,17 @@ class EnglishStrings extends Strings {
   String get appLanguage => 'App language';
   @override
   String get theme => 'Theme';
+  @override
+  String get chatTextSize => 'Chat text size';
+  @override
+  String get chatTextSizeWhy =>
+      "Messages and answers, on top of the device's text size. This device only.";
+  @override
+  String get textSizeSmaller => 'Smaller text';
+  @override
+  String get textSizeLarger => 'Larger text';
+  @override
+  String get textSizeReset => 'Reset';
   @override
   String versionLine(String version) =>
       version.isEmpty ? 'Notelore · development build' : 'Notelore $version';
@@ -2194,6 +2210,17 @@ class TurkishStrings extends Strings {
   String get appLanguage => 'Uygulama dili';
   @override
   String get theme => 'Tema';
+  @override
+  String get chatTextSize => 'Sohbet yazı boyutu';
+  @override
+  String get chatTextSizeWhy =>
+      'Mesajlar ve cevaplar, cihazın yazı boyutunun üzerine. Yalnızca bu cihazda.';
+  @override
+  String get textSizeSmaller => 'Daha küçük yazı';
+  @override
+  String get textSizeLarger => 'Daha büyük yazı';
+  @override
+  String get textSizeReset => 'Sıfırla';
   @override
   String versionLine(String version) =>
       version.isEmpty ? 'Notelore · geliştirme sürümü' : 'Notelore $version';

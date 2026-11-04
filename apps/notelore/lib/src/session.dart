@@ -511,6 +511,28 @@ class Session extends ChangeNotifier {
     _saveUi();
   }
 
+  /// The chat's own text sizes, on top of the device's; 100% is the default.
+  static const chatTextSteps = <double>[0.85, 1.0, 1.15, 1.3, 1.5];
+  static const chatTextDefault = 1;
+
+  /// The step picked on this device; never synced to another one.
+  int chatTextStep = chatTextDefault;
+
+  double get chatTextScale => chatTextSteps[chatTextStep];
+
+  void zoomChatIn() => setChatTextStep(chatTextStep + 1);
+
+  void zoomChatOut() => setChatTextStep(chatTextStep - 1);
+
+  void resetChatText() => setChatTextStep(chatTextDefault);
+
+  void setChatTextStep(int step) {
+    final next = step.clamp(0, chatTextSteps.length - 1);
+    if (next == chatTextStep) return;
+    chatTextStep = next;
+    _saveUi();
+  }
+
   /// Announces the language and look, and remembers them on this device.
   void _saveUi() {
     notifyListeners();
@@ -523,6 +545,7 @@ class Session extends ChangeNotifier {
             'dropCalendars': reminderCenter.dropCalendars,
           'microphone': ?microphone,
           if (setUpBefore) 'setUp': true,
+          if (chatTextStep != chatTextDefault) 'chatTextStep': chatTextStep,
           if (reminderCenter.calendarNudged) 'calendarNudged': true,
         }),
       );
@@ -548,6 +571,10 @@ class Session extends ChangeNotifier {
         ..clear()
         ..addAll((saved['dropCalendars'] as List? ?? const []).whereType<String>());
       setUpBefore = saved['setUp'] == true;
+      chatTextStep = switch (saved['chatTextStep']) {
+        final int step when step >= 0 && step < chatTextSteps.length => step,
+        _ => chatTextDefault,
+      };
       microphone = switch (saved['microphone']) {
         final String id => id,
         _ => null,
