@@ -1296,11 +1296,10 @@ class _Bubble extends StatelessWidget {
       ChatRole.assistant || ChatRole.error => (colors.surfaceContainerHigh, colors.onSurface),
     };
     final (:text, :answers, :files, :images) = _shown(line);
-    // The theme's selection tint disappears on the tinted bubbles: each one
-    // gets a tone that stands off its own surface (#702).
-    final selection = switch (line.role) {
+    // The theme tint disappears on the tinted bubbles; they get their own tone.
+    final Color? selection = switch (line.role) {
       ChatRole.user || ChatRole.pending => _contrastingSelection(background, foreground),
-      ChatRole.assistant || ChatRole.error => colors.primary.withValues(alpha: 0.45),
+      ChatRole.assistant || ChatRole.error => null,
     };
     final bubble = Semantics(
       liveRegion: live && line.role == ChatRole.assistant,
