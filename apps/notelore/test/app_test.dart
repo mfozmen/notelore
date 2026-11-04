@@ -768,6 +768,27 @@ void main() {
     expect(find.byKey(const Key('message')), findsOneWidget);
   });
 
+  testWidgets('lock: at 2x the wait message keeps its countdown (#706)', (tester) async {
+    phone(tester);
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final now = DateTime.utc(2026, 10, 17, 12);
+    final harness = Harness();
+    final first = await pumpApp(tester, harness, clock: () => now);
+    await connect(tester, key: 'k');
+    await first.lock.set('2468');
+    await tester.pumpWidget(const SizedBox());
+    await pumpApp(tester, harness, clock: () => now);
+    for (var i = 0; i < 5; i++) {
+      await tester.enterText(find.byKey(const Key('unlock')), '0000');
+      await tester.tap(find.text('Unlock'));
+      await tester.pump();
+      await tester.pump();
+    }
+    expect(find.text('Too many tries. Try again in 0:30.'), findsOneWidget);
+    expect(tester.widget<TextField>(find.byKey(const Key('unlock'))).decoration?.errorMaxLines, 3);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('lock: turning it off asks for the PIN; Cancel keeps it', (tester) async {
     phone(tester);
     final harness = Harness();

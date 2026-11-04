@@ -244,7 +244,11 @@ class _LockScreenState extends State<LockScreen> {
       inputFormatters: [if (pin) FilteringTextInputFormatter.digitsOnly],
       textInputAction: TextInputAction.done,
       onSubmitted: (_) => _unlockWith(_secret.text),
-      decoration: InputDecoration(labelText: pin ? s.lockPin : s.lockSecret, errorText: problem),
+      decoration: InputDecoration(
+        labelText: pin ? s.lockPin : s.lockSecret,
+        errorText: problem,
+        errorMaxLines: 3,
+      ),
     ),
     const SizedBox(height: Gap.m),
     FilledButton(
@@ -593,7 +597,7 @@ class _PinField extends StatelessWidget {
     autofocus: autofocus,
     keyboardType: TextInputType.number,
     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-    decoration: InputDecoration(labelText: label, errorText: error),
+    decoration: InputDecoration(labelText: label, errorText: error, errorMaxLines: 3),
   );
 }
 
