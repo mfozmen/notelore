@@ -297,43 +297,46 @@ class _Day extends StatelessWidget {
         customBorder: const CircleBorder(),
         onTap: () => pick(day),
         child: Center(
-          child: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: chosen ? colors.primary : null,
-              border: today && !chosen ? Border.all(color: colors.primary, width: 1.5) : null,
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Transform.translate(
-                  offset: const Offset(0, -2),
-                  child: MediaQuery.withClampedTextScaling(
-                    maxScaleFactor: 1.5,
-                    child: Text(
-                      '${day.day}',
-                      style: TextStyle(
-                        color: chosen ? colors.onPrimary : colors.onSurface,
-                        fontWeight: today ? FontWeight.w600 : null,
+          child: FittedBox(
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: chosen ? colors.primary : null,
+                border: today && !chosen ? Border.all(color: colors.primary, width: 1.5) : null,
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Transform.translate(
+                    // Lifts the number above the dot so the pair reads centered.
+                    offset: const Offset(0, -2),
+                    child: MediaQuery.withClampedTextScaling(
+                      maxScaleFactor: 1.5,
+                      child: Text(
+                        '${day.day}',
+                        style: TextStyle(
+                          color: chosen ? colors.onPrimary : colors.onSurface,
+                          fontWeight: today ? FontWeight.w600 : null,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                if (marked)
-                  Positioned(
-                    bottom: Gap.xs,
-                    child: Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: chosen ? colors.onPrimary : (dot ?? colors.primary),
+                  if (marked)
+                    Positioned(
+                      bottom: Gap.xs,
+                      child: Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: chosen ? colors.onPrimary : (dot ?? colors.primary),
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
