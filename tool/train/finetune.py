@@ -19,7 +19,7 @@ are read the same way.
 
 A tenth of the turns is held out (the same tenth every run), a case's
 turns together, by the row's `id`. The validation
-loss on it is logged with the train loss every 5 steps (`--eval-every`), the LoRA saved is the
+loss on it is measured every 5 steps (`--eval-every`; the train loss stays every 5), the LoRA saved is the
 checkpoint where it was lowest, and three evaluations without a better one end
 the run, so `--epochs` is a ceiling (the cosine schedule still spans all of
 them, so a run stopped early ends at a higher learning rate).
@@ -136,6 +136,11 @@ def split(rows, keys=None, share=0.1, seed=0):
     )
 
 
+def lora_settings(rank):
+    """The LoRA's settings: alpha twice the rank, as v3 to v7 had it at r=16."""
+    return dict(r=rank, lora_alpha=2 * rank, lora_dropout=0.05, target_modules="all-linear", task_type="CAUSAL_LM")
+
+
 def trainer_args(out, epochs, flags, learning_rate=2e-4, eval_every=5):
     """The trainer's settings: evaluated and saved on the same steps, and the
     checkpoint with the best validation loss loaded at the end (early stopping
@@ -227,7 +232,9 @@ def load(base, dtype):
     )
 
 
-def train(base, data, out, epochs, assistant_only=False, rank=16, learning_rate=2e-4, eval_every=5):
+def train(
+    base, data, out, epochs, assistant_only=False, rank=16, learning_rate=2e-4, eval_every=5
+):
     tokenizer = AutoTokenizer.from_pretrained(base)
     kept, held = split(dataset(tokenizer, data, assistant_only), cases(data))
     print(f"{len(kept)} training turns, {len(held)} held out for the validation loss")
@@ -239,13 +246,7 @@ def train(base, data, out, epochs, assistant_only=False, rank=16, learning_rate=
         train_dataset=Dataset.from_list(kept),
         eval_dataset=Dataset.from_list(held),
         processing_class=tokenizer,
-        peft_config=LoraConfig(
-            r=rank,
-            lora_alpha=2 * rank,
-            lora_dropout=0.05,
-            target_modules="all-linear",
-            task_type="CAUSAL_LM",
-        ),
+        peft_config=LoraConfig(**lora_settings(rank)),
         args=SFTConfig(**trainer_args(out, epochs, flags, learning_rate, eval_every)),
         # Three evaluations without a better validation loss end the run.
         callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
@@ -352,16 +353,11 @@ def main(argv):
 
     # Before hours of training: fails at once if Ollama lacks the base model.
     modelfile(out, option("ollama-base", "qwen3:4b-instruct-2507-q4_K_M"))
-    train(
-        base,
-        data,
-        out,
-        int(option("epochs", "3")),
-        "--assistant-only" in argv,
-        rank=int(option("rank", "16")),
-        learning_rate=float(option("lr", "2e-4")),
-        eval_every=int(option("eval-every", "5")),
-    )
+    rank, eval_every = int(option("rank", "16")), int(option("eval-every", "5"))
+    if rank < 1 or eval_every < 1:
+        raise SystemExit(USAGE)
+    lr = float(option("lr", "2e-4"))
+    train(base, data, out, int(option("epochs", "3")), "--assistant-only" in argv, rank, lr, eval_every)
     torch.cuda.empty_cache()
     merge(base, out)
     print(f"merged -> {Path(out) / 'merged'}; next: convert and quantize it")
