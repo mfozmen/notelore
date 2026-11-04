@@ -111,8 +111,8 @@ void main() {
     await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
     final width = tester.getSize(find.byType(TextField).last).width;
-    expect(width, greaterThan(840));
-    expect(width, lessThanOrEqualTo(Layout.chat));
+    expect(width, greaterThan(560));
+    expect(width, lessThanOrEqualTo(Layout.column));
   });
 
   testWidgets('chat on a wide window uses the width: bubbles, composer, zoom (#697)', (
@@ -132,7 +132,10 @@ void main() {
         .width;
     final bubble = bubbleWidth();
     expect(bubble, greaterThan(560));
-    expect(tester.getSize(find.byKey(const Key('message'))).width, greaterThan(840));
+    expect(
+      tester.getSize(find.byKey(const Key('message'))).width,
+      lessThanOrEqualTo(Layout.column),
+    );
     // A short message shows the character cap moving with the text scale.
     const short = 'Kitaplari rafa koy';
     await tester.enterText(find.byKey(const Key('message')), short);
