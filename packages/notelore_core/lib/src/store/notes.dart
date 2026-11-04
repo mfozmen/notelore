@@ -306,14 +306,14 @@ String _endAfter(String time, int minutes) {
       '${(total % 60).toString().padLeft(2, '0')}';
 }
 
-void completeTodo(String path, int number, {DateTime? today}) =>
-    _setTodoDone(path, number, done: true, today: today);
+void completeTodo(String path, int number, {DateTime? today, String? expect}) =>
+    _setTodoDone(path, number, done: true, today: today, expect: expect);
 
 /// Reopens a done todo, the undo of [completeTodo] (#512).
-void reopenTodo(String path, int number, {DateTime? today}) =>
-    _setTodoDone(path, number, done: false, today: today);
+void reopenTodo(String path, int number, {DateTime? today, String? expect}) =>
+    _setTodoDone(path, number, done: false, today: today, expect: expect);
 
-void _setTodoDone(String path, int number, {required bool done, DateTime? today}) {
+void _setTodoDone(String path, int number, {required bool done, DateTime? today, String? expect}) {
   final note = readNote(path);
   final section = _section(note, 'todo');
   final todos = [
@@ -321,6 +321,11 @@ void _setTodoDone(String path, int number, {required bool done, DateTime? today}
       if (section.entries[i] case final Todo todo) (i, todo),
   ];
   final (position, todo) = todos[_todoIndex(section.heading, todos, number, done)];
+  // A sync or an edit may have moved the todo since the screen drew it: never
+  // write a different line than the one the person tapped.
+  if (expect != null && todo.text != expect) {
+    throw RangeError('$number is "${todo.text}", not "$expect".');
+  }
   section.entries[position] = Todo(todo.date, todo.text, done: done);
   writeNote(path, note, today: today);
 }

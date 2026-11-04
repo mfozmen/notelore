@@ -442,8 +442,8 @@ class _NotesScreenState extends State<NotesScreen> {
               folder: p.dirname(notePath(widget.session.paths.notes.path, note.kind, note.slug)),
               strings: widget.session.strings,
               today: widget.session.clock().toLocal(),
-              onTodo: (number, done) =>
-                  unawaited(widget.session.setTodoDone(note, number, done: done)),
+              onTodo: (number, text, done) =>
+                  unawaited(widget.session.setTodoDone(note, number, text: text, done: done)),
             ),
           ),
         ],

@@ -72,6 +72,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Future<void> _complete(DayItem item) => widget.session.setTodoDone(
     NoteInfo(item.slug, item.kind, item.note, null),
     item.number,
+    text: item.text,
     done: true,
   );
 

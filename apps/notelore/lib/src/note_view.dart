@@ -37,9 +37,38 @@ class WritableNoteView extends StatefulWidget {
 class _WritableNoteViewState extends State<WritableNoteView> {
   late var _text = widget.text;
 
-  Future<void> _toggle(int number, bool done) async {
-    if (!await widget.session.setTodoDone(widget.note, number, done: done) || !mounted) return;
-    setState(() => _text = widget.session.readNote(widget.note));
+  @override
+  void initState() {
+    super.initState();
+    widget.session.addListener(_changed);
+  }
+
+  /// A sync or the assistant changed the note: show its new words (#512).
+  void _changed() {
+    final next = _read();
+    if (next != null && mounted) setState(() => _text = next);
+  }
+
+  /// The note's file, or null when it is gone since it opened.
+  String? _read() {
+    try {
+      return widget.session.readNote(widget.note);
+    } on FileSystemException {
+      return null;
+    }
+  }
+
+  Future<void> _toggle(int number, String text, bool done) async {
+    await widget.session.setTodoDone(widget.note, number, text: text, done: done);
+    if (!mounted) return;
+    final next = _read();
+    if (next != null) setState(() => _text = next);
+  }
+
+  @override
+  void dispose() {
+    widget.session.removeListener(_changed);
+    super.dispose();
   }
 
   @override
@@ -48,7 +77,7 @@ class _WritableNoteViewState extends State<WritableNoteView> {
     folder: widget.folder,
     strings: widget.strings,
     today: widget.today,
-    onTodo: (number, done) => unawaited(_toggle(number, done)),
+    onTodo: (number, text, done) => unawaited(_toggle(number, text, done)),
   );
 }
 
@@ -75,7 +104,7 @@ class NoteView extends StatelessWidget {
 
   /// Called with a todo's number in the note and its new done state; without
   /// it (the archive), todos are marks, not controls.
-  final void Function(int number, bool done)? onTodo;
+  final void Function(int number, String text, bool done)? onTodo;
 
   @override
   Widget build(BuildContext context) {
@@ -316,7 +345,10 @@ class NoteView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (onTodo case final onTodo?)
-              Checkbox(value: todo.done, onChanged: (done) => onTodo(number, done ?? false))
+              Checkbox(
+                value: todo.done,
+                onChanged: (done) => onTodo(number, todo.text, done ?? false),
+              )
             else
               Icon(
                 todo.done ? Icons.check_circle : Icons.radio_button_unchecked,

@@ -306,6 +306,11 @@ void main() {
       expect(read(path), contains('## Todo\n- [x] 2026-09-30: Set up CI\n'));
       reopenTodo(path, 1, today: today);
       expect(read(path), contains('## Todo\n- [ ] 2026-09-30: Set up CI\n'));
+      // A moved todo is not the one the screen drew: never write another line.
+      expect(
+        () => completeTodo(path, 1, expect: 'another', today: today),
+        throwsA(isA<RangeError>()),
+      );
       completeTodo(path, 1, today: today);
       expect(
         () => reopenTodo(path, 2, today: today),

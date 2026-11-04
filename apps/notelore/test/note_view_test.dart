@@ -39,7 +39,7 @@ Future<void> show(
   WidgetTester tester,
   String source, {
   Strings? strings,
-  void Function(int number, bool done)? onTodo,
+  void Function(int number, String text, bool done)? onTodo,
 }) async {
   // Tall enough that the whole note is laid out.
   tester.view.physicalSize = const Size(800, 4000);
@@ -118,7 +118,7 @@ void main() {
 
   testWidgets('todos are real checkboxes when the reader can write them (#512)', (tester) async {
     final tapped = <(int, bool)>[];
-    await show(tester, _mopsos, onTodo: (number, done) => tapped.add((number, done)));
+    await show(tester, _mopsos, onTodo: (number, text, done) => tapped.add((number, done)));
     final boxes = tester.widgetList<Checkbox>(find.byType(Checkbox)).toList();
     // Open ones by date first, the done one last: their number is the file's.
     expect(boxes.map((b) => b.value), [false, false, true]);

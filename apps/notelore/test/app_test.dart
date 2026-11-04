@@ -2433,7 +2433,7 @@ void main() {
   ) async {
     phone(tester);
     final harness = Harness();
-    await pumpApp(tester, harness);
+    final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
     addTodo(path, 'Return the book', today: today);
@@ -2451,6 +2451,11 @@ void main() {
     await tester.pump();
     expect(File(path).readAsStringSync(), contains('- [ ] '));
     expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
+    // The note gone since it opened: the page keeps its words (#512).
+    File(path).deleteSync();
+    session.notifyListeners();
+    await tester.pumpAndSettle();
+    expect(find.text('Return the book'), findsOneWidget);
   });
 
   testWidgets('notes: list actions sit in one overflow; the reader owns export and delete (#555)', (
