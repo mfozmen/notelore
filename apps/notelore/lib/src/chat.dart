@@ -1481,7 +1481,7 @@ class _BubbleText extends StatelessWidget {
     required this.color,
     required this.strings,
     required this.markdown,
-    required this.selectionColor,
+    this.selectionColor,
   });
 
   final String text;
@@ -1489,7 +1489,7 @@ class _BubbleText extends StatelessWidget {
   final List<String> images;
   final Color color;
   final Strings strings;
-  final Color selectionColor;
+  final Color? selectionColor;
 
   /// An answer is Markdown (#305): shown formatted. The user's words are shown as typed.
   final bool markdown;

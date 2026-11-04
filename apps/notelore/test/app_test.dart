@@ -1381,8 +1381,14 @@ void main() {
     // Not the bubble's own colour: a different hue stands off the teal.
     final selected = HSLColor.fromColor(text.selectionColor!);
     final bubble = HSLColor.fromColor(scheme.primary);
-    expect((selected.hue - bubble.hue).abs(), greaterThan(60));
+    double hueGap(double a, double b) {
+      final gap = (a - b).abs() % 360;
+      return gap > 180 ? 360 - gap : gap;
+    }
+
+    expect(hueGap(selected.hue, bubble.hue), greaterThan(60));
   });
+
   testWidgets('chat: Copy under every answer; an older message shows it on a tap (#508)', (
     tester,
   ) async {
