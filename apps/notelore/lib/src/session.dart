@@ -511,7 +511,7 @@ class Session extends ChangeNotifier {
     _saveUi();
   }
 
-  /// The chat's text sizes, smaller to bigger; 100% is the default (#696).
+  /// The chat's own text sizes, on top of the device's; 100% is the default.
   static const chatTextSteps = <double>[0.85, 1.0, 1.15, 1.3, 1.5];
   static const chatTextDefault = 1;
 

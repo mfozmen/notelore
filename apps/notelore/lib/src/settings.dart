@@ -688,7 +688,7 @@ class _LookCard extends StatelessWidget {
   }
 }
 
-/// The chat's text size, in steps, on this device only (#696).
+/// The chat's text size, in steps, on this device only.
 class _ChatTextCard extends StatelessWidget {
   const _ChatTextCard(this.session);
 

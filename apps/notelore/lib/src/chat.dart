@@ -298,9 +298,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   /// A chat shortcut for [key] with Ctrl or Cmd, with and without Shift.
   static List<SingleActivator> _withModifiers(LogicalKeyboardKey key, {bool shift = false}) => [
-    for (final meta in [false, true]) ...[
-      SingleActivator(key, control: !meta, meta: meta, shift: shift),
-    ],
+    SingleActivator(key, control: true, shift: shift),
+    SingleActivator(key, meta: true, shift: shift),
   ];
 
   static final _zoomInKeys = [
@@ -318,7 +317,7 @@ class _ChatScreenState extends State<ChatScreen> {
     ..._withModifiers(LogicalKeyboardKey.numpad0),
   ];
 
-  /// Ctrl/Cmd and the wheel: a step for each turn (#696).
+  /// Ctrl/Cmd and the wheel: one step per notch.
   void _wheel(PointerSignalEvent event) {
     if (event is! PointerScrollEvent || event.scrollDelta.dy == 0) return;
     final keys = HardwareKeyboard.instance;
@@ -392,7 +391,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-/// The device's own text scale, multiplied by the chat's own (#696).
+/// The device's own text scale, multiplied by the chat's own.
 class _ZoomedTextScaler extends TextScaler {
   const _ZoomedTextScaler(this.inner, this.zoom);
 
@@ -404,6 +403,29 @@ class _ZoomedTextScaler extends TextScaler {
 
   @override
   double get textScaleFactor => inner.scale(1) * zoom;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _ZoomedTextScaler && other.inner == inner && other.zoom == zoom;
+
+  @override
+  int get hashCode => Object.hash(inner, zoom);
+}
+
+/// While Ctrl/Cmd is held the wheel zooms the text, so the list must not also
+/// scroll under it.
+class _ChatScrollPhysics extends ClampingScrollPhysics {
+  const _ChatScrollPhysics({super.parent});
+
+  @override
+  bool shouldAcceptUserOffset(ScrollMetrics position) {
+    final keys = HardwareKeyboard.instance;
+    return !keys.isControlPressed && !keys.isMetaPressed && super.shouldAcceptUserOffset(position);
+  }
+
+  @override
+  _ChatScrollPhysics applyTo(ScrollPhysics? ancestor) =>
+      _ChatScrollPhysics(parent: buildParent(ancestor));
 }
 
 /// No conversation yet: what to do, and three random examples that put
@@ -513,6 +535,7 @@ class _Lines extends StatelessWidget {
     };
     return ListView.builder(
       reverse: true,
+      physics: const _ChatScrollPhysics(),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
       itemCount: lines.length + (session.busy ? 1 : 0),
@@ -1459,7 +1482,11 @@ class _BubbleText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = TextStyle(color: color, height: 1.4);
-    final words = markdown ? _markdown(context, text, style) : SelectableText(text, style: style);
+    // The same selection the answers use (#695): a drag, a double-click and
+    // Cmd+C work on macOS, where a bare SelectableText lost the drag.
+    final words = markdown
+        ? _markdown(context, text, style)
+        : SelectionArea(child: Text(text, style: style));
     if (files.isEmpty && images.isEmpty) return words;
     final s = strings;
     return Column(
@@ -1559,6 +1586,8 @@ class _AttachmentLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
+    // Its own node: a selection area above it must not merge the label away.
+    container: true,
     label: label,
     excludeSemantics: true,
     child: Tooltip(
