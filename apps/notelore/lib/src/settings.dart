@@ -527,9 +527,17 @@ class _ConnectionsState extends State<_Connections> {
             onTap: () =>
                 launchUrl(Uri.parse(chatGptUsageUrl), mode: LaunchMode.externalApplication),
           ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, session.spec == null ? Gap.m : Gap.xs),
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.add),
+            label: Text(s.connectAnother),
+            onPressed: _connectAnother,
+          ),
+        ),
         if (session.spec != null)
           Padding(
-            padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, 0),
+            padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, Gap.m),
             child: TextButton.icon(
               style: TextButton.styleFrom(foregroundColor: colors.error),
               icon: const Icon(Icons.logout),
@@ -537,14 +545,6 @@ class _ConnectionsState extends State<_Connections> {
               onPressed: _switching != null ? null : _removeAll,
             ),
           ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, Gap.m),
-          child: OutlinedButton.icon(
-            icon: const Icon(Icons.add),
-            label: Text(s.connectAnother),
-            onPressed: _connectAnother,
-          ),
-        ),
         const Divider(height: Gap.l),
       ],
     );

@@ -14,6 +14,19 @@ void main() {
 
   Finder row(String name) => find.byKey(ValueKey('connection-$name'));
 
+  testWidgets('settings: Connect is first and Remove all last (#712)', (tester) async {
+    phone(tester);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'sk-ant');
+    await openModel(tester);
+    await tester.ensureVisible(find.text('Remove all models from this device'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getTopLeft(find.text('Connect another model')).dy,
+      lessThan(tester.getTopLeft(find.text('Remove all models from this device')).dy),
+    );
+  });
+
   testWidgets('settings: connect another model, switch with one tap, remove one (#362)', (
     tester,
   ) async {
