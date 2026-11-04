@@ -158,6 +158,23 @@ void main() {
     expect(icon.right, closeTo(field.right, 0.5));
   });
 
+  testWidgets('notes on a wide window: a todo checkbox writes the note (#512)', (tester) async {
+    desktop(tester, 1600);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    addTodo(path, 'Return the book', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(Checkbox));
+    await tester.pumpAndSettle();
+    await tester.pump();
+    expect(File(path).readAsStringSync(), contains('- [x] '));
+  });
+
   testWidgets('the open note follows changes from a sync or the assistant', (tester) async {
     desktop(tester, 1600);
     final harness = Harness();

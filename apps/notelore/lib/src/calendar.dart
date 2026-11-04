@@ -49,32 +49,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ListenableBuilder(
-          listenable: session,
-          builder: (_, _) {
-            var current = text;
-            try {
-              current = session.readNote(note);
-            } on FileSystemException {
-              // Gone since it opened: keep reading what was there.
-            }
-            return Scaffold(
-              appBar: AppBar(title: Text(item.note)),
-              body: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: Layout.column),
-                  child: NoteView(
-                    current,
-                    folder: p.dirname(notePath(session.paths.notes.path, item.kind, item.slug)),
-                    strings: session.strings,
-                    today: _today,
-                    onTodo: (number, done) =>
-                        unawaited(session.setTodoDone(note, number, done: done)),
-                  ),
-                ),
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: Text(item.note)),
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: Layout.column),
+              child: WritableNoteView(
+                session,
+                note,
+                text,
+                folder: p.dirname(notePath(session.paths.notes.path, item.kind, item.slug)),
+                strings: session.strings,
+                today: _today,
               ),
-            );
-          },
+            ),
+          ),
         ),
       ),
     );

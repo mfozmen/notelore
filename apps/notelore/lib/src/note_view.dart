@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -5,10 +6,51 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
-import 'session.dart' show withoutFrontMatter;
+import 'session.dart' show Session, withoutFrontMatter;
 import 'strings.dart';
 import 'theme.dart';
 import 'web_link.dart';
+
+/// A note page that writes its todo checkboxes and shows the new line at once.
+class WritableNoteView extends StatefulWidget {
+  const WritableNoteView(
+    this.session,
+    this.note,
+    this.text, {
+    required this.folder,
+    required this.strings,
+    required this.today,
+    super.key,
+  });
+
+  final Session session;
+  final NoteInfo note;
+  final String text;
+  final String folder;
+  final Strings strings;
+  final DateTime today;
+
+  @override
+  State<WritableNoteView> createState() => _WritableNoteViewState();
+}
+
+class _WritableNoteViewState extends State<WritableNoteView> {
+  late var _text = widget.text;
+
+  Future<void> _toggle(int number, bool done) async {
+    if (!await widget.session.setTodoDone(widget.note, number, done: done) || !mounted) return;
+    setState(() => _text = widget.session.readNote(widget.note));
+  }
+
+  @override
+  Widget build(BuildContext context) => NoteView(
+    _text,
+    folder: widget.folder,
+    strings: widget.strings,
+    today: widget.today,
+    onTodo: (number, done) => unawaited(_toggle(number, done)),
+  );
+}
 
 /// A note as a page (#426): its title and what it is, then each known section
 /// in its own form: decisions as cards, todos as checkboxes, notes as a dated
