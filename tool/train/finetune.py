@@ -17,12 +17,12 @@ takes its chat template and parameters from the base model as Ollama ships it
 (`--ollama-base`, qwen3:4b-instruct-2507-q4_K_M by default), so tool calls
 are read the same way.
 
-A tenth of the turns is held out (the same tenth every run), a case's
-turns together, by the row's `id`. The validation
-loss on it is logged with the train loss every 5 steps, the LoRA saved is the
-checkpoint where it was lowest, and three evaluations without a better one end
-the run, so `--epochs` is a ceiling (the cosine schedule still spans all of
-them, so a run stopped early ends at a higher learning rate).
+A tenth of the turns is held out (the same tenth every run), a case's turns
+together, by the row's `id`. The validation loss on it is measured every
+`--eval-every` steps (default 5; the train loss stays every 5), the LoRA saved
+is the checkpoint where it was lowest, and three evaluations without a better
+one end the run, so `--epochs` is a ceiling (the cosine schedule still spans
+all of them, so a run stopped early ends at a higher learning rate).
 
 `--assistant-only` puts the loss on the assistant's tokens alone (about 7% of
 a turn), not on the system prompt, tool schemas and tool results it would
@@ -136,7 +136,12 @@ def split(rows, keys=None, share=0.1, seed=0):
     )
 
 
-def trainer_args(out, epochs, flags):
+def lora_settings(rank):
+    """The LoRA's settings: alpha twice the rank, as v3 to v7 had it at r=16."""
+    return dict(r=rank, lora_alpha=2 * rank, lora_dropout=0.05, target_modules="all-linear", task_type="CAUSAL_LM")
+
+
+def trainer_args(out, epochs, flags, learning_rate=2e-4, eval_every=5):
     """The trainer's settings: evaluated and saved on the same steps, and the
     checkpoint with the best validation loss loaded at the end (early stopping
     needs that)."""
@@ -146,14 +151,14 @@ def trainer_args(out, epochs, flags):
         per_device_train_batch_size=1,
         per_device_eval_batch_size=1,
         gradient_accumulation_steps=8,
-        learning_rate=2e-4,
+        learning_rate=learning_rate,
         lr_scheduler_type="cosine",
         warmup_ratio=0.05,
         logging_steps=5,
         eval_strategy="steps",
-        eval_steps=5,
+        eval_steps=eval_every,
         save_strategy="steps",
-        save_steps=5,
+        save_steps=eval_every,
         save_total_limit=2,
         load_best_model_at_end=True,
         metric_for_best_model="eval_loss",
@@ -227,7 +232,9 @@ def load(base, dtype):
     )
 
 
-def train(base, data, out, epochs, assistant_only=False):
+def train(
+    base, data, out, epochs, assistant_only=False, rank=16, learning_rate=2e-4, eval_every=5
+):
     tokenizer = AutoTokenizer.from_pretrained(base)
     kept, held = split(dataset(tokenizer, data, assistant_only), cases(data))
     print(f"{len(kept)} training turns, {len(held)} held out for the validation loss")
@@ -239,14 +246,8 @@ def train(base, data, out, epochs, assistant_only=False):
         train_dataset=Dataset.from_list(kept),
         eval_dataset=Dataset.from_list(held),
         processing_class=tokenizer,
-        peft_config=LoraConfig(
-            r=16,
-            lora_alpha=32,
-            lora_dropout=0.05,
-            target_modules="all-linear",
-            task_type="CAUSAL_LM",
-        ),
-        args=SFTConfig(**trainer_args(out, epochs, flags)),
+        peft_config=LoraConfig(**lora_settings(rank)),
+        args=SFTConfig(**trainer_args(out, epochs, flags, learning_rate, eval_every)),
         # Three evaluations without a better validation loss end the run.
         callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
     )
@@ -336,7 +337,8 @@ def merge(base, out):
 
 USAGE = (
     "usage: python tool/train/finetune.py <base dir> <train.jsonl> <out dir> "
-    "[--epochs=3] [--ollama-base=qwen3:4b-instruct-2507-q4_K_M] [--assistant-only]"
+    "[--epochs=3] [--rank=16] [--lr=2e-4] [--eval-every=5] [--ollama-base=qwen3:4b-instruct-2507-q4_K_M] "
+    "[--assistant-only]"
 )
 
 
@@ -349,9 +351,16 @@ def main(argv):
     def option(name, default):
         return next((a.split("=", 1)[1] for a in argv if a.startswith(f"--{name}=")), default)
 
+    try:
+        rank, eval_every = int(option("rank", "16")), int(option("eval-every", "5"))
+        lr = float(option("lr", "2e-4"))
+    except ValueError:
+        raise SystemExit(USAGE) from None
+    if rank < 1 or eval_every < 1 or lr <= 0:
+        raise SystemExit(USAGE)
     # Before hours of training: fails at once if Ollama lacks the base model.
     modelfile(out, option("ollama-base", "qwen3:4b-instruct-2507-q4_K_M"))
-    train(base, data, out, int(option("epochs", "3")), "--assistant-only" in argv)
+    train(base, data, out, int(option("epochs", "3")), "--assistant-only" in argv, rank, lr, eval_every)
     torch.cuda.empty_cache()
     merge(base, out)
     print(f"merged -> {Path(out) / 'merged'}; next: convert and quantize it")

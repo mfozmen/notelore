@@ -22,6 +22,7 @@ from finetune import (
     clean,
     fp32_logprobs,
     load,
+    lora_settings,
     main,
     modelfile,
     gpu_settings,
@@ -150,6 +151,13 @@ try:
 except SystemExit as stop:
     check("too few paths stop with a usage message", str(stop).startswith("usage: python tool/train/finetune.py"), True)
 
+for bad in ("--rank=0", "--eval-every=0", "--lr=0", "--lr=fast"):
+    try:
+        main(["base", "data.jsonl", "out", bad])
+        check(f"{bad} stops before training", "ran", "usage")
+    except SystemExit as stop:
+        check(f"{bad} stops before training", str(stop).startswith("usage: "), True)
+
 # A tenth of the turns is held out for the validation loss (#605), the same
 # tenth on every run, so two runs compare.
 turns = list(range(20))
@@ -190,6 +198,11 @@ check(
 )
 check("evaluated where it saves", args["eval_steps"], args["save_steps"])
 check("the precision flags pass through", (args["bf16"], args["fp16"]), (True, False))
+check("v3 to v7's learning rate by default", args["learning_rate"], 2e-4)
+check("a sweep's learning rate passes through", trainer_args("out", 3, {}, learning_rate=1e-4)["learning_rate"], 1e-4)
+check("alpha stays twice the rank", {k: lora_settings(32)[k] for k in ("r", "lora_alpha")}, {"r": 32, "lora_alpha": 64})
+sparse = trainer_args("out", 3, {}, eval_every=15)
+check("a slow GPU evaluates less often, still where it saves", (sparse["eval_steps"], sparse["save_steps"]), (15, 15))
 
 history = [
     {"loss": 0.7, "step": 5},
