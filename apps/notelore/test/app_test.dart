@@ -1185,10 +1185,7 @@ void main() {
     final message = find.text('Kitaplari rafa koy');
     // The person's words select through the answers' surface, not a bare
     // SelectableText (#695).
-    expect(
-      find.ancestor(of: message, matching: find.byType(SelectionArea)),
-      findsOneWidget,
-    );
+    expect(find.ancestor(of: message, matching: find.byType(SelectionArea)), findsOneWidget);
     final rect = tester.getRect(message);
     final drag = await tester.startGesture(
       Offset(rect.centerLeft.dx + 2, rect.center.dy),
