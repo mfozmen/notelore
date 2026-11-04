@@ -268,8 +268,6 @@ abstract class Strings {
 
   // Usage (#217).
   String get usage;
-  String get showAdvanced;
-  String get showAdvancedWhy;
   String get usageWhat;
 
   /// The last [days] days; null is all time.
@@ -1095,10 +1093,6 @@ class EnglishStrings extends Strings {
       version.isEmpty ? 'Notelore · development build' : 'Notelore $version';
   @override
   String get usage => 'Usage';
-  @override
-  String get showAdvanced => 'Show advanced settings';
-  @override
-  String get showAdvancedWhy => 'Extra pages for checking how the app works.';
   @override
   String busiestDay(String amount, int day) => 'Busiest day: the ${_ordinal(day)}, $amount';
 
@@ -2200,10 +2194,6 @@ class TurkishStrings extends Strings {
       version.isEmpty ? 'Notelore · geliştirme sürümü' : 'Notelore $version';
   @override
   String get usage => 'Kullanım';
-  @override
-  String get showAdvanced => 'Gelişmiş ayarları göster';
-  @override
-  String get showAdvancedWhy => 'Uygulamanın nasıl çalıştığını gösteren ek sayfalar.';
   @override
   String busiestDay(String amount, int day) => 'En yoğun gün: $day, $amount';
   @override

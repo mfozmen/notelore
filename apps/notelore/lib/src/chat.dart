@@ -9,7 +9,6 @@ import 'package:flutter/semantics.dart' show CustomSemanticsAction, SemanticsSer
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:notelore_core/notelore_core.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'audio_file.dart';
 import 'plain_text.dart';
@@ -541,9 +540,6 @@ class _ModelBar extends StatelessWidget {
   final Session session;
   final GlobalKey<PopupMenuButtonState<String>> menu;
 
-  /// The model menu's item that opens the plan's usage page.
-  static const _manageUsage = '#manage-usage';
-
   @override
   Widget build(BuildContext context) {
     final s = session.strings;
@@ -553,32 +549,17 @@ class _ModelBar extends StatelessWidget {
       alignment: AlignmentDirectional.centerStart,
       padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, 0),
       // The models the connected provider listed; switching keeps the conversation.
-      // On a ChatGPT plan the chip says so and its menu links the plan's usage,
-      // as OpenAI's guidelines ask, with no button by the composer (#507).
+      // On a ChatGPT plan the chip says so, as OpenAI's guidelines ask, with no
+      // button by the composer (#507). Its usage link is in Settings (#558).
       child: PopupMenuButton<String>(
         key: menu,
         tooltip: s.changeTheModel,
         enabled: !session.busy,
         initialValue: session.model,
-        onSelected: (choice) => choice == _manageUsage
-            ? launchUrl(Uri.parse(chatGptUsageUrl), mode: LaunchMode.externalApplication)
-            : session.setModel(choice),
+        onSelected: session.setModel,
         itemBuilder: (_) => [
           for (final m in {...session.models, ?session.model})
             PopupMenuItem(value: m, child: Text(m)),
-          if (plan) ...[
-            const PopupMenuDivider(),
-            PopupMenuItem(
-              value: _manageUsage,
-              // As tall as a model's row, its label on the same edge.
-              child: Row(
-                children: [
-                  Expanded(child: Text(s.manageUsage)),
-                  const Icon(Icons.open_in_new, size: 18),
-                ],
-              ),
-            ),
-          ],
         ],
         child: Chip(
           avatar: const Icon(Icons.auto_awesome_outlined, size: 16),

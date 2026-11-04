@@ -548,7 +548,7 @@ class _ConnectionsState extends State<_Connections> {
 }
 
 /// What the model calls used (#217): this conversation and this device.
-/// What only advanced users want, behind one switch (#294): usage, on its own page.
+/// What only advanced users want (#294): usage, on its own page (#558).
 class _AdvancedCard extends StatelessWidget {
   const _AdvancedCard(this.session);
 
@@ -558,27 +558,14 @@ class _AdvancedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = session.strings;
     return Card(
-      child: Column(
-        children: [
-          SwitchListTile(
-            secondary: const Icon(Icons.tune),
-            title: Text(s.showAdvanced),
-            subtitle: Text(s.showAdvancedWhy),
-            value: session.advanced,
-            onChanged: session.setAdvanced,
-          ),
-          if (session.advanced)
-            ListTile(
-              key: const Key('open-usage'),
-              leading: const Icon(Icons.bar_chart),
-              title: Text(s.usage),
-              subtitle: Text(s.usageWhat),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () =>
-                  Navigator.of(context)
-                      .push(MaterialPageRoute<void>(builder: (_) => UsagePage(session))),
-            ),
-        ],
+      child: ListTile(
+        key: const Key('open-usage'),
+        leading: const Icon(Icons.bar_chart),
+        title: Text(s.usage),
+        subtitle: Text(s.usageWhat),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () =>
+            Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => UsagePage(session))),
       ),
     );
   }
