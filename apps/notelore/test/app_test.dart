@@ -1366,6 +1366,23 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
+  testWidgets('chat: a selected message shows a visible highlight (#702)', (tester) async {
+    phone(tester);
+    await pumpApp(tester, Harness(answers: ['Saved.']));
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'Kitaplari rafa koy');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    final message = find.text('Kitaplari rafa koy');
+    final text = tester.widget<Text>(message);
+    final scheme = Theme.of(tester.element(message)).colorScheme;
+    expect(text.selectionColor, isNotNull);
+    // Not the bubble's own colour: a different hue stands off the teal.
+    final selected = HSLColor.fromColor(text.selectionColor!);
+    final bubble = HSLColor.fromColor(scheme.primary);
+    expect((selected.hue - bubble.hue).abs(), greaterThan(60));
+  });
   testWidgets('chat: Copy under every answer; an older message shows it on a tap (#508)', (
     tester,
   ) async {

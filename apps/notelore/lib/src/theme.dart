@@ -117,6 +117,11 @@ ThemeData noteloreTheme(Brightness brightness, [Palette palette = Palette.lagoon
   const tap = Size(48, 48);
   return ThemeData(
     colorScheme: colors,
+    textSelectionTheme: TextSelectionThemeData(
+      selectionColor: colors.primary.withValues(alpha: 0.35),
+      selectionHandleColor: colors.primary,
+      cursorColor: colors.primary,
+    ),
     scaffoldBackgroundColor: colors.surface,
     visualDensity: VisualDensity.standard,
     appBarTheme: AppBarTheme(

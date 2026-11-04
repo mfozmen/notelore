@@ -1296,6 +1296,12 @@ class _Bubble extends StatelessWidget {
       ChatRole.assistant || ChatRole.error => (colors.surfaceContainerHigh, colors.onSurface),
     };
     final (:text, :answers, :files, :images) = _shown(line);
+    // The theme's selection tint disappears on the tinted bubbles: each one
+    // gets a tone that stands off its own surface (#702).
+    final selection = switch (line.role) {
+      ChatRole.user || ChatRole.pending => _contrastingSelection(background, foreground),
+      ChatRole.assistant || ChatRole.error => colors.primary.withValues(alpha: 0.45),
+    };
     final bubble = Semantics(
       liveRegion: live && line.role == ChatRole.assistant,
       child: _bubble(
@@ -1306,6 +1312,7 @@ class _Bubble extends StatelessWidget {
           color: foreground,
           strings: strings,
           markdown: line.role == ChatRole.assistant,
+          selectionColor: selection,
         ),
         mine,
         background,
@@ -1363,6 +1370,19 @@ class _Bubble extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// A selection tone on [surface] that stands off it and keeps [text] readable:
+  /// the opposite side of the wheel, darker under light text and lighter under
+  /// dark text.
+  static Color _contrastingSelection(Color surface, Color text) {
+    final hsl = HSLColor.fromColor(surface);
+    final light = text.computeLuminance() > 0.5;
+    return hsl
+        .withHue((hsl.hue + 150) % 360)
+        .withSaturation(0.75)
+        .withLightness(light ? 0.32 : 0.72)
+        .toColor();
   }
 
   Widget _bubble(Widget content, bool mine, Color background) {
@@ -1461,6 +1481,7 @@ class _BubbleText extends StatelessWidget {
     required this.color,
     required this.strings,
     required this.markdown,
+    required this.selectionColor,
   });
 
   final String text;
@@ -1468,6 +1489,7 @@ class _BubbleText extends StatelessWidget {
   final List<String> images;
   final Color color;
   final Strings strings;
+  final Color selectionColor;
 
   /// An answer is Markdown (#305): shown formatted. The user's words are shown as typed.
   final bool markdown;
@@ -1479,7 +1501,9 @@ class _BubbleText extends StatelessWidget {
     // Cmd+C work on macOS, where a bare SelectableText lost the drag.
     final words = markdown
         ? _markdown(context, text, style)
-        : SelectionArea(child: Text(text, style: style));
+        : SelectionArea(
+            child: Text(text, style: style, selectionColor: selectionColor),
+          );
     if (files.isEmpty && images.isEmpty) return words;
     final s = strings;
     return Column(
