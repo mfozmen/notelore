@@ -139,6 +139,14 @@ void main() {
     await withPlans(tester);
     await tester.tap(find.text('Calendar'));
     await tester.pumpAndSettle();
+    final cell = tester.getSize(
+      find
+          .bySemanticsLabel(
+            RegExp(r'^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), '),
+          )
+          .first,
+    );
+    expect(cell.width, lessThan(48));
     expect(tester.takeException(), isNull);
   });
 
