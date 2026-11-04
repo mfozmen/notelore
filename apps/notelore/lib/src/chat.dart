@@ -403,13 +403,6 @@ class _ZoomedTextScaler extends TextScaler {
 
   @override
   double get textScaleFactor => inner.scale(1) * zoom;
-
-  @override
-  bool operator ==(Object other) =>
-      other is _ZoomedTextScaler && other.inner == inner && other.zoom == zoom;
-
-  @override
-  int get hashCode => Object.hash(inner, zoom);
 }
 
 /// While Ctrl/Cmd is held the wheel zooms the text, so the list must not also
