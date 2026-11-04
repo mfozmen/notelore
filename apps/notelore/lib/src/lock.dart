@@ -42,6 +42,9 @@ class _LockScreenState extends State<LockScreen> {
   var _deviceFailed = false;
   var _deviceGone = false;
 
+  /// The device has a lock of its own, so a forgotten pattern or PIN can be reset.
+  var _canReset = false;
+
   /// Ticks while a wait after wrong tries runs, so the countdown moves and the
   /// lock takes tries again when it ends.
   Timer? _tick;
@@ -53,6 +56,12 @@ class _LockScreenState extends State<LockScreen> {
     // The device's own prompt comes up by itself; the button brings it back.
     if (widget.session.lock.kind == LockKind.device) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _unlockWithDevice());
+    } else {
+      unawaited(
+        widget.session.lock.deviceAvailable().then((has) {
+          if (has && mounted) setState(() => _canReset = true);
+        }),
+      );
     }
   }
 
@@ -113,6 +122,19 @@ class _LockScreenState extends State<LockScreen> {
     }
   }
 
+  Future<void> _reset() async {
+    setState(() => _checking = true);
+    final session = widget.session;
+    try {
+      await session.lock.resetWithDevice(
+        session.strings.resetReason,
+        () => turnLockOn(context, session),
+      );
+    } finally {
+      if (mounted) setState(() => _checking = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = widget.session.strings;
@@ -142,6 +164,13 @@ class _LockScreenState extends State<LockScreen> {
                   ..._opener(s, waiting, problem),
                   const SizedBox(height: Gap.l),
                   Text(s.lockedHint, textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
+                  if (_canReset) ...[
+                    const SizedBox(height: Gap.s),
+                    TextButton(
+                      onPressed: _checking ? null : _reset,
+                      child: Text(s.resetWithDevice, textAlign: TextAlign.center),
+                    ),
+                  ],
                 ],
               ),
             ),

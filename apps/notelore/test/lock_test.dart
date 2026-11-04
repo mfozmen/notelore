@@ -235,6 +235,84 @@ void main() {
     expect(harness.deviceAuth.reasons, isEmpty);
   });
 
+  testWidgets(
+    'lock: a forgotten PIN is reset through the device lock, even while it waits (#558)',
+    (tester) async {
+      phone(tester);
+      final harness = Harness();
+      final first = await pumpApp(tester, harness);
+      await connect(tester, key: 'k');
+      await first.lock.set('2468');
+      await restart(tester, harness);
+      for (var i = 0; i < 5; i++) {
+        await tester.enterText(find.byKey(const Key('unlock')), '1357');
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+      }
+      expect(find.textContaining('Too many tries'), findsOneWidget);
+
+      // Called off in the device's prompt: still locked, nothing asked.
+      harness.deviceAuth.answers.add(false);
+      await tester.tap(find.text("Reset with your device's lock"));
+      await tester.pumpAndSettle();
+      expect(find.text('Notelore is locked'), findsOneWidget);
+      expect(find.text('How should Notelore lock?'), findsNothing);
+
+      // Passed: a new lock is chosen, then the app opens.
+      await tester.tap(find.text("Reset with your device's lock"));
+      await tester.pumpAndSettle();
+      expect(harness.deviceAuth.reasons.last, 'Reset the app lock');
+      await tester.tap(find.text('A PIN for Notelore'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('lock-new')), '8642');
+      await tester.enterText(find.byKey(const Key('lock-repeat')), '8642');
+      await tester.pump();
+      await tester.tap(find.text('Turn on'));
+      await tester.pumpAndSettle();
+      expect(find.text('Notelore is locked'), findsNothing);
+
+      await restart(tester, harness);
+      expect(find.textContaining('Too many tries'), findsNothing);
+      await tester.enterText(find.byKey(const Key('unlock')), '8642');
+      await tester.tap(find.text('Unlock'));
+      await tester.pumpAndSettle();
+      expect(find.text('Notelore is locked'), findsNothing);
+    },
+  );
+
+  testWidgets('lock: a reset whose new lock is called off opens once; the old PIN stays (#558)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    final first = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await first.lock.set('2468');
+    await restart(tester, harness);
+    await tester.tap(find.text("Reset with your device's lock"));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('Notelore is locked'), findsNothing);
+    await restart(tester, harness);
+    await tester.enterText(find.byKey(const Key('unlock')), '2468');
+    await tester.tap(find.text('Unlock'));
+    await tester.pumpAndSettle();
+    expect(find.text('Notelore is locked'), findsNothing);
+  });
+
+  testWidgets('lock: without a device lock no reset is offered (#558)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final first = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await first.lock.set('2468');
+    harness.deviceAuth.hasLock = false;
+    await restart(tester, harness);
+    expect(find.text('Notelore is locked'), findsOneWidget);
+    expect(find.text("Reset with your device's lock"), findsNothing);
+  });
+
   testWidgets('lock: turning a pattern off waits after wrong tries, like opening (#295)', (
     tester,
   ) async {
