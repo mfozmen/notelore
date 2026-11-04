@@ -114,6 +114,23 @@ void main() {
     expect(find.text('October 2026'), findsOneWidget);
   });
 
+  testWidgets('calendar: at 2x text the grid does not overflow and a day is 48 (#705)', (
+    tester,
+  ) async {
+    phone(tester);
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await withPlans(tester);
+    await tester.tap(find.text('Calendar'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    final day = find
+        .bySemanticsLabel(RegExp(r'^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), '))
+        .first;
+    final size = tester.getSize(day);
+    expect(size.width, greaterThanOrEqualTo(48));
+    expect(size.height, greaterThanOrEqualTo(48));
+  });
   testWidgets('calendar: empty, it says where things come from; a wide window side by side', (
     tester,
   ) async {

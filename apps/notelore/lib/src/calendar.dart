@@ -240,10 +240,9 @@ class _MonthGrid extends StatelessWidget {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          // Rows of 48 dp, not square cells: the list below stays in sight.
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 7,
-            mainAxisExtent: 48,
+            childAspectRatio: 1,
           ),
           itemCount: lead + days,
           itemBuilder: (context, i) {
@@ -299,34 +298,41 @@ class _Day extends StatelessWidget {
         onTap: () => pick(day),
         child: Center(
           child: Container(
-            width: 44,
-            height: 44,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: chosen ? colors.primary : null,
               border: today && !chosen ? Border.all(color: colors.primary, width: 1.5) : null,
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                Text(
-                  '${day.day}',
-                  style: TextStyle(
-                    color: chosen ? colors.onPrimary : colors.onSurface,
-                    fontWeight: today ? FontWeight.w600 : null,
+                Transform.translate(
+                  offset: const Offset(0, -2),
+                  child: MediaQuery.withClampedTextScaling(
+                    maxScaleFactor: 1.5,
+                    child: Text(
+                      '${day.day}',
+                      style: TextStyle(
+                        color: chosen ? colors.onPrimary : colors.onSurface,
+                        fontWeight: today ? FontWeight.w600 : null,
+                      ),
+                    ),
                   ),
                 ),
-                Container(
-                  width: 6,
-                  height: 6,
-                  margin: const EdgeInsets.only(top: 2),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: !marked
-                        ? Colors.transparent
-                        : (chosen ? colors.onPrimary : (dot ?? colors.primary)),
+                if (marked)
+                  Positioned(
+                    bottom: Gap.xs,
+                    child: Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: chosen ? colors.onPrimary : (dot ?? colors.primary),
+                      ),
+                    ),
                   ),
-                ),
               ],
             ),
           ),
