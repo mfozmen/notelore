@@ -1491,6 +1491,8 @@ class _AttachmentLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
+    // Its own node: a selection area above it must not merge the label away.
+    container: true,
     label: label,
     excludeSemantics: true,
     child: Tooltip(
