@@ -100,7 +100,9 @@ abstract final class Layout {
       textScaler: MediaQuery.textScalerOf(context),
       textDirection: Directionality.of(context),
     )..layout();
-    return min(painter.width + 2 * Gap.m, width * 0.85);
+    final ideal = painter.width + 2 * Gap.m;
+    painter.dispose();
+    return min(ideal, width * 0.85);
   }
 
   /// A fixed cap for the places that do not scale their text (setup, about me).

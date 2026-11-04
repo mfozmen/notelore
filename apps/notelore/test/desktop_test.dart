@@ -106,18 +106,20 @@ void main() {
     expect(find.textContaining('opens without asking'), findsOneWidget);
   });
 
-  testWidgets('chat on a wide window is a readable column, not the full width', (tester) async {
+  testWidgets('chat on a wide window uses the width, in a capped column (#697)', (tester) async {
     desktop(tester, 1920);
     await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
-    expect(tester.getSize(find.byType(TextField).last).width, lessThanOrEqualTo(840));
+    final width = tester.getSize(find.byType(TextField).last).width;
+    expect(width, greaterThan(840));
+    expect(width, lessThanOrEqualTo(Layout.chat));
   });
 
   testWidgets('chat on a wide window uses the width: bubbles, composer, zoom (#697)', (
     tester,
   ) async {
     desktop(tester, 1600);
-    final session = await pumpApp(tester, Harness(answers: ['Saved.']));
+    final session = await pumpApp(tester, Harness(answers: ['Saved.', 'Saved again.']));
     await connect(tester, key: 'k');
     const message =
         'Kitaplari rafa koy ve haftaya dentist randevusunu hatirlat, sonra da kutuphane icin yeni bir proje notu ac ve icini doldur, boylece satirlar dolacak kadar uzun olsun.';
@@ -131,12 +133,21 @@ void main() {
     final bubble = bubbleWidth();
     expect(bubble, greaterThan(560));
     expect(tester.getSize(find.byKey(const Key('message'))).width, greaterThan(840));
-    // The chat's own zoom reaches the messages, so a bigger size widens the line.
+    // A short message shows the character cap moving with the text scale.
+    const short = 'Kitaplari rafa koy';
+    await tester.enterText(find.byKey(const Key('message')), short);
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    double shortWidth() => tester
+        .getSize(find.ancestor(of: find.text(short), matching: find.byType(Container)).first)
+        .width;
+    final shortBefore = shortWidth();
     for (var i = 0; i < 10; i++) {
       session.zoomChatIn();
     }
     await tester.pumpAndSettle();
-    expect(MediaQuery.textScalerOf(tester.element(find.text(message))).scale(16), greaterThan(16));
+    expect(shortWidth(), greaterThan(shortBefore));
   });
 
   testWidgets('chat on a phone keeps its bubble gutter (#697)', (tester) async {
@@ -149,8 +160,13 @@ void main() {
     await tester.pump();
     await tester.tap(find.byTooltip('Send'));
     await tester.pumpAndSettle();
-    expect(tester.getSize(find.text(message)).width, lessThanOrEqualTo(560));
+    final bubble = tester
+        .getSize(find.ancestor(of: find.text(message), matching: find.byType(Container)).first)
+        .width;
+    final window = tester.getSize(find.byType(MaterialApp)).width;
+    expect(bubble, lessThanOrEqualTo(window * 0.85 + 0.5));
   });
+
   testWidgets('notes on a wide window: the list and the open note side by side', (tester) async {
     desktop(tester, 1600);
     final harness = Harness();
