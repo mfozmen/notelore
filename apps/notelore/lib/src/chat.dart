@@ -1387,7 +1387,11 @@ class _BubbleText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = TextStyle(color: color, height: 1.4);
-    final words = markdown ? _markdown(context, text, style) : SelectableText(text, style: style);
+    // The same selection the answers use (#695): a drag, a double-click and
+    // Cmd+C work on macOS, where a bare SelectableText lost the drag.
+    final words = markdown
+        ? _markdown(context, text, style)
+        : SelectionArea(child: Text(text, style: style));
     if (files.isEmpty && images.isEmpty) return words;
     final s = strings;
     return Column(
