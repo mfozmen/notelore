@@ -27,7 +27,8 @@ check("a project is no list", scenarios.themes("projects/garden-shed.md"), set()
 
 for case in scenarios.cases(random.Random(7)):
     if case["id"].startswith("done-other-"):
-        check(f"{case['id']} reads the note before filing", case["expect"]["tools"][0], "read_note")
+        # The entry's result names a matching todo (#731), so no read is required (#733).
+        check(f"{case['id']} is filed as an entry, unread", case["expect"]["tools"], ["add_note_entry"])
     if re.match(r"(file|done-other)-", case["id"]) and case["kind"] == "filing":
         check(f"{case['id']} ticks no todo", case["expect"].get("tools_not"), ["complete_todo"])
     # Twin lists are two of one kind on purpose; a plan may go anywhere.

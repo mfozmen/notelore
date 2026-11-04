@@ -1819,7 +1819,6 @@
   "message": "Home studio: I recorded a test take of the guitar.",
   "expect": {
    "tools": [
-    "read_note",
     "add_note_entry"
    ],
    "tools_not": [
@@ -2068,7 +2067,6 @@
   "message": "Book club: I sent a welcome message to the new members.",
   "expect": {
    "tools": [
-    "read_note",
     "add_note_entry"
    ],
    "tools_not": [
@@ -2317,7 +2315,6 @@
   "message": "Bike commute: I rode to work three days this week.",
   "expect": {
    "tools": [
-    "read_note",
     "add_note_entry"
    ],
    "tools_not": [
@@ -2566,7 +2563,6 @@
   "message": "Family reunion: I called the cousins in Canada.",
   "expect": {
    "tools": [
-    "read_note",
     "add_note_entry"
    ],
    "tools_not": [
@@ -2815,7 +2811,6 @@
   "message": "Balkon bahçesi: fesleğenler filizlendi.",
   "expect": {
    "tools": [
-    "read_note",
     "add_note_entry"
    ],
    "tools_not": [
@@ -3064,7 +3059,6 @@
   "message": "Ev taşıma: eski dolabı komşuya verdim.",
   "expect": {
    "tools": [
-    "read_note",
     "add_note_entry"
    ],
    "tools_not": [
@@ -3313,7 +3307,6 @@
   "message": "Yüksek lisans başvurusu: hocama teşekkür e-postası attım.",
   "expect": {
    "tools": [
-    "read_note",
     "add_note_entry"
    ],
    "tools_not": [
@@ -3562,7 +3555,6 @@
   "message": "Kafe açılışı: logonun ilk taslağı geldi.",
   "expect": {
    "tools": [
-    "read_note",
     "add_note_entry"
    ],
    "tools_not": [

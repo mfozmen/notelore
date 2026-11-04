@@ -207,3 +207,21 @@ Findings:
 - **One false tick:** "İki referans mektubu gerekiyor" shares *mektub* with the todo "Niyet mektubunu yaz", and the model ticks it. Asking for two shared stems would fix it but lose "Balkon bahçesi: toprak alındı" against "Toprak satın al", so the rule stays at one.
 - **Still failing:** the `done-other` updates (8/8 fail before and after: they expect the note read first) and cross-language done messages, which share no word with the todo ("statement of purpose" against "Niyet mektubunu yaz").
 - Every other kind is unchanged.
+
+## Done updates no longer need a read, 2026-11-05 (#733)
+
+**Setup**
+- `done-other` cases ("Home studio: I recorded a test take of the guitar.") expected `read_note` before `add_note_entry` (#628), only so the model would see the open todos. Since #731 the entry's result names a matching todo, so these cases now expect the entry alone and still rule out `complete_todo`. The held-out set is regenerated; only those 8 cases change.
+- v7, Q4_K_M, greedy, slim.
+
+| | Held-out (292) | 44 cases × 2 |
+|---|---|---|
+| #731 | 233 (79.8%) | 68/88 |
+| #733 | **241 (82.5%)** | 68/88 |
+| #733 without the slim prompt's read-first rule | 236 (80.8%) | 68/88 |
+
+Findings:
+
+- **All 8 `done-other` cases pass:** the entry is filed and nothing is ticked. They had failed on the missing read alone.
+- **The read-first rule in the slim prompt stays.** Without it, held-out todo-done drops 14 → 12/20 and unclear 9 → 7/15, so it still steers the model on messages the entry's hint does not reach.
+- **v7 with #731 and #733 is past the 80% held-out threshold of #445.**
