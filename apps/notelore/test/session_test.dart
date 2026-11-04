@@ -1472,6 +1472,14 @@ void main() {
     expect(session.readNote(session.listNotes().single), contains('\n# Windows\n'));
   });
 
+  test('a todo write on a note gone since the screen drew it does nothing (#512)', () async {
+    final session = Harness().session();
+    expect(
+      await session.setTodoDone(const NoteInfo('ghost', 'topic', 'Ghost', null), 1, done: true),
+      isFalse,
+    );
+  });
+
   test('deleting a note moves it to the archive, and undo brings it back', () async {
     final harness = Harness();
     final session = harness.session();

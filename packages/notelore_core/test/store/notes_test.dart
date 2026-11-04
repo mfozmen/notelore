@@ -292,6 +292,16 @@ void main() {
     test('a todo reopens, the undo of complete, and the note round-trips (#512)', () {
       final path = createNote(root, 'project', 'Mopsos', today: today);
       addTodo(path, 'Set up CI', today: today);
+      expect(
+        () => reopenTodo(path, 2, today: today),
+        throwsA(
+          isA<RangeError>().having(
+            (e) => e.message,
+            'message',
+            'Todo has 1 todos, no #2. None is done.',
+          ),
+        ),
+      );
       completeTodo(path, 1, today: today);
       expect(read(path), contains('## Todo\n- [x] 2026-09-30: Set up CI\n'));
       reopenTodo(path, 1, today: today);
