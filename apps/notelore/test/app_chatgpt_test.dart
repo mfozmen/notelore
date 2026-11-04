@@ -46,19 +46,19 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text("You're using your ChatGPT plan"), findsNothing);
     // In the model chip, as OpenAI's guidelines allow; no button beside the
-    // composer while the person writes (#507). The link is in the chip's menu.
+    // composer while the person writes (#507). Its usage link lives in Settings
+    // > Model only (#558).
     expect(find.textContaining(' · Using ChatGPT plan'), findsOneWidget);
     expect(find.text('Manage usage'), findsNothing);
     await tester.tap(find.textContaining(' · Using ChatGPT plan'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Manage usage'));
+    expect(find.text('Manage usage'), findsNothing);
+    await tester.tapAt(const Offset(10, 300));
     await tester.pumpAndSettle();
-    expect(launcher.opened, [chatGptUsageUrl]);
-    // And in Settings, beside the model choice (#507).
     await openSettings(tester, 'Model');
     await tester.tap(find.text('Manage usage'));
     await tester.pumpAndSettle();
-    expect(launcher.opened, [chatGptUsageUrl, chatGptUsageUrl]);
+    expect(launcher.opened, [chatGptUsageUrl]);
   });
 
   for (final language in [AppLanguage.en, AppLanguage.tr]) {

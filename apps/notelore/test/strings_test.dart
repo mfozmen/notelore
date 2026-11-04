@@ -349,8 +349,6 @@ void main() {
       'modelSaved': s.modelSaved,
       'checkForUpdates': s.checkForUpdates,
       'whatsNew': s.whatsNew,
-      'showAdvanced': s.showAdvanced,
-      'showAdvancedWhy': s.showAdvancedWhy,
       'usageWhat': s.usageWhat,
       'lastDays': s.lastDays(14),
       'allTime': s.lastDays(null),

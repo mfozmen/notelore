@@ -523,7 +523,6 @@ class Session extends ChangeNotifier {
             'dropCalendars': reminderCenter.dropCalendars,
           'microphone': ?microphone,
           if (setUpBefore) 'setUp': true,
-          if (advanced) 'advanced': true,
           if (reminderCenter.calendarNudged) 'calendarNudged': true,
         }),
       );
@@ -549,7 +548,6 @@ class Session extends ChangeNotifier {
         ..clear()
         ..addAll((saved['dropCalendars'] as List? ?? const []).whereType<String>());
       setUpBefore = saved['setUp'] == true;
-      advanced = saved['advanced'] == true;
       microphone = switch (saved['microphone']) {
         final String id => id,
         _ => null,
@@ -618,14 +616,6 @@ class Session extends ChangeNotifier {
     p.join(paths.state.path, 'usage.json'),
     today: () => today ?? clock().toLocal(),
   );
-
-  /// Settings shows what only advanced users want, such as usage (#294).
-  var advanced = false;
-
-  void setAdvanced(bool on) {
-    advanced = on;
-    _saveUi();
-  }
 
   Remote? _remote;
   var driveConnected = false;

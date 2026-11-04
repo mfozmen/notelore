@@ -9,59 +9,29 @@ import 'support.dart';
 void main() {
   Future<void> openAdvanced(WidgetTester tester) => openSettings(tester, 'Advanced');
 
-  /// Settings > Advanced > Show advanced settings > Usage: the full page (#294).
+  /// Settings > Advanced > Usage: the full page (#294, #558).
   Future<void> openUsage(WidgetTester tester) async {
     await openAdvanced(tester);
-    await tester.scrollUntilVisible(
-      find.text('Show advanced settings'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await tester.ensureVisible(find.byKey(const Key('open-usage')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Show advanced settings'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('open-usage')),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
     await tester.tap(find.byKey(const Key('open-usage')));
     await tester.pumpAndSettle();
   }
 
-  testWidgets('settings: Advanced is a category of its own, out of About (#566)', (tester) async {
+  testWidgets('settings: Advanced shows Usage directly, with no switch (#558)', (tester) async {
     phone(tester);
-    final session = await pumpApp(tester, Harness());
+    await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
     await openSettings(tester, 'About');
     expect(find.text('Show advanced settings'), findsNothing);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Chat'));
-    await tester.pumpAndSettle();
     await openAdvanced(tester);
-    expect(find.text('Show advanced settings'), findsOneWidget);
-    expect(session.advanced, isFalse);
-  });
-
-  testWidgets('settings: usage is for advanced users, on its own page (#294)', (tester) async {
-    phone(tester);
-    final harness = Harness();
-    final session = await pumpApp(tester, harness);
-    await connect(tester, key: 'k');
-    await openAdvanced(tester);
-    expect(find.byKey(const Key('open-usage')), findsNothing); // everyday users see no tokens
-    await tester.pageBack();
+    expect(find.text('Show advanced settings'), findsNothing);
+    expect(find.byKey(const Key('open-usage')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('open-usage')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Chat'));
-    await tester.pumpAndSettle();
-    await openUsage(tester);
-    expect(session.advanced, isTrue);
     expect(find.byType(BackButton), findsOneWidget); // a page of its own
-    // Remembered: the next start shows it too.
-    final again = harness.session();
-    await again.load();
-    expect(again.advanced, isTrue);
   });
 
   testWidgets('usage page: both totals, the last days, each model, cost an estimate', (
@@ -192,9 +162,7 @@ void main() {
     final harness = Harness();
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    session
-      ..setLanguage(AppLanguage.tr)
-      ..setAdvanced(true);
+    session.setLanguage(AppLanguage.tr);
     session.usage
       ..record('anthropic', 'claude-sonnet-5-5', const TokenUsage(1, 0))
       ..record('gemini', 'gemini-2.5-flash', const TokenUsage(999, 0))
