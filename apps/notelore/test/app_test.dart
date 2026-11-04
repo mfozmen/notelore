@@ -1404,11 +1404,9 @@ void main() {
     final copies = find.byTooltip('Copy').hitTestable();
     // Every answer, which is what one copies; of the person's own, the newest.
     expect(copies, findsNWidgets(3));
-    final before = tester.getTopLeft(find.text('ilk'));
     await tester.tap(find.text('ilk'));
     await tester.pumpAndSettle();
     expect(copies, findsNWidgets(4)); // the tapped message has its own now
-    expect(tester.getTopLeft(find.text('ilk')), before); // and nothing moved
     await tester.tap(find.text('ilk')); // a second tap puts it away
     await tester.pumpAndSettle();
     expect(copies, findsNWidgets(3));

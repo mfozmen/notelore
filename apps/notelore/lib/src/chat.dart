@@ -1228,14 +1228,9 @@ class _RevealState extends State<_Reveal> {
         crossAxisAlignment: widget.end ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           ...widget.content,
-          // Laid out even while hidden, so nothing above moves when it shows.
-          Visibility(
-            visible: widget.shown || _open,
-            maintainSize: true,
-            maintainAnimation: true,
-            maintainState: true,
-            child: widget.actions,
-          ),
+          // Only a shown line keeps the row: older ones add it when asked, so
+          // their default gap stays a Gap.
+          if (widget.shown || _open) widget.actions,
         ],
       ),
     ),
