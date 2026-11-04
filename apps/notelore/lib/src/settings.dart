@@ -846,40 +846,38 @@ class _RemindersCard extends StatelessWidget {
     ),
   );
 
-  /// How reminders come now, and what this device may still need for it.
+  /// The state row, only when this device still needs something: its own
+  /// Google sign-in, or notifications that are blocked (#515).
   List<Widget> _status(BuildContext context) {
     final s = session.strings;
     if (session.calendar) {
-      final elsewhere = session.calendarHere == false;
+      // Set up here already: the switch says enough.
+      if (session.calendarHere != false) return const [];
       return [
         ListTile(
           // Without the grant here, this device still reminds.
-          leading: Icon(
-            elsewhere ? Icons.notifications_outlined : Icons.notifications_off_outlined,
-          ),
+          leading: const Icon(Icons.notifications_outlined),
           title: Text(s.howRemindersArrive),
-          subtitle: Text(elsewhere ? s.calendarElsewhere : s.remindersInCalendar),
+          subtitle: Text(s.calendarElsewhere),
         ),
-        if (elsewhere) _action(Icons.login, s.signInCalendar, session.signInCalendar),
+        _action(Icons.login, s.signInCalendar, session.signInCalendar),
       ];
     }
     // This device's notifications, where it has them at all.
-    final allowed = session.remindersAllowed;
-    if (allowed == null) return const [];
+    if (session.remindersAllowed != false) return const [];
     return [
       ListTile(
-        leading: Icon(allowed ? Icons.notifications_outlined : Icons.notifications_off_outlined),
+        leading: const Icon(Icons.notifications_off_outlined),
         title: Text(s.howRemindersArrive),
-        subtitle: Text(allowed ? s.remindersOn : s.remindersOff),
+        subtitle: Text(s.remindersOff),
       ),
-      if (!allowed)
-        _action(Icons.notifications_active_outlined, s.allowNotifications, () async {
-          final messenger = ScaffoldMessenger.of(context);
-          // Refused before, the system asks no more: say where to turn them on.
-          if (!await session.allowReminders()) {
-            messenger.showSnackBar(SnackBar(content: Text(s.notificationsBlocked)));
-          }
-        }),
+      _action(Icons.notifications_active_outlined, s.allowNotifications, () async {
+        final messenger = ScaffoldMessenger.of(context);
+        // Refused before, the system asks no more: say where to turn them on.
+        if (!await session.allowReminders()) {
+          messenger.showSnackBar(SnackBar(content: Text(s.notificationsBlocked)));
+        }
+      }),
     ];
   }
 

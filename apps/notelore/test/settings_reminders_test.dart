@@ -17,8 +17,11 @@ void main() {
     await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
     await openReminders(tester);
-    expect(find.text("Notelore notifies you on this device at a reminder's time."), findsOneWidget);
+    // Nothing to act on, so no status row: the switch alone (#515).
+    expect(find.text('How reminders arrive'), findsNothing);
+    expect(find.text("Notelore notifies you on this device at a reminder's time."), findsNothing);
     expect(find.text('Allow notifications'), findsNothing);
+    expect(find.text('Add to Google Calendar'), findsOneWidget);
   });
 
   testWidgets('settings: notifications off says so, and Allow asks for them', (tester) async {
@@ -37,7 +40,8 @@ void main() {
     await tester.tap(find.text('Allow notifications'));
     await tester.pumpAndSettle();
     expect(harness.reminders.asked, 1);
-    expect(find.text("Notelore notifies you on this device at a reminder's time."), findsOneWidget);
+    expect(find.text("Notelore notifies you on this device at a reminder's time."), findsNothing);
+    expect(find.text('Allow notifications'), findsNothing);
   });
 
   testWidgets('settings: a refused Allow says where to turn them on; back, the card knows', (
@@ -57,7 +61,8 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
-    expect(find.text("Notelore notifies you on this device at a reminder's time."), findsOneWidget);
+    expect(find.text("Notelore notifies you on this device at a reminder's time."), findsNothing);
+    expect(find.text('How reminders arrive'), findsNothing);
   });
 
   testWidgets('settings: Add to Google Calendar, then Google reminds on every device (#432)', (
@@ -72,12 +77,12 @@ void main() {
     await tester.tap(find.text('Add to Google Calendar'));
     await tester.pumpAndSettle();
     expect(harness.calendarAuth.granted, isTrue);
+    // The switch says enough; no repeated "How reminders arrive" row (#515).
     expect(
-      find.text(
-        'Google Calendar reminds you on every device. Notelore sends no notifications of its own.',
-      ),
+      find.text('Only a calendar of its own: your other calendars stay as they are.'),
       findsOneWidget,
     );
+    expect(find.text('How reminders arrive'), findsNothing);
     // Google reminds: this device's permission is beside the point now.
     expect(find.text('Allow notifications'), findsNothing);
   });
@@ -126,7 +131,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text("Couldn't sign in to Google Calendar. Try again."), findsOneWidget);
     expect(find.textContaining('access_denied'), findsNothing); // no raw error text
-    expect(find.text("Notelore notifies you on this device at a reminder's time."), findsOneWidget);
+    expect(find.text("Notelore notifies you on this device at a reminder's time."), findsNothing);
   });
 
   testWidgets('settings: a device that cannot notify offers nothing of its own notifications', (
