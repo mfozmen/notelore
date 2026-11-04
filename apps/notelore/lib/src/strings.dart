@@ -401,7 +401,6 @@ abstract class Strings {
   // Reminders as this device's notifications (#431).
   String get reminders;
   String get howRemindersArrive;
-  String get remindersOn;
   String get remindersOff;
   String get allowNotifications;
   String get notificationsBlocked;
@@ -410,7 +409,6 @@ abstract class Strings {
   // Reminders through Google Calendar (#432).
   String get addToCalendar;
   String get addToCalendarHint;
-  String get remindersInCalendar;
   String get calendarSignInFailed;
   String get calendarRevoked;
   String get calendarUpdateFailed;
@@ -1260,8 +1258,6 @@ class EnglishStrings extends Strings {
   @override
   String get howRemindersArrive => 'How reminders arrive';
   @override
-  String get remindersOn => "Notelore notifies you on this device at a reminder's time.";
-  @override
   String get remindersOff =>
       "Notifications are off for Notelore: reminders stay in your notes, but you won't be notified.";
   @override
@@ -1275,9 +1271,6 @@ class EnglishStrings extends Strings {
   @override
   String get addToCalendarHint =>
       'Only a calendar of its own: your other calendars stay as they are.';
-  @override
-  String get remindersInCalendar =>
-      'Google Calendar reminds you on every device. Notelore sends no notifications of its own.';
   @override
   String get calendarSignInFailed => "Couldn't sign in to Google Calendar. Try again.";
   @override
@@ -2356,8 +2349,6 @@ class TurkishStrings extends Strings {
   @override
   String get howRemindersArrive => 'Hatırlatıcılar nasıl gelir';
   @override
-  String get remindersOn => 'Notelore, hatırlatıcının saatinde bu cihazda bildirim gönderir.';
-  @override
   String get remindersOff =>
       'Notelore için bildirimler kapalı: hatırlatıcılar notlarında kalır ama bildirim gelmez.';
   @override
@@ -2370,9 +2361,6 @@ class TurkishStrings extends Strings {
   String get addToCalendar => "Google Takvim'e ekle";
   @override
   String get addToCalendarHint => 'Yalnızca kendi takvimi: diğer takvimlerine dokunulmaz.';
-  @override
-  String get remindersInCalendar =>
-      'Google Takvim her cihazda hatırlatır. Notelore ayrıca bildirim göndermez.';
   @override
   String get calendarSignInFailed => "Google Takvim'e giriş yapılamadı. Tekrar dene.";
   @override
