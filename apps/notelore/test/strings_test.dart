@@ -291,6 +291,8 @@ void main() {
       'lockMismatch': s.lockMismatch,
       'lockedTitle': s.lockedTitle,
       'lockedHint': s.lockedHint,
+      'resetWithDevice': s.resetWithDevice,
+      'resetReason': s.resetReason,
       'unlock': s.unlock,
       'wrongSecret': s.wrongSecret,
       'export': s.export,

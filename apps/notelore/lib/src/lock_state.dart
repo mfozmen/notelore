@@ -251,6 +251,21 @@ class AppLock {
     return true;
   }
 
+  /// A forgotten pattern or PIN: once the device's own lock says yes, [renew]
+  /// lets the person set a new lock, then the app opens. The device counts its
+  /// own wrong tries, so a wait from wrong PINs does not hold this back. A new
+  /// lock called off leaves the old one in place for the next start.
+  Future<bool> resetWithDevice(String reason, Future<void> Function() renew) async {
+    if (kind == LockKind.device || !await device.available() || !await _askDevice(reason)) {
+      return false;
+    }
+    await renew();
+    await _clearFailures();
+    locked = false;
+    changed();
+    return true;
+  }
+
   /// Turns the device lock off when the device says yes.
   Future<bool> removeWithDevice(String reason) async {
     if (kind != LockKind.device || !await _askDevice(reason)) return false;

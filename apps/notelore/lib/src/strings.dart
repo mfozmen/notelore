@@ -172,6 +172,7 @@ abstract class Strings {
   String get unlockReason;
   String get lockOnReason;
   String get lockOffReason;
+  String get resetReason;
   String get drawYourPattern;
   String get deviceNotUnlocked;
   String get deviceLockGone;
@@ -187,6 +188,9 @@ abstract class Strings {
   String get lockMismatch;
   String get lockedTitle;
   String get lockedHint;
+
+  /// Opens a forgotten pattern or PIN through the device's own lock.
+  String get resetWithDevice;
   String get unlock;
   String get wrongSecret;
   String lockWaiting(Duration wait);
@@ -868,6 +872,8 @@ class EnglishStrings extends Strings {
   @override
   String get lockOffReason => 'Turn off the app lock';
   @override
+  String get resetReason => 'Reset the app lock';
+  @override
   String get drawYourPattern => 'Draw your pattern.';
   @override
   String get deviceNotUnlocked => 'Not unlocked. Tap Unlock to try again.';
@@ -889,6 +895,8 @@ class EnglishStrings extends Strings {
   @override
   String get lockedHint =>
       'Forgot it? Your notes are safe: they stay as files on this device and on Drive.';
+  @override
+  String get resetWithDevice => "Reset with your device's lock";
   @override
   String get unlock => 'Unlock';
   @override
@@ -1963,6 +1971,8 @@ class TurkishStrings extends Strings {
   @override
   String get lockOffReason => 'Uygulama kilidini kapat';
   @override
+  String get resetReason => 'Uygulama kilidini sıfırla';
+  @override
   String get drawYourPattern => 'Desenini çiz.';
   @override
   String get deviceNotUnlocked => 'Kilit açılmadı. Tekrar denemek için Kilidi aç’a dokun.';
@@ -1985,6 +1995,8 @@ class TurkishStrings extends Strings {
   @override
   String get lockedHint =>
       'Unuttun mu? Notların güvende: bu cihazda ve Drive’da dosya olarak duruyorlar.';
+  @override
+  String get resetWithDevice => 'Cihazının kilidiyle sıfırla';
   @override
   String get unlock => 'Kilidi aç';
   @override
