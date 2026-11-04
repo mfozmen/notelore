@@ -1404,12 +1404,17 @@ void main() {
     final copies = find.byTooltip('Copy').hitTestable();
     // Every answer, which is what one copies; of the person's own, the newest.
     expect(copies, findsNWidgets(3));
+    double gap() =>
+        tester.getTopLeft(find.text('Eski cevap.')).dy - tester.getTopLeft(find.text('ilk')).dy;
+    final closed = gap(); // no empty action row under an older message (#708)
     await tester.tap(find.text('ilk'));
     await tester.pumpAndSettle();
     expect(copies, findsNWidgets(4)); // the tapped message has its own now
+    expect(gap() - closed, greaterThanOrEqualTo(48));
     await tester.tap(find.text('ilk')); // a second tap puts it away
     await tester.pumpAndSettle();
     expect(copies, findsNWidgets(3));
+    expect(gap(), closed);
     await tester.longPress(find.text('ilk')); // a long press selects text: no toggle
     await tester.pumpAndSettle();
     expect(copies, findsNWidgets(3));
