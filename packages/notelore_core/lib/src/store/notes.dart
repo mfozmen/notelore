@@ -320,19 +320,27 @@ void _setTodoDone(String path, int number, {required bool done, DateTime? today}
     for (var i = 0; i < section.entries.length; i++)
       if (section.entries[i] case final Todo todo) (i, todo),
   ];
+  final (position, todo) = todos[_todoIndex(section.heading, todos, number, done)];
+  section.entries[position] = Todo(todo.date, todo.text, done: done);
+  writeNote(path, note, today: today);
+}
+
+int _todoIndex(String heading, List<(int, Todo)> todos, int number, bool done) {
   if (number < 1 || number > todos.length) {
     final others = [
       for (final (i, (_, todo)) in todos.indexed)
         if (todo.done != done) '${i + 1}. ${todo.text}',
     ];
     throw RangeError(
-      '${section.heading} has ${todos.length} todos, no #$number. '
-      '${others.isEmpty ? (done ? 'None is open.' : 'None is done.') : '${done ? 'Open' : 'Done'}: ${others.join('; ')}'}',
+      '$heading has ${todos.length} todos, no #$number. ${_todoState(done, others)}',
     );
   }
-  final (position, todo) = todos[number - 1];
-  section.entries[position] = Todo(todo.date, todo.text, done: done);
-  writeNote(path, note, today: today);
+  return number - 1;
+}
+
+String _todoState(bool done, List<String> others) {
+  if (others.isEmpty) return done ? 'None is open.' : 'None is done.';
+  return '${done ? 'Open' : 'Done'}: ${others.join('; ')}';
 }
 
 /// Appends a decision; the active one for the same topic is superseded in the same write.

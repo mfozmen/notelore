@@ -255,45 +255,48 @@ class NoteView extends StatelessWidget {
 
   List<Widget> _todos(BuildContext context, List<NoteEntry> entries) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
     final numbered = [for (final (i, entry) in entries.whereType<Todo>().indexed) (i + 1, entry)];
     final open = numbered.where((t) => !t.$2.done).toList()
       ..sort((a, b) => a.$2.date.compareTo(b.$2.date));
     final done = numbered.where((t) => t.$2.done);
     final day = DateTime(today.year, today.month, today.day);
     return [
-      for (final (number, todo) in [...open, ...done])
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: Gap.xs),
-          child: MergeSemantics(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (onTodo case final onTodo?)
-                  Checkbox(value: todo.done, onChanged: (done) => onTodo(number, done ?? false))
-                else
-                  Icon(
-                    todo.done ? Icons.check_circle : Icons.radio_button_unchecked,
-                    size: 20,
-                    color: todo.done ? colors.outline : colors.onSurfaceVariant,
-                  ),
-                const SizedBox(width: Gap.s),
-                Expanded(
-                  child: _markdown(
-                    todo.text,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: todo.done ? colors.onSurfaceVariant : null,
-                      decoration: todo.done ? TextDecoration.lineThrough : null,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: Gap.s),
-                _todoDate(theme, todo, late: !todo.done && todo.date.isBefore(day)),
-              ],
-            ),
-          ),
-        ),
+      for (final (number, todo) in [...open, ...done]) _todoRow(theme, number, todo, day),
     ];
+  }
+
+  Widget _todoRow(ThemeData theme, int number, Todo todo, DateTime day) {
+    final colors = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: Gap.xs),
+      child: MergeSemantics(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (onTodo case final onTodo?)
+              Checkbox(value: todo.done, onChanged: (done) => onTodo(number, done ?? false))
+            else
+              Icon(
+                todo.done ? Icons.check_circle : Icons.radio_button_unchecked,
+                size: 20,
+                color: todo.done ? colors.outline : colors.onSurfaceVariant,
+              ),
+            const SizedBox(width: Gap.s),
+            Expanded(
+              child: _markdown(
+                todo.text,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: todo.done ? colors.onSurfaceVariant : null,
+                  decoration: todo.done ? TextDecoration.lineThrough : null,
+                ),
+              ),
+            ),
+            const SizedBox(width: Gap.s),
+            _todoDate(theme, todo, late: !todo.done && todo.date.isBefore(day)),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Coming ones by day and time, past ones after them, saying so in words
