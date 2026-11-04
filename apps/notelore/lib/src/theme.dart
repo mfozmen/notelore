@@ -83,11 +83,29 @@ abstract final class Layout {
   /// The widest a column of text or cards gets.
   static const double column = 760;
 
-  /// The widest the conversation gets.
-  static const double chat = 840;
+  /// The widest the conversation gets; a wide window uses it instead of a
+  /// narrow column in the middle.
+  static const double chat = 1400;
+
+  /// About this many characters on a bubble's line, whatever the text size.
+  static const int bubbleCharacters = 90;
 
   /// The widest a speech bubble gets in [width]: a gutter on the other side
-  /// on a phone, a readable line on a wide window.
+  /// on a phone, a readable line on a wide window. Measured in characters, so
+  /// bigger text gets a wider bubble rather than more wrapping.
+  static double bubbleFor(BuildContext context, double width) {
+    final style = Theme.of(context).textTheme.bodyMedium ?? const TextStyle(fontSize: 14);
+    final painter = TextPainter(
+      text: TextSpan(text: 'n' * bubbleCharacters, style: style),
+      textScaler: MediaQuery.textScalerOf(context),
+      textDirection: Directionality.of(context),
+    )..layout();
+    final ideal = painter.width + 2 * Gap.m;
+    painter.dispose();
+    return min(ideal, width * 0.85);
+  }
+
+  /// A fixed cap for the places that do not scale their text (setup, about me).
   static double bubble(double width) => min(560, width * 0.85);
 
   static bool isWide(BuildContext context) => MediaQuery.sizeOf(context).width >= wide;
