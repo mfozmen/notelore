@@ -528,7 +528,7 @@ class _ConnectionsState extends State<_Connections> {
                 launchUrl(Uri.parse(chatGptUsageUrl), mode: LaunchMode.externalApplication),
           ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, 0),
+          padding: EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, session.spec == null ? Gap.m : Gap.xs),
           child: OutlinedButton.icon(
             icon: const Icon(Icons.add),
             label: Text(s.connectAnother),
