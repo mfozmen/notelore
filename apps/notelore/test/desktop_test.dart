@@ -167,6 +167,21 @@ void main() {
     expect(bubble, lessThanOrEqualTo(window * 0.85 + 0.5));
   });
 
+  testWidgets('chat on a wide window: the composer and examples stay readable (#707)', (
+    tester,
+  ) async {
+    desktop(tester, 1400);
+    await pumpApp(tester, Harness(answers: ['Saved.']));
+    await connect(tester, key: 'k');
+    expect(tester.getSize(find.byType(TextField).last).width, lessThanOrEqualTo(Layout.column));
+    const long =
+        'Kitaplari rafa koy ve haftaya dentist randevusunu hatirlat, sonra da kutuphane icin yeni bir proje notu ac ve icini doldur, boylece satirlar dolacak kadar uzun olsun.';
+    await tester.enterText(find.byKey(const Key('message')), long);
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.text(long)).width, greaterThan(560));
+  });
   testWidgets('notes on a wide window: the list and the open note side by side', (tester) async {
     desktop(tester, 1600);
     final harness = Harness();
