@@ -22,6 +22,7 @@ class NoteView extends StatelessWidget {
     required this.folder,
     required this.strings,
     required this.today,
+    this.onTodo,
     super.key,
   });
 
@@ -29,6 +30,10 @@ class NoteView extends StatelessWidget {
   final String folder;
   final Strings strings;
   final DateTime today;
+
+  /// Called with a todo's number in the note and its new done state; without
+  /// it (the archive), todos are marks, not controls.
+  final void Function(int number, bool done)? onTodo;
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +164,7 @@ class NoteView extends StatelessWidget {
     return [
       ...switch (section.key) {
         'decisions' => _decisions(context, section.entries.whereType<Decision>().toList()),
-        'todo' => _todos(context, section.entries.whereType<Todo>().toList()),
+        'todo' => _todos(context, section.entries),
         'notes' => _notes(context, section.entries.whereType<Entry>().toList()),
         'reminders' => _reminders(context, section.entries.whereType<Reminder>().toList()),
         // A section someone wrote by hand: as written.
@@ -248,38 +253,44 @@ class NoteView extends StatelessWidget {
     ];
   }
 
-  List<Widget> _todos(BuildContext context, List<Todo> todos) {
+  List<Widget> _todos(BuildContext context, List<NoteEntry> entries) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final open = todos.where((t) => !t.done).toList()..sort((a, b) => a.date.compareTo(b.date));
-    final done = todos.where((t) => t.done);
+    final numbered = [for (final (i, entry) in entries.whereType<Todo>().indexed) (i + 1, entry)];
+    final open = numbered.where((t) => !t.$2.done).toList()
+      ..sort((a, b) => a.$2.date.compareTo(b.$2.date));
+    final done = numbered.where((t) => t.$2.done);
     final day = DateTime(today.year, today.month, today.day);
     return [
-      for (final todo in [...open, ...done])
+      for (final (number, todo) in [...open, ...done])
         Padding(
           padding: const EdgeInsets.symmetric(vertical: Gap.xs),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Shown, not tapped: no checkbox that looks like a control.
-              Icon(
-                todo.done ? Icons.check_circle : Icons.radio_button_unchecked,
-                size: 20,
-                color: todo.done ? colors.outline : colors.onSurfaceVariant,
-              ),
-              const SizedBox(width: Gap.s),
-              Expanded(
-                child: _markdown(
-                  todo.text,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: todo.done ? colors.onSurfaceVariant : null,
-                    decoration: todo.done ? TextDecoration.lineThrough : null,
+          child: MergeSemantics(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (onTodo case final onTodo?)
+                  Checkbox(value: todo.done, onChanged: (done) => onTodo(number, done ?? false))
+                else
+                  Icon(
+                    todo.done ? Icons.check_circle : Icons.radio_button_unchecked,
+                    size: 20,
+                    color: todo.done ? colors.outline : colors.onSurfaceVariant,
+                  ),
+                const SizedBox(width: Gap.s),
+                Expanded(
+                  child: _markdown(
+                    todo.text,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: todo.done ? colors.onSurfaceVariant : null,
+                      decoration: todo.done ? TextDecoration.lineThrough : null,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: Gap.s),
-              _todoDate(theme, todo, late: !todo.done && todo.date.isBefore(day)),
-            ],
+                const SizedBox(width: Gap.s),
+                _todoDate(theme, todo, late: !todo.done && todo.date.isBefore(day)),
+              ],
+            ),
           ),
         ),
     ];

@@ -35,7 +35,12 @@ Stock picks, scored weekly.
 - [Broker API](https://example.com/api)
 ''';
 
-Future<void> show(WidgetTester tester, String source, {Strings? strings}) async {
+Future<void> show(
+  WidgetTester tester,
+  String source, {
+  Strings? strings,
+  void Function(int number, bool done)? onTodo,
+}) async {
   // Tall enough that the whole note is laid out.
   tester.view.physicalSize = const Size(800, 4000);
   tester.view.devicePixelRatio = 1;
@@ -49,6 +54,7 @@ Future<void> show(WidgetTester tester, String source, {Strings? strings}) async 
           folder: '/notes/projects',
           strings: strings ?? EnglishStrings(),
           today: DateTime(2026, 10, 19),
+          onTodo: onTodo,
         ),
       ),
     ),
@@ -108,6 +114,17 @@ void main() {
     expect(find.byIcon(Icons.check_circle), findsOneWidget);
     expect(find.text('Overdue, 15 Oct'), findsOneWidget);
     expect(find.text('2 Nov'), findsOneWidget);
+  });
+
+  testWidgets('todos are real checkboxes when the reader can write them (#512)', (tester) async {
+    final tapped = <(int, bool)>[];
+    await show(tester, _mopsos, onTodo: (number, done) => tapped.add((number, done)));
+    final boxes = tester.widgetList<Checkbox>(find.byType(Checkbox)).toList();
+    // Open ones by date first, the done one last: their number is the file's.
+    expect(boxes.map((b) => b.value), [false, false, true]);
+    await tester.tap(find.byType(Checkbox).first);
+    await tester.tap(find.byType(Checkbox).last);
+    expect(tapped, [(2, true), (1, false)]);
   });
 
   testWidgets('reminders: with the todos above the notes, coming ones first (#430)', (

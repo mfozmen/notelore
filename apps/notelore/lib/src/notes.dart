@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
@@ -33,7 +36,18 @@ class _NotesScreenState extends State<NotesScreen> {
   var _archive = false;
 
   @override
+  void initState() {
+    super.initState();
+    widget.session.addListener(_sessionChanged);
+  }
+
+  void _sessionChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
+    widget.session.removeListener(_sessionChanged);
     _search.dispose();
     super.dispose();
   }
@@ -429,6 +443,8 @@ class _NotesScreenState extends State<NotesScreen> {
               folder: p.dirname(notePath(widget.session.paths.notes.path, note.kind, note.slug)),
               strings: widget.session.strings,
               today: widget.session.clock().toLocal(),
+              onTodo: (number, done) =>
+                  unawaited(widget.session.setTodoDone(note, number, done: done)),
             ),
           ),
         ],
@@ -479,17 +495,33 @@ class _NotesScreenState extends State<NotesScreen> {
             ),
           ],
         ),
-        // A comfortable reading width on wide windows.
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: Layout.column),
-            child: NoteView(
-              text,
-              folder: p.dirname(notePath(widget.session.paths.notes.path, note.kind, note.slug)),
-              strings: widget.session.strings,
-              today: widget.session.clock().toLocal(),
-            ),
-          ),
+        // A comfortable reading width on wide windows, and the page follows a
+        // checkbox it writes (#512).
+        body: ListenableBuilder(
+          listenable: widget.session,
+          builder: (_, _) {
+            var current = text;
+            try {
+              current = widget.session.readNote(note);
+            } on FileSystemException {
+              // Gone since it opened: keep reading what was there.
+            }
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: Layout.column),
+                child: NoteView(
+                  current,
+                  folder: p.dirname(
+                    notePath(widget.session.paths.notes.path, note.kind, note.slug),
+                  ),
+                  strings: widget.session.strings,
+                  today: widget.session.clock().toLocal(),
+                  onTodo: (number, done) =>
+                      unawaited(widget.session.setTodoDone(note, number, done: done)),
+                ),
+              ),
+            );
+          },
         ),
       ),
     ),

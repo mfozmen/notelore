@@ -54,6 +54,23 @@ void main() {
     expect(find.text('Health'), findsWidgets);
   });
 
+  testWidgets('calendar: a todo checkbox completes it and it leaves the list (#512)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = await withPlans(tester);
+    await tester.tap(find.text('Calendar'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Checkbox), findsNWidgets(2));
+    await tester.tap(find.byType(Checkbox).first); // Order timber, under Overdue
+    await tester.pumpAndSettle();
+    expect(find.text('Order timber'), findsNothing);
+    expect(find.byType(Checkbox), findsOneWidget);
+    final file = File(p.join(harness.paths.notes.path, 'projects', 'garden-shed.md'))
+        .readAsStringSync();
+    expect(file, contains('- [x] 2026-10-10: Order timber'));
+  });
+
   testWidgets('calendar: a day picked shows its things; another month; nothing yet (#453)', (
     tester,
   ) async {

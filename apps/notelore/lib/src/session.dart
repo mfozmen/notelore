@@ -1698,6 +1698,21 @@ class Session extends ChangeNotifier {
     }
   }
 
+  /// Completes or reopens todo [number] in [note] (#512); false when the note
+  /// is gone since the screen drew it.
+  Future<bool> setTodoDone(NoteInfo note, int number, {required bool done}) => _exclusive(() async {
+    final path = notePath(paths.notes.path, note.kind, note.slug);
+    if (!File(path).existsSync()) return false;
+    if (done) {
+      completeTodo(path, number, today: today);
+    } else {
+      reopenTodo(path, number, today: today);
+    }
+    index.markChanged(path);
+    notifyListeners();
+    return true;
+  });
+
   /// Moves [note] under `_archive/<date>/`: nothing is ever hard-deleted. Returns
   /// where it went, for [restoreNote]; null when a sync or a chat turn already
   /// removed it. Queued, so it never races a sync.

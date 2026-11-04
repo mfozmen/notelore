@@ -149,6 +149,7 @@ final class DayItem {
     required this.kind,
     required this.slug,
     required this.todo,
+    this.number = 0,
   });
 
   /// The local date, at midnight.
@@ -163,6 +164,10 @@ final class DayItem {
   final String kind;
   final String slug;
   final bool todo;
+
+  /// For a todo, its number in the note's Todo section (1-based), as
+  /// [completeTodo] and [reopenTodo] take it; 0 for a reminder.
+  final int number;
 }
 
 /// The reminders from [today] on and every open todo under [root], by day and
@@ -181,23 +186,27 @@ List<DayItem> calendarItems(String root, {required DateTime today}) {
 
 /// [note]'s reminders from [from] on and its open todos.
 Iterable<DayItem> _dayItems(Note note, String kind, String slug, DateTime from) sync* {
-  DayItem item(DateTime date, String? time, String text, {required bool todo}) => DayItem(
-    day: DateTime(date.year, date.month, date.day),
-    time: time,
-    text: _flat(text),
-    note: note.title,
-    kind: kind,
-    slug: slug,
-    todo: todo,
-  );
+  DayItem item(DateTime date, String? time, String text, {required bool todo, int number = 0}) =>
+      DayItem(
+        day: DateTime(date.year, date.month, date.day),
+        time: time,
+        text: _flat(text),
+        note: note.title,
+        kind: kind,
+        slug: slug,
+        todo: todo,
+        number: number,
+      );
   for (final entry in note.section('reminders')?.entries ?? const <NoteEntry>[]) {
     if (entry case final Reminder reminder) {
       yield* _reminderItems(reminder, item, from);
     }
   }
+  var number = 0;
   for (final entry in note.section('todo')?.entries ?? const <NoteEntry>[]) {
-    if (entry case Todo(:final date, :final text, done: false)) {
-      yield item(date, null, text, todo: true);
+    if (entry case final Todo todo) {
+      number++;
+      if (!todo.done) yield item(todo.date, null, todo.text, todo: true, number: number);
     }
   }
 }

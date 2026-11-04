@@ -101,6 +101,7 @@ export 'src/store/notes.dart'
         readNote,
         recordDecision,
         removeEmptyFolders,
+        reopenTodo,
         restoreArchived,
         slugify,
         writeNote;

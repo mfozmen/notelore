@@ -306,7 +306,14 @@ String _endAfter(String time, int minutes) {
       '${(total % 60).toString().padLeft(2, '0')}';
 }
 
-void completeTodo(String path, int number, {DateTime? today}) {
+void completeTodo(String path, int number, {DateTime? today}) =>
+    _setTodoDone(path, number, done: true, today: today);
+
+/// Reopens a done todo, the undo of [completeTodo] (#512).
+void reopenTodo(String path, int number, {DateTime? today}) =>
+    _setTodoDone(path, number, done: false, today: today);
+
+void _setTodoDone(String path, int number, {required bool done, DateTime? today}) {
   final note = readNote(path);
   final section = _section(note, 'todo');
   final todos = [
@@ -314,17 +321,17 @@ void completeTodo(String path, int number, {DateTime? today}) {
       if (section.entries[i] case final Todo todo) (i, todo),
   ];
   if (number < 1 || number > todos.length) {
-    final open = [
+    final others = [
       for (final (i, (_, todo)) in todos.indexed)
-        if (!todo.done) '${i + 1}. ${todo.text}',
+        if (todo.done != done) '${i + 1}. ${todo.text}',
     ];
     throw RangeError(
       '${section.heading} has ${todos.length} todos, no #$number. '
-      '${open.isEmpty ? 'None is open.' : 'Open: ${open.join('; ')}'}',
+      '${others.isEmpty ? (done ? 'None is open.' : 'None is done.') : '${done ? 'Open' : 'Done'}: ${others.join('; ')}'}',
     );
   }
   final (position, todo) = todos[number - 1];
-  section.entries[position] = Todo(todo.date, todo.text, done: true);
+  section.entries[position] = Todo(todo.date, todo.text, done: done);
   writeNote(path, note, today: today);
 }
 

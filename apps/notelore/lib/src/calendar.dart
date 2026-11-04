@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -48,23 +49,42 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => Scaffold(
-          appBar: AppBar(title: Text(item.note)),
-          body: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: Layout.column),
-              child: NoteView(
-                text,
-                folder: p.dirname(notePath(session.paths.notes.path, item.kind, item.slug)),
-                strings: session.strings,
-                today: _today,
+        builder: (_) => ListenableBuilder(
+          listenable: session,
+          builder: (_, _) {
+            var current = text;
+            try {
+              current = session.readNote(note);
+            } on FileSystemException {
+              // Gone since it opened: keep reading what was there.
+            }
+            return Scaffold(
+              appBar: AppBar(title: Text(item.note)),
+              body: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: Layout.column),
+                  child: NoteView(
+                    current,
+                    folder: p.dirname(notePath(session.paths.notes.path, item.kind, item.slug)),
+                    strings: session.strings,
+                    today: _today,
+                    onTodo: (number, done) =>
+                        unawaited(session.setTodoDone(note, number, done: done)),
+                  ),
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
   }
+
+  Future<void> _complete(DayItem item) => widget.session.setTodoDone(
+    NoteInfo(item.slug, item.kind, item.note, null),
+    item.number,
+    done: true,
+  );
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -116,6 +136,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       picked: _picked,
       showAll: () => setState(() => _picked = null),
       open: _open,
+      toggle: _complete,
     );
   }
 
@@ -367,6 +388,7 @@ class _Agenda extends StatelessWidget {
     required this.picked,
     required this.showAll,
     required this.open,
+    required this.toggle,
   });
 
   final Strings s;
@@ -375,6 +397,7 @@ class _Agenda extends StatelessWidget {
   final DateTime? picked;
   final VoidCallback showAll;
   final ValueChanged<DayItem> open;
+  final ValueChanged<DayItem> toggle;
 
   String _heading(DateTime day) {
     if (day == today) return s.today;
@@ -432,7 +455,7 @@ class _Agenda extends StatelessWidget {
               child: heading(name),
             ),
           for (final item in group)
-            _Item(s, item, today: today, open: open, underOverdue: picked == null),
+            _Item(s, item, today: today, open: open, toggle: toggle, underOverdue: picked == null),
         ],
       ],
     );
@@ -445,6 +468,7 @@ class _Item extends StatelessWidget {
     this.item, {
     required this.today,
     required this.open,
+    required this.toggle,
     required this.underOverdue,
   });
 
@@ -452,6 +476,7 @@ class _Item extends StatelessWidget {
   final DayItem item;
   final DateTime today;
   final ValueChanged<DayItem> open;
+  final ValueChanged<DayItem> toggle;
 
   /// Under an "Overdue" heading already: it need not say so again.
   final bool underOverdue;
@@ -468,10 +493,9 @@ class _Item extends StatelessWidget {
     ].join(' · ');
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: Icon(
-        item.todo ? Icons.radio_button_unchecked : Icons.alarm,
-        color: late ? colors.error : colors.primary,
-      ),
+      leading: item.todo
+          ? Checkbox(value: false, onChanged: (_) => toggle(item))
+          : Icon(Icons.alarm, color: late ? colors.error : colors.primary),
       title: Text(item.text),
       subtitle: Text(when, style: TextStyle(color: colors.onSurfaceVariant)),
       onTap: () => open(item),
