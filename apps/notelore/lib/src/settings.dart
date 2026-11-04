@@ -1248,31 +1248,44 @@ class _DriveSection extends StatelessWidget {
         ),
       );
     }
-    return ListTile(
-      leading: const Icon(Icons.cloud_done_outlined),
-      title: Text(session.strings.drive),
-      subtitle: Text(
-        session.syncing ? session.strings.syncing : session.syncStatus ?? session.strings.connected,
-      ),
-      trailing: Wrap(
-        spacing: Gap.xs,
-        children: [
-          IconButton(
-            tooltip: session.strings.syncNow,
-            icon: const Icon(Icons.sync),
-            onPressed: session.syncing ? null : session.syncNow,
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          leading: const Icon(Icons.cloud_done_outlined),
+          title: Text(session.strings.drive),
+          subtitle: Text(
+            session.syncing
+                ? session.strings.syncing
+                : session.syncStatus ?? session.strings.connected,
           ),
-          IconButton(
-            tooltip: session.strings.disconnectDrive,
-            icon: const Icon(Icons.link_off),
-            onPressed: () {
-              // The Google step takes over: a phone's Settings page must not stay on top.
-              Navigator.of(context).popUntil((route) => route.isFirst);
-              session.disconnectDrive();
-            },
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.s),
+          child: Wrap(
+            spacing: Gap.s,
+            runSpacing: Gap.xs,
+            children: [
+              TextButton.icon(
+                onPressed: session.syncing ? null : session.syncNow,
+                icon: const Icon(Icons.sync),
+                label: Text(session.strings.syncNow),
+              ),
+              TextButton.icon(
+                style: TextButton.styleFrom(foregroundColor: colors.error),
+                onPressed: () {
+                  // The Google step takes over: a phone's Settings page must not stay on top.
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                  session.disconnectDrive();
+                },
+                icon: const Icon(Icons.link_off),
+                label: Text(session.strings.disconnectDrive),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

@@ -28,9 +28,9 @@ void main() {
     await openSync(tester);
     expect(find.text('Synced; nothing changed.'), findsOneWidget);
     harness.remote.texts['topics/t.md'] = '---\ntitle: T\n---\n# T\n';
-    await tester.ensureVisible(find.byTooltip('Sync now'));
+    await tester.ensureVisible(find.text('Sync now'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Sync now'));
+    await tester.tap(find.text('Sync now'));
     await tester.pumpAndSettle();
     expect(find.text('Synced: 1 received.'), findsOneWidget);
     await tester.pageBack();
@@ -39,9 +39,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('T'), findsOneWidget); // the pulled note is listed
     await openSync(tester);
-    await tester.ensureVisible(find.byTooltip('Disconnect Google Drive'));
+    await tester.ensureVisible(find.text('Disconnect Google Drive'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Disconnect Google Drive'));
+    await tester.tap(find.text('Disconnect Google Drive'));
     await tester.pumpAndSettle();
     expect(find.text('Sign in with Google'), findsOneWidget); // back to the first step
   });
@@ -93,6 +93,19 @@ void main() {
     expect(find.text('Synced: 1 sent.'), findsOneWidget); // the note made meanwhile goes up
   });
 
+  testWidgets('settings: the Drive actions are labelled at 2x (#713)', (tester) async {
+    phone(tester);
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final harness = Harness(auth: FakeAuth()..granted = true);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await openSync(tester);
+    expect(find.widgetWithText(TextButton, 'Sync now'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, 'Disconnect Google Drive'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('while syncing the button waits', (tester) async {
     phone(tester);
     final harness = Harness(auth: FakeAuth()..granted = true);
@@ -104,7 +117,7 @@ void main() {
     await tester.pump();
     expect(find.text('Syncing...'), findsOneWidget);
     expect(
-      tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.sync)).onPressed,
+      tester.widget<TextButton>(find.widgetWithText(TextButton, 'Sync now')).onPressed,
       isNull,
     );
     harness.remote.hold!.complete();
@@ -165,9 +178,9 @@ void main() {
       await connect(tester, key: 'k');
       harness.remote.texts.removeWhere((rel, _) => rel.endsWith('.md'));
       await openSync(tester);
-      await tester.ensureVisible(find.byTooltip('Sync now'));
+      await tester.ensureVisible(find.text('Sync now'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Sync now'));
+      await tester.tap(find.text('Sync now'));
       await tester.pumpAndSettle();
       await tester.pageBack(); // the banner is above the task screens
       await tester.pumpAndSettle();
