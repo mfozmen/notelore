@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
@@ -33,7 +35,18 @@ class _NotesScreenState extends State<NotesScreen> {
   var _archive = false;
 
   @override
+  void initState() {
+    super.initState();
+    widget.session.addListener(_sessionChanged);
+  }
+
+  void _sessionChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
+    widget.session.removeListener(_sessionChanged);
     _search.dispose();
     super.dispose();
   }
@@ -429,6 +442,8 @@ class _NotesScreenState extends State<NotesScreen> {
               folder: p.dirname(notePath(widget.session.paths.notes.path, note.kind, note.slug)),
               strings: widget.session.strings,
               today: widget.session.clock().toLocal(),
+              onTodo: (number, text, done) =>
+                  unawaited(widget.session.setTodoDone(note, number, text: text, done: done)),
             ),
           ),
         ],
@@ -479,11 +494,14 @@ class _NotesScreenState extends State<NotesScreen> {
             ),
           ],
         ),
-        // A comfortable reading width on wide windows.
+        // A comfortable reading width on wide windows, and the page follows a
+        // checkbox it writes (#512).
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: Layout.column),
-            child: NoteView(
+            child: WritableNoteView(
+              widget.session,
+              note,
               text,
               folder: p.dirname(notePath(widget.session.paths.notes.path, note.kind, note.slug)),
               strings: widget.session.strings,

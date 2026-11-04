@@ -2440,6 +2440,36 @@ void main() {
     expect(find.text('Mopsos'), findsOneWidget);
   });
 
+  testWidgets('notes: a checkbox completes a todo and a second tap reopens it (#512)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    addTodo(path, 'Return the book', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(Checkbox));
+    await tester.pumpAndSettle();
+    await tester.pump();
+    expect(File(path).readAsStringSync(), contains('- [x] '));
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
+    await tester.tap(find.byType(Checkbox));
+    await tester.pumpAndSettle();
+    await tester.pump();
+    expect(File(path).readAsStringSync(), contains('- [ ] '));
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
+    // The note gone since it opened: the page keeps its words (#512).
+    File(path).deleteSync();
+    session.notifyListeners();
+    await tester.pumpAndSettle();
+    expect(find.text('Return the book'), findsOneWidget);
+  });
+
   testWidgets('notes: list actions sit in one overflow; the reader owns export and delete (#555)', (
     tester,
   ) async {

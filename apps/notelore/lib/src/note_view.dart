@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -5,10 +6,80 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
-import 'session.dart' show withoutFrontMatter;
+import 'session.dart' show Session, withoutFrontMatter;
 import 'strings.dart';
 import 'theme.dart';
 import 'web_link.dart';
+
+/// A note page that writes its todo checkboxes and shows the new line at once.
+class WritableNoteView extends StatefulWidget {
+  const WritableNoteView(
+    this.session,
+    this.note,
+    this.text, {
+    required this.folder,
+    required this.strings,
+    required this.today,
+    super.key,
+  });
+
+  final Session session;
+  final NoteInfo note;
+  final String text;
+  final String folder;
+  final Strings strings;
+  final DateTime today;
+
+  @override
+  State<WritableNoteView> createState() => _WritableNoteViewState();
+}
+
+class _WritableNoteViewState extends State<WritableNoteView> {
+  late var _text = widget.text;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.session.addListener(_changed);
+  }
+
+  /// A sync or the assistant changed the note: show its new words (#512).
+  void _changed() {
+    final next = _read();
+    if (next != null && mounted) setState(() => _text = next);
+  }
+
+  /// The note's file, or null when it is gone since it opened.
+  String? _read() {
+    try {
+      return widget.session.readNote(widget.note);
+    } on FileSystemException {
+      return null;
+    }
+  }
+
+  Future<void> _toggle(int number, String text, bool done) async {
+    await widget.session.setTodoDone(widget.note, number, text: text, done: done);
+    if (!mounted) return;
+    final next = _read();
+    if (next != null) setState(() => _text = next);
+  }
+
+  @override
+  void dispose() {
+    widget.session.removeListener(_changed);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => NoteView(
+    _text,
+    folder: widget.folder,
+    strings: widget.strings,
+    today: widget.today,
+    onTodo: (number, text, done) => unawaited(_toggle(number, text, done)),
+  );
+}
 
 /// A note as a page (#426): its title and what it is, then each known section
 /// in its own form: decisions as cards, todos as checkboxes, notes as a dated
@@ -22,6 +93,7 @@ class NoteView extends StatelessWidget {
     required this.folder,
     required this.strings,
     required this.today,
+    this.onTodo,
     super.key,
   });
 
@@ -29,6 +101,10 @@ class NoteView extends StatelessWidget {
   final String folder;
   final Strings strings;
   final DateTime today;
+
+  /// Called with a todo's number in the note and its new done state; without
+  /// it (the archive), todos are marks, not controls.
+  final void Function(int number, String text, bool done)? onTodo;
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +235,7 @@ class NoteView extends StatelessWidget {
     return [
       ...switch (section.key) {
         'decisions' => _decisions(context, section.entries.whereType<Decision>().toList()),
-        'todo' => _todos(context, section.entries.whereType<Todo>().toList()),
+        'todo' => _todos(context, section.entries),
         'notes' => _notes(context, section.entries.whereType<Entry>().toList()),
         'reminders' => _reminders(context, section.entries.whereType<Reminder>().toList()),
         // A section someone wrote by hand: as written.
@@ -248,41 +324,53 @@ class NoteView extends StatelessWidget {
     ];
   }
 
-  List<Widget> _todos(BuildContext context, List<Todo> todos) {
+  List<Widget> _todos(BuildContext context, List<NoteEntry> entries) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final open = todos.where((t) => !t.done).toList()..sort((a, b) => a.date.compareTo(b.date));
-    final done = todos.where((t) => t.done);
+    final numbered = [for (final (i, entry) in entries.whereType<Todo>().indexed) (i + 1, entry)];
+    final open = numbered.where((t) => !t.$2.done).toList()
+      ..sort((a, b) => a.$2.date.compareTo(b.$2.date));
+    final done = numbered.where((t) => t.$2.done);
     final day = DateTime(today.year, today.month, today.day);
     return [
-      for (final todo in [...open, ...done])
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: Gap.xs),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Shown, not tapped: no checkbox that looks like a control.
+      for (final (number, todo) in [...open, ...done]) _todoRow(theme, number, todo, day),
+    ];
+  }
+
+  Widget _todoRow(ThemeData theme, int number, Todo todo, DateTime day) {
+    final colors = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: Gap.xs),
+      child: MergeSemantics(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (onTodo case final onTodo?)
+              Checkbox(
+                value: todo.done,
+                onChanged: (done) => onTodo(number, todo.text, done ?? false),
+              )
+            else
               Icon(
                 todo.done ? Icons.check_circle : Icons.radio_button_unchecked,
                 size: 20,
                 color: todo.done ? colors.outline : colors.onSurfaceVariant,
               ),
-              const SizedBox(width: Gap.s),
-              Expanded(
-                child: _markdown(
-                  todo.text,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: todo.done ? colors.onSurfaceVariant : null,
-                    decoration: todo.done ? TextDecoration.lineThrough : null,
-                  ),
+            const SizedBox(width: Gap.s),
+            Expanded(
+              child: _markdown(
+                todo.text,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: todo.done ? colors.onSurfaceVariant : null,
+                  decoration: todo.done ? TextDecoration.lineThrough : null,
                 ),
               ),
-              const SizedBox(width: Gap.s),
-              _todoDate(theme, todo, late: !todo.done && todo.date.isBefore(day)),
-            ],
-          ),
+            ),
+            const SizedBox(width: Gap.s),
+            _todoDate(theme, todo, late: !todo.done && todo.date.isBefore(day)),
+          ],
         ),
-    ];
+      ),
+    );
   }
 
   /// Coming ones by day and time, past ones after them, saying so in words

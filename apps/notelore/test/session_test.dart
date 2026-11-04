@@ -1472,6 +1472,31 @@ void main() {
     expect(session.readNote(session.listNotes().single), contains('\n# Windows\n'));
   });
 
+  test('a todo write on a note gone since the screen drew it does nothing (#512)', () async {
+    final session = Harness().session();
+    expect(
+      await session.setTodoDone(const NoteInfo('ghost', 'topic', 'Ghost', null), 1, done: true),
+      isFalse,
+    );
+  });
+
+  test('a todo moved since the screen drew it is not written (#512)', () async {
+    final harness = Harness();
+    final session = harness.session();
+    final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    addTodo(path, 'Return the book', today: today);
+    expect(
+      await session.setTodoDone(
+        const NoteInfo('kitaplar', 'topic', 'Kitaplar', null),
+        1,
+        text: 'another todo',
+        done: true,
+      ),
+      isFalse,
+    );
+    expect(File(path).readAsStringSync(), isNot(contains('- [x]')));
+  });
+
   test('deleting a note moves it to the archive, and undo brings it back', () async {
     final harness = Harness();
     final session = harness.session();
