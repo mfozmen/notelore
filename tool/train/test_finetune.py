@@ -151,6 +151,13 @@ try:
 except SystemExit as stop:
     check("too few paths stop with a usage message", str(stop).startswith("usage: python tool/train/finetune.py"), True)
 
+for bad in ("--rank=0", "--eval-every=0", "--lr=0", "--lr=fast"):
+    try:
+        main(["base", "data.jsonl", "out", bad])
+        check(f"{bad} stops before training", "ran", "usage")
+    except SystemExit as stop:
+        check(f"{bad} stops before training", str(stop).startswith("usage: "), True)
+
 # A tenth of the turns is held out for the validation loss (#605), the same
 # tenth on every run, so two runs compare.
 turns = list(range(20))

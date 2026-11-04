@@ -17,12 +17,12 @@ takes its chat template and parameters from the base model as Ollama ships it
 (`--ollama-base`, qwen3:4b-instruct-2507-q4_K_M by default), so tool calls
 are read the same way.
 
-A tenth of the turns is held out (the same tenth every run), a case's
-turns together, by the row's `id`. The validation
-loss on it is measured every 5 steps (`--eval-every`; the train loss stays every 5), the LoRA saved is the
-checkpoint where it was lowest, and three evaluations without a better one end
-the run, so `--epochs` is a ceiling (the cosine schedule still spans all of
-them, so a run stopped early ends at a higher learning rate).
+A tenth of the turns is held out (the same tenth every run), a case's turns
+together, by the row's `id`. The validation loss on it is measured every
+`--eval-every` steps (default 5; the train loss stays every 5), the LoRA saved
+is the checkpoint where it was lowest, and three evaluations without a better
+one end the run, so `--epochs` is a ceiling (the cosine schedule still spans
+all of them, so a run stopped early ends at a higher learning rate).
 
 `--assistant-only` puts the loss on the assistant's tokens alone (about 7% of
 a turn), not on the system prompt, tool schemas and tool results it would
@@ -351,12 +351,15 @@ def main(argv):
     def option(name, default):
         return next((a.split("=", 1)[1] for a in argv if a.startswith(f"--{name}=")), default)
 
+    try:
+        rank, eval_every = int(option("rank", "16")), int(option("eval-every", "5"))
+        lr = float(option("lr", "2e-4"))
+    except ValueError:
+        raise SystemExit(USAGE) from None
+    if rank < 1 or eval_every < 1 or lr <= 0:
+        raise SystemExit(USAGE)
     # Before hours of training: fails at once if Ollama lacks the base model.
     modelfile(out, option("ollama-base", "qwen3:4b-instruct-2507-q4_K_M"))
-    rank, eval_every = int(option("rank", "16")), int(option("eval-every", "5"))
-    if rank < 1 or eval_every < 1:
-        raise SystemExit(USAGE)
-    lr = float(option("lr", "2e-4"))
     train(base, data, out, int(option("epochs", "3")), "--assistant-only" in argv, rank, lr, eval_every)
     torch.cuda.empty_cache()
     merge(base, out)
