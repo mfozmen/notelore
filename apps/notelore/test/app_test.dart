@@ -5,7 +5,7 @@ import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart' show XFile;
 import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
-import 'package:flutter/gestures.dart' show PointerDeviceKind;
+import 'package:flutter/gestures.dart' show PointerDeviceKind, PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -1154,6 +1154,109 @@ void main() {
         hasFocusAction: true,
       ),
     );
+  });
+
+  testWidgets('chat: Cmd +, - and 0 zoom the text and reset it (#696)', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    phone(tester);
+    final session = await pumpApp(tester, Harness(answers: ['Saved.']));
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'Kitaplari rafa koy');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    final message = find.text('Kitaplari rafa koy');
+    final before = tester.getSize(message).height;
+    await tester.tap(find.byKey(const Key('message')));
+    await tester.pump();
+    Future<void> press(LogicalKeyboardKey key) async {
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      await tester.pump();
+      await tester.sendKeyDownEvent(key);
+      await tester.pump();
+      await tester.sendKeyUpEvent(key);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+      await tester.pumpAndSettle();
+    }
+
+    await press(LogicalKeyboardKey.equal);
+    expect(session.chatTextStep, 2);
+    expect(tester.getSize(message).height, greaterThan(before));
+    await press(LogicalKeyboardKey.digit0);
+    expect(session.chatTextStep, 1);
+    await press(LogicalKeyboardKey.minus);
+    expect(session.chatTextStep, 0);
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('chat: Ctrl and the wheel step the text size (#696)', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    phone(tester);
+    final session = await pumpApp(tester, Harness(answers: ['Saved.']));
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'Kitaplari rafa koy');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    final center = tester.getCenter(find.byType(ListView).first);
+    tester.binding.handlePointerEvent(
+      PointerScrollEvent(position: center, scrollDelta: const Offset(0, -120)),
+    );
+    await tester.pumpAndSettle();
+    expect(session.chatTextStep, 2);
+    tester.binding.handlePointerEvent(
+      PointerScrollEvent(position: center, scrollDelta: const Offset(0, 120)),
+    );
+    await tester.pumpAndSettle();
+    expect(session.chatTextStep, 1);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('settings: the chat text control steps, resets and is saved (#696)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await openSettings(tester, 'Appearance');
+    await tester.ensureVisible(find.byTooltip('Larger text'));
+    await tester.pumpAndSettle();
+    expect(find.text('100%'), findsOneWidget);
+    await tester.tap(find.byTooltip('Larger text'));
+    await tester.pumpAndSettle();
+    expect(find.text('115%'), findsOneWidget);
+    await tester.tap(find.byTooltip('Larger text'));
+    await tester.pumpAndSettle();
+    expect(find.text('130%'), findsOneWidget);
+    await tester.tap(find.text('Reset'));
+    await tester.pumpAndSettle();
+    expect(find.text('100%'), findsOneWidget);
+    final again = harness.session();
+    await again.load();
+    expect(again.chatTextStep, Session.chatTextDefault);
+  });
+
+  testWidgets('chat: the largest size over the system scale does not overflow (#696)', (
+    tester,
+  ) async {
+    phone(tester);
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final session = await pumpApp(tester, Harness(answers: ['Saved.']));
+    await connect(tester, key: 'k');
+    session.setChatTextStep(Session.chatTextSteps.length - 1);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('message')),
+      'Kitaplari rafa koy ve uzun bir cumle daha yaz ki sarsin',
+    );
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('chat: Copy under every answer; an older message shows it on a tap (#508)', (

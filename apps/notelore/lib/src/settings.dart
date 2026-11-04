@@ -132,7 +132,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ],
       SettingsSection.sync: [Card(child: _DriveSection(session))],
-      SettingsSection.appearance: [_LanguageCard(session), _LookCard(session)],
+      SettingsSection.appearance: [
+        _LanguageCard(session),
+        _LookCard(session),
+        _ChatTextCard(session),
+      ],
       SettingsSection.lock: [_LockCard(session)],
       SettingsSection.privacy: [_PrivacyCard(session)],
       SettingsSection.reminders: [_RemindersCard(session)],
@@ -675,6 +679,61 @@ class _LookCard extends StatelessWidget {
                 selected: {session.appearance},
                 showSelectedIcon: false,
                 onSelectionChanged: (chosen) => session.setAppearance(chosen.single),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The chat's text size, in steps, on this device only (#696).
+class _ChatTextCard extends StatelessWidget {
+  const _ChatTextCard(this.session);
+
+  final Session session;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = session.strings;
+    final step = session.chatTextStep;
+    final last = Session.chatTextSteps.length - 1;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: Gap.m),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.format_size),
+              title: Text(s.chatTextSize),
+              subtitle: Text(s.chatTextSizeWhy),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+              child: Row(
+                children: [
+                  IconButton(
+                    tooltip: s.textSizeSmaller,
+                    icon: const Icon(Icons.text_decrease),
+                    onPressed: step > 0 ? session.zoomChatOut : null,
+                  ),
+                  Expanded(
+                    child: Text(
+                      '${(session.chatTextScale * 100).round()}%',
+                      key: const Key('chat-text-percent'),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: s.textSizeLarger,
+                    icon: const Icon(Icons.text_increase),
+                    onPressed: step < last ? session.zoomChatIn : null,
+                  ),
+                  if (step != Session.chatTextDefault)
+                    TextButton(onPressed: session.resetChatText, child: Text(s.textSizeReset)),
+                ],
               ),
             ),
           ],

@@ -858,6 +858,33 @@ void main() {
     );
   });
 
+  test('the chat text zooms in steps, stops at the ends and resets (#696)', () async {
+    final session = Harness().session();
+    await session.load();
+    expect(session.chatTextScale, 1.0);
+    session.zoomChatOut();
+    expect(session.chatTextScale, 0.85);
+    session.zoomChatOut(); // already the smallest
+    expect(session.chatTextScale, 0.85);
+    for (var i = 0; i < 10; i++) {
+      session.zoomChatIn();
+    }
+    expect(session.chatTextScale, 1.5); // the largest
+    session.resetChatText();
+    expect(session.chatTextScale, 1.0);
+  });
+
+  test('the chat text size stays after a restart, on this device (#696)', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.load();
+    session.zoomChatIn();
+    expect(session.chatTextStep, 2);
+    final again = harness.session();
+    await again.load();
+    expect(again.chatTextStep, 2);
+  });
+
   test('web search: on by default where the provider has it, and can be turned off', () async {
     final harness = Harness();
     final session = harness.session();
