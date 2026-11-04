@@ -190,6 +190,10 @@ check(
 )
 check("evaluated where it saves", args["eval_steps"], args["save_steps"])
 check("the precision flags pass through", (args["bf16"], args["fp16"]), (True, False))
+check("v3 to v7's learning rate by default", args["learning_rate"], 2e-4)
+check("a sweep's learning rate passes through", trainer_args("out", 3, {}, learning_rate=1e-4)["learning_rate"], 1e-4)
+sparse = trainer_args("out", 3, {}, eval_every=15)
+check("a slow GPU evaluates less often, still where it saves", (sparse["eval_steps"], sparse["save_steps"]), (15, 15))
 
 history = [
     {"loss": 0.7, "step": 5},
