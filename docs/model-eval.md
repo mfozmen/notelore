@@ -189,3 +189,21 @@ Findings:
   - plan: 12 → 10/15; decision: 15 → 14/18.
 - **The pairs taught the preference but not the behaviour.** Validation reward accuracy reached 0.79, yet greedy decoding keeps v7's choices. Likely, at beta 0.1 and this learning rate, one epoch moves the log-probabilities too little to flip the top token.
 - **v7 stays.** The DPO model is kept in Ollama as `notelore-qwen3-4b-dpo` for comparison and is not published.
+
+## A tick hint on matching entries, 2026-11-05 (#731)
+
+**Setup**
+- Change: `add_note_entry`'s result names each open todo of its note that shares a word stem with the entry (first four letters; the note's title words and a few common words left out), with the `complete_todo` call. Listing every open todo was dropped in #327 because the model then ticked on plain updates; a matching word is rare in an update.
+- Model: v7, Q4_K_M, greedy, slim, flash attention and q8_0 KV cache. Before is main at the same commit without the change.
+
+| | Held-out (292) | 44 cases × 2 | Held-out todo-done |
+|---|---|---|---|
+| before | 221 (75.7%) | 64/88 (73%) | 1/20 |
+| after | **233 (79.8%)** | **68/88 (77%)** | **14/20** |
+
+Findings:
+
+- **The biggest single gain since the note list in the prompt:** +12 held-out cases, all of them done messages that were filed as plain entries before (in English and Turkish, and one cross-language). On the 44 cases, todo-done goes 0/4 → 4/4.
+- **One false tick:** "İki referans mektubu gerekiyor" shares *mektub* with the todo "Niyet mektubunu yaz", and the model ticks it. Asking for two shared stems would fix it but lose "Balkon bahçesi: toprak alındı" against "Toprak satın al", so the rule stays at one.
+- **Still failing:** the `done-other` updates (8/8 fail before and after: they expect the note read first) and cross-language done messages, which share no word with the todo ("statement of purpose" against "Niyet mektubunu yaz").
+- Every other kind is unchanged.

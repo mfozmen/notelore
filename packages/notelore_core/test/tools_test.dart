@@ -214,6 +214,32 @@ void main() {
     expect(text, contains('~~2026-09-30 — **database**: PostgreSQL.~~'));
   });
 
+  test('an entry names the open todo it shares a word with, and how to tick it (#731)', () {
+    call('create_note', {'kind': 'project', 'title': 'Home Studio'});
+    call('add_todo', {'slug': 'home-studio', 'text': 'Buy acoustic panels'});
+    call('add_todo', {'slug': 'home-studio', 'text': 'Hang the studio lights'});
+    expect(
+      call('add_note_entry', {'slug': 'home-studio', 'text': 'I bought the acoustic panels.'}),
+      'ok; the entry matches open todo 1 of home-studio; when the user says it is done: '
+      'complete_todo({"slug":"home-studio","number":1})',
+    );
+    // The note's own title words and short or common words match nothing.
+    expect(
+      call('add_note_entry', {
+        'slug': 'home-studio',
+        'text': 'Home studio: I recorded the guitar.',
+      }),
+      'ok',
+    );
+    call('create_note', {'kind': 'project', 'title': 'Ev Taşıma', 'lang': 'tr'});
+    call('add_todo', {'slug': 'ev-tasima', 'text': 'Koli topla'});
+    expect(
+      call('add_note_entry', {'slug': 'ev-tasima', 'text': 'Ev taşıma: koliler toplandı.'}),
+      endsWith('complete_todo({"slug":"ev-tasima","number":1})'),
+    );
+    expect(call('add_note_entry', {'slug': 'ev-tasima', 'text': 'Dolabı komşuya verdim.'}), 'ok');
+  });
+
   test('results carry the rule where it applies: how to tick an open todo, record a choice', () {
     call('create_note', {'kind': 'project', 'title': 'Ev Tadilatı', 'lang': 'tr'});
     call('add_todo', {'slug': 'ev-tadilati', 'text': 'Boyacıyı ara'});

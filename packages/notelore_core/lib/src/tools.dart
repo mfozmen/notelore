@@ -10,7 +10,8 @@
 ///   A topic titled as this turn's `related_notes` asked first, or any note named
 ///   after a slug this turn reported missing, gets a sentence instead and is made
 ///   when asked again.
-/// - `add_note_entry(slug, text, kind?)`: appends a dated entry under Notes.
+/// - `add_note_entry(slug, text, kind?)`: appends a dated entry under Notes; the
+///   result names each open todo of the note the entry shares a word with.
 /// - `add_todo(slug, text, due?, kind?)` / `complete_todo(slug, number, kind?)`.
 /// - `add_reminder(slug, at, text, kind?)`: `at` is `YYYY-MM-DD` or `YYYY-MM-DD HH:MM`;
 ///   appended under Reminders, which the app turns into notifications.
@@ -176,10 +177,7 @@ final toolRegistry = List<NoteTool>.unmodifiable([
       "Append a dated note. Write one clean, self-contained sentence in the user's language.",
       _schema(['slug', 'text'], {'slug': _slug, 'text': _string, 'kind': _kind}),
     ),
-    (t, a) => t._write(
-      t._path(a['slug'], a.kind),
-      (path) => notes.addEntry(path, a['text'], today: t.today),
-    ),
+    (t, a) => t._addEntry(t._path(a['slug'], a.kind), a['text']),
     activity: Activity.writing,
     slimDescription: "Append a dated note: one self-contained sentence in the user's language.",
   ),
@@ -715,6 +713,22 @@ class Toolbox {
 
   // ------------------------------------------------------------ tools
 
+  /// "ok", then each open todo of the note the entry shares a word with and how
+  /// to tick it: a small model files "I bought the panels" without reading the
+  /// note, so it never sees the todo that is now done.
+  String _addEntry(String path, String text) {
+    _write(path, (path) => notes.addEntry(path, text, today: today));
+    final slug = p.basenameWithoutExtension(path);
+    final title = _words(slug.replaceAll('-', ' '));
+    final said = _words(text).where((w) => !title.any((t) => _sameStem(w, t)));
+    return [
+      'ok',
+      for (final (number, todo) in _openTodos(path))
+        if (_words(todo).any((w) => said.any((s) => _sameStem(w, s))))
+          'the entry matches ${_tick(slug, number)}',
+    ].join('; ');
+  }
+
   /// The note, then a line per open todo saying how to tick it: a small model
   /// does not keep that rule from the prompt (#601).
   String _readNote(String path) {
@@ -837,6 +851,20 @@ Set<String> _pairs(String text) {
   final letters = notes.slugify(text).replaceAll('-', '');
   return {for (var i = 0; i + 1 < letters.length; i++) letters.substring(i, i + 2)};
 }
+
+/// The words of [text] that can tell one todo from another, transliterated:
+/// four letters or more, minus the common ones.
+List<String> _words(String text) => [
+  for (final word in text.split(RegExp(r'\s+')))
+    for (final w in notes.slugify(word).split('-'))
+      if (w.length >= 4 && !_common.contains(w)) w,
+];
+
+const _common = {'that', 'this', 'with', 'from', 'have', 'been', 'were', 'will', 'just', 'into'};
+
+/// Whether two words share a stem: their first four letters, which holds across
+/// Turkish suffixes and English endings ("koliler"/"koli", "panels"/"panel").
+bool _sameStem(String a, String b) => a.substring(0, 4) == b.substring(0, 4);
 
 /// The open todos of the note at [path], numbered as complete_todo counts them.
 List<(int, String)> _openTodos(String path) {
