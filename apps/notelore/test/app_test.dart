@@ -2095,6 +2095,21 @@ void main() {
     });
   }
 
+  testWidgets('settings: the swatches split 3 + 3 when six do not fit (#717)', (tester) async {
+    phone(tester);
+    tester.view.physicalSize = const Size(900, 2400); // 360 dp
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await openSettings(tester, 'Appearance');
+    final labels = EnglishStrings();
+    final tops = {
+      for (final palette in Palette.values)
+        tester.getTopLeft(find.byTooltip(labels.paletteName(palette))).dy,
+    };
+    expect(tops, hasLength(2));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('settings: switch the app to Turkish and back', (tester) async {
     phone(tester);
     final harness = Harness();
