@@ -2077,6 +2077,24 @@ void main() {
     );
   });
 
+  for (final scale in [1.0, 2.0]) {
+    testWidgets('settings: the six theme swatches fit one row at ${scale}x (#717)', (tester) async {
+      phone(tester);
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pumpApp(tester, Harness());
+      await connect(tester, key: 'k');
+      await openSettings(tester, 'Appearance');
+      final labels = EnglishStrings();
+      final tops = {
+        for (final palette in Palette.values)
+          tester.getTopLeft(find.byTooltip(labels.paletteName(palette))).dy,
+      };
+      expect(tops, hasLength(1));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('settings: the appearance choices wrap at 2x without breaking a word (#714)', (
     tester,
   ) async {
@@ -2090,6 +2108,21 @@ void main() {
     final system = tester.getSize(find.text('System'));
     final dark = tester.getSize(find.text('Dark'));
     expect(system.height, dark.height); // a two-line System would be twice as tall
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('settings: the swatches split 3 + 3 when six do not fit (#717)', (tester) async {
+    phone(tester);
+    tester.view.physicalSize = const Size(900, 2400); // 360 dp
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await openSettings(tester, 'Appearance');
+    final labels = EnglishStrings();
+    final tops = {
+      for (final palette in Palette.values)
+        tester.getTopLeft(find.byTooltip(labels.paletteName(palette))).dy,
+    };
+    expect(tops, hasLength(2));
     expect(tester.takeException(), isNull);
   });
 
