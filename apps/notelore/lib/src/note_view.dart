@@ -357,16 +357,23 @@ class NoteView extends StatelessWidget {
               ),
             const SizedBox(width: Gap.s),
             Expanded(
-              child: _markdown(
-                todo.text,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: todo.done ? colors.onSurfaceVariant : null,
-                  decoration: todo.done ? TextDecoration.lineThrough : null,
+              child: Padding(
+                // A Checkbox is a 48 dp box; its 24 dp visual sits 12 dp down (#710).
+                padding: EdgeInsets.only(top: onTodo == null ? 0 : 12),
+                child: _markdown(
+                  todo.text,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: todo.done ? colors.onSurfaceVariant : null,
+                    decoration: todo.done ? TextDecoration.lineThrough : null,
+                  ),
                 ),
               ),
             ),
             const SizedBox(width: Gap.s),
-            _todoDate(theme, todo, late: !todo.done && todo.date.isBefore(day)),
+            Padding(
+              padding: EdgeInsets.only(top: onTodo == null ? 0 : 12),
+              child: _todoDate(theme, todo, late: !todo.done && todo.date.isBefore(day)),
+            ),
           ],
         ),
       ),
