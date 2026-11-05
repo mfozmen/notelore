@@ -13,6 +13,7 @@ for name in ("torch", "datasets", "peft", "transformers", "trl"):
     stub.__getattr__ = lambda attr: attr  # any name the script imports, as itself
     sys.modules[name] = stub
 sys.modules["torch"].bfloat16, sys.modules["torch"].float16 = "bfloat16", "float16"
+sys.modules["transformers"].TrainerCallback = object  # a base class, so a callback subclasses it
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import finetune
@@ -30,6 +31,7 @@ from finetune import (
     native_bf16,
     precision,
     preference,
+    TimeLimit,
     split,
     trainer_args,
 )
@@ -151,7 +153,7 @@ try:
 except SystemExit as stop:
     check("too few paths stop with a usage message", str(stop).startswith("usage: python tool/train/finetune.py"), True)
 
-for bad in ("--rank=0", "--eval-every=0", "--lr=0", "--lr=fast"):
+for bad in ("--rank=0", "--eval-every=0", "--lr=0", "--lr=fast", "--max-hours=0", "--max-hours=-1.5", "--max-hours=soon"):
     try:
         main(["base", "data.jsonl", "out", bad])
         check(f"{bad} stops before training", "ran", "usage")
@@ -203,6 +205,17 @@ check("a sweep's learning rate passes through", trainer_args("out", 3, {}, learn
 check("alpha stays twice the rank", {k: lora_settings(32)[k] for k in ("r", "lora_alpha")}, {"r": 32, "lora_alpha": 64})
 sparse = trainer_args("out", 3, {}, eval_every=15)
 check("a slow GPU evaluates less often, still where it saves", (sparse["eval_steps"], sparse["save_steps"]), (15, 15))
+
+# A Kaggle session ends at 12 hours: the run stops itself before, saved, and the
+# next session goes on from that checkpoint.
+now = [0.0]
+limit = TimeLimit(11, clock=lambda: now[0])
+control = types.SimpleNamespace(should_save=False, should_training_stop=False)
+limit.on_step_end(None, None, control)
+check("before the limit a step goes on", (control.should_save, control.should_training_stop), (False, False))
+now[0] = 11 * 3600
+limit.on_step_end(None, None, control)
+check("at the limit the run saves and stops", (control.should_save, control.should_training_stop), (True, True))
 
 history = [
     {"loss": 0.7, "step": 5},
