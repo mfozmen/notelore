@@ -32,7 +32,10 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 
+STARTED = time.monotonic()
+# 11 of Kaggle's 12 hours: an evaluation (~30 min) may still run on the stopping step.
 DATA, RUN, HOURS = "train-v8.jsonl", "v8", 11
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # one T4: the 4-bit model fits, and nothing is split
@@ -56,6 +59,6 @@ for checkpoint in earlier:
     shutil.copytree(checkpoint, f"{out}/lora/{os.path.basename(checkpoint)}")
 # One evaluation of ~150 held-out turns takes about half an hour on a T4.
 finetune.train(base, data, out, epochs=1, assistant_only=True, eval_every=40,
-               max_hours=HOURS, resume=bool(earlier))
+               max_hours=HOURS - (time.monotonic() - STARTED) / 3600, resume=bool(earlier))
 shutil.copytree(f"{out}/lora", "/tmp/best", ignore=shutil.ignore_patterns("checkpoint-*"))
 print(shutil.make_archive("/kaggle/working/lora", "zip", "/tmp/best"))

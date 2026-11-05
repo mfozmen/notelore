@@ -12,6 +12,7 @@ for name in ("torch", "datasets", "peft", "transformers", "trl"):
     stub = types.ModuleType(name)
     stub.__getattr__ = lambda attr: attr
     sys.modules[name] = stub
+sys.modules["transformers"].TrainerCallback = object  # finetune.py subclasses it
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pairs import pair, pairs

@@ -5,6 +5,7 @@ libraries are stubbed). Run by ci.yml:
 """
 
 import sys
+import tempfile
 import types
 from pathlib import Path
 
@@ -23,6 +24,7 @@ from finetune import (
     clean,
     fp32_logprobs,
     load,
+    callbacks,
     lora_settings,
     main,
     modelfile,
@@ -216,6 +218,26 @@ check("before the limit a step goes on", (control.should_save, control.should_tr
 now[0] = 11 * 3600
 limit.on_step_end(None, None, control)
 check("at the limit the run saves and stops", (control.should_save, control.should_training_stop), (True, True))
+finetune.EarlyStoppingCallback = Recorder
+check("no limit, no time callback", [type(c).__name__ for c in callbacks(float("inf"))], ["Recorder"])
+check("a limit adds one", [type(c).__name__ for c in callbacks(11)], ["Recorder", "TimeLimit"])
+
+# main passes the options through to train, and checks --resume has something to go on from.
+trained = []
+finetune.train = lambda *args: trained.append(args)
+finetune.modelfile = finetune.merge = lambda *args: None
+finetune.torch.cuda = types.SimpleNamespace(empty_cache=lambda: None)
+main(["base", "data.jsonl", "out", "--epochs=1", "--rank=32", "--max-hours=10.5", "--assistant-only"])
+check("the options reach train", trained[-1], ("base", "data.jsonl", "out", 1, True, 32, 2e-4, 5, 10.5, False))
+with tempfile.TemporaryDirectory() as out:
+    try:
+        main(["base", "data.jsonl", out, "--resume"])
+        check("--resume with no checkpoint stops", "ran", "usage")
+    except SystemExit as stop:
+        check("--resume with no checkpoint stops", "no checkpoint" in str(stop), True)
+    (Path(out) / "lora" / "checkpoint-40").mkdir(parents=True)
+    main(["base", "data.jsonl", out, "--resume"])
+    check("--resume goes on from one", trained[-1][-2:], (float("inf"), True))
 
 history = [
     {"loss": 0.7, "step": 5},

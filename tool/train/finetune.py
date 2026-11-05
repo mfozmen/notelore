@@ -239,8 +239,9 @@ def load(base, dtype):
 
 
 class TimeLimit(TrainerCallback):
-    """Saves and stops the run once [hours] have passed, so a run longer than a
-    Kaggle session (12 hours) ends cleanly and the next one resumes it."""
+    """Saves and stops the run once [hours] have passed since the trainer was
+    built, so a run longer than a Kaggle session (12 hours) ends cleanly and
+    the next one resumes it. An evaluation due on the stopping step still runs."""
 
     def __init__(self, hours, clock=time.monotonic):
         self.clock = clock
@@ -250,6 +251,13 @@ class TimeLimit(TrainerCallback):
         if self.clock() >= self.deadline:
             control.should_save = control.should_training_stop = True
         return control
+
+
+def callbacks(max_hours):
+    """Early stopping after three evaluations without a better validation loss,
+    and the time limit when there is one."""
+    limit = [TimeLimit(max_hours)] if max_hours != float("inf") else []
+    return [EarlyStoppingCallback(early_stopping_patience=3), *limit]
 
 
 def train(
@@ -269,9 +277,7 @@ def train(
         processing_class=tokenizer,
         peft_config=LoraConfig(**lora_settings(rank)),
         args=SFTConfig(**trainer_args(out, epochs, flags, learning_rate, eval_every)),
-        # Three evaluations without a better validation loss end the run.
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=3)]
-        + ([TimeLimit(max_hours)] if max_hours != float("inf") else []),
+        callbacks=callbacks(max_hours),
     )
     # resume: on from the latest checkpoint in <out>/lora, schedule and all.
     trainer.train(resume_from_checkpoint=resume or None)
@@ -382,10 +388,13 @@ def main(argv):
         raise SystemExit(USAGE) from None
     if rank < 1 or eval_every < 1 or lr <= 0 or max_hours <= 0:
         raise SystemExit(USAGE)
+    resume = "--resume" in argv
+    if resume and not any((Path(out) / "lora").glob("checkpoint-*")):
+        raise SystemExit(f"--resume: no checkpoint in {Path(out) / 'lora'}; {USAGE}")
     # Before hours of training: fails at once if Ollama lacks the base model.
     modelfile(out, option("ollama-base", "qwen3:4b-instruct-2507-q4_K_M"))
     train(base, data, out, int(option("epochs", "3")), "--assistant-only" in argv, rank, lr, eval_every,
-          max_hours, "--resume" in argv)
+          max_hours, resume)
     torch.cuda.empty_cache()
     merge(base, out)
     print(f"merged -> {Path(out) / 'merged'}; next: convert and quantize it")
