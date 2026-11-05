@@ -357,6 +357,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     3 => Builder(
       builder: (context) => AboutMeScreen(
         widget.session,
+        toChat: () => setState(() => _tab = 0),
         privacy: () => openSettingsSection(
           context,
           widget.session,

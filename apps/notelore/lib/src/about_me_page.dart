@@ -8,10 +8,13 @@ import 'theme.dart';
 /// What the person told about themselves, by section (#671), a place of its
 /// own beside Notes (#669). The cloud switch stays in Settings; [privacy] opens it.
 class AboutMeScreen extends StatelessWidget {
-  const AboutMeScreen(this.session, {required this.privacy, super.key});
+  const AboutMeScreen(this.session, {required this.privacy, required this.toChat, super.key});
 
   final Session session;
   final VoidCallback privacy;
+
+  /// Goes to the chat, where facts are told.
+  final VoidCallback toChat;
 
   Future<void> _edit(BuildContext context, [({String section, String fact})? old]) =>
       showDialog<void>(context: context, builder: (_) => _FactDialog(session, old));
@@ -57,6 +60,10 @@ class AboutMeScreen extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
         ),
+        if (session.chatKeepsFacts) ...[
+          const SizedBox(height: Gap.m),
+          FilledButton.tonal(onPressed: toChat, child: Text(session.strings.goToChat)),
+        ],
       ],
     ),
   );
@@ -91,7 +98,8 @@ class AboutMeScreen extends StatelessWidget {
     ];
   }
 
-  /// Add a fact: floating on a phone, after the list on a wide window.
+  /// Add a fact: floating on a phone, after the list on a wide window. Only when
+  /// the chat cannot keep one: there, telling it is the way.
   Widget _add({required bool wide}) => Builder(
     builder: (context) {
       final label = Text(session.strings.addFact);
@@ -108,27 +116,28 @@ class AboutMeScreen extends StatelessWidget {
 
   Widget _page(BuildContext context, Widget? _) {
     final wide = Layout.isWide(context);
+    final add = !session.chatKeepsFacts;
     return Scaffold(
       appBar: AppBar(leading: AppMenu.button(context), title: Text(session.strings.aboutMeSection)),
-      floatingActionButton: wide ? null : _add(wide: false),
+      floatingActionButton: add && !wide ? _add(wide: false) : null,
       body: Builder(
         builder: (context) => Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: Layout.column),
-            child: _list(context, wide: wide),
+            child: _list(context, wide: wide, add: add),
           ),
         ),
       ),
     );
   }
 
-  Widget _list(BuildContext context, {required bool wide}) {
+  Widget _list(BuildContext context, {required bool wide, required bool add}) {
     final s = session.strings;
     final entries = session.aboutMeEntries();
     return ListView(
       // Room under the last row for the button that floats over it on a phone.
-      padding: EdgeInsets.only(top: Gap.s, bottom: wide ? Gap.l : 96),
+      padding: EdgeInsets.only(top: Gap.s, bottom: add && !wide ? 96 : Gap.l),
       children: [
         if (entries.isEmpty) _empty(Theme.of(context)),
         for (final section in aboutMeSections.keys)
@@ -136,7 +145,7 @@ class AboutMeScreen extends StatelessWidget {
             for (final e in entries)
               if (e.section == section) e,
           ]),
-        if (wide)
+        if (add && wide)
           Padding(
             padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, Gap.xs),
             child: Align(

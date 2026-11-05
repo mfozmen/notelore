@@ -410,6 +410,9 @@ class Session extends ChangeNotifier {
   /// The about-me facts go to cloud models too; a model on this machine always gets them.
   bool aboutMeToCloud = true;
 
+  /// The model in use may keep about-me facts from the chat.
+  bool get chatKeepsFacts => _agent?.aboutMe ?? false;
+
   /// Turns sending the about-me facts to cloud models on or off; after a running turn.
   Future<void> setAboutMeToCloud(bool on) => _exclusive(() async {
     await _applyAboutMeToCloud(on);
