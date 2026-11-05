@@ -445,10 +445,12 @@ String _system(bool slim, String noteList) {
 /// version of the rules, however its examples were made.
 Map<String, Object?> reprompted(Map<String, Object?> example, {bool slim = false}) {
   final messages = (example['messages']! as List).cast<Map<String, Object?>>();
+  final asked = messages.firstWhere((m) => m['role'] == 'user', orElse: () => const {});
+  final language = languageLine('${asked['content'] ?? ''}');
   return {
     ...example,
     'messages': [
-      {'role': 'system', 'content': _system(slim, '${example['note_list'] ?? ''}')},
+      {'role': 'system', 'content': _system(slim, '${example['note_list'] ?? ''}') + language},
       ...messages.where((m) => m['role'] != 'system'),
     ],
     'tools': functionTools(slim ? slimTools : noteTools),
