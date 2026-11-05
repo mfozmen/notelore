@@ -490,9 +490,14 @@ class _Item extends StatelessWidget {
     ].join(' · ');
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: item.todo
-          ? Checkbox(value: false, onChanged: (_) => toggle(item))
-          : Icon(Icons.alarm, color: late ? colors.error : colors.primary),
+      leading: SizedBox(
+        width: 48,
+        child: Center(
+          child: item.todo
+              ? Checkbox(value: false, onChanged: (_) => toggle(item))
+              : Icon(Icons.alarm, color: late ? colors.error : colors.primary),
+        ),
+      ),
       title: Text(item.text),
       subtitle: Text(when, style: TextStyle(color: colors.onSurfaceVariant)),
       onTap: () => open(item),

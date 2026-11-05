@@ -114,6 +114,16 @@ void main() {
     expect(find.text('October 2026'), findsOneWidget);
   });
 
+  testWidgets('calendar: reminder and todo titles share one edge (#711)', (tester) async {
+    phone(tester);
+    await withPlans(tester);
+    await tester.tap(find.text('Calendar'));
+    await tester.pumpAndSettle();
+    final reminder = tester.getTopLeft(find.text('Dentist'));
+    final todo = tester.getTopLeft(find.text('Paint the door'));
+    expect(reminder.dx, closeTo(todo.dx, 0.5));
+  });
+
   testWidgets('calendar: at 2x text the grid does not overflow and a day is 48 (#705)', (
     tester,
   ) async {
