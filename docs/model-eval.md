@@ -225,3 +225,21 @@ Findings:
 - **All 8 `done-other` cases pass:** the entry is filed and nothing is ticked. They had failed on the missing read alone.
 - **The read-first rule in the slim prompt stays.** Without it, held-out todo-done drops 14 → 12/20 and unclear 9 → 7/15, so it still steers the model on messages the entry's hint does not reach.
 - **v7 with #731 and #733 is past the 80% held-out threshold of #445.**
+
+## LoRA rank 32, 2026-11-05 (#605)
+
+**Setup**
+- v7's data and recipe (train-v7, one epoch, the loss on the answer alone, learning rate 2e-4), with rank 32 and alpha 64 instead of 16 and 32.
+- Trained on Kaggle's T4 in 7.6 hours. The validation loss fell from 0.541 to 0.497 and was still falling at the last step.
+- Q4_K_M, greedy, slim, on main with #731 and #733.
+
+| | Held-out (292) | 44 cases × 2 |
+|---|---|---|
+| v7, rank 16 | 241 (82.5%) | 68/88 |
+| rank 32 | 242 (82.9%) | 68/88 |
+
+Findings:
+
+- **Rank does not matter here:** one held-out case apart, within the noise. The kinds that fail are the same: unclear 5/15, collection 55/73.
+- **The data is the limit, not the adapter's size.** The next run, v8, keeps rank 16 and doubles the data (#604).
+- A local two-epoch run was dropped: at 240–770 s a step on the laptop GPU, it would have taken over a day. Runs longer than a Kaggle session now stop saved and resume (#740).
