@@ -1562,10 +1562,12 @@ void main() {
     final row = find.byKey(const Key('chat-error'));
     expect(row, findsOneWidget);
     expect(find.descendant(of: row, matching: find.byIcon(Icons.error_outline)), findsOneWidget);
+    final notice = find.descendant(of: row, matching: find.textContaining('having trouble'));
+    expect(notice, findsOneWidget);
     expect(
-      find.descendant(of: row, matching: find.textContaining('having trouble')),
-      findsOneWidget,
-    );
+      tester.widget<Text>(notice).textAlign,
+      TextAlign.start,
+    ); // the icon stays beside it (#709)
     expect(find.textContaining('upstream exploded'), findsNothing); // no raw provider text
     expect(find.textContaining('HTTP'), findsNothing);
     // The way out sits with the error, not under the message above it.
