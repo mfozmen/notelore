@@ -11,8 +11,15 @@
    "message": "Bu arada iki çocuğum var, Deniz ve Ege. Ben de bir yazılım şirketinde çalışıyorum.",
    "notes": {},
    "expect": {
-    "tools": ["remember_about_me"],
-    "notes": {"^about-me\\.md$": ["Deniz", "Ege"]}
+    "tools": [
+     "remember_about_me"
+    ],
+    "notes": {
+     "^about-me\\.md$": [
+      "Deniz",
+      "Ege"
+     ]
+    }
    }
   },
   {
@@ -21,8 +28,15 @@
    "lang": "en",
    "message": "We moved to İzmir last month, by the way.",
    "expect": {
-    "tools": ["update_about_me"],
-    "notes": {"^about-me\\.md$": ["İzmir"], "^\\.notelore/history/": []}
+    "tools": [
+     "update_about_me"
+    ],
+    "notes": {
+     "^about-me\\.md$": [
+      "İzmir"
+     ],
+     "^\\.notelore/history/": []
+    }
    }
   },
   {
@@ -31,8 +45,15 @@
    "lang": "tr",
    "message": "Eşimle cuma akşamı yemeğe çıkacağız, bunu bir yere not et.",
    "expect": {
-    "tools_not": ["remember_about_me", "update_about_me"],
-    "notes": {"^(projects|topics)/": ["Ayşe"]}
+    "tools_not": [
+     "remember_about_me",
+     "update_about_me"
+    ],
+    "notes": {
+     "^(projects|topics)/": [
+      "Ayşe"
+     ]
+    }
    }
   },
   {
@@ -41,8 +62,14 @@
    "lang": "en",
    "message": "What's in my İzmir trip note?",
    "expect": {
-    "tools_not": ["remember_about_me", "update_about_me", "forget_about_me"],
-    "answer": ["Alsancak"]
+    "tools_not": [
+     "remember_about_me",
+     "update_about_me",
+     "forget_about_me"
+    ],
+    "answer": [
+     "Alsancak"
+    ]
    }
   },
   {
@@ -55,9 +82,14 @@
     "topics/ev-bilgileri.md": "---\ntitle: Ev Bilgileri\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\n---\n# Ev Bilgileri\n\n## Notlar\n- 2026-09-01: Ev adresim: 30 Ağustos Mahallesi, 7218 Sokak No: 1/1, Menemen/İzmir.\n- 2026-10-01: Kombi bakımı ekimde yapıldı.\n"
    },
    "expect": {
-    "tools": ["remember_about_me"],
+    "tools": [
+     "remember_about_me"
+    ],
     "notes": {
-     "^about-me\\.md$": ["7218 Sokak", "Menemen"],
+     "^about-me\\.md$": [
+      "7218 Sokak",
+      "Menemen"
+     ],
      "^topics/ev-bilgileri\\.md$": [],
      "^_archive/": []
     }
@@ -68,8 +100,14 @@
    "kind": "about-me",
    "lang": "tr",
    "history": [
-    {"role": "user", "content": "Notlarımda hakkımda bilgilere taşınmaya uygun bir şey var mı?"},
-    {"role": "assistant", "content": "Taşınmaya uygun iki bilgi buldum: ev adresin (30 Ağustos Mahallesi, 7218 Sokak No: 1/1, Menemen/İzmir) ve invent.ai'daki HR partnerinin Hande Altan olduğu. Bu iki bilgiyi hakkındaki bilgilere ekleyip ilgili notlardan kaldırmamı onaylar mısın?"}
+    {
+     "role": "user",
+     "content": "Notlarımda hakkımda bilgilere taşınmaya uygun bir şey var mı?"
+    },
+    {
+     "role": "assistant",
+     "content": "Taşınmaya uygun iki bilgi buldum: ev adresin (30 Ağustos Mahallesi, 7218 Sokak No: 1/1, Menemen/İzmir) ve invent.ai'daki HR partnerinin Hande Altan olduğu. Bu iki bilgiyi hakkındaki bilgilere ekleyip ilgili notlardan kaldırmamı onaylar mısın?"
+    }
    ],
    "message": "onaylıyorum",
    "notes": {
@@ -78,11 +116,182 @@
     "topics/is.md": "---\ntitle: İş\nkind: topic\ncreated: 2026-09-01\nupdated: 2026-10-01\n---\n# İş\n\n## Notlar\n- 2026-09-02: invent.ai'daki HR partnerim Hande Altan.\n"
    },
    "expect": {
-    "tools": ["remember_about_me"],
+    "tools": [
+     "remember_about_me"
+    ],
     "notes": {
-     "^about-me\\.md$": ["7218 Sokak", "Hande Altan"],
+     "^about-me\\.md$": [
+      "7218 Sokak",
+      "Hande Altan"
+     ],
      "^topics/": [],
      "^_archive/": []
+    }
+   }
+  },
+  {
+   "id": "aboutme-tr-merge-child",
+   "kind": "about-me",
+   "lang": "tr",
+   "notes": {
+    "about-me.md": "# About me\n\n## Aile\n\n- Evliyim ve 6 yaşında bir kızım var.\n"
+   },
+   "message": "Kızımın adı Ela.",
+   "expect": {
+    "tools": [
+     "update_about_me"
+    ],
+    "tools_not": [
+     "remember_about_me"
+    ],
+    "notes": {
+     "^about-me\\.md$": [
+      "Ela"
+     ],
+     "^\\.notelore/history/": []
+    }
+   }
+  },
+  {
+   "id": "aboutme-tr-merge-spouse",
+   "kind": "about-me",
+   "lang": "tr",
+   "notes": {
+    "about-me.md": "# About me\n\n## Aile\n\n- Evliyim.\n"
+   },
+   "message": "Eşimin adı Selin.",
+   "expect": {
+    "tools": [
+     "update_about_me"
+    ],
+    "tools_not": [
+     "remember_about_me"
+    ],
+    "notes": {
+     "^about-me\\.md$": [
+      "Selin"
+     ],
+     "^\\.notelore/history/": []
+    }
+   }
+  },
+  {
+   "id": "aboutme-en-change-age",
+   "kind": "about-me",
+   "lang": "en",
+   "notes": {
+    "about-me.md": "# About me\n\n## Family\n\n- My son Tom is 7.\n"
+   },
+   "message": "Tom turned 8 today.",
+   "expect": {
+    "tools": [
+     "update_about_me"
+    ],
+    "tools_not": [
+     "remember_about_me"
+    ],
+    "notes": {
+     "^about-me\\.md$": [
+      "8"
+     ],
+     "^\\.notelore/history/": []
+    }
+   }
+  },
+  {
+   "id": "aboutme-en-known-already",
+   "kind": "about-me",
+   "lang": "en",
+   "notes": {
+    "about-me.md": "# About me\n\n## Home\n\n- I live at 12 Elm Street, Riverside.\n"
+   },
+   "message": "Just so you know, I live in Riverside.",
+   "expect": {
+    "tools_not": [
+     "remember_about_me",
+     "update_about_me"
+    ]
+   }
+  },
+  {
+   "id": "aboutme-tr-work-section",
+   "kind": "about-me",
+   "lang": "tr",
+   "notes": {
+    "about-me.md": "# About me\n\n## Aile\n\n- Evliyim.\n"
+   },
+   "message": "Acme'de backend mühendisi olarak çalışıyorum.",
+   "expect": {
+    "tools": [
+     "remember_about_me"
+    ],
+    "notes": {
+     "^about-me\\.md$": [
+      "## İş",
+      "Acme"
+     ]
+    }
+   }
+  },
+  {
+   "id": "aboutme-en-family-section",
+   "kind": "about-me",
+   "lang": "en",
+   "notes": {
+    "about-me.md": "# About me\n\n## Work\n\n- I teach maths at a high school.\n"
+   },
+   "message": "I'm married and we have two sons.",
+   "expect": {
+    "tools": [
+     "remember_about_me"
+    ],
+    "notes": {
+     "^about-me\\.md$": [
+      "## Family",
+      "sons"
+     ]
+    }
+   }
+  },
+  {
+   "id": "aboutme-tr-home-section",
+   "kind": "about-me",
+   "lang": "tr",
+   "notes": {
+    "about-me.md": "# About me\n\n## İş\n\n- Öğretmenim.\n"
+   },
+   "message": "Bursa'da, Nilüfer'de oturuyorum.",
+   "expect": {
+    "tools": [
+     "remember_about_me"
+    ],
+    "notes": {
+     "^about-me\\.md$": [
+      "## Ev",
+      "Nilüfer"
+     ]
+    }
+   }
+  },
+  {
+   "id": "aboutme-en-colleague-own-bullet",
+   "kind": "about-me",
+   "lang": "en",
+   "notes": {
+    "about-me.md": "# About me\n\n## Work\n\n- I work at Acme as a designer.\n"
+   },
+   "message": "My manager at Acme is Priya.",
+   "expect": {
+    "tools": [
+     "remember_about_me"
+    ],
+    "tools_not": [
+     "update_about_me"
+    ],
+    "notes": {
+     "^about-me\\.md$": [
+      "Priya"
+     ]
     }
    }
   }
