@@ -127,6 +127,13 @@ void main() {
     expect(tapped, [(2, true), (1, false)]);
   });
 
+  testWidgets('todos: a checkbox is centred on its title (#710)', (tester) async {
+    await show(tester, _mopsos, onTodo: (_, _, _) {});
+    final box = tester.getCenter(find.byType(Checkbox).first);
+    final title = tester.getCenter(find.text('Add Drive backup'));
+    expect((box.dy - title.dy).abs(), lessThanOrEqualTo(2.5));
+  });
+
   testWidgets('reminders: with the todos above the notes, coming ones first (#430)', (
     tester,
   ) async {
