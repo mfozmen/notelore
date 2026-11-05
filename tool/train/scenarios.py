@@ -683,6 +683,62 @@ CROSS += [
     ("tr", "Home Office", "project", "Çalışma odası: masa lambası çok iyi oldu.", "filing", "add_note_entry", "lamba"),
     ("tr", "Community Garden", "project", "Topluluk bahçesi için kompost yerine solucan gübresi seçtik, daha temiz.", "decision", "record_decision", "solucan"),
 ]
+# Shapes from the maintainer's own use (#737), every name, place, amount and
+# link invented: long voice-style Turkish, a topic opened on first mention, a
+# liked repository with its link, an official procedure, a split bill, an
+# early-morning trip, a feature idea for an app project.
+TOPICS += [
+    ("tr", "Ortak Masraflar", ["Ev arkadaşlarıyla internet faturası 600 lira, üçe bölünüyor."],
+     "Cumartesi pazardan 450 liralık alışveriş yaptık, üç kişiye bölünce kişi başı 150 lira düştü.", "İnternet faturası ne kadar?", "600"),
+    ("tr", "Resmi İşlemler", ["Pasaport yenileme için nüfus müdürlüğünden randevu alınıyor."],
+     "Ehliyet yenilemek için önce aile hekiminden sağlık raporu almak gerekiyor, rapor iki gün içinde sisteme düşüyormuş.",
+     "Pasaport yenileme randevusu nereden alınıyor?", "nüfus"),
+    ("tr", "Yazı Fikirleri", ["Uzaktan çalışmanın yalnızlığı üzerine bir yazı."],
+     "Kendi sitemde yayımlamak için yeni bir yazı fikri: gereksiz toplantılar.", "Uzaktan çalışma hakkında hangi yazı fikri vardı?", "yalnız"),
+    ("tr", "Beğendiğim Repolar", ["https://github.com/example/notes-cli — terminalde not tutma aracı."],
+     "Şu repoyu da beğendim, fotoğraflardan metin çıkarıyor ve tamamen yerelde çalışıyor: https://github.com/example/ocr-local",
+     "Terminalde not tutma aracının linki neydi?", "notes-cli"),
+    ("en", "Useful Repos", ["https://github.com/example/feed-reader — a tiny RSS reader."],
+     "Found a nice repo that turns screenshots into Markdown, all offline: https://github.com/example/shot2md",
+     "Which repo was the RSS reader?", "feed-reader"),
+    ("tr", "Adres Defteri", ["Kuzenim Deniz: Lale Sokak No 4, Yeşilköy."],
+     "Tamircinin adresi: Sanayi Sitesi 3. Blok No 12, kapı numarası 7.", "Deniz'in adresi ne?", "Lale"),
+]
+
+PROJECTS += [
+    ("tr", "Tarif Uygulaması", ["Uygulama tarifleri fotoğraftan okuyacak."], [("veritabanı", "SQLite")],
+     ["Ekran taslaklarını çiz"],
+     ["Uygulama, malzemeler bitince onları alışveriş listesine kendisi eklemeli.",
+      "Kullanıcı tarifin porsiyonunu değiştirince miktarlar da ona göre güncellenmeli."],
+     [("tasarım", "Material 3", "Android'de doğal duruyor")], ["Beta testçileri bul"],
+     ["Ekran taslaklarını çizdim, tarif uygulaması için o iş tamam.", "Tarif uygulaması: ekran taslakları çizildi."],
+     "Tarif uygulaması: rakip üç uygulamayı inceledim.", "rakip"),
+]
+
+NEW_LISTS += [
+    ("tr", "Bir blog yazısı fikrim var: yapay zekâyla yazılmış metinleri insanların nasıl fark ettiğini anlatmak.",
+     r"^topics/[^/]*(blog|yazi|fikir)[^/]*\.md$", "fark"),
+    ("tr", "Güzel bir repo buldum, PDF'leri sesli kitaba çeviriyor: https://github.com/example/pdf2audio",
+     r"^topics/[^/]*(repo|github|arac)[^/]*\.md$", "pdf2audio"),
+    ("en", "Nice repo I found, it syncs dotfiles across machines: https://github.com/example/dotsync",
+     r"^topics/[^/]*(repo|github|tool)[^/]*\.md$", "dotsync"),
+    ("tr", "Vize başvurusu için önce konsolosluktan randevu almak gerekiyor, sonuç yaklaşık 15 günde çıkıyor.",
+     r"^topics/[^/]*vize[^/]*\.md$", "15"),
+    ("tr", "Akşam yemeğinde 90 euro ödedik, dört kişiye bölünce kişi başı 22,50 euro düştü.",
+     r"^topics/[^/]*(masraf|harcama|hesap)[^/]*\.md$", "22,50"),
+    ("en", "We paid 72 euros for the taxi, split three ways that's 24 each.",
+     r"^topics/[^/]*(expense|cost|split)[^/]*\.md$", "24"),
+]
+
+PLANS += [
+    ("tr", "Perşembe sabah 5'te havalimanına çıkacağım, Atina uçuşum var.", "2026-10-22 05:00"),
+    ("en", "Saturday at 6 I'm leaving for the airport, my flight to Lisbon is at nine.", "2026-10-24 06:00"),
+]
+
+REMINDERS += [
+    ("tr", "Resmi İşlemler", "topic", "Pazartesi sabah 8'de nüfus müdürlüğünü aramamı hatırlat.", "2026-10-19 08:00", "nüfus"),
+    ("tr", "Ortak Masraflar", "topic", "Ayın 1'inde kirayı bölüştürmeyi hatırlat.", "2026-11-01", "kira"),
+]
 
 
 def cases(rng, t=None):
