@@ -580,7 +580,28 @@ class _Lines extends StatelessWidget {
       resend: index == resendable ? session.resend : null,
       retry: session.retryNow,
       answer: index == 0 && session.ready ? (a) => _answer(context, lines.length, a) : null,
+      report: index == 0 && lines[0].role == ChatRole.assistant && session.canReport
+          ? () => _report(context)
+          : null,
     );
+  }
+
+  /// Keeps the newest turn for the model's training (#753), with what the user
+  /// expected; an Undo takes it back.
+  Future<void> _report(BuildContext context) async {
+    final s = session.strings;
+    final messenger = ScaffoldMessenger.of(context);
+    final expected = await showDialog<String>(context: context, builder: (_) => _WrongDialog(s));
+    if (expected == null) return;
+    final rel = await session.reportWrong(expected);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(s.feedbackSaved),
+          action: SnackBarAction(label: s.undo, onPressed: () => session.takeBackFeedback(rel)),
+        ),
+      );
   }
 
   /// Only the newest question, and only once: a later tap finds the
@@ -1272,7 +1293,11 @@ class _Bubble extends StatelessWidget {
     this.resend,
     this.answer,
     this.retry,
+    this.report,
   });
+
+  /// For the newest answer: tell that it was wrong (#753).
+  final VoidCallback? report;
 
   final ChatLine line;
   final Strings strings;
@@ -1380,6 +1405,8 @@ class _Bubble extends StatelessWidget {
             children: [
               button(strings.copy, Icons.copy, copy),
               if (resend case final resend?) button(strings.resend, Icons.replay, resend),
+              if (report case final report?)
+                button(strings.wrongAnswer, Icons.thumb_down_outlined, report),
             ],
           ),
         ),
@@ -1636,4 +1663,60 @@ class _AttachmentLine extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// Asks what the answer should have been; null when cancelled, else the words
+/// (maybe none).
+class _WrongDialog extends StatefulWidget {
+  const _WrongDialog(this.s);
+
+  final Strings s;
+
+  @override
+  State<_WrongDialog> createState() => _WrongDialogState();
+}
+
+class _WrongDialogState extends State<_WrongDialog> {
+  final _text = TextEditingController();
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.s;
+    void send() => Navigator.of(context).pop(_text.text);
+    return AlertDialog(
+      title: Text(s.wrongAnswer),
+      content: SizedBox(
+        width: Layout.bubble(MediaQuery.sizeOf(context).width),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(s.wrongAnswerWhy),
+            const SizedBox(height: Gap.m),
+            TextField(
+              key: const Key('expected-field'),
+              controller: _text,
+              autofocus: true,
+              minLines: 1,
+              maxLines: 4,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => send(),
+              decoration: InputDecoration(labelText: s.wrongAnswerExpected),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(s.cancel)),
+        FilledButton(onPressed: send, child: Text(s.send)),
+      ],
+    );
+  }
 }

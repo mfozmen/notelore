@@ -95,6 +95,13 @@ String notePath(String root, String kind, String slug) {
   return p.join(root, folder, '$slug.md');
 }
 
+/// [time] in UTC to the second, as a file or folder name: `2026-11-06T090507Z`.
+String utcStamp(DateTime time) {
+  final t = time.toUtc();
+  String two(int n) => '$n'.padLeft(2, '0');
+  return '${t.year}-${two(t.month)}-${two(t.day)}T${two(t.hour)}${two(t.minute)}${two(t.second)}Z';
+}
+
 // ---------------------------------------------------------------- I/O
 
 typedef Rename = void Function(String source, String target);

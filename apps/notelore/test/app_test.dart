@@ -1130,6 +1130,40 @@ void main() {
     );
   });
 
+  testWidgets('chat: the newest answer can be told wrong, kept for training, undone (#753)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness(answers: ['Tamam.']);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    expect(find.byTooltip('This was wrong'), findsNothing); // no answer yet
+    await tester.enterText(find.byKey(const Key('message')), 'Kahve aldım');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    final feedback = Directory(p.join(harness.paths.notes.path, '.notelore', 'feedback'));
+    List<File> kept() =>
+        feedback.existsSync() ? feedback.listSync().whereType<File>().toList() : [];
+
+    await tester.tap(find.byTooltip('This was wrong'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(kept(), isEmpty);
+
+    await tester.tap(find.byTooltip('This was wrong'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('expected-field')), 'Tick the todo');
+    await tester.testTextInput.receiveAction(TextInputAction.done); // Enter sends
+    await tester.pumpAndSettle();
+    expect(find.text("Kept for the model's training"), findsOneWidget);
+    expect(kept().single.readAsStringSync(), contains('Tick the todo'));
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(kept(), isEmpty);
+  });
+
   testWidgets('chat: copy a message or an answer, with a short confirmation (#225)', (
     tester,
   ) async {

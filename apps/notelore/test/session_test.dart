@@ -235,6 +235,25 @@ void main() {
     );
   });
 
+  test(
+    'a wrong answer is kept as feedback in the synced notes folder, and taken back (#753)',
+    () async {
+      final harness = Harness(answers: ['Tamam.']);
+      final session = harness.session();
+      await session.connect(findProvider('anthropic'), 'k');
+      await session.send('Kahve aldım');
+      final rel = await session.reportWrong('Should have ticked the todo');
+      final file = File(p.joinAll([harness.paths.notes.path, ...rel.split('/')]));
+      expect(rel, startsWith('.notelore/feedback/'));
+      final text = file.readAsStringSync();
+      expect(text, contains('- Model: ${session.spec!.name} ${session.model}\n'));
+      expect(text, contains('Should have ticked the todo'));
+      expect(text, contains('Kahve aldım'));
+      await session.takeBackFeedback(rel);
+      expect(file.existsSync(), isFalse);
+    },
+  );
+
   test('notes archived since the last turn are named to the model as unusable (#205)', () async {
     final harness = Harness(answers: ['Okudum.', 'Tamam.', 'Peki.']);
     final session = harness.session();

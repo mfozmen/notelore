@@ -460,6 +460,27 @@ class Session extends ChangeNotifier {
     }
   });
 
+  /// Whether the model's turns are at hand for [reportWrong]; a switch to a
+  /// cloud model drops what a local one was told.
+  bool get canReport => _agent?.messages.isNotEmpty ?? false;
+
+  /// Keeps the newest turn as feedback for the model's training (#753), in the
+  /// notes folder so it syncs; its path relative to the notes.
+  Future<String> reportWrong(String expected) => _exclusive(
+    () async => saveFeedback(
+      paths.notes.path,
+      _agent!.messages,
+      model: '${spec!.name} $model',
+      expected: expected,
+      now: clock(),
+    ),
+  );
+
+  /// Undoes [reportWrong].
+  Future<void> takeBackFeedback(String rel) => _exclusive(() async {
+    File(p.joinAll([paths.notes.path, ...rel.split('/')])).deleteSync();
+  });
+
   /// The language the user picked in Settings; the device's by default.
   AppLanguage language = AppLanguage.system;
 

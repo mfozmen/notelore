@@ -209,10 +209,7 @@ int _needed(String root, String fact) =>
 void _write(String root, List<String> lines, DateTime? now, {bool keep = true}) {
   final path = aboutMePath(root);
   if (keep) {
-    final t = (now ?? DateTime.now()).toUtc();
-    String two(int n) => '$n'.padLeft(2, '0');
-    final stamp =
-        '${t.year}-${two(t.month)}-${two(t.day)}T${two(t.hour)}${two(t.minute)}${two(t.second)}Z';
+    final stamp = utcStamp(now ?? DateTime.now());
     // Two changes in one second must not share a folder: the second copy would
     // replace the first, and that version would be gone.
     var folder = p.join(root, '.notelore', 'history', stamp);

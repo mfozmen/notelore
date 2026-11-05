@@ -124,6 +124,12 @@ abstract class Strings {
   String get send;
   String get resend;
   String get copy;
+
+  /// Telling that an answer was wrong, kept for the model's training (#753).
+  String get wrongAnswer;
+  String get wrongAnswerWhy;
+  String get wrongAnswerExpected;
+  String get feedbackSaved;
   String get copied;
 
   /// Text files attached in the chat (#222).
@@ -787,6 +793,16 @@ class EnglishStrings extends Strings {
   String get resend => 'Resend';
   @override
   String get copy => 'Copy';
+  @override
+  String get wrongAnswer => 'This was wrong';
+  @override
+  String get wrongAnswerWhy =>
+      'This turn is kept in your notes folder and synced to your Drive, so the model can be '
+      'trained on it. It goes nowhere else.';
+  @override
+  String get wrongAnswerExpected => 'What should it have done? (optional)';
+  @override
+  String get feedbackSaved => "Kept for the model's training";
   @override
   String get copied => 'Copied';
   @override
@@ -1903,6 +1919,16 @@ class TurkishStrings extends Strings {
   String get resend => 'Yeniden gönder';
   @override
   String get copy => 'Kopyala';
+  @override
+  String get wrongAnswer => 'Bu yanlıştı';
+  @override
+  String get wrongAnswerWhy =>
+      "Bu tur not klasöründe saklanır ve Drive'ına eşitlenir; model onunla eğitilebilir. "
+      'Başka hiçbir yere gitmez.';
+  @override
+  String get wrongAnswerExpected => 'Ne yapmalıydı? (isteğe bağlı)';
+  @override
+  String get feedbackSaved => 'Modelin eğitimi için saklandı';
   @override
   String get copied => 'Kopyalandı';
   @override
