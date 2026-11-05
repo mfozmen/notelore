@@ -129,6 +129,9 @@ abstract class Strings {
   String get wrongAnswer;
   String get wrongAnswerWhy;
   String get wrongAnswerExpected;
+  String get wrongAnswerKeep;
+  String get wrongAnswerTakeBack;
+  String get optional;
   String get feedbackSaved;
   String get copied;
 
@@ -797,10 +800,16 @@ class EnglishStrings extends Strings {
   String get wrongAnswer => 'This was wrong';
   @override
   String get wrongAnswerWhy =>
-      'This turn is kept in your notes folder and synced to your Drive, so the model can be '
-      'trained on it. It goes nowhere else.';
+      'Your message and this answer are kept in your notes folder and synced to your Drive, '
+      'so the model can learn from them. They go nowhere else.';
   @override
-  String get wrongAnswerExpected => 'What should it have done? (optional)';
+  String get wrongAnswerExpected => 'What should it have done?';
+  @override
+  String get wrongAnswerKeep => 'Keep';
+  @override
+  String get wrongAnswerTakeBack => 'Take back the report';
+  @override
+  String get optional => 'Optional';
   @override
   String get feedbackSaved => "Kept for the model's training";
   @override
@@ -1923,10 +1932,16 @@ class TurkishStrings extends Strings {
   String get wrongAnswer => 'Bu yanlıştı';
   @override
   String get wrongAnswerWhy =>
-      "Bu tur not klasöründe saklanır ve Drive'ına eşitlenir; model onunla eğitilebilir. "
-      'Başka hiçbir yere gitmez.';
+      "Mesajın ve bu yanıt not klasöründe saklanır ve Drive'ına eşitlenir; model bunlardan "
+      'öğrenebilir. Başka hiçbir yere gitmez.';
   @override
-  String get wrongAnswerExpected => 'Ne yapmalıydı? (isteğe bağlı)';
+  String get wrongAnswerExpected => 'Ne yapmalıydı?';
+  @override
+  String get wrongAnswerKeep => 'Sakla';
+  @override
+  String get wrongAnswerTakeBack => 'Bildirimi geri al';
+  @override
+  String get optional => 'İsteğe bağlı';
   @override
   String get feedbackSaved => 'Modelin eğitimi için saklandı';
   @override

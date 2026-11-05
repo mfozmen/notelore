@@ -581,8 +581,12 @@ class _Lines extends StatelessWidget {
       retry: session.retryNow,
       answer: index == 0 && session.ready ? (a) => _answer(context, lines.length, a) : null,
       report: index == 0 && lines[0].role == ChatRole.assistant && session.canReport
-          ? () => _report(context)
+          ? switch (session.reported) {
+              final rel? => () => session.takeBackFeedback(rel),
+              null => () => _report(context),
+            }
           : null,
+      reported: session.reported != null,
     );
   }
 
@@ -1294,10 +1298,12 @@ class _Bubble extends StatelessWidget {
     this.answer,
     this.retry,
     this.report,
+    this.reported = false,
   });
 
-  /// For the newest answer: tell that it was wrong (#753).
+  /// For the newest answer: tell that it was wrong (#753), or take that back.
   final VoidCallback? report;
+  final bool reported;
 
   final ChatLine line;
   final Strings strings;
@@ -1406,7 +1412,13 @@ class _Bubble extends StatelessWidget {
               button(strings.copy, Icons.copy, copy),
               if (resend case final resend?) button(strings.resend, Icons.replay, resend),
               if (report case final report?)
-                button(strings.wrongAnswer, Icons.thumb_down_outlined, report),
+                reported
+                    ? IconButton(
+                        tooltip: strings.wrongAnswerTakeBack,
+                        icon: Icon(Icons.thumb_down, size: 20, color: colors.primary),
+                        onPressed: report,
+                      )
+                    : button(strings.wrongAnswer, Icons.thumb_down_outlined, report),
             ],
           ),
         ),
@@ -1708,14 +1720,14 @@ class _WrongDialogState extends State<_WrongDialog> {
               textCapitalization: TextCapitalization.sentences,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => send(),
-              decoration: InputDecoration(labelText: s.wrongAnswerExpected),
+              decoration: InputDecoration(labelText: s.wrongAnswerExpected, helperText: s.optional),
             ),
           ],
         ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(s.cancel)),
-        FilledButton(onPressed: send, child: Text(s.send)),
+        FilledButton(onPressed: send, child: Text(s.wrongAnswerKeep)),
       ],
     );
   }

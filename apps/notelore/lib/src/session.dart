@@ -466,19 +466,26 @@ class Session extends ChangeNotifier {
 
   /// Keeps the newest turn as feedback for the model's training (#753), in the
   /// notes folder so it syncs; its path relative to the notes.
-  Future<String> reportWrong(String expected) => _exclusive(
-    () async => saveFeedback(
+  Future<String> reportWrong(String expected) => _exclusive(() async {
+    final rel = reported = saveFeedback(
       paths.notes.path,
       _agent!.messages,
       model: '${spec!.name} $model',
       expected: expected,
       now: clock(),
-    ),
-  );
+    );
+    notifyListeners();
+    return rel;
+  });
+
+  /// The newest answer's report, until it is taken back or the next message goes.
+  String? reported;
 
   /// Undoes [reportWrong].
   Future<void> takeBackFeedback(String rel) => _exclusive(() async {
     File(p.joinAll([paths.notes.path, ...rel.split('/')])).deleteSync();
+    if (reported == rel) reported = null;
+    notifyListeners();
   });
 
   /// The language the user picked in Settings; the device's by default.
@@ -1185,6 +1192,7 @@ class Session extends ChangeNotifier {
       return false;
     }
     transcript.add((role: ChatRole.user, text: message));
+    reported = null;
     if (busy) {
       _later.add(message); // joins the running turn at its next step
       notifyListeners();

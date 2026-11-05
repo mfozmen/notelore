@@ -1134,8 +1134,8 @@ void main() {
     tester,
   ) async {
     phone(tester);
-    final harness = Harness(answers: ['Tamam.']);
-    await pumpApp(tester, harness);
+    final harness = Harness(answers: ['Tamam.', 'Peki.']);
+    final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     expect(find.byTooltip('This was wrong'), findsNothing); // no answer yet
     await tester.enterText(find.byKey(const Key('message')), 'Kahve aldım');
@@ -1154,14 +1154,35 @@ void main() {
 
     await tester.tap(find.byTooltip('This was wrong'));
     await tester.pumpAndSettle();
+    expect(find.text('Optional'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('expected-field')), 'Tick the todo');
-    await tester.testTextInput.receiveAction(TextInputAction.done); // Enter sends
+    await tester.testTextInput.receiveAction(TextInputAction.done); // Enter keeps it
     await tester.pumpAndSettle();
     expect(find.text("Kept for the model's training"), findsOneWidget);
     expect(kept().single.readAsStringSync(), contains('Tick the todo'));
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(kept(), isEmpty);
+
+    // Reported, the button says so, and a second tap takes it back: never kept twice.
+    await tester.tap(find.byTooltip('This was wrong'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Keep'));
+    await tester.pumpAndSettle();
+    expect(kept(), hasLength(1));
+    expect(find.byTooltip('This was wrong'), findsNothing);
+    await tester.tap(find.byTooltip('Take back the report'));
+    await tester.pumpAndSettle();
+    expect(kept(), isEmpty);
+    await tester.tap(find.byTooltip('This was wrong'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Keep'));
+    await tester.pumpAndSettle();
+    // The next answer can be told wrong on its own.
+    await session.send('Bir de çay');
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('This was wrong'), findsOneWidget);
+    expect(kept(), hasLength(1));
   });
 
   testWidgets('chat: copy a message or an answer, with a short confirmation (#225)', (
