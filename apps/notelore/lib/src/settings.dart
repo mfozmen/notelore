@@ -713,13 +713,15 @@ class _ChatTextCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Gap.m),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
                     tooltip: s.textSizeSmaller,
                     icon: const Icon(Icons.text_decrease),
                     onPressed: step > 0 ? session.zoomChatOut : null,
                   ),
-                  Expanded(
+                  SizedBox(
+                    width: 64,
                     child: Text(
                       '${(session.chatTextScale * 100).round()}%',
                       key: const Key('chat-text-percent'),
