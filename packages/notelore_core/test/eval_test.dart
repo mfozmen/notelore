@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:notelore_core/src/agent.dart' show slimSystemPrompt, systemPrompt;
+import 'package:notelore_core/src/agent.dart' show languageLine, slimSystemPrompt, systemPrompt;
 import 'package:notelore_core/src/eval.dart';
 import 'package:notelore_core/src/providers/base.dart' show Message;
 import 'package:notelore_core/src/tools.dart' show noteTools, slimTools;
@@ -163,6 +163,24 @@ void main() {
     });
     expect((bare['messages']! as List).map((m) => (m as Map)['role']), ['system', 'user']);
   });
+
+  test(
+    'a reprompted example ends with the language its message is in, as on the device (#738)',
+    () {
+      const message = 'Bahçe duvarı için dere taşı seçtik, daha doğal duruyor.';
+      final turkish = reprompted({
+        'messages': [
+          {'role': 'system', 'content': 'an older prompt'},
+          {'role': 'user', 'content': message},
+        ],
+      }, slim: true);
+      expect(
+        ((turkish['messages']! as List).first as Map)['content'],
+        slimSystemPrompt(evalNow) + languageLine(message),
+      );
+      expect(languageLine(message), isNotEmpty);
+    },
+  );
 
   group('a case with web results gets a search that answers with them (#478)', () {
     final derby = _case({
