@@ -62,6 +62,30 @@ void main() {
     expect(File(p.join(dir.path, second)).readAsStringSync(), contains('- Expected: —\n'));
   });
 
+  test("a picture's data is left out of the file", () {
+    final rel = saveFeedback(
+      dir.path,
+      [
+        {
+          'role': 'user',
+          'content': [
+            {'type': 'text', 'text': 'Bunu kaydet'},
+            {
+              'type': 'image',
+              'source': {'type': 'base64', 'data': 'QUJD'},
+            },
+          ],
+        },
+      ],
+      model: 'm',
+      now: DateTime.utc(2026),
+    );
+    final text = File(p.join(dir.path, rel)).readAsStringSync();
+    expect(text, contains('Bunu kaydet'));
+    expect(text, contains('"type": "image"'));
+    expect(text, isNot(contains('QUJD')));
+  });
+
   test('a conversation with no user message is refused', () {
     expect(
       () => saveFeedback(dir.path, const [], model: 'm', now: DateTime.utc(2026)),

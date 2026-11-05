@@ -596,7 +596,8 @@ class _Lines extends StatelessWidget {
     final s = session.strings;
     final messenger = ScaffoldMessenger.of(context);
     final expected = await showDialog<String>(context: context, builder: (_) => _WrongDialog(s));
-    if (expected == null) return;
+    // A model switch while the dialog was open may have dropped the turn.
+    if (expected == null || !session.canReport) return;
     final rel = await session.reportWrong(expected);
     messenger
       ..hideCurrentSnackBar()
@@ -1382,8 +1383,6 @@ class _Bubble extends StatelessWidget {
         ],
       );
     }
-    Widget button(String tooltip, IconData icon, VoidCallback onPressed) =>
-        IconButton(tooltip: tooltip, icon: Icon(icon, size: 20), onPressed: onPressed);
     // An answer as plain words (#335); the user's message as typed.
     void copy() => _copy(context, line.role == ChatRole.assistant ? plainText(text) : text);
     return Semantics(
@@ -1406,23 +1405,30 @@ class _Bubble extends StatelessWidget {
         // Close under its bubble (full-size targets, pulled up a little).
         actions: Transform.translate(
           offset: const Offset(0, -Gap.s),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              button(strings.copy, Icons.copy, copy),
-              if (resend case final resend?) button(strings.resend, Icons.replay, resend),
-              if (report case final report?)
-                reported
-                    ? IconButton(
-                        tooltip: strings.wrongAnswerTakeBack,
-                        icon: Icon(Icons.thumb_down, size: 20, color: colors.primary),
-                        onPressed: report,
-                      )
-                    : button(strings.wrongAnswer, Icons.thumb_down_outlined, report),
-            ],
-          ),
+          child: _actions(copy, colors.primary),
         ),
       ),
+    );
+  }
+
+  /// Copy, and for the newest lines Resend and This was wrong (filled once reported).
+  Widget _actions(VoidCallback copy, Color reportedColor) {
+    Widget button(String tooltip, IconData icon, VoidCallback onPressed, [Color? color]) =>
+        IconButton(
+          tooltip: tooltip,
+          icon: Icon(icon, size: 20, color: color),
+          onPressed: onPressed,
+        );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        button(strings.copy, Icons.copy, copy),
+        if (resend case final resend?) button(strings.resend, Icons.replay, resend),
+        if (report case final report?)
+          reported
+              ? button(strings.wrongAnswerTakeBack, Icons.thumb_down, report, reportedColor)
+              : button(strings.wrongAnswer, Icons.thumb_down_outlined, report),
+      ],
     );
   }
 

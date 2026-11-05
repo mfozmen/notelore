@@ -483,7 +483,9 @@ class Session extends ChangeNotifier {
 
   /// Undoes [reportWrong].
   Future<void> takeBackFeedback(String rel) => _exclusive(() async {
-    File(p.joinAll([paths.notes.path, ...rel.split('/')])).deleteSync();
+    // Both the snackbar's Undo and the filled button take it back; the second finds it gone.
+    final file = File(p.joinAll([paths.notes.path, ...rel.split('/')]));
+    if (file.existsSync()) file.deleteSync();
     if (reported == rel) reported = null;
     notifyListeners();
   });

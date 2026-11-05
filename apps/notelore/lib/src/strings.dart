@@ -800,8 +800,8 @@ class EnglishStrings extends Strings {
   String get wrongAnswer => 'This was wrong';
   @override
   String get wrongAnswerWhy =>
-      'Your message and this answer are kept in your notes folder and synced to your Drive, '
-      'so the model can learn from them. They go nowhere else.';
+      'Your message and this answer are kept in your notes folder, and synced to your Drive '
+      'if you use it, so the model can learn from them. They go nowhere else.';
   @override
   String get wrongAnswerExpected => 'What should it have done?';
   @override
@@ -1932,8 +1932,8 @@ class TurkishStrings extends Strings {
   String get wrongAnswer => 'Bu yanlıştı';
   @override
   String get wrongAnswerWhy =>
-      "Mesajın ve bu yanıt not klasöründe saklanır ve Drive'ına eşitlenir; model bunlardan "
-      'öğrenebilir. Başka hiçbir yere gitmez.';
+      'Mesajın ve bu yanıt not klasöründe saklanır, Drive kullanıyorsan oraya da eşitlenir; '
+      'model bunlardan öğrenebilir. Başka hiçbir yere gitmez.';
   @override
   String get wrongAnswerExpected => 'Ne yapmalıydı?';
   @override

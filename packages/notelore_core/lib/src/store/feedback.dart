@@ -32,7 +32,7 @@ String saveFeedback(
   final path = p.joinAll([root, ...rel.split('/')]);
   Directory(p.dirname(path)).createSync(recursive: true);
   final said = expected.trim().isEmpty ? '—' : expected.trim();
-  final turn = const JsonEncoder.withIndent('  ').convert(messages.sublist(start));
+  final turn = const JsonEncoder.withIndent('  ').convert(_withoutImages(messages.sublist(start)));
   atomicWrite(
     path,
     '# Feedback, $stem\n\n- Model: $model\n- Expected: $said\n\n```json\n$turn\n```\n',
@@ -47,3 +47,11 @@ bool _typed(Map<String, Object?> message) =>
       final List<Object?> blocks => !blocks.any((b) => b is Map && b['type'] == 'tool_result'),
       _ => true,
     };
+
+/// [value] with each picture's data left out: the file stays small.
+Object? _withoutImages(Object? value) => switch (value) {
+  {'type': 'image'} => const {'type': 'image'},
+  final Map<Object?, Object?> map => {for (final e in map.entries) e.key: _withoutImages(e.value)},
+  final List<Object?> list => [for (final item in list) _withoutImages(item)],
+  _ => value,
+};

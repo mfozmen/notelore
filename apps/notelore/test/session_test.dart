@@ -251,6 +251,7 @@ void main() {
       expect(text, contains('Kahve aldım'));
       await session.takeBackFeedback(rel);
       expect(file.existsSync(), isFalse);
+      await session.takeBackFeedback(rel); // taken back twice (Undo after the button): no error
     },
   );
 
