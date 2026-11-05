@@ -2077,6 +2077,24 @@ void main() {
     );
   });
 
+  for (final scale in [1.0, 2.0]) {
+    testWidgets('settings: the six theme swatches fit one row at ${scale}x (#717)', (tester) async {
+      phone(tester);
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pumpApp(tester, Harness());
+      await connect(tester, key: 'k');
+      await openSettings(tester, 'Appearance');
+      final labels = EnglishStrings();
+      final tops = {
+        for (final palette in Palette.values)
+          tester.getTopLeft(find.byTooltip(labels.paletteName(palette))).dy,
+      };
+      expect(tops, hasLength(1));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('settings: switch the app to Turkish and back', (tester) async {
     phone(tester);
     final harness = Harness();

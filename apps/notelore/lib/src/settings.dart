@@ -646,18 +646,38 @@ class _LookCard extends StatelessWidget {
             // A swatch per landscape; the chosen one is ringed.
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-              child: Wrap(
-                spacing: Gap.s,
-                runSpacing: Gap.s,
-                children: [
-                  for (final palette in Palette.values)
-                    _Swatch(
-                      palette,
-                      label: s.paletteName(palette),
-                      chosen: palette == session.palette,
-                      onTap: () => session.setPalette(palette),
-                    ),
-                ],
+              child: LayoutBuilder(
+                builder: (context, size) {
+                  final swatches = [
+                    for (final palette in Palette.values)
+                      _Swatch(
+                        palette,
+                        label: s.paletteName(palette),
+                        chosen: palette == session.palette,
+                        onTap: () => session.setPalette(palette),
+                      ),
+                  ];
+                  // One row where six 48 dp swatches fit, else 3 + 3, never 5 + 1.
+                  if (size.maxWidth >= swatches.length * 48 + (swatches.length - 1) * Gap.xs) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: swatches,
+                    );
+                  }
+                  return Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: swatches.sublist(0, 3),
+                      ),
+                      const SizedBox(height: Gap.s),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: swatches.sublist(3),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
             const SizedBox(height: Gap.m),
