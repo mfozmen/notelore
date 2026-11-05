@@ -24,6 +24,10 @@ is the checkpoint where it was lowest, and three evaluations without a better
 one end the run, so `--epochs` is a ceiling (the cosine schedule still spans
 all of them, so a run stopped early ends at a higher learning rate).
 
+`--max-hours` saves and stops the run after that long (a Kaggle session ends
+at 12 hours); `--resume` goes on from the latest checkpoint in <out dir>/lora,
+on the same schedule.
+
 `--assistant-only` puts the loss on the assistant's tokens alone (about 7% of
 a turn), not on the system prompt, tool schemas and tool results it would
 otherwise also learn to predict. v1 and v2 trained without it; v3 uses it.
@@ -38,6 +42,7 @@ import json
 import random
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import torch
@@ -48,6 +53,7 @@ from transformers import (
     AutoTokenizer,
     BitsAndBytesConfig,
     EarlyStoppingCallback,
+    TrainerCallback,
 )
 from trl import DPOConfig, DPOTrainer, SFTConfig, SFTTrainer
 
@@ -232,8 +238,31 @@ def load(base, dtype):
     )
 
 
+class TimeLimit(TrainerCallback):
+    """Saves and stops the run once [hours] have passed since the trainer was
+    built, so a run longer than a Kaggle session (12 hours) ends cleanly and
+    the next one resumes it. An evaluation due on the stopping step still runs."""
+
+    def __init__(self, hours, clock=time.monotonic):
+        self.clock = clock
+        self.deadline = clock() + hours * 3600
+
+    def on_step_end(self, args, state, control, **kwargs):
+        if self.clock() >= self.deadline:
+            control.should_save = control.should_training_stop = True
+        return control
+
+
+def callbacks(max_hours):
+    """Early stopping after three evaluations without a better validation loss,
+    and the time limit when there is one."""
+    limit = [TimeLimit(max_hours)] if max_hours != float("inf") else []
+    return [EarlyStoppingCallback(early_stopping_patience=3), *limit]
+
+
 def train(
-    base, data, out, epochs, assistant_only=False, rank=16, learning_rate=2e-4, eval_every=5
+    base, data, out, epochs, assistant_only=False, rank=16, learning_rate=2e-4, eval_every=5,
+    max_hours=float("inf"), resume=False,
 ):
     tokenizer = AutoTokenizer.from_pretrained(base)
     kept, held = split(dataset(tokenizer, data, assistant_only), cases(data))
@@ -248,10 +277,10 @@ def train(
         processing_class=tokenizer,
         peft_config=LoraConfig(**lora_settings(rank)),
         args=SFTConfig(**trainer_args(out, epochs, flags, learning_rate, eval_every)),
-        # Three evaluations without a better validation loss end the run.
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
+        callbacks=callbacks(max_hours),
     )
-    trainer.train()
+    # resume: on from the latest checkpoint in <out>/lora, schedule and all.
+    trainer.train(resume_from_checkpoint=resume or None)
     print("\n".join(losses(trainer.state.log_history)))
     best = trainer.state.best_model_checkpoint
     if best is None:
@@ -338,7 +367,7 @@ def merge(base, out):
 USAGE = (
     "usage: python tool/train/finetune.py <base dir> <train.jsonl> <out dir> "
     "[--epochs=3] [--rank=16] [--lr=2e-4] [--eval-every=5] [--ollama-base=qwen3:4b-instruct-2507-q4_K_M] "
-    "[--assistant-only]"
+    "[--assistant-only] [--max-hours=<h>] [--resume]"
 )
 
 
@@ -354,13 +383,18 @@ def main(argv):
     try:
         rank, eval_every = int(option("rank", "16")), int(option("eval-every", "5"))
         lr = float(option("lr", "2e-4"))
+        max_hours = float(option("max-hours", "inf"))
     except ValueError:
         raise SystemExit(USAGE) from None
-    if rank < 1 or eval_every < 1 or lr <= 0:
+    if rank < 1 or eval_every < 1 or lr <= 0 or max_hours <= 0:
         raise SystemExit(USAGE)
+    resume = "--resume" in argv
+    if resume and not any((Path(out) / "lora").glob("checkpoint-*")):
+        raise SystemExit(f"--resume: no checkpoint in {Path(out) / 'lora'}; {USAGE}")
     # Before hours of training: fails at once if Ollama lacks the base model.
     modelfile(out, option("ollama-base", "qwen3:4b-instruct-2507-q4_K_M"))
-    train(base, data, out, int(option("epochs", "3")), "--assistant-only" in argv, rank, lr, eval_every)
+    train(base, data, out, int(option("epochs", "3")), "--assistant-only" in argv, rank, lr, eval_every,
+          max_hours, resume)
     torch.cuda.empty_cache()
     merge(base, out)
     print(f"merged -> {Path(out) / 'merged'}; next: convert and quantize it")
