@@ -1153,10 +1153,12 @@ Widget _picker<T>({
   required void Function(T) onSelected,
 }) {
   // A text field cannot ellipsize, so fit the closed field's label; the open
-  // menu keeps the whole label with its own ellipsis.
-  final budget = (28 / MediaQuery.textScalerOf(context).scale(1)).floor().clamp(8, 64);
+  // menu keeps the whole label with its own ellipsis. At 1x the field has room,
+  // so the text is left alone rather than cut early.
+  final scale = MediaQuery.textScalerOf(context).scale(1);
+  final budget = scale <= 1 ? null : (28 / scale).floor().clamp(8, 64);
   String fitted(String label) =>
-      label.length <= budget ? label : '${label.substring(0, budget - 1)}…';
+      budget == null || label.length <= budget ? label : '${label.substring(0, budget - 1)}…';
   return DropdownMenu<T>(
     key: key,
     menuController: menuController,
