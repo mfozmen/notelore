@@ -707,7 +707,13 @@ class EnglishStrings extends Strings {
       'Notelore uses an AI model to write your notes and answer from them. Pick one; you can '
       'change it later in Settings.';
   @override
-  String openKeyPage(String host) => 'Open $host';
+  String openKeyPage(String host) => switch (host) {
+    'console.anthropic.com' => 'Open the Anthropic Console',
+    'platform.openai.com' => 'Open the OpenAI platform',
+    'aistudio.google.com' => 'Open Google AI Studio',
+    'platform.deepseek.com' => 'Open the DeepSeek platform',
+    _ => 'Open $host',
+  };
   @override
   String get apiKey => 'API key';
   @override
@@ -1754,7 +1760,13 @@ class TurkishStrings extends Strings {
       'Notelore notlarını yazmak ve onlardan cevap vermek için bir yapay zekâ modeli kullanır. '
       'Birini seç; sonra Ayarlar\'dan değiştirebilirsin.';
   @override
-  String openKeyPage(String host) => '$host adresini aç';
+  String openKeyPage(String host) => switch (host) {
+    'console.anthropic.com' => "Anthropic Console'u aç",
+    'platform.openai.com' => 'OpenAI platformunu aç',
+    'aistudio.google.com' => "Google AI Studio'yu aç",
+    'platform.deepseek.com' => 'DeepSeek platformunu aç',
+    _ => '$host adresini aç',
+  };
   @override
   String get apiKey => 'API anahtarı';
   @override

@@ -133,8 +133,8 @@ void main() {
     final harness = Harness(rejected: const KeyValidationError('Anthropic rejected the key: bad'));
     await pumpApp(tester, harness);
     await choose(tester);
-    expect(find.textContaining('Anthropic Console'), findsOneWidget);
-    expect(find.text('Open console.anthropic.com'), findsOneWidget); // the link as a button (#337)
+    expect(find.textContaining('Sign in to the Anthropic Console'), findsOneWidget);
+    expect(find.text('Open the Anthropic Console'), findsOneWidget); // the link as a button (#337)
     expect(find.textContaining('Billed per use through the Anthropic API'), findsOneWidget); // #95
     await tester.tap(find.text('Connect'));
     await tester.pumpAndSettle();
@@ -2075,6 +2075,22 @@ void main() {
     );
   });
 
+  testWidgets('settings: the appearance choices wrap at 2x without breaking a word (#714)', (
+    tester,
+  ) async {
+    phone(tester);
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await openSettings(tester, 'Appearance');
+    expect(find.byType(ChoiceChip), findsNWidgets(3));
+    final system = tester.getSize(find.text('System'));
+    final dark = tester.getSize(find.text('Dark'));
+    expect(system.height, dark.height); // a two-line System would be twice as tall
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('settings: switch the app to Turkish and back', (tester) async {
     phone(tester);
     final harness = Harness();
@@ -2975,7 +2991,7 @@ void main() {
     UrlLauncherPlatform.instance = launcher;
     await pumpApp(tester, Harness());
     await choose(tester);
-    await tester.tap(find.text('Open console.anthropic.com'));
+    await tester.tap(find.text('Open the Anthropic Console'));
     await tester.pumpAndSettle();
     expect(launcher.opened, ['https://console.anthropic.com/settings/keys']);
   });
