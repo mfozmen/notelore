@@ -22,6 +22,7 @@ void main() {
     final harness = Harness();
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
+    await session.setAboutMeToCloud(false); // a cloud model, so the button is the way
     // A place of its own in the bottom bar, beside Notes and Calendar (#669).
     expect(find.byType(NavigationDestination), findsNWidgets(4));
     await tester.tap(find.text('About me'));
@@ -90,23 +91,24 @@ void main() {
     await tester.pumpAndSettle();
 
     // The cloud switch stays a setting: the page links to it (#669).
-    await tester.scrollUntilVisible(find.text('Shared with cloud models'), 200);
-    await tester.tap(find.text('Shared with cloud models'));
+    await tester.scrollUntilVisible(find.text('Kept from cloud models'), 200);
+    await tester.tap(find.text('Kept from cloud models'));
     await tester.pumpAndSettle();
     expect(find.text('Privacy'), findsOneWidget); // the settings page
     await tester.tap(find.text('Share with cloud models'));
     await tester.pumpAndSettle();
-    expect(session.aboutMeToCloud, isFalse);
+    expect(session.aboutMeToCloud, isTrue);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text('Kept from cloud models'), findsOneWidget);
-    expect(find.text('Only a model on this device or computer gets them.'), findsOneWidget);
+    expect(find.text('Shared with cloud models'), findsOneWidget);
+    expect(find.text('Add a fact'), findsNothing); // the chat keeps them now (#749)
   });
 
   testWidgets('about me: facts under their sections; add and edit pick one (#671)', (tester) async {
     phone(tester);
     final session = await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
+    await session.setAboutMeToCloud(false); // a cloud model, so the button is the way
     await tester.tap(find.text('About me'));
     await tester.pumpAndSettle();
 
@@ -151,12 +153,41 @@ void main() {
     expect(button.overlaps(undo), isFalse);
   });
 
+  testWidgets('about me: no add button when the chat keeps the facts (#749)', (tester) async {
+    phone(tester);
+    final session = await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await session.setAboutMeToCloud(true);
+    await tester.tap(find.text('About me'));
+    await tester.pumpAndSettle();
+    // Empty, the way to fill it is the chat.
+    await tester.tap(find.text('Go to chat'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AboutMeScreen), findsNothing);
+    await session.rememberFact('Likes tea');
+    await tester.tap(find.text('About me'));
+    await tester.pumpAndSettle();
+    expect(find.text('Go to chat'), findsNothing);
+    expect(find.text('Add a fact'), findsNothing);
+    expect(find.byTooltip('Delete'), findsOneWidget);
+    await tester.tap(find.text('Likes tea')); // a fact can still be corrected by hand
+    await tester.pumpAndSettle();
+    await type(tester, 'Likes green tea');
+    expect(session.aboutMeFacts(), ['Likes green tea']);
+
+    // Kept from a cloud model, the chat cannot add one: the button is the way.
+    await session.setAboutMeToCloud(false);
+    await tester.pumpAndSettle();
+    expect(find.text('Add a fact'), findsOneWidget);
+  });
+
   testWidgets('about me: in the side rail on a wide window; Settings keeps Privacy', (
     tester,
   ) async {
     desktop(tester, 1280);
-    await pumpApp(tester, Harness());
+    final session = await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
+    await session.setAboutMeToCloud(false); // a cloud model, so the button is the way
     await tester.tap(find.text('About me'));
     await tester.pumpAndSettle();
     expect(find.text('Add a fact'), findsOneWidget);

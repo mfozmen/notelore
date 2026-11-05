@@ -1457,7 +1457,7 @@ class EnglishStrings extends Strings {
   @override
   String get aboutMeEmpty =>
       'Tell the assistant about yourself, like your family, your city or your work, and it '
-      'remembers it here, so your notes come out right. You can add a fact yourself too.';
+      'remembers it here, so your notes come out right.';
 
   @override
   String get addFact => 'Add a fact';
@@ -2565,7 +2565,7 @@ class TurkishStrings extends Strings {
   @override
   String get aboutMeEmpty =>
       'Asistana kendinden bahset: ailen, şehrin ya da işin gibi. Burada hatırlar, notların '
-      'doğru çıkar. Bir bilgiyi kendin de ekleyebilirsin.';
+      'doğru çıkar.';
 
   @override
   String get addFact => 'Bilgi ekle';
