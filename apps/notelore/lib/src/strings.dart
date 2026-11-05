@@ -124,6 +124,15 @@ abstract class Strings {
   String get send;
   String get resend;
   String get copy;
+
+  /// Telling that an answer was wrong, kept for the model's training (#753).
+  String get wrongAnswer;
+  String get wrongAnswerWhy;
+  String get wrongAnswerExpected;
+  String get wrongAnswerKeep;
+  String get wrongAnswerTakeBack;
+  String get optional;
+  String get feedbackSaved;
   String get copied;
 
   /// Text files attached in the chat (#222).
@@ -787,6 +796,22 @@ class EnglishStrings extends Strings {
   String get resend => 'Resend';
   @override
   String get copy => 'Copy';
+  @override
+  String get wrongAnswer => 'This was wrong';
+  @override
+  String get wrongAnswerWhy =>
+      'Your message and this answer are kept in your notes folder, and synced to your Drive '
+      'if you use it, so the model can learn from them. They go nowhere else.';
+  @override
+  String get wrongAnswerExpected => 'What should it have done?';
+  @override
+  String get wrongAnswerKeep => 'Keep';
+  @override
+  String get wrongAnswerTakeBack => 'Take back the report';
+  @override
+  String get optional => 'Optional';
+  @override
+  String get feedbackSaved => "Kept for the model's training";
   @override
   String get copied => 'Copied';
   @override
@@ -1903,6 +1928,22 @@ class TurkishStrings extends Strings {
   String get resend => 'Yeniden gönder';
   @override
   String get copy => 'Kopyala';
+  @override
+  String get wrongAnswer => 'Bu yanlıştı';
+  @override
+  String get wrongAnswerWhy =>
+      'Mesajın ve bu yanıt not klasöründe saklanır, Drive kullanıyorsan oraya da eşitlenir; '
+      'model bunlardan öğrenebilir. Başka hiçbir yere gitmez.';
+  @override
+  String get wrongAnswerExpected => 'Ne yapmalıydı?';
+  @override
+  String get wrongAnswerKeep => 'Sakla';
+  @override
+  String get wrongAnswerTakeBack => 'Bildirimi geri al';
+  @override
+  String get optional => 'İsteğe bağlı';
+  @override
+  String get feedbackSaved => 'Modelin eğitimi için saklandı';
   @override
   String get copied => 'Kopyalandı';
   @override

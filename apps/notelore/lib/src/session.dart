@@ -460,6 +460,36 @@ class Session extends ChangeNotifier {
     }
   });
 
+  /// Whether the model's turns are at hand for [reportWrong]; a switch to a
+  /// cloud model drops what a local one was told.
+  bool get canReport => _agent?.messages.isNotEmpty ?? false;
+
+  /// Keeps the newest turn as feedback for the model's training (#753), in the
+  /// notes folder so it syncs; its path relative to the notes.
+  Future<String> reportWrong(String expected) => _exclusive(() async {
+    final rel = reported = saveFeedback(
+      paths.notes.path,
+      _agent!.messages,
+      model: '${spec!.name} $model',
+      expected: expected,
+      now: clock(),
+    );
+    notifyListeners();
+    return rel;
+  });
+
+  /// The newest answer's report, until it is taken back or the next message goes.
+  String? reported;
+
+  /// Undoes [reportWrong].
+  Future<void> takeBackFeedback(String rel) => _exclusive(() async {
+    // Both the snackbar's Undo and the filled button take it back; the second finds it gone.
+    final file = File(p.joinAll([paths.notes.path, ...rel.split('/')]));
+    if (file.existsSync()) file.deleteSync();
+    if (reported == rel) reported = null;
+    notifyListeners();
+  });
+
   /// The language the user picked in Settings; the device's by default.
   AppLanguage language = AppLanguage.system;
 
@@ -1164,6 +1194,7 @@ class Session extends ChangeNotifier {
       return false;
     }
     transcript.add((role: ChatRole.user, text: message));
+    reported = null;
     if (busy) {
       _later.add(message); // joins the running turn at its next step
       notifyListeners();
