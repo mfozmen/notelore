@@ -1453,7 +1453,7 @@ class _ErrorRow extends StatelessWidget {
                   Flexible(
                     child: Text(
                       message,
-                      textAlign: TextAlign.center,
+                      textAlign: TextAlign.start,
                       style: TextStyle(color: colors.onSurfaceVariant, height: 1.4),
                     ),
                   ),
