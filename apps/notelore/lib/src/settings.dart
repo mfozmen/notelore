@@ -610,6 +610,7 @@ class _LanguageCard extends StatelessWidget {
           icon: Icons.translate,
           title: s.appLanguage,
           control: _picker(
+            context: context,
             key: const Key('language'),
             value: session.language,
             entries: [
@@ -683,22 +684,23 @@ class _LookCard extends StatelessWidget {
             const SizedBox(height: Gap.m),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-              child: SegmentedButton<Appearance>(
-                segments: [
+              child: Wrap(
+                spacing: Gap.s,
+                runSpacing: Gap.xs,
+                children: [
                   for (final a in Appearance.values)
-                    ButtonSegment(
-                      value: a,
+                    ChoiceChip(
                       label: Text(s.appearanceName(a)),
-                      icon: Icon(switch (a) {
+                      avatar: Icon(switch (a) {
                         Appearance.system => Icons.brightness_auto_outlined,
                         Appearance.light => Icons.light_mode_outlined,
                         Appearance.dark => Icons.dark_mode_outlined,
                       }),
+                      showCheckmark: false,
+                      selected: session.appearance == a,
+                      onSelected: (_) => session.setAppearance(a),
                     ),
                 ],
-                selected: {session.appearance},
-                showSelectedIcon: false,
-                onSelectionChanged: (chosen) => session.setAppearance(chosen.single),
               ),
             ),
           ],
@@ -733,13 +735,15 @@ class _ChatTextCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Gap.m),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
                     tooltip: s.textSizeSmaller,
                     icon: const Icon(Icons.text_decrease),
                     onPressed: step > 0 ? session.zoomChatOut : null,
                   ),
-                  Expanded(
+                  SizedBox(
+                    width: 64,
                     child: Text(
                       '${(session.chatTextScale * 100).round()}%',
                       key: const Key('chat-text-percent'),
@@ -835,6 +839,7 @@ class _VoiceCard extends StatelessWidget {
         children: [
           Expanded(
             child: _picker<String?>(
+              context: context,
               key: const Key('microphone'),
               value: chosen,
               entries: [(null, s.systemMicrophone), for (final m in microphones) (m.id, m.label)],
@@ -1094,6 +1099,7 @@ class _ModelPickerState extends State<_ModelPicker> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _picker<String?>(
+          context: context,
           key: const Key('model'),
           value: widget.value,
           entries: widget.entries,
@@ -1162,21 +1168,36 @@ class _RefreshingMenuController extends MenuController {
 Widget _picker<T>({
   MenuController? menuController,
 
+  required BuildContext context,
   required Key key,
   required T value,
   required List<(T, String)> entries,
   required void Function(T) onSelected,
-}) => DropdownMenu<T>(
-  key: key,
-  menuController: menuController,
-  initialSelection: value,
-  requestFocusOnTap: false,
-  expandedInsets: EdgeInsets.zero,
-  dropdownMenuEntries: [
-    for (final (value, label) in entries) DropdownMenuEntry(value: value, label: label),
-  ],
-  onSelected: (chosen) => onSelected(chosen as T),
-);
+}) {
+  // A text field cannot ellipsize, so fit the closed field's label; the open
+  // menu keeps the whole label with its own ellipsis. At 1x the field has room,
+  // so the text is left alone rather than cut early.
+  final scale = MediaQuery.textScalerOf(context).scale(1);
+  final budget = scale <= 1 ? null : (28 / scale).floor().clamp(8, 64);
+  String fitted(String label) =>
+      budget == null || label.length <= budget ? label : '${label.substring(0, budget - 1)}…';
+  return DropdownMenu<T>(
+    key: key,
+    menuController: menuController,
+    initialSelection: value,
+    requestFocusOnTap: false,
+    expandedInsets: EdgeInsets.zero,
+    dropdownMenuEntries: [
+      for (final (value, label) in entries)
+        DropdownMenuEntry(
+          value: value,
+          label: fitted(label),
+          labelWidget: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
+    ],
+    onSelected: (chosen) => onSelected(chosen as T),
+  );
+}
 
 /// A setting: what it is on the left and its control on the right, or under it
 /// where there is no room (a phone).

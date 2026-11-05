@@ -27,6 +27,17 @@ void main() {
     );
   });
 
+  testWidgets('settings: a long model name ellipsizes in the picker at 2x (#714)', (tester) async {
+    phone(tester);
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'sk-ant');
+    await openModel(tester);
+    final picker = tester.widget<DropdownMenu<String?>>(find.byKey(const Key('model')));
+    expect(picker.dropdownMenuEntries.map((entry) => entry.label), contains('claude-sonnet…'));
+  });
+
   testWidgets('settings: connect another model, switch with one tap, remove one (#362)', (
     tester,
   ) async {

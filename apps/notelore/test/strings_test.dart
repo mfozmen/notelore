@@ -80,6 +80,20 @@ void main() {
     }
   });
 
+  test('the key page link is named, not a URL that breaks at 2x (#714)', () {
+    const pages = {
+      'console.anthropic.com': ('Open the Anthropic Console', "Anthropic Console'u aç"),
+      'platform.openai.com': ('Open the OpenAI platform', 'OpenAI platformunu aç'),
+      'aistudio.google.com': ('Open Google AI Studio', "Google AI Studio'yu aç"),
+      'platform.deepseek.com': ('Open the DeepSeek platform', 'DeepSeek platformunu aç'),
+      'example.com': ('Open example.com', 'example.com adresini aç'),
+    };
+    for (final MapEntry(key: host, value: (english, turkish)) in pages.entries) {
+      expect(en.openKeyPage(host), english, reason: host);
+      expect(tr.openKeyPage(host), turkish, reason: host);
+    }
+  });
+
   test('a failed turn is said kindly, never as raw HTTP (#306)', () {
     for (final s in [EnglishStrings(), TurkishStrings()]) {
       final said = {

@@ -434,13 +434,13 @@ void main() {
     // Back without opening the page: the clipboard is not looked at.
     await comeBack('sk-ant-api03-${'a' * 80}');
     expect(tester.widget<TextField>(key).controller!.text, isEmpty);
-    await tester.tap(find.text('Open console.anthropic.com'));
+    await tester.tap(find.text('Open the Anthropic Console'));
     await tester.pumpAndSettle();
     expect(launcher.opened, ['https://console.anthropic.com/settings/keys']);
     // Something that is not an Anthropic key stays out.
     await comeBack('AIza${'x' * 35}');
     expect(tester.widget<TextField>(key).controller!.text, isEmpty);
-    await tester.tap(find.text('Open console.anthropic.com'));
+    await tester.tap(find.text('Open the Anthropic Console'));
     await tester.pumpAndSettle();
     await comeBack('sk-ant-api03-${'a' * 80}');
     expect(tester.widget<TextField>(key).controller!.text, 'sk-ant-api03-${'a' * 80}');

@@ -362,4 +362,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byTooltip('Archive'), findsOneWidget); // back in the notes
   });
+
+  testWidgets('settings: the chat text size control keeps its width on a desktop (#716)', (
+    tester,
+  ) async {
+    desktop(tester, 1600);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await openSettings(tester, 'Appearance');
+    final smaller = tester.getCenter(find.byTooltip('Smaller text'));
+    final larger = tester.getCenter(find.byTooltip('Larger text'));
+    expect(larger.dx - smaller.dx, lessThan(140));
+  });
 }
