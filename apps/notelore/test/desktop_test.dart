@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -392,5 +393,26 @@ void main() {
     final smaller = tester.getCenter(find.byTooltip('Smaller text'));
     final larger = tester.getCenter(find.byTooltip('Larger text'));
     expect(larger.dx - smaller.dx, lessThan(140));
+  });
+
+  testWidgets('chat: the working status reads at body size on a desktop (#723)', (tester) async {
+    desktop(tester, 1600);
+    await pumpApp(tester, Harness(answers: [Completer<AgentResponse>().future]));
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'selam');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pump();
+    final status = find.byKey(const Key('working'));
+    final text = tester.widget<Text>(
+      find.descendant(of: status, matching: find.byType(Text)).first,
+    );
+    expect(text.style!.fontSize!, greaterThan(12)); // bodyMedium, not bodySmall
+    final spinner = tester.getSize(
+      find.descendant(of: status, matching: find.byType(CircularProgressIndicator)),
+    );
+    expect(spinner.width, greaterThanOrEqualTo(16));
+    await tester.tap(find.byTooltip('Stop the answer'));
+    await tester.pumpAndSettle();
   });
 }
