@@ -79,6 +79,10 @@ flutter:
       fonts:
         - asset: assets/fonts/PlusJakartaSans-Regular.ttf
           weight: 400
+        # Answers italicise words in their Markdown.
+        - asset: assets/fonts/PlusJakartaSans-Italic.ttf
+          weight: 400
+          style: italic
         - asset: assets/fonts/PlusJakartaSans-Medium.ttf
           weight: 500
         - asset: assets/fonts/PlusJakartaSans-SemiBold.ttf
