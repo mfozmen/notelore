@@ -178,11 +178,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining(offer), findsOneWidget);
     // A refusal says so where the button was pressed.
-    await tester.tap(find.widgetWithText(TextButton, 'Sign in'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
     await tester.pumpAndSettle();
     expect(find.text("Couldn't sign in to Google Calendar. Try again."), findsOneWidget);
     harness.calendarAuth.failSignIn = null;
-    await tester.tap(find.widgetWithText(TextButton, 'Sign in'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
     await tester.pumpAndSettle();
     expect(find.textContaining(offer), findsNothing);
     expect(harness.calendar.events.values, ['Dentist']);

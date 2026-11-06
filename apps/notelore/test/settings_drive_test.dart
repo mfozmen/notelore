@@ -145,7 +145,7 @@ void main() {
     testWidgets('Connect signs in, and syncing goes on', (tester) async {
       final auth = await upgraded(tester);
       expect(find.text(banner), findsOneWidget);
-      await tester.tap(find.widgetWithText(TextButton, 'Connect'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Connect'));
       await tester.pumpAndSettle();
       expect(auth.granted, isTrue);
       expect(find.text(banner), findsNothing);
@@ -154,11 +154,11 @@ void main() {
     testWidgets('a sign-in that fails says so; Later puts it off', (tester) async {
       final auth = await upgraded(tester);
       auth.failSignIn = const SignInFailed('access_denied');
-      await tester.tap(find.widgetWithText(TextButton, 'Connect'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Connect'));
       await tester.pumpAndSettle();
       expect(find.text('Sign-in did not finish. Please try again.'), findsOneWidget);
       auth.failSignIn = const PartialGrant();
-      await tester.tap(find.widgetWithText(TextButton, 'Connect'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Connect'));
       await tester.pumpAndSettle();
       expect(find.textContaining('leave every box ticked'), findsOneWidget);
       await tester.tap(find.text('Later'));
@@ -198,7 +198,9 @@ void main() {
       await tester.pump();
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
       expect(
-        tester.widget<TextButton>(find.widgetWithText(TextButton, 'Restore to Drive')).onPressed,
+        tester
+            .widget<FilledButton>(find.widgetWithText(FilledButton, 'Restore to Drive'))
+            .onPressed,
         isNull,
       );
       harness.remote.hold!.complete();
