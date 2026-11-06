@@ -71,6 +71,11 @@ void main() {
     expect((decoration.gradient! as RadialGradient).colors[1], colors.primary);
     expect(decoration.boxShadow!.single.color, colors.primary.withValues(alpha: .45));
     expect(find.descendant(of: orb, matching: find.byTooltip('Tap or hold to talk')), findsOne);
+    // The button's own Material sits inside the orb, so its splash, hover and
+    // focus overlays paint above the gradient, not under it.
+    final ink = find.descendant(of: orb, matching: find.byType(InkWell));
+    final inner = find.descendant(of: orb, matching: find.byType(Material));
+    expect(find.ancestor(of: ink, matching: inner), findsOne);
   });
 
   testWidgets('one rounded field holds the attach button, the box and the orb', (tester) async {
