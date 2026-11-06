@@ -50,6 +50,12 @@ void main() {
     expect(find.text('1,000,000 read · 100,000 written'), findsWidgets);
     expect(find.text('Estimated cost: about \$3.00'), findsWidgets);
     expect(find.text('Last 14 days'), findsOneWidget);
+    // The cost leads its label and the facts below it (#718).
+    final cost = tester.widget<Text>(find.text('Estimated cost: about \$3.00').first);
+    final label = tester.widget<Text>(find.text('This conversation'));
+    final facts = tester.widget<Text>(find.textContaining('read ').first);
+    expect(cost.style!.fontSize!, greaterThan(label.style!.fontSize!));
+    expect(cost.style!.fontSize!, greaterThan(facts.style!.fontSize!));
     // The amount in sight with its unit, once for the conversation and once for
     // the range: the chart below does not say it a third time (#508).
     expect(find.text('1,100,000 tokens'), findsNWidgets(2));
