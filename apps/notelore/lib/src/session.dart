@@ -575,8 +575,7 @@ class Session extends ChangeNotifier {
   /// The language the user picked in Settings; the device's by default.
   AppLanguage language = AppLanguage.system;
 
-  /// The look: a nature palette, and light, dark or the device's.
-  Palette palette = Palette.lagoon;
+  /// The look: light, dark or the device's.
   Appearance appearance = Appearance.system;
 
   /// The model may look things up on the web, where its provider can (#96).
@@ -610,19 +609,13 @@ class Session extends ChangeNotifier {
     _saveUi();
   }
 
-  void setPalette(Palette chosen) {
-    _applyLook(chosen, appearance);
-    _touch();
-  }
-
   void setAppearance(Appearance chosen) {
-    _applyLook(palette, chosen);
+    _applyAppearance(chosen);
     _touch();
   }
 
-  void _applyLook(Palette chosenPalette, Appearance chosenAppearance) {
-    palette = chosenPalette;
-    appearance = chosenAppearance;
+  void _applyAppearance(Appearance chosen) {
+    appearance = chosen;
     _saveUi();
   }
 
@@ -675,7 +668,6 @@ class Session extends ChangeNotifier {
       if (saved is! Map) return;
       final shared = SharedPrefs.fromJson(saved);
       language = shared.language ?? AppLanguage.system;
-      palette = shared.palette ?? Palette.lagoon;
       appearance = shared.appearance ?? Appearance.system;
       webSearch = shared.webSearch ?? true;
       aboutMeToCloud = shared.aboutMeToCloud ?? true;
@@ -768,6 +760,11 @@ class Session extends ChangeNotifier {
 
   /// What the last sync did, for the settings screen; null before any.
   String? syncStatus;
+
+  /// When a sync last finished cleanly, and whether the last one failed
+  /// (#774). The main screens show one of them.
+  DateTime? lastSynced;
+  var syncFailed = false;
 
   /// Whether this run already said the notes moved into Drive's hidden storage.
   var _toldMoved = false;
@@ -1591,6 +1588,8 @@ class Session extends ChangeNotifier {
     driveConnected = false;
     _markGoogle(signedIn: false);
     syncStatus = null;
+    lastSynced = null;
+    syncFailed = false;
     driveNeedsSignIn = false;
     heldNotes = const [];
     notifyListeners();
@@ -1673,7 +1672,6 @@ class Session extends ChangeNotifier {
   /// This device's values of the settings every device shares (#662).
   SharedPrefs get _shared => SharedPrefs(
     language: language,
-    palette: palette,
     appearance: appearance,
     webSearch: webSearch,
     aboutMeToCloud: aboutMeToCloud,
@@ -1686,7 +1684,7 @@ class Session extends ChangeNotifier {
   Future<void> _adopt(Map<String, Object?> theirs) async {
     final shared = SharedPrefs.fromJson(theirs);
     if (shared.language case final l?) _applyLanguage(l);
-    _applyLook(shared.palette ?? palette, shared.appearance ?? appearance);
+    _applyAppearance(shared.appearance ?? appearance);
     if (shared.webSearch case final on? when on != webSearch) await _applyWebSearch(on);
     await _adoptAboutMeToCloud(theirs['aboutMeToCloud']);
     if (shared.calendar case final on?) reminderCenter.adopt(on, shared.calendarId);
@@ -1736,16 +1734,23 @@ class Session extends ChangeNotifier {
         await _syncSettings(_remote!);
         await refreshReminders(ask: false); // the notes' and the shared setting's
         syncStatus = _syncSummary(report, resolver);
+        lastSynced = clock().toUtc();
+        syncFailed = false;
       } on MissingDriveGrant catch (error) {
+        syncFailed = true;
         _needSignIn(strings.drivePermissionAgain, error.message);
       } on NotSignedIn catch (error) {
+        syncFailed = true;
         _needSignIn(strings.signedOutOfGoogle, error.message);
       } on NetworkError {
+        syncFailed = true;
         syncStatus = strings.offline;
       } on HttpError catch (error) {
+        syncFailed = true;
         _driveFailed(error);
       } on FileSystemException catch (error) {
         // Windows: antivirus or an editor holds a note past the store's retries.
+        syncFailed = true;
         syncStatus = strings.noteInUse(error.message);
       } finally {
         if (!completed) index.invalidateAll();

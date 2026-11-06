@@ -2108,48 +2108,19 @@ void main() {
     expect(find.text('Not available with this provider.'), findsOneWidget);
   });
 
-  testWidgets('settings: pick a nature theme and dark mode', (tester) async {
+  testWidgets('settings: pick dark mode', (tester) async {
     phone(tester);
     final harness = Harness();
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     await openSettings(tester, 'Appearance');
-    await tester.scrollUntilVisible(
-      find.byTooltip('Pine forest'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.byTooltip('Pine forest'));
-    await tester.pumpAndSettle();
-    expect(session.palette, Palette.forest);
     await tester.tap(find.text('Dark'));
     await tester.pumpAndSettle();
     expect(session.appearance, Appearance.dark);
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.themeMode, ThemeMode.dark);
-    expect(
-      app.darkTheme!.colorScheme.primary,
-      noteloreTheme(Brightness.dark, Palette.forest).colorScheme.primary,
-    );
+    expect(app.darkTheme!.colorScheme.primary, noteloreTheme(Brightness.dark).colorScheme.primary);
   });
-
-  for (final scale in [1.0, 2.0]) {
-    testWidgets('settings: the six theme swatches fit one row at ${scale}x (#717)', (tester) async {
-      phone(tester);
-      tester.platformDispatcher.textScaleFactorTestValue = scale;
-      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-      await pumpApp(tester, Harness());
-      await connect(tester, key: 'k');
-      await openSettings(tester, 'Appearance');
-      final labels = EnglishStrings();
-      final tops = {
-        for (final palette in Palette.values)
-          tester.getTopLeft(find.byTooltip(labels.paletteName(palette))).dy,
-      };
-      expect(tops, hasLength(1));
-      expect(tester.takeException(), isNull);
-    });
-  }
 
   testWidgets('settings: the appearance choices wrap at 2x without breaking a word (#714)', (
     tester,
@@ -2164,21 +2135,6 @@ void main() {
     final system = tester.getSize(find.text('System'));
     final dark = tester.getSize(find.text('Dark'));
     expect(system.height, dark.height); // a two-line System would be twice as tall
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('settings: the swatches split 3 + 3 when six do not fit (#717)', (tester) async {
-    phone(tester);
-    tester.view.physicalSize = const Size(900, 2400); // 360 dp
-    await pumpApp(tester, Harness());
-    await connect(tester, key: 'k');
-    await openSettings(tester, 'Appearance');
-    final labels = EnglishStrings();
-    final tops = {
-      for (final palette in Palette.values)
-        tester.getTopLeft(find.byTooltip(labels.paletteName(palette))).dy,
-    };
-    expect(tops, hasLength(2));
     expect(tester.takeException(), isNull);
   });
 
@@ -2311,6 +2267,51 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Change model'), findsOneWidget);
   });
 
+  testWidgets('notes: the sync state follows a sync under the title (#774)', (tester) async {
+    phone(tester);
+    final auth = FakeAuth()..granted = true;
+    final harness = Harness(auth: auth);
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await session.connectDrive();
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('Synced just now'), findsOneWidget);
+    harness.remote.hold = Completer();
+    unawaited(session.syncNow());
+    await tester.pump();
+    expect(find.text('Syncing…'), findsOneWidget);
+    harness.remote.hold!.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Synced just now'), findsOneWidget);
+    await tester.tap(find.text('Synced just now'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sync now'), findsOneWidget); // the state opens Settings › Sync
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    session.lastSynced = null;
+    session.notifyListeners();
+    await tester.pump();
+    expect(find.text('Not synced yet'), findsOneWidget);
+    harness.remote.failure = const NetworkError('offline');
+    await session.syncNow();
+    await tester.pumpAndSettle();
+    expect(find.text('Not synced'), findsOneWidget);
+  });
+  testWidgets('notes: the sync state time moves on (#774)', (tester) async {
+    phone(tester);
+    var now = DateTime.utc(2026, 10, 1, 12);
+    final harness = Harness(auth: FakeAuth()..granted = true);
+    final session = await pumpApp(tester, harness, clock: () => now);
+    await connect(tester, key: 'k');
+    await session.connectDrive();
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('Synced just now'), findsOneWidget);
+    now = now.add(const Duration(minutes: 2));
+    await tester.pump(const Duration(seconds: 31));
+    expect(find.text('Synced 2 min ago'), findsOneWidget);
+  });
   testWidgets('notes: a note opened on a phone names itself once (#508)', (tester) async {
     phone(tester);
     final harness = Harness();
@@ -2829,6 +2830,33 @@ void main() {
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
     expect(find.text('"Kitaplar" was already gone.'), findsOneWidget);
+  });
+
+  testWidgets('notes: a row shows its newest words, tags and open todos (#773)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final path = createNote(
+      harness.paths.notes.path,
+      'project',
+      'Mopsos',
+      tags: ['investing'],
+      today: today,
+    );
+    addEntry(path, 'Picked SQLite for the database.', today: today);
+    addEntry(path, 'Considered crypto, postponed.', today: today);
+    addTodo(path, 'Add Drive backup', today: today);
+    addTodo(path, 'Write the README', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(session.listNotes().single.openTodos, 2);
+    expect(find.text('Considered crypto, postponed.'), findsOneWidget); // the newest words
+    expect(find.textContaining('#investing'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(ListTile), matching: find.text('2')),
+      findsOneWidget,
+    ); // the open-todo count
   });
 
   testWidgets('notes: the list, a reader, and an empty state', (tester) async {

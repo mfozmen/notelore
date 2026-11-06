@@ -355,12 +355,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ),
                       child: session.transcript.isEmpty
-                          ? Center(
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: Layout.column),
-                                child: EmptyChat(s, example: session.ready ? _example : null),
-                              ),
-                            )
+                          ? EmptyChat(s, example: session.ready ? _example : null)
                           : _Lines(session, live: _live),
                     ),
                   ),
@@ -382,25 +377,20 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                 if (session.ready)
-                  Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: Layout.column),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (session.preparing && !session.busy)
-                            _Thinking(s, fixed: s.devicePreparing),
-                          _ModelBar(session, menu: _modelMenu),
-                          _Composer(
-                            session,
-                            voice: _voice,
-                            message: _message,
-                            send: _send,
-                            attach: _attach,
-                          ),
-                        ],
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (session.preparing && !session.busy)
+                        _Thinking(s, fixed: s.devicePreparing),
+                      _ModelBar(session, menu: _modelMenu),
+                      _Composer(
+                        session,
+                        voice: _voice,
+                        message: _message,
+                        send: _send,
+                        attach: _attach,
                       ),
-                    ),
+                    ],
                   )
                 else
                   Center(
@@ -1604,7 +1594,7 @@ class _BubbleText extends StatelessWidget {
 }
 
 /// [text] formatted, every part in the bubble's own colour [style] so it reads
-/// on the bubble in every palette, light and dark; links open in the browser.
+/// on the bubble in both themes; links open in the browser.
 /// One selection runs across the whole answer (#335).
 Widget _markdown(BuildContext context, String text, TextStyle style) {
   final theme = Theme.of(context);

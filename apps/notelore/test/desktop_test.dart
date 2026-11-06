@@ -59,6 +59,8 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
     final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
     expect(rail.extended, isTrue); // room for the labels
+    final colors = Theme.of(tester.element(find.byType(NavigationRail))).colorScheme;
+    expect(rail.selectedLabelTextStyle!.color, colors.primary); // the chosen tab in the accent
     expect(find.text('Notelore'), findsOneWidget);
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
@@ -72,6 +74,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(NavigationBar), findsOneWidget);
+    // A hairline over the bar, as the rail has its divider beside it.
+    final line = tester.widget<DecoratedBox>(
+      find.ancestor(of: find.byType(NavigationBar), matching: find.byType(DecoratedBox)).first,
+    );
+    expect(
+      (line.decoration as BoxDecoration).border,
+      Border(top: BorderSide(color: colors.outlineVariant)),
+    );
   });
 
   testWidgets('a draft survives the side rail and a resize to the phone layout', (tester) async {
@@ -107,13 +117,13 @@ void main() {
     expect(find.textContaining('opens without asking'), findsOneWidget);
   });
 
-  testWidgets('chat on a wide window uses the width, in a capped column (#697)', (tester) async {
+  testWidgets('chat on a wide window uses the width for its composer (#697, #771)', (tester) async {
     desktop(tester, 1920);
     await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
     final width = tester.getSize(find.byType(TextField).last).width;
-    expect(width, greaterThan(560));
-    expect(width, lessThanOrEqualTo(Layout.column));
+    expect(width, greaterThan(1000));
+    expect(width, lessThanOrEqualTo(Layout.chat));
   });
 
   testWidgets('chat on a wide window uses the width: bubbles, composer, zoom (#697)', (
@@ -133,10 +143,7 @@ void main() {
         .width;
     final bubble = bubbleWidth();
     expect(bubble, greaterThan(560));
-    expect(
-      tester.getSize(find.byKey(const Key('message'))).width,
-      lessThanOrEqualTo(Layout.column),
-    );
+    expect(tester.getSize(find.byKey(const Key('message'))).width, lessThanOrEqualTo(Layout.chat));
     // A short message shows the character cap moving with the text scale.
     const short = 'Kitaplari rafa koy';
     await tester.enterText(find.byKey(const Key('message')), short);
@@ -171,13 +178,16 @@ void main() {
     expect(bubble, lessThanOrEqualTo(window * 0.85 + 0.5));
   });
 
-  testWidgets('chat on a wide window: the composer and examples stay readable (#707)', (
+  testWidgets('chat on a wide window: the composer and examples share the conversation (#771)', (
     tester,
   ) async {
     desktop(tester, 1400);
     await pumpApp(tester, Harness(answers: ['Saved.']));
     await connect(tester, key: 'k');
-    expect(tester.getSize(find.byType(TextField).last).width, lessThanOrEqualTo(Layout.column));
+    final field = tester.getSize(find.byType(TextField).last).width;
+    expect(field, greaterThan(Layout.column));
+    expect(field, lessThanOrEqualTo(Layout.chat));
+    expect(tester.getSize(find.byType(OutlinedButton).last).width, greaterThan(Layout.column));
     const long =
         'Kitaplari rafa koy ve haftaya dentist randevusunu hatirlat, sonra da kutuphane icin yeni bir proje notu ac ve icini doldur, boylece satirlar dolacak kadar uzun olsun.';
     await tester.enterText(find.byKey(const Key('message')), long);
@@ -185,6 +195,27 @@ void main() {
     await tester.tap(find.byTooltip('Send'));
     await tester.pumpAndSettle();
     expect(tester.getSize(find.text(long)).width, greaterThan(560));
+  });
+  testWidgets('desktop: the sync state sits at the foot of the compact rail (#774)', (
+    tester,
+  ) async {
+    desktop(tester, 1000);
+    final harness = Harness(auth: FakeAuth()..granted = true);
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await session.connectDrive();
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.cloud_done_outlined), findsOneWidget);
+  });
+
+  testWidgets('desktop: the sync state sits at the foot of the rail (#774)', (tester) async {
+    desktop(tester, 1600);
+    final harness = Harness(auth: FakeAuth()..granted = true);
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await session.connectDrive();
+    await tester.pumpAndSettle();
+    expect(find.text('Synced just now'), findsOneWidget);
   });
   testWidgets('notes on a wide window: the list and the open note side by side', (tester) async {
     desktop(tester, 1600);

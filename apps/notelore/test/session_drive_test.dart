@@ -182,7 +182,6 @@ void main() {
       await laptop.connect(findProvider('anthropic'), 'k');
       laptop
         ..setLanguage(AppLanguage.tr)
-        ..setPalette(Palette.sunset)
         ..setAppearance(Appearance.dark);
       await laptop.setWebSearch(false);
       await laptop.setAboutMeToCloud(false);
@@ -196,7 +195,7 @@ void main() {
       await phone.connectDrive();
       expect(phone.language, AppLanguage.tr);
       expect(phone.model, 'model-b');
-      expect((phone.palette, phone.appearance), (Palette.sunset, Appearance.dark));
+      expect(phone.appearance, Appearance.dark);
       expect(phone.webSearch, isFalse);
       expect(phone.aboutMeToCloud, isFalse); // a privacy choice follows the person
 

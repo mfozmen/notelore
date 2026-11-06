@@ -42,6 +42,7 @@ Go through the skills' checklists. These matter most here:
 - **Consistency:** the same component looks the same everywhere. It uses the theme's colours, never hard-coded ones. Turkish strings are often longer, so check for overflow.
 - **Phone and desktop:** content keeps a readable width on wide windows, and nothing stretches edge to edge.
 - **Feel:** first impressions (the Google sign-in, setup) look trustworthy and finished.
+- **History:** before proposing to change or remove existing behaviour, find why it is there (`git log -S`, the issue its commit names). A proposal that reverses an earlier maintainer decision names that issue and says so.
 - **Purpose:** every control helps the task the person came to this screen for. One that does not moves to Settings, an overflow menu or a detail page, or goes. Nothing is said twice on one screen. A product question is flagged as `needs-decision`, not decided in the review.
 
 ## 5. Report
@@ -52,6 +53,8 @@ For each finding give:
 - the screen and state, and the image that shows it;
 - the file and line;
 - a concrete fix in Flutter terms (which widget, which `Gap`, which theme role).
+
+Each proposed change gets a before/after render pair, one change per pair, so the maintainer can decide item by item.
 
 End with the top three changes that would lift the look the most. Keep it short and specific. Do not restate the checklists.
 

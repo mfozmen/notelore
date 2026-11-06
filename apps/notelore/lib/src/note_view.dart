@@ -134,14 +134,6 @@ class NoteView extends StatelessWidget {
             if (_hasContent(section)) ...[
               const SizedBox(height: Gap.l),
               _Heading(section.heading),
-              if (section.key == 'decisions' || section.key == 'todo') ...[
-                const SizedBox(height: Gap.xs),
-                Text(
-                  section.key == 'decisions' ? strings.decisionsHelp : strings.todosHelp,
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                ),
-              ],
               const SizedBox(height: Gap.s),
               ..._section(context, section),
             ],

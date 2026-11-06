@@ -43,7 +43,7 @@ The old command line (`notelore-<version>-*.zip`, v0.2.0 and earlier) is retired
 
 ## App icon
 
-Notelore's mark (a note you talk to: a white card with a folded corner and a speech tail, on lagoon teal) is drawn in code, in `apps/notelore/lib/src/mark.dart`. The app shows it on the sign-in screen and in Settings' About card. Every platform's icon is rendered from that same painter: the Android legacy and adaptive icons (foreground inside the 66 dp safe zone, plus a monochrome layer for themed icons), the Windows `.ico`, and the macOS and iOS app icon sets. After changing the mark, regenerate them and commit the result:
+Notelore's mark (a folded ribbon N, its end cut like a bookmark, on the Kil theme's terracotta) is drawn in code, in `apps/notelore/lib/src/mark.dart`. The app shows it on the sign-in screen and in Settings' About card. Every platform's icon is rendered from that same painter: the Android legacy and adaptive icons (foreground inside the 66 dp safe zone, plus a monochrome layer for themed icons), the Windows `.ico`, and the macOS and iOS app icon sets. After changing the mark, regenerate them and commit the result:
 
 ```bash
 cd apps/notelore && flutter test tool/make_icons_test.dart
