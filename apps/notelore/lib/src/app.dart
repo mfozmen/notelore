@@ -12,7 +12,7 @@ import 'chat.dart';
 import 'lock.dart';
 import 'mark.dart';
 import 'notes.dart';
-import 'section_label.dart' show Star;
+import 'section_label.dart' show Label;
 import 'session.dart';
 import 'settings.dart';
 import 'setup.dart';
@@ -742,27 +742,6 @@ class _HeldBanner extends StatelessWidget {
       actions: [
         TextButton(onPressed: idle ? () => _delete(context) : null, child: Text(s.deleteHereToo)),
         FilledButton(onPressed: idle ? session.restoreHeld : null, child: Text(s.restoreToDrive)),
-      ],
-    );
-  }
-}
-
-/// A small mono section label in the accent, after the look's star.
-class Label extends StatelessWidget {
-  const Label(this.text, {this.size, super.key});
-
-  final String text;
-  final double? size;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = Theme.of(context).extension<NoteloreTokens>()!.label.copyWith(fontSize: size);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      spacing: Gap.s,
-      children: [
-        Star(style.color!),
-        Flexible(child: Text(text, style: style)),
       ],
     );
   }
