@@ -2808,6 +2808,7 @@ void main() {
       findsOneWidget,
     ); // the open-todo count
   });
+
   testWidgets('notes: the list, a reader, and an empty state', (tester) async {
     phone(tester);
     final harness = Harness(
