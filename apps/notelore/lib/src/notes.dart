@@ -396,10 +396,12 @@ class _NotesScreenState extends State<NotesScreen> {
     final today = DateTime(now.year, now.month, now.day);
     // Only notes the list knows, so a row opens the same note a card does.
     final known = {for (final note in all) (note.kind, note.slug): note};
+    // Not over search results; and a search typed is not re-read on every key.
     final coming = [
-      for (final item in calendarItems(widget.session.paths.notes.path, today: today))
-        if (item.todo && !item.day.isBefore(today) && known.containsKey((item.kind, item.slug)))
-          item,
+      if (_search.text.trim().isEmpty)
+        for (final item in calendarItems(widget.session.paths.notes.path, today: today))
+          if (item.todo && !item.day.isBefore(today) && known.containsKey((item.kind, item.slug)))
+            item,
     ];
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -624,12 +626,15 @@ class _ComingUp extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
         child: Row(
           children: [
-            SizedBox(
-              width: 40,
+            // Grows with large text rather than breaking the day's digits apart.
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 40),
               child: Column(
                 children: [
                   Text(
                     '${item.day.day}',
+                    softWrap: false,
+                    maxLines: 1,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontSize: 20,
                       height: 1,

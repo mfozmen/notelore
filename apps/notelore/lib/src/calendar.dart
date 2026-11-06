@@ -217,12 +217,14 @@ class _MonthGrid extends StatelessWidget {
               onPressed: () => turn(-1),
             ),
             Expanded(
-              child: Text(
-                s.monthYear(month),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(fontSize: 19),
+              // Smaller, never cut, beside the chip and arrows at large text.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  s.monthYear(month),
+                  maxLines: 1,
+                  style: theme.textTheme.titleMedium?.copyWith(fontSize: 19),
+                ),
               ),
             ),
             Tooltip(
@@ -258,7 +260,8 @@ class _MonthGrid extends StatelessWidget {
             side: BorderSide(color: colors.outlineVariant),
           ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(Gap.s, Gap.s, Gap.s, Gap.xs),
+            // Narrow sides, so a day keeps as much of its 48 dp width as fits.
+            padding: const EdgeInsets.fromLTRB(Gap.xs, Gap.s, Gap.xs, Gap.xs),
             child: Column(
               children: [
                 Row(

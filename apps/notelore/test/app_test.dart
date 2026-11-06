@@ -2491,11 +2491,36 @@ void main() {
     expect(find.text('NOV'), findsNWidgets(3));
     // Above the notes, and a row opens its note.
     expect(top('Check in'), lessThan(tester.getTopLeft(find.widgetWithText(ListTile, 'Atlas')).dy));
+    // A search shows only what it found.
+    await tester.enterText(find.byKey(const Key('notes-search')), 'Lisbon');
+    await tester.pumpAndSettle();
+    expect(find.text('COMING UP'), findsNothing);
+    await tester.enterText(find.byKey(const Key('notes-search')), '');
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Kick-off notes'));
     await tester.pumpAndSettle();
     expect(find.byType(NoteView), findsOneWidget);
     expect(find.text('Atlas'), findsOneWidget);
     expect(find.text('COMING UP'), findsNothing);
+  });
+
+  testWidgets('notes: at 2x text a Coming up day keeps its digits on one line (#782)', (
+    tester,
+  ) async {
+    phone(tester);
+    tester.view.physicalSize = const Size(900, 2400); // 360 dp
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final harness = Harness();
+    await pumpApp(tester, harness, clock: () => DateTime(2026, 11, 7, 10));
+    await connect(tester, key: 'k');
+    final path = createNote(harness.paths.notes.path, 'topic', 'Books', today: today);
+    addTodo(path, 'Return it', due: DateTime(2026, 11, 12), today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    final day = tester.getSize(find.text('12'));
+    expect(day.width, greaterThan(day.height)); // "12" side by side, not stacked
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('notes: no Coming up without open todos ahead (#782)', (tester) async {
