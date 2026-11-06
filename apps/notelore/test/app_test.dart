@@ -2294,6 +2294,23 @@ void main() {
     expect(find.text('Change model'), findsNothing);
   });
 
+  testWidgets('chat: a banner keeps to the chat column on a desktop (#769)', (tester) async {
+    tester.view
+      ..physicalSize = const Size(1600, 1000)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    harness.models = ['model-a', 'model-b'];
+    await session.refreshModels();
+    await tester.pumpAndSettle();
+    final banner = tester.getRect(find.byType(MaterialBanner));
+    expect(banner.width, lessThanOrEqualTo(Layout.column));
+    expect(banner.center.dx, closeTo(tester.getCenter(find.byKey(const Key('message'))).dx, 8));
+    expect(find.widgetWithText(FilledButton, 'Change model'), findsOneWidget);
+  });
+
   testWidgets('notes: a note opened on a phone names itself once (#508)', (tester) async {
     phone(tester);
     final harness = Harness();

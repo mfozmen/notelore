@@ -366,15 +366,20 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
                 if (session.modelGone)
-                  MaterialBanner(
-                    leading: const Icon(Icons.warning_amber),
-                    content: Text(s.modelGone(s.providerName(session.spec!), session.model!)),
-                    actions: [
-                      TextButton(
-                        onPressed: () => _modelMenu.currentState!.showButtonMenu(),
-                        child: Text(s.changeModel),
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: Layout.column),
+                      child: MaterialBanner(
+                        leading: const Icon(Icons.warning_amber),
+                        content: Text(s.modelGone(s.providerName(session.spec!), session.model!)),
+                        actions: [
+                          FilledButton.tonal(
+                            onPressed: () => _modelMenu.currentState!.showButtonMenu(),
+                            child: Text(s.changeModel),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 if (session.ready)
                   Center(

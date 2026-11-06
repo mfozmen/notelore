@@ -394,28 +394,33 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final page = Column(
       children: [
         if (_available case final version?)
-          _UpdateBanner(
-            s,
-            version: version,
-            highlights: _highlights,
-            page: _page,
-            installed: _installed,
-            updating: _updating,
-            progress: _progress,
-            problem: _updateProblem,
-            android: widget.updater?.system == 'android',
-            windows: widget.updater?.system == 'windows',
-            later: () => setState(() {
-              _dismissed = _available;
-              _available = null;
-            }),
-            update: _update,
+          _inColumn(
+            _UpdateBanner(
+              s,
+              version: version,
+              highlights: _highlights,
+              page: _page,
+              installed: _installed,
+              updating: _updating,
+              progress: _progress,
+              problem: _updateProblem,
+              android: widget.updater?.system == 'android',
+              windows: widget.updater?.system == 'windows',
+              later: () => setState(() {
+                _dismissed = _available;
+                _available = null;
+              }),
+              update: _update,
+            ),
           ),
-        if (widget.session.heldNotes.isNotEmpty) _HeldBanner(widget.session),
+        if (widget.session.heldNotes.isNotEmpty) _inColumn(_HeldBanner(widget.session)),
         if (widget.session.driveNeedsSignIn && !_signInLater && tab != _settings)
-          _SignInBanner(widget.session, later: () => setState(() => _signInLater = true)),
+          _inColumn(
+            _SignInBanner(widget.session, later: () => setState(() => _signInLater = true)),
+          ),
         // Settings has its own sign-in: never the same offer twice on one screen.
-        if (widget.session.calendarNudge && tab != _settings) _CalendarBanner(widget.session),
+        if (widget.session.calendarNudge && tab != _settings)
+          _inColumn(_CalendarBanner(widget.session)),
         Expanded(child: _screen(tab, wide: wide)),
       ],
     );
@@ -579,7 +584,7 @@ class _SignInBannerState extends State<_SignInBanner> {
       ),
       actions: [
         TextButton(onPressed: _signingIn ? null : widget.later, child: Text(s.later)),
-        TextButton(onPressed: _signingIn ? null : _connect, child: Text(s.connect)),
+        FilledButton.tonal(onPressed: _signingIn ? null : _connect, child: Text(s.connect)),
       ],
     );
   }
@@ -628,7 +633,7 @@ class _CalendarBannerState extends State<_CalendarBanner> {
       ),
       actions: [
         TextButton(onPressed: _signingIn ? null : session.calendarNudgeLater, child: Text(s.later)),
-        TextButton(onPressed: _signingIn ? null : _signIn, child: Text(s.signIn)),
+        FilledButton.tonal(onPressed: _signingIn ? null : _signIn, child: Text(s.signIn)),
       ],
     );
   }
@@ -705,11 +710,22 @@ class _HeldBanner extends StatelessWidget {
       ),
       actions: [
         TextButton(onPressed: idle ? () => _delete(context) : null, child: Text(s.deleteHereToo)),
-        TextButton(onPressed: idle ? session.restoreHeld : null, child: Text(s.restoreToDrive)),
+        FilledButton.tonal(
+          onPressed: idle ? session.restoreHeld : null,
+          child: Text(s.restoreToDrive),
+        ),
       ],
     );
   }
 }
+
+/// A banner keeps to the chat's readable column on a wide window (#769).
+Widget _inColumn(Widget child) => Center(
+  child: ConstrainedBox(
+    constraints: const BoxConstraints(maxWidth: Layout.column),
+    child: child,
+  ),
+);
 
 /// A newer release: install it, or put it off with Later. While it installs
 /// both wait; once installed (macOS, when the restart failed) only Later stays.
@@ -803,7 +819,7 @@ class _UpdateBanner extends StatelessWidget {
           ),
         TextButton(onPressed: updating ? null : later, child: Text(s.later)),
         if (!installed)
-          TextButton(
+          FilledButton.tonal(
             onPressed: updating ? null : update,
             child: Text(android ? s.update : s.updateAndRestart),
           ),
