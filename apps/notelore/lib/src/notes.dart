@@ -371,7 +371,7 @@ class _NotesScreenState extends State<NotesScreen> {
                 _group(context, s.pinnedNotes),
                 for (final note in notes)
                   if (note.pinned) _card(context, note, wide: wide),
-                _group(context, s.otherNotes),
+                if (notes.any((n) => !n.pinned)) _group(context, s.otherNotes),
               ],
               for (final note in notes)
                 if (!note.pinned) _card(context, note, wide: wide),
@@ -383,10 +383,13 @@ class _NotesScreenState extends State<NotesScreen> {
   Widget _group(BuildContext context, String title) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(Gap.xs, Gap.m, Gap.xs, Gap.s),
-      child: Text(
-        title,
-        style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+      padding: const EdgeInsets.fromLTRB(0, Gap.m, 0, Gap.s),
+      child: Semantics(
+        header: true,
+        child: Text(
+          title,
+          style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+        ),
       ),
     );
   }
@@ -544,15 +547,17 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
-  /// Pin or Unpin [note]; the filled pin says it is pinned, not the colour alone.
-  Widget _pin(NoteInfo note, {required bool pinned, VoidCallback? done}) => IconButton(
-    tooltip: pinned ? widget.session.strings.unpin : widget.session.strings.pin,
-    isSelected: pinned,
-    icon: const Icon(Icons.push_pin_outlined),
-    selectedIcon: const Icon(Icons.push_pin),
-    onPressed: () async {
-      if (await widget.session.pinNote(note, pinned: !pinned)) done?.call();
-    },
+  /// The app bar's icon colour would hide `isSelected`, so the filled pin names its own.
+  Widget _pin(NoteInfo note, {required bool pinned, VoidCallback? done}) => Builder(
+    builder: (context) => IconButton(
+      tooltip: pinned ? widget.session.strings.unpin : widget.session.strings.pin,
+      isSelected: pinned,
+      icon: const Icon(Icons.push_pin_outlined),
+      selectedIcon: Icon(Icons.push_pin, color: Theme.of(context).colorScheme.primary),
+      onPressed: () async {
+        if (await widget.session.pinNote(note, pinned: !pinned)) done?.call();
+      },
+    ),
   );
 }
 
