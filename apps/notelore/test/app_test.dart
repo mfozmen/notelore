@@ -2311,6 +2311,51 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Change model'), findsOneWidget);
   });
 
+  testWidgets('notes: the sync state follows a sync under the title (#774)', (tester) async {
+    phone(tester);
+    final auth = FakeAuth()..granted = true;
+    final harness = Harness(auth: auth);
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await session.connectDrive();
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('Synced just now'), findsOneWidget);
+    harness.remote.hold = Completer();
+    unawaited(session.syncNow());
+    await tester.pump();
+    expect(find.text('Syncing…'), findsOneWidget);
+    harness.remote.hold!.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Synced just now'), findsOneWidget);
+    await tester.tap(find.text('Synced just now'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sync now'), findsOneWidget); // the state opens Settings › Sync
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    session.lastSynced = null;
+    session.notifyListeners();
+    await tester.pump();
+    expect(find.text('Not synced yet'), findsOneWidget);
+    harness.remote.failure = const NetworkError('offline');
+    await session.syncNow();
+    await tester.pumpAndSettle();
+    expect(find.text('Not synced'), findsOneWidget);
+  });
+  testWidgets('notes: the sync state time moves on (#774)', (tester) async {
+    phone(tester);
+    var now = DateTime.utc(2026, 10, 1, 12);
+    final harness = Harness(auth: FakeAuth()..granted = true);
+    final session = await pumpApp(tester, harness, clock: () => now);
+    await connect(tester, key: 'k');
+    await session.connectDrive();
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('Synced just now'), findsOneWidget);
+    now = now.add(const Duration(minutes: 2));
+    await tester.pump(const Duration(seconds: 31));
+    expect(find.text('Synced 2 min ago'), findsOneWidget);
+  });
   testWidgets('notes: a note opened on a phone names itself once (#508)', (tester) async {
     phone(tester);
     final harness = Harness();

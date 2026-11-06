@@ -186,6 +186,27 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.getSize(find.text(long)).width, greaterThan(560));
   });
+  testWidgets('desktop: the sync state sits at the foot of the compact rail (#774)', (
+    tester,
+  ) async {
+    desktop(tester, 1000);
+    final harness = Harness(auth: FakeAuth()..granted = true);
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await session.connectDrive();
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.cloud_done_outlined), findsOneWidget);
+  });
+
+  testWidgets('desktop: the sync state sits at the foot of the rail (#774)', (tester) async {
+    desktop(tester, 1600);
+    final harness = Harness(auth: FakeAuth()..granted = true);
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await session.connectDrive();
+    await tester.pumpAndSettle();
+    expect(find.text('Synced just now'), findsOneWidget);
+  });
   testWidgets('notes on a wide window: the list and the open note side by side', (tester) async {
     desktop(tester, 1600);
     final harness = Harness();
