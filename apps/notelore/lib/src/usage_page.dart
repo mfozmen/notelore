@@ -158,25 +158,26 @@ class _Total extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final quiet = theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final muted = theme.colorScheme.onSurfaceVariant;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: Gap.xs,
       children: [
-        // With big text the value takes a line of its own, never squeezing the title.
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          spacing: Gap.s,
-          children: [
-            Text(title, style: theme.textTheme.titleMedium),
-            if (summary.tokensKnown)
-              Text(
-                strings.tokens(strings.number(summary.input + summary.output)),
-                style: theme.textTheme.titleMedium,
-              ),
-          ],
-        ),
-        for (final line in strings.usageLines(summary)) Text(line, style: quiet),
+        Text(title, style: theme.textTheme.labelLarge?.copyWith(color: muted)),
+        if (summary.calls > 0)
+          // The cost people come for leads; a plan or a local model says why
+          // there is none in its place, in body text (#718).
+          Text(
+            strings.usageCostLine(summary),
+            style: summary.billed ? theme.textTheme.headlineSmall : theme.textTheme.bodyMedium,
+          ),
+        if (summary.tokensKnown)
+          Text(
+            strings.tokens(strings.number(summary.input + summary.output)),
+            style: theme.textTheme.bodySmall?.copyWith(color: muted),
+          ),
+        for (final line in strings.usageFacts(summary))
+          Text(line, style: theme.textTheme.bodySmall?.copyWith(color: muted)),
       ],
     );
   }

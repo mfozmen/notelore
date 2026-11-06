@@ -350,7 +350,9 @@ abstract class Strings {
     return n == 0 && share > 0 ? '<${percentText('1')}' : percentText('$n');
   }
 
-  List<String> usageLines(UsageSummary summary) {
+  /// A total's tokens and the rest, without the cost line, which leads it
+  /// (#718).
+  List<String> usageFacts(UsageSummary summary) {
     if (summary.calls == 0) return [usageNothing];
     return [
       if (summary.tokensKnown)
@@ -358,8 +360,21 @@ abstract class Strings {
       else
         usageTokensUnavailable,
       if (summary.unreported > 0) usageUnreported(summary.unreported),
-      _costLine(summary),
       if (summary.billed && summary.plan) usagePlanPart,
+    ];
+  }
+
+  /// The cost, or why there is none, said as the total's headline (#718).
+  String usageCostLine(UsageSummary summary) => _costLine(summary);
+
+  List<String> usageLines(UsageSummary summary) {
+    if (summary.calls == 0) return [usageNothing];
+    final planPart = summary.billed && summary.plan ? usagePlanPart : null;
+    return [
+      for (final fact in usageFacts(summary))
+        if (fact != planPart) fact,
+      _costLine(summary),
+      ?planPart,
     ];
   }
 
