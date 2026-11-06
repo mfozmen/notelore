@@ -549,6 +549,12 @@ abstract class Strings {
   String checkFailed(Object error);
   String setupFailed(Object error);
   String get later;
+  String deviceUpdateAsk(int bytes);
+  String deviceUpdating(int percent);
+  String get deviceUpdateFailed;
+  String get deviceUpdated;
+  String get download;
+  String get hide;
   String get updateAndRestart;
   String get update;
   String get allowInstalls;
@@ -1593,6 +1599,23 @@ class EnglishStrings extends Strings {
   String setupFailed(Object error) => 'The setup could not start: $error';
   @override
   String get later => 'Later';
+  @override
+  String deviceUpdateAsk(int bytes) =>
+      'A new on-device model is available (${(bytes / 1e9).toStringAsFixed(1)} GB). Download it '
+      'now? On mobile data or a hotspot it uses your data.';
+  @override
+  String deviceUpdating(int percent) =>
+      'Downloading the new on-device model: $percent%. The chat keeps using the current one '
+      'until then.';
+  @override
+  String get deviceUpdateFailed =>
+      'The new on-device model could not be downloaded. The app tries again when it starts next.';
+  @override
+  String get deviceUpdated => 'The on-device model was updated.';
+  @override
+  String get download => 'Download';
+  @override
+  String get hide => 'Hide';
   @override
   String get updateAndRestart => 'Update and restart';
   @override
@@ -2718,6 +2741,22 @@ class TurkishStrings extends Strings {
   String setupFailed(Object error) => 'Kurulum başlatılamadı: $error';
   @override
   String get later => 'Sonra';
+  @override
+  String deviceUpdateAsk(int bytes) =>
+      'Yeni cihaz modeli var (${(bytes / 1e9).toStringAsFixed(1).replaceAll('.', ',')} GB). '
+      'Şimdi indirilsin mi? Mobil veri ya da hotspot üzerinden internet paketini kullanır.';
+  @override
+  String deviceUpdating(int percent) =>
+      'Yeni cihaz modeli iniyor: %$percent. Sohbet o zamana kadar şimdiki modelle devam ediyor.';
+  @override
+  String get deviceUpdateFailed =>
+      'Yeni cihaz modeli indirilemedi. Uygulama bir sonraki açılışta yeniden dener.';
+  @override
+  String get deviceUpdated => 'Cihazdaki model güncellendi.';
+  @override
+  String get download => 'İndir';
+  @override
+  String get hide => 'Gizle';
   @override
   String get updateAndRestart => 'Güncelle ve yeniden başlat';
   @override

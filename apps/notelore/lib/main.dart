@@ -11,6 +11,7 @@ import 'src/device_model.dart';
 import 'src/device_native.dart';
 import 'src/drive_auth.dart';
 import 'src/keychain_vault.dart';
+import 'src/network_native.dart';
 import 'src/reminder_native.dart';
 import 'src/reminder_notifier.dart';
 import 'src/session.dart';
@@ -69,6 +70,7 @@ Future<Session> openSession({
       dartVersion: Platform.version,
       meminfo: Platform.isAndroid ? readMeminfo() : null,
     ),
+    meteredNetwork: connectionMetered, // a new device model asks first on mobile data (#767)
     systemLanguage: PlatformDispatcher.instance.locale.languageCode,
     timing: keySpace == 'notelore-dev' ? debugPrint : null, // #232: development runs only
     reminders: reminders(), // the notes' reminders as this device's notifications (#431)

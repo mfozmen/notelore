@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- The model providers and Google Drive are reached over HTTPS. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- A new on-device model downloads by itself only off mobile data (#767). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <!-- Voice mode listens with the device's speech recognition. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <!-- The in-app updater hands the downloaded APK to the system installer. -->

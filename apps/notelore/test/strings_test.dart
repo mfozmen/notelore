@@ -439,6 +439,12 @@ void main() {
       'checkFailed': s.checkFailed('x'),
       'setupFailed': s.setupFailed('x'),
       'later': s.later,
+      'deviceUpdateAsk': s.deviceUpdateAsk(2497281120),
+      'deviceUpdating': s.deviceUpdating(42),
+      'hide': s.hide,
+      'deviceUpdateFailed': s.deviceUpdateFailed,
+      'deviceUpdated': s.deviceUpdated,
+      'download': s.download,
       'updateAndRestart': s.updateAndRestart,
       'update': s.update,
       'allowInstalls': s.allowInstalls,
@@ -646,5 +652,7 @@ void main() {
       expect(en.busiestDay('5', day), 'Busiest day: the $said, 5', reason: '$day');
     }
     expect(TurkishStrings().busiestDay('5', 21), 'En yoğun gün: 21, 5'); // no suffix in Turkish
+    expect(TurkishStrings().deviceUpdateAsk(2497281120), contains('(2,5 GB)'));
+    expect(EnglishStrings().deviceUpdateAsk(2497281120), contains('(2.5 GB)'));
   });
 }
