@@ -53,6 +53,26 @@ void main() {
     expect(jsonDecode(json), turn); // the earlier turn is not in it
   });
 
+  test("the agent's reminder inside a turn is not where the turn starts (#756)", () {
+    final reminded = [
+      ...turn,
+      {
+        'role': 'user',
+        'content': [
+          {
+            'type': 'text',
+            'text': emptyNoteReminder(['topics/a.md', 'topics/b.md']),
+          },
+        ],
+      },
+      {'role': 'assistant', 'content': 'Yazdım.'},
+    ];
+    final rel = saveFeedback(dir.path, reminded, model: 'm', now: DateTime.utc(2026, 11, 6));
+    final text = File(p.join(dir.path, rel)).readAsStringSync();
+    final json = RegExp(r'```json\n([\s\S]*)\n```\n$').firstMatch(text)![1]!;
+    expect(jsonDecode(json), reminded);
+  });
+
   test('without an expectation, a dash; a second report the same second gets its own file', () {
     final now = DateTime.utc(2026, 11, 6);
     final first = saveFeedback(dir.path, turn, model: 'm', now: now);

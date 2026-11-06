@@ -614,6 +614,51 @@ void failureTests() {
     expect(agent.wroteNotes, isFalse);
   });
 
+  test('an answer that leaves its new note empty gets one reminder to fill it (#756)', () async {
+    final box = newBox();
+    final provider = ScriptedProvider([
+      toolUse('create_note', 't1', {'kind': 'topic', 'title': 'Weekend'}),
+      text('Noted your weekend plans.'),
+      toolUse('add_note_entry', 't2', {'slug': 'weekend', 'text': 'Hike on Saturday.'}),
+      text('Noted your weekend plans.'),
+    ]);
+    final agent = Agent(provider, box, today: today);
+    expect(await agent.ask('Weekend: a hike on Saturday'), 'Noted your weekend plans.');
+    final reminder = provider.turns[2].$2.last;
+    expect(reminder['role'], 'user');
+    expect(jsonEncode(reminder), contains('topics/weekend.md is still empty'));
+    expect(File(p.join(box.root, 'topics', 'weekend.md')).readAsStringSync(), contains('Hike'));
+    expect(agent.wroteNotes, isTrue);
+    expect(provider.responses, isEmpty);
+    // Only once: a plain "open a note" may keep it empty.
+    final once = ScriptedProvider([
+      toolUse('create_note', 't1', {'kind': 'topic', 'title': 'Films'}),
+      text('Opened.'),
+      text('It is a new note, nothing to add yet.'),
+    ]);
+    final opened = Agent(once, box, today: today);
+    expect(await opened.ask('open a note Films'), 'It is a new note, nothing to add yet.');
+    expect(File(p.join(box.root, 'topics', 'films.md')).existsSync(), isTrue);
+    expect(once.responses, isEmpty);
+    // A note removed meanwhile (an editor, a sync) is nothing to fill.
+    final gone = File(p.join(box.root, 'topics', 'plays.md'));
+    final removed = Agent(
+      ScriptedProvider([
+        toolUse('create_note', 't1', {'kind': 'topic', 'title': 'Plays'}),
+        text('Opened.'),
+      ]),
+      box,
+      today: today,
+    );
+    final answer = await removed.ask(
+      'open a note Plays',
+      onStep: (_) {
+        if (gone.existsSync()) gone.deleteSync();
+      },
+    );
+    expect(answer, 'Opened.');
+  });
+
   test('a failed turn takes back a note it created and never wrote into (#421)', () async {
     final box = newBox();
     // Failed right after create_note: no empty note stays, and nothing was saved.
@@ -691,6 +736,7 @@ void failureTests() {
       ScriptedProvider([
         toolUse('create_note', 't1', {'kind': 'topic', 'title': 'Books'}),
         text('Created.'),
+        text('Created, nothing to add yet.'),
       ]),
       box,
       today: today,

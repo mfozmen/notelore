@@ -2774,6 +2774,7 @@ void main() {
           },
         ], 'tool_use'),
         'Created.',
+        'Created, nothing to add yet.',
       ],
     );
     await pumpApp(tester, harness);

@@ -40,11 +40,24 @@ String saveFeedback(
   return rel;
 }
 
-/// A message the person wrote, not the tool results sent back as theirs.
+const _reminderMark = '(Notelore)';
+
+/// What the agent tells the model when it answers while a note it just made
+/// is still empty; sent as a user message, but not the person's words.
+String emptyNoteReminder(List<String> notes) =>
+    '$_reminderMark ${notes.join(', ')} ${notes.length == 1 ? 'is' : 'are'} still empty: '
+    'add what the user said, or say why it stays empty.';
+
+/// A message the person wrote, not the tool results or reminders sent as theirs.
 bool _typed(Map<String, Object?> message) =>
     message['role'] == 'user' &&
     switch (message['content']) {
-      final List<Object?> blocks => !blocks.any((b) => b is Map && b['type'] == 'tool_result'),
+      final List<Object?> blocks => !blocks.any(
+        (b) =>
+            b is Map &&
+            (b['type'] == 'tool_result' ||
+                (b['text'] is String && (b['text'] as String).startsWith(_reminderMark))),
+      ),
       _ => true,
     };
 
