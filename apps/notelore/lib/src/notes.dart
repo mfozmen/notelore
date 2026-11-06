@@ -382,14 +382,54 @@ class _NotesScreenState extends State<NotesScreen> {
                       size: 20,
                     ),
                   ),
-                  title: Text(note.title),
-                  subtitle: Text(
-                    s.noteSubtitle(
-                      note.kind,
-                      note.updated == null
-                          ? '?'
-                          : s.shortDate(note.updated!, widget.session.clock().toLocal()),
-                    ),
+                  title: Text(note.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  isThreeLine: note.excerpt.isNotEmpty,
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (note.excerpt.isNotEmpty)
+                        Text(
+                          note.excerpt,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: colors.onSurfaceVariant),
+                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              [
+                                s.noteSubtitle(
+                                  note.kind,
+                                  note.updated == null
+                                      ? '?'
+                                      : s.shortDate(
+                                          note.updated!,
+                                          widget.session.clock().toLocal(),
+                                        ),
+                                ),
+                                if (note.tags.isNotEmpty) note.tags.map((tag) => '#$tag').join(' '),
+                              ].join(' · '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (note.openTodos > 0)
+                            Semantics(
+                              container: true,
+                              label: s.openTodos(note.openTodos),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.checklist, size: 16, color: colors.onSurfaceVariant),
+                                  const SizedBox(width: Gap.xs),
+                                  Text('${note.openTodos}'),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
                   selected: wide && _isOpen(note),
                   // Read once: the app rebuilds on every session change, and a

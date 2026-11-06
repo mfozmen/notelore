@@ -2782,6 +2782,32 @@ void main() {
     expect(find.text('"Kitaplar" was already gone.'), findsOneWidget);
   });
 
+  testWidgets('notes: a row shows its newest words, tags and open todos (#773)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final path = createNote(
+      harness.paths.notes.path,
+      'project',
+      'Mopsos',
+      tags: ['investing'],
+      today: today,
+    );
+    addEntry(path, 'Picked SQLite for the database.', today: today);
+    addEntry(path, 'Considered crypto, postponed.', today: today);
+    addTodo(path, 'Add Drive backup', today: today);
+    addTodo(path, 'Write the README', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(session.listNotes().single.openTodos, 2);
+    expect(find.text('Considered crypto, postponed.'), findsOneWidget); // the newest words
+    expect(find.textContaining('#investing'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(ListTile), matching: find.text('2')),
+      findsOneWidget,
+    ); // the open-todo count
+  });
   testWidgets('notes: the list, a reader, and an empty state', (tester) async {
     phone(tester);
     final harness = Harness(

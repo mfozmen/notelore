@@ -254,6 +254,9 @@ abstract class Strings {
   String get undo;
   String noteSubtitle(String kind, String updated);
 
+  /// 2 open under a note's todos (#773).
+  String openTodos(int count);
+
   // Settings.
   String get connectedModels;
   String get connectAnother;
@@ -1103,6 +1106,8 @@ class EnglishStrings extends Strings {
   String get undo => 'Undo';
   @override
   String noteSubtitle(String kind, String updated) => '${noteKind(kind)} · updated $updated';
+  @override
+  String openTodos(int count) => '$count open';
 
   @override
   String get connectedModels => 'Connected models';
@@ -2253,6 +2258,8 @@ class TurkishStrings extends Strings {
   String get undo => 'Geri al';
   @override
   String noteSubtitle(String kind, String updated) => '${noteKind(kind)} · güncelleme $updated';
+  @override
+  String openTodos(int count) => '$count açık';
 
   @override
   String get connectedModels => 'Bağlı modeller';

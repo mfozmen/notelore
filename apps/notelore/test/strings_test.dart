@@ -365,6 +365,7 @@ void main() {
       'alreadyGone': s.alreadyGone('t'),
       'movedToArchive': s.movedToArchive('t'),
       'undo': s.undo,
+      'openTodos': s.openTodos(2),
       'modelInUse': s.modelInUse,
       'refreshModels': s.refreshModels,
       'refreshingModels': s.refreshingModels,

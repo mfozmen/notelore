@@ -88,8 +88,22 @@ void main() {
 
       test('listNotes skips the archive and non-notes', () {
         expect(idx.listNotes(), [
-          NoteInfo('mopsos', 'project', 'Mopsos', today),
-          NoteInfo('sirket-kurulusu', 'topic', 'Şirket Kuruluşu', d(2026, 8, 5)),
+          NoteInfo(
+            'mopsos',
+            'project',
+            'Mopsos',
+            today,
+            excerpt: 'Considered adding crypto, postponed.',
+            tags: ['investing'],
+            openTodos: 1,
+          ),
+          NoteInfo(
+            'sirket-kurulusu',
+            'topic',
+            'Şirket Kuruluşu',
+            d(2026, 8, 5),
+            excerpt: 'Muhasebeci ile görüşüldü, ücret 2.500 TL.',
+          ),
           const NoteInfo('odd-date', 'topic', 'Odd', null),
         ]);
         expect(idx.listNotes(kind: 'topic').map((n) => n.slug), ['sirket-kurulusu', 'odd-date']);

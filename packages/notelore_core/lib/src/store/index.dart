@@ -22,7 +22,7 @@ import 'notes.dart';
 const _schema = '''
 CREATE TABLE files(
     path TEXT PRIMARY KEY, slug TEXT, kind TEXT, title TEXT, updated TEXT,
-    stamp TEXT, hash TEXT);
+    stamp TEXT, hash TEXT, tags TEXT, excerpt TEXT, open_todos INTEGER);
 CREATE TABLE decisions(path TEXT, date TEXT, topic TEXT, text TEXT, superseded TEXT);
 CREATE INDEX decisions_by_topic ON decisions(path, topic);
 ''';
@@ -33,7 +33,7 @@ const _plainTable =
     'CREATE TABLE content(slug, title, section, text, kind, path, superseded, folded);';
 // Bump when the tables change; the FTS flag is part of it because the content
 // table has a different shape per backend. A mismatch drops and recreates everything.
-const _schemaVersion = 2;
+const _schemaVersion = 3;
 
 bool fts5Available(Database db) {
   try {
@@ -46,12 +46,29 @@ bool fts5Available(Database db) {
 }
 
 final class NoteInfo {
-  const NoteInfo(this.slug, this.kind, this.title, this.updated);
+  const NoteInfo(
+    this.slug,
+    this.kind,
+    this.title,
+    this.updated, {
+    this.excerpt = '',
+    this.tags = const [],
+    this.openTodos = 0,
+  });
 
   final String slug;
   final String kind;
   final String title;
   final DateTime? updated;
+
+  /// The newest entry's words, for the list row (#773).
+  final String excerpt;
+
+  /// The note's tags, without the hash.
+  final List<String> tags;
+
+  /// Todos still open; a count on the list row (#773).
+  final int openTodos;
 
   @override
   bool operator ==(Object other) =>
@@ -59,13 +76,18 @@ final class NoteInfo {
       other.slug == slug &&
       other.kind == kind &&
       other.title == title &&
-      other.updated == updated;
+      other.updated == updated &&
+      other.excerpt == excerpt &&
+      other.tags.length == tags.length &&
+      Iterable<int>.generate(tags.length).every((i) => other.tags[i] == tags[i]) &&
+      other.openTodos == openTodos;
 
   @override
-  int get hashCode => Object.hash(slug, kind, title, updated);
+  int get hashCode =>
+      Object.hash(slug, kind, title, updated, excerpt, Object.hashAll(tags), openTodos);
 
   @override
-  String toString() => 'NoteInfo($kind/$slug, $title, $updated)';
+  String toString() => 'NoteInfo($kind/$slug, $title, $updated, $excerpt)';
 }
 
 final class Hit {
@@ -357,13 +379,12 @@ class NoteIndex {
     } on NotANote {
       // A Markdown file that is not a note: remembered (so it is not reparsed on
       // every rebuild) but with no title, which keeps it out of every listing.
-      _db.execute("INSERT INTO files VALUES (?, ?, ?, NULL, '', ?, ?)", [
-        rel,
-        slug,
-        kind,
-        stamp,
-        digest,
-      ]);
+      _db.execute(
+        'INSERT INTO files'
+        ' (path, slug, kind, title, updated, stamp, hash, tags, excerpt, open_todos)'
+        " VALUES (?, ?, ?, NULL, '', ?, ?, '', '', 0)",
+        [rel, slug, kind, stamp, digest],
+      );
       return;
     }
     final updated = switch (note.meta['updated']) {
@@ -371,20 +392,28 @@ class NoteIndex {
       final DateTime day when day == DateTime.utc(day.year, day.month, day.day) => isoDate(day),
       _ => null,
     };
-    _db.execute('INSERT INTO files VALUES (?, ?, ?, ?, ?, ?, ?)', [
-      rel,
-      slug,
-      kind,
-      note.title,
-      updated,
-      stamp,
-      digest,
-    ]);
+    final tags = [for (final tag in (note.meta['tags'] as List?) ?? const []) '$tag'];
+    var excerpt = '';
+    var openTodos = 0;
     for (final section in note.sections) {
       for (final entry in section.entries) {
+        switch (entry) {
+          case Entry(:final text) when text.trim().isNotEmpty:
+            excerpt = text;
+          case Todo(:final done) when !done:
+            openTodos++;
+          default:
+            break;
+        }
         _indexEntry(rel, kind, slug, note.title, section.key ?? section.heading, entry);
       }
     }
+    _db.execute(
+      'INSERT INTO files'
+      ' (path, slug, kind, title, updated, stamp, hash, tags, excerpt, open_todos)'
+      ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [rel, slug, kind, note.title, updated, stamp, digest, tags.join(' '), excerpt, openTodos],
+    );
   }
 
   void _indexEntry(
@@ -428,7 +457,7 @@ class NoteIndex {
 
   List<NoteInfo> listNotes({String? kind}) => [
     for (final row in _db.select(
-      'SELECT slug, kind, title, updated FROM files'
+      'SELECT slug, kind, title, updated, tags, excerpt, open_todos FROM files'
       ' WHERE title IS NOT NULL AND (?1 IS NULL OR kind = ?1) ORDER BY updated DESC, slug',
       [kind],
     ))
@@ -437,6 +466,12 @@ class NoteIndex {
         row.columnAt(1) as String,
         row.columnAt(2) as String,
         _day(row.columnAt(3) as String?),
+        excerpt: row.columnAt(5) as String? ?? '',
+        tags: switch (row.columnAt(4)) {
+          final String tags when tags.isNotEmpty => tags.split(' '),
+          _ => const [],
+        },
+        openTodos: row.columnAt(6) as int? ?? 0,
       ),
   ];
 
