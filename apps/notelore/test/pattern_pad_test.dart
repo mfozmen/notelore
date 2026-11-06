@@ -63,15 +63,16 @@ void main() {
     expect(done, ['6-7-8-5']);
   });
 
-  testWidgets('Clear shows once a dot is chosen; the pad says how many are (#412)', (tester) async {
+  testWidgets('Clear is there from the start, enabled after a dot (#412, #720)', (tester) async {
     await pad(tester);
-    bool clearShown() => tester.widget<Visibility>(find.byKey(const Key('pattern-clear'))).visible;
-    expect(clearShown(), isFalse);
+    bool clearEnabled() =>
+        tester.widget<TextButton>(find.byKey(const Key('pattern-clear'))).onPressed != null;
+    expect(clearEnabled(), isFalse); // shown, disabled before the first dot
     for (final number in [1, 2, 3]) {
       await tester.tap(dot(number));
       await tester.pump();
     }
-    expect(clearShown(), isTrue);
+    expect(clearEnabled(), isTrue);
     expect(find.bySemanticsLabel('3 dots chosen'), findsOneWidget);
   });
 

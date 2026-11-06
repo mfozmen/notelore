@@ -166,17 +166,12 @@ class _PatternPadState extends State<PatternPad> {
           spacing: Gap.s,
           runSpacing: Gap.xs,
           children: [
-            // Only once there is something to clear; its room is kept, so nothing moves.
-            Visibility(
+            // Shown from the start, disabled while empty: the row never moves
+            // when the first dot is drawn (#720).
+            TextButton(
               key: const Key('pattern-clear'),
-              visible: _dots.isNotEmpty,
-              maintainSize: true,
-              maintainAnimation: true,
-              maintainState: true,
-              child: TextButton(
-                onPressed: widget.enabled && _dots.isNotEmpty ? _clear : null,
-                child: Text(s.clearPattern),
-              ),
+              onPressed: widget.enabled && _dots.isNotEmpty ? _clear : null,
+              child: Text(s.clearPattern),
             ),
             FilledButton.tonal(
               onPressed: widget.enabled && _dots.length >= minPatternDots ? _finish : null,
