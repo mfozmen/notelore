@@ -297,6 +297,13 @@ void main() {
         refresh(mopsos);
         expect(idx.search('kubernetes').map((h) => h.slug), ['mopsos']);
         expect(idx.listNotes().first.updated, d(2026, 10, 1));
+        expect(idx.listNotes().first.pinned, isFalse);
+        setPinned(mopsos, pinned: true);
+        refresh(mopsos);
+        final pinned = idx.listNotes().first;
+        expect(pinned.pinned, isTrue);
+        expect(pinned, isNot(NoteInfo(pinned.slug, pinned.kind, pinned.title, pinned.updated)));
+        expect(pinned.toString(), endsWith(', pinned)'));
         archiveNote(root, mopsos, today: d(2026, 10, 1));
         refresh(mopsos);
         expect(slugs(), ['sirket-kurulusu', 'odd-date']);

@@ -232,6 +232,36 @@
    }
   ]
  },
+ "pinned.md": {
+  "meta": {
+   "title": "Reading List",
+   "kind": "topic",
+   "created": {
+    "date": "2026-10-02"
+   },
+   "updated": {
+    "date": "2026-10-20"
+   },
+   "pinned": true
+  },
+  "heading": "Reading List",
+  "preamble": [
+   ""
+  ],
+  "sections": [
+   {
+    "heading": "Notes",
+    "key": "notes",
+    "entries": [
+     {
+      "type": "entry",
+      "date": "2026-10-20",
+      "text": "Pinned, so it stays at the top of the list."
+     }
+    ]
+   }
+  ]
+ },
  "reminders.md": {
   "meta": {
    "title": "Passport Renewal",

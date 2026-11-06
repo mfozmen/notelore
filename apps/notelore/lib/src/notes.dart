@@ -340,7 +340,6 @@ class _NotesScreenState extends State<NotesScreen> {
   /// [notes] as cards, or the first-run hint when there are none at all.
   Widget _shown(BuildContext context, List<NoteInfo> notes, {required bool wide}) {
     final s = widget.session.strings;
-    final colors = Theme.of(context).colorScheme;
     return notes.isEmpty
         ? CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -364,48 +363,80 @@ class _NotesScreenState extends State<NotesScreen> {
               ),
             ],
           )
-        : ListView.separated(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
-            itemCount: notes.length,
-            separatorBuilder: (_, _) => const SizedBox(height: Gap.s),
-            itemBuilder: (context, index) {
-              final note = notes[index];
-              return Card(
-                child: ListTile(
-                  // The kind at a glance: a folder for a project, a tag for a topic.
-                  leading: CircleAvatar(
-                    backgroundColor: colors.secondaryContainer,
-                    foregroundColor: colors.onSecondaryContainer,
-                    child: Icon(
-                      note.kind == 'project' ? Icons.folder_outlined : Icons.sell_outlined,
-                      size: 20,
-                    ),
-                  ),
-                  title: Text(note.title),
-                  subtitle: Text(
-                    s.noteSubtitle(
-                      note.kind,
-                      note.updated == null
-                          ? '?'
-                          : s.shortDate(note.updated!, widget.session.clock().toLocal()),
-                    ),
-                  ),
-                  selected: wide && _isOpen(note),
-                  // Read once: the app rebuilds on every session change, and a
-                  // deleted note must not be read again under its reader.
-                  onTap: () {
-                    final text = widget.session.readNote(note);
-                    if (wide) {
-                      setState(() => _reading = (note, text));
-                    } else {
-                      _open(note, text);
-                    }
-                  },
-                ),
-              );
-            },
-          );
+        : _cards(context, notes, wide: wide);
+  }
+
+  /// The pinned notes under their header, then the others under theirs.
+  Widget _cards(BuildContext context, List<NoteInfo> notes, {required bool wide}) {
+    final s = widget.session.strings;
+    final pinned = notes.where((n) => n.pinned).toList();
+    final others = notes.where((n) => !n.pinned).toList();
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
+      children: [
+        if (pinned.isNotEmpty) _group(context, s.pinnedNotes),
+        for (final note in pinned) _card(context, note, wide: wide),
+        if (pinned.isNotEmpty && others.isNotEmpty) _group(context, s.otherNotes),
+        for (final note in others) _card(context, note, wide: wide),
+      ],
+    );
+  }
+
+  /// The heading over the pinned notes, or over the rest.
+  Widget _group(BuildContext context, String title) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, Gap.m, 0, Gap.s),
+      child: Semantics(
+        header: true,
+        child: Text(
+          title,
+          style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+        ),
+      ),
+    );
+  }
+
+  Widget _card(BuildContext context, NoteInfo note, {required bool wide}) {
+    final s = widget.session.strings;
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Gap.s),
+      child: Card(
+        child: ListTile(
+          // The kind at a glance: a folder for a project, a tag for a topic.
+          leading: CircleAvatar(
+            backgroundColor: colors.secondaryContainer,
+            foregroundColor: colors.onSecondaryContainer,
+            child: Icon(
+              note.kind == 'project' ? Icons.folder_outlined : Icons.sell_outlined,
+              size: 20,
+            ),
+          ),
+          title: Text(note.title),
+          subtitle: Text(
+            s.noteSubtitle(
+              note.kind,
+              note.updated == null
+                  ? '?'
+                  : s.shortDate(note.updated!, widget.session.clock().toLocal()),
+            ),
+          ),
+          selected: wide && _isOpen(note),
+          // Read once: the app rebuilds on every session change, and a
+          // deleted note must not be read again under its reader.
+          onTap: () {
+            final text = widget.session.readNote(note);
+            if (wide) {
+              setState(() => _reading = (note, text));
+            } else {
+              _open(note, text);
+            }
+          },
+        ),
+      ),
+    );
   }
 
   /// The open note beside the list, or where it will be.
@@ -422,6 +453,7 @@ class _NotesScreenState extends State<NotesScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                _pin(note, pinned: note.pinned),
                 IconButton(
                   tooltip: s.export,
                   icon: const Icon(Icons.ios_share),
@@ -473,42 +505,62 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   /// The note, read-only, with its own delete button.
-  void _open(NoteInfo note, String text) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (reader) => Scaffold(
-        // The note's own heading is its title: the bar only holds its actions.
-        appBar: AppBar(
-          actions: [
-            IconButton(
-              tooltip: widget.session.strings.export,
-              icon: const Icon(Icons.ios_share),
-              onPressed: () => _export([note]),
-            ),
-            IconButton(
-              tooltip: widget.session.strings.delete,
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () async {
-                if (await _delete(note) && reader.mounted) Navigator.of(reader).pop();
-              },
-            ),
-          ],
-        ),
-        // A comfortable reading width on wide windows, and the page follows a
-        // checkbox it writes (#512).
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: Layout.column),
-            child: WritableNoteView(
-              widget.session,
-              note,
-              text,
-              folder: p.dirname(notePath(widget.session.paths.notes.path, note.kind, note.slug)),
-              strings: widget.session.strings,
-              today: widget.session.clock().toLocal(),
+  void _open(NoteInfo note, String text) {
+    var pinned = note.pinned; // outside the builder, which may run again
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (reader) => Scaffold(
+          // The note's own heading is its title: the bar only holds its actions.
+          appBar: AppBar(
+            actions: [
+              StatefulBuilder(
+                builder: (context, setPin) =>
+                    _pin(note, pinned: pinned, done: () => setPin(() => pinned = !pinned)),
+              ),
+              IconButton(
+                tooltip: widget.session.strings.export,
+                icon: const Icon(Icons.ios_share),
+                onPressed: () => _export([note]),
+              ),
+              IconButton(
+                tooltip: widget.session.strings.delete,
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () async {
+                  if (await _delete(note) && reader.mounted) Navigator.of(reader).pop();
+                },
+              ),
+            ],
+          ),
+          // A comfortable reading width on wide windows, and the page follows a
+          // checkbox it writes (#512).
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: Layout.column),
+              child: WritableNoteView(
+                widget.session,
+                note,
+                text,
+                folder: p.dirname(notePath(widget.session.paths.notes.path, note.kind, note.slug)),
+                strings: widget.session.strings,
+                today: widget.session.clock().toLocal(),
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  /// The app bar's icon colour would hide `isSelected`, so the filled pin names its own.
+  Widget _pin(NoteInfo note, {required bool pinned, VoidCallback? done}) => Builder(
+    builder: (context) => IconButton(
+      tooltip: pinned ? widget.session.strings.unpin : widget.session.strings.pin,
+      isSelected: pinned,
+      icon: const Icon(Icons.push_pin_outlined),
+      selectedIcon: Icon(Icons.push_pin, color: Theme.of(context).colorScheme.primary),
+      onPressed: () async {
+        if (await widget.session.pinNote(note, pinned: !pinned)) done?.call();
+      },
     ),
   );
 }

@@ -12,6 +12,7 @@ void main() {
       'hatirlaticilar.md',
       'mopsos.md',
       'multiline-and-loose-lines.md',
+      'pinned.md',
       'reminders.md',
       'simple.crlf.md',
       'turkish.md',

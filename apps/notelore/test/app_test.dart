@@ -2409,6 +2409,55 @@ void main() {
     expect(find.text('Kitaplar'), findsOneWidget); // back in the notes
   });
 
+  testWidgets('notes: a pinned note shows under Pinned, above the others (#775)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    createNote(harness.paths.notes.path, 'topic', 'Filmler', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pinned'), findsNothing);
+    expect(find.text('Others'), findsNothing);
+    // Filmler comes first (same day, by slug); pinned, Kitaplar goes above it.
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Pin'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Unpin'), findsOneWidget);
+    // Coloured in the app bar too, not only filled.
+    expect(
+      tester.widget<Icon>(find.byIcon(Icons.push_pin)).color,
+      Theme.of(tester.element(find.byIcon(Icons.push_pin))).colorScheme.primary,
+    );
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    double top(String text) => tester.getTopLeft(find.text(text)).dy;
+    expect(top('Pinned'), lessThan(top('Kitaplar')));
+    expect(top('Kitaplar'), lessThan(top('Others')));
+    expect(top('Others'), lessThan(top('Filmler')));
+    expect(
+      tester.getSemantics(find.text('Pinned')),
+      matchesSemantics(label: 'Pinned', isHeader: true),
+    );
+    // Only pinned notes found: no empty Others under them.
+    await tester.enterText(find.byKey(const Key('notes-search')), 'Kitaplar');
+    await tester.pumpAndSettle();
+    expect(find.text('Pinned'), findsOneWidget);
+    expect(find.text('Others'), findsNothing);
+    await tester.enterText(find.byKey(const Key('notes-search')), '');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Unpin'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Pin'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Pinned'), findsNothing);
+  });
+
   testWidgets('notes: restore directly from the archive row (#508)', (tester) async {
     phone(tester);
     final harness = Harness();
