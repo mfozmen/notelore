@@ -63,7 +63,7 @@ void main() {
     expect(find.textContaining('Busiest day'), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp('Last 14 days: 1,100,000 tokens in all')), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('Claude (Anthropic) · claude-sonnet-5-5'),
+      find.text('Claude (Anthropic) · Claude Sonnet 5.5'),
       300,
       scrollable: find.byType(Scrollable).last,
     );

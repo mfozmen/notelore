@@ -35,7 +35,22 @@ void main() {
     await connect(tester, key: 'sk-ant');
     await openModel(tester);
     final picker = tester.widget<DropdownMenu<String?>>(find.byKey(const Key('model')));
-    expect(picker.dropdownMenuEntries.map((entry) => entry.label), contains('claude-sonnet…'));
+    expect(picker.dropdownMenuEntries.map((entry) => entry.label), contains('Claude Sonnet…'));
+  });
+
+  testWidgets('settings: the model picker shows the raw id under its name (#722)', (tester) async {
+    phone(tester);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'sk-ant');
+    await openModel(tester);
+    DropdownMenu<String?> picker() =>
+        tester.widget<DropdownMenu<String?>>(find.byKey(const Key('model')));
+    expect(picker().helperText, 'claude-sonnet-5-5');
+    await tester.tap(find.byKey(const Key('model')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('model-a').last);
+    await tester.pumpAndSettle();
+    expect(picker().helperText, isNull); // the id is the name
   });
 
   testWidgets('settings: connect another model, switch with one tap, remove one (#362)', (

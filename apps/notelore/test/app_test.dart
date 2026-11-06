@@ -2237,7 +2237,10 @@ void main() {
     final harness = Harness(answers: [Completer<AgentResponse>().future]);
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    expect(find.text('claude-sonnet-5-5'), findsOneWidget); // the provider's default
+    expect(
+      find.text('Claude Sonnet 5.5'),
+      findsOneWidget,
+    ); // the provider's default, readable (#722)
     await tester.tap(find.byTooltip('Change the model'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('model-b').last);
@@ -2264,9 +2267,9 @@ void main() {
     await connect(tester, key: 'k');
     // Nothing to switch to: the model is chosen in Settings > Model.
     expect(find.byTooltip('Change the model'), findsNothing);
-    expect(find.text('claude-sonnet-5-5'), findsOneWidget);
+    expect(find.text('Claude Sonnet 5.5'), findsOneWidget);
     await openSettings(tester, 'Model');
-    expect(find.text('claude-sonnet-5-5'), findsWidgets);
+    expect(find.text('Claude Sonnet 5.5'), findsWidgets);
   });
 
   testWidgets('chat: a model the provider no longer offers asks for another', (tester) async {

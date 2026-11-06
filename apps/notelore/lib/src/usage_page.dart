@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:notelore_core/notelore_core.dart';
 
+import 'model_names.dart';
 import 'session.dart';
 import 'strings.dart';
 import 'theme.dart';
@@ -154,7 +155,7 @@ class _UsageViewState extends State<UsageView> {
     final cut = key.indexOf('/');
     final provider = providerSpecs.where((p) => p.name == key.substring(0, cut)).firstOrNull;
     final name = provider == null ? key.substring(0, cut) : s.providerName(provider);
-    return '$name · ${key.substring(cut + 1)}';
+    return '$name · ${readableModel(key.substring(cut + 1))}';
   }
 }
 
