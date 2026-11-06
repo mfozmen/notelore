@@ -744,6 +744,7 @@ void main() {
           },
         ], 'tool_use'),
         'Created.',
+        'Created, nothing to add yet.',
       ],
     );
     final session = harness.session();

@@ -594,6 +594,20 @@ class Toolbox {
     return any;
   }
 
+  /// This turn's new notes still exactly as made, relative to the notes folder.
+  List<String> stillEmpty() => [
+    for (final MapEntry(key: path, value: made) in _created.entries)
+      if (_unchanged(path, made)) _rel(path),
+  ];
+
+  bool _unchanged(String path, String made) {
+    try {
+      return File(path).readAsStringSync() == made;
+    } on FileSystemException {
+      return false;
+    }
+  }
+
   /// Undoes this turn's creates that nothing was written into, so nothing is
   /// lost (#421); whether a new note stays. Never throws: the turn's own error
   /// is what the caller must see.

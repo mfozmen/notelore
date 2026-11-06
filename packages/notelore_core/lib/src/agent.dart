@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'i18n.dart' show messageLanguage;
 import 'providers/base.dart';
+import 'store/feedback.dart' show emptyNoteReminder;
 import 'store/format.dart';
 import 'tools.dart';
 
@@ -319,6 +320,7 @@ class Agent {
     Future<AgentResponse> stopped,
   ) async {
     messages.add({'role': 'user', 'content': content});
+    var reminded = false;
     for (var turn = 0; turn < maxTurns; turn++) {
       onStep('Thinking');
       final watch = Stopwatch()..start();
@@ -335,7 +337,17 @@ class Agent {
       messages.add({'role': 'assistant', 'content': blocks});
       final uses = blocks.where((b) => b['type'] == 'tool_use').toList();
       if (uses.isEmpty) {
-        return blocks.map((b) => b['text']).join('\n');
+        final empty = reminded ? const <String>[] : toolbox.stillEmpty();
+        if (empty.isEmpty) return blocks.map((b) => b['text']).join('\n');
+        // Small models create the note and answer without writing into it.
+        reminded = true;
+        messages.add({
+          'role': 'user',
+          'content': [
+            {'type': 'text', 'text': emptyNoteReminder(empty)},
+          ],
+        });
+        continue;
       }
       onStep(describeTool('${uses.first['name']}'));
       if (uses.any((u) => u['name'] != 'create_note' && writingTools.contains(u['name']))) {

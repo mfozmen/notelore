@@ -56,7 +56,7 @@ export 'src/reminders.dart'
 export 'src/secret.dart' show defaultIterations, hashSecret, verifySecret;
 export 'src/store/about_me.dart'
     show aboutMe, aboutMeFacts, aboutMePath, forgetAboutMe, rememberAboutMe, updateAboutMe;
-export 'src/store/feedback.dart' show feedbackFolder, saveFeedback;
+export 'src/store/feedback.dart' show emptyNoteReminder, feedbackFolder, saveFeedback;
 export 'src/store/format.dart'
     show
         Decision,
