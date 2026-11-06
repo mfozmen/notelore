@@ -243,3 +243,27 @@ Findings:
 - **Rank does not matter here:** one held-out case apart, within the noise. The kinds that fail are the same: unclear 5/15, collection 55/73.
 - **The data is the limit, not the adapter's size.** The next run, v8, keeps rank 16 and doubles the data (#604).
 - A local two-epoch run was dropped: at 240–770 s a step on the laptop GPU, it would have taken over a day. Runs longer than a Kaggle session now stop saved and resume (#740).
+
+## Fine-tune v8, 2026-11-06 (#604)
+
+**Setup**
+- v8 data: 1,542 turns from 579 scenarios, twice v7's 769. It is v7's turns plus 773 new ones distilled by glm-5.3-flash, with glm-5.3 for the scenarios flash never passed.
+- v7's recipe: rank 16, one epoch, the loss on the answer alone, learning rate 2e-4.
+- Trained on Kaggle's T4 across two sessions (#740), 174 steps in about 16 hours, about 2.5 of them in the five validation passes (27–30 minutes each). The validation loss fell from 0.402 at step 40 to 0.334 at the last step.
+- Q4_K_M, greedy, slim, on main with #731 and #733.
+
+| | Held-out (292) | 44 cases × 2 |
+|---|---|---|
+| v7 | 241 (82.5%) | 68/88 (77%) |
+| v7, rank 32 | 242 (82.9%) | 68/88 (77%) |
+| **v8** | **255 (87.3%)** | **72/88 (82%)** |
+
+Held-out by kind, v7 → v8: unclear 9 → 14/15, todo-done 14 → 16/20, filing 30 → 32/36, question 34 → 36/36, decision 16 → 17/18, new-note 13 → 14/15, collection 53 → 54/73. No kind drops.
+
+Findings:
+
+- **More data is the first training change that moves the model.** +14 held-out cases, where DPO and rank 32 stayed within one case of v7.
+- **Unclear messages gain the most**, 60% → 93%: the model now asks back instead of guessing.
+- **Collection stays the weakest kind**: 54/73 held-out and 12/20 on the cases.
+- On the 44 cases, decision drops 8 → 6/8 and question 18 → 16/20. That is two runs of greedy decoding on few cases, but these are the ones to watch in the next run.
+- **v8 replaces v7.** It is in Ollama as `notelore-qwen3-4b-v8`.
