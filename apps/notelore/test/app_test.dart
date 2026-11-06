@@ -2327,6 +2327,11 @@ void main() {
     harness.remote.hold!.complete();
     await tester.pumpAndSettle();
     expect(find.text('Synced just now'), findsOneWidget);
+    await tester.tap(find.text('Synced just now'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sync now'), findsOneWidget); // the state opens Settings › Sync
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     session.lastSynced = null;
     session.notifyListeners();
     await tester.pump();
