@@ -16,7 +16,7 @@ void main() {
     made = [];
     host = DeviceModelHost(
       model: WhisperModel(Directory.systemTemp.path, files: const []),
-      file: 'model.gguf',
+      file: () => 'model.gguf',
       makeEngine: (path) => (made..add(FakeDeviceEngine())).last,
       exclusive: <T>(Future<T> Function() task) => task(),
       fetch: (progress, problem) async {},
@@ -56,7 +56,7 @@ void main() {
     var runs = 0;
     final waiting = DeviceModelHost(
       model: WhisperModel(Directory.systemTemp.path, files: const []),
-      file: 'model.gguf',
+      file: () => 'model.gguf',
       makeEngine: (_) => FakeDeviceEngine(),
       exclusive: <T>(Future<T> Function() task) => task(),
       fetch: (progress, problem) {

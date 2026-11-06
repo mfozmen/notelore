@@ -414,6 +414,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             ),
           ),
         if (widget.session.heldNotes.isNotEmpty) _inColumn(_HeldBanner(widget.session)),
+        if (widget.session.deviceUpdate case final update?)
+          _inColumn(_DeviceUpdateBanner(widget.session, update)),
         if (widget.session.driveNeedsSignIn && !_signInLater && tab != _settings)
           _inColumn(
             _SignInBanner(widget.session, later: () => setState(() => _signInLater = true)),
@@ -723,6 +725,63 @@ Widget _inColumn(Widget child) => Center(
     child: child,
   ),
 );
+
+/// A new on-device model from an app update (#767): asked for on a connection
+/// that costs, then its download, its failure or its end.
+class _DeviceUpdateBanner extends StatelessWidget {
+  const _DeviceUpdateBanner(this.session, this.update);
+
+  final Session session;
+  final DeviceUpdate update;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = session.strings;
+    final colors = Theme.of(context).colorScheme;
+    final percent = ((session.deviceProgress ?? 0) * 100).floor();
+    return MaterialBanner(
+      // One action sits beside the text, with almost no room above it.
+      padding: const EdgeInsetsDirectional.only(start: Gap.m, top: Gap.s, bottom: Gap.s),
+      leading: Icon(switch (update) {
+        DeviceUpdate.failed => Icons.error_outline,
+        DeviceUpdate.done => Icons.check_circle_outline,
+        _ => Icons.download_outlined,
+      }, color: colors.onSecondaryContainer),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: Gap.s,
+        children: [
+          Text(switch (update) {
+            DeviceUpdate.ask => s.deviceUpdateAsk(session.deviceUpdateBytes),
+            DeviceUpdate.downloading => s.deviceUpdating(percent),
+            DeviceUpdate.failed => s.deviceUpdateFailed,
+            DeviceUpdate.done => s.deviceUpdated,
+          }),
+          if (update == DeviceUpdate.downloading)
+            LinearProgressIndicator(
+              value: percent / 100,
+              // The banner's own colour would hide the track: how much is left.
+              backgroundColor: colors.onSecondaryContainer.withValues(alpha: 0.24),
+              minHeight: Gap.xs,
+              borderRadius: BorderRadius.circular(Gap.xs),
+              semanticsLabel: s.downloadingModel,
+              semanticsValue: '$percent%',
+            ),
+        ],
+      ),
+      actions: [
+        if (update == DeviceUpdate.ask) ...[
+          TextButton(onPressed: session.dismissDeviceUpdate, child: Text(s.later)),
+          FilledButton(onPressed: session.updateDeviceModel, child: Text(s.download)),
+        ] else
+          TextButton(
+            onPressed: session.dismissDeviceUpdate,
+            child: Text(update == DeviceUpdate.downloading ? s.hide : s.gotIt),
+          ),
+      ],
+    );
+  }
+}
 
 /// A newer release: install it, or put it off with Later. While it installs
 /// both wait; once installed (macOS, when the restart failed) only Later stays.

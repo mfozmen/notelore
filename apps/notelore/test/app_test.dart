@@ -3166,4 +3166,52 @@ void main() {
     expect(session.preparing, isFalse);
     expect(find.text(session.strings.devicePreparing), findsNothing);
   });
+
+  group('a new on-device model in an app update (#767)', () {
+    const url = 'https://models.test/q.gguf';
+
+    /// The model of the version before is in use: old.gguf, not the pinned q.gguf.
+    Future<Harness> updated(WidgetTester tester, {required bool metered}) async {
+      final harness = Harness()
+        ..deviceModels = true
+        ..metered = metered;
+      harness.pages[url] = 'model bytes';
+      await tester.runAsync(() async {
+        final before = harness.session(owned: false);
+        await before.downloadDeviceModel();
+        await before.connect(findProvider('device'), '');
+        before.dispose();
+        File(before.deviceModel.path('q.gguf')).renameSync(before.deviceModel.path('old.gguf'));
+      });
+      return harness;
+    }
+
+    testWidgets('on mobile data the chat asks first, then says it is done', (tester) async {
+      phone(tester);
+      final session = await pumpApp(tester, await updated(tester, metered: true));
+      await tester.pumpAndSettle();
+      expect(find.text(session.strings.deviceUpdateAsk(11)), findsOneWidget);
+      await tester.tap(find.text('Download'));
+      await settleUntil(tester, () => session.deviceUpdate == DeviceUpdate.done);
+      expect(find.text(session.strings.deviceUpdated), findsOneWidget);
+      await tester.tap(find.text('Got it'));
+      await tester.pumpAndSettle();
+      expect(find.text(session.strings.deviceUpdated), findsNothing);
+    });
+
+    testWidgets('on Wi-Fi it shows the download, and a failure', (tester) async {
+      phone(tester);
+      final harness = await updated(tester, metered: false);
+      final served = Completer<String>();
+      harness.pages[url] = served.future;
+      final session = await pumpApp(tester, harness);
+      await tester.pump();
+      expect(find.text(session.strings.deviceUpdating(0)), findsOneWidget);
+      expect(find.text('Hide'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      served.complete('other bytes');
+      await settleUntil(tester, () => session.deviceUpdate == DeviceUpdate.failed);
+      expect(find.text(session.strings.deviceUpdateFailed), findsOneWidget);
+    });
+  });
 }

@@ -210,6 +210,9 @@ class Harness {
   /// The model files the device engine was made for.
   final enginePaths = <String>[];
 
+  /// Whether the connection costs by the byte; null when unknown (#767).
+  bool? metered;
+
   /// Thrown by the model download instead of an answer (an Error, say).
   Object? modelFailure;
 
@@ -251,6 +254,7 @@ class Harness {
       paths,
       deviceModels: deviceModels ?? this.deviceModels,
       deviceFiles: deviceFiles,
+      meteredNetwork: () async => metered,
       makeDeviceEngine: (path) {
         enginePaths.add(path);
         return deviceEngine;
