@@ -240,6 +240,13 @@ abstract class Strings {
   String get pinnedNotes;
   String get otherNotes;
 
+  /// The open todos due soon, over the notes list (#782).
+  String get comingUp;
+  String todoCount(int count);
+
+  /// [text] in capitals, for a section label.
+  String caps(String text) => text.toUpperCase();
+
   /// Export, share and import (#215).
   String get export;
   String get exportNotes;
@@ -1080,6 +1087,10 @@ class EnglishStrings extends Strings {
   String get pinnedNotes => 'Pinned';
   @override
   String get otherNotes => 'Others';
+  @override
+  String get comingUp => 'Coming up';
+  @override
+  String todoCount(int count) => '$count ${count == 1 ? 'todo' : 'todos'}';
   @override
   String get export => 'Export';
   @override
@@ -2239,6 +2250,12 @@ class TurkishStrings extends Strings {
   String get pinnedNotes => 'Sabitlenenler';
   @override
   String get otherNotes => 'Diğerleri';
+  @override
+  String get comingUp => 'Yaklaşanlar';
+  @override
+  String todoCount(int count) => '$count iş';
+  @override
+  String caps(String text) => text.replaceAll('i', 'İ').toUpperCase();
   @override
   String get export => 'Dışa aktar';
   @override

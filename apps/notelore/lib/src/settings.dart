@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'lock.dart';
 import 'mark.dart';
 import 'model_names.dart';
+import 'section_label.dart';
 import 'session.dart';
 import 'setup.dart' show ProviderWizard;
 import 'strings.dart';
@@ -231,16 +232,50 @@ class SettingsCategories extends StatelessWidget {
   final ValueChanged<SettingsSection> open;
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      for (final section in SettingsSection.of(session))
-        ListTile(
-          leading: Icon(section.icon),
-          title: Text(section.title(session.strings)),
-          onTap: () => open(section),
-        ),
-    ],
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 12),
+    child: Column(
+      children: [
+        for (final section in SettingsSection.of(session))
+          _Category(section.icon, section.title(session.strings), onTap: () => open(section)),
+      ],
+    ),
   );
+}
+
+/// One of Settings' categories: muted, or (picked on a wide window) in the
+/// accent on a card.
+class _Category extends StatelessWidget {
+  const _Category(this.icon, this.name, {required this.onTap, this.selected = false});
+
+  final IconData icon;
+  final String name;
+  final VoidCallback onTap;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(14),
+      side: selected ? BorderSide(color: colors.outlineVariant) : BorderSide.none,
+    );
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(
+        name,
+        style: TextStyle(fontSize: 14.5, fontWeight: selected ? FontWeight.w600 : null),
+      ),
+      minTileHeight: 48,
+      shape: shape,
+      iconColor: colors.onSurfaceVariant,
+      textColor: colors.onSurface,
+      selectedColor: colors.primary,
+      selectedTileColor: colors.surfaceContainerLow,
+      selected: selected,
+      onTap: onTap,
+    );
+  }
 }
 
 /// Opens [section] of Settings on its own page, as a phone shows it.
@@ -286,13 +321,7 @@ class _Sections extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(Gap.s, Gap.s, Gap.s, Gap.l),
           children: [
             for (final (index, (icon, name, _)) in sections.indexed)
-              ListTile(
-                leading: Icon(icon),
-                title: Text(name),
-                selected: index == shown,
-                selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
-                onTap: () => show(index),
-              ),
+              _Category(icon, name, selected: index == shown, onTap: () => show(index)),
           ],
         ),
       ),
@@ -552,12 +581,10 @@ class _ConnectionsState extends State<_Connections> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
+        SectionLabel(
+          s.connectedModels,
+          strings: s,
           padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, Gap.s),
-          child: Text(
-            s.connectedModels,
-            style: theme.textTheme.titleSmall?.copyWith(color: colors.primary),
-          ),
         ),
         _connected(),
         // OpenAI's guidelines link the plan's usage; here rather than by the composer (#507).
@@ -681,6 +708,8 @@ class _LookCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = session.strings;
+    final colors = Theme.of(context).colorScheme;
+    final tokens = Theme.of(context).extension<NoteloreTokens>()!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.only(bottom: Gap.m),
@@ -696,6 +725,23 @@ class _LookCard extends StatelessWidget {
                 children: [
                   for (final a in Appearance.values)
                     ChoiceChip(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        side: BorderSide(
+                          color: session.appearance == a
+                              ? tokens.mineBorder
+                              : colors.outlineVariant,
+                        ),
+                      ),
+                      backgroundColor: colors.surfaceContainerLow,
+                      selectedColor: colors.primaryContainer,
+                      labelStyle: TextStyle(
+                        fontSize: 13.5,
+                        color: session.appearance == a
+                            ? colors.onPrimaryContainer
+                            : colors.onSurface,
+                        fontWeight: session.appearance == a ? FontWeight.w600 : null,
+                      ),
                       label: Text(s.appearanceName(a)),
                       avatar: Icon(switch (a) {
                         Appearance.system => Icons.brightness_auto_outlined,
@@ -1256,7 +1302,7 @@ Widget _cards(List<Widget> cards) => Column(
   crossAxisAlignment: CrossAxisAlignment.stretch,
   children: [
     for (final (index, card) in cards.indexed) ...[
-      if (index > 0) const SizedBox(height: Gap.m),
+      if (index > 0) const SizedBox(height: Gap.s),
       card,
     ],
   ],

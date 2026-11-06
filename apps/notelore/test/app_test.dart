@@ -2032,13 +2032,13 @@ void main() {
       expect(section(name), findsOneWidget, reason: name);
     }
     // The model first, alone.
-    expect(find.text('Connected models'), findsOneWidget);
+    expect(find.text('CONNECTED MODELS'), findsOneWidget);
     expect(find.text('App language'), findsNothing);
 
     await tester.tap(section('Appearance'));
     await tester.pumpAndSettle();
     expect(find.text('App language'), findsOneWidget);
-    expect(find.text('Connected models'), findsNothing);
+    expect(find.text('CONNECTED MODELS'), findsNothing);
 
     await tester.tap(section('Voice'));
     await tester.pumpAndSettle();
@@ -2419,8 +2419,8 @@ void main() {
     createNote(harness.paths.notes.path, 'topic', 'Filmler', today: today);
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
-    expect(find.text('Pinned'), findsNothing);
-    expect(find.text('Others'), findsNothing);
+    expect(find.text('PINNED'), findsNothing);
+    expect(find.text('OTHERS'), findsNothing);
     // Filmler comes first (same day, by slug); pinned, Kitaplar goes above it.
     await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
@@ -2435,18 +2435,18 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
     double top(String text) => tester.getTopLeft(find.text(text)).dy;
-    expect(top('Pinned'), lessThan(top('Kitaplar')));
-    expect(top('Kitaplar'), lessThan(top('Others')));
-    expect(top('Others'), lessThan(top('Filmler')));
+    expect(top('PINNED'), lessThan(top('Kitaplar')));
+    expect(top('Kitaplar'), lessThan(top('OTHERS')));
+    expect(top('OTHERS'), lessThan(top('Filmler')));
     expect(
-      tester.getSemantics(find.text('Pinned')),
+      tester.getSemantics(find.text('PINNED')),
       matchesSemantics(label: 'Pinned', isHeader: true),
     );
     // Only pinned notes found: no empty Others under them.
     await tester.enterText(find.byKey(const Key('notes-search')), 'Kitaplar');
     await tester.pumpAndSettle();
-    expect(find.text('Pinned'), findsOneWidget);
-    expect(find.text('Others'), findsNothing);
+    expect(find.text('PINNED'), findsOneWidget);
+    expect(find.text('OTHERS'), findsNothing);
     await tester.enterText(find.byKey(const Key('notes-search')), '');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kitaplar'));
@@ -2456,7 +2456,59 @@ void main() {
     expect(find.byTooltip('Pin'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text('Pinned'), findsNothing);
+    expect(find.text('PINNED'), findsNothing);
+  });
+
+  testWidgets('notes: Coming up lists the next open todos, soonest first, at most 3 (#782)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness, clock: () => DateTime(2026, 11, 7, 10));
+    await connect(tester, key: 'k');
+    final root = harness.paths.notes.path;
+    final day = DateTime(2026, 11, 1);
+    final atlas = createNote(root, 'project', 'Atlas', today: day);
+    addTodo(atlas, 'Book the room', due: DateTime(2026, 11, 4), today: day); // late: not coming
+    addTodo(atlas, 'Kick-off notes', due: DateTime(2026, 11, 12), today: day);
+    addTodo(atlas, 'Done already', due: DateTime(2026, 11, 8), today: day);
+    completeTodo(atlas, 3, today: day);
+    final trip = createNote(root, 'project', 'Lisbon trip', today: day);
+    addTodo(trip, 'Check in', due: DateTime(2026, 11, 18), today: day);
+    addTodo(trip, 'Pack', due: DateTime(2026, 11, 7), today: day); // today counts
+    addTodo(trip, 'Taxi home', due: DateTime(2026, 11, 20), today: day); // the fourth
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('COMING UP'), findsOneWidget);
+    expect(find.text('4 todos'), findsOneWidget);
+    expect(find.text('Book the room'), findsNothing);
+    expect(find.text('Done already'), findsNothing);
+    expect(find.text('Taxi home'), findsNothing);
+    double top(String text) => tester.getTopLeft(find.text(text)).dy;
+    expect(top('Pack'), lessThan(top('Kick-off notes')));
+    expect(top('Kick-off notes'), lessThan(top('Check in')));
+    expect(find.text('12'), findsOneWidget); // the day, its month under it
+    expect(find.text('NOV'), findsNWidgets(3));
+    // Above the notes, and a row opens its note.
+    expect(top('Check in'), lessThan(tester.getTopLeft(find.widgetWithText(ListTile, 'Atlas')).dy));
+    await tester.tap(find.text('Kick-off notes'));
+    await tester.pumpAndSettle();
+    expect(find.byType(NoteView), findsOneWidget);
+    expect(find.text('Atlas'), findsOneWidget);
+    expect(find.text('COMING UP'), findsNothing);
+  });
+
+  testWidgets('notes: no Coming up without open todos ahead (#782)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness, clock: () => DateTime(2026, 11, 7, 10));
+    await connect(tester, key: 'k');
+    final path = createNote(harness.paths.notes.path, 'topic', 'Books', today: today);
+    addTodo(path, 'Return the old one', due: DateTime(2026, 11, 1), today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('Books'), findsOneWidget);
+    expect(find.text('COMING UP'), findsNothing);
   });
 
   testWidgets('notes: restore directly from the archive row (#508)', (tester) async {
@@ -3194,7 +3246,7 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(session.spec, isNotNull);
-    expect(find.text('Connected models'), findsOneWidget);
+    expect(find.text('CONNECTED MODELS'), findsOneWidget);
     expect(find.text('Choose a model provider'), findsNothing);
   });
 

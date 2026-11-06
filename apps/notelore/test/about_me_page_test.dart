@@ -121,11 +121,11 @@ void main() {
     await tester.tap(find.text('Add a fact'));
     await tester.pumpAndSettle();
     await type(tester, 'Likes tea');
-    expect(find.text('Family'), findsOneWidget); // a section header
-    expect(find.text('Other'), findsOneWidget);
+    expect(find.text('FAMILY'), findsOneWidget); // a section header
+    expect(find.text('OTHER'), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('Wife: Ayşe')).dy,
-      greaterThan(tester.getTopLeft(find.text('Family')).dy),
+      greaterThan(tester.getTopLeft(find.text('FAMILY')).dy),
     );
 
     // Editing shows its section and can move it.
@@ -138,7 +138,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(session.aboutMeEntries().first, (section: 'other', fact: 'Likes tea'));
     expect(session.aboutMeEntries(), contains((section: 'home', fact: 'Wife: Ayşe')));
-    expect(find.text('Family'), findsNothing);
+    expect(find.text('FAMILY'), findsNothing);
 
     // The undo after a delete never covers the add button.
     await tester.tap(find.byTooltip('Delete').first);

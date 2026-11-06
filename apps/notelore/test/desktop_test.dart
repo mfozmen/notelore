@@ -64,7 +64,7 @@ void main() {
     expect(find.text('Notelore'), findsOneWidget);
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    expect(find.text('Connected models'), findsOneWidget);
+    expect(find.text('CONNECTED MODELS'), findsOneWidget);
 
     desktop(tester, 1000); // narrower: icons only
     await tester.pumpAndSettle();
@@ -278,10 +278,10 @@ void main() {
     await tester.tap(find.byTooltip('Pin'));
     await tester.pumpAndSettle();
     expect(find.byTooltip('Unpin'), findsOneWidget);
-    expect(find.text('Pinned'), findsOneWidget);
+    expect(find.text('PINNED'), findsOneWidget);
     await tester.tap(find.byTooltip('Unpin'));
     await tester.pumpAndSettle();
-    expect(find.text('Pinned'), findsNothing);
+    expect(find.text('PINNED'), findsNothing);
   });
 
   testWidgets('notes on a wide window: a todo checkbox writes the note (#512)', (tester) async {
