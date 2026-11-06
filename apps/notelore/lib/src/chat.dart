@@ -355,12 +355,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ),
                       child: session.transcript.isEmpty
-                          ? Center(
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: Layout.column),
-                                child: EmptyChat(s, example: session.ready ? _example : null),
-                              ),
-                            )
+                          ? EmptyChat(s, example: session.ready ? _example : null)
                           : _Lines(session, live: _live),
                     ),
                   ),
@@ -382,25 +377,20 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                 if (session.ready)
-                  Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: Layout.column),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (session.preparing && !session.busy)
-                            _Thinking(s, fixed: s.devicePreparing),
-                          _ModelBar(session, menu: _modelMenu),
-                          _Composer(
-                            session,
-                            voice: _voice,
-                            message: _message,
-                            send: _send,
-                            attach: _attach,
-                          ),
-                        ],
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (session.preparing && !session.busy)
+                        _Thinking(s, fixed: s.devicePreparing),
+                      _ModelBar(session, menu: _modelMenu),
+                      _Composer(
+                        session,
+                        voice: _voice,
+                        message: _message,
+                        send: _send,
+                        attach: _attach,
                       ),
-                    ),
+                    ],
                   )
                 else
                   Center(
