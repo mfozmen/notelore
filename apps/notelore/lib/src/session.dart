@@ -1862,6 +1862,20 @@ class Session extends ChangeNotifier {
         return true;
       });
 
+  /// Pins [note] to the top of the list or unpins it; false when it is gone.
+  Future<bool> pinNote(NoteInfo note, {required bool pinned}) => _exclusive(() async {
+    final path = notePath(paths.notes.path, note.kind, note.slug);
+    if (!File(path).existsSync()) return false;
+    try {
+      setPinned(path, pinned: pinned);
+    } on ArgumentError {
+      // Already so: a sync or the assistant got there first.
+    }
+    index.markChanged(path);
+    notifyListeners();
+    return true;
+  });
+
   /// Moves [note] under `_archive/<date>/`: nothing is ever hard-deleted. Returns
   /// where it went, for [restoreNote]; null when a sync or a chat turn already
   /// removed it. Queued, so it never races a sync.

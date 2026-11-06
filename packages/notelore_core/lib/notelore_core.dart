@@ -104,6 +104,7 @@ export 'src/store/notes.dart'
         removeEmptyFolders,
         reopenTodo,
         restoreArchived,
+        setPinned,
         slugify,
         writeNote;
 export 'src/store/stale.dart' show Stale, findStaleNotes;

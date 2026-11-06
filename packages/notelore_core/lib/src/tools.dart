@@ -36,6 +36,8 @@
 /// - `recategorize(slug, to_kind?, add_tags?, remove_tags?, kind?)`: moves the note
 ///   to the other kind and changes its tags, text untouched:
 ///   `{slug, kind, path, tags, was: {kind, tags}}`; never onto an existing note.
+/// - `pin_note(slug, pinned, kind?)`: pins the note to the top of the Notes list, or
+///   unpins it (`pinned: true` in its front matter); `list_notes` shows `pinned`.
 /// - `remember_about_me(fact)` / `update_about_me(old, fact)` / `forget_about_me(fact)`:
 ///   the facts the person told about themselves, in `about-me.md` (#646); current
 ///   facts only, the version before a change kept under `.notelore/history/`.
@@ -96,6 +98,7 @@ extension type const ToolArgs(Map<String, Object?> _args) {
   String? optional(String key) => _args[key] as String?;
   String? get kind => optional('kind');
   int number(String key) => _args[key]! as int;
+  bool flag(String key) => _args[key]! as bool;
   List<String>? strings(String key) => (_args[key] as List?)?.cast<String>();
   Map<Object?, Object?>? map(String key) => _args[key] as Map?;
 }
@@ -406,6 +409,26 @@ final toolRegistry = List<NoteTool>.unmodifiable([
       a.optional('to_kind'),
       [...?a.strings('add_tags')],
       [...?a.strings('remove_tags')],
+    ),
+    activity: Activity.writing,
+    slim: false,
+  ),
+  NoteTool(
+    Tool(
+      'pin_note',
+      'Pin a note to the top of the Notes list, or unpin it, when the user asks.',
+      _schema(
+        ['slug', 'pinned'],
+        {
+          'slug': _slug,
+          'pinned': {'type': 'boolean'},
+          'kind': _kind,
+        },
+      ),
+    ),
+    (t, a) => t._write(
+      t._path(a['slug'], a.kind),
+      (path) => notes.setPinned(path, pinned: a.flag('pinned')),
     ),
     activity: Activity.writing,
     slim: false,
@@ -929,6 +952,7 @@ Map<String, Object?> _noteInfo(NoteInfo n) => {
   'kind': n.kind,
   'title': n.title,
   'updated': _iso(n.updated),
+  if (n.pinned) 'pinned': true,
 };
 
 Map<String, Object?> _hit(Hit h) => {
