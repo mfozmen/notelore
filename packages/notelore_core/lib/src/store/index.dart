@@ -87,7 +87,7 @@ final class NoteInfo {
       Object.hash(slug, kind, title, updated, excerpt, Object.hashAll(tags), openTodos);
 
   @override
-  String toString() => 'NoteInfo($kind/$slug, $title, $updated, $excerpt)';
+  String toString() => 'NoteInfo($kind/$slug, $title, $updated, $excerpt, $tags, $openTodos)';
 }
 
 final class Hit {
@@ -399,7 +399,8 @@ class NoteIndex {
       for (final entry in section.entries) {
         switch (entry) {
           case Entry(:final text) when text.trim().isNotEmpty:
-            excerpt = text;
+            // Entries are appended newest last; a continuation is one line of words.
+            excerpt = text.replaceAll(RegExp(r'\s+'), ' ').trim();
           case Todo(:final done) when !done:
             openTodos++;
           default:
@@ -412,7 +413,7 @@ class NoteIndex {
       'INSERT INTO files'
       ' (path, slug, kind, title, updated, stamp, hash, tags, excerpt, open_todos)'
       ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [rel, slug, kind, note.title, updated, stamp, digest, tags.join(' '), excerpt, openTodos],
+      [rel, slug, kind, note.title, updated, stamp, digest, tags.join('\n'), excerpt, openTodos],
     );
   }
 
@@ -468,7 +469,7 @@ class NoteIndex {
         _day(row.columnAt(3) as String?),
         excerpt: row.columnAt(5) as String? ?? '',
         tags: switch (row.columnAt(4)) {
-          final String tags when tags.isNotEmpty => tags.split(' '),
+          final String tags when tags.isNotEmpty => tags.split('\n'),
           _ => const [],
         },
         openTodos: row.columnAt(6) as int? ?? 0,
