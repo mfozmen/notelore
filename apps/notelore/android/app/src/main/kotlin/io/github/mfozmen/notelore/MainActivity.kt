@@ -1,6 +1,7 @@
 package io.github.mfozmen.notelore
 
 import android.content.Intent
+import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -90,6 +91,15 @@ class MainActivity : FlutterFragmentActivity() {
                         result.success(null)
                     }
                     else -> result.notImplemented()
+                }
+            }
+        // Whether the connection costs by the byte (network_native.dart, #767): mobile data, a hotspot.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "io.github.mfozmen.notelore/network")
+            .setMethodCallHandler { call, result ->
+                if (call.method == "metered") {
+                    result.success(getSystemService(ConnectivityManager::class.java).isActiveNetworkMetered)
+                } else {
+                    result.notImplemented()
                 }
             }
         // The in-app updater (update.dart): hands a downloaded APK to the installer.

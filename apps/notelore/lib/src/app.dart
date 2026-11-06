@@ -412,6 +412,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             update: _update,
           ),
         if (widget.session.heldNotes.isNotEmpty) _HeldBanner(widget.session),
+        if (widget.session.deviceUpdate case final update?)
+          _DeviceUpdateBanner(widget.session, update),
         if (widget.session.driveNeedsSignIn && !_signInLater && tab != _settings)
           _SignInBanner(widget.session, later: () => setState(() => _signInLater = true)),
         // Settings has its own sign-in: never the same offer twice on one screen.
@@ -706,6 +708,52 @@ class _HeldBanner extends StatelessWidget {
       actions: [
         TextButton(onPressed: idle ? () => _delete(context) : null, child: Text(s.deleteHereToo)),
         TextButton(onPressed: idle ? session.restoreHeld : null, child: Text(s.restoreToDrive)),
+      ],
+    );
+  }
+}
+
+/// A new on-device model from an app update (#767): asked for on a connection
+/// that costs, then its download, its failure or its end.
+class _DeviceUpdateBanner extends StatelessWidget {
+  const _DeviceUpdateBanner(this.session, this.update);
+
+  final Session session;
+  final DeviceUpdate update;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = session.strings;
+    final progress = session.deviceProgress;
+    return MaterialBanner(
+      leading: Icon(
+        update == DeviceUpdate.failed ? Icons.error_outline : Icons.download_outlined,
+        color: Theme.of(context).colorScheme.onSecondaryContainer,
+      ),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: Gap.s,
+        children: [
+          Text(switch (update) {
+            DeviceUpdate.ask => s.deviceUpdateAsk(session.deviceUpdateBytes),
+            DeviceUpdate.downloading => s.deviceUpdating,
+            DeviceUpdate.failed => s.deviceUpdateFailed,
+            DeviceUpdate.done => s.deviceUpdated,
+          }),
+          if (update == DeviceUpdate.downloading)
+            LinearProgressIndicator(
+              value: progress,
+              semanticsLabel: s.downloadingModel,
+              semanticsValue: '${((progress ?? 0) * 100).floor()}%',
+            ),
+        ],
+      ),
+      actions: [
+        if (update == DeviceUpdate.ask) ...[
+          TextButton(onPressed: session.dismissDeviceUpdate, child: Text(s.later)),
+          TextButton(onPressed: session.updateDeviceModel, child: Text(s.download)),
+        ] else
+          TextButton(onPressed: session.dismissDeviceUpdate, child: Text(s.gotIt)),
       ],
     );
   }

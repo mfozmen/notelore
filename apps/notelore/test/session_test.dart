@@ -90,6 +90,7 @@ void main() {
       makeProvider: (spec, key, {model, planToken, webSearch = false}) => harness.provider,
     );
     addTearDown(session.dispose);
+    expect(await session.meteredNetwork(), isNull); // a connection's cost unknown: asked (#767)
     Directory(p.join(harness.paths.state.path, 'settings.json', 'blocker'))
         .createSync(recursive: true);
     await expectLater(

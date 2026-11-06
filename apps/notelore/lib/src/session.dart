@@ -110,6 +110,7 @@ class Session extends ChangeNotifier {
     this.deviceModels = false,
     this.deviceFiles = deviceModelFiles,
     this.makeDeviceEngine = nativeDeviceEngine,
+    this.meteredNetwork = _unknownCost,
     this.retryEvery = const Duration(minutes: 1),
     this.every = Timer.periodic,
     this.lockIterations = defaultIterations,
@@ -221,6 +222,81 @@ class Session extends ChangeNotifier {
   );
   final List<ModelFile> deviceFiles;
 
+  /// Whether this device's connection costs by the byte (mobile data, a
+  /// hotspot); null when that is not known.
+  final Future<bool?> Function() meteredNetwork;
+  static Future<bool?> _unknownCost() async => null;
+
+  /// The device model's files from an app version before, which pinned
+  /// another file: run until the pinned one is here, then deleted (#767).
+  List<File> get _oldDeviceFiles {
+    final dir = Directory(deviceModel.dir);
+    if (!dir.existsSync()) return const [];
+    final pinned = {for (final file in deviceFiles) file.name};
+    return [
+      for (final file in dir.listSync().whereType<File>())
+        if (file.path.endsWith('.gguf') && !pinned.contains(p.basename(file.path))) file,
+    ];
+  }
+
+  String get _deviceFile => switch (_oldDeviceFiles) {
+    [final old, ...] when !deviceModel.ready => p.basename(old.path),
+    _ => deviceFiles.first.name,
+  };
+
+  /// Where a new device model from an app update stands; null when there is
+  /// none, or the person put its notice away.
+  DeviceUpdate? deviceUpdate;
+
+  /// What the new device model costs to download.
+  int get deviceUpdateBytes => deviceModel.bytes;
+
+  /// The model on the device is in use and its pinned file is not here: on
+  /// Wi-Fi it downloads by itself, on a connection that costs (or one not
+  /// known) the person is asked first.
+  Future<void> _checkDeviceModel() async {
+    if (spec?.access != ProviderAccess.deviceFile || deviceModel.ready) return;
+    if (await meteredNetwork() == false) return updateDeviceModel();
+    deviceUpdate = DeviceUpdate.ask;
+    notifyListeners();
+  }
+
+  /// Downloads the pinned device model while the chat goes on with the old
+  /// one, then moves to it between turns and deletes the old file. A failed
+  /// download keeps the old file; the next start tries again.
+  Future<void> updateDeviceModel() => deviceUpdating = _updateDeviceModel();
+
+  /// The update running or last run, for a test to wait on.
+  @visibleForTesting
+  Future<void>? deviceUpdating;
+
+  Future<void> _updateDeviceModel() async {
+    deviceUpdate = DeviceUpdate.downloading;
+    notifyListeners();
+    await device.download();
+    if (!deviceModel.ready) {
+      deviceUpdate = DeviceUpdate.failed;
+      notifyListeners();
+      return;
+    }
+    await _exclusive(() async {
+      await device.free();
+      for (final old in _oldDeviceFiles) {
+        old.deleteSync();
+      }
+      if (spec case final spec? when spec.access == ProviderAccess.deviceFile) {
+        _use(spec, '', model!);
+      }
+    });
+    deviceUpdate = DeviceUpdate.done;
+    notifyListeners();
+  }
+
+  void dismissDeviceUpdate() {
+    deviceUpdate = null;
+    notifyListeners();
+  }
+
   /// The engine that runs [deviceModel]'s file: llama.cpp; a fake in tests.
   final LocalEngine Function(String path) makeDeviceEngine;
 
@@ -240,7 +316,7 @@ class Session extends ChangeNotifier {
   /// download (#659); what follows forwards to it.
   late final DeviceModelHost device = DeviceModelHost(
     model: deviceModel,
-    file: deviceFiles.first.name,
+    file: () => _deviceFile,
     makeEngine: makeDeviceEngine,
     exclusive: _exclusive,
     fetch: (progress, problem) => _fetch(deviceModel, progress, problem),
@@ -839,6 +915,7 @@ class Session extends ChangeNotifier {
     // updates stay small.
     if (!whisper.ready) unawaited(downloadWhisper());
     await _loadProvider();
+    unawaited(_checkDeviceModel());
     _loadQueue();
     if (ready) {
       unawaited(_refreshQuietly());
@@ -977,9 +1054,8 @@ class Session extends ChangeNotifier {
   Future<List<String>> _models(ProviderSpec spec, String key, {required bool signIn}) async =>
       switch (spec.access) {
         // Its one model, once its file is here; nothing to ask a server.
-        ProviderAccess.deviceFile when !deviceModel.ready => throw const TransientValidationError(
-          'Download the model first',
-        ),
+        ProviderAccess.deviceFile when !deviceModel.ready && _oldDeviceFiles.isEmpty =>
+          throw const TransientValidationError('Download the model first'),
         ProviderAccess.deviceFile => [spec.defaultModel],
         ProviderAccess.apiKey ||
         ProviderAccess.localMark => currentModels(spec.name, await validate(spec, key)),
@@ -1891,3 +1967,7 @@ bool onThisMachine(ProviderSpec provider, String model, {String? host}) {
   final name = Uri.tryParse(at.contains('://') ? at : 'http://$at')?.host ?? '';
   return name == 'localhost' || name == '::1' || name == '0.0.0.0' || name.startsWith('127.');
 }
+
+/// A new device model from an app update: asked for, downloading, failed (the
+/// old one stays), or done.
+enum DeviceUpdate { ask, downloading, failed, done }

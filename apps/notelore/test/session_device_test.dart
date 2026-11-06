@@ -224,4 +224,109 @@ void main() {
     expect(session.transcript.last.role, ChatRole.error);
     expect(session.transcript.last.text, contains('could not run the model'));
   });
+
+  group('a new model in an app update (#767)', () {
+    const url = 'https://models.test/q.gguf';
+
+    /// A session on the model of the version before: its file is old.gguf, the
+    /// pinned q.gguf is not here yet.
+    Future<Harness> updated({bool? metered}) async {
+      final harness = Harness()..metered = metered;
+      final before = harness.session(deviceModels: true, owned: false);
+      harness.pages[url] = 'model bytes';
+      await before.downloadDeviceModel();
+      await before.connect(findProvider('device'), '');
+      before.dispose();
+      File(before.deviceModel.path('q.gguf')).renameSync(before.deviceModel.path('old.gguf'));
+      return harness;
+    }
+
+    test('on Wi-Fi it downloads by itself; the chat runs on the old file until then', () async {
+      final harness = await updated(metered: false);
+      final served = Completer<String>();
+      harness.pages[url] = served.future;
+      final session = harness.session(deviceModels: true);
+      await session.load();
+      await pumpEventQueue();
+      expect(session.deviceUpdate, DeviceUpdate.downloading);
+      harness.deviceEngine.answers.add({
+        'message': {'content': 'Old.'},
+      });
+      await session.send('hi');
+      expect(session.transcript.last.text, 'Old.');
+      expect(harness.enginePaths.last, session.deviceModel.path('old.gguf'));
+      served.complete('model bytes');
+      await session.deviceUpdating;
+      expect(session.deviceUpdate, DeviceUpdate.done);
+      expect(File(session.deviceModel.path('old.gguf')).existsSync(), isFalse);
+      harness.deviceEngine.answers.add({
+        'message': {'content': 'New.'},
+      });
+      await session.send('hi again');
+      expect(session.transcript.last.text, 'New.');
+      expect(harness.enginePaths.last, session.deviceModel.path('q.gguf'));
+      session.dismissDeviceUpdate();
+      expect(session.deviceUpdate, isNull);
+    });
+
+    test('on mobile data or a hotspot it asks; Later downloads nothing', () async {
+      final harness = await updated(metered: true);
+      final session = harness.session(deviceModels: true);
+      await session.load();
+      await pumpEventQueue();
+      expect(session.deviceUpdate, DeviceUpdate.ask);
+      expect(session.deviceUpdateBytes, 11);
+      session.dismissDeviceUpdate();
+      await pumpEventQueue();
+      expect(session.deviceUpdate, isNull);
+      expect(session.deviceModel.ready, isFalse);
+      // Asked again at the next start; yes downloads it.
+      final again = harness.session(deviceModels: true);
+      await again.load();
+      await pumpEventQueue();
+      expect(again.deviceUpdate, DeviceUpdate.ask);
+      await again.updateDeviceModel();
+      expect(again.deviceUpdate, DeviceUpdate.done);
+      expect(again.deviceModel.ready, isTrue);
+    });
+
+    test('a connection of unknown cost asks too', () async {
+      final session = (await updated()).session(deviceModels: true);
+      await session.load();
+      await pumpEventQueue();
+      expect(session.deviceUpdate, DeviceUpdate.ask);
+    });
+
+    test('a download that fails keeps the old file and the chat on it', () async {
+      final harness = await updated(metered: false);
+      harness.pages[url] = 'other bytes';
+      final session = harness.session(deviceModels: true);
+      await session.load();
+      await pumpEventQueue();
+      await session.deviceUpdating;
+      expect(session.deviceUpdate, DeviceUpdate.failed);
+      expect(File(session.deviceModel.path('old.gguf')).existsSync(), isTrue);
+      harness.deviceEngine.answers.add({
+        'message': {'content': 'Old.'},
+      });
+      await session.send('hi');
+      expect(session.transcript.last.text, 'Old.');
+      // Switching back to it works on the old file as well.
+      await session.switchTo(findProvider('device'));
+    });
+
+    test('nothing to do on the current model, or on another one', () async {
+      final harness = Harness()..metered = false;
+      final session = harness.session(deviceModels: true);
+      await session.load();
+      expect(session.deviceUpdate, isNull);
+      harness.pages[url] = 'model bytes';
+      await session.downloadDeviceModel();
+      await session.connect(findProvider('device'), '');
+      final again = harness.session(deviceModels: true);
+      await again.load();
+      await pumpEventQueue();
+      expect(again.deviceUpdate, isNull);
+    });
+  });
 }
