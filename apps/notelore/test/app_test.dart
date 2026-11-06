@@ -2256,14 +2256,14 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('chat: with one model the chip is hidden (#511)', (tester) async {
+  testWidgets('chat: with one model the chip names it, with no menu (#511, #757)', (tester) async {
     phone(tester);
     final harness = Harness()..models = ['claude-sonnet-5-5'];
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     // Nothing to switch to: the model is chosen in Settings > Model.
     expect(find.byTooltip('Change the model'), findsNothing);
-    expect(find.text('claude-sonnet-5-5'), findsNothing);
+    expect(find.text('claude-sonnet-5-5'), findsOneWidget);
     await openSettings(tester, 'Model');
     expect(find.text('claude-sonnet-5-5'), findsWidgets);
   });

@@ -667,8 +667,8 @@ class _NoModel extends StatelessWidget {
   }
 }
 
-/// Above the message box: the model when there is one to switch to, and the
-/// ChatGPT plan notice.
+/// Above the message box: the model in use, a menu when there is another to
+/// switch to, and the ChatGPT plan notice.
 class _ModelBar extends StatelessWidget {
   const _ModelBar(this.session, {required this.menu});
 
@@ -679,34 +679,18 @@ class _ModelBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = session.strings;
     final plan = session.spec?.access == ProviderAccess.signIn;
-    final choices = {...session.models, ?session.model};
+    final model = session.model;
+    final choices = {...session.models, ?model};
     final switchable = choices.length > 1;
-    // One model and no plan: nothing to switch to, so the chip stays away and
-    // the model lives in Settings > Model (#511).
-    if (!plan && !switchable) return const SizedBox.shrink();
+    if (model == null && !plan) return const SizedBox.shrink();
     // On a ChatGPT plan the chip says so, as OpenAI's guidelines ask, with no
     // button by the composer (#507, #513). Its usage link is in Settings (#558).
-    final label = plan
-        ? switchable
-              ? '${session.model ?? ''} · ${s.usingChatGptPlan}'
-              : s.usingChatGptPlan
-        : session.model ?? '';
-    final chip = Chip(
-      avatar: const Icon(Icons.auto_awesome_outlined, size: 16),
-      // The model first: a narrow chip cuts the plan's words, not its name.
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis)),
-          if (switchable) const Icon(Icons.arrow_drop_down, size: 18),
-        ],
-      ),
-      visualDensity: VisualDensity.compact,
-    );
+    final label = [?model, if (plan) s.usingChatGptPlan].join(' · ');
+    const icon = Icon(Icons.auto_awesome_outlined, size: 16);
     // At the composer's start, so it reads as a setting, not as a line of the chat.
     return Container(
       alignment: AlignmentDirectional.centerStart,
-      padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, 0),
+      padding: EdgeInsets.fromLTRB(Gap.m, switchable ? Gap.xs : Gap.s, Gap.m, 0),
       // The models the connected provider listed; switching keeps the conversation.
       child: switchable
           ? PopupMenuButton<String>(
@@ -718,9 +702,40 @@ class _ModelBar extends StatelessWidget {
               itemBuilder: (_) => [
                 for (final m in choices) PopupMenuItem(value: m, child: Text(m)),
               ],
-              child: chip,
+              child: Chip(
+                avatar: icon,
+                // The model first: a narrow chip cuts the plan's words, not its name.
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    const Icon(Icons.arrow_drop_down, size: 18),
+                  ],
+                ),
+                visualDensity: VisualDensity.compact,
+              ),
             )
-          : chip,
+          // Nothing to switch to: a plain line, not a pill that looks tappable;
+          // it wraps, so the plan notice is never cut.
+          : MediaQuery.withClampedTextScaling(
+              maxScaleFactor: 1.5,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon.icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  const SizedBox(width: Gap.xs),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelMedium
+                          ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }
