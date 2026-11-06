@@ -153,6 +153,30 @@ void main() {
     expect(button.overlaps(undo), isFalse);
   });
 
+  testWidgets('about me: the last row clears the add button at 2x (#719)', (tester) async {
+    phone(tester);
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final session = await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await session.setAboutMeToCloud(false);
+    for (var i = 0; i < 8; i++) {
+      await session.rememberFact('Fact number $i');
+    }
+    await tester.tap(find.text('About me'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Kept from cloud models'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    final row = tester.getRect(
+      find.ancestor(of: find.text('Kept from cloud models'), matching: find.byType(ListTile)),
+    );
+    expect(row.overlaps(tester.getRect(find.byType(FloatingActionButton))), isFalse);
+  });
+
   testWidgets('about me: no add button when the chat keeps the facts (#749)', (tester) async {
     phone(tester);
     final session = await pumpApp(tester, Harness());
