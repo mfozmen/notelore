@@ -584,7 +584,7 @@ class _SignInBannerState extends State<_SignInBanner> {
       ),
       actions: [
         TextButton(onPressed: _signingIn ? null : widget.later, child: Text(s.later)),
-        FilledButton.tonal(onPressed: _signingIn ? null : _connect, child: Text(s.connect)),
+        FilledButton(onPressed: _signingIn ? null : _connect, child: Text(s.connect)),
       ],
     );
   }
@@ -633,7 +633,7 @@ class _CalendarBannerState extends State<_CalendarBanner> {
       ),
       actions: [
         TextButton(onPressed: _signingIn ? null : session.calendarNudgeLater, child: Text(s.later)),
-        FilledButton.tonal(onPressed: _signingIn ? null : _signIn, child: Text(s.signIn)),
+        FilledButton(onPressed: _signingIn ? null : _signIn, child: Text(s.signIn)),
       ],
     );
   }
@@ -710,10 +710,7 @@ class _HeldBanner extends StatelessWidget {
       ),
       actions: [
         TextButton(onPressed: idle ? () => _delete(context) : null, child: Text(s.deleteHereToo)),
-        FilledButton.tonal(
-          onPressed: idle ? session.restoreHeld : null,
-          child: Text(s.restoreToDrive),
-        ),
+        FilledButton(onPressed: idle ? session.restoreHeld : null, child: Text(s.restoreToDrive)),
       ],
     );
   }
@@ -819,7 +816,7 @@ class _UpdateBanner extends StatelessWidget {
           ),
         TextButton(onPressed: updating ? null : later, child: Text(s.later)),
         if (!installed)
-          FilledButton.tonal(
+          FilledButton(
             onPressed: updating ? null : update,
             child: Text(android ? s.update : s.updateAndRestart),
           ),

@@ -373,7 +373,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         leading: const Icon(Icons.warning_amber),
                         content: Text(s.modelGone(s.providerName(session.spec!), session.model!)),
                         actions: [
-                          FilledButton.tonal(
+                          FilledButton(
                             onPressed: () => _modelMenu.currentState!.showButtonMenu(),
                             child: Text(s.changeModel),
                           ),
