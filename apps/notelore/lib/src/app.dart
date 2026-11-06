@@ -12,6 +12,7 @@ import 'chat.dart';
 import 'lock.dart';
 import 'mark.dart';
 import 'notes.dart';
+import 'section_label.dart' show Star;
 import 'session.dart';
 import 'settings.dart';
 import 'setup.dart';
@@ -746,7 +747,7 @@ class _HeldBanner extends StatelessWidget {
   }
 }
 
-/// A small mono section label in the accent, after a ✦ that screen readers skip.
+/// A small mono section label in the accent, after the look's star.
 class Label extends StatelessWidget {
   const Label(this.text, {this.size, super.key});
 
@@ -760,7 +761,7 @@ class Label extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       spacing: Gap.s,
       children: [
-        ExcludeSemantics(child: Text('\u2726', style: style)),
+        Star(style.color!),
         Flexible(child: Text(text, style: style)),
       ],
     );

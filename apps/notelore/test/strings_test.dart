@@ -167,6 +167,15 @@ void main() {
     expect(tr.noteSubtitle('other', 'x'), startsWith('other'));
   });
 
+  test('section labels in capitals, the Turkish dotted i kept; the todo count (#782)', () {
+    expect(en.caps('Decisions'), 'DECISIONS');
+    expect(tr.caps('Gelişmiş'), 'GELİŞMİŞ');
+    expect(tr.caps('Hatırlatıcılar'), 'HATIRLATICILAR');
+    expect(en.todoCount(1), '1 todo');
+    expect(en.todoCount(3), '3 todos');
+    expect(tr.todoCount(3), '3 iş');
+  });
+
   test('the sync state says how long ago, in both languages (#774)', () {
     expect(en.syncedAgo(const Duration(seconds: 20)), 'Synced just now');
     expect(en.syncedAgo(const Duration(minutes: 2)), 'Synced 2 min ago');
@@ -330,6 +339,8 @@ void main() {
       'unpin': s.unpin,
       'pinnedNotes': s.pinnedNotes,
       'otherNotes': s.otherNotes,
+      'comingUp': s.comingUp,
+      'todoCount': s.todoCount(3),
       'export': s.export,
       'exportNotes': s.exportNotes,
       'importNotes': s.importNotes,
@@ -379,6 +390,7 @@ void main() {
       'alreadyGone': s.alreadyGone('t'),
       'movedToArchive': s.movedToArchive('t'),
       'undo': s.undo,
+      'openTodos': s.openTodos(2),
       'modelInUse': s.modelInUse,
       'refreshModels': s.refreshModels,
       'refreshingModels': s.refreshingModels,

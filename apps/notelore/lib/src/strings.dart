@@ -240,6 +240,13 @@ abstract class Strings {
   String get pinnedNotes;
   String get otherNotes;
 
+  /// The open todos due soon, over the notes list (#782).
+  String get comingUp;
+  String todoCount(int count);
+
+  /// [text] in capitals, for a section label.
+  String caps(String text) => text.toUpperCase();
+
   /// Export, share and import (#215).
   String get export;
   String get exportNotes;
@@ -258,6 +265,9 @@ abstract class Strings {
   String importRefused(String file);
   String get undo;
   String noteSubtitle(String kind, String updated);
+
+  /// 2 open under a note's todos (#773).
+  String openTodos(int count);
 
   // Settings.
   String get connectedModels;
@@ -1081,6 +1091,10 @@ class EnglishStrings extends Strings {
   @override
   String get otherNotes => 'Others';
   @override
+  String get comingUp => 'Coming up';
+  @override
+  String todoCount(int count) => '$count ${count == 1 ? 'todo' : 'todos'}';
+  @override
   String get export => 'Export';
   @override
   String get exportNotes => 'Export notes';
@@ -1119,6 +1133,8 @@ class EnglishStrings extends Strings {
   String get undo => 'Undo';
   @override
   String noteSubtitle(String kind, String updated) => '${noteKind(kind)} · updated $updated';
+  @override
+  String openTodos(int count) => '$count open';
 
   @override
   String get connectedModels => 'Connected models';
@@ -2240,6 +2256,12 @@ class TurkishStrings extends Strings {
   @override
   String get otherNotes => 'Diğerleri';
   @override
+  String get comingUp => 'Yaklaşanlar';
+  @override
+  String todoCount(int count) => '$count iş';
+  @override
+  String caps(String text) => text.replaceAll('i', 'İ').toUpperCase();
+  @override
   String get export => 'Dışa aktar';
   @override
   String get exportNotes => 'Notları dışa aktar';
@@ -2278,6 +2300,8 @@ class TurkishStrings extends Strings {
   String get undo => 'Geri al';
   @override
   String noteSubtitle(String kind, String updated) => '${noteKind(kind)} · güncelleme $updated';
+  @override
+  String openTodos(int count) => '$count açık';
 
   @override
   String get connectedModels => 'Bağlı modeller';

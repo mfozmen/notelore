@@ -860,5 +860,16 @@ void failureTests() {
       expect(fullTurn.$1, '${systemPrompt(today)}\n\nThere are no notes yet.');
       expect(fullTurn.$3, [...noteTools.where((t) => !t.name.endsWith('_about_me'))]);
     });
+
+    test(
+      'a slim agent holds back a topic not checked with related_notes; a full one not',
+      () async {
+        final box = newBox();
+        await Agent(ScriptedProvider([text('Hi.')]), box, today: today, slim: true).ask('hi');
+        expect(box.checkTopics, isTrue);
+        await Agent(ScriptedProvider([text('Hi.')]), box, today: today).ask('hi');
+        expect(box.checkTopics, isFalse);
+      },
+    );
   });
 }

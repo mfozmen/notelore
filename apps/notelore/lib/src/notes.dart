@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'app.dart' show AppMenu;
 import 'empty_state.dart';
 import 'note_view.dart';
+import 'section_label.dart';
 import 'session.dart';
 import 'strings.dart';
 import 'sync_state.dart';
@@ -312,7 +313,8 @@ class _NotesScreenState extends State<NotesScreen> {
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
               hintText: s.searchNotes,
-              prefixIcon: const Icon(Icons.search),
+              hintStyle: TextStyle(fontSize: 14.5, color: colors.onSurfaceVariant),
+              prefixIcon: Icon(Icons.search, size: 20, color: colors.onSurfaceVariant),
               suffixIcon: _search.text.isEmpty
                   ? null
                   : IconButton(
@@ -338,7 +340,7 @@ class _NotesScreenState extends State<NotesScreen> {
                       ),
                     ],
                   )
-                : _shown(context, notes, wide: wide),
+                : _shown(context, notes, wide: wide, all: all),
           ),
         ),
       ],
@@ -346,7 +348,12 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   /// [notes] as cards, or the first-run hint when there are none at all.
-  Widget _shown(BuildContext context, List<NoteInfo> notes, {required bool wide}) {
+  Widget _shown(
+    BuildContext context,
+    List<NoteInfo> notes, {
+    required bool wide,
+    List<NoteInfo> all = const [],
+  }) {
     final s = widget.session.strings;
     return notes.isEmpty
         ? CustomScrollView(
@@ -371,81 +378,70 @@ class _NotesScreenState extends State<NotesScreen> {
               ),
             ],
           )
-        : _cards(context, notes, wide: wide);
+        : _cards(context, notes, wide: wide, all: all);
   }
 
-  /// The pinned notes under their header, then the others under theirs.
-  Widget _cards(BuildContext context, List<NoteInfo> notes, {required bool wide}) {
+  /// What is coming, then the pinned notes under their header, then the others
+  /// under theirs.
+  Widget _cards(
+    BuildContext context,
+    List<NoteInfo> notes, {
+    required bool wide,
+    required List<NoteInfo> all,
+  }) {
     final s = widget.session.strings;
     final pinned = notes.where((n) => n.pinned).toList();
     final others = notes.where((n) => !n.pinned).toList();
+    final now = widget.session.clock().toLocal();
+    final today = DateTime(now.year, now.month, now.day);
+    // Only notes the list knows, so a row opens the same note a card does.
+    final known = {for (final note in all) (note.kind, note.slug): note};
+    // Not over search results; and a search typed is not re-read on every key.
+    final coming = [
+      if (_search.text.trim().isEmpty)
+        for (final item in calendarItems(widget.session.paths.notes.path, today: today))
+          if (item.todo && !item.day.isBefore(today) && known.containsKey((item.kind, item.slug)))
+            item,
+    ];
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
       children: [
-        if (pinned.isNotEmpty) _group(context, s.pinnedNotes),
+        if (coming.isNotEmpty)
+          _ComingUp(
+            coming,
+            strings: s,
+            open: (item) => _openNote(known[(item.kind, item.slug)]!, wide: wide),
+          ),
+        if (pinned.isNotEmpty) SectionLabel(s.pinnedNotes, strings: s),
         for (final note in pinned) _card(context, note, wide: wide),
-        if (pinned.isNotEmpty && others.isNotEmpty) _group(context, s.otherNotes),
+        if (pinned.isNotEmpty && others.isNotEmpty) SectionLabel(s.otherNotes, strings: s),
         for (final note in others) _card(context, note, wide: wide),
       ],
     );
   }
 
-  /// The heading over the pinned notes, or over the rest.
-  Widget _group(BuildContext context, String title) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, Gap.m, 0, Gap.s),
-      child: Semantics(
-        header: true,
-        child: Text(
-          title,
-          style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
-        ),
-      ),
-    );
+  /// Read once: the app rebuilds on every session change, and a deleted note
+  /// must not be read again under its reader.
+  void _openNote(NoteInfo note, {required bool wide}) {
+    final text = widget.session.readNote(note);
+    if (wide) {
+      setState(() => _reading = (note, text));
+    } else {
+      _open(note, text);
+    }
   }
 
-  Widget _card(BuildContext context, NoteInfo note, {required bool wide}) {
-    final s = widget.session.strings;
-    final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Gap.s),
-      child: Card(
-        child: ListTile(
-          // The kind at a glance: a folder for a project, a tag for a topic.
-          leading: CircleAvatar(
-            backgroundColor: colors.secondaryContainer,
-            foregroundColor: colors.onSecondaryContainer,
-            child: Icon(
-              note.kind == 'project' ? Icons.folder_outlined : Icons.sell_outlined,
-              size: 20,
-            ),
-          ),
-          title: Text(note.title),
-          subtitle: Text(
-            s.noteSubtitle(
-              note.kind,
-              note.updated == null
-                  ? '?'
-                  : s.shortDate(note.updated!, widget.session.clock().toLocal()),
-            ),
-          ),
-          selected: wide && _isOpen(note),
-          // Read once: the app rebuilds on every session change, and a
-          // deleted note must not be read again under its reader.
-          onTap: () {
-            final text = widget.session.readNote(note);
-            if (wide) {
-              setState(() => _reading = (note, text));
-            } else {
-              _open(note, text);
-            }
-          },
-        ),
-      ),
-    );
-  }
+  Widget _card(BuildContext context, NoteInfo note, {required bool wide}) => Padding(
+    padding: const EdgeInsets.only(bottom: Gap.s),
+    child: _NoteRow(
+      note,
+      strings: widget.session.strings,
+      today: widget.session.clock().toLocal(),
+      selected: wide && _isOpen(note),
+      onTap: () => _openNote(note, wide: wide),
+    ),
+  );
 
   /// The open note beside the list, or where it will be.
   Widget _reader(BuildContext context) {
@@ -571,6 +567,115 @@ class _NotesScreenState extends State<NotesScreen> {
       },
     ),
   );
+}
+
+/// The open todos due from today on, the soonest first, at most three; a row
+/// opens its note.
+class _ComingUp extends StatelessWidget {
+  const _ComingUp(this.items, {required this.strings, required this.open});
+
+  final List<DayItem> items;
+  final Strings strings;
+  final ValueChanged<DayItem> open;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = strings;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final mono = theme.extension<NoteloreTokens>()!.label.copyWith(
+      fontSize: 10,
+      letterSpacing: 0.6,
+      color: colors.onSurfaceVariant,
+    );
+    return Padding(
+      padding: const EdgeInsets.only(top: Gap.s, bottom: Gap.xs),
+      child: Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: colors.outlineVariant),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 12, bottom: Gap.xs),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SectionLabel(
+                s.comingUp,
+                strings: s,
+                padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.xs),
+                trailing: Text(s.todoCount(items.length), textAlign: TextAlign.end, style: mono),
+              ),
+              for (final (index, item) in items.take(3).indexed) ...[
+                if (index > 0) const Divider(indent: Gap.m, endIndent: Gap.m),
+                _row(theme, item, mono),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _row(ThemeData theme, DayItem item, TextStyle mono) {
+    final colors = theme.colorScheme;
+    return InkWell(
+      onTap: () => open(item),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
+        child: Row(
+          children: [
+            // Grows with large text rather than breaking the day's digits apart.
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 40),
+              child: Column(
+                children: [
+                  Text(
+                    '${item.day.day}',
+                    softWrap: false,
+                    maxLines: 1,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontSize: 20,
+                      height: 1,
+                      color: colors.primary,
+                    ),
+                  ),
+                  Text(
+                    strings.caps(strings.months[item.day.month - 1]),
+                    style: mono.copyWith(fontSize: 9, letterSpacing: 1.1),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13.5),
+                  ),
+                  Text(
+                    item.note,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 11.5,
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// Picks the notes to export together.
@@ -870,6 +975,114 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                   ),
                 ),
         ),
+      ),
+    );
+  }
+}
+
+/// One note in the list: its title, newest words, kind, date, tags and open
+/// todos (#773).
+class _NoteRow extends StatelessWidget {
+  const _NoteRow(
+    this.note, {
+    required this.strings,
+    required this.today,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final NoteInfo note;
+  final Strings strings;
+  final DateTime today;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = strings;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final muted = theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant);
+    return Card(
+      // The open note is told by its edge in the accent.
+      shape: selected
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+              side: BorderSide(color: colors.primary),
+            )
+          : null,
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.fromLTRB(12, 4, Gap.m, 4),
+        horizontalTitleGap: 12,
+        titleAlignment: ListTileTitleAlignment.top,
+        selectedColor: colors.onSurface,
+        // The kind at a glance: a folder for a project, a tag for a topic.
+        leading: CircleAvatar(
+          radius: 16,
+          backgroundColor: colors.primaryContainer,
+          foregroundColor: colors.primary,
+          child: Icon(
+            note.kind == 'project' ? Icons.folder_outlined : Icons.sell_outlined,
+            size: 18,
+          ),
+        ),
+        title: Text(
+          note.title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleMedium?.copyWith(fontSize: 16, height: 1.25),
+        ),
+        isThreeLine: note.excerpt.isNotEmpty,
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (note.excerpt.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: Gap.xs),
+                child: Text(
+                  note.excerpt,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: muted?.copyWith(fontSize: 13, height: 1.4),
+                ),
+              ),
+            const SizedBox(height: Gap.xs),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    [
+                      s.noteSubtitle(
+                        note.kind,
+                        note.updated == null ? '?' : s.shortDate(note.updated!, today),
+                      ),
+                      if (note.tags.isNotEmpty) note.tags.map((tag) => '#$tag').join(' '),
+                    ].join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: muted,
+                  ),
+                ),
+                if (note.openTodos > 0)
+                  Semantics(
+                    container: true,
+                    label: s.openTodos(note.openTodos),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.checklist, size: 16, color: colors.primary),
+                        const SizedBox(width: Gap.xs),
+                        Text('${note.openTodos}', style: muted?.copyWith(color: colors.primary)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+        selected: selected,
+        onTap: onTap,
       ),
     );
   }
