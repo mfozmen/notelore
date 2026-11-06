@@ -60,7 +60,7 @@ void main() {
     final session = await pumpApp(tester, Harness());
     await connect(tester, key: 'sk-ant');
     await openModel(tester);
-    expect(find.text('Connected models'), findsOneWidget);
+    expect(find.text('CONNECTED MODELS'), findsOneWidget);
     expect(row('anthropic'), findsOneWidget);
     // Another model, through the wizard: back in Settings on it.
     await tester.tap(find.text('Connect another model'));

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'app.dart' show AppMenu;
+import 'section_label.dart';
 import 'session.dart';
 import 'theme.dart';
 
@@ -76,25 +77,36 @@ class AboutMeScreen extends StatelessWidget {
   ) {
     if (mine.isEmpty) return const [];
     final s = session.strings;
-    final theme = Theme.of(context);
+    final colors = Theme.of(context).colorScheme;
     return [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, Gap.xs),
-        child: Text(
-          aboutMeSections[section]![s.languageCode]!,
-          style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+      SectionLabel(
+        aboutMeSections[section]![s.languageCode]!,
+        strings: s,
+        padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, Gap.s),
+      ),
+      Card(
+        margin: const EdgeInsets.symmetric(horizontal: Gap.m),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            for (final (index, entry) in mine.indexed) ...[
+              if (index > 0) const Divider(),
+              ListTile(
+                contentPadding: const EdgeInsets.only(left: Gap.m, right: Gap.xs),
+                minTileHeight: 48,
+                title: Text(entry.fact, style: const TextStyle(fontSize: 14.5)),
+                onTap: () => _edit(context, entry),
+                trailing: IconButton(
+                  tooltip: s.delete,
+                  color: colors.onSurfaceVariant,
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  onPressed: () => _delete(context, entry.fact, section),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
-      for (final entry in mine)
-        ListTile(
-          title: Text(entry.fact),
-          onTap: () => _edit(context, entry),
-          trailing: IconButton(
-            tooltip: s.delete,
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () => _delete(context, entry.fact, section),
-          ),
-        ),
     ];
   }
 
@@ -107,6 +119,9 @@ class AboutMeScreen extends StatelessWidget {
       return wide
           ? FilledButton.tonalIcon(icon: const Icon(Icons.add), label: label, onPressed: add)
           : FloatingActionButton.extended(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
               icon: const Icon(Icons.add),
               label: label,
               onPressed: add,
@@ -134,12 +149,13 @@ class AboutMeScreen extends StatelessWidget {
 
   Widget _list(BuildContext context, {required bool wide, required bool add}) {
     final s = session.strings;
+    final theme = Theme.of(context);
     final entries = session.aboutMeEntries();
     return ListView(
       // Room under the last row for the button that floats over it on a phone.
       padding: EdgeInsets.only(top: Gap.s, bottom: add && !wide ? 96 : Gap.l),
       children: [
-        if (entries.isEmpty) _empty(Theme.of(context)),
+        if (entries.isEmpty) _empty(theme),
         for (final section in aboutMeSections.keys)
           ..._section(context, section, [
             for (final e in entries)
@@ -153,13 +169,28 @@ class AboutMeScreen extends StatelessWidget {
               child: _add(wide: true),
             ),
           ),
-        const Divider(height: Gap.l),
-        ListTile(
-          leading: const Icon(Icons.shield_outlined),
-          title: Text(s.aboutMeShared(session.aboutMeToCloud)),
-          subtitle: Text(s.aboutMeSharedMeans(session.aboutMeToCloud)),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: privacy,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, Gap.s),
+          child: Card(
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              contentPadding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.s, Gap.xs),
+              leading: Icon(Icons.shield_outlined, color: theme.colorScheme.primary),
+              title: Text(
+                s.aboutMeShared(session.aboutMeToCloud),
+                style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
+              ),
+              subtitle: Text(
+                s.aboutMeSharedMeans(session.aboutMeToCloud),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 12.5,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              trailing: Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant),
+              onTap: privacy,
+            ),
+          ),
         ),
       ],
     );

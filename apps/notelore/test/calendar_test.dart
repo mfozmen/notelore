@@ -36,13 +36,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('October 2026'), findsOneWidget);
     final order = [
-      for (final text in ['Overdue', 'Order timber', 'Tomorrow', 'Dentist', 'Paint the door'])
+      for (final text in ['OVERDUE', 'Order timber', 'TOMORROW', 'Dentist', 'Paint the door'])
         tester.getTopLeft(find.text(text).last).dy,
     ];
     expect(order, orderedEquals([...order]..sort()));
     expect(find.text('10 Oct · Garden Shed'), findsOneWidget); // under Overdue, said once
     expect(find.text('10:00 · Health'), findsOneWidget);
-    expect(find.text('Sunday, 25 October'), findsOneWidget);
+    expect(find.text('SUNDAY, 25 OCTOBER'), findsOneWidget);
     // A note gone since the list was drawn: nothing opens, the list is drawn again.
     File(p.join(harness.paths.notes.path, 'projects', 'garden-shed.md')).deleteSync();
     await tester.tap(find.text('Paint the door'));
@@ -79,7 +79,7 @@ void main() {
     await withPlans(tester);
     await tester.tap(find.text('Calendar'));
     await tester.pumpAndSettle();
-    await tester.tap(find.bySemanticsLabel('Sunday, 25 October'));
+    await tester.tap(find.bySemanticsLabel('Sunday, 25 October').first);
     await tester.pumpAndSettle();
     expect(find.text('Sunday, 25 October'), findsWidgets);
     expect(find.text('Paint the door'), findsOneWidget);

@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'app.dart' show AppMenu;
 import 'empty_state.dart';
 import 'note_view.dart';
+import 'section_label.dart';
 import 'session.dart';
 import 'strings.dart';
 import 'theme.dart';
@@ -146,7 +147,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
           children: [
             SizedBox(
               width: 380,
-              child: ListView(padding: const EdgeInsets.all(Gap.m), children: [grid]),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.m),
+                children: [grid],
+              ),
             ),
             const VerticalDivider(width: 1),
             Expanded(
@@ -155,7 +159,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 alignment: Alignment.topLeft,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: Layout.column),
-                  child: ListView(padding: const EdgeInsets.all(Gap.m), children: [list]),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.m),
+                    children: [list],
+                  ),
                 ),
               ),
             ),
@@ -163,11 +170,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         )
       : ListView(
           padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.l),
-          children: [
-            grid,
-            const SizedBox(height: Gap.m),
-            list,
-          ],
+          children: [grid, list],
         );
 }
 
@@ -202,74 +205,117 @@ class _MonthGrid extends StatelessWidget {
     final colors = theme.colorScheme;
     final lead = DateTime(month.year, month.month).weekday - 1; // Monday is 1
     final days = DateTime(month.year, month.month + 1, 0).day;
+    final mono = theme.extension<NoteloreTokens>()!.label;
     return Column(
       children: [
         Row(
           children: [
             IconButton(
               tooltip: s.previousMonth,
+              color: colors.onSurfaceVariant,
               icon: const Icon(Icons.chevron_left),
               onPressed: () => turn(-1),
             ),
             Expanded(
-              child: Text(
-                s.monthYear(month),
-                textAlign: TextAlign.center,
-                style: theme.textTheme.titleMedium,
+              // Smaller, never cut, beside the chip and arrows at large text.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  s.monthYear(month),
+                  maxLines: 1,
+                  style: theme.textTheme.titleMedium?.copyWith(fontSize: 19),
+                ),
               ),
             ),
             Tooltip(
               message: s.today,
-              child: TextButton(onPressed: todayTap, child: Text(s.today)),
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  backgroundColor: colors.surfaceContainerLow,
+                  shape: StadiumBorder(side: BorderSide(color: colors.outlineVariant)),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  // A 48 dp target around the small chip.
+                  minimumSize: const Size(48, 32),
+                  tapTargetSize: MaterialTapTargetSize.padded,
+                ),
+                onPressed: todayTap,
+                child: Text(
+                  s.caps(s.today),
+                  semanticsLabel: s.today,
+                  style: mono.copyWith(fontSize: 10, letterSpacing: 1.2),
+                ),
+              ),
             ),
             IconButton(
               tooltip: s.nextMonth,
+              color: colors.onSurfaceVariant,
               icon: const Icon(Icons.chevron_right),
               onPressed: () => turn(1),
             ),
           ],
         ),
-        const SizedBox(height: Gap.s),
-        Row(
-          children: [
-            for (final day in s.weekdays)
-              Expanded(
-                child: ExcludeSemantics(
-                  child: Text(
-                    day,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.labelMedium?.copyWith(color: colors.onSurfaceVariant),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: Gap.xs),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 7,
-            childAspectRatio: 1,
+        Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: colors.outlineVariant),
           ),
-          itemCount: lead + days,
-          itemBuilder: (context, i) {
-            if (i < lead) return const SizedBox.shrink();
-            final day = DateTime(month.year, month.month, i - lead + 1);
-            return _Day(
-              day,
-              label: s.dayHeading(day),
-              today: day == today,
-              chosen: day == picked,
-              dot: late.contains(day) ? colors.error : null,
-              marked: marked.contains(day),
-              pick: pick,
-            );
-          },
+          child: Padding(
+            // Narrow sides, so a day keeps as much of its 48 dp width as fits.
+            padding: const EdgeInsets.fromLTRB(Gap.xs, Gap.s, Gap.xs, Gap.xs),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    for (final day in s.weekdays)
+                      Expanded(
+                        child: ExcludeSemantics(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: Gap.xs),
+                            child: Text(
+                              s.caps(day),
+                              textAlign: TextAlign.center,
+                              style: mono.copyWith(
+                                fontSize: 9.5,
+                                letterSpacing: 1,
+                                color: colors.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                _days(colors, lead, days),
+              ],
+            ),
+          ),
         ),
       ],
     );
   }
+
+  Widget _days(ColorScheme colors, int lead, int days) => GridView.builder(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 7,
+      mainAxisExtent: 48,
+    ),
+    itemCount: lead + days,
+    itemBuilder: (context, i) {
+      if (i < lead) return const SizedBox.shrink();
+      final day = DateTime(month.year, month.month, i - lead + 1);
+      return _Day(
+        day,
+        label: s.dayHeading(day),
+        today: day == today,
+        chosen: day == picked,
+        dot: late.contains(day) ? colors.error : null,
+        marked: marked.contains(day),
+        pick: pick,
+      );
+    },
+  );
 }
 
 class _Day extends StatelessWidget {
@@ -306,8 +352,8 @@ class _Day extends StatelessWidget {
         onTap: () => pick(day),
         child: Center(
           child: Container(
-            width: 48,
-            height: 48,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: chosen ? colors.primary : null,
@@ -324,18 +370,19 @@ class _Day extends StatelessWidget {
                     child: Text(
                       '${day.day}',
                       style: TextStyle(
+                        fontSize: 13.5,
                         color: chosen ? colors.onPrimary : colors.onSurface,
-                        fontWeight: today ? FontWeight.w600 : null,
+                        fontWeight: today || chosen ? FontWeight.w700 : null,
                       ),
                     ),
                   ),
                 ),
                 if (marked)
                   Positioned(
-                    bottom: Gap.xs,
+                    bottom: 3,
                     child: Container(
-                      width: 6,
-                      height: 6,
+                      width: 5,
+                      height: 5,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: chosen ? colors.onPrimary : (dot ?? colors.primary),
@@ -386,12 +433,6 @@ class _Agenda extends StatelessWidget {
       final late = picked == null && item.todo && item.day.isBefore(today);
       groups.putIfAbsent((late ? s.overdueGroup : _heading(item.day), late), () => []).add(item);
     }
-    Widget heading((String, bool) group) => Text(
-      group.$1,
-      style: theme.textTheme.titleSmall?.copyWith(
-        color: group.$2 ? theme.colorScheme.error : theme.colorScheme.primary,
-      ),
-    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -422,13 +463,26 @@ class _Agenda extends StatelessWidget {
             ),
         ],
         for (final MapEntry(key: name, value: group) in groups.entries) ...[
-          if (picked == null)
-            Padding(
-              padding: const EdgeInsets.only(top: Gap.m, bottom: Gap.xs),
-              child: heading(name),
+          if (picked == null) SectionLabel(name.$1, strings: s, late: name.$2),
+          Card(
+            margin: const EdgeInsets.only(bottom: Gap.s),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                for (final (index, item) in group.indexed) ...[
+                  if (index > 0) const Divider(),
+                  _Item(
+                    s,
+                    item,
+                    today: today,
+                    open: open,
+                    toggle: toggle,
+                    underOverdue: picked == null,
+                  ),
+                ],
+              ],
             ),
-          for (final item in group)
-            _Item(s, item, today: today, open: open, toggle: toggle, underOverdue: picked == null),
+          ),
         ],
       ],
     );
@@ -464,18 +518,35 @@ class _Item extends StatelessWidget {
       if (late) underOverdue ? date : s.overdue(date),
       item.note,
     ].join(' · ');
+    final theme = Theme.of(context);
     return ListTile(
-      contentPadding: EdgeInsets.zero,
+      contentPadding: const EdgeInsets.only(left: Gap.xs, right: Gap.m),
+      minTileHeight: 56,
+      horizontalTitleGap: Gap.xs,
       leading: SizedBox(
         width: 48,
         child: Center(
           child: item.todo
-              ? Checkbox(value: false, onChanged: (_) => toggle(item))
-              : Icon(Icons.alarm, color: late ? colors.error : colors.primary),
+              ? Checkbox(
+                  value: false,
+                  side: BorderSide(color: late ? colors.error : colors.primary, width: 2),
+                  onChanged: (_) => toggle(item),
+                )
+              : Icon(Icons.alarm, size: 20, color: late ? colors.error : colors.primary),
         ),
       ),
-      title: Text(item.text),
-      subtitle: Text(when, style: TextStyle(color: colors.onSurfaceVariant)),
+      title: Text(
+        item.text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.bodyMedium,
+      ),
+      subtitle: Text(
+        when,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+      ),
       onTap: () => open(item),
     );
   }

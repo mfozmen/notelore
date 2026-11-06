@@ -75,16 +75,16 @@ void main() {
 
   testWidgets('a section with nothing in it shows no heading (#508)', (tester) async {
     await show(tester, '$_mopsos\n## Questions\n\n');
-    expect(find.text('Questions'), findsNothing);
-    expect(find.text('Links'), findsOneWidget); // one with something in it still has its own
+    expect(find.text('QUESTIONS'), findsNothing);
+    expect(find.text('LINKS'), findsOneWidget); // one with something in it still has its own
   });
 
   testWidgets('decisions: the current ones as cards, earlier ones folded away (#426)', (
     tester,
   ) async {
     await show(tester, _mopsos);
-    expect(find.text('Decisions'), findsOneWidget);
-    expect(find.text('database'), findsOneWidget);
+    expect(find.text('DECISIONS'), findsOneWidget);
+    expect(find.text('DATABASE'), findsOneWidget);
     expect(find.text('SQLite'), findsOneWidget);
     expect(find.text('Single user, zero setup.'), findsOneWidget);
     expect(find.text('React + Vite'), findsOneWidget);
@@ -153,10 +153,10 @@ kind: topic
     double top(String text) => tester.getTopLeft(find.text(text)).dy;
     // What is coming (reminders, then todos) before what happened.
     expect([
-      top('Reminders'),
-      top('Todo'),
-      top('Notes'),
-    ], orderedEquals([top('Reminders'), top('Todo'), top('Notes')]..sort()));
+      top('REMINDERS'),
+      top('TODO'),
+      top('NOTES'),
+    ], orderedEquals([top('REMINDERS'), top('TODO'), top('NOTES')]..sort()));
     // Coming ones by day and time, then past ones, the latest first.
     final rows = [
       'Book the photos',
@@ -189,7 +189,7 @@ kind: topic
     expect(find.textContaining('postponed until the stock flow is stable'), findsOneWidget);
     expect(find.text('22 Sep'), findsOneWidget);
     // A section the person wrote by hand shows as written.
-    expect(find.text('Links'), findsOneWidget);
+    expect(find.text('LINKS'), findsOneWidget);
     expect(find.text('Broker API'), findsOneWidget);
   });
 

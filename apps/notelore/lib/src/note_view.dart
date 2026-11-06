@@ -6,6 +6,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
+import 'section_label.dart';
 import 'session.dart' show Session, withoutFrontMatter;
 import 'strings.dart';
 import 'theme.dart';
@@ -132,9 +133,11 @@ class NoteView extends StatelessWidget {
           ],
           for (final section in _ordered(note.sections))
             if (_hasContent(section)) ...[
-              const SizedBox(height: Gap.l),
-              _Heading(section.heading),
-              const SizedBox(height: Gap.s),
+              SectionLabel(
+                section.heading,
+                strings: strings,
+                padding: const EdgeInsets.only(top: Gap.l, bottom: Gap.s),
+              ),
               ..._section(context, section),
             ],
         ],
@@ -163,6 +166,13 @@ class NoteView extends StatelessWidget {
 
   String _date(DateTime date) => strings.shortDate(date, today);
 
+  /// A date beside an entry: small mono, muted.
+  static TextStyle _mono(ThemeData theme) => theme.extension<NoteloreTokens>()!.label.copyWith(
+    fontSize: 10,
+    letterSpacing: 0.6,
+    color: theme.colorScheme.onSurfaceVariant,
+  );
+
   /// Inline Markdown: bold, links and images work in every line.
   Widget _markdown(String text, {TextStyle? style}) => Builder(
     builder: (context) => MarkdownBody(
@@ -184,7 +194,14 @@ class NoteView extends StatelessWidget {
     // The front matter reader hands a date back as one; anything else is not shown.
     final updated = note.meta['updated'] is DateTime ? note.meta['updated']! as DateTime : null;
     return [
-      Text(note.title, style: theme.textTheme.headlineSmall),
+      Text(
+        note.title,
+        style: theme.textTheme.headlineSmall?.copyWith(
+          fontSize: 28,
+          height: 1.12,
+          letterSpacing: -0.56,
+        ),
+      ),
       const SizedBox(height: Gap.s),
       Wrap(
         spacing: Gap.s,
@@ -194,15 +211,17 @@ class NoteView extends StatelessWidget {
           if (note.meta['kind'] case final kind?)
             DecoratedBox(
               decoration: BoxDecoration(
-                color: theme.colorScheme.secondaryContainer,
+                color: theme.colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(Gap.s),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: Gap.s, vertical: Gap.xs / 2),
+                padding: const EdgeInsets.symmetric(horizontal: Gap.s, vertical: 2),
                 child: Text(
                   strings.noteKind('$kind'),
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSecondaryContainer,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onPrimaryContainer,
                   ),
                 ),
               ),
@@ -212,7 +231,7 @@ class NoteView extends StatelessWidget {
               if (tags.isNotEmpty) tags.join(' '),
               if (updated != null) strings.updatedOn(_date(updated)),
             ].join('  ·  '),
-            style: muted,
+            style: muted?.copyWith(fontSize: 12.5),
           ),
         ],
       ),
@@ -239,15 +258,13 @@ class NoteView extends StatelessWidget {
 
   List<Widget> _decisions(BuildContext context, List<Decision> decisions) {
     final theme = Theme.of(context);
-    final muted = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     final earlier = decisions.where((d) => d.superseded != null).toList();
     return [
       for (final decision in decisions.where((d) => d.superseded == null))
-        Card.filled(
+        Card(
           margin: const EdgeInsets.only(bottom: Gap.s),
-          color: theme.colorScheme.surfaceContainerLow,
           child: Padding(
-            padding: const EdgeInsets.all(Gap.m),
+            padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -255,22 +272,25 @@ class NoteView extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        decision.topic,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: theme.colorScheme.primary,
-                        ),
+                        strings.caps(decision.topic),
+                        semanticsLabel: decision.topic,
+                        style: theme.extension<NoteloreTokens>()!.label,
                       ),
                     ),
-                    Text(_date(decision.date), style: muted),
+                    Text(_date(decision.date), style: _mono(theme)),
                   ],
                 ),
                 const SizedBox(height: Gap.xs),
-                _markdown(decision.value, style: theme.textTheme.titleMedium),
+                _markdown(
+                  decision.value,
+                  style: theme.textTheme.titleMedium?.copyWith(fontSize: 20, height: 1.25),
+                ),
                 if (decision.reason case final reason?) ...[
                   const SizedBox(height: Gap.xs),
                   _markdown(
                     reason,
                     style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 13.5,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -287,6 +307,8 @@ class NoteView extends StatelessWidget {
           expandedAlignment: Alignment.centerLeft,
           shape: const Border(),
           collapsedShape: const Border(),
+          iconColor: theme.colorScheme.onSurfaceVariant,
+          collapsedIconColor: theme.colorScheme.onSurfaceVariant,
           title: Text(strings.earlierDecisions(earlier.length), style: theme.textTheme.bodyMedium),
           children: [
             for (final decision in earlier)
@@ -328,25 +350,36 @@ class NoteView extends StatelessWidget {
     ];
   }
 
+  /// A checkbox, or (no [onTodo]) a mark: open ones edged in the accent, late
+  /// ones in the error colour, done ones muted.
+  Widget _todoMark(ColorScheme colors, int number, Todo todo, {required bool late}) =>
+      switch (onTodo) {
+        final onTodo? => Checkbox(
+          value: todo.done,
+          side: BorderSide(color: late ? colors.error : colors.primary, width: 2),
+          fillColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected) ? colors.onSurfaceVariant : null,
+          ),
+          checkColor: colors.surface,
+          onChanged: (done) => onTodo(number, todo.text, done ?? false),
+        ),
+        null => Icon(
+          todo.done ? Icons.check_circle : Icons.radio_button_unchecked,
+          size: 20,
+          color: todo.done ? colors.outline : colors.onSurfaceVariant,
+        ),
+      };
+
   Widget _todoRow(ThemeData theme, int number, Todo todo, DateTime day) {
     final colors = theme.colorScheme;
+    final late = !todo.done && todo.date.isBefore(day);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: Gap.xs),
       child: MergeSemantics(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (onTodo case final onTodo?)
-              Checkbox(
-                value: todo.done,
-                onChanged: (done) => onTodo(number, todo.text, done ?? false),
-              )
-            else
-              Icon(
-                todo.done ? Icons.check_circle : Icons.radio_button_unchecked,
-                size: 20,
-                color: todo.done ? colors.outline : colors.onSurfaceVariant,
-              ),
+            _todoMark(colors, number, todo, late: late),
             const SizedBox(width: Gap.s),
             Expanded(
               child: Padding(
@@ -364,7 +397,7 @@ class NoteView extends StatelessWidget {
             const SizedBox(width: Gap.s),
             Padding(
               padding: EdgeInsets.only(top: onTodo == null ? 0 : 12),
-              child: _todoDate(theme, todo, late: !todo.done && todo.date.isBefore(day)),
+              child: _todoDate(theme, todo, late: late),
             ),
           ],
         ),
@@ -396,7 +429,7 @@ class NoteView extends StatelessWidget {
             children: [
               Icon(
                 passed ? Icons.history : Icons.notifications_outlined,
-                size: 20,
+                size: 18,
                 color: passed ? colors.outline : colors.primary,
               ),
               const SizedBox(width: Gap.s),
@@ -431,7 +464,6 @@ class NoteView extends StatelessWidget {
   /// A date carries no year; the year heads its days when it is not this one.
   List<Widget> _notes(BuildContext context, List<Entry> entries) {
     final theme = Theme.of(context);
-    final muted = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     final days = <DateTime, List<Entry>>{};
     for (final entry in entries) {
       days.putIfAbsent(entry.date, () => []).add(entry);
@@ -457,12 +489,12 @@ class NoteView extends StatelessWidget {
                     strings.shortDate(date, date),
                     maxLines: 1,
                     softWrap: false,
-                    style: muted,
+                    style: _mono(theme),
                   ),
                 ),
               ),
-              VerticalDivider(width: Gap.m, thickness: 2, color: theme.colorScheme.outlineVariant),
-              const SizedBox(width: Gap.s),
+              VerticalDivider(width: 2, thickness: 2, color: theme.colorScheme.outlineVariant),
+              const SizedBox(width: Gap.m),
               Expanded(
                 child: Padding(
                   padding: EdgeInsets.only(bottom: index == newest.length - 1 ? 0 : Gap.m),
@@ -484,25 +516,6 @@ class NoteView extends StatelessWidget {
         ),
       ],
     ];
-  }
-}
-
-/// A section's own heading, as the note names it.
-class _Heading extends StatelessWidget {
-  const _Heading(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Semantics(
-      header: true,
-      child: Text(
-        text,
-        style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
-      ),
-    );
   }
 }
 
