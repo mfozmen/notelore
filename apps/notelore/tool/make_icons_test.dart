@@ -23,7 +23,7 @@ Future<Uint8List> png(
 }) async {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
-  if (opaque) canvas.drawColor(MarkColors.teal, BlendMode.src);
+  if (opaque) canvas.drawColor(MarkColors.terracotta, BlendMode.src);
   final body = side * (1 - 2 * margin);
   canvas.translate(side * margin, side * margin);
   painter.paint(canvas, Size.square(body));
@@ -63,7 +63,7 @@ void write(String path, List<int> bytes) =>
 void main() {
   testWidgets('write the app icons', (tester) async {
     await tester.runAsync(() async {
-      const full = MarkPainter(background: MarkColors.teal);
+      const full = MarkPainter(background: MarkColors.terracotta);
       // Android: legacy squares, and the adaptive layers (108 dp; the card
       // inside the 66 dp safe circle, so no launcher mask cuts it).
       const res = 'android/app/src/main/res';
@@ -110,7 +110,7 @@ void main() {
           p.join(ios, '${image['filename']}'),
           await png(
             (points * scale).round(),
-            const MarkPainter(radius: 0, background: MarkColors.teal),
+            const MarkPainter(radius: 0, background: MarkColors.terracotta),
             opaque: true,
           ),
         );
@@ -129,8 +129,8 @@ const _adaptive = '''<?xml version="1.0" encoding="utf-8"?>
 ''';
 
 const _background = '''<?xml version="1.0" encoding="utf-8"?>
-<!-- Written by tool/make_icons_test.dart: the mark's teal (#340). -->
+<!-- Written by tool/make_icons_test.dart: the mark's terracotta (#782). -->
 <resources>
-    <color name="ic_launcher_background">#0D9488</color>
+    <color name="ic_launcher_background">#C2410C</color>
 </resources>
 ''';
