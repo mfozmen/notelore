@@ -5,6 +5,7 @@ import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
 import 'app.dart' show AppMenu;
+import 'empty_state.dart';
 import 'note_view.dart';
 import 'session.dart';
 import 'strings.dart';
@@ -14,9 +15,12 @@ import 'transfer.dart';
 /// Every project and topic, newest first; a tap opens the note read-only, beside
 /// the list on a wide window. The open note's header archives it.
 class NotesScreen extends StatefulWidget {
-  const NotesScreen(this.session, {super.key});
+  const NotesScreen(this.session, {required this.toChat, super.key});
 
   final Session session;
+
+  /// Goes to the chat, where notes are made (#721).
+  final VoidCallback toChat;
 
   @override
   State<NotesScreen> createState() => _NotesScreenState();
@@ -344,22 +348,17 @@ class _NotesScreenState extends State<NotesScreen> {
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(Gap.l),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.description_outlined, size: 56, color: colors.primary),
-                        const SizedBox(height: Gap.m),
-                        Text(s.noNotes, textAlign: TextAlign.center),
-                        const SizedBox(height: Gap.m),
-                        OutlinedButton.icon(
-                          onPressed: _import,
-                          icon: const Icon(Icons.file_open_outlined),
-                          label: Text(s.importNotes),
-                        ),
-                      ],
-                    ),
+                  child: EmptyState(
+                    icon: Icons.description_outlined,
+                    title: s.noNotes,
+                    actions: [
+                      FilledButton.tonal(onPressed: widget.toChat, child: Text(s.goToChat)),
+                      OutlinedButton.icon(
+                        onPressed: _import,
+                        icon: const Icon(Icons.file_open_outlined),
+                        label: Text(s.importNotes),
+                      ),
+                    ],
                   ),
                 ),
               ),

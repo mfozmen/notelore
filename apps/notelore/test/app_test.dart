@@ -13,6 +13,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
 import 'package:notelore/src/chat.dart';
+import 'package:notelore/src/empty_state.dart';
 import 'package:notelore/src/mark.dart';
 import 'package:notelore/src/note_view.dart';
 import 'package:notelore/src/session.dart';
@@ -2781,9 +2782,12 @@ void main() {
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('No notes yet. Tell the assistant something to remember.'), findsOneWidget);
+    expect(find.byType(EmptyState), findsOneWidget);
     expect(find.widgetWithText(OutlinedButton, 'Import notes'), findsOneWidget);
-    await tester.tap(find.text('Chat'));
+    // The way to make one: the chat, as the main action (#721).
+    await tester.tap(find.text('Go to chat'));
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('message')), findsOneWidget);
     await tester.enterText(find.byKey(const Key('message')), 'Mopsos diye proje aç');
     await tester.pump(); // the Send button appears with the text
     await tester.tap(find.byTooltip('Send'));

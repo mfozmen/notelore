@@ -6,6 +6,7 @@ import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
 import 'app.dart' show AppMenu;
+import 'empty_state.dart';
 import 'note_view.dart';
 import 'session.dart';
 import 'strings.dart';
@@ -115,7 +116,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
   );
 
   Widget _list(Strings s, List<DayItem> items, DateTime today) {
-    if (items.isEmpty) return _Empty(s, toChat: widget.toChat);
+    if (items.isEmpty) {
+      return EmptyState(
+        icon: Icons.event_available,
+        title: s.nothingPlanned,
+        hint: s.calendarExample,
+        actions: [FilledButton.tonal(onPressed: widget.toChat, child: Text(s.goToChat))],
+      );
+    }
     return _Agenda(
       s,
       items: [
@@ -338,38 +346,6 @@ class _Day extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Nothing planned yet: where these come from, and the way to make one.
-class _Empty extends StatelessWidget {
-  const _Empty(this.s, {required this.toChat});
-
-  final Strings s;
-  final VoidCallback toChat;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final muted = theme.colorScheme.onSurfaceVariant;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: Gap.l),
-      child: Column(
-        children: [
-          Icon(Icons.event_available, size: 48, color: muted),
-          const SizedBox(height: Gap.m),
-          Text(s.nothingPlanned, textAlign: TextAlign.center),
-          const SizedBox(height: Gap.s),
-          Text(
-            s.calendarExample,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall?.copyWith(color: muted),
-          ),
-          const SizedBox(height: Gap.m),
-          FilledButton.tonal(onPressed: toChat, child: Text(s.goToChat)),
-        ],
       ),
     );
   }
