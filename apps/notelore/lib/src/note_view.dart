@@ -350,35 +350,36 @@ class NoteView extends StatelessWidget {
     ];
   }
 
+  /// A checkbox, or (no [onTodo]) a mark: open ones edged in the accent, late
+  /// ones in the error colour, done ones muted.
+  Widget _todoMark(ColorScheme colors, int number, Todo todo, {required bool late}) =>
+      switch (onTodo) {
+        final onTodo? => Checkbox(
+          value: todo.done,
+          side: BorderSide(color: late ? colors.error : colors.primary, width: 2),
+          fillColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected) ? colors.onSurfaceVariant : null,
+          ),
+          checkColor: colors.surface,
+          onChanged: (done) => onTodo(number, todo.text, done ?? false),
+        ),
+        null => Icon(
+          todo.done ? Icons.check_circle : Icons.radio_button_unchecked,
+          size: 20,
+          color: todo.done ? colors.outline : colors.onSurfaceVariant,
+        ),
+      };
+
   Widget _todoRow(ThemeData theme, int number, Todo todo, DateTime day) {
     final colors = theme.colorScheme;
+    final late = !todo.done && todo.date.isBefore(day);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: Gap.xs),
       child: MergeSemantics(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (onTodo case final onTodo?)
-              Checkbox(
-                value: todo.done,
-                // Open ones edged in the accent (late ones in the error colour), done ones muted.
-                side: BorderSide(
-                  color: !todo.done && todo.date.isBefore(day) ? colors.error : colors.primary,
-                  width: 2,
-                ),
-                fillColor: WidgetStateProperty.resolveWith(
-                  (states) =>
-                      states.contains(WidgetState.selected) ? colors.onSurfaceVariant : null,
-                ),
-                checkColor: colors.surface,
-                onChanged: (done) => onTodo(number, todo.text, done ?? false),
-              )
-            else
-              Icon(
-                todo.done ? Icons.check_circle : Icons.radio_button_unchecked,
-                size: 20,
-                color: todo.done ? colors.outline : colors.onSurfaceVariant,
-              ),
+            _todoMark(colors, number, todo, late: late),
             const SizedBox(width: Gap.s),
             Expanded(
               child: Padding(
@@ -396,7 +397,7 @@ class NoteView extends StatelessWidget {
             const SizedBox(width: Gap.s),
             Padding(
               padding: EdgeInsets.only(top: onTodo == null ? 0 : 12),
-              child: _todoDate(theme, todo, late: !todo.done && todo.date.isBefore(day)),
+              child: _todoDate(theme, todo, late: late),
             ),
           ],
         ),
