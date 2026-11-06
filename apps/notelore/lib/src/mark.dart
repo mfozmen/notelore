@@ -1,5 +1,5 @@
 /// Notelore's mark (#340, #568): a folded ribbon that forms an N, its left end
-/// cut like a bookmark, on lagoon teal. One drawing for the app and for every
+/// cut like a bookmark, on Kil terracotta. One drawing for the app and for every
 /// platform's icon (`tool/make_icons_test.dart`), so they never drift apart.
 library;
 
@@ -7,13 +7,13 @@ import 'package:flutter/material.dart';
 
 /// The mark's own colours: a brand, the same whatever palette the app wears.
 abstract final class MarkColors {
-  static const teal = Color(0xFF0D9488); // the lagoon palette's seed
+  static const terracotta = Color(0xFFC2410C); // the Kil theme primary
   static const ribbon = Color(0xFFFFFFFF);
-  static const fold = Color(0xFF5EC9BC);
-  static const foldOnLight = Color(0xFF064E48);
+  static const fold = Color(0xFFFFB68E);
+  static const foldOnLight = Color(0xFF4A2312);
 }
 
-/// The mark at [size]: on its rounded teal square, or the ribbon alone
+/// The mark at [size]: on its rounded terracotta square, or the ribbon alone
 /// ([badge] false) for a place that has its own background.
 class NoteloreMark extends StatelessWidget {
   const NoteloreMark({this.size = 72, this.badge = true, super.key});
@@ -31,8 +31,8 @@ class NoteloreMark extends StatelessWidget {
         dimension: size,
         child: CustomPaint(
           painter: MarkPainter(
-            background: badge ? MarkColors.teal : null,
-            ink: badge ? null : (dark ? MarkColors.ribbon : MarkColors.teal),
+            background: badge ? MarkColors.terracotta : null,
+            ink: badge ? null : (dark ? MarkColors.ribbon : MarkColors.terracotta),
             fold: badge || dark ? MarkColors.fold : MarkColors.foldOnLight,
           ),
         ),
@@ -61,7 +61,7 @@ class MarkPainter extends CustomPainter {
   final bool mono;
 
   /// The ribbon's colour when the painter has no [background] of its own, such
-  /// as Android's adaptive foreground over its teal layer.
+  /// as Android's adaptive foreground over its terracotta layer.
   final Color? ink;
 
   /// The turned underside: a shade of [ink] on the badge, darker than the
@@ -88,7 +88,7 @@ class MarkPainter extends CustomPainter {
     } else {
       canvas.drawPath(
         _ribbon,
-        Paint()..color = background == null ? (ink ?? MarkColors.teal) : MarkColors.ribbon,
+        Paint()..color = background == null ? (ink ?? MarkColors.terracotta) : MarkColors.ribbon,
       );
       canvas.drawPath(_fold, Paint()..color = fold ?? MarkColors.fold);
     }
