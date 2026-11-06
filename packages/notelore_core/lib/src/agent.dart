@@ -337,16 +337,8 @@ class Agent {
       messages.add({'role': 'assistant', 'content': blocks});
       final uses = blocks.where((b) => b['type'] == 'tool_use').toList();
       if (uses.isEmpty) {
-        final empty = reminded ? const <String>[] : toolbox.stillEmpty();
-        if (empty.isEmpty) return blocks.map((b) => b['text']).join('\n');
-        // Small models create the note and answer without writing into it.
+        if (reminded || !_remindEmpty()) return blocks.map((b) => b['text']).join('\n');
         reminded = true;
-        messages.add({
-          'role': 'user',
-          'content': [
-            {'type': 'text', 'text': emptyNoteReminder(empty)},
-          ],
-        });
         continue;
       }
       onStep(describeTool('${uses.first['name']}'));
@@ -362,6 +354,20 @@ class Agent {
       });
     }
     return _close('I stopped after too many tool calls in a row. Please rephrase the request.');
+  }
+
+  /// Small models create a note and answer without writing into it: asks once
+  /// more when a note this turn made is still empty; whether it asked.
+  bool _remindEmpty() {
+    final empty = toolbox.stillEmpty();
+    if (empty.isEmpty) return false;
+    messages.add({
+      'role': 'user',
+      'content': [
+        {'type': 'text', 'text': emptyNoteReminder(empty)},
+      ],
+    });
+    return true;
   }
 
   /// Ends the turn with an assistant message so user and assistant keep alternating.
