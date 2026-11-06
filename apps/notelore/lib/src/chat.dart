@@ -1594,7 +1594,7 @@ class _BubbleText extends StatelessWidget {
 }
 
 /// [text] formatted, every part in the bubble's own colour [style] so it reads
-/// on the bubble in every palette, light and dark; links open in the browser.
+/// on the bubble in both themes; links open in the browser.
 /// One selection runs across the whole answer (#335).
 Widget _markdown(BuildContext context, String text, TextStyle style) {
   final theme = Theme.of(context);

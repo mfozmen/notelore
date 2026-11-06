@@ -10,7 +10,6 @@ import 'theme.dart';
 final class SharedPrefs {
   const SharedPrefs({
     this.language,
-    this.palette,
     this.appearance,
     this.webSearch,
     this.aboutMeToCloud,
@@ -20,7 +19,6 @@ final class SharedPrefs {
 
   factory SharedPrefs.fromJson(Map<Object?, Object?> json) => SharedPrefs(
     language: _named(AppLanguage.values, json['language']),
-    palette: _named(Palette.values, json['palette']),
     appearance: _named(Appearance.values, json['appearance']),
     webSearch: json['webSearch'] is bool ? json['webSearch']! as bool : null,
     aboutMeToCloud: json['aboutMeToCloud'] is bool ? json['aboutMeToCloud']! as bool : null,
@@ -29,7 +27,6 @@ final class SharedPrefs {
   );
 
   final AppLanguage? language;
-  final Palette? palette;
   final Appearance? appearance;
   final bool? webSearch;
   final bool? aboutMeToCloud;
@@ -38,7 +35,6 @@ final class SharedPrefs {
 
   Map<String, Object?> toJson() => {
     'language': ?language?.name,
-    'palette': ?palette?.name,
     'appearance': ?appearance?.name,
     'webSearch': ?webSearch,
     'aboutMeToCloud': ?aboutMeToCloud,

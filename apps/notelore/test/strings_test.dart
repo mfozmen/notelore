@@ -534,7 +534,6 @@ void main() {
       'microphone': s.microphone,
       'systemMicrophone': s.systemMicrophone,
       'listMicrophones': s.listMicrophones,
-      for (final palette in Palette.values) palette.name: s.paletteName(palette),
       for (final a in Appearance.values) 'appearance-${a.name}': s.appearanceName(a),
     };
     final english = all(en);

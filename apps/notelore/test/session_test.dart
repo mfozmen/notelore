@@ -874,22 +874,17 @@ void main() {
     expect(damaged.strings.languageCode, 'tr');
   });
 
-  test('the theme and the appearance: picked, remembered, lagoon and system by default', () async {
+  test('the appearance: picked, remembered, system by default', () async {
     final harness = Harness();
     final first = harness.session();
     await first.load();
-    expect(first.palette, Palette.lagoon);
     expect(first.appearance, Appearance.system);
     first
-      ..setPalette(Palette.forest)
       ..setAppearance(Appearance.dark)
       ..setLanguage(AppLanguage.tr);
     final again = harness.session();
     await again.load();
-    expect(
-      (again.palette, again.appearance, again.language),
-      (Palette.forest, Appearance.dark, AppLanguage.tr),
-    );
+    expect((again.appearance, again.language), (Appearance.dark, AppLanguage.tr));
   });
 
   test('the chat text zooms in steps, stops at the ends and resets (#696)', () async {

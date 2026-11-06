@@ -2108,48 +2108,19 @@ void main() {
     expect(find.text('Not available with this provider.'), findsOneWidget);
   });
 
-  testWidgets('settings: pick a nature theme and dark mode', (tester) async {
+  testWidgets('settings: pick dark mode', (tester) async {
     phone(tester);
     final harness = Harness();
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     await openSettings(tester, 'Appearance');
-    await tester.scrollUntilVisible(
-      find.byTooltip('Pine forest'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.byTooltip('Pine forest'));
-    await tester.pumpAndSettle();
-    expect(session.palette, Palette.forest);
     await tester.tap(find.text('Dark'));
     await tester.pumpAndSettle();
     expect(session.appearance, Appearance.dark);
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.themeMode, ThemeMode.dark);
-    expect(
-      app.darkTheme!.colorScheme.primary,
-      noteloreTheme(Brightness.dark, Palette.forest).colorScheme.primary,
-    );
+    expect(app.darkTheme!.colorScheme.primary, noteloreTheme(Brightness.dark).colorScheme.primary);
   });
-
-  for (final scale in [1.0, 2.0]) {
-    testWidgets('settings: the six theme swatches fit one row at ${scale}x (#717)', (tester) async {
-      phone(tester);
-      tester.platformDispatcher.textScaleFactorTestValue = scale;
-      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-      await pumpApp(tester, Harness());
-      await connect(tester, key: 'k');
-      await openSettings(tester, 'Appearance');
-      final labels = EnglishStrings();
-      final tops = {
-        for (final palette in Palette.values)
-          tester.getTopLeft(find.byTooltip(labels.paletteName(palette))).dy,
-      };
-      expect(tops, hasLength(1));
-      expect(tester.takeException(), isNull);
-    });
-  }
 
   testWidgets('settings: the appearance choices wrap at 2x without breaking a word (#714)', (
     tester,
@@ -2164,21 +2135,6 @@ void main() {
     final system = tester.getSize(find.text('System'));
     final dark = tester.getSize(find.text('Dark'));
     expect(system.height, dark.height); // a two-line System would be twice as tall
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('settings: the swatches split 3 + 3 when six do not fit (#717)', (tester) async {
-    phone(tester);
-    tester.view.physicalSize = const Size(900, 2400); // 360 dp
-    await pumpApp(tester, Harness());
-    await connect(tester, key: 'k');
-    await openSettings(tester, 'Appearance');
-    final labels = EnglishStrings();
-    final tops = {
-      for (final palette in Palette.values)
-        tester.getTopLeft(find.byTooltip(labels.paletteName(palette))).dy,
-    };
-    expect(tops, hasLength(2));
     expect(tester.takeException(), isNull);
   });
 
