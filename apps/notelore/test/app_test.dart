@@ -16,6 +16,7 @@ import 'package:notelore/src/chat.dart';
 import 'package:notelore/src/empty_state.dart';
 import 'package:notelore/src/mark.dart';
 import 'package:notelore/src/note_view.dart';
+import 'package:notelore/src/section_label.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/settings.dart';
 import 'package:notelore/src/share_in.dart';
@@ -3367,5 +3368,44 @@ void main() {
       await settleUntil(tester, () => session.deviceUpdate == DeviceUpdate.failed);
       expect(find.text(session.strings.deviceUpdateFailed), findsOneWidget);
     });
+  });
+
+  testWidgets('app: the phone bar wears the brand label, the menu the surface (#782)', (
+    tester,
+  ) async {
+    phone(tester);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    final theme = Theme.of(tester.element(find.text('Notelore')));
+    final label = theme.extension<NoteloreTokens>()!.label;
+    expect(tester.widget<Text>(find.text('Notelore')).style!.fontFamily, label.fontFamily);
+    expect(find.descendant(of: find.byType(AppBar), matching: find.byType(Star)), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    final drawer = tester.widget<Drawer>(find.byType(Drawer));
+    expect(drawer.backgroundColor, theme.colorScheme.surface);
+    expect((drawer.shape! as RoundedRectangleBorder).side.color, theme.colorScheme.outlineVariant);
+    final settings = find.descendant(of: find.byType(Drawer), matching: find.text('Settings'));
+    expect(tester.widget<Text>(settings).style!.fontFamily, label.fontFamily);
+  });
+
+  testWidgets('app: Orman glows at the top of the main screens (#782)', (tester) async {
+    phone(tester);
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    final glow = Theme.of(tester.element(find.byType(ChatScreen)))
+        .extension<NoteloreTokens>()!
+        .glow;
+    expect(
+      find.byWidgetPredicate(
+        (w) =>
+            w is DecoratedBox &&
+            w.decoration is BoxDecoration &&
+            (w.decoration as BoxDecoration).gradient == glow,
+      ),
+      findsOneWidget,
+    );
   });
 }

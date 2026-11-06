@@ -323,7 +323,10 @@ ThemeData noteloreTheme(Brightness brightness) {
       backgroundColor: colors.surfaceContainerLow,
     ),
     snackBarTheme: SnackBarThemeData(behavior: SnackBarBehavior.floating, shape: rounded),
-    bannerTheme: MaterialBannerThemeData(backgroundColor: colors.secondaryContainer),
+    bannerTheme: MaterialBannerThemeData(
+      backgroundColor: colors.surfaceContainerLow,
+      dividerColor: colors.outlineVariant,
+    ),
     // No pill: the chosen tab is told by the accent alone (its labels are sized in Home).
     navigationBarTheme: NavigationBarThemeData(
       elevation: 0,

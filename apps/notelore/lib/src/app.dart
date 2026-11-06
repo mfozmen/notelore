@@ -12,6 +12,7 @@ import 'chat.dart';
 import 'lock.dart';
 import 'mark.dart';
 import 'notes.dart';
+import 'section_label.dart' show Label;
 import 'session.dart';
 import 'settings.dart';
 import 'setup.dart';
@@ -353,7 +354,14 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     // Below the menu, to find it.
     0 when !wide => Builder(
       builder: (context) => Scaffold(
-        appBar: AppBar(leading: AppMenu.button(context), title: const Text('Notelore')),
+        // Clear, so the night's glow behind Home shows through.
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          leading: AppMenu.button(context),
+          titleSpacing: Gap.xs,
+          title: const Brand(),
+        ),
         body: ChatScreen(widget.session),
       ),
     ),
@@ -446,22 +454,26 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 updateNow: _updateFromSettings,
               ),
             ),
-      body: SafeArea(
-        child: wide
-            ? Row(
-                children: [
-                  _SideRail(
-                    destinations,
-                    session: widget.session,
-                    selected: tab,
-                    select: select,
-                    extended: width >= Layout.roomy,
-                  ),
-                  const VerticalDivider(width: 1),
-                  Expanded(child: page),
-                ],
-              )
-            : AppMenu(open: () => _scaffold.currentState!.openDrawer(), child: page),
+      // Orman's glow at the top of the screen, from under the status bar; none by day.
+      body: DecoratedBox(
+        decoration: BoxDecoration(gradient: Theme.of(context).extension<NoteloreTokens>()!.glow),
+        child: SafeArea(
+          child: wide
+              ? Row(
+                  children: [
+                    _SideRail(
+                      destinations,
+                      session: widget.session,
+                      selected: tab,
+                      select: select,
+                      extended: width >= Layout.roomy,
+                    ),
+                    const VerticalDivider(width: 1),
+                    Expanded(child: page),
+                  ],
+                )
+              : AppMenu(open: () => _scaffold.currentState!.openDrawer(), child: page),
+        ),
       ),
       bottomNavigationBar: wide
           ? null
@@ -521,6 +533,11 @@ class _Menu extends StatelessWidget {
     final s = session.strings;
     final theme = Theme.of(context);
     return Drawer(
+      backgroundColor: theme.colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.horizontal(right: Radius.circular(24)),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
+      ),
       child: SafeArea(
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: Gap.s),
@@ -531,11 +548,8 @@ class _Menu extends StatelessWidget {
               title: Text('Notelore', style: theme.textTheme.titleLarge),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, Gap.xs),
-              child: Text(
-                s.settings,
-                style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
-              ),
+              padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.xs),
+              child: Label(s.settings),
             ),
             SettingsCategories(
               session,
@@ -588,7 +602,7 @@ class _SignInBannerState extends State<_SignInBanner> {
     final s = widget.session.strings;
     final colors = Theme.of(context).colorScheme;
     return MaterialBanner(
-      leading: Icon(Icons.cloud_off_outlined, color: colors.onSecondaryContainer),
+      leading: Icon(Icons.cloud_off_outlined, color: colors.primary),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Gap.s,
@@ -637,7 +651,7 @@ class _CalendarBannerState extends State<_CalendarBanner> {
     final s = session.strings;
     final colors = Theme.of(context).colorScheme;
     return MaterialBanner(
-      leading: Icon(Icons.event_available_outlined, color: colors.onSecondaryContainer),
+      leading: Icon(Icons.event_available_outlined, color: colors.primary),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Gap.s,
@@ -715,10 +729,7 @@ class _HeldBanner extends StatelessWidget {
     final s = session.strings;
     final idle = !session.syncing;
     return MaterialBanner(
-      leading: Icon(
-        Icons.cloud_off_outlined,
-        color: Theme.of(context).colorScheme.onSecondaryContainer,
-      ),
+      leading: Icon(Icons.cloud_off_outlined, color: Theme.of(context).colorScheme.primary),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Gap.s,
@@ -734,6 +745,14 @@ class _HeldBanner extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The app's name at the top of the chat and the rail, as a label.
+class Brand extends StatelessWidget {
+  const Brand({super.key});
+
+  @override
+  Widget build(BuildContext context) => const Label('Notelore', size: 12);
 }
 
 /// A banner keeps to the chat's readable column on a wide window (#769).
@@ -764,7 +783,7 @@ class _DeviceUpdateBanner extends StatelessWidget {
         DeviceUpdate.failed => Icons.error_outline,
         DeviceUpdate.done => Icons.check_circle_outline,
         _ => Icons.download_outlined,
-      }, color: colors.onSecondaryContainer),
+      }, color: colors.primary),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Gap.s,
@@ -779,7 +798,7 @@ class _DeviceUpdateBanner extends StatelessWidget {
             LinearProgressIndicator(
               value: percent / 100,
               // The banner's own colour would hide the track: how much is left.
-              backgroundColor: colors.onSecondaryContainer.withValues(alpha: 0.24),
+              backgroundColor: colors.primary.withValues(alpha: 0.24),
               minHeight: Gap.xs,
               borderRadius: BorderRadius.circular(Gap.xs),
               semanticsLabel: s.downloadingModel,
@@ -923,9 +942,18 @@ class _SideRail extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final labels = theme.textTheme.labelLarge!;
+    final colors = theme.colorScheme;
     return NavigationRail(
       extended: extended,
-      minExtendedWidth: 220,
+      minExtendedWidth: 232,
+      // Clear, so the night's glow shows through; the chosen item on a card.
+      backgroundColor: Colors.transparent,
+      useIndicator: true,
+      indicatorColor: colors.surfaceContainerLow,
+      indicatorShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: colors.outlineVariant),
+      ),
       // Labels sized for reading at a desk, not a phone's caption.
       selectedLabelTextStyle: labels.copyWith(
         fontWeight: FontWeight.w600,
@@ -936,10 +964,7 @@ class _SideRail extends StatelessWidget {
       selectedIndex: selected,
       onDestinationSelected: select,
       leading: extended
-          ? Padding(
-              padding: const EdgeInsets.fromLTRB(Gap.s, Gap.m, 0, Gap.m),
-              child: Text('Notelore', style: theme.textTheme.titleLarge),
-            )
+          ? const Padding(padding: EdgeInsets.fromLTRB(Gap.s, Gap.m, 0, Gap.l), child: Brand())
           : null,
       destinations: [
         for (final (icon, chosen, label) in destinations)
@@ -949,6 +974,7 @@ class _SideRail extends StatelessWidget {
             label: Text(label),
           ),
       ],
+      trailingAtBottom: true,
       trailing: Padding(
         padding: const EdgeInsets.only(bottom: Gap.m),
         child: SyncState(session, extended: extended),

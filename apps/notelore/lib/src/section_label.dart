@@ -75,6 +75,27 @@ class SectionLabel extends StatelessWidget {
   }
 }
 
+/// A small mono section label in the accent, after the look's star.
+class Label extends StatelessWidget {
+  const Label(this.text, {this.size, super.key});
+
+  final String text;
+  final double? size;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).extension<NoteloreTokens>()!.label.copyWith(fontSize: size);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      spacing: Gap.s,
+      children: [
+        Star(style.color!),
+        Flexible(child: Text(text, style: style)),
+      ],
+    );
+  }
+}
+
 /// The look's four-pointed star, drawn: no bundled font has the glyph.
 class Star extends StatelessWidget {
   const Star(this.color, {super.key});
