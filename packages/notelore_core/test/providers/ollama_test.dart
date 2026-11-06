@@ -53,6 +53,18 @@ void main() {
     expect(answer('No tags here.'), 'No tags here.');
   });
 
+  test('fromOllama drops the one-line plan a fine-tuned model writes first (#608)', () {
+    String? answer(String content) =>
+        fromOllama({
+              'message': {'content': content},
+            }).content.firstOrNull?['text']
+            as String?;
+    expect(answer('plan: ev-tadilati → complete_todo'), isNull);
+    expect(answer('plan: books → answer\nTwo books are on it.'), 'Two books are on it.');
+    expect(answer('<think>x</think>\nplan: - → ask\nWhich note?'), 'Which note?');
+    expect(answer('The plan: start Monday.'), 'The plan: start Monday.');
+  });
+
   test('fromOllama variants', () {
     expect(fromOllama({}).content, isEmpty);
     final text = fromOllama({

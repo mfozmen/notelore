@@ -94,12 +94,16 @@ List<Map<String, Object?>> _toOllama(Message message, Map<String, String> names)
 }
 
 /// The reply without the reasoning a thinking model leaks into it even with
-/// `think: false`: everything up to the last `</think>` (#348).
+/// `think: false`: everything up to the last `</think>` (#348), and without the
+/// `plan: <note> → <action>` line a fine-tuned model may write first (#608).
 Object? _answer(Object? content) {
   if (content is! String) return content;
   final end = content.lastIndexOf('</think>');
-  return end < 0 ? content : content.substring(end + '</think>'.length).trim();
+  final text = end < 0 ? content : content.substring(end + '</think>'.length).trim();
+  return text.replaceFirst(_plan, '');
 }
+
+final _plan = RegExp(r'^plan: [^\n]* → [^\n]*(\n|$)');
 
 AgentResponse fromOllama(Map<String, Object?> answer) {
   final message = answer['message'] as Map<String, Object?>?;
