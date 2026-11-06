@@ -249,7 +249,7 @@ Findings:
 **Setup**
 - v8 data: 1,542 turns from 579 scenarios, twice v7's 769. It is v7's turns plus 773 new ones distilled by glm-5.3-flash, with glm-5.3 for the scenarios flash never passed.
 - v7's recipe: rank 16, one epoch, the loss on the answer alone, learning rate 2e-4.
-- Trained on Kaggle's T4 across two sessions (#740), 174 steps in about 16 hours, nearly 3 of them in the validation pass every 40 steps (27 minutes each). The validation loss fell from 0.402 at step 40 to 0.334 at the last step.
+- Trained on Kaggle's T4 across two sessions (#740), 174 steps in about 16 hours, about 2.5 of them in the five validation passes (27–30 minutes each). The validation loss fell from 0.402 at step 40 to 0.334 at the last step.
 - Q4_K_M, greedy, slim, on main with #731 and #733.
 
 | | Held-out (292) | 44 cases × 2 |
