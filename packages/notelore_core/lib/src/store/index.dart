@@ -22,7 +22,7 @@ import 'notes.dart';
 const _schema = '''
 CREATE TABLE files(
     path TEXT PRIMARY KEY, slug TEXT, kind TEXT, title TEXT, updated TEXT,
-    stamp TEXT, hash TEXT, tags TEXT, excerpt TEXT, open_todos INTEGER);
+    stamp TEXT, hash TEXT, pinned INTEGER, tags TEXT, excerpt TEXT, open_todos INTEGER);
 CREATE TABLE decisions(path TEXT, date TEXT, topic TEXT, text TEXT, superseded TEXT);
 CREATE INDEX decisions_by_topic ON decisions(path, topic);
 ''';
@@ -51,6 +51,7 @@ final class NoteInfo {
     this.kind,
     this.title,
     this.updated, {
+    this.pinned = false,
     this.excerpt = '',
     this.tags = const [],
     this.openTodos = 0,
@@ -60,6 +61,7 @@ final class NoteInfo {
   final String kind;
   final String title;
   final DateTime? updated;
+  final bool pinned;
 
   /// The newest entry's words, for the list row (#773).
   final String excerpt;
@@ -77,6 +79,7 @@ final class NoteInfo {
       other.kind == kind &&
       other.title == title &&
       other.updated == updated &&
+      other.pinned == pinned &&
       other.excerpt == excerpt &&
       other.tags.length == tags.length &&
       Iterable<int>.generate(tags.length).every((i) => other.tags[i] == tags[i]) &&
@@ -84,10 +87,11 @@ final class NoteInfo {
 
   @override
   int get hashCode =>
-      Object.hash(slug, kind, title, updated, excerpt, Object.hashAll(tags), openTodos);
+      Object.hash(slug, kind, title, updated, pinned, excerpt, Object.hashAll(tags), openTodos);
 
   @override
-  String toString() => 'NoteInfo($kind/$slug, $title, $updated, $excerpt, $tags, $openTodos)';
+  String toString() =>
+      'NoteInfo($kind/$slug, $title, $updated, pinned: $pinned, $excerpt, $tags, $openTodos)';
 }
 
 final class Hit {
@@ -381,8 +385,8 @@ class NoteIndex {
       // every rebuild) but with no title, which keeps it out of every listing.
       _db.execute(
         'INSERT INTO files'
-        ' (path, slug, kind, title, updated, stamp, hash, tags, excerpt, open_todos)'
-        " VALUES (?, ?, ?, NULL, '', ?, ?, '', '', 0)",
+        ' (path, slug, kind, title, updated, stamp, hash, pinned, tags, excerpt, open_todos)'
+        " VALUES (?, ?, ?, NULL, '', ?, ?, 0, '', '', 0)",
         [rel, slug, kind, stamp, digest],
       );
       return;
@@ -411,9 +415,21 @@ class NoteIndex {
     }
     _db.execute(
       'INSERT INTO files'
-      ' (path, slug, kind, title, updated, stamp, hash, tags, excerpt, open_todos)'
-      ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [rel, slug, kind, note.title, updated, stamp, digest, tags.join('\n'), excerpt, openTodos],
+      ' (path, slug, kind, title, updated, stamp, hash, pinned, tags, excerpt, open_todos)'
+      ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        rel,
+        slug,
+        kind,
+        note.title,
+        updated,
+        stamp,
+        digest,
+        note.meta['pinned'] == true ? 1 : 0,
+        tags.join('\n'),
+        excerpt,
+        openTodos,
+      ],
     );
   }
 
@@ -458,7 +474,7 @@ class NoteIndex {
 
   List<NoteInfo> listNotes({String? kind}) => [
     for (final row in _db.select(
-      'SELECT slug, kind, title, updated, tags, excerpt, open_todos FROM files'
+      'SELECT slug, kind, title, updated, pinned, tags, excerpt, open_todos FROM files'
       ' WHERE title IS NOT NULL AND (?1 IS NULL OR kind = ?1) ORDER BY updated DESC, slug',
       [kind],
     ))
@@ -467,12 +483,13 @@ class NoteIndex {
         row.columnAt(1) as String,
         row.columnAt(2) as String,
         _day(row.columnAt(3) as String?),
-        excerpt: row.columnAt(5) as String? ?? '',
-        tags: switch (row.columnAt(4)) {
+        pinned: row.columnAt(4) == 1,
+        excerpt: row.columnAt(6) as String? ?? '',
+        tags: switch (row.columnAt(5)) {
           final String tags when tags.isNotEmpty => tags.split('\n'),
           _ => const [],
         },
-        openTodos: row.columnAt(6) as int? ?? 0,
+        openTodos: row.columnAt(7) as int? ?? 0,
       ),
   ];
 

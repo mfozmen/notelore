@@ -770,6 +770,28 @@ void main() {
     });
   });
 
+  group('setPinned', () {
+    test('writes pinned: true and takes it out again, the rest byte for byte', () {
+      final path = createNote(root, 'topic', 'Books', today: d(2026, 9, 1));
+      final before = File(path).readAsStringSync();
+      setPinned(path, pinned: true);
+      expect(
+        File(path).readAsStringSync(),
+        before.replaceFirst('updated: 2026-09-01\n', 'updated: 2026-09-01\npinned: true\n'),
+      );
+      expect(readNote(path).meta['pinned'], isTrue);
+      setPinned(path, pinned: false);
+      expect(File(path).readAsStringSync(), before);
+    });
+
+    test('refuses a change that changes nothing', () {
+      final path = createNote(root, 'topic', 'Books', today: d(2026, 9, 1));
+      expect(() => setPinned(path, pinned: false), throwsArgumentError);
+      setPinned(path, pinned: true);
+      expect(() => setPinned(path, pinned: true), throwsArgumentError);
+    });
+  });
+
   group('recategorize', () {
     late String path;
     setUp(() {

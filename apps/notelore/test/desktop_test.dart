@@ -107,13 +107,13 @@ void main() {
     expect(find.textContaining('opens without asking'), findsOneWidget);
   });
 
-  testWidgets('chat on a wide window uses the width, in a capped column (#697)', (tester) async {
+  testWidgets('chat on a wide window uses the width for its composer (#697, #771)', (tester) async {
     desktop(tester, 1920);
     await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
     final width = tester.getSize(find.byType(TextField).last).width;
-    expect(width, greaterThan(560));
-    expect(width, lessThanOrEqualTo(Layout.column));
+    expect(width, greaterThan(1000));
+    expect(width, lessThanOrEqualTo(Layout.chat));
   });
 
   testWidgets('chat on a wide window uses the width: bubbles, composer, zoom (#697)', (
@@ -133,10 +133,7 @@ void main() {
         .width;
     final bubble = bubbleWidth();
     expect(bubble, greaterThan(560));
-    expect(
-      tester.getSize(find.byKey(const Key('message'))).width,
-      lessThanOrEqualTo(Layout.column),
-    );
+    expect(tester.getSize(find.byKey(const Key('message'))).width, lessThanOrEqualTo(Layout.chat));
     // A short message shows the character cap moving with the text scale.
     const short = 'Kitaplari rafa koy';
     await tester.enterText(find.byKey(const Key('message')), short);
@@ -171,13 +168,16 @@ void main() {
     expect(bubble, lessThanOrEqualTo(window * 0.85 + 0.5));
   });
 
-  testWidgets('chat on a wide window: the composer and examples stay readable (#707)', (
+  testWidgets('chat on a wide window: the composer and examples share the conversation (#771)', (
     tester,
   ) async {
     desktop(tester, 1400);
     await pumpApp(tester, Harness(answers: ['Saved.']));
     await connect(tester, key: 'k');
-    expect(tester.getSize(find.byType(TextField).last).width, lessThanOrEqualTo(Layout.column));
+    final field = tester.getSize(find.byType(TextField).last).width;
+    expect(field, greaterThan(Layout.column));
+    expect(field, lessThanOrEqualTo(Layout.chat));
+    expect(tester.getSize(find.byType(OutlinedButton).last).width, greaterThan(Layout.column));
     const long =
         'Kitaplari rafa koy ve haftaya dentist randevusunu hatirlat, sonra da kutuphane icin yeni bir proje notu ac ve icini doldur, boylece satirlar dolacak kadar uzun olsun.';
     await tester.enterText(find.byKey(const Key('message')), long);
@@ -185,6 +185,27 @@ void main() {
     await tester.tap(find.byTooltip('Send'));
     await tester.pumpAndSettle();
     expect(tester.getSize(find.text(long)).width, greaterThan(560));
+  });
+  testWidgets('desktop: the sync state sits at the foot of the compact rail (#774)', (
+    tester,
+  ) async {
+    desktop(tester, 1000);
+    final harness = Harness(auth: FakeAuth()..granted = true);
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await session.connectDrive();
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.cloud_done_outlined), findsOneWidget);
+  });
+
+  testWidgets('desktop: the sync state sits at the foot of the rail (#774)', (tester) async {
+    desktop(tester, 1600);
+    final harness = Harness(auth: FakeAuth()..granted = true);
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await session.connectDrive();
+    await tester.pumpAndSettle();
+    expect(find.text('Synced just now'), findsOneWidget);
   });
   testWidgets('notes on a wide window: the list and the open note side by side', (tester) async {
     desktop(tester, 1600);
@@ -229,6 +250,28 @@ void main() {
     final field = tester.getRect(find.byKey(const Key('notes-search')));
     final icon = tester.getRect(find.byIcon(Icons.more_vert));
     expect(icon.right, closeTo(field.right, 0.5));
+  });
+
+  testWidgets('notes on a wide window: Pin in the open note moves it under Pinned (#775)', (
+    tester,
+  ) async {
+    desktop(tester, 1600);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    createNote(harness.paths.notes.path, 'topic', 'Filmler', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Pin'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Unpin'), findsOneWidget);
+    expect(find.text('Pinned'), findsOneWidget);
+    await tester.tap(find.byTooltip('Unpin'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pinned'), findsNothing);
   });
 
   testWidgets('notes on a wide window: a todo checkbox writes the note (#512)', (tester) async {

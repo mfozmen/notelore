@@ -79,6 +79,7 @@ void main() {
       'related_notes',
       'merge_notes',
       'recategorize',
+      'pin_note',
       'remember_about_me',
       'update_about_me',
       'forget_about_me',
@@ -375,6 +376,18 @@ void main() {
     expect(call('read_note', {'slug': 'home-lab'}), contains('Bought a second switch.'));
     expect(call('recategorize', {'slug': 'home-lab'}), startsWith('Error:'));
     expect(call('recategorize', {'slug': 'gone', 'to_kind': 'topic'}), startsWith('Error:'));
+  });
+
+  test('pin_note pins a note to the top of the list and unpins it (#775)', () {
+    call('create_note', {'kind': 'topic', 'title': 'Books'});
+    expect((call('list_notes')! as List).single, isNot(contains('pinned')));
+    expect(call('pin_note', {'slug': 'books', 'pinned': true}), 'ok');
+    expect((call('list_notes')! as List).single, containsPair('pinned', true));
+    expect(call('read_note', {'slug': 'books'}), contains('pinned: true'));
+    expect(call('pin_note', {'slug': 'books', 'pinned': true}), startsWith('Error:'));
+    expect(call('pin_note', {'slug': 'books', 'pinned': false}), 'ok');
+    expect((call('list_notes')! as List).single, isNot(contains('pinned')));
+    expect(call('pin_note', {'slug': 'books', 'pinned': 'yes'}), startsWith('Error:'));
   });
 
   test('the about-me tools keep current facts and go into a block for the prompt (#646)', () {
@@ -772,6 +785,7 @@ void schemaTests() {
       'find_stale_notes',
       'decision_history',
       'recategorize',
+      'pin_note',
       'remember_about_me',
       'update_about_me',
       'forget_about_me',

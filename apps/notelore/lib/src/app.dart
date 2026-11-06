@@ -16,6 +16,7 @@ import 'session.dart';
 import 'settings.dart';
 import 'setup.dart';
 import 'strings.dart';
+import 'sync_state.dart';
 import 'theme.dart';
 import 'update.dart';
 
@@ -446,6 +447,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 children: [
                   _SideRail(
                     destinations,
+                    session: widget.session,
                     selected: tab,
                     select: select,
                     extended: width >= Layout.roomy,
@@ -889,12 +891,14 @@ class _UpdateBanner extends StatelessWidget {
 class _SideRail extends StatelessWidget {
   const _SideRail(
     this.destinations, {
+    required this.session,
     required this.selected,
     required this.select,
     required this.extended,
   });
 
   final List<(IconData, IconData, String)> destinations;
+  final Session session;
   final int selected;
   final ValueChanged<int> select;
   final bool extended;
@@ -926,6 +930,10 @@ class _SideRail extends StatelessWidget {
             label: Text(label),
           ),
       ],
+      trailing: Padding(
+        padding: const EdgeInsets.only(bottom: Gap.m),
+        child: SyncState(session, extended: extended),
+      ),
     );
   }
 }

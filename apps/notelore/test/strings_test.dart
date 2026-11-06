@@ -167,6 +167,16 @@ void main() {
     expect(tr.noteSubtitle('other', 'x'), startsWith('other'));
   });
 
+  test('the sync state says how long ago, in both languages (#774)', () {
+    expect(en.syncedAgo(const Duration(seconds: 20)), 'Synced just now');
+    expect(en.syncedAgo(const Duration(minutes: 2)), 'Synced 2 min ago');
+    expect(en.syncedAgo(const Duration(hours: 3)), 'Synced 3 h ago');
+    expect(en.syncedAgo(const Duration(days: 2)), 'Synced 2 d ago');
+    expect(tr.syncedAgo(const Duration(minutes: 2)), '2 dk önce eşitlendi');
+    expect(tr.syncedAgo(const Duration(hours: 3)), '3 sa önce eşitlendi');
+    expect(tr.syncedAgo(const Duration(days: 2)), '2 gün önce eşitlendi');
+  });
+
   test('every entry exists in both languages, and the Turkish is Turkish', () {
     Map<String, String> all(Strings s) => {
       'chat': s.chat,
@@ -316,6 +326,10 @@ void main() {
       'resetReason': s.resetReason,
       'unlock': s.unlock,
       'wrongSecret': s.wrongSecret,
+      'pin': s.pin,
+      'unpin': s.unpin,
+      'pinnedNotes': s.pinnedNotes,
+      'otherNotes': s.otherNotes,
       'export': s.export,
       'exportNotes': s.exportNotes,
       'importNotes': s.importNotes,
@@ -450,6 +464,10 @@ void main() {
       'update': s.update,
       'allowInstalls': s.allowInstalls,
       'offline': s.offline,
+      'syncingNow': s.syncingNow,
+      'syncFailed': s.syncFailed,
+      'syncNever': s.syncNever,
+      'syncedAgo': s.syncedAgo(const Duration(minutes: 2)),
       'drivePermissionAgain': s.drivePermissionAgain,
       'signedOutOfGoogle': s.signedOutOfGoogle,
       'driveUnreachable': s.driveUnreachable,
@@ -470,8 +488,6 @@ void main() {
       'noteKind': s.noteKind('project') + s.noteKind('topic') + s.noteKind('x'),
       'updatedOn': s.updatedOn('d'),
       'earlierDecisions': s.earlierDecisions(2),
-      'decisionsHelp': s.decisionsHelp,
-      'todosHelp': s.todosHelp,
       'supersededOn': s.supersededOn('d'),
       'overdue': s.overdue('d'),
       'reminderPassed': s.reminderPassed('d'),

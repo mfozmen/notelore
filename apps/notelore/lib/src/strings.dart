@@ -235,6 +235,11 @@ abstract class Strings {
   String alreadyGone(String title);
   String movedToArchive(String title);
 
+  String get pin;
+  String get unpin;
+  String get pinnedNotes;
+  String get otherNotes;
+
   /// Export, share and import (#215).
   String get export;
   String get exportNotes;
@@ -428,8 +433,6 @@ abstract class Strings {
   String noteKind(String kind);
   String updatedOn(String date);
   String earlierDecisions(int count);
-  String get decisionsHelp;
-  String get todosHelp;
   String supersededOn(String date);
   String overdue(String date);
   String reminderPassed(String date);
@@ -564,6 +567,12 @@ abstract class Strings {
 
   // Sync status.
   String get offline;
+
+  // Sync state on the main screens (#774).
+  String get syncingNow;
+  String get syncFailed;
+  String get syncNever;
+  String syncedAgo(Duration since);
   // Drive's status in plain words, never a provider's raw message (#480).
   String get drivePermissionAgain;
   String get drivePermissionsAll;
@@ -1068,6 +1077,14 @@ class EnglishStrings extends Strings {
   @override
   String movedToArchive(String title) => 'Moved "$title" to the archive.';
   @override
+  String get pin => 'Pin';
+  @override
+  String get unpin => 'Unpin';
+  @override
+  String get pinnedNotes => 'Pinned';
+  @override
+  String get otherNotes => 'Others';
+  @override
   String get export => 'Export';
   @override
   String get exportNotes => 'Export notes';
@@ -1324,10 +1341,6 @@ class EnglishStrings extends Strings {
   String updatedOn(String date) => 'Updated $date';
   @override
   String earlierDecisions(int count) => 'Earlier decisions ($count)';
-  @override
-  String get decisionsHelp => 'Choices already made, with the reason when one was recorded.';
-  @override
-  String get todosHelp => 'Work still to do; the date is when it is due.';
   @override
   String supersededOn(String date) => 'superseded $date';
   @override
@@ -1631,6 +1644,20 @@ class EnglishStrings extends Strings {
 
   @override
   String get offline => 'Offline; your notes will sync when the connection is back.';
+  @override
+  String get syncingNow => 'Syncing…';
+  @override
+  String get syncFailed => 'Not synced';
+  @override
+  String get syncNever => 'Not synced yet';
+  @override
+  String syncedAgo(Duration since) {
+    if (since.isNegative || since.inMinutes < 1) return 'Synced just now';
+    if (since.inMinutes < 60) return 'Synced ${since.inMinutes} min ago';
+    if (since.inHours < 24) return 'Synced ${since.inHours} h ago';
+    return 'Synced ${since.inDays} d ago';
+  }
+
   @override
   String get drivePermissionAgain => 'Sign in to Google again to keep syncing your notes.';
   @override
@@ -2220,6 +2247,14 @@ class TurkishStrings extends Strings {
   @override
   String movedToArchive(String title) => '"$title" arşive taşındı.';
   @override
+  String get pin => 'Sabitle';
+  @override
+  String get unpin => 'Sabitlemeyi kaldır';
+  @override
+  String get pinnedNotes => 'Sabitlenenler';
+  @override
+  String get otherNotes => 'Diğerleri';
+  @override
   String get export => 'Dışa aktar';
   @override
   String get exportNotes => 'Notları dışa aktar';
@@ -2471,10 +2506,6 @@ class TurkishStrings extends Strings {
   String updatedOn(String date) => 'Güncellendi $date';
   @override
   String earlierDecisions(int count) => 'Önceki kararlar ($count)';
-  @override
-  String get decisionsHelp => 'Verilmiş kararlar; gerekçe kaydedildiyse yanında görünür.';
-  @override
-  String get todosHelp => 'Hâlâ yapılacak işler; yanındaki tarih son tarihidir.';
   @override
   String supersededOn(String date) => '$date tarihinde değişti';
   @override
@@ -2774,6 +2805,20 @@ class TurkishStrings extends Strings {
 
   @override
   String get offline => 'Çevrimdışı; bağlantı gelince notların eşitlenecek.';
+  @override
+  String get syncingNow => 'Eşitleniyor…';
+  @override
+  String get syncFailed => 'Eşitlenmedi';
+  @override
+  String get syncNever => 'Henüz eşitlenmedi';
+  @override
+  String syncedAgo(Duration since) {
+    if (since.isNegative || since.inMinutes < 1) return 'Az önce eşitlendi';
+    if (since.inMinutes < 60) return '${since.inMinutes} dk önce eşitlendi';
+    if (since.inHours < 24) return '${since.inHours} sa önce eşitlendi';
+    return '${since.inDays} gün önce eşitlendi';
+  }
+
   @override
   String get drivePermissionAgain =>
       "Notlarının eşitlenmeye devam etmesi için Google'a yeniden giriş yap.";
