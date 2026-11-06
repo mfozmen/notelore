@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Written by tool/make_icons_test.dart: the mark's teal (#340). -->
+<!-- Written by tool/make_icons_test.dart: the mark's terracotta (#782). -->
 <resources>
-    <color name="ic_launcher_background">#0D9488</color>
+    <color name="ic_launcher_background">#C2410C</color>
 </resources>

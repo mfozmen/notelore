@@ -394,9 +394,12 @@ class _NotesScreenState extends State<NotesScreen> {
     final others = notes.where((n) => !n.pinned).toList();
     final now = widget.session.clock().toLocal();
     final today = DateTime(now.year, now.month, now.day);
+    // Only notes the list knows, so a row opens the same note a card does.
+    final known = {for (final note in all) (note.kind, note.slug): note};
     final coming = [
       for (final item in calendarItems(widget.session.paths.notes.path, today: today))
-        if (item.todo && !item.day.isBefore(today)) item,
+        if (item.todo && !item.day.isBefore(today) && known.containsKey((item.kind, item.slug)))
+          item,
     ];
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -406,11 +409,7 @@ class _NotesScreenState extends State<NotesScreen> {
           _ComingUp(
             coming,
             strings: s,
-            open: (item) => _openNote(
-              all.where((n) => n.kind == item.kind && n.slug == item.slug).firstOrNull ??
-                  NoteInfo(item.slug, item.kind, item.note, null),
-              wide: wide,
-            ),
+            open: (item) => _openNote(known[(item.kind, item.slug)]!, wide: wide),
           ),
         if (pinned.isNotEmpty) SectionLabel(s.pinnedNotes, strings: s),
         for (final note in pinned) _card(context, note, wide: wide),
@@ -431,64 +430,16 @@ class _NotesScreenState extends State<NotesScreen> {
     }
   }
 
-  Widget _card(BuildContext context, NoteInfo note, {required bool wide}) {
-    final s = widget.session.strings;
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final selected = wide && _isOpen(note);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Gap.s),
-      child: Card(
-        // The open note is told by its edge in the accent.
-        shape: selected
-            ? RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-                side: BorderSide(color: colors.primary),
-              )
-            : null,
-        clipBehavior: Clip.antiAlias,
-        child: ListTile(
-          contentPadding: const EdgeInsets.fromLTRB(12, 4, Gap.m, 4),
-          horizontalTitleGap: 12,
-          titleAlignment: ListTileTitleAlignment.top,
-          selectedColor: colors.onSurface,
-          // The kind at a glance: a folder for a project, a tag for a topic.
-          leading: CircleAvatar(
-            radius: 16,
-            backgroundColor: colors.primaryContainer,
-            foregroundColor: colors.primary,
-            child: Icon(
-              note.kind == 'project' ? Icons.folder_outlined : Icons.sell_outlined,
-              size: 18,
-            ),
-          ),
-          title: Text(
-            note.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleMedium?.copyWith(fontSize: 16, height: 1.25),
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: Gap.xs),
-            child: Text(
-              s.noteSubtitle(
-                note.kind,
-                note.updated == null
-                    ? '?'
-                    : s.shortDate(note.updated!, widget.session.clock().toLocal()),
-              ),
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontSize: 13,
-                color: colors.onSurfaceVariant,
-              ),
-            ),
-          ),
-          selected: selected,
-          onTap: () => _openNote(note, wide: wide),
-        ),
-      ),
-    );
-  }
+  Widget _card(BuildContext context, NoteInfo note, {required bool wide}) => Padding(
+    padding: const EdgeInsets.only(bottom: Gap.s),
+    child: _NoteRow(
+      note,
+      strings: widget.session.strings,
+      today: widget.session.clock().toLocal(),
+      selected: wide && _isOpen(note),
+      onTap: () => _openNote(note, wide: wide),
+    ),
+  );
 
   /// The open note beside the list, or where it will be.
   Widget _reader(BuildContext context) {
@@ -1019,6 +970,114 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                   ),
                 ),
         ),
+      ),
+    );
+  }
+}
+
+/// One note in the list: its title, newest words, kind, date, tags and open
+/// todos (#773).
+class _NoteRow extends StatelessWidget {
+  const _NoteRow(
+    this.note, {
+    required this.strings,
+    required this.today,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final NoteInfo note;
+  final Strings strings;
+  final DateTime today;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = strings;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final muted = theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant);
+    return Card(
+      // The open note is told by its edge in the accent.
+      shape: selected
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+              side: BorderSide(color: colors.primary),
+            )
+          : null,
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.fromLTRB(12, 4, Gap.m, 4),
+        horizontalTitleGap: 12,
+        titleAlignment: ListTileTitleAlignment.top,
+        selectedColor: colors.onSurface,
+        // The kind at a glance: a folder for a project, a tag for a topic.
+        leading: CircleAvatar(
+          radius: 16,
+          backgroundColor: colors.primaryContainer,
+          foregroundColor: colors.primary,
+          child: Icon(
+            note.kind == 'project' ? Icons.folder_outlined : Icons.sell_outlined,
+            size: 18,
+          ),
+        ),
+        title: Text(
+          note.title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleMedium?.copyWith(fontSize: 16, height: 1.25),
+        ),
+        isThreeLine: note.excerpt.isNotEmpty,
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (note.excerpt.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: Gap.xs),
+                child: Text(
+                  note.excerpt,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: muted?.copyWith(fontSize: 13, height: 1.4),
+                ),
+              ),
+            const SizedBox(height: Gap.xs),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    [
+                      s.noteSubtitle(
+                        note.kind,
+                        note.updated == null ? '?' : s.shortDate(note.updated!, today),
+                      ),
+                      if (note.tags.isNotEmpty) note.tags.map((tag) => '#$tag').join(' '),
+                    ].join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: muted,
+                  ),
+                ),
+                if (note.openTodos > 0)
+                  Semantics(
+                    container: true,
+                    label: s.openTodos(note.openTodos),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.checklist, size: 16, color: colors.primary),
+                        const SizedBox(width: Gap.xs),
+                        Text('${note.openTodos}', style: muted?.copyWith(color: colors.primary)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+        selected: selected,
+        onTap: onTap,
       ),
     );
   }
