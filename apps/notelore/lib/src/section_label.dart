@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'strings.dart';
 import 'theme.dart';
 
+/// The width a label leaves beside it: star 9, gaps 6 and 12, and 37 for the rest.
+const double _beside = 64;
+
 /// A section's heading: a star and its name in mono capitals, then a hairline
 /// fading to the right. Screen readers hear the name as written.
 class SectionLabel extends StatelessWidget {
@@ -45,7 +48,7 @@ class SectionLabel extends StatelessWidget {
               const SizedBox(width: 6),
               // As wide as its words, wrapping before the line runs out (large text).
               ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: max(0, box.maxWidth - 64)),
+                constraints: BoxConstraints(maxWidth: max(0, box.maxWidth - _beside)),
                 child: Text(strings.caps(text), semanticsLabel: text, style: style),
               ),
               const SizedBox(width: 12),
