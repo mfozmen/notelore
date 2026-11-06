@@ -363,6 +363,25 @@ void main() {
     expect(find.byTooltip('Archive'), findsOneWidget); // back in the notes
   });
 
+  testWidgets('settings: the pane is centred and Usage keeps the rail (#715)', (tester) async {
+    desktop(tester, 1600);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    // The readable column is centred in the pane, not at its left edge.
+    expect(tester.getTopLeft(find.text('Model in use')).dx, greaterThan(400));
+    await tester.tap(find.text('Advanced'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('open-usage')));
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.text('14 days'), findsOneWidget); // the usage view, in the pane
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('open-usage')), findsOneWidget); // the section again
+  });
+
   testWidgets('settings: the chat text size control keeps its width on a desktop (#716)', (
     tester,
   ) async {
