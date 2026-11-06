@@ -107,13 +107,13 @@ void main() {
     expect(find.textContaining('opens without asking'), findsOneWidget);
   });
 
-  testWidgets('chat on a wide window uses the width, in a capped column (#697)', (tester) async {
+  testWidgets('chat on a wide window uses the width for its composer (#697, #771)', (tester) async {
     desktop(tester, 1920);
     await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
     final width = tester.getSize(find.byType(TextField).last).width;
-    expect(width, greaterThan(560));
-    expect(width, lessThanOrEqualTo(Layout.column));
+    expect(width, greaterThan(1000));
+    expect(width, lessThanOrEqualTo(Layout.chat));
   });
 
   testWidgets('chat on a wide window uses the width: bubbles, composer, zoom (#697)', (
@@ -133,10 +133,7 @@ void main() {
         .width;
     final bubble = bubbleWidth();
     expect(bubble, greaterThan(560));
-    expect(
-      tester.getSize(find.byKey(const Key('message'))).width,
-      lessThanOrEqualTo(Layout.column),
-    );
+    expect(tester.getSize(find.byKey(const Key('message'))).width, lessThanOrEqualTo(Layout.chat));
     // A short message shows the character cap moving with the text scale.
     const short = 'Kitaplari rafa koy';
     await tester.enterText(find.byKey(const Key('message')), short);
@@ -171,13 +168,16 @@ void main() {
     expect(bubble, lessThanOrEqualTo(window * 0.85 + 0.5));
   });
 
-  testWidgets('chat on a wide window: the composer and examples stay readable (#707)', (
+  testWidgets('chat on a wide window: the composer and examples share the conversation (#771)', (
     tester,
   ) async {
     desktop(tester, 1400);
     await pumpApp(tester, Harness(answers: ['Saved.']));
     await connect(tester, key: 'k');
-    expect(tester.getSize(find.byType(TextField).last).width, lessThanOrEqualTo(Layout.column));
+    final field = tester.getSize(find.byType(TextField).last).width;
+    expect(field, greaterThan(Layout.column));
+    expect(field, lessThanOrEqualTo(Layout.chat));
+    expect(tester.getSize(find.byType(OutlinedButton).last).width, greaterThan(Layout.column));
     const long =
         'Kitaplari rafa koy ve haftaya dentist randevusunu hatirlat, sonra da kutuphane icin yeni bir proje notu ac ve icini doldur, boylece satirlar dolacak kadar uzun olsun.';
     await tester.enterText(find.byKey(const Key('message')), long);
