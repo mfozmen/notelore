@@ -333,6 +333,18 @@ void main() {
       expect(again.deviceModel.ready, isTrue);
     });
 
+    test('no file at all (deleted by hand): it is fetched again, once', () async {
+      final harness = await updated(metered: false);
+      final session = harness.session(deviceModels: true);
+      File(session.deviceModel.path('old.gguf')).deleteSync();
+      await session.load();
+      final second = session.downloadDeviceModel(); // the same download, not a second
+      await pumpEventQueue();
+      await Future.wait([session.deviceUpdating!, second]);
+      expect(session.deviceUpdate, DeviceUpdate.done);
+      expect(session.deviceModel.ready, isTrue);
+    });
+
     test('nothing to do on the current model, or on another one', () async {
       final harness = Harness()..metered = false;
       final session = harness.session(deviceModels: true);
