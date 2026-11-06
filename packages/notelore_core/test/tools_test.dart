@@ -596,6 +596,35 @@ void main() {
     );
   });
 
+  test('for the model on the device, an unchecked topic gets what related_notes finds', () {
+    box.checkTopics = true;
+    // Nothing there: the item goes into a collection note, not one of its own.
+    expect(
+      call('create_note', {'kind': 'topic', 'title': 'Saatleri Ayarlama Enstitüsü'}),
+      allOf(startsWith('Not created.'), contains('collection note for its kind')),
+    );
+    expect(
+      call('create_note', {'kind': 'topic', 'title': 'Saatleri Ayarlama Enstitüsü'}),
+      containsPair('slug', 'saatleri-ayarlama-enstitusu'),
+    );
+    // A note that fits is named without the model asking for it.
+    expect(
+      call('create_note', {'kind': 'topic', 'title': 'Saatleri Ayarlama Enstitüsü notları'}),
+      allOf(startsWith('Not created.'), contains('saatleri-ayarlama-enstitusu (')),
+    );
+    // Checked first, it is held once, not twice; a project never.
+    call('related_notes', {'title': 'Garden'});
+    expect(call('create_note', {'kind': 'topic', 'title': 'Garden'}), startsWith('Not created.'));
+    expect(
+      call('create_note', {'kind': 'topic', 'title': 'Garden'}),
+      containsPair('slug', 'garden'),
+    );
+    expect(call('create_note', {'kind': 'project', 'title': 'Shed'}), containsPair('slug', 'shed'));
+    // A new turn holds it back again.
+    box.forgetCreated();
+    expect(call('create_note', {'kind': 'topic', 'title': 'Films'}), startsWith('Not created.'));
+  });
+
   test('a note named after a slug just reported missing waits for a second call', () {
     call('create_note', {'kind': 'project', 'title': 'Ev Tadilatı', 'lang': 'tr'});
     call('add_todo', {'slug': 'ev-tadilati', 'text': 'Elektrikçiyi ara'});
