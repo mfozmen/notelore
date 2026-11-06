@@ -1194,16 +1194,16 @@ class _ThinkingState extends State<_Thinking> {
           spacing: Gap.s,
           children: [
             SizedBox.square(
-              dimension: 14,
+              dimension: 18,
               // Less motion asked for: a still mark instead of a spinner.
               child: MediaQuery.disableAnimationsOf(context)
-                  ? Icon(Icons.more_horiz, size: 14, color: muted)
-                  : CircularProgressIndicator(strokeWidth: 1.5, color: muted),
+                  ? Icon(Icons.more_horiz, size: 18, color: muted)
+                  : CircularProgressIndicator(strokeWidth: 2, color: muted),
             ),
             Flexible(
               child: Text(
                 _waiting,
-                style: theme.textTheme.bodySmall?.copyWith(
+                style: theme.textTheme.bodyMedium?.copyWith(
                   color: muted,
                   fontStyle: FontStyle.italic,
                 ),
