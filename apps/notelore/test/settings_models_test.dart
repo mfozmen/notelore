@@ -35,7 +35,7 @@ void main() {
     await connect(tester, key: 'sk-ant');
     await openModel(tester);
     final picker = tester.widget<DropdownMenu<String?>>(find.byKey(const Key('model')));
-    expect(picker.dropdownMenuEntries.map((entry) => entry.label), contains('claude-sonnet…'));
+    expect(picker.dropdownMenuEntries.map((entry) => entry.label), contains('Claude Sonnet…'));
   });
 
   testWidgets('settings: connect another model, switch with one tap, remove one (#362)', (

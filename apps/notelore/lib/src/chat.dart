@@ -12,6 +12,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'audio_file.dart';
+import 'model_names.dart';
 import 'plain_text.dart';
 import 'session.dart';
 import 'setup.dart' show ProviderWizard;
@@ -686,11 +687,12 @@ class _ModelBar extends StatelessWidget {
     if (!plan && !switchable) return const SizedBox.shrink();
     // On a ChatGPT plan the chip says so, as OpenAI's guidelines ask, with no
     // button by the composer (#507, #513). Its usage link is in Settings (#558).
+    final model = session.model == null ? null : readableModel(session.model!);
     final label = plan
         ? switchable
-              ? '${session.model ?? ''} · ${s.usingChatGptPlan}'
+              ? '${model ?? ''} · ${s.usingChatGptPlan}'
               : s.usingChatGptPlan
-        : session.model ?? '';
+        : model ?? '';
     final chip = Chip(
       avatar: const Icon(Icons.auto_awesome_outlined, size: 16),
       // The model first: a narrow chip cuts the plan's words, not its name.
@@ -716,7 +718,7 @@ class _ModelBar extends StatelessWidget {
               initialValue: session.model,
               onSelected: session.setModel,
               itemBuilder: (_) => [
-                for (final m in choices) PopupMenuItem(value: m, child: Text(m)),
+                for (final m in choices) PopupMenuItem(value: m, child: Text(readableModel(m))),
               ],
               child: chip,
             )

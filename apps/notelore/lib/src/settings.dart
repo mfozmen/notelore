@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'lock.dart';
 import 'mark.dart';
+import 'model_names.dart';
 import 'session.dart';
 import 'setup.dart' show ProviderWizard;
 import 'strings.dart';
@@ -333,7 +334,7 @@ class _ModelCard extends StatelessWidget {
                 session: session,
                 value: session.model,
                 entries: [
-                  for (final m in {...session.models, ?session.model}) (m, m),
+                  for (final m in {...session.models, ?session.model}) (m, readableModel(m)),
                 ],
                 onSelected: (m) => _pick(context, m),
               ),
@@ -1104,6 +1105,9 @@ class _ModelPickerState extends State<_ModelPicker> {
           value: widget.value,
           entries: widget.entries,
           menuController: _controller,
+          helper: widget.value == null || readableModel(widget.value!) == widget.value
+              ? null
+              : widget.value,
           onSelected: (model) => widget.onSelected(model!),
         ),
         if (_refreshing)
@@ -1173,6 +1177,7 @@ Widget _picker<T>({
   required T value,
   required List<(T, String)> entries,
   required void Function(T) onSelected,
+  String? helper,
 }) {
   // A text field cannot ellipsize, so fit the closed field's label; the open
   // menu keeps the whole label with its own ellipsis. At 1x the field has room,
@@ -1187,6 +1192,7 @@ Widget _picker<T>({
     initialSelection: value,
     requestFocusOnTap: false,
     expandedInsets: EdgeInsets.zero,
+    helperText: helper,
     dropdownMenuEntries: [
       for (final (value, label) in entries)
         DropdownMenuEntry(
