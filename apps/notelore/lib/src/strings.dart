@@ -1640,7 +1640,7 @@ class EnglishStrings extends Strings {
   String get syncNever => 'Not synced yet';
   @override
   String syncedAgo(Duration since) {
-    if (since.inMinutes < 1) return 'Synced just now';
+    if (since.isNegative || since.inMinutes < 1) return 'Synced just now';
     if (since.inMinutes < 60) return 'Synced ${since.inMinutes} min ago';
     if (since.inHours < 24) return 'Synced ${since.inHours} h ago';
     return 'Synced ${since.inDays} d ago';
@@ -2795,7 +2795,7 @@ class TurkishStrings extends Strings {
   String get syncNever => 'Henüz eşitlenmedi';
   @override
   String syncedAgo(Duration since) {
-    if (since.inMinutes < 1) return 'Az önce eşitlendi';
+    if (since.isNegative || since.inMinutes < 1) return 'Az önce eşitlendi';
     if (since.inMinutes < 60) return '${since.inMinutes} dk önce eşitlendi';
     if (since.inHours < 24) return '${since.inHours} sa önce eşitlendi';
     return '${since.inDays} gün önce eşitlendi';

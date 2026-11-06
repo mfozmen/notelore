@@ -2313,7 +2313,8 @@ void main() {
 
   testWidgets('notes: the sync state follows a sync under the title (#774)', (tester) async {
     phone(tester);
-    final harness = Harness(auth: FakeAuth()..granted = true);
+    final auth = FakeAuth()..granted = true;
+    final harness = Harness(auth: auth);
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     await session.connectDrive();
@@ -2336,10 +2337,24 @@ void main() {
     session.notifyListeners();
     await tester.pump();
     expect(find.text('Not synced yet'), findsOneWidget);
-    session.syncFailed = true;
-    session.notifyListeners();
-    await tester.pump();
+    harness.remote.failure = const NetworkError('offline');
+    await session.syncNow();
+    await tester.pumpAndSettle();
     expect(find.text('Not synced'), findsOneWidget);
+  });
+  testWidgets('notes: the sync state time moves on (#774)', (tester) async {
+    phone(tester);
+    var now = DateTime.utc(2026, 10, 1, 12);
+    final harness = Harness(auth: FakeAuth()..granted = true);
+    final session = await pumpApp(tester, harness, clock: () => now);
+    await connect(tester, key: 'k');
+    await session.connectDrive();
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('Synced just now'), findsOneWidget);
+    now = now.add(const Duration(minutes: 2));
+    await tester.pump(const Duration(seconds: 31));
+    expect(find.text('Synced 2 min ago'), findsOneWidget);
   });
   testWidgets('notes: a note opened on a phone names itself once (#508)', (tester) async {
     phone(tester);
