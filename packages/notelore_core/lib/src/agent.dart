@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'i18n.dart' show messageLanguage;
 import 'providers/base.dart';
+import 'store/feedback.dart' show emptyNoteReminder;
 import 'store/format.dart';
 import 'tools.dart';
 
@@ -319,6 +320,7 @@ class Agent {
     Future<AgentResponse> stopped,
   ) async {
     messages.add({'role': 'user', 'content': content});
+    var reminded = false;
     for (var turn = 0; turn < maxTurns; turn++) {
       onStep('Thinking');
       final watch = Stopwatch()..start();
@@ -335,21 +337,42 @@ class Agent {
       messages.add({'role': 'assistant', 'content': blocks});
       final uses = blocks.where((b) => b['type'] == 'tool_use').toList();
       if (uses.isEmpty) {
-        return blocks.map((b) => b['text']).join('\n');
+        if (reminded || !_remindEmpty()) return blocks.map((b) => b['text']).join('\n');
+        reminded = true;
+        continue;
       }
       onStep(describeTool('${uses.first['name']}'));
-      if (uses.any((u) => u['name'] != 'create_note' && writingTools.contains(u['name']))) {
-        wroteNotes = true;
-      }
-      messages.add({
-        'role': 'user',
-        'content': [
-          for (final use in uses) _run(use),
-          for (final later in takeLater()) {'type': 'text', 'text': later},
-        ],
-      });
+      _runAll(uses, takeLater);
     }
     return _close('I stopped after too many tool calls in a row. Please rephrase the request.');
+  }
+
+  /// Runs the model's calls and sends back their results, with [later] after them.
+  void _runAll(List<Block> uses, List<String> Function() later) {
+    if (uses.any((u) => u['name'] != 'create_note' && writingTools.contains(u['name']))) {
+      wroteNotes = true;
+    }
+    messages.add({
+      'role': 'user',
+      'content': [
+        for (final use in uses) _run(use),
+        for (final text in later()) {'type': 'text', 'text': text},
+      ],
+    });
+  }
+
+  /// Small models create a note and answer without writing into it: asks once
+  /// more when a note this turn made is still empty; whether it asked.
+  bool _remindEmpty() {
+    final empty = toolbox.stillEmpty();
+    if (empty.isEmpty) return false;
+    messages.add({
+      'role': 'user',
+      'content': [
+        {'type': 'text', 'text': emptyNoteReminder(empty)},
+      ],
+    });
+    return true;
   }
 
   /// Ends the turn with an assistant message so user and assistant keep alternating.

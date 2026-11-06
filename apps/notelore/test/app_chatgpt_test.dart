@@ -61,21 +61,22 @@ void main() {
     expect(launcher.opened, [chatGptUsageUrl]);
   });
 
-  testWidgets('ChatGPT plan, one model: the chip is the plan line, not a switcher (#513)', (
-    tester,
-  ) async {
-    UrlLauncherPlatform.instance = FakeLauncher();
-    final harness = Harness(chatGpt: FakeAuth())..planModels = ['gpt-plan-a'];
-    await pumpPlanApp(tester, harness);
-    await tester.tap(find.text('Continue with ChatGPT'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Start'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Got it'));
-    await tester.pumpAndSettle();
-    expect(find.text('Using ChatGPT plan'), findsOneWidget);
-    expect(find.byTooltip('Change the model'), findsNothing);
-  });
+  testWidgets(
+    'ChatGPT plan, one model: the chip names it with the plan, not a switcher (#513, #757)',
+    (tester) async {
+      UrlLauncherPlatform.instance = FakeLauncher();
+      final harness = Harness(chatGpt: FakeAuth())..planModels = ['gpt-plan-a'];
+      await pumpPlanApp(tester, harness);
+      await tester.tap(find.text('Continue with ChatGPT'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Got it'));
+      await tester.pumpAndSettle();
+      expect(find.text('gpt-plan-a · Using ChatGPT plan'), findsOneWidget);
+      expect(find.byTooltip('Change the model'), findsNothing);
+    },
+  );
 
   for (final language in [AppLanguage.en, AppLanguage.tr]) {
     testWidgets('setup on a phone never speaks of a computer or of clicking (#304, $language)', (

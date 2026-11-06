@@ -10,13 +10,27 @@ import 'theme.dart';
 /// of each day stacked by model, each model's share and cost, and what the
 /// messages came to. Cost is an estimate, said so; a provider that reports
 /// nothing shows "not available".
-class UsagePage extends StatefulWidget {
+class UsagePage extends StatelessWidget {
   const UsagePage(this.session, {super.key});
 
   final Session session;
 
   @override
-  State<UsagePage> createState() => _UsagePageState();
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(session.strings.usage)),
+    body: UsageView(session),
+  );
+}
+
+/// The usage view on its own, so Settings can keep it in its pane on a wide
+/// window (#715).
+class UsageView extends StatefulWidget {
+  const UsageView(this.session, {super.key});
+
+  final Session session;
+
+  @override
+  State<UsageView> createState() => _UsageViewState();
 }
 
 /// Okabe-Ito: told apart with every kind of colour blindness. On light cards
@@ -40,7 +54,7 @@ const _dark = [
 
 int _used(UsageCount count) => count.input + count.output;
 
-class _UsagePageState extends State<UsagePage> {
+class _UsageViewState extends State<UsageView> {
   var _range = UsageRange.twoWeeks;
 
   @override
@@ -67,75 +81,72 @@ class _UsagePageState extends State<UsagePage> {
       ..sort((a, b) => _used(tokens[b]!).compareTo(_used(tokens[a]!)));
     final total = summarize(tokens);
     String name(String key) => _modelName(s, key);
-    return Scaffold(
-      appBar: AppBar(title: Text(s.usage)),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
-        children: [
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: Layout.column),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                spacing: Gap.m,
-                children: [
-                  SegmentedButton<UsageRange>(
-                    segments: [
-                      for (final range in UsageRange.values)
-                        ButtonSegment(
-                          value: range,
-                          // Large text shrinks to fit rather than wrap in the 40 dp segment.
-                          label: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(s.rangeDays(range.days), maxLines: 1, softWrap: false),
-                          ),
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: Layout.column),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: Gap.m,
+              children: [
+                SegmentedButton<UsageRange>(
+                  segments: [
+                    for (final range in UsageRange.values)
+                      ButtonSegment(
+                        value: range,
+                        // Large text shrinks to fit rather than wrap in the 40 dp segment.
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(s.rangeDays(range.days), maxLines: 1, softWrap: false),
                         ),
-                    ],
-                    selected: {_range},
-                    showSelectedIcon: false,
-                    onSelectionChanged: (picked) => setState(() => _range = picked.single),
-                  ),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(Gap.m),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        spacing: Gap.m,
-                        children: [
-                          _Total(s.usageConversation, usage.conversation, strings: s),
-                          _Total(s.lastDays(_range.days), total, strings: s),
-                        ],
                       ),
+                  ],
+                  selected: {_range},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (picked) => setState(() => _range = picked.single),
+                ),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(Gap.m),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      spacing: Gap.m,
+                      children: [
+                        _Total(s.usageConversation, usage.conversation, strings: s),
+                        _Total(s.lastDays(_range.days), total, strings: s),
+                      ],
                     ),
                   ),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(Gap.m),
-                      child: _DayBars(
-                        days,
-                        // A new range starts with no day picked.
-                        key: ValueKey(_range),
-                        colors: colors,
-                        strings: s,
-                        name: name,
-                        note: _range.days == null ? s.chartKept(kept.length) : null,
-                      ),
+                ),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(Gap.m),
+                    child: _DayBars(
+                      days,
+                      // A new range starts with no day picked.
+                      key: ValueKey(_range),
+                      colors: colors,
+                      strings: s,
+                      name: name,
+                      note: _range.days == null ? s.chartKept(kept.length) : null,
                     ),
                   ),
-                  if (models.isNotEmpty)
-                    _Shares(tokens, models: models, colors: colors, strings: s, name: name),
-                  if (turns.turns > 0)
-                    _Messages(turns, calls: total.calls, used: _used(total.count), strings: s),
-                  if (usage.device.plan || session.spec?.access == ProviderAccess.signIn)
-                    Text(s.usagePlan, style: small),
-                  if (session.spec?.local ?? false) Text(s.usageLocal, style: small),
-                  Text(s.usageEstimate(pricesTaken), style: small),
-                ],
-              ),
+                ),
+                if (models.isNotEmpty)
+                  _Shares(tokens, models: models, colors: colors, strings: s, name: name),
+                if (turns.turns > 0)
+                  _Messages(turns, calls: total.calls, used: _used(total.count), strings: s),
+                if (usage.device.plan || session.spec?.access == ProviderAccess.signIn)
+                  Text(s.usagePlan, style: small),
+                if (session.spec?.local ?? false) Text(s.usageLocal, style: small),
+                Text(s.usageEstimate(pricesTaken), style: small),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -159,25 +170,26 @@ class _Total extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final quiet = theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final muted = theme.colorScheme.onSurfaceVariant;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: Gap.xs,
       children: [
-        // With big text the value takes a line of its own, never squeezing the title.
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          spacing: Gap.s,
-          children: [
-            Text(title, style: theme.textTheme.titleMedium),
-            if (summary.tokensKnown)
-              Text(
-                strings.tokens(strings.number(summary.input + summary.output)),
-                style: theme.textTheme.titleMedium,
-              ),
-          ],
-        ),
-        for (final line in strings.usageLines(summary)) Text(line, style: quiet),
+        Text(title, style: theme.textTheme.labelLarge?.copyWith(color: muted)),
+        if (summary.calls > 0)
+          // The cost people come for leads; a plan or a local model says why
+          // there is none in its place, in body text (#718).
+          Text(
+            strings.usageCostLine(summary),
+            style: summary.billed ? theme.textTheme.headlineSmall : theme.textTheme.bodyMedium,
+          ),
+        if (summary.tokensKnown)
+          Text(
+            strings.tokens(strings.number(summary.input + summary.output)),
+            style: theme.textTheme.bodySmall?.copyWith(color: muted),
+          ),
+        for (final line in strings.usageFacts(summary))
+          Text(line, style: theme.textTheme.bodySmall?.copyWith(color: muted)),
       ],
     );
   }

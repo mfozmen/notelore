@@ -352,7 +352,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       ),
     ),
     0 => ChatScreen(widget.session),
-    1 => NotesScreen(widget.session),
+    1 => NotesScreen(widget.session, toChat: () => setState(() => _tab = 0)),
     2 => CalendarScreen(widget.session, toChat: () => setState(() => _tab = 0)),
     3 => Builder(
       builder: (context) => AboutMeScreen(

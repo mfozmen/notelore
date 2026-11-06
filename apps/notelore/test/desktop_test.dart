@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -363,6 +364,25 @@ void main() {
     expect(find.byTooltip('Archive'), findsOneWidget); // back in the notes
   });
 
+  testWidgets('settings: the pane is centred and Usage keeps the rail (#715)', (tester) async {
+    desktop(tester, 1600);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    // The readable column is centred in the pane, not at its left edge.
+    expect(tester.getTopLeft(find.text('Model in use')).dx, greaterThan(400));
+    await tester.tap(find.text('Advanced'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('open-usage')));
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.text('14 days'), findsOneWidget); // the usage view, in the pane
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('open-usage')), findsOneWidget); // the section again
+  });
+
   testWidgets('settings: the chat text size control keeps its width on a desktop (#716)', (
     tester,
   ) async {
@@ -373,5 +393,26 @@ void main() {
     final smaller = tester.getCenter(find.byTooltip('Smaller text'));
     final larger = tester.getCenter(find.byTooltip('Larger text'));
     expect(larger.dx - smaller.dx, lessThan(140));
+  });
+
+  testWidgets('chat: the working status reads at body size on a desktop (#723)', (tester) async {
+    desktop(tester, 1600);
+    await pumpApp(tester, Harness(answers: [Completer<AgentResponse>().future]));
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'selam');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pump();
+    final status = find.byKey(const Key('working'));
+    final text = tester.widget<Text>(
+      find.descendant(of: status, matching: find.byType(Text)).first,
+    );
+    expect(text.style!.fontSize!, greaterThan(12)); // bodyMedium, not bodySmall
+    final spinner = tester.getSize(
+      find.descendant(of: status, matching: find.byType(CircularProgressIndicator)),
+    );
+    expect(spinner.width, greaterThanOrEqualTo(16));
+    await tester.tap(find.byTooltip('Stop the answer'));
+    await tester.pumpAndSettle();
   });
 }
