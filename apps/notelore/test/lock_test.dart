@@ -160,6 +160,25 @@ void main() {
     expect(session.lock.enabled, isFalse);
   });
 
+  testWidgets('lock: the pattern row holds still before the first dot (#720)', (tester) async {
+    phone(tester);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await openLock(tester);
+    await tester.tap(find.text('Turn on'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('A pattern for Notelore'));
+    await tester.pumpAndSettle();
+    final clear = find.widgetWithText(TextButton, 'Clear');
+    expect(tester.widget<TextButton>(clear).onPressed, isNull); // visible, disabled
+    Rect done() => tester.getRect(find.widgetWithText(FilledButton, 'Done'));
+    final before = done();
+    await tester.tap(dot(1));
+    await tester.pump();
+    expect(tester.widget<TextButton>(clear).onPressed, isNotNull);
+    expect(done(), before);
+  });
+
   testWidgets('lock: a pattern, set by tapping the dots, opened by drawing them (#295)', (
     tester,
   ) async {
