@@ -852,6 +852,8 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
   }
 }
 
+/// One note in the list: its title, newest words, kind, date, tags and open
+/// todos (#773).
 class _NoteRow extends StatelessWidget {
   const _NoteRow(
     this.note, {

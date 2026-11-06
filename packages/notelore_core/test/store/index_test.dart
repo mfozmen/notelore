@@ -124,6 +124,7 @@ void main() {
         final note = idx.listNotes().firstWhere((n) => n.slug == 'multiline');
         expect(note.excerpt, 'First line, second line.');
       });
+
       test('related notes (#229): a shared title word, or several matching lines', () {
         final mopsos = idx.related('Mopsos backend').single;
         expect((mopsos.slug, mopsos.kind, mopsos.title), ('mopsos', 'project', 'Mopsos'));
