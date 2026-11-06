@@ -31,7 +31,14 @@ String buildTree(String root) {
   addReminder(mopsos, 'Renew the domain', d(2026, 11, 1), time: '09:00', today: today);
   File(mopsos)
       .writeAsStringSync('\n## Links\nhand-written zettelkasten link\n', mode: FileMode.append);
-  final sirket = createNote(root, 'topic', 'Şirket Kuruluşu', lang: 'tr', today: d(2026, 8, 1));
+  final sirket = createNote(
+    root,
+    'topic',
+    'Şirket Kuruluşu',
+    lang: 'tr',
+    tags: ['side project'],
+    today: d(2026, 8, 1),
+  );
   addEntry(sirket, 'Muhasebeci ile görüşüldü, ücret 2.500 TL.', today: d(2026, 8, 5));
   recordDecision(sirket, 'Şirket-Türü', 'Limited', today: d(2026, 8, 5));
   File(p.join(root, 'topics', 'not-a-note.md')).writeAsStringSync('just some markdown\n');
@@ -88,11 +95,34 @@ void main() {
 
       test('listNotes skips the archive and non-notes', () {
         expect(idx.listNotes(), [
-          NoteInfo('mopsos', 'project', 'Mopsos', today),
-          NoteInfo('sirket-kurulusu', 'topic', 'Şirket Kuruluşu', d(2026, 8, 5)),
+          NoteInfo(
+            'mopsos',
+            'project',
+            'Mopsos',
+            today,
+            excerpt: 'Considered adding crypto, postponed.',
+            tags: ['investing'],
+            openTodos: 1,
+          ),
+          NoteInfo(
+            'sirket-kurulusu',
+            'topic',
+            'Şirket Kuruluşu',
+            d(2026, 8, 5),
+            excerpt: 'Muhasebeci ile görüşüldü, ücret 2.500 TL.',
+            tags: ['side project'],
+          ),
           const NoteInfo('odd-date', 'topic', 'Odd', null),
         ]);
         expect(idx.listNotes(kind: 'topic').map((n) => n.slug), ['sirket-kurulusu', 'odd-date']);
+      });
+
+      test('an excerpt collapses a multi-line entry (#773)', () {
+        final path = createNote(root, 'topic', 'Multiline', today: today);
+        addEntry(path, 'First line,\n  second line.', today: d(2026, 9, 22));
+        refresh(path);
+        final note = idx.listNotes().firstWhere((n) => n.slug == 'multiline');
+        expect(note.excerpt, 'First line, second line.');
       });
 
       test('related notes (#229): a shared title word, or several matching lines', () {
@@ -303,7 +333,7 @@ void main() {
         final pinned = idx.listNotes().first;
         expect(pinned.pinned, isTrue);
         expect(pinned, isNot(NoteInfo(pinned.slug, pinned.kind, pinned.title, pinned.updated)));
-        expect(pinned.toString(), endsWith(', pinned)'));
+        expect(pinned.toString(), contains('pinned: true'));
         archiveNote(root, mopsos, today: d(2026, 10, 1));
         refresh(mopsos);
         expect(slugs(), ['sirket-kurulusu', 'odd-date']);

@@ -406,46 +406,23 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
-  Widget _card(BuildContext context, NoteInfo note, {required bool wide}) {
-    final s = widget.session.strings;
-    final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Gap.s),
-      child: Card(
-        child: ListTile(
-          // The kind at a glance: a folder for a project, a tag for a topic.
-          leading: CircleAvatar(
-            backgroundColor: colors.secondaryContainer,
-            foregroundColor: colors.onSecondaryContainer,
-            child: Icon(
-              note.kind == 'project' ? Icons.folder_outlined : Icons.sell_outlined,
-              size: 20,
-            ),
-          ),
-          title: Text(note.title),
-          subtitle: Text(
-            s.noteSubtitle(
-              note.kind,
-              note.updated == null
-                  ? '?'
-                  : s.shortDate(note.updated!, widget.session.clock().toLocal()),
-            ),
-          ),
-          selected: wide && _isOpen(note),
-          // Read once: the app rebuilds on every session change, and a
-          // deleted note must not be read again under its reader.
-          onTap: () {
-            final text = widget.session.readNote(note);
-            if (wide) {
-              setState(() => _reading = (note, text));
-            } else {
-              _open(note, text);
-            }
-          },
-        ),
-      ),
-    );
-  }
+  Widget _card(BuildContext context, NoteInfo note, {required bool wide}) => Padding(
+    padding: const EdgeInsets.only(bottom: Gap.s),
+    child: _NoteRow(
+      note,
+      strings: widget.session.strings,
+      today: widget.session.clock().toLocal(),
+      selected: wide && _isOpen(note),
+      onTap: () {
+        final text = widget.session.readNote(note);
+        if (wide) {
+          setState(() => _reading = (note, text));
+        } else {
+          _open(note, text);
+        }
+      },
+    ),
+  );
 
   /// The open note beside the list, or where it will be.
   Widget _reader(BuildContext context) {
@@ -870,6 +847,89 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                   ),
                 ),
         ),
+      ),
+    );
+  }
+}
+
+/// One note in the list: its title, newest words, kind, date, tags and open
+/// todos (#773).
+class _NoteRow extends StatelessWidget {
+  const _NoteRow(
+    this.note, {
+    required this.strings,
+    required this.today,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final NoteInfo note;
+  final Strings strings;
+  final DateTime today;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = strings;
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      child: ListTile(
+        // The kind at a glance: a folder for a project, a tag for a topic.
+        leading: CircleAvatar(
+          backgroundColor: colors.secondaryContainer,
+          foregroundColor: colors.onSecondaryContainer,
+          child: Icon(
+            note.kind == 'project' ? Icons.folder_outlined : Icons.sell_outlined,
+            size: 20,
+          ),
+        ),
+        title: Text(note.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        isThreeLine: note.excerpt.isNotEmpty,
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (note.excerpt.isNotEmpty)
+              Text(
+                note.excerpt,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: colors.onSurfaceVariant),
+              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    [
+                      s.noteSubtitle(
+                        note.kind,
+                        note.updated == null ? '?' : s.shortDate(note.updated!, today),
+                      ),
+                      if (note.tags.isNotEmpty) note.tags.map((tag) => '#$tag').join(' '),
+                    ].join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (note.openTodos > 0)
+                  Semantics(
+                    container: true,
+                    label: s.openTodos(note.openTodos),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.checklist, size: 16, color: colors.onSurfaceVariant),
+                        const SizedBox(width: Gap.xs),
+                        Text('${note.openTodos}'),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+        selected: selected,
+        onTap: onTap,
       ),
     );
   }
