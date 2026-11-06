@@ -620,6 +620,13 @@ void main() {
       containsPair('slug', 'garden'),
     );
     expect(call('create_note', {'kind': 'project', 'title': 'Shed'}), containsPair('slug', 'shed'));
+    // After related_notes on the item, the collection note it then names is its choice.
+    box.forgetCreated();
+    call('related_notes', {'title': 'Perfect Days'});
+    expect(
+      call('create_note', {'kind': 'topic', 'title': 'Saatleri Ayarlama Enstitüsü notları 2'}),
+      containsPair('slug', 'saatleri-ayarlama-enstitusu-notlari-2'),
+    );
     // A new turn holds it back again.
     box.forgetCreated();
     expect(call('create_note', {'kind': 'topic', 'title': 'Films'}), startsWith('Not created.'));

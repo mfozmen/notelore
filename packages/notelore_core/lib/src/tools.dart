@@ -608,8 +608,8 @@ class Toolbox {
   /// This turn's topic slugs already held back once.
   final _held = <String>{};
 
-  /// Holds back a topic even when related_notes was not asked first: the model
-  /// on the device often skips it and names the note after one book.
+  /// Holds back a topic even when related_notes was not called this turn: the
+  /// model on the device often skips it and names the note after one book.
   bool checkTopics = false;
 
   /// This turn's slugs reported missing, with the closest notes named then.
@@ -820,7 +820,7 @@ class Toolbox {
     // related_notes steer: the first such call asks it to choose once more.
     final slug = notes.slugify(title);
     final found = kind == 'topic' && _held.add(slug)
-        ? _asked[slug] ?? (checkTopics ? _fresh().related(title) : null)
+        ? _asked[slug] ?? (checkTopics && _asked.isEmpty ? _fresh().related(title) : null)
         : null;
     if (found != null) {
       final where = found.isEmpty
