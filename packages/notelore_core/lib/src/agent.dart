@@ -342,18 +342,23 @@ class Agent {
         continue;
       }
       onStep(describeTool('${uses.first['name']}'));
-      if (uses.any((u) => u['name'] != 'create_note' && writingTools.contains(u['name']))) {
-        wroteNotes = true;
-      }
-      messages.add({
-        'role': 'user',
-        'content': [
-          for (final use in uses) _run(use),
-          for (final later in takeLater()) {'type': 'text', 'text': later},
-        ],
-      });
+      _runAll(uses, takeLater);
     }
     return _close('I stopped after too many tool calls in a row. Please rephrase the request.');
+  }
+
+  /// Runs the model's calls and sends back their results, with [later] after them.
+  void _runAll(List<Block> uses, List<String> Function() later) {
+    if (uses.any((u) => u['name'] != 'create_note' && writingTools.contains(u['name']))) {
+      wroteNotes = true;
+    }
+    messages.add({
+      'role': 'user',
+      'content': [
+        for (final use in uses) _run(use),
+        for (final text in later()) {'type': 'text', 'text': text},
+      ],
+    });
   }
 
   /// Small models create a note and answer without writing into it: asks once
