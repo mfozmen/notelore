@@ -54,6 +54,7 @@ tags: [investing, side-project]
 | `created` | yes | Local date the file was created |
 | `updated` | yes | Local date of the last change (maintained by code, not the LLM) |
 | `tags` | no | Lowercase list |
+| `pinned` | no | `true` keeps the note at the top of the Notes list; written only when true, so a note without it is unpinned |
 
 ### Sections
 

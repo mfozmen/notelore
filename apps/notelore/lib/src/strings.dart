@@ -235,6 +235,11 @@ abstract class Strings {
   String alreadyGone(String title);
   String movedToArchive(String title);
 
+  String get pin;
+  String get unpin;
+  String get pinnedNotes;
+  String get otherNotes;
+
   /// Export, share and import (#215).
   String get export;
   String get exportNotes;
@@ -1064,6 +1069,14 @@ class EnglishStrings extends Strings {
   String alreadyGone(String title) => '"$title" was already gone.';
   @override
   String movedToArchive(String title) => 'Moved "$title" to the archive.';
+  @override
+  String get pin => 'Pin';
+  @override
+  String get unpin => 'Unpin';
+  @override
+  String get pinnedNotes => 'Pinned';
+  @override
+  String get otherNotes => 'Others';
   @override
   String get export => 'Export';
   @override
@@ -2214,6 +2227,14 @@ class TurkishStrings extends Strings {
   String alreadyGone(String title) => '"$title" zaten silinmiş.';
   @override
   String movedToArchive(String title) => '"$title" arşive taşındı.';
+  @override
+  String get pin => 'Sabitle';
+  @override
+  String get unpin => 'Sabitlemeyi kaldır';
+  @override
+  String get pinnedNotes => 'Sabitlenenler';
+  @override
+  String get otherNotes => 'Diğerleri';
   @override
   String get export => 'Dışa aktar';
   @override

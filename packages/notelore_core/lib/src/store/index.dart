@@ -22,7 +22,7 @@ import 'notes.dart';
 const _schema = '''
 CREATE TABLE files(
     path TEXT PRIMARY KEY, slug TEXT, kind TEXT, title TEXT, updated TEXT,
-    stamp TEXT, hash TEXT);
+    stamp TEXT, hash TEXT, pinned INTEGER);
 CREATE TABLE decisions(path TEXT, date TEXT, topic TEXT, text TEXT, superseded TEXT);
 CREATE INDEX decisions_by_topic ON decisions(path, topic);
 ''';
@@ -33,7 +33,7 @@ const _plainTable =
     'CREATE TABLE content(slug, title, section, text, kind, path, superseded, folded);';
 // Bump when the tables change; the FTS flag is part of it because the content
 // table has a different shape per backend. A mismatch drops and recreates everything.
-const _schemaVersion = 2;
+const _schemaVersion = 3;
 
 bool fts5Available(Database db) {
   try {
@@ -46,12 +46,13 @@ bool fts5Available(Database db) {
 }
 
 final class NoteInfo {
-  const NoteInfo(this.slug, this.kind, this.title, this.updated);
+  const NoteInfo(this.slug, this.kind, this.title, this.updated, {this.pinned = false});
 
   final String slug;
   final String kind;
   final String title;
   final DateTime? updated;
+  final bool pinned;
 
   @override
   bool operator ==(Object other) =>
@@ -59,13 +60,14 @@ final class NoteInfo {
       other.slug == slug &&
       other.kind == kind &&
       other.title == title &&
-      other.updated == updated;
+      other.updated == updated &&
+      other.pinned == pinned;
 
   @override
-  int get hashCode => Object.hash(slug, kind, title, updated);
+  int get hashCode => Object.hash(slug, kind, title, updated, pinned);
 
   @override
-  String toString() => 'NoteInfo($kind/$slug, $title, $updated)';
+  String toString() => 'NoteInfo($kind/$slug, $title, $updated${pinned ? ', pinned' : ''})';
 }
 
 final class Hit {
@@ -357,7 +359,7 @@ class NoteIndex {
     } on NotANote {
       // A Markdown file that is not a note: remembered (so it is not reparsed on
       // every rebuild) but with no title, which keeps it out of every listing.
-      _db.execute("INSERT INTO files VALUES (?, ?, ?, NULL, '', ?, ?)", [
+      _db.execute("INSERT INTO files VALUES (?, ?, ?, NULL, '', ?, ?, 0)", [
         rel,
         slug,
         kind,
@@ -371,7 +373,7 @@ class NoteIndex {
       final DateTime day when day == DateTime.utc(day.year, day.month, day.day) => isoDate(day),
       _ => null,
     };
-    _db.execute('INSERT INTO files VALUES (?, ?, ?, ?, ?, ?, ?)', [
+    _db.execute('INSERT INTO files VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
       rel,
       slug,
       kind,
@@ -379,6 +381,7 @@ class NoteIndex {
       updated,
       stamp,
       digest,
+      if (note.meta['pinned'] == true) 1 else 0,
     ]);
     for (final section in note.sections) {
       for (final entry in section.entries) {
@@ -428,7 +431,7 @@ class NoteIndex {
 
   List<NoteInfo> listNotes({String? kind}) => [
     for (final row in _db.select(
-      'SELECT slug, kind, title, updated FROM files'
+      'SELECT slug, kind, title, updated, pinned FROM files'
       ' WHERE title IS NOT NULL AND (?1 IS NULL OR kind = ?1) ORDER BY updated DESC, slug',
       [kind],
     ))
@@ -437,6 +440,7 @@ class NoteIndex {
         row.columnAt(1) as String,
         row.columnAt(2) as String,
         _day(row.columnAt(3) as String?),
+        pinned: row.columnAt(4) == 1,
       ),
   ];
 

@@ -231,6 +231,28 @@ void main() {
     expect(icon.right, closeTo(field.right, 0.5));
   });
 
+  testWidgets('notes on a wide window: Pin in the open note moves it under Pinned (#775)', (
+    tester,
+  ) async {
+    desktop(tester, 1600);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    createNote(harness.paths.notes.path, 'topic', 'Filmler', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Pin'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Unpin'), findsOneWidget);
+    expect(find.text('Pinned'), findsOneWidget);
+    await tester.tap(find.byTooltip('Unpin'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pinned'), findsNothing);
+  });
+
   testWidgets('notes on a wide window: a todo checkbox writes the note (#512)', (tester) async {
     desktop(tester, 1600);
     final harness = Harness();

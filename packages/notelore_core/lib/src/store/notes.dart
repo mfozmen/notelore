@@ -444,6 +444,17 @@ String recategorize(
   return target;
 }
 
+/// Pins the note at [path] to the top of the list, or unpins it: `pinned: true`
+/// in its front matter, or no key. `updated` stays: a pin is not an edit.
+void setPinned(String path, {required bool pinned}) {
+  final note = readNote(path);
+  if ((note.meta['pinned'] == true) == pinned) {
+    throw ArgumentError(pinned ? 'the note is already pinned' : 'the note is not pinned');
+  }
+  pinned ? note.meta['pinned'] = true : note.meta.remove('pinned');
+  atomicWrite(path, unorm.nfc(serialize(note)));
+}
+
 /// [tags] without [remove] and with [add], lowercase and once each.
 List<String> _retag(List<String> tags, List<String> add, List<String> remove) {
   final gone = {for (final tag in remove) tag.toLowerCase()};

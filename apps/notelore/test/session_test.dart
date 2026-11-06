@@ -274,6 +274,18 @@ void main() {
     expect(harness.provider.asked.last, 've sonra'); // said once
   });
 
+  test('pinNote: already so counts as done, a gone note as not (#775)', () async {
+    final harness = Harness();
+    final session = harness.session();
+    final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    final note = session.listNotes().single;
+    expect(await session.pinNote(note, pinned: true), isTrue);
+    expect(session.listNotes().single.pinned, isTrue);
+    expect(await session.pinNote(note, pinned: true), isTrue); // a sync got there first
+    File(path).deleteSync();
+    expect(await session.pinNote(note, pinned: false), isFalse);
+  });
+
   test('a turn that failed keeps the archive notice for the next one (#205)', () async {
     final harness = Harness(answers: ['Okudum.', const HttpError(500, 'offline'), 'Tamam.']);
     final session = harness.session();
