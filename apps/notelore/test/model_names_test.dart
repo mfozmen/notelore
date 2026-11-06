@@ -22,6 +22,8 @@ void main() {
     expect(readableModel('gemini-exp-1206'), 'gemini-exp-1206');
     expect(readableModel('qwen3:4b'), 'qwen3:4b');
     expect(readableModel('model-a'), 'model-a');
+    expect(readableModel('gemini-2.5-'), 'gemini-2.5-');
+    expect(readableModel('deepseek-'), 'deepseek-');
     expect(readableModel(''), '');
   });
 }

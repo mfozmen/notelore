@@ -47,7 +47,7 @@ The app checks for a new release every time it opens (and every few hours while 
 3. Talk to it: *"Mopsos için not al: veritabanı olarak SQLite seçtik."*
 4. Ask it later: *"Mopsos'ta hangi veritabanını seçmiştik?"*
 
-Notelore starts on the cheapest model your provider offers (with Gemini, on gemini-2.5-flash, which a free key has quota for); switch any time with the model chip above the message box when your provider offers more than one; with a single model the chip is hidden and the model is chosen in *Settings → Model*.
+Notelore starts on the cheapest model your provider offers (with Gemini, on gemini-2.5-flash, which a free key has quota for); switch any time with the model chip above the message box when your provider offers more than one (models read by name, like *Claude Sonnet 5.5*; Settings also shows the provider's id); with a single model the chip is hidden and the model is chosen in *Settings → Model*.
 
 > [!TIP]
 > Gemini is free with a key from a Google AI Studio project that has no billing, and Ollama is free too. Claude, GPT and DeepSeek through their APIs are billed per use, to your own key; a Claude Pro or Max subscription cannot be used in other apps, and neither can a DeepSeek web subscription. DeepSeek is one of the cheapest options: about $0.15 per million input tokens and $0.60 per million output at off-peak, double at peak.

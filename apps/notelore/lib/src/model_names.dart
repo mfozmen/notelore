@@ -5,7 +5,7 @@ String readableModel(String id) {
       .replaceFirst(RegExp(r'-\d{8}$'), '')
       .replaceFirst(RegExp(r'-\d{4}-\d{2}-\d{2}$'), '');
   final parts = base.split('-');
-  if (parts.length < 2) return id;
+  if (parts.length < 2 || parts.any((part) => part.isEmpty)) return id;
   final numbers = RegExp(r'^\d+(\.\d+)?$');
   String cap(String word) => word[0].toUpperCase() + word.substring(1);
   switch (parts.first) {
