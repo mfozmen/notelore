@@ -8,7 +8,6 @@ import 'package:notelore/src/theme.dart';
 void main() {
   const prefs = SharedPrefs(
     language: AppLanguage.tr,
-    palette: Palette.lagoon,
     appearance: Appearance.dark,
     webSearch: false,
     aboutMeToCloud: true,
@@ -21,7 +20,6 @@ void main() {
       jsonEncode(prefs.toJson()),
       jsonEncode({
         'language': 'tr',
-        'palette': 'lagoon',
         'appearance': 'dark',
         'webSearch': false,
         'aboutMeToCloud': true,
@@ -42,11 +40,16 @@ void main() {
     });
     expect([
       empty.language,
-      empty.palette,
       empty.webSearch,
       empty.calendar,
       empty.calendarId,
     ], everyElement(isNull));
     expect(empty.toJson(), isEmpty);
+  });
+
+  test('a file from a version with palettes still loads; the palette is dropped (#782)', () {
+    final old = SharedPrefs.fromJson({'palette': 'forest', 'appearance': 'dark'});
+    expect(old.appearance, Appearance.dark);
+    expect(old.toJson(), {'appearance': 'dark'});
   });
 }

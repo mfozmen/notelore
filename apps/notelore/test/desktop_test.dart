@@ -59,6 +59,8 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
     final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
     expect(rail.extended, isTrue); // room for the labels
+    final colors = Theme.of(tester.element(find.byType(NavigationRail))).colorScheme;
+    expect(rail.selectedLabelTextStyle!.color, colors.primary); // the chosen tab in the accent
     expect(find.text('Notelore'), findsOneWidget);
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
@@ -72,6 +74,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(NavigationBar), findsOneWidget);
+    // A hairline over the bar, as the rail has its divider beside it.
+    final line = tester.widget<DecoratedBox>(
+      find.ancestor(of: find.byType(NavigationBar), matching: find.byType(DecoratedBox)).first,
+    );
+    expect(
+      (line.decoration as BoxDecoration).border,
+      Border(top: BorderSide(color: colors.outlineVariant)),
+    );
   });
 
   testWidgets('a draft survives the side rail and a resize to the phone layout', (tester) async {

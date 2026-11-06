@@ -57,6 +57,39 @@ flutter:
     # letter, which the PDF standard fonts lack.
     - assets/fonts/NotoSans-Regular.ttf
     - assets/fonts/NotoSans-Bold.ttf
+    # The fonts' licenses, for the licenses page.
+    - assets/fonts/OFL.txt
+    - assets/fonts/OFL-Fraunces.txt
+    - assets/fonts/OFL-PlusJakartaSans.txt
+    - assets/fonts/OFL-JetBrainsMono.txt
     # Google's G for the Sign in with Google button (assets/google/README.md).
     - assets/google/g_light.png
     - assets/google/g_dark.png
+  # The app's faces (SIL Open Font License), bundled so it needs no network:
+  # static cuts of only the weights the theme uses.
+  fonts:
+    - family: Fraunces
+      fonts:
+        - asset: assets/fonts/Fraunces-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Fraunces-SemiBoldItalic.ttf
+          weight: 600
+          style: italic
+    - family: Plus Jakarta Sans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+          weight: 400
+        # Answers italicise words in their Markdown.
+        - asset: assets/fonts/PlusJakartaSans-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/PlusJakartaSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/PlusJakartaSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/PlusJakartaSans-Bold.ttf
+          weight: 700
+    - family: JetBrains Mono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-Medium.ttf
+          weight: 500

@@ -20,6 +20,11 @@ import 'sync_state.dart';
 import 'theme.dart';
 import 'update.dart';
 
+// Built once: a new theme on every rebuild would cross-fade each time, and the
+// fade's frames clear the chat's one-frame live region.
+final _light = noteloreTheme(Brightness.light);
+final _dark = noteloreTheme(Brightness.dark);
+
 /// Opens the session (folders, index, saved provider), then shows setup until a
 /// provider is connected and the three tabs after that.
 class NoteloreApp extends StatefulWidget {
@@ -103,8 +108,8 @@ class _NoteloreAppState extends State<NoteloreApp> with WidgetsBindingObserver {
           navigatorKey: _navigator,
           scaffoldMessengerKey: _messenger,
           title: 'Notelore',
-          theme: noteloreTheme(Brightness.light, snapshot.data?.palette ?? Palette.lagoon),
-          darkTheme: noteloreTheme(Brightness.dark, snapshot.data?.palette ?? Palette.lagoon),
+          theme: _light,
+          darkTheme: _dark,
           themeMode: snapshot.data?.appearance.mode ?? ThemeMode.system,
           locale: Locale(strings.languageCode),
           supportedLocales: const [Locale('en'), Locale('tr')],
@@ -460,13 +465,24 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       ),
       bottomNavigationBar: wide
           ? null
-          : NavigationBar(
-              selectedIndex: tab,
-              onDestinationSelected: select,
-              destinations: [
-                for (final (icon, chosen, label) in destinations)
-                  NavigationDestination(icon: Icon(icon), selectedIcon: Icon(chosen), label: label),
-              ],
+          : DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                ),
+              ),
+              child: NavigationBar(
+                selectedIndex: tab,
+                onDestinationSelected: select,
+                destinations: [
+                  for (final (icon, chosen, label) in destinations)
+                    NavigationDestination(
+                      icon: Icon(icon),
+                      selectedIcon: Icon(chosen),
+                      label: label,
+                    ),
+                ],
+              ),
             ),
     );
   }
@@ -911,7 +927,10 @@ class _SideRail extends StatelessWidget {
       extended: extended,
       minExtendedWidth: 220,
       // Labels sized for reading at a desk, not a phone's caption.
-      selectedLabelTextStyle: labels.copyWith(fontWeight: FontWeight.w600),
+      selectedLabelTextStyle: labels.copyWith(
+        fontWeight: FontWeight.w600,
+        color: theme.colorScheme.primary,
+      ),
       unselectedLabelTextStyle: labels.copyWith(color: theme.colorScheme.onSurfaceVariant),
       labelType: extended ? null : NavigationRailLabelType.all,
       selectedIndex: selected,

@@ -1,28 +1,17 @@
-/// The app's look: flat and calm, in a nature palette, light or dark.
+/// The app's look: Kil (clay) by day, Orman (forest) by night, from the
+/// approved mockup in `docs/design/kil-orman/`.
 ///
-/// From the ui-ux-pro-max skill's design system for a productivity tool: flat
-/// surfaces (outlines instead of shadows), one teal accent, an 8-point spacing
-/// rhythm, at least 48-point tap targets and rounded, friendly shapes.
+/// Flat surfaces with outlines, one warm accent, Fraunces titles over Plus
+/// Jakarta Sans, an 8-point spacing rhythm and at least 48-point tap targets.
 library;
 
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-/// Colour palettes taken from landscapes. Each seeds a light and a dark
-/// scheme, so Material 3 keeps the contrast right in both.
-enum Palette {
-  lagoon(Color(0xFF0D9488)), // shallow water over sand
-  forest(Color(0xFF15803D)), // pine needles and moss
-  sea(Color(0xFF0369A1)), // open water far from shore
-  sunset(Color(0xFFEA580C)), // the sky as the sun goes down
-  lavender(Color(0xFF7C3AED)), // a lavender field in summer
-  aurora(Color(0xFF4F46E5)); // a northern night sky
-
-  const Palette(this.seed);
-
-  final Color seed;
-}
+import 'schemes.dart';
 
 /// Light, dark, or whatever the device uses.
 enum Appearance {
@@ -36,8 +25,8 @@ enum Appearance {
 }
 
 /// Corner radii: cards and tiles, and the rounder input fields.
-const _card = 16.0;
-const _field = 24.0;
+const _card = 18.0;
+const _field = 28.0;
 const _control = 12.0;
 
 /// The spacing steps every screen uses.
@@ -49,7 +38,7 @@ abstract final class Gap {
 }
 
 /// How an answer's Markdown is drawn on its bubble (#335). The tints are of the
-/// bubble's own text colour, so they read in every palette, light and dark.
+/// bubble's own text colour, so they read in both themes.
 abstract final class AnswerStyle {
   /// As bold words: an answer keeps to two weights.
   static const headingWeight = FontWeight.bold;
@@ -111,12 +100,172 @@ abstract final class Layout {
   static bool isWide(BuildContext context) => MediaQuery.sizeOf(context).width >= wide;
 }
 
-ThemeData noteloreTheme(Brightness brightness, [Palette palette = Palette.lagoon]) {
-  final colors = ColorScheme.fromSeed(seedColor: palette.seed, brightness: brightness);
+/// The look's colours a [ColorScheme] has no role for. Screens read them with
+/// `Theme.of(context).extension<NoteloreTokens>()!`.
+@immutable
+class NoteloreTokens extends ThemeExtension<NoteloreTokens> {
+  const NoteloreTokens({
+    required this.hot,
+    required this.hotText,
+    required this.hotValue,
+    required this.hotBorder,
+    required this.glow,
+    required this.mineBorder,
+    required this.bright,
+    required this.label,
+  });
+
+  /// The current decision's card: its fill, its words, its value and its edge.
+  final LinearGradient hot;
+  final Color hotText;
+  final Color hotValue;
+  final Color hotBorder;
+
+  /// The glow at the top of the screen at night; none by day.
+  final RadialGradient? glow;
+
+  /// The edge of the person's own message.
+  final Color mineBorder;
+
+  /// The accent at its brightest, for fills behind no text (the mic).
+  final Color bright;
+
+  /// Small mono section labels; the widget puts them in capitals.
+  final TextStyle label;
+
+  @override
+  NoteloreTokens copyWith({
+    LinearGradient? hot,
+    Color? hotText,
+    Color? hotValue,
+    Color? hotBorder,
+    RadialGradient? glow,
+    Color? mineBorder,
+    Color? bright,
+    TextStyle? label,
+  }) => NoteloreTokens(
+    hot: hot ?? this.hot,
+    hotText: hotText ?? this.hotText,
+    hotValue: hotValue ?? this.hotValue,
+    hotBorder: hotBorder ?? this.hotBorder,
+    glow: glow ?? this.glow,
+    mineBorder: mineBorder ?? this.mineBorder,
+    bright: bright ?? this.bright,
+    label: label ?? this.label,
+  );
+
+  @override
+  NoteloreTokens lerp(NoteloreTokens? other, double t) {
+    if (other == null) return this;
+    return NoteloreTokens(
+      hot: LinearGradient.lerp(hot, other.hot, t)!,
+      hotText: Color.lerp(hotText, other.hotText, t)!,
+      hotValue: Color.lerp(hotValue, other.hotValue, t)!,
+      hotBorder: Color.lerp(hotBorder, other.hotBorder, t)!,
+      glow: RadialGradient.lerp(glow, other.glow, t),
+      mineBorder: Color.lerp(mineBorder, other.mineBorder, t)!,
+      bright: Color.lerp(bright, other.bright, t)!,
+      label: TextStyle.lerp(label, other.label, t)!,
+    );
+  }
+}
+
+/// CSS's `linear-gradient(150deg, …)`: from the top left, mostly downwards.
+const _hotFrom = Alignment(-0.6, -1);
+const _hotTo = Alignment(0.6, 1);
+
+NoteloreTokens _tokens(ColorScheme colors) {
+  final label = TextStyle(
+    fontFamily: 'JetBrains Mono',
+    fontWeight: FontWeight.w500,
+    fontSize: 10.5,
+    letterSpacing: 1.6,
+    color: colors.primary,
+  );
+  return colors.brightness == Brightness.light
+      ? NoteloreTokens(
+          hot: const LinearGradient(
+            begin: _hotFrom,
+            end: _hotTo,
+            colors: [Color(0xFFEA580C), Color(0xFF9A3412)],
+          ),
+          hotText: const Color(0xFFFFF7ED),
+          hotValue: const Color(0xFFFFF7ED),
+          hotBorder: colors.outlineVariant,
+          glow: null,
+          mineBorder: const Color(0xFFEFC4A2),
+          bright: const Color(0xFFEA580C),
+          label: label,
+        )
+      : NoteloreTokens(
+          hot: const LinearGradient(
+            begin: _hotFrom,
+            end: _hotTo,
+            colors: [Color(0xFF335240), Color(0xFF142019)],
+          ),
+          hotText: const Color(0xFFD7E3D9),
+          hotValue: const Color(0xFFF0B47F),
+          hotBorder: colors.primary.withValues(alpha: .3),
+          glow: const RadialGradient(
+            center: Alignment.topCenter,
+            radius: 1.2,
+            colors: [Color(0xFF1D3A2A), Color(0x001D3A2A)],
+            stops: [0, .65],
+          ),
+          mineBorder: const Color(0x55D9884F),
+          bright: const Color(0xFFEBA26F),
+          label: label,
+        );
+}
+
+/// Lists the bundled fonts' licenses on Flutter's licenses page.
+void addFontLicenses() {
+  const files = {
+    'Fraunces': 'OFL-Fraunces.txt',
+    'Plus Jakarta Sans': 'OFL-PlusJakartaSans.txt',
+    'JetBrains Mono': 'OFL-JetBrainsMono.txt',
+    'Noto Sans': 'OFL.txt',
+  };
+  LicenseRegistry.addLicense(() async* {
+    for (final MapEntry(key: font, value: file) in files.entries) {
+      yield LicenseEntryWithLineBreaks([font], await rootBundle.loadString('assets/fonts/$file'));
+    }
+  });
+}
+
+const _serif = TextStyle(fontFamily: 'Fraunces', fontWeight: FontWeight.w600);
+const _sans = TextStyle(fontFamily: 'Plus Jakarta Sans');
+
+/// Merged over Material's sizes and colours, so only the faces change.
+const _type = TextTheme(
+  displayLarge: _serif,
+  displayMedium: _serif,
+  displaySmall: _serif,
+  headlineLarge: _serif,
+  headlineMedium: _serif,
+  headlineSmall: _serif,
+  titleLarge: _serif,
+  titleMedium: _serif,
+  titleSmall: _serif,
+  bodyLarge: _sans,
+  bodyMedium: _sans,
+  bodySmall: _sans,
+  labelLarge: _sans,
+  labelMedium: _sans,
+  labelSmall: _sans,
+);
+
+ThemeData noteloreTheme(Brightness brightness) {
+  final colors = brightness == Brightness.light ? kil : orman;
   final rounded = RoundedRectangleBorder(borderRadius: BorderRadius.circular(_card));
+  final edge = BorderSide(color: colors.outlineVariant);
   const tap = Size(48, 48);
+  WidgetStateProperty<T> picked<T>(T on, T off) =>
+      WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? on : off);
   return ThemeData(
     colorScheme: colors,
+    textTheme: _type,
+    extensions: [_tokens(colors)],
     textSelectionTheme: TextSelectionThemeData(
       selectionColor: colors.primary.withValues(alpha: 0.35),
       selectionHandleColor: colors.primary,
@@ -134,26 +283,24 @@ ThemeData noteloreTheme(Brightness brightness, [Palette palette = Palette.lagoon
       elevation: 0,
       margin: EdgeInsets.zero,
       color: colors.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(_card),
-        side: BorderSide(color: colors.outlineVariant),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_card), side: edge),
     ),
     listTileTheme: ListTileThemeData(shape: rounded, minVerticalPadding: Gap.s),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: colors.surfaceContainerHighest,
+      fillColor: colors.surfaceContainerLow,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      border: OutlineInputBorder(
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(_field), borderSide: edge),
+      enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(_field),
-        borderSide: BorderSide.none,
+        borderSide: edge,
       ),
       // The focused field stays visible for keyboard users.
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(_field),
         borderSide: BorderSide(color: colors.primary, width: 2),
       ),
-      // The borderless field would otherwise show an error only in the line under it.
+      // An error shows on the field's edge, not only in the line under it.
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(_field),
         borderSide: BorderSide(color: colors.error),
@@ -172,30 +319,42 @@ ThemeData noteloreTheme(Brightness brightness, [Palette palette = Palette.lagoon
     textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(minimumSize: tap)),
     iconButtonTheme: IconButtonThemeData(style: IconButton.styleFrom(minimumSize: tap)),
     chipTheme: ChipThemeData(
-      shape: StadiumBorder(side: BorderSide(color: colors.outlineVariant)),
+      shape: StadiumBorder(side: edge),
       backgroundColor: colors.surfaceContainerLow,
     ),
     snackBarTheme: SnackBarThemeData(behavior: SnackBarBehavior.floating, shape: rounded),
     bannerTheme: MaterialBannerThemeData(backgroundColor: colors.secondaryContainer),
+    // No pill: the chosen tab is told by the accent alone (its labels are sized in Home).
     navigationBarTheme: NavigationBarThemeData(
       elevation: 0,
-      backgroundColor: colors.surfaceContainer,
-      indicatorColor: colors.secondaryContainer,
+      backgroundColor: colors.surface,
+      surfaceTintColor: Colors.transparent,
+      indicatorColor: Colors.transparent,
+      iconTheme: picked(
+        IconThemeData(color: colors.primary),
+        IconThemeData(color: colors.onSurfaceVariant),
+      ),
+      labelTextStyle: picked(
+        _sans.copyWith(fontSize: 12, fontWeight: FontWeight.w600, color: colors.primary),
+        _sans.copyWith(fontSize: 12, fontWeight: FontWeight.w500, color: colors.onSurfaceVariant),
+      ),
     ),
-    // The desktop side rail: a sidebar tone (its labels are sized in Home).
     navigationRailTheme: NavigationRailThemeData(
-      backgroundColor: colors.surfaceContainer,
-      indicatorColor: colors.secondaryContainer,
+      backgroundColor: colors.surface,
+      useIndicator: false,
+      selectedIconTheme: IconThemeData(color: colors.primary),
+      unselectedIconTheme: IconThemeData(color: colors.onSurfaceVariant),
     ),
     // Every picker: a filled, rounded field and a rounded menu above the page.
     dropdownMenuTheme: DropdownMenuThemeData(
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: colors.surfaceContainerHighest,
+        fillColor: colors.surfaceContainerLow,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        border: OutlineInputBorder(
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(_control), borderSide: edge),
+        enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_control),
-          borderSide: BorderSide.none,
+          borderSide: edge,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_control),

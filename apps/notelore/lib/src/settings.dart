@@ -672,7 +672,7 @@ class _LanguageCard extends StatelessWidget {
   }
 }
 
-/// The theme (a palette per landscape) and light or dark.
+/// Light, dark, or the device's.
 class _LookCard extends StatelessWidget {
   const _LookCard(this.session);
 
@@ -687,49 +687,7 @@ class _LookCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ListTile(
-              leading: const Icon(Icons.palette_outlined),
-              title: Text(s.theme),
-              subtitle: Text(s.paletteName(session.palette)),
-            ),
-            // A swatch per landscape; the chosen one is ringed.
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-              child: LayoutBuilder(
-                builder: (context, size) {
-                  final swatches = [
-                    for (final palette in Palette.values)
-                      _Swatch(
-                        palette,
-                        label: s.paletteName(palette),
-                        chosen: palette == session.palette,
-                        onTap: () => session.setPalette(palette),
-                      ),
-                  ];
-                  // One row where six 48 dp swatches fit, else 3 + 3, never 5 + 1.
-                  if (size.maxWidth >= swatches.length * 48 + (swatches.length - 1) * Gap.xs) {
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: swatches,
-                    );
-                  }
-                  return Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: swatches.sublist(0, 3),
-                      ),
-                      const SizedBox(height: Gap.s),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: swatches.sublist(3),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: Gap.m),
+            ListTile(leading: const Icon(Icons.contrast), title: Text(s.theme)),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Gap.m),
               child: Wrap(
@@ -1380,57 +1338,6 @@ class _DriveSection extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// One palette as a round swatch of its light and dark colours.
-class _Swatch extends StatelessWidget {
-  const _Swatch(this.palette, {required this.label, required this.chosen, required this.onTap});
-
-  final Palette palette;
-  final String label;
-  final bool chosen;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final light = noteloreTheme(Brightness.light, palette).colorScheme;
-    final dark = noteloreTheme(Brightness.dark, palette).colorScheme;
-    return Tooltip(
-      message: label,
-      child: Semantics(
-        button: true,
-        selected: chosen,
-        label: label,
-        child: InkResponse(
-          onTap: onTap,
-          radius: 28,
-          child: Container(
-            width: 48,
-            height: 48,
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: chosen ? Theme.of(context).colorScheme.onSurface : Colors.transparent,
-                width: 2,
-              ),
-            ),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  stops: const [0.5, 0.5],
-                  colors: [light.primary, dark.primaryContainer],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

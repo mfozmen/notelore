@@ -497,7 +497,6 @@ abstract class Strings {
   String get microphone;
   String get systemMicrophone;
   String get listMicrophones;
-  String paletteName(Palette palette);
   String get appearance;
   String get voiceSection;
   String get syncSection;
@@ -1470,15 +1469,6 @@ class EnglishStrings extends Strings {
   String get systemMicrophone => 'System default';
   @override
   String get listMicrophones => 'List the microphones again';
-  @override
-  String paletteName(Palette palette) => switch (palette) {
-    Palette.lagoon => 'Lagoon',
-    Palette.forest => 'Pine forest',
-    Palette.sea => 'Open sea',
-    Palette.sunset => 'Sunset',
-    Palette.lavender => 'Lavender field',
-    Palette.aurora => 'Northern lights',
-  };
   @override
   String get appearance => 'Appearance';
   @override
@@ -2628,15 +2618,6 @@ class TurkishStrings extends Strings {
   String get systemMicrophone => 'Sistem varsayılanı';
   @override
   String get listMicrophones => 'Mikrofonları yeniden listele';
-  @override
-  String paletteName(Palette palette) => switch (palette) {
-    Palette.lagoon => 'Lagün',
-    Palette.forest => 'Çam ormanı',
-    Palette.sea => 'Açık deniz',
-    Palette.sunset => 'Gün batımı',
-    Palette.lavender => 'Lavanta tarlası',
-    Palette.aurora => 'Kuzey ışıkları',
-  };
   @override
   String get appearance => 'Görünüm';
   @override

@@ -16,18 +16,22 @@ import 'src/reminder_native.dart';
 import 'src/reminder_notifier.dart';
 import 'src/session.dart';
 import 'src/share_native.dart';
+import 'src/theme.dart';
 import 'src/update.dart';
 
-void main() => runApp(
-  NoteloreApp(
-    open: openSession,
-    updater: updaterFor(
-      system: Platform.operatingSystem,
-      version: appVersion,
-      executable: Platform.resolvedExecutable,
+void main() {
+  addFontLicenses();
+  runApp(
+    NoteloreApp(
+      open: openSession,
+      updater: updaterFor(
+        system: Platform.operatingSystem,
+        version: appVersion,
+        executable: Platform.resolvedExecutable,
+      ),
     ),
-  ),
-);
+  );
+}
 
 /// The session on this device's folders: the notes and the derived state both
 /// in the app's own support folder, which the user never has to see (#207).
