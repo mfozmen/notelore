@@ -235,14 +235,21 @@ class Session extends ChangeNotifier {
     final pinned = {for (final file in deviceFiles) file.name};
     return [
       for (final file in dir.listSync().whereType<File>())
-        if (file.path.endsWith('.gguf') && !pinned.contains(p.basename(file.path))) file,
+        if (RegExp(r'\.gguf(\.part)?$').hasMatch(file.path) &&
+            !pinned.contains(p.basename(file.path).replaceFirst(RegExp(r'\.part$'), '')))
+          file,
     ];
   }
 
-  String get _deviceFile => switch (_oldDeviceFiles) {
-    [final old, ...] when !deviceModel.ready => p.basename(old.path),
+  String get _deviceFile => switch (_oldDeviceFiles.where((f) => f.path.endsWith('.gguf'))) {
+    final old when old.isNotEmpty && !deviceModel.ready => p.basename(old.first.path),
     _ => deviceFiles.first.name,
   };
+
+  /// A file Windows still holds (antivirus, an indexer) stays: the next start tries again.
+  Future<void> _dropOldDeviceFiles() => Future.wait([
+    for (final old in _oldDeviceFiles) old.delete().then<void>((_) {}, onError: (Object _) {}),
+  ]);
 
   /// Where a new device model from an app update stands; null when there is
   /// none, or the person put its notice away.
@@ -255,7 +262,8 @@ class Session extends ChangeNotifier {
   /// Wi-Fi it downloads by itself, on a connection that costs (or one not
   /// known) the person is asked first.
   Future<void> _checkDeviceModel() async {
-    if (spec?.access != ProviderAccess.deviceFile || deviceModel.ready) return;
+    if (deviceModel.ready) return deviceUpdating = _dropOldDeviceFiles();
+    if (spec?.access != ProviderAccess.deviceFile) return;
     if (await meteredNetwork() == false) return updateDeviceModel();
     deviceUpdate = DeviceUpdate.ask;
     notifyListeners();
@@ -281,9 +289,7 @@ class Session extends ChangeNotifier {
     }
     await _exclusive(() async {
       await device.free();
-      for (final old in _oldDeviceFiles) {
-        old.deleteSync();
-      }
+      await _dropOldDeviceFiles();
       if (spec case final spec? when spec.access == ProviderAccess.deviceFile) {
         _use(spec, '', model!);
       }
@@ -1054,7 +1060,8 @@ class Session extends ChangeNotifier {
   Future<List<String>> _models(ProviderSpec spec, String key, {required bool signIn}) async =>
       switch (spec.access) {
         // Its one model, once its file is here; nothing to ask a server.
-        ProviderAccess.deviceFile when !deviceModel.ready && _oldDeviceFiles.isEmpty =>
+        ProviderAccess.deviceFile
+            when !deviceModel.ready && _deviceFile == deviceFiles.first.name =>
           throw const TransientValidationError('Download the model first'),
         ProviderAccess.deviceFile => [spec.defaultModel],
         ProviderAccess.apiKey ||

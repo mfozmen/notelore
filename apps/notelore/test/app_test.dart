@@ -3189,7 +3189,8 @@ void main() {
       harness.pages[url] = served.future;
       final session = await pumpApp(tester, harness);
       await tester.pump();
-      expect(find.text(session.strings.deviceUpdating), findsOneWidget);
+      expect(find.text(session.strings.deviceUpdating(0)), findsOneWidget);
+      expect(find.text('Hide'), findsOneWidget);
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
       served.complete('other bytes');
       await settleUntil(tester, () => session.deviceUpdate == DeviceUpdate.failed);

@@ -315,6 +315,24 @@ void main() {
       await session.switchTo(findProvider('device'));
     });
 
+    test('an old file left behind is deleted at the next start, a half download too', () async {
+      final harness = Harness();
+      final session = harness.session(deviceModels: true);
+      harness.pages[url] = 'model bytes';
+      await session.downloadDeviceModel();
+      for (final name in ['old.gguf', 'old.gguf.part', 'q.gguf.part']) {
+        File(session.deviceModel.path(name)).writeAsStringSync('x');
+      }
+      final again = harness.session(deviceModels: true);
+      await again.load();
+      await pumpEventQueue();
+      await again.deviceUpdating;
+      expect(File(again.deviceModel.path('old.gguf')).existsSync(), isFalse);
+      expect(File(again.deviceModel.path('old.gguf.part')).existsSync(), isFalse);
+      expect(File(again.deviceModel.path('q.gguf.part')).existsSync(), isTrue); // the pinned one's
+      expect(again.deviceModel.ready, isTrue);
+    });
+
     test('nothing to do on the current model, or on another one', () async {
       final harness = Harness()..metered = false;
       final session = harness.session(deviceModels: true);
