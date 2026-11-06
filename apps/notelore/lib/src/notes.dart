@@ -363,20 +363,24 @@ class _NotesScreenState extends State<NotesScreen> {
               ),
             ],
           )
-        : ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
-            children: [
-              if (notes.any((n) => n.pinned)) ...[
-                _group(context, s.pinnedNotes),
-                for (final note in notes)
-                  if (note.pinned) _card(context, note, wide: wide),
-                if (notes.any((n) => !n.pinned)) _group(context, s.otherNotes),
-              ],
-              for (final note in notes)
-                if (!note.pinned) _card(context, note, wide: wide),
-            ],
-          );
+        : _cards(context, notes, wide: wide);
+  }
+
+  /// The pinned notes under their header, then the others under theirs.
+  Widget _cards(BuildContext context, List<NoteInfo> notes, {required bool wide}) {
+    final s = widget.session.strings;
+    final pinned = notes.where((n) => n.pinned).toList();
+    final others = notes.where((n) => !n.pinned).toList();
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
+      children: [
+        if (pinned.isNotEmpty) _group(context, s.pinnedNotes),
+        for (final note in pinned) _card(context, note, wide: wide),
+        if (pinned.isNotEmpty && others.isNotEmpty) _group(context, s.otherNotes),
+        for (final note in others) _card(context, note, wide: wide),
+      ],
+    );
   }
 
   /// The heading over the pinned notes, or over the rest.
