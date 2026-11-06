@@ -425,8 +425,6 @@ abstract class Strings {
   String noteKind(String kind);
   String updatedOn(String date);
   String earlierDecisions(int count);
-  String get decisionsHelp;
-  String get todosHelp;
   String supersededOn(String date);
   String overdue(String date);
   String reminderPassed(String date);
@@ -1319,10 +1317,6 @@ class EnglishStrings extends Strings {
   String updatedOn(String date) => 'Updated $date';
   @override
   String earlierDecisions(int count) => 'Earlier decisions ($count)';
-  @override
-  String get decisionsHelp => 'Choices already made, with the reason when one was recorded.';
-  @override
-  String get todosHelp => 'Work still to do; the date is when it is due.';
   @override
   String supersededOn(String date) => 'superseded $date';
   @override
@@ -2464,10 +2458,6 @@ class TurkishStrings extends Strings {
   String updatedOn(String date) => 'Güncellendi $date';
   @override
   String earlierDecisions(int count) => 'Önceki kararlar ($count)';
-  @override
-  String get decisionsHelp => 'Verilmiş kararlar; gerekçe kaydedildiyse yanında görünür.';
-  @override
-  String get todosHelp => 'Hâlâ yapılacak işler; yanındaki tarih son tarihidir.';
   @override
   String supersededOn(String date) => '$date tarihinde değişti';
   @override
