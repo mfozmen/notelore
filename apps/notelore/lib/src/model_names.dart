@@ -18,6 +18,7 @@ String readableModel(String id) {
       if (family.isEmpty || version.isEmpty) return id;
       return 'Claude ${cap(family)} ${version.join('.')}';
     case 'gpt':
+      if (!RegExp(r'^\d').hasMatch(parts[1])) return id;
       final rest = parts.skip(2).where((p) => !numbers.hasMatch(p)).toList();
       return 'GPT-${parts[1]}${rest.isEmpty ? '' : ' ${rest.join(' ')}'}';
     case 'gemini':

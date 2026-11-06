@@ -20,6 +20,7 @@ void main() {
     expect(readableModel('claude-x'), 'claude-x');
     expect(readableModel('claude-sonnet'), 'claude-sonnet');
     expect(readableModel('gemini-exp-1206'), 'gemini-exp-1206');
+    expect(readableModel('gpt-plan-a'), 'gpt-plan-a');
     expect(readableModel('qwen3:4b'), 'qwen3:4b');
     expect(readableModel('model-a'), 'model-a');
     expect(readableModel('gemini-2.5-'), 'gemini-2.5-');
