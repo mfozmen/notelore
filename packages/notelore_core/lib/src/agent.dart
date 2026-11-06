@@ -262,6 +262,7 @@ class Agent {
   }) async {
     final start = messages.length;
     wroteNotes = false;
+    toolbox.checkTopics = slim;
     _notes = toolbox.noteList();
     _me = aboutMe ? toolbox.aboutMe() : '';
     _language = languageLine(text);
