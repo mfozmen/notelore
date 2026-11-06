@@ -606,11 +606,21 @@ class Toolbox {
   final _asked = <String, List<Related>>{};
 
   /// This turn's topic slugs already held back once.
-  final _held = <String>{};
+  final _heldSlugs = <String>{};
 
   /// Holds back a topic even when related_notes was not called this turn: the
   /// model on the device often skips it and names the note after one book.
   bool checkTopics = false;
+
+  /// What a topic is held back with once per turn, or null to create it: a small
+  /// model names a new topic after one item (a book) even after the related_notes steer.
+  List<Related>? _held(String kind, String title) {
+    final slug = notes.slugify(title);
+    if (kind != 'topic' || !_heldSlugs.add(slug)) return null;
+    final asked = _asked[slug];
+    if (asked != null) return asked;
+    return checkTopics && _asked.isEmpty ? _fresh().related(title) : null;
+  }
 
   /// This turn's slugs reported missing, with the closest notes named then.
   final _missing = <String, String>{};
@@ -620,7 +630,7 @@ class Toolbox {
     final any = _created.isNotEmpty;
     _created.clear();
     _asked.clear();
-    _held.clear();
+    _heldSlugs.clear();
     _missing.clear();
     return any;
   }
@@ -816,12 +826,7 @@ class Toolbox {
           '$closest. If the user means one of them, use its slug. If this is a new note, '
           'call create_note again.';
     }
-    // A small model names a new topic after one item (a book) even after the
-    // related_notes steer: the first such call asks it to choose once more.
-    final slug = notes.slugify(title);
-    final found = kind == 'topic' && _held.add(slug)
-        ? _asked[slug] ?? (checkTopics && _asked.isEmpty ? _fresh().related(title) : null)
-        : null;
+    final found = _held(kind, title);
     if (found != null) {
       final where = found.isEmpty
           ? 'it is an entry in a collection note for its kind: create that note (such as '
