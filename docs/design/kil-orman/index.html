@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Notelore: Kil (day) and Orman (night)</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Fraunces:ital,wght@0,500;0,600;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0c0c0e;color:#e8e6e1;font:15px/1.5 Inter,system-ui,sans-serif}
+main{max-width:1240px;margin:0 auto;padding:40px 20px 120px}
+h1{font-size:30px;font-weight:800;letter-spacing:-.02em}
+.lead{color:#9b978e;max-width:760px;margin:8px 0 40px}
+.dir{margin:0 0 72px}
+.dir h2{font-size:22px;font-weight:700;display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+.dir h2 b{font:500 13px 'JetBrains Mono',monospace;color:#c9973a;letter-spacing:.12em}
+.dir p.why{color:#9b978e;max-width:820px;margin-bottom:20px}
+.row{display:flex;gap:28px;overflow-x:auto;padding:8px 4px 20px}
+.cap{font:500 11px 'JetBrains Mono',monospace;letter-spacing:.14em;color:#77736b;text-transform:uppercase;margin:0 0 10px 4px}
+.ref img{width:360px;border-radius:28px;display:block;border:1px solid #2a2a2e}
+
+/* phone frame */
+.ph{width:360px;height:760px;border-radius:36px;overflow:hidden;position:relative;flex:none;border:1px solid #2a2a2e;display:flex;flex-direction:column}
+.sb{height:28px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font:600 12px Inter;opacity:.8}
+.body{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.nav{height:64px;flex:none;display:flex;justify-content:space-around;align-items:center}
+.nav span{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px}
+svg.i{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* ================= 7. BİRLEŞİK: KOR ================= */
+.t7{--bg:#f6efe6;--sf:#fffaf4;--bd:#eadccb;--tx:#2b1a12;--mu:#8a6a58;--ac:#c2410c;--ac2:#ea580c;
+  --meBg:#fbe6d4;--meBd:#efc4a2;--meTx:#4a2312;--hot1:#ea580c;--hot2:#9a3412;--hotTx:#fff7ed;--hotV:#fff7ed;
+  --map1:#fbe1cc;--map2:#fffaf4;--line:#c2410c55;--orbit:#c2410c22;--sh:0 4px 14px #c2410c12;
+  background:var(--bg);color:var(--tx);font-family:'Plus Jakarta Sans',Inter,sans-serif}
+.t7.dk{--bg:#0c120e;--sf:#131b16;--bd:#223026;--tx:#e9efe9;--mu:#8fa093;--ac:#d9884f;--ac2:#eba26f;--meBg:#18231c;--meBd:#d9884f55;--meTx:#f6e3d2;--hot1:#335240;--hot2:#142019;--hotTx:#d7e3d9;--hotV:#f0b47f;--sh:none;
+  background:radial-gradient(ellipse 120% 50% at 50% 0%,#1d3a2a 0%,transparent 65%),#0c120e}
+.t7.dk .orb{background:radial-gradient(circle at 35% 30%,#fff1e6,var(--ac) 55%,color-mix(in srgb,var(--ac) 45%,#000));color:#fff}
+.t7.dk .hot{border-color:color-mix(in srgb,var(--ac) 30%,transparent);box-shadow:0 0 24px color-mix(in srgb,var(--ac) 14%,transparent)}
+.t7.dk .dot{box-shadow:0 0 8px var(--ac)}
+.t7 .lbl{font:500 10.5px 'JetBrains Mono',monospace;letter-spacing:.16em;color:var(--ac);text-transform:uppercase}
+.t7 .mu{color:var(--mu)}
+.t7 .hd{padding:10px 20px 4px;display:flex;justify-content:space-between;align-items:center}
+.t7 .sync{font:500 10px 'JetBrains Mono',monospace;color:var(--mu);display:flex;align-items:center;gap:6px;letter-spacing:.06em}
+.t7 .dot{width:6px;height:6px;border-radius:50%;background:var(--ac);box-shadow:0 0 8px var(--ac)}
+.t7 .ttl{font:600 30px/1.08 Fraunces,serif;letter-spacing:-.02em}
+.t7 .ttl i{font-style:italic;color:var(--ac)}
+.t7 .hi{padding:4px 20px 6px}
+.t7 .msgs{flex:1;padding:6px 20px;display:flex;flex-direction:column;gap:14px;justify-content:flex-end}
+.t7 .me{align-self:flex-end;max-width:78%;background:var(--meBg);border:1px solid var(--meBd);color:var(--meTx);padding:10px 14px;border-radius:20px 20px 6px 20px}
+.t7 .ai{max-width:94%;font-size:15px;line-height:1.55}
+.t7 .ai em{font-family:Fraunces,serif;font-style:italic;color:var(--ac)}
+.t7 .sig{display:inline-flex;align-items:center;gap:8px;margin-top:8px;font:500 10.5px 'JetBrains Mono',monospace;letter-spacing:.1em;color:var(--ac);border:1px solid var(--bd);border-radius:999px;padding:5px 10px;background:var(--sf)}
+.t7 .hot{margin-top:10px;border-radius:20px;padding:14px 16px;color:var(--hotTx);background:linear-gradient(150deg,var(--hot1),var(--hot2));position:relative;overflow:hidden;border:1px solid var(--bd)}
+.t7 .hot:after{content:"";position:absolute;right:-34px;top:-34px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,#fdba7466,transparent 70%)}
+.t7 .hot .k{font:500 10.5px 'JetBrains Mono',monospace;letter-spacing:.14em;opacity:.85}
+.t7 .hot b{font:600 24px Fraunces,serif;display:block;margin:2px 0;color:var(--hotV)}
+.t7 .chip{font:500 10px 'JetBrains Mono',monospace;color:var(--mu);border:1px solid var(--bd);border-radius:999px;padding:3px 9px;margin:0 20px 2px;align-self:flex-start;letter-spacing:.06em;background:var(--sf)}
+.t7 .cmp{margin:8px 14px 12px;display:flex;align-items:center;gap:10px;background:var(--sf);border:1px solid var(--bd);border-radius:28px;padding:6px 6px 6px 18px;box-shadow:var(--sh)}
+.t7 .cmp .ph1{flex:1;color:var(--mu);font-size:14px}
+.t7 .orb{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fed7aa,var(--ac2) 55%,#7c2d12);display:grid;place-items:center;color:#fff;box-shadow:0 6px 18px color-mix(in srgb,var(--ac) 45%,transparent)}
+.t7 .nav{border-top:1px solid var(--bd);color:var(--mu)}
+.t7 .nav .on{color:var(--ac)}
+.t7 .map{height:170px;margin:4px 14px 4px;border:1px solid var(--bd);border-radius:20px;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 55%,var(--map1) 0%,var(--map2) 75%)}
+.t7 .map svg{position:absolute;inset:0;width:100%;height:100%}
+.t7 .map .tg{font:500 8.5px 'JetBrains Mono',monospace;fill:var(--mu);letter-spacing:.12em}
+.t7 .map .nm{font:600 10px 'Plus Jakarta Sans';fill:var(--tx)}
+.t7 .sec{display:flex;align-items:center;gap:10px;padding:10px 20px 6px}
+.t7 .sec i{flex:1;height:1px;background:linear-gradient(90deg,var(--bd),transparent)}
+.t7 .card{margin:0 14px 8px;border:1px solid var(--bd);border-radius:18px;padding:11px 14px;background:var(--sf);box-shadow:var(--sh)}
+.t7 .card h4{font:600 16px Fraunces,serif;display:flex;justify-content:space-between;align-items:center}
+.t7 .card p{font-size:13px;color:var(--mu);margin:2px 0 6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.t7 .meta{font:500 10px 'JetBrains Mono',monospace;color:var(--mu);letter-spacing:.06em;display:flex;gap:10px}
+.t7 .meta b{color:var(--ac);font-weight:500}
+.t7 .nt{padding:6px 22px}
+.t7 .sub{font-family:Fraunces,serif;font-style:italic;font-size:16px;color:var(--mu);margin-top:4px}
+.t7 .tl{border-left:1px solid var(--bd);margin:6px 0 0 3px;padding-left:16px}
+.t7 .tl div{position:relative;margin-bottom:12px;font-size:14px}
+.t7 .tl div:before{content:"";position:absolute;left:-20px;top:7px;width:7px;height:7px;border-radius:50%;background:var(--ac)}
+.t7.dk .tl div:before{box-shadow:0 0 6px var(--ac)}
+.t7 .todo{display:flex;gap:10px;align-items:center;font-size:14px;margin:6px 0}
+.t7 .box{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--ac)}
+.t7 .mono{font:500 10px 'JetBrains Mono',monospace;letter-spacing:.06em;color:var(--mu)}
+.t7 .up{margin:6px 14px 4px;border:1px solid var(--bd);border-radius:20px;padding:10px 14px 4px;background:var(--sf);box-shadow:var(--sh)}
+.t7 .uph{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.t7 .upr{display:flex;gap:12px;align-items:center;padding:7px 0;border-top:1px solid var(--bd)}
+.t7 .uph+.upr{border-top:0}
+.t7 .ud{width:38px;flex:none;text-align:center;line-height:1}
+.t7 .ud b{display:block;font:600 20px Fraunces,serif;color:var(--ac)}
+.t7 .ud span{font:500 9px 'JetBrains Mono',monospace;letter-spacing:.12em;color:var(--mu)}
+.t7 .ut{min-width:0;flex:1}
+.t7 .ut div{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t7 .ut span{font-size:11.5px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.t7 .card h4 .ttl2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25}
+.t7 .meta{white-space:nowrap;overflow:hidden}
+.t7 .meta .tags{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.t7 .meta b{margin-left:auto;flex:none}
+.pairrow{display:flex;gap:28px;overflow-x:auto;padding:8px 4px 28px}
+
+@media print{@page{size:1320px 1900px;margin:24px}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.pairrow{flex-wrap:wrap}.ph{break-inside:avoid}}
+</style></head><body><main>
+<h1>Notelore: Kil (day) and Orman (night)</h1><p class="lead">The chosen design: one theme, two modes. Day is Kil (cream and terracotta), night is Orman (green-black and clay orange). Layout, fonts and shapes are the same in both modes; only the colours change. A hand-drawn mockup, not app code.</p>
+<section class="dir"><p class="why">Headings in Fraunces (serif), body in Plus Jakarta Sans, labels in JetBrains Mono capitals. Cards are rounded with a thin border. The assistant answers without a bubble; a decision it finds shows as a coloured "hot card". The mic is a glowing orb. The Notes screen opens with the open todos that are due soon ("Coming up"); long titles clamp to two lines.</p><div id="kor"></div></section>
+</main><script>
+(function(){
+const I={
+ chat:'<svg class="i" viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>',
+ map:'<svg class="i" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/></svg>',
+ cal:'<svg class="i" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>',
+ me:'<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+ mic:'<svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>'};
+const nav=a=>`<div class="nav">${[['chat','Chat'],['map','Notes'],['cal','Calendar'],['me','About me']].map(([k,t],i)=>`<span class="${i==a?'on':''}">${I[k]}${t}</span>`).join('')}</div>`;
+const sb='<div class="sb"><span>9:41</span><span>●●● ▮</span></div>';
+const chat=()=>`${sb}<div class="body">
+ <div class="hd"><span class="lbl">✦ Notelore</span><span class="sync"><i class="dot"></i>SYNCED · 2 MIN</span></div>
+ <div class="hi"><div class="ttl">What's on your <i>mind today?</i></div></div>
+ <div class="msgs">
+  <div class="me">We picked PostgreSQL for Atlas, the team already knows it.</div>
+  <div class="ai">Done, I saved it to <em>Project Atlas</em> as a decision.<br><span class="sig">✦ DECISION SAVED · ATLAS</span></div>
+  <div class="me">Which database did we pick for Atlas?</div>
+  <div class="ai">The current decision:<div class="hot"><span class="k">DECISION · 6 OCT</span><b>PostgreSQL</b><span style="font-size:13px">Why: the team already knows it.</span></div></div>
+ </div>
+ <span class="chip">◉ ON DEVICE · QWEN3 4B</span>
+ <div class="cmp"><span class="ph1">Say or type something…</span><span class="orb">${I.mic}</span></div>
+</div>${nav(0)}`;
+const notes=()=>`${sb}<div class="body">
+ <div class="hd"><span class="ttl">Notes</span><span class="sync"><i class="dot"></i>SYNCED · 2 MIN</span></div>
+ <div class="up"><div class="uph"><span class="lbl">✦ Coming up</span><span class="mono">3 TODOS</span></div>
+  <div class="upr"><div class="ud"><b>12</b><span>NOV</span></div><div class="ut"><div>Kick-off meeting notes</div><span>Project Atlas</span></div></div>
+  <div class="upr"><div class="ud"><b>14</b><span>NOV</span></div><div class="ut"><div>Order Mum's birthday cake, with delivery to the address</div><span>Surprise party for Mum's 70th birthday: preparations</span></div></div>
+  <div class="upr"><div class="ud"><b>18</b><span>NOV</span></div><div class="ut"><div>Lisbon return flight, check-in</div><span>Lisbon trip</span></div></div>
+ </div>
+ <div class="sec"><span class="lbl">✦ Pinned</span><i></i></div>
+ <div class="card"><h4>Project Atlas <span class="lbl">✦</span></h4><p>Database: PostgreSQL. The team already knows it; the first sprint starts on 12 November.</p><div class="meta"><span>PROJECT</span><span>6 OCT</span><span>#work</span><b>○ 1 TODO</b></div></div>
+ <div class="sec"><span class="lbl">✦ Recently updated</span><i></i></div>
+ <div class="card"><h4><span class="ttl2">Surprise party for Mum's 70th birthday: preparations and the guest list</span></h4><p>The cake arrives on 14 November; my aunts come early on Saturday to help decorate.</p><div class="meta"><span>PROJECT</span><span>2 NOV</span><span class="tags">#family #party #shopping</span><b>○ 3 TODOS</b></div></div>
+ <div class="card"><h4><span class="ttl2">Lisbon trip</span></h4><p>Flights booked for 12–18 November, window seats both ways.</p><div class="meta"><span>PROJECT</span><span>14 OCT</span><span class="tags">#travel</span><b>○ 2 TODOS</b></div></div>
+ <div class="card"><h4><span class="ttl2">New laptop research: battery life, weight and Linux support</span></h4><p>Three models left; the lightest has few ports.</p><div class="meta"><span>TOPIC</span><span>9 OCT</span><span class="tags">#tech</span></div></div>
+</div>${nav(1)}`;
+const note=()=>`${sb}<div class="body">
+ <div class="nt"><span class="lbl">← Notes · Project · #work</span><div class="ttl" style="margin-top:8px;font-size:32px">Project Atlas</div><div class="sub">since the sixth of October, three decisions and one todo</div></div>
+ <div class="sec"><span class="lbl">✦ Decisions</span><i></i></div>
+ <div style="margin:0 14px 8px" class="hot"><span class="k">6 OCT</span><b style="font-size:20px">Database: PostgreSQL</b><span style="font-size:13px">The team already knows it.</span></div>
+ <div class="card" style="opacity:.6;padding:9px 14px"><span class="mono">2 OCT · SUPERSEDED</span><h4 style="text-decoration:line-through;font-size:15px">Database: MongoDB</h4></div>
+ <div class="sec"><span class="lbl">✦ Todo</span><i></i></div>
+ <div class="nt" style="padding-top:0"><div class="todo"><i class="box"></i>Kick-off meeting notes<span class="mono" style="margin-left:auto;color:var(--ac)">12 NOV</span></div></div>
+ <div class="sec"><span class="lbl">✦ Notes</span><i></i></div>
+ <div class="nt" style="padding-top:0"><div class="tl"><div><span class="mono">6 OCT</span><br>The team knows PostgreSQL well; the schema draft is ready.</div><div><span class="mono">2 OCT</span><br>The first idea was MongoDB.</div></div></div>
+</div>${nav(1)}`;
+const out=[['Chat',chat],['Notes',notes],['Note',note]].map(([n,f])=>`<div class="pairrow">
+ <div><div class="cap">${n} · day (Kil)</div><div class="ph t7">${f()}</div></div>
+ <div><div class="cap">${n} · night (Orman)</div><div class="ph t7 dk">${f()}</div></div></div>`).join('');
+document.getElementById('kor').innerHTML=out;
+
+})();
+</script></body></html>
