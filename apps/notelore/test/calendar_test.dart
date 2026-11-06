@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/empty_state.dart';
 import 'package:notelore/src/note_view.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
@@ -172,6 +173,7 @@ void main() {
     await tester.tap(find.text('Calendar'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Nothing planned'), findsOneWidget);
+    expect(find.byType(EmptyState), findsOneWidget); // one empty look, shared (#721)
     expect(find.byType(VerticalDivider), findsWidgets);
     // The way to make one: the chat.
     await tester.tap(find.text('Go to chat'));
