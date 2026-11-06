@@ -769,6 +769,11 @@ class Session extends ChangeNotifier {
   /// What the last sync did, for the settings screen; null before any.
   String? syncStatus;
 
+  /// When a sync last finished cleanly, and whether the last one failed
+  /// (#774). The main screens show one of them.
+  DateTime? lastSynced;
+  var syncFailed = false;
+
   /// Whether this run already said the notes moved into Drive's hidden storage.
   var _toldMoved = false;
 
@@ -1591,6 +1596,8 @@ class Session extends ChangeNotifier {
     driveConnected = false;
     _markGoogle(signedIn: false);
     syncStatus = null;
+    lastSynced = null;
+    syncFailed = false;
     driveNeedsSignIn = false;
     heldNotes = const [];
     notifyListeners();
@@ -1736,16 +1743,23 @@ class Session extends ChangeNotifier {
         await _syncSettings(_remote!);
         await refreshReminders(ask: false); // the notes' and the shared setting's
         syncStatus = _syncSummary(report, resolver);
+        lastSynced = clock().toUtc();
+        syncFailed = false;
       } on MissingDriveGrant catch (error) {
+        syncFailed = true;
         _needSignIn(strings.drivePermissionAgain, error.message);
       } on NotSignedIn catch (error) {
+        syncFailed = true;
         _needSignIn(strings.signedOutOfGoogle, error.message);
       } on NetworkError {
+        syncFailed = true;
         syncStatus = strings.offline;
       } on HttpError catch (error) {
+        syncFailed = true;
         _driveFailed(error);
       } on FileSystemException catch (error) {
         // Windows: antivirus or an editor holds a note past the store's retries.
+        syncFailed = true;
         syncStatus = strings.noteInUse(error.message);
       } finally {
         if (!completed) index.invalidateAll();

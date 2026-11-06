@@ -9,6 +9,7 @@ import 'empty_state.dart';
 import 'note_view.dart';
 import 'session.dart';
 import 'strings.dart';
+import 'sync_state.dart';
 import 'theme.dart';
 import 'transfer.dart';
 
@@ -259,7 +260,14 @@ class _NotesScreenState extends State<NotesScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: AppMenu.button(context),
-        title: Text(s.notes),
+        toolbarHeight: !wide && widget.session.driveConnected ? 72 : null,
+        title: wide
+            ? Text(s.notes)
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [Text(s.notes), SyncState(widget.session)],
+              ),
         actions: wide ? null : [_listActions(context, notes)],
       ),
       body: Builder(
