@@ -744,10 +744,10 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
             ),
         ],
       ),
-      // A readable width on a wide window, like the reader's; in a pane, from
-      // the left edge, under its title.
+      // A readable width on a wide window, like the reader's, centred in its
+      // pane as the other panes are (#715).
       body: Align(
-        alignment: widget.back == null ? Alignment.topCenter : Alignment.topLeft,
+        alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: Layout.column),
           child: archived.isEmpty

@@ -96,6 +96,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// The section shown on a wide window.
   var _section = 0;
 
+  /// Usage is open in the wide window's pane.
+  var _usage = false;
+
   /// The device's microphones, listed on opening and again on request.
   late var _microphones = widget.session.listMicrophones();
 
@@ -140,7 +143,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       SettingsSection.lock: [_LockCard(session)],
       SettingsSection.privacy: [_PrivacyCard(session)],
       SettingsSection.reminders: [_RemindersCard(session)],
-      SettingsSection.advanced: [_AdvancedCard(session)],
+      SettingsSection.advanced: [
+        _AdvancedCard(
+          session,
+          onOpen: widget.section == null && Layout.isWide(context)
+              ? () => setState(() => _usage = true)
+              : null,
+        ),
+      ],
       SettingsSection.about: [
         _AboutCard(
           session,
@@ -181,7 +191,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ? _Sections(
                 [for (final section in sections) (section.icon, section.title(s), cards[section]!)],
                 shown: _section.clamp(0, sections.length - 1),
-                show: (index) => setState(() => _section = index),
+                show: (index) => setState(() {
+                  _section = index;
+                  _usage = false;
+                }),
+                pane: _usage
+                    ? _UsagePane(session: session, close: () => setState(() => _usage = false))
+                    : null,
               )
             // A narrow window: the same categories as the phone's menu.
             : ListView(
@@ -249,11 +265,14 @@ Future<void> openSettingsSection(
 /// The section list on the left of a wide window and the [shown] section's
 /// cards beside it.
 class _Sections extends StatelessWidget {
-  const _Sections(this.sections, {required this.shown, required this.show});
+  const _Sections(this.sections, {required this.shown, required this.show, this.pane});
 
   final List<(IconData, String, List<Widget>)> sections;
   final int shown;
   final ValueChanged<int> show;
+
+  /// A page shown in the pane instead of the section's cards (Usage, #715).
+  final Widget? pane;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -277,19 +296,41 @@ class _Sections extends StatelessWidget {
         ),
       ),
       Expanded(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.l, Gap.l),
-          children: [
-            Align(
-              alignment: Alignment.topLeft,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: Layout.column),
-                child: _cards(sections[shown].$3),
-              ),
+        child:
+            pane ??
+            ListView(
+              padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.l, Gap.l),
+              children: [
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: Layout.column),
+                    child: _cards(sections[shown].$3),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
       ),
+    ],
+  );
+}
+
+/// Usage in the wide Settings pane, with its own way back (#715).
+class _UsagePane extends StatelessWidget {
+  const _UsagePane({required this.session, required this.close});
+
+  final Session session;
+  final VoidCallback close;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      ListTile(
+        leading: BackButton(onPressed: close),
+        title: Text(session.strings.usage),
+      ),
+      Expanded(child: UsageView(session)),
     ],
   );
 }
@@ -554,9 +595,12 @@ class _ConnectionsState extends State<_Connections> {
 /// What the model calls used (#217): this conversation and this device.
 /// What only advanced users want (#294): usage, on its own page (#558).
 class _AdvancedCard extends StatelessWidget {
-  const _AdvancedCard(this.session);
+  const _AdvancedCard(this.session, {this.onOpen});
 
   final Session session;
+
+  /// In a wide Settings pane, open Usage beside the sections (#715).
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -568,8 +612,11 @@ class _AdvancedCard extends StatelessWidget {
         title: Text(s.usage),
         subtitle: Text(s.usageWhat),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () =>
-            Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => UsagePage(session))),
+        onTap:
+            onOpen ??
+            () =>
+                Navigator.of(context)
+                    .push(MaterialPageRoute<void>(builder: (_) => UsagePage(session))),
       ),
     );
   }
