@@ -365,7 +365,10 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: Layout.column),
                       child: MaterialBanner(
-                        leading: const Icon(Icons.warning_amber),
+                        leading: Icon(
+                          Icons.warning_amber,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                         content: Text(s.modelGone(s.providerName(session.spec!), session.model!)),
                         actions: [
                           FilledButton(
@@ -475,47 +478,61 @@ class _EmptyChatState extends State<EmptyChat> {
 
   // Low on the screen, near the thumb and the message box.
   @override
-  Widget build(BuildContext context) => Align(
-    alignment: const Alignment(0, 0.6),
-    child: SingleChildScrollView(
-      padding: const EdgeInsets.all(Gap.l),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.edit_note, size: 56, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: Gap.m),
-          Text(
-            widget.strings.askSomething,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          if (widget.example case final example?) ...[
-            const SizedBox(height: Gap.l),
-            // Full-width rows that wrap, so a long example never gets cut.
-            for (final e in _shown)
-              Padding(
-                padding: const EdgeInsets.only(bottom: Gap.s),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => example(e),
-                    icon: const Icon(Icons.north_west, size: 18),
-                    label: Text(e),
-                    style: OutlinedButton.styleFrom(
-                      alignment: AlignmentDirectional.centerStart,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: Gap.m,
-                        vertical: Gap.m - Gap.xs,
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(Gap.l, Gap.l, Gap.l, Gap.m),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.edit_note, size: 56, color: colors.primary),
+            const SizedBox(height: Gap.m),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 300),
+              child: Text(
+                widget.strings.askSomething,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            if (widget.example case final example?) ...[
+              const SizedBox(height: Gap.l),
+              // Full-width rows that wrap, so a long example never gets cut.
+              for (final e in _shown)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: Gap.s),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => example(e),
+                      icon: Icon(Icons.north_west, size: 18, color: colors.primary),
+                      label: Text(e),
+                      style: OutlinedButton.styleFrom(
+                        alignment: AlignmentDirectional.centerStart,
+                        backgroundColor: colors.surfaceContainerLow,
+                        foregroundColor: colors.onSurface,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        side: BorderSide(color: colors.outlineVariant),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: Gap.m,
+                          vertical: Gap.m - Gap.xs,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
+            ],
           ],
-        ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// The conversation, newest at the bottom; while a turn runs, its waiting line.
@@ -679,15 +696,43 @@ class _ModelBar extends StatelessWidget {
     final choices = {...session.models, ?model};
     final switchable = choices.length > 1;
     if (model == null && !plan) return const SizedBox.shrink();
-    // On a ChatGPT plan the chip says so, as OpenAI's guidelines ask, with no
+    // On a ChatGPT plan the pill says so, as OpenAI's guidelines ask, with no
     // button by the composer (#507, #513). Its usage link is in Settings (#558).
     final name = model == null ? null : readableModel(model);
     final label = [?name, if (plan) s.usingChatGptPlan].join(' · ');
-    const icon = Icon(Icons.auto_awesome_outlined, size: 16);
+    final colors = Theme.of(context).colorScheme;
+    final style = Theme.of(context).textTheme.labelMedium
+        ?.copyWith(fontSize: 12, color: colors.onSurface);
+    // A bordered pill on the card colour; the arrow only when there is a choice.
+    final pill = Container(
+      padding: const EdgeInsetsDirectional.fromSTEB(10, Gap.xs, Gap.s, Gap.xs),
+      decoration: ShapeDecoration(
+        color: colors.surfaceContainerLow,
+        shape: StadiumBorder(side: BorderSide(color: colors.outlineVariant)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        spacing: 6,
+        children: [
+          Icon(Icons.auto_awesome_outlined, size: 16, color: colors.primary),
+          // The model first: a narrow pill cuts the plan's words, not its name.
+          // Nothing to switch to: it wraps, so the plan notice is never cut.
+          Flexible(
+            child: Text(
+              label,
+              maxLines: switchable ? 1 : 2,
+              overflow: TextOverflow.ellipsis,
+              style: style,
+            ),
+          ),
+          if (switchable) Icon(Icons.expand_more, size: 16, color: colors.onSurfaceVariant),
+        ],
+      ),
+    );
     // At the composer's start, so it reads as a setting, not as a line of the chat.
     return Container(
       alignment: AlignmentDirectional.centerStart,
-      padding: EdgeInsets.fromLTRB(Gap.m, switchable ? Gap.xs : Gap.s, Gap.m, 0),
+      padding: EdgeInsets.fromLTRB(Gap.m, switchable ? 0 : Gap.s, Gap.m, 0),
       // The models the connected provider listed; switching keeps the conversation.
       child: switchable
           ? PopupMenuButton<String>(
@@ -699,40 +744,13 @@ class _ModelBar extends StatelessWidget {
               itemBuilder: (_) => [
                 for (final m in choices) PopupMenuItem(value: m, child: Text(readableModel(m))),
               ],
-              child: Chip(
-                avatar: icon,
-                // The model first: a narrow chip cuts the plan's words, not its name.
-                label: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis)),
-                    const Icon(Icons.arrow_drop_down, size: 18),
-                  ],
-                ),
-                visualDensity: VisualDensity.compact,
+              // A full-height target around the slim pill.
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: Center(widthFactor: 1, child: pill),
               ),
             )
-          // Nothing to switch to: a plain line, not a pill that looks tappable;
-          // it wraps, so the plan notice is never cut.
-          : MediaQuery.withClampedTextScaling(
-              maxScaleFactor: 1.5,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon.icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                  const SizedBox(width: Gap.xs),
-                  Flexible(
-                    child: Text(
-                      label,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelMedium
-                          ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          : MediaQuery.withClampedTextScaling(maxScaleFactor: 1.5, child: pill),
     );
   }
 }
@@ -910,62 +928,122 @@ class _ComposerRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = session.strings;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(Gap.s, Gap.s, Gap.m, Gap.m),
-      child: ValueListenableBuilder(
-        valueListenable: message,
-        // Apart, and level with the box's last line as it grows.
-        builder: (context, typed, _) {
-          final listening = voice.state == VoiceState.listening;
-          return Row(
-            spacing: Gap.s,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              IconButton(
-                tooltip: s.attachFile,
-                icon: const Icon(Icons.attach_file),
-                onPressed: attach,
-              ),
-              Expanded(
-                // While recording, the recording takes the field's place, and
-                // the field's text stays in its controller.
-                child: voice.state == VoiceState.listening
-                    ? recording
-                    : _MessageField(message, voice: voice, hint: s.message, send: send),
-              ),
-              if (voice.state == VoiceState.speaking)
-                IconButton(
-                  tooltip: s.stopReading,
-                  icon: const Icon(Icons.volume_off_outlined),
-                  onPressed: voice.end,
-                ),
-              // While a turn runs, Stop is the thing to do: filled in the talk
-              // button's place, or tonal beside the primary when there is one
-              // (Send with text typed, or a hold still going on).
-              // Keyed, so it never takes over another button's state (ink, hover).
-              if (session.busy)
-                (typed.text.trim().isEmpty && !listening
-                    ? IconButton.filled
-                    : IconButton.filledTonal)(
-                  key: const Key('stop'),
-                  tooltip: s.stop,
-                  icon: const Icon(Icons.stop),
-                  onPressed: session.stop,
-                ),
-              if (typed.text.trim().isNotEmpty)
-                IconButton.filled(
-                  key: const Key('send'),
-                  tooltip: s.send,
-                  icon: const Icon(Icons.arrow_upward),
-                  onPressed: send,
-                )
-              // A hold that a turn interrupts keeps its button, so the let-go still sends.
-              else if (!session.busy || listening)
-                talk,
-            ],
-          );
-        },
+    final colors = Theme.of(context).colorScheme;
+    // One rounded field on the card colour holds the box and its buttons; its
+    // edge takes the accent while anything in it has the focus.
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      child: Builder(
+        builder: (context) => Container(
+          key: const Key('composer'),
+          margin: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.m),
+          padding: const EdgeInsets.all(Gap.xs),
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(28),
+            border: Focus.of(context).hasFocus
+                ? Border.all(color: colors.primary, width: 2)
+                : Border.all(color: colors.outlineVariant),
+          ),
+          child: _row(s, colors),
+        ),
       ),
+    );
+  }
+
+  Widget _row(Strings s, ColorScheme colors) => ValueListenableBuilder(
+    valueListenable: message,
+    // Apart, and level with the box's last line as it grows.
+    builder: (context, typed, _) {
+      final listening = voice.state == VoiceState.listening;
+      return Row(
+        spacing: Gap.xs,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          IconButton(
+            tooltip: s.attachFile,
+            icon: Icon(Icons.attach_file, color: colors.onSurfaceVariant),
+            onPressed: attach,
+          ),
+          Expanded(
+            // While recording, the recording takes the field's place, and
+            // the field's text stays in its controller.
+            child: voice.state == VoiceState.listening
+                ? recording
+                : _MessageField(message, voice: voice, hint: s.message, send: send),
+          ),
+          if (voice.state == VoiceState.speaking)
+            IconButton(
+              tooltip: s.stopReading,
+              icon: const Icon(Icons.volume_off_outlined),
+              onPressed: voice.end,
+            ),
+          // While a turn runs, Stop is the thing to do: filled in the talk
+          // button's place, or tonal beside the primary when there is one
+          // (Send with text typed, or a hold still going on).
+          // Keyed, so it never takes over another button's state (ink, hover).
+          if (session.busy)
+            (typed.text.trim().isEmpty && !listening ? IconButton.filled : IconButton.filledTonal)(
+              key: const Key('stop'),
+              tooltip: s.stop,
+              icon: const Icon(Icons.stop),
+              onPressed: session.stop,
+            ),
+          if (typed.text.trim().isNotEmpty)
+            _Orb(
+              IconButton(
+                key: const Key('send'),
+                tooltip: s.send,
+                icon: const Icon(Icons.arrow_upward, color: Colors.white),
+                onPressed: send,
+              ),
+            )
+          // A hold that a turn interrupts keeps its button, so the let-go still sends.
+          else if (!session.busy || listening)
+            talk,
+        ],
+      );
+    },
+  );
+}
+
+/// The glowing accent circle behind Talk and Send: lit from the top left,
+/// darker at its rim, with a soft glow of the accent under it.
+class _Orb extends StatelessWidget {
+  const _Orb(this.child);
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accent = theme.colorScheme.primary;
+    final light = theme.brightness == Brightness.light;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          center: const Alignment(-0.3, -0.4),
+          radius: 0.95,
+          stops: const [0, .55, 1],
+          colors: light
+              ? [
+                  const Color(0xFFFED7AA),
+                  theme.extension<NoteloreTokens>()!.bright,
+                  const Color(0xFF7C2D12),
+                ]
+              : [const Color(0xFFFFF1E6), accent, Color.lerp(accent, Colors.black, .55)!],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: .45),
+            offset: const Offset(0, 6),
+            blurRadius: 18,
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }
@@ -999,7 +1077,15 @@ class _MessageField extends StatelessWidget {
     onSubmitted: (_) => send(),
     // Sending decides about the keyboard; by default "send" would drop the focus everywhere.
     onEditingComplete: () {},
-    decoration: InputDecoration(hintText: hint),
+    // The field around it draws the edge.
+    decoration: InputDecoration(
+      hintText: hint,
+      filled: false,
+      border: InputBorder.none,
+      enabledBorder: InputBorder.none,
+      focusedBorder: InputBorder.none,
+      contentPadding: const EdgeInsets.symmetric(horizontal: Gap.xs, vertical: 14),
+    ),
   );
 }
 
@@ -1047,10 +1133,15 @@ class _TalkButton extends StatelessWidget {
         canRequestFocus: false,
         skipTraversal: true,
         onKeyEvent: (_, event) => onKey(event),
-        child: IconButton.filled(
-          tooltip: label,
-          icon: Icon(stop ? Icons.arrow_upward : (listening ? Icons.mic : Icons.mic_none)),
-          onPressed: () {},
+        child: _Orb(
+          IconButton(
+            tooltip: label,
+            icon: Icon(
+              stop ? Icons.arrow_upward : (listening ? Icons.mic : Icons.mic_none),
+              color: Colors.white,
+            ),
+            onPressed: () {},
+          ),
         ),
       ),
     ),
@@ -1347,18 +1438,24 @@ class _Bubble extends StatelessWidget {
         child: _ErrorRow(line.text, strings, retry: resend),
       );
     }
-    final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final mine = line.role == ChatRole.user || line.role == ChatRole.pending;
-    final (background, foreground) = switch (line.role) {
-      ChatRole.user => (colors.primary, colors.onPrimary),
+    // An answer sits on the page itself; the person's words on their own tint.
+    final (background, foreground, edge) = switch (line.role) {
+      ChatRole.user => (
+        colors.primaryContainer,
+        colors.onPrimaryContainer,
+        theme.extension<NoteloreTokens>()!.mineBorder,
+      ),
       // Not sent yet: the user's, in a quieter tone.
-      ChatRole.pending => (colors.primaryContainer, colors.onPrimaryContainer),
-      ChatRole.assistant || ChatRole.error => (colors.surfaceContainerHigh, colors.onSurface),
+      ChatRole.pending => (colors.surfaceContainerLow, colors.onSurface, colors.outlineVariant),
+      ChatRole.assistant || ChatRole.error => (null, colors.onSurface, null),
     };
     final (:text, :answers, :files, :images) = _shown(line);
     // The theme tint disappears on the tinted bubbles; they get their own tone.
     final Color? selection = switch (line.role) {
-      ChatRole.user || ChatRole.pending => _contrastingSelection(background, foreground),
+      ChatRole.user || ChatRole.pending => _contrastingSelection(background!, foreground),
       ChatRole.assistant || ChatRole.error => null,
     };
     final bubble = Semantics(
@@ -1375,6 +1472,7 @@ class _Bubble extends StatelessWidget {
         ),
         mine,
         background,
+        edge,
       ),
     );
     if (line.role == ChatRole.pending) {
@@ -1410,25 +1508,31 @@ class _Bubble extends StatelessWidget {
               spacing: Gap.s,
               runSpacing: Gap.xs,
               children: [
-                for (final a in answers) OutlinedButton(onPressed: () => answer(a), child: Text(a)),
+                for (final a in answers)
+                  OutlinedButton(
+                    onPressed: () => answer(a),
+                    style: OutlinedButton.styleFrom(backgroundColor: colors.surfaceContainerLow),
+                    child: Text(a),
+                  ),
               ],
             ),
         ],
-        // Close under its bubble (full-size targets, pulled up a little).
+        // Close under its words (full-size targets, pulled up a little), the
+        // icons level with the words' edge.
         actions: Transform.translate(
-          offset: const Offset(0, -Gap.s),
-          child: _actions(copy, colors.primary),
+          offset: Offset(mine ? Gap.s : -Gap.s - Gap.xs, -Gap.s),
+          child: _actions(copy, colors.primary, colors.onSurfaceVariant),
         ),
       ),
     );
   }
 
   /// Copy, and for the newest lines Resend and This was wrong (filled once reported).
-  Widget _actions(VoidCallback copy, Color reportedColor) {
+  Widget _actions(VoidCallback copy, Color reportedColor, Color muted) {
     Widget button(String tooltip, IconData icon, VoidCallback onPressed, [Color? color]) =>
         IconButton(
           tooltip: tooltip,
-          icon: Icon(icon, size: 20, color: color),
+          icon: Icon(icon, size: 18, color: color ?? muted),
           onPressed: onPressed,
         );
     return Row(
@@ -1457,20 +1561,33 @@ class _Bubble extends StatelessWidget {
         .toColor();
   }
 
-  Widget _bubble(Widget content, bool mine, Color background) {
+  /// The person's message: rounded, its corner on their side smaller.
+  static const _mineRadius = BorderRadius.only(
+    topLeft: Radius.circular(20),
+    topRight: Radius.circular(20),
+    bottomLeft: Radius.circular(20),
+    bottomRight: Radius.circular(6),
+  );
+
+  Widget _bubble(Widget content, bool mine, Color? background, Color? edge) {
     return LayoutBuilder(
       builder: (context, size) => Align(
         alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: Gap.xs),
           // An answer's first paragraph brings its own small step at the top (#335).
-          padding: EdgeInsets.fromLTRB(Gap.m, mine ? Gap.m - Gap.xs : Gap.s, Gap.m, Gap.m - Gap.xs),
+          padding: mine
+              ? const EdgeInsets.symmetric(horizontal: 14, vertical: 10)
+              : const EdgeInsets.fromLTRB(0, Gap.s, 0, Gap.m - Gap.xs),
           // A gutter on the other side on a phone; a readable line on wide windows.
           constraints: BoxConstraints(maxWidth: Layout.bubbleFor(context, size.maxWidth)),
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: bubbleRadius(mine: mine),
-          ),
+          decoration: mine
+              ? BoxDecoration(
+                  color: background,
+                  border: Border.all(color: edge!),
+                  borderRadius: _mineRadius,
+                )
+              : null,
           child: content,
         ),
       ),

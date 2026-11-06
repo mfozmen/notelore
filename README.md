@@ -55,11 +55,11 @@ Notelore starts on the cheapest model your provider offers (with Gemini, on gemi
 ## Using it
 
 - **Its mark:** a folded ribbon N, its end cut like a bookmark, on lagoon teal; on Android it follows the system's themed icons.
-- **Its look:** Kil, warm clay, in light mode and Orman, a forest at night, in dark mode, set in Fraunces and Plus Jakarta Sans. The fonts come with the app, so it looks the same offline.
+- **Its look:** Kil, warm clay, in light mode and Orman, a forest at night, in dark mode, set in Fraunces and Plus Jakarta Sans. The fonts come with the app, so it looks the same offline. Answers sit on the page without a bubble, your own messages on a soft tint, and the talk button is a glowing orb; at night a faint glow lights the top of the screen.
 - **On a phone:** the bottom bar holds Chat, Notes and Calendar; Settings is in the menu (☰) at the top left of each, in the same categories as on the desktop, each on its own page.
 - **On the desktop:** a side rail (with labels when the window is wide enough) replaces the phone's bottom bar, with Settings in it, and the chat is a readable column.
 - **Chat:**
-  - **Starting:** An empty chat shows a few examples; tap one to put it in the message box. On a wide window the conversation uses the width, with each bubble kept to a readable line.
+  - **Starting:** An empty chat shows a few examples; tap one to put it in the message box. On a wide window the conversation uses the width, with each message and answer kept to a readable line.
   - **How it answers:** Notelore takes notes rather than making conversation: after you tell it something, it says in a sentence what it saved and in which note, and leaves it there (it still asks when it cannot tell where something belongs, and answers questions about your notes in full). When you say a choice was made ("we picked SQLite for Mopsos"), it is recorded as that note's decision, so "what did we decide about the database?" finds it later. A question that names a project or topic ("what do my Notelore notes say about sync?") is answered from that note only.
   - **While it works:** While the assistant works, a playful line keeps you company ("went to make coffee"); *Stop* ends a turn. You can keep writing while it works: what you add joins its answer.
   - **Offline:** Offline, or over your provider's usage limit, a message waits ("Waiting to send") instead of failing: it is kept across restarts and goes out by itself when Notelore can reach the model again (on return to the app, every minute, or with *Try now*), in the order you wrote them.

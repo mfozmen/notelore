@@ -468,4 +468,24 @@ void main() {
     await tester.tap(find.byTooltip('Stop the answer'));
     await tester.pumpAndSettle();
   });
+
+  testWidgets('the rail: the brand label, the chosen item on a card, the sync at its foot (#782)', (
+    tester,
+  ) async {
+    desktop(tester, 1600);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
+    final theme = Theme.of(tester.element(find.byType(NavigationRail)));
+    expect(rail.backgroundColor, Colors.transparent); // the night's glow shows through
+    expect(rail.useIndicator, isTrue);
+    expect(rail.indicatorColor, theme.colorScheme.surfaceContainerLow);
+    expect(
+      (rail.indicatorShape! as RoundedRectangleBorder).side.color,
+      theme.colorScheme.outlineVariant,
+    );
+    expect(rail.trailingAtBottom, isTrue);
+    final label = theme.extension<NoteloreTokens>()!.label;
+    expect(tester.widget<Text>(find.text('Notelore')).style!.fontFamily, label.fontFamily);
+  });
 }
