@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/note_view.dart';
+import 'package:notelore/src/section_label.dart';
 import 'package:notelore/src/strings.dart';
 import 'package:notelore/src/theme.dart';
+import 'package:notelore_core/notelore_core.dart';
 
 const _mopsos = '''---
 title: Mopsos
@@ -40,6 +42,8 @@ Future<void> show(
   String source, {
   Strings? strings,
   void Function(int number, String text, bool done)? onTodo,
+  List<NoteInfo> related = const [],
+  ValueChanged<NoteInfo>? onOpen,
 }) async {
   // Tall enough that the whole note is laid out.
   tester.view.physicalSize = const Size(800, 4000);
@@ -55,6 +59,8 @@ Future<void> show(
           strings: strings ?? EnglishStrings(),
           today: DateTime(2026, 10, 19),
           onTodo: onTodo,
+          related: related,
+          onOpen: onOpen,
         ),
       ),
     ),
@@ -225,5 +231,33 @@ kind: topic
     expect(find.text('2025'), findsOneWidget);
     expect(find.text('15 Eyl'), findsOneWidget);
     expect(find.text('Önceki kararlar (1)'), findsOneWidget);
+  });
+
+  testWidgets('related notes: cards at the foot that open their note (#802)', (tester) async {
+    final opened = <NoteInfo>[];
+    final related = [
+      NoteInfo('mopsos-launch', 'topic', 'Mopsos launch', DateTime(2026, 10, 2)),
+      const NoteInfo('garden', 'project', 'Garden', null, tags: ['investing']),
+    ];
+    await show(tester, _mopsos, related: related, onOpen: opened.add);
+    final heading = find.widgetWithText(SectionLabel, 'RELATED NOTES');
+    expect(heading, findsOneWidget);
+    expect(find.text('Mopsos launch'), findsOneWidget);
+    expect(find.text('Topic · updated 2 Oct'), findsOneWidget);
+    expect(find.text('Project · updated ? · #investing'), findsOneWidget);
+    // Below everything the note says.
+    expect(
+      tester.getTopLeft(heading).dy,
+      greaterThan(tester.getTopLeft(find.text('Broker API', findRichText: true)).dy),
+    );
+    await tester.tap(find.text('Garden'));
+    expect(opened, [related[1]]);
+
+    await show(tester, _mopsos, related: related);
+    expect(heading, findsNothing); // nowhere to open them
+    await show(tester, _mopsos, onOpen: opened.add);
+    expect(heading, findsNothing); // none
+    await show(tester, _mopsos, related: related, onOpen: opened.add, strings: TurkishStrings());
+    expect(find.widgetWithText(SectionLabel, 'İLGİLİ NOTLAR'), findsOneWidget);
   });
 }

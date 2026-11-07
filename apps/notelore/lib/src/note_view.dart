@@ -21,6 +21,7 @@ class WritableNoteView extends StatefulWidget {
     required this.folder,
     required this.strings,
     required this.today,
+    this.onOpen,
     super.key,
   });
 
@@ -30,6 +31,9 @@ class WritableNoteView extends StatefulWidget {
   final String folder;
   final Strings strings;
   final DateTime today;
+
+  /// Opens a related note; without it the page lists none.
+  final ValueChanged<NoteInfo>? onOpen;
 
   @override
   State<WritableNoteView> createState() => _WritableNoteViewState();
@@ -79,6 +83,8 @@ class _WritableNoteViewState extends State<WritableNoteView> {
     strings: widget.strings,
     today: widget.today,
     onTodo: (number, text, done) => unawaited(_toggle(number, text, done)),
+    related: widget.onOpen == null ? const [] : widget.session.relatedNotes(widget.note),
+    onOpen: widget.onOpen,
   );
 }
 
@@ -95,10 +101,16 @@ class NoteView extends StatelessWidget {
     required this.strings,
     required this.today,
     this.onTodo,
+    this.related = const [],
+    this.onOpen,
     super.key,
   });
 
   final String source;
+
+  /// Shown at the foot as cards that call [onOpen]; none without it.
+  final List<NoteInfo> related;
+  final ValueChanged<NoteInfo>? onOpen;
   final String folder;
   final Strings strings;
   final DateTime today;
@@ -140,6 +152,15 @@ class NoteView extends StatelessWidget {
               ),
               ..._section(context, section),
             ],
+          if (onOpen case final open? when related.isNotEmpty) ...[
+            SectionLabel(
+              strings.relatedNotes,
+              strings: strings,
+              padding: const EdgeInsets.only(top: Gap.l, bottom: Gap.s),
+            ),
+            for (final note in related)
+              _RelatedCard(note, strings: strings, today: today, onTap: () => open(note)),
+          ],
         ],
       ),
     );
@@ -516,6 +537,61 @@ class NoteView extends StatelessWidget {
         ),
       ],
     ];
+  }
+}
+
+/// A related note, smaller than its row in the notes list: its kind, title and
+/// when it changed.
+class _RelatedCard extends StatelessWidget {
+  const _RelatedCard(this.note, {required this.strings, required this.today, required this.onTap});
+
+  final NoteInfo note;
+  final Strings strings;
+  final DateTime today;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final updated = note.updated;
+    return Card(
+      margin: const EdgeInsets.only(bottom: Gap.s),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.fromLTRB(12, 0, Gap.s, 0),
+        horizontalTitleGap: 12,
+        leading: CircleAvatar(
+          radius: 14,
+          backgroundColor: colors.primaryContainer,
+          foregroundColor: colors.primary,
+          child: Icon(
+            note.kind == 'project' ? Icons.folder_outlined : Icons.sell_outlined,
+            size: 16,
+          ),
+        ),
+        title: Text(
+          note.title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleMedium?.copyWith(fontSize: 15, height: 1.25),
+        ),
+        subtitle: Text(
+          [
+            strings.noteSubtitle(
+              note.kind,
+              updated == null ? '?' : strings.shortDate(updated, today),
+            ),
+            if (note.tags.isNotEmpty) note.tags.map((tag) => '#$tag').join(' '),
+          ].join(' · '),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+        ),
+        trailing: Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
+        onTap: onTap,
+      ),
+    );
   }
 }
 

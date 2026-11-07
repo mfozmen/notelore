@@ -1790,6 +1790,10 @@ class Session extends ChangeNotifier {
 
   List<NoteInfo> listNotes() => (index..rebuild()).listNotes();
 
+  /// The few notes [note]'s page offers to open next.
+  List<NoteInfo> relatedNotes(NoteInfo note) =>
+      (index..rebuild()).relatedTo(note.kind, note.slug).take(3).toList();
+
   /// Of [notes], those with every word of [query] in their title or their
   /// words, folded like the index's search.
   List<NoteInfo> findNotes(String query, List<NoteInfo> notes) {

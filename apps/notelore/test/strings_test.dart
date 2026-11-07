@@ -340,6 +340,7 @@ void main() {
       'pinnedNotes': s.pinnedNotes,
       'otherNotes': s.otherNotes,
       'comingUp': s.comingUp,
+      'relatedNotes': s.relatedNotes,
       'todoCount': s.todoCount(3),
       'export': s.export,
       'exportNotes': s.exportNotes,

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/note_view.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore_core/notelore_core.dart';
 
@@ -245,6 +246,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Kitaplar'), findsNothing);
     expect(find.text('Pick a note to read it here.'), findsOneWidget);
+  });
+
+  testWidgets('notes on a wide window: a related note opens in the reader (#802)', (tester) async {
+    desktop(tester, 1600);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    createNote(harness.paths.notes.path, 'topic', 'Okunan kitaplar', today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    final reader = find.byType(NoteView);
+    await tester.tap(find.descendant(of: reader, matching: find.text('Okunan kitaplar')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<ListTile>(find.widgetWithText(ListTile, 'Okunan kitaplar').first).selected,
+      isTrue,
+    );
+    expect(
+      find.descendant(of: reader, matching: find.text('Kitaplar')),
+      findsOneWidget,
+    ); // its related note
   });
 
   testWidgets('the list header lines up with the search field on a wide window (#642)', (

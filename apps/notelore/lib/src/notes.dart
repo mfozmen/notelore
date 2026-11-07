@@ -479,6 +479,8 @@ class _NotesScreenState extends State<NotesScreen> {
               today: widget.session.clock().toLocal(),
               onTodo: (number, text, done) =>
                   unawaited(widget.session.setTodoDone(note, number, text: text, done: done)),
+              related: widget.session.relatedNotes(note),
+              onOpen: (related) => _openNote(related, wide: true),
             ),
           ),
         ],
@@ -547,6 +549,7 @@ class _NotesScreenState extends State<NotesScreen> {
                 folder: p.dirname(notePath(widget.session.paths.notes.path, note.kind, note.slug)),
                 strings: widget.session.strings,
                 today: widget.session.clock().toLocal(),
+                onOpen: (related) => _openNote(related, wide: false),
               ),
             ),
           ),
