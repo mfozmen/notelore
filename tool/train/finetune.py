@@ -67,7 +67,7 @@ def clean(message):
     text = message.get("content") or ""
     if "</think>" in text:
         text = text.rsplit("</think>", 1)[1]
-    elif message.get("tool_calls"):
+    elif message.get("tool_calls") and not text.startswith("plan: "):  # plan.py's line stays (#608)
         text = ""
     return {**message, "content": text.strip()}
 
