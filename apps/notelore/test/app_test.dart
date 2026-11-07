@@ -1325,6 +1325,28 @@ void main() {
     expect(again.chatTextStep, Session.chatTextDefault);
   });
 
+  testWidgets('settings: the chat text control fits a phone at large text (#782)', (tester) async {
+    phone(tester);
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await openSettings(tester, 'Appearance');
+    await tester.ensureVisible(find.byTooltip('Larger text'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Larger text'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull); // no overflow
+    // The percentage on one line, as tall as the Reset beside it.
+    final percent = tester.getSize(find.byKey(const Key('chat-text-percent')));
+    expect(percent.height, tester.getSize(find.text('Reset')).height);
+    await tester.ensureVisible(find.text('Reset'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reset'));
+    await tester.pumpAndSettle();
+    expect(find.text('100%'), findsOneWidget);
+  });
+
   testWidgets('chat: the largest size over the system scale does not overflow (#696)', (
     tester,
   ) async {
@@ -2377,7 +2399,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Archive'));
     await tester.pumpAndSettle();
-    expect(find.text('The archive is empty. Deleted notes go here.'), findsOneWidget);
+    // In the look every empty screen has.
+    expect(
+      find.widgetWithText(EmptyState, 'The archive is empty. Deleted notes go here.'),
+      findsOneWidget,
+    );
     await tester.pageBack();
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kitaplar'));
@@ -3407,5 +3433,19 @@ void main() {
       ),
       findsOneWidget,
     );
+    // Every tab's page and bar are clear, so the glow shows behind them all.
+    for (final tab in ['Chat', 'Notes', 'Calendar', 'About me']) {
+      await tester.tap(find.text(tab).last);
+      await tester.pumpAndSettle();
+      final page = find.descendant(
+        of: find.byType(Scaffold).first,
+        matching: find.byType(Scaffold),
+      );
+      final bar = find.descendant(of: page.first, matching: find.byType(AppBar));
+      for (final painted in [page, bar]) {
+        final material = find.descendant(of: painted.first, matching: find.byType(Material));
+        expect(tester.widget<Material>(material.first).color, Colors.transparent, reason: tab);
+      }
+    }
   });
 }

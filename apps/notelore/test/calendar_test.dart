@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/empty_state.dart';
 import 'package:notelore/src/note_view.dart';
+import 'package:notelore/src/theme.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -159,6 +160,10 @@ void main() {
     );
     expect(cell.width, lessThan(48));
     expect(tester.takeException(), isNull);
+    // The month, made smaller, still keeps clear of the Today chip.
+    final month = tester.getRect(find.text('October 2026')).right;
+    final chip = tester.getRect(find.widgetWithText(TextButton, 'TODAY')).left;
+    expect(chip - month, greaterThanOrEqualTo(Gap.s));
   });
 
   testWidgets('calendar: empty, it says where things come from; a wide window side by side', (

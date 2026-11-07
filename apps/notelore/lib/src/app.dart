@@ -354,10 +354,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     // Below the menu, to find it.
     0 when !wide => Builder(
       builder: (context) => Scaffold(
-        // Clear, so the night's glow behind Home shows through.
-        backgroundColor: Colors.transparent,
         appBar: AppBar(
-          backgroundColor: Colors.transparent,
           leading: AppMenu.button(context),
           titleSpacing: Gap.xs,
           title: const Brand(),
@@ -391,6 +388,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final s = widget.session.strings;
+    final theme = Theme.of(context);
     final width = MediaQuery.sizeOf(context).width;
     // A desktop window navigates from a side rail, with its labels when there
     // is room; a phone from the bottom bar, which keeps to the screens of the
@@ -437,7 +435,17 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         // Settings has its own sign-in: never the same offer twice on one screen.
         if (widget.session.calendarNudge && tab != _settings)
           _inColumn(_CalendarBanner(widget.session)),
-        Expanded(child: _screen(tab, wide: wide)),
+        Expanded(
+          // The tabs' pages and bars are clear, so the night's glow behind Home
+          // shows through every one; pushed routes keep the app's own theme.
+          child: Theme(
+            data: theme.copyWith(
+              scaffoldBackgroundColor: Colors.transparent,
+              appBarTheme: theme.appBarTheme.copyWith(backgroundColor: Colors.transparent),
+            ),
+            child: _screen(tab, wide: wide),
+          ),
+        ),
       ],
     );
     return Scaffold(
@@ -456,7 +464,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             ),
       // Orman's glow at the top of the screen, from under the status bar; none by day.
       body: DecoratedBox(
-        decoration: BoxDecoration(gradient: Theme.of(context).extension<NoteloreTokens>()!.glow),
+        decoration: BoxDecoration(gradient: theme.extension<NoteloreTokens>()!.glow),
         child: SafeArea(
           child: wide
               ? Row(
@@ -479,9 +487,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           ? null
           : DecoratedBox(
               decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-                ),
+                border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
               ),
               child: NavigationBar(
                 selectedIndex: tab,

@@ -227,6 +227,7 @@ class _MonthGrid extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(width: Gap.s),
             Tooltip(
               message: s.today,
               child: TextButton(

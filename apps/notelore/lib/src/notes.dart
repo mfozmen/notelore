@@ -916,10 +916,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
           constraints: const BoxConstraints(maxWidth: Layout.column),
           child: archived.isEmpty
               ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(Gap.l),
-                    child: Text(s.archiveEmpty, textAlign: TextAlign.center),
-                  ),
+                  child: EmptyState(icon: Icons.inventory_2_outlined, title: s.archiveEmpty),
                 )
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),

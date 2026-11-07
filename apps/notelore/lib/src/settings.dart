@@ -786,16 +786,17 @@ class _ChatTextCard extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              // Wraps Reset to the next line at large text, rather than overflow.
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   IconButton(
                     tooltip: s.textSizeSmaller,
                     icon: const Icon(Icons.text_decrease),
                     onPressed: step > 0 ? session.zoomChatOut : null,
                   ),
-                  SizedBox(
-                    width: 64,
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 64),
                     child: Text(
                       '${(session.chatTextScale * 100).round()}%',
                       key: const Key('chat-text-percent'),
