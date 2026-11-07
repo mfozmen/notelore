@@ -2441,7 +2441,7 @@ void main() {
     await connect(tester, key: 'k');
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
     createNote(harness.paths.notes.path, 'topic', 'Okunan kitaplar', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
