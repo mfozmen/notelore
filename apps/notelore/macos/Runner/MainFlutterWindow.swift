@@ -54,18 +54,28 @@ final class QuickWindow {
   private var previous: NSRunningApplication?
 
   private static let width: CGFloat = 460
-  private static let height: CGFloat = 260
+  private static let height: CGFloat = 224
   private static let top: CGFloat = 64
 
   init(window: NSWindow, messenger: FlutterBinaryMessenger) {
     self.window = window
+    defer {
+      // A click on another app: the window steps back, as Esc would.
+      NotificationCenter.default.addObserver(
+        forName: NSWindow.didResignKeyNotification, object: window, queue: .main
+      ) { [weak self] _ in
+        guard let self, self.saved != nil else { return }
+        self.restore(refocus: false)
+        self.channel.invokeMethod("closed", arguments: nil)
+      }
+    }
     channel = FlutterMethodChannel(name: "io.github.mfozmen.notelore/quick", binaryMessenger: messenger)
     channel.setMethodCallHandler { [weak self] call, result in
       guard let self else { return result(nil) }
       switch call.method {
       case "listen": result(self.listen(call.arguments as? Bool ?? false))
       case "compact": self.compact(); result(nil)
-      case "restore": self.restore(); result(nil)
+      case "restore": self.restore(refocus: true); result(nil)
       case "front": self.front(); result(nil)
       default: result(FlutterMethodNotImplemented)
       }
@@ -108,7 +118,7 @@ final class QuickWindow {
     window.makeKeyAndOrderFront(nil)
   }
 
-  private func restore() {
+  private func restore(refocus: Bool) {
     guard let saved else { return }
     self.saved = nil
     window.styleMask = saved.style
@@ -120,7 +130,7 @@ final class QuickWindow {
     } else if !saved.visible {
       window.orderOut(nil)
     }
-    if let previous, previous != NSRunningApplication.current { previous.activate() }
+    if refocus, let previous, previous != NSRunningApplication.current { previous.activate() }
   }
 
   private func front() {

@@ -7,6 +7,8 @@ import 'package:notelore/src/quick_window.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/settings.dart';
 import 'package:notelore/src/strings.dart' show AppLanguage;
+import 'package:notelore/src/theme.dart' show noteloreTheme;
+import 'package:notelore/src/voice.dart' show ListenFailed;
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -18,7 +20,7 @@ class FakeHost implements QuickHost {
   var free = true;
 
   @override
-  String get keys => 'Ctrl+Alt+N';
+  List<String> get keys => const ['Ctrl', 'Alt', 'N'];
 
   @override
   Future<bool> listen({required bool on}) async {
@@ -79,6 +81,29 @@ void main() {
     expect(host.calls, ['front', 'front']);
   });
 
+  test('away long enough, the shortcut finds the app locked first (#800)', () async {
+    var now = DateTime.utc(2026, 11, 7, 12);
+    final session = harness.session(clock: () => now);
+    final quick = QuickWindow(session, host);
+    addTearDown(quick.dispose);
+    await session.connect(findProvider('anthropic'), 'k');
+    await session.lock.set('2468');
+    session.lock.backgrounded();
+    now = now.add(const Duration(minutes: 5));
+    await quick.pressed();
+    expect(session.lock.locked, isTrue);
+    expect(session.quickAddOpen, isFalse);
+    expect(host.calls, ['front']);
+  });
+
+  test('a click elsewhere closed the window: the state follows', () async {
+    await session.connect(findProvider('anthropic'), 'k');
+    await quick.pressed();
+    quick.closed();
+    expect(session.quickAddOpen, isFalse);
+    expect(host.calls, ['compact'], reason: 'the platform gave the window back itself');
+  });
+
   test('pressed opens the small window and again closes it; locking closes it', () async {
     await session.connect(findProvider('anthropic'), 'k');
     await quick.pressed();
@@ -117,14 +142,14 @@ void main() {
     ));
     expect(
       lastReceipt(session),
-      'Last: ${session.strings.noteChange(const NoteReceipt('saglik', 'topic', 'Sağlık', ['add_reminder']))} · Sağlık',
+      '${session.strings.noteChange(const NoteReceipt('saglik', 'topic', 'Sağlık', ['add_reminder']))} · Sağlık',
     );
     session.transcript.add((role: ChatRole.assistant, text: 'Merhaba.', cards: const []));
     expect(lastReceipt(session), isNull);
   });
 
   testWidgets('the quick window: Enter sends, Esc closes, the orb talks (#800)', (tester) async {
-    final harness = Harness(answers: ['Kaydedildi.', 'Sesli kaydedildi.']);
+    final harness = Harness(answers: ['Kaydedildi.', 'Eklendi.', 'Sesli kaydedildi.']);
     harness.speech.phrases.add('sesle not');
     final session = await pumpApp(tester, harness);
     await session.connect(findProvider('anthropic'), 'k');
@@ -141,8 +166,10 @@ void main() {
     await quick.pressed();
     await tester.pumpAndSettle();
     expect(find.text('Notelore · Quick note'), findsOneWidget);
-    expect(find.text('Ctrl+Alt+N'), findsOneWidget);
-    expect(find.textContaining('Last: '), findsOneWidget);
+    for (final key in ['Ctrl', 'Alt', 'N']) {
+      expect(find.text(key), findsOneWidget);
+    }
+    expect(find.textContaining('Last: ', findRichText: true), findsOneWidget);
     await tester.enterText(find.byKey(const Key('quick-message')), 'Süt al');
     await tester.testTextInput.receiveAction(TextInputAction.send);
     await tester.pumpAndSettle();
@@ -156,6 +183,36 @@ void main() {
     await tester.pumpAndSettle();
     expect(session.quickAddOpen, isFalse);
     expect(host.calls.last, 'restore');
+    // Typed: the orb is Send.
+    await quick.pressed();
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('quick-message')), 'Ekmek al');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    expect(session.quickAddOpen, isFalse);
+    expect(harness.provider.asked, ['Süt al', 'Ekmek al']);
+    // The mic fails: it says so, and the window stays.
+    harness.speech.failure = const ListenFailed('no microphone');
+    await quick.pressed();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Tap or hold to talk'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('no microphone'), findsOneWidget);
+    expect(session.quickAddOpen, isTrue);
+    harness.speech.failure = null;
+    await quick.close();
+    await tester.pumpAndSettle();
+    // Listening, then closed: the mic stops and nothing is sent.
+    await quick.pressed();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Tap or hold to talk'));
+    await tester.pump();
+    final cancels = harness.speech.cancels;
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(harness.speech.cancels, greaterThan(cancels));
+    expect(harness.provider.asked, ['Süt al', 'Ekmek al']);
     // The orb: listening until a second tap, then the window goes.
     await quick.pressed();
     await tester.pumpAndSettle();
@@ -165,14 +222,14 @@ void main() {
     await tester.tap(find.byTooltip('Stop and send'));
     await tester.pumpAndSettle();
     expect(session.quickAddOpen, isFalse);
-    expect(harness.provider.asked, ['Süt al', 'sesle not']);
+    expect(harness.provider.asked, ['Süt al', 'Ekmek al', 'sesle not']);
     expect(harness.voice.spoken, isEmpty, reason: 'the answer is read later');
   });
 
-  testWidgets('the quick window fits its 460×260 size, in Turkish too, with a long receipt', (
+  testWidgets('the quick window fits its 460×224 size, in Turkish too, with a long receipt', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(460, 260);
+    tester.view.physicalSize = const Size(460, 224);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     session.setLanguage(AppLanguage.tr);
@@ -185,7 +242,9 @@ void main() {
         ]),
       ],
     ));
-    await tester.pumpWidget(MaterialApp(home: QuickAddScreen(quick)));
+    await tester.pumpWidget(
+      MaterialApp(theme: noteloreTheme(Brightness.light), home: QuickAddScreen(quick)),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Notelore · Hızlı not'), findsOneWidget);
     expect(tester.takeException(), isNull);

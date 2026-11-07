@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:notelore_core/notelore_core.dart';
 
+import 'chat.dart' show Orb;
 import 'mark.dart';
 import 'session.dart';
 import 'theme.dart';
@@ -21,8 +22,8 @@ import 'voice.dart';
 
 /// The platform side: the global shortcut and the window's two shapes.
 abstract interface class QuickHost {
-  /// The shortcut as the platform writes it: Ctrl+Alt+N, ⌥⌘N.
-  String get keys;
+  /// The shortcut's keys as the platform writes them: Ctrl, Alt, N; ⌥, ⌘, N.
+  List<String> get keys;
 
   /// Registers the shortcut ([on]) or lets it go; false when another app holds it.
   Future<bool> listen({required bool on});
@@ -68,6 +69,8 @@ class QuickWindow {
   /// The shortcut: opens the quick window, or closes it when it is open.
   Future<void> pressed() async {
     if (session.quickAddOpen) return close();
+    // Away long enough, the app locks now, before anything of it shows.
+    session.lock.foregrounded();
     if (!session.ready || session.lock.locked) return host.front();
     session.showQuickAdd(open: true);
     await host.compact();
@@ -77,6 +80,9 @@ class QuickWindow {
     session.showQuickAdd(open: false);
     await host.restore();
   }
+
+  /// The platform gave the window back itself: a click went to another app.
+  void closed() => session.showQuickAdd(open: false);
 
   /// Sends [text] into the chat's queue and gives the window back at once.
   Future<void> send(String text) async {
@@ -88,7 +94,7 @@ class QuickWindow {
   void dispose() => session.removeListener(_changed);
 }
 
-/// The last turn's write receipt, as one line: "Last: Reminder added · Health".
+/// The last turn's write receipt, as one line: "Reminder added · Health".
 String? lastReceipt(Session session) {
   final s = session.strings;
   final line = session.transcript.lastWhere(
@@ -97,7 +103,7 @@ String? lastReceipt(Session session) {
   );
   final receipt = line.cards.whereType<NoteReceipt>().firstOrNull;
   if (receipt == null) return null;
-  return '${s.quickLast}: ${s.noteChange(receipt)} · ${receipt.title}';
+  return '${s.noteChange(receipt)} · ${receipt.title}';
 }
 
 /// The quick window's one screen: its title, the field and orb, the keys, and
@@ -128,8 +134,10 @@ class _QuickAddScreenState extends State<QuickAddScreen> {
 
   @override
   void dispose() {
+    // Closed while listening: the mic stops, and nothing is sent.
     _voice
       ..removeListener(_heard)
+      ..end()
       ..dispose();
     _text.dispose();
     super.dispose();
@@ -147,90 +155,154 @@ class _QuickAddScreenState extends State<QuickAddScreen> {
     return CallbackShortcuts(
       bindings: {const SingleActivator(LogicalKeyboardKey.escape): window.close},
       child: Scaffold(
-        body: Padding(
-          padding: const EdgeInsets.all(Gap.m),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const NoteloreMark(size: 18),
-                  const SizedBox(width: Gap.s),
-                  Expanded(child: Text(s.quickTitle, style: theme.textTheme.titleSmall)),
-                  Text(window.host.keys, style: muted),
-                ],
-              ),
-              const SizedBox(height: Gap.s),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: colors.surfaceContainerLow,
-                  border: Border.all(color: colors.outlineVariant),
-                  borderRadius: BorderRadius.circular(26),
-                ),
-                child: Row(
+        // Centred in the small window; it scrolls only if a mic error and the
+        // receipt both show.
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(Gap.m),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
                   children: [
-                    Expanded(
-                      child: TextField(
-                        key: const Key('quick-message'),
-                        controller: _text,
-                        autofocus: true,
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: window.send,
-                        decoration: InputDecoration(
-                          hintText: listening ? s.listening : s.quickAdd,
-                          filled: false,
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: Gap.m),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(Gap.xs),
-                      child: IconButton.filled(
-                        tooltip: listening ? s.stopTalking : s.talk,
-                        isSelected: listening,
-                        icon: const Icon(Icons.mic),
-                        selectedIcon: const Icon(Icons.arrow_upward),
-                        onPressed: _talk,
-                      ),
-                    ),
+                    const NoteloreMark(size: 18),
+                    const SizedBox(width: Gap.s),
+                    Expanded(child: Text(s.quickTitle, style: theme.textTheme.titleSmall)),
+                    for (final key in window.host.keys) ...[
+                      const SizedBox(width: Gap.xs),
+                      _Key(key, style: muted),
+                    ],
                   ],
                 ),
-              ),
-              const SizedBox(height: Gap.s),
-              Row(
-                children: [
-                  Expanded(child: Text(s.quickKeys, style: muted)),
-                  Text(s.quickToChat, style: muted),
-                ],
-              ),
-              if (_voice.problem case final problem?) ...[
                 const SizedBox(height: Gap.s),
-                Text(problem, style: muted?.copyWith(color: colors.error)),
-              ],
-              if (receipt != null) ...[
-                const SizedBox(height: Gap.s),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
-                  decoration: BoxDecoration(
-                    color: colors.primaryContainer,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.check, size: 16, color: colors.primary),
-                      const SizedBox(width: Gap.s),
-                      Expanded(child: Text(receipt, maxLines: 1, overflow: TextOverflow.ellipsis)),
-                    ],
+                // The chat composer's field: its edge takes the accent while focused.
+                Focus(
+                  canRequestFocus: false,
+                  skipTraversal: true,
+                  child: Builder(
+                    builder: (context) => Container(
+                      padding: const EdgeInsets.all(Gap.xs),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(28),
+                        border: Focus.of(context).hasFocus
+                            ? Border.all(color: colors.primary, width: 2)
+                            : Border.all(color: colors.outlineVariant),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              key: const Key('quick-message'),
+                              controller: _text,
+                              autofocus: true,
+                              textInputAction: TextInputAction.send,
+                              onSubmitted: window.send,
+                              decoration: InputDecoration(
+                                hintText: listening ? s.listening : s.quickAdd,
+                                filled: false,
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: Gap.s),
+                              ),
+                            ),
+                          ),
+                          // Send once something is typed, as in the chat; the mic before.
+                          ValueListenableBuilder(
+                            valueListenable: _text,
+                            builder: (context, typed, _) => Orb(
+                              typed.text.trim().isNotEmpty
+                                  ? IconButton(
+                                      tooltip: s.send,
+                                      icon: const Icon(Icons.arrow_upward, color: Colors.white),
+                                      onPressed: () => window.send(_text.text),
+                                    )
+                                  : IconButton(
+                                      tooltip: listening ? s.stopTalking : s.talk,
+                                      icon: Icon(
+                                        listening ? Icons.arrow_upward : Icons.mic_none,
+                                        color: Colors.white,
+                                      ),
+                                      onPressed: _talk,
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
+                const SizedBox(height: Gap.s),
+                Row(
+                  children: [
+                    Expanded(child: Text(s.quickKeys, style: muted)),
+                    Text(s.quickToChat, style: muted),
+                  ],
+                ),
+                if (_voice.problem case final problem?) ...[
+                  const SizedBox(height: Gap.s),
+                  Text(problem, style: muted?.copyWith(color: colors.error)),
+                ],
+                if (receipt != null) ...[
+                  const SizedBox(height: Gap.s),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
+                    decoration: BoxDecoration(
+                      color: colors.primaryContainer,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.check, size: 16, color: colors.primary),
+                        const SizedBox(width: Gap.s),
+                        Expanded(
+                          child: Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: '${s.quickLast}: ',
+                                  style: TextStyle(color: colors.onSurfaceVariant),
+                                ),
+                                TextSpan(text: receipt),
+                              ],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// One key of the shortcut, drawn as a key.
+class _Key extends StatelessWidget {
+  const _Key(this.label, {this.style});
+
+  final String label;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLow,
+        border: Border.all(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(label, style: style),
     );
   }
 }
