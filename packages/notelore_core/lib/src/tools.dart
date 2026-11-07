@@ -524,6 +524,45 @@ final slimTools = List<Tool>.unmodifiable([
     if (slim) Tool(tool.name, slimDescription ?? tool.description, _bare(tool.inputSchema)),
 ]);
 
+/// What an answer carries under its words, one card per fact its turn produced:
+/// taken from what the tools did, never from the model's text.
+sealed class AnswerCard {
+  const AnswerCard();
+}
+
+/// A note the turn changed (#791): where it is now, its title, and the tools
+/// that changed it, in order. [kind] is null once the whole note is archived.
+final class NoteReceipt extends AnswerCard {
+  const NoteReceipt(this.slug, this.kind, this.title, this.tools);
+
+  final String slug;
+  final String? kind;
+  final String title;
+  final List<String> tools;
+}
+
+/// A current decision the turn looked up (#792), as the index holds it, and
+/// the note it is in.
+final class DecisionSource extends AnswerCard {
+  const DecisionSource(
+    this.slug,
+    this.kind,
+    this.title,
+    this.topic,
+    this.date,
+    this.value,
+    this.reason,
+  );
+
+  final String slug;
+  final String kind;
+  final String title;
+  final String topic;
+  final DateTime date;
+  final String value;
+  final String? reason;
+}
+
 final _isoDate = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
 void _delete(File file) => file.deleteSync();
@@ -625,10 +664,60 @@ class Toolbox {
   /// This turn's slugs reported missing, with the closest notes named then.
   final _missing = <String, String>{};
 
+  /// This turn's changed notes, by path relative to the notes folder, with the
+  /// tools that changed each.
+  final _changed = <String, List<String>>{};
+
+  /// The tool [call] runs now.
+  var _running = '';
+
+  void _wrote(String path) => (_changed[_rel(path)] ??= []).add(_running);
+
+  /// What changed the note at [from] now belongs to [to], where it went.
+  void _moved(String from, String to) {
+    if (_changed.remove(_rel(from)) case final tools?) (_changed[_rel(to)] ??= []).addAll(tools);
+  }
+
+  /// This turn's current decisions looked up, first ones first.
+  final _sources = <DecisionSource>[];
+
+  List<DecisionSource> sources() => List.unmodifiable(_sources);
+
+  void _cite(String slug, String? kind, Decision d) {
+    if (d.superseded != null || _sources.length == 3) return;
+    final path = _path(slug, kind);
+    final real = _kindOf(_rel(path))!;
+    if (_sources.any((s) => s.slug == slug && s.kind == real && s.topic == d.topic)) return;
+    _sources.add(
+      DecisionSource(slug, real, notes.titleOf(File(path)), d.topic, d.date, d.value, d.reason),
+    );
+  }
+
+  /// The kind whose folder holds the note at [rel]; null in the archive.
+  String? _kindOf(String rel) => [
+    for (final MapEntry(:key, :value) in notes.kinds.entries)
+      if (p.url.dirname(rel) == value) key,
+  ].firstOrNull;
+
+  /// This turn's changed notes as they are now, the deleted ones (an empty
+  /// create undone) left out.
+  List<NoteReceipt> receipts() => [
+    for (final MapEntry(key: rel, value: tools) in _changed.entries)
+      if (File(p.joinAll([root, ...rel.split('/')])) case final file when file.existsSync())
+        NoteReceipt(
+          p.basenameWithoutExtension(rel),
+          _kindOf(rel),
+          notes.titleOf(file),
+          List.unmodifiable(tools),
+        ),
+  ];
+
   /// Whether this turn made a note; it stays.
   bool forgetCreated() {
     final any = _created.isNotEmpty;
     _created.clear();
+    _changed.clear();
+    _sources.clear();
     _asked.clear();
     _heldSlugs.clear();
     _missing.clear();
@@ -675,6 +764,7 @@ class Toolbox {
     final entry = _byName[name];
     if (entry == null) return "Error: unknown tool '$name'.";
     if (_checkArguments(entry.tool, args) case final problem?) return 'Error: $problem';
+    _running = name;
     try {
       final result = entry.run(this, ToolArgs(args));
       return result is String ? result : jsonEncode(result);
@@ -745,6 +835,7 @@ class Toolbox {
   String _write(String path, void Function(String) write) {
     write(path);
     index.markChanged(path);
+    _wrote(path);
     return 'ok';
   }
 
@@ -839,18 +930,25 @@ class Toolbox {
     final path = notes.createNote(root, kind, title, tags: tags, lang: lang, today: today);
     _created[path] = File(path).readAsStringSync();
     index.markChanged(path);
+    _wrote(path);
     return {'slug': p.basenameWithoutExtension(path), 'kind': kind, 'path': _rel(path)};
   }
 
   Object _getDecision(String slug, String topic, String? kind) {
     final real = _realSlug(slug, kind); // and the same "pass kind" message as every other tool
     final decision = _fresh().getDecision(real, topic, kind: kind);
-    return decision == null ? "No active decision for '$topic' in '$slug'." : _decision(decision);
+    if (decision == null) return "No active decision for '$topic' in '$slug'.";
+    _cite(real, kind, decision);
+    return _decision(decision);
   }
 
   List<Map<String, Object?>> _decisionHistory(String slug, String? topic, String? kind) {
     final real = _realSlug(slug, kind);
-    return [for (final d in _fresh().decisionHistory(real, topic: topic, kind: kind)) _decision(d)];
+    final history = _fresh().decisionHistory(real, topic: topic, kind: kind);
+    for (final d in history) {
+      _cite(real, kind, d);
+    }
+    return [for (final d in history) _decision(d)];
   }
 
   Map<String, Object?> _merge(String from, String into) {
@@ -858,6 +956,8 @@ class Toolbox {
     index
       ..markChanged(from)
       ..markChanged(into);
+    _moved(from, archivedTo);
+    _wrote(into);
     return {
       'merged_into': _rel(into),
       'archived_to': _rel(archivedTo),
@@ -877,6 +977,8 @@ class Toolbox {
     index
       ..markChanged(path)
       ..markChanged(moved);
+    _moved(path, moved);
+    _wrote(moved);
     final now = notes.readNote(moved).meta;
     return {
       'slug': p.basenameWithoutExtension(moved),
@@ -889,13 +991,16 @@ class Toolbox {
 
   Map<String, Object?> _archive(String slug, Map<Object?, Object?>? entries, String? kind) {
     final path = _path(slug, kind);
-    final target = entries == null || entries.isEmpty
+    final whole = entries == null || entries.isEmpty;
+    final target = whole
         ? notes.archiveNote(root, path, today: today)
         : notes.archiveEntries(root, path, {
             for (final MapEntry(:key, :value) in entries.entries)
               '$key': (value! as List).cast<int>(),
           }, today: today);
     index.markChanged(path);
+    if (whole) _moved(path, target);
+    _wrote(whole ? target : path);
     return {'archived_to': _rel(target)};
   }
 }

@@ -12,6 +12,31 @@ import 'strings.dart';
 import 'theme.dart';
 import 'web_link.dart';
 
+/// Opens [note], read as [text], as a page of its own with its title on top.
+void pushNote(BuildContext context, Session session, NoteInfo note, String text) {
+  final now = session.clock().toLocal();
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: Text(note.title)),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: Layout.column),
+            child: WritableNoteView(
+              session,
+              note,
+              text,
+              folder: p.dirname(notePath(session.paths.notes.path, note.kind, note.slug)),
+              strings: session.strings,
+              today: DateTime(now.year, now.month, now.day),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 /// A note page that writes its todo checkboxes and shows the new line at once.
 class WritableNoteView extends StatefulWidget {
   const WritableNoteView(

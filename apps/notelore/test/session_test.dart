@@ -537,7 +537,10 @@ void main() {
       expect(session.acceptsImages, isTrue);
       await session.send(message, images: [png]);
       expect(harness.provider.asked.single, allOf(contains('image/png'), contains('AQID')));
-      expect(session.transcript.first, (role: ChatRole.user, text: message));
+      expect(
+        (session.transcript.first.role, session.transcript.first.text),
+        (ChatRole.user, message),
+      );
       // Resend sends the picture again, too.
       await session.resend();
       expect(harness.provider.asked.last, contains('AQID'));
@@ -1456,7 +1459,36 @@ void main() {
     expect(session.transcript.last.role, ChatRole.pending);
     await session.connect(findProvider('openai'), 'sk-oa');
     await session.retryNow();
-    expect(session.transcript.last, (role: ChatRole.assistant, text: 'Saved.'));
+    expect(
+      (session.transcript.last.role, session.transcript.last.text),
+      (ChatRole.assistant, 'Saved.'),
+    );
+  });
+
+  test('an answer keeps a receipt for each note its turn wrote; others none (#791)', () async {
+    final harness = Harness(
+      answers: [
+        const AgentResponse([
+          {
+            'type': 'tool_use',
+            'id': 't1',
+            'name': 'create_note',
+            'input': {'kind': 'project', 'title': 'Atlas'},
+          },
+        ], 'tool_use'),
+        'Created.',
+        'Created, nothing to add yet.',
+        'Hello.',
+      ],
+    );
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    await session.send('open a project Atlas');
+    final [receipt as NoteReceipt] = session.transcript.last.cards;
+    expect((receipt.slug, receipt.kind, receipt.title), ('atlas', 'project', 'Atlas'));
+    await session.send('hi');
+    expect(session.transcript.last.cards, isEmpty);
+    expect(session.transcript.map((l) => l.cards.length), [0, 1, 0, 0]);
   });
 
   test('switching to a model whose key is gone says so and changes nothing (#356)', () async {

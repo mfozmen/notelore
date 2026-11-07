@@ -51,6 +51,106 @@ void main() {
     }
   });
 
+  test('receipts name each note the tools changed, from what ran (#791)', () {
+    List<(String, String?, String, String)> receipts() => [
+      for (final r in box.receipts()) (r.slug, r.kind, r.title, r.tools.join(' ')),
+    ];
+    expect(receipts(), isEmpty);
+    call('create_note', {'kind': 'project', 'title': 'Atlas'});
+    call('add_note_entry', {'slug': 'atlas', 'text': 'Kickoff on Monday.'});
+    call('create_note', {'kind': 'topic', 'title': 'Books'});
+    call('add_todo', {'slug': 'books', 'text': 'Buy Dune'});
+    call('complete_todo', {'slug': 'books', 'number': 1});
+    call('add_reminder', {'slug': 'books', 'at': '2026-10-02', 'text': 'Library'});
+    call('pin_note', {'slug': 'books', 'pinned': true});
+    // Reads and failed writes change nothing.
+    call('read_note', {'slug': 'atlas'});
+    expect(call('add_todo', {'slug': 'missing', 'text': 'x'}), startsWith('Error:'));
+    call('record_decision', {'slug': 'atlas', 'topic': 'database', 'value': 'Postgres'});
+    expect(receipts(), [
+      ('atlas', 'project', 'Atlas', 'create_note add_note_entry record_decision'),
+      ('books', 'topic', 'Books', 'create_note add_todo complete_todo add_reminder pin_note'),
+    ]);
+    // A moved note keeps its receipt where it is now; an archived one has no kind.
+    call('recategorize', {'slug': 'books', 'to_kind': 'project'});
+    call('create_note', {'kind': 'topic', 'title': 'Old'});
+    call('add_note_entry', {'slug': 'old', 'text': 'Done with it.'});
+    call('archive', {'slug': 'old'});
+    call('create_note', {'kind': 'topic', 'title': 'Shed'});
+    call('add_note_entry', {'slug': 'shed', 'text': 'Paint it green.'});
+    call('merge_notes', {'from': 'shed', 'into': 'atlas'});
+    call('archive', {
+      'slug': 'atlas',
+      'entries': {
+        'notes': [1],
+      },
+    });
+    expect(receipts(), [
+      (
+        'atlas',
+        'project',
+        'Atlas',
+        'create_note add_note_entry record_decision merge_notes archive',
+      ),
+      (
+        'books',
+        'project',
+        'Books',
+        'create_note add_todo complete_todo add_reminder pin_note recategorize',
+      ),
+      ('old', null, 'Old', 'create_note add_note_entry archive'),
+      ('shed', null, 'Shed', 'create_note add_note_entry'),
+    ]);
+    // A file that is not a note is named after itself; forgetCreated clears them.
+    File(p.join(box.root, 'projects', 'books.md')).writeAsStringSync('plain text');
+    expect(receipts()[1].$3, 'books');
+    box.forgetCreated();
+    expect(receipts(), isEmpty);
+  });
+
+  test('sources cite the current decisions the decision tools found, at most 3 (#792)', () {
+    List<String> sources() => [
+      for (final s in box.sources())
+        '${s.slug} ${s.kind} ${s.title} ${s.topic} ${s.date.toIso8601String().substring(0, 10)} '
+            '${s.value} ${s.reason}',
+    ];
+    call('create_note', {'kind': 'project', 'title': 'Atlas'});
+    call('record_decision', {'slug': 'atlas', 'topic': 'db', 'value': 'MySQL'});
+    call('record_decision', {
+      'slug': 'atlas',
+      'topic': 'db',
+      'value': 'Postgres',
+      'reason': 'Mature.',
+    });
+    call('record_decision', {'slug': 'atlas', 'topic': 'host', 'value': 'Fly'});
+    call('record_decision', {'slug': 'atlas', 'topic': 'ci', 'value': 'GitHub'});
+    call('record_decision', {'slug': 'atlas', 'topic': 'cdn', 'value': 'None'});
+    // Nothing found, or a failed call, cites nothing.
+    call('get_decision', {'slug': 'atlas', 'topic': 'auth'});
+    call('get_decision', {'slug': 'missing', 'topic': 'db'});
+    call('decision_history', {'slug': 'atlas', 'topic': 'auth'});
+    expect(sources(), isEmpty);
+    call('get_decision', {'slug': 'atlas', 'topic': 'db'});
+    call('get_decision', {'slug': 'atlas', 'topic': 'db'}); // the same decision once
+    // History cites the current decisions only, never a superseded one.
+    call('decision_history', {'slug': 'atlas'});
+    expect(sources(), [
+      'atlas project Atlas db 2026-09-30 Postgres Mature.',
+      'atlas project Atlas host 2026-09-30 Fly null',
+      'atlas project Atlas ci 2026-09-30 GitHub null',
+    ]);
+    box.forgetCreated();
+    expect(sources(), isEmpty);
+  });
+
+  test('a note the turn made and took back empty has no receipt (#791)', () {
+    call('create_note', {'kind': 'topic', 'title': 'Empty'});
+    call('create_note', {'kind': 'topic', 'title': 'Kept'});
+    call('add_note_entry', {'slug': 'kept', 'text': 'Something.'});
+    box.takeBackEmpty();
+    expect([for (final r in box.receipts()) r.slug], ['kept']);
+  });
+
   test('a name with no registry entry fails and touches nothing (#658)', () {
     final made = box.call('create_note', {'kind': 'topic', 'title': 'Books'});
     expect(made, contains('books'));

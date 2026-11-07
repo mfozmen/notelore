@@ -17,9 +17,12 @@ import 'transfer.dart';
 /// Every project and topic, newest first; a tap opens the note read-only, beside
 /// the list on a wide window. The open note's header archives it.
 class NotesScreen extends StatefulWidget {
-  const NotesScreen(this.session, {required this.toChat, super.key});
+  const NotesScreen(this.session, {required this.toChat, this.open, super.key});
 
   final Session session;
+
+  /// Open in the reader from the start: the note a chat receipt opened.
+  final NoteInfo? open;
 
   /// Goes to the chat, where notes are made (#721).
   final VoidCallback toChat;
@@ -32,7 +35,10 @@ enum _NotesAction { import, export }
 
 class _NotesScreenState extends State<NotesScreen> {
   /// The note open beside the list on a wide window, read once.
-  (NoteInfo, String)? _reading;
+  late (NoteInfo, String)? _reading = switch (widget.open) {
+    final note? => (note, widget.session.readNote(note)),
+    null => null,
+  };
 
   /// What the list is narrowed to; empty shows every note.
   final _search = TextEditingController();
@@ -44,10 +50,23 @@ class _NotesScreenState extends State<NotesScreen> {
   void initState() {
     super.initState();
     widget.session.addListener(_sessionChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _quick()); // asked before Notes opened
   }
 
   void _sessionChanged() {
     if (mounted) setState(() {});
+    _quick();
+  }
+
+  /// The note a tap on the home-screen widget asked for (#799), when it is still there.
+  void _quick() {
+    final open = widget.session.quickOpen;
+    if (!mounted || open?.kind == null) return;
+    widget.session.quickOpen = null;
+    final note = widget.session.listNotes().where(
+      (n) => n.kind == open!.kind && n.slug == open.slug,
+    );
+    if (note.firstOrNull case final note?) _openNote(note, wide: Layout.isWide(context));
   }
 
   @override
@@ -300,7 +319,15 @@ class _NotesScreenState extends State<NotesScreen> {
         ],
       );
     }
-    final notes = _search.text.trim().isEmpty ? all : widget.session.findNotes(_search.text, all);
+    final session = widget.session;
+    final filtered = [
+      for (final note in all)
+        if ((session.notesKind ?? note.kind) == note.kind &&
+            (session.notesTag == null || note.tags.contains(session.notesTag)))
+          note,
+    ];
+    final searching = _search.text.trim().isNotEmpty;
+    final notes = searching ? session.findNotes(_search.text, filtered) : filtered;
     return Column(
       children: [
         if (wide) _listHeader(context, all),
@@ -325,6 +352,7 @@ class _NotesScreenState extends State<NotesScreen> {
             ),
           ),
         ),
+        _filters(context, all),
         Expanded(
           child: _refreshable(
             notes.isEmpty
@@ -334,16 +362,107 @@ class _NotesScreenState extends State<NotesScreen> {
                     padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, 0),
                     children: [
                       Text(
-                        s.noNoteMentions(_search.text.trim()),
+                        searching ? s.noNoteMentions(_search.text.trim()) : s.noFilteredNotes,
                         textAlign: TextAlign.center,
                         style: TextStyle(color: colors.onSurfaceVariant),
                       ),
                     ],
                   )
-                : _shown(context, notes, wide: wide, all: all),
+                // Coming up only lists notes in `all`, so it follows the filters too.
+                : _shown(context, notes, wide: wide, all: filtered),
           ),
         ),
       ],
+    );
+  }
+
+  /// All, the two kinds, then the eight most used tags (and the chosen one,
+  /// even when no note carries it any more); one kind and one tag at a time.
+  Widget _filters(BuildContext context, List<NoteInfo> all) {
+    final s = widget.session.strings;
+    final session = widget.session;
+    final tags = _filterTags(all, chosen: session.notesTag);
+    return SingleChildScrollView(
+      key: const Key('note-filters'),
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, 0),
+      child: Row(
+        children: [
+          _chip(
+            context,
+            s.filterAll,
+            selected: session.notesKind == null && session.notesTag == null,
+            onTap: () => setState(
+              () => session
+                ..notesKind = null
+                ..notesTag = null,
+            ),
+          ),
+          for (final (kind, label) in [('project', s.filterProjects), ('topic', s.filterTopics)])
+            _chip(
+              context,
+              label,
+              selected: session.notesKind == kind,
+              onTap: () =>
+                  setState(() => session.notesKind = session.notesKind == kind ? null : kind),
+            ),
+          for (final tag in tags)
+            _chip(
+              context,
+              '#$tag',
+              selected: session.notesTag == tag,
+              onTap: () => setState(() => session.notesTag = session.notesTag == tag ? null : tag),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// The eight most used tags, most used first, then by name; the chosen tag
+  /// leads so it is in sight when the screen opens again.
+  static List<String> _filterTags(List<NoteInfo> all, {String? chosen}) {
+    final counts = <String, int>{};
+    for (final note in all) {
+      for (final tag in note.tags) {
+        counts[tag] = (counts[tag] ?? 0) + 1;
+      }
+    }
+    final byUse = counts.keys.toList()
+      ..sort((a, b) {
+        final more = counts[b]!.compareTo(counts[a]!);
+        return more != 0 ? more : a.compareTo(b);
+      });
+    final tags = byUse.take(8).toList();
+    if (chosen != null) {
+      tags
+        ..remove(chosen)
+        ..insert(0, chosen);
+    }
+    return tags;
+  }
+
+  Widget _chip(
+    BuildContext context,
+    String label, {
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(right: Gap.s),
+      child: FilterChip(
+        label: Text(label),
+        selected: selected,
+        showCheckmark: false,
+        selectedColor: colors.primary,
+        side: selected ? BorderSide(color: colors.primary) : null,
+        labelStyle: TextStyle(
+          color: selected ? colors.onPrimary : colors.onSurface,
+          fontWeight: selected ? FontWeight.w600 : null,
+        ),
+        materialTapTargetSize: MaterialTapTargetSize.padded,
+        onSelected: (_) => onTap(),
+      ),
     );
   }
 
@@ -439,6 +558,7 @@ class _NotesScreenState extends State<NotesScreen> {
       strings: widget.session.strings,
       today: widget.session.clock().toLocal(),
       selected: wide && _isOpen(note),
+      query: _search.text.trim().isEmpty ? null : _search.text,
       onTap: () => _openNote(note, wide: wide),
     ),
   );
@@ -980,14 +1100,15 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
   }
 }
 
-/// One note in the list: its title, newest words, kind, date, tags and open
-/// todos (#773).
+/// One note in the list: its title, newest words (or, under a [query], the
+/// line that matched, its words marked), kind, date, tags and open todos (#773).
 class _NoteRow extends StatelessWidget {
   const _NoteRow(
     this.note, {
     required this.strings,
     required this.today,
     required this.selected,
+    required this.query,
     required this.onTap,
   });
 
@@ -995,7 +1116,22 @@ class _NoteRow extends StatelessWidget {
   final Strings strings;
   final DateTime today;
   final bool selected;
+  final String? query;
   final VoidCallback onTap;
+
+  /// [text] with the words of [query] in [mark].
+  static TextSpan _marked(String text, String query, TextStyle mark) {
+    var at = 0;
+    return TextSpan(
+      children: [
+        for (final (start, end) in matchRanges(text, query)) ...[
+          if (start > at) TextSpan(text: text.substring(at, start)),
+          TextSpan(text: text.substring(start, at = end), style: mark),
+        ],
+        if (at < text.length) TextSpan(text: text.substring(at)),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1040,8 +1176,14 @@ class _NoteRow extends StatelessWidget {
             if (note.excerpt.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: Gap.xs),
-                child: Text(
-                  note.excerpt,
+                child: Text.rich(
+                  query == null
+                      ? TextSpan(text: note.excerpt)
+                      : _marked(
+                          note.excerpt,
+                          query!,
+                          TextStyle(color: colors.primary, fontWeight: FontWeight.w600),
+                        ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: muted?.copyWith(fontSize: 13, height: 1.4),

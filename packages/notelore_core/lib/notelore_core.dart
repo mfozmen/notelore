@@ -73,7 +73,7 @@ export 'src/store/format.dart'
         parseIsoDate,
         serialize;
 export 'src/store/front_matter.dart' show dumpFrontMatter, loadFrontMatter;
-export 'src/store/index.dart' show Hit, NoteIndex, NoteInfo, fts5Available;
+export 'src/store/index.dart' show Hit, NoteIndex, NoteInfo, fts5Available, matchRanges;
 export 'src/store/move.dart' show moveNotes;
 export 'src/store/notes.dart'
     show
@@ -128,7 +128,7 @@ export 'src/sync/merge.dart'
         decide,
         threeWay;
 export 'src/sync/resolve.dart' show Ask, ModelResolver, askProvider;
-export 'src/tools.dart' show Toolbox, noteTools, slimTools;
+export 'src/tools.dart' show AnswerCard, DecisionSource, NoteReceipt, Toolbox, noteTools, slimTools;
 export 'src/usage.dart'
     show
         MeteredProvider,

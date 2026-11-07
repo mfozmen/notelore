@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The mic orb: lit from the top left, as in the chat. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <gradient
+        android:type="radial"
+        android:centerX="0.35"
+        android:centerY="0.3"
+        android:gradientRadius="75%"
+        android:startColor="@color/qw_orb_light"
+        android:centerColor="@color/qw_orb"
+        android:endColor="@color/qw_orb_dark" />
+</shape>

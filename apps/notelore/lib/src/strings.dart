@@ -250,6 +250,26 @@ abstract class Strings {
   /// [text] in capitals, for a section label.
   String caps(String text) => text.toUpperCase();
 
+  /// A receipt under an answer (#791): the words for each writing tool, for a
+  /// whole note archived, and for several changes at once.
+  Map<String, String> get noteChanges;
+  String get noteArchived;
+  String get noteUpdated;
+  String get openNote;
+  String get noteGone;
+
+  /// A decision's source card (#792): its note, and the link that opens it.
+  String decisionSource(String note);
+  String get openNoteLink;
+
+  /// What [receipt] says the turn did to its note: a new note is new, and
+  /// different changes together are an update.
+  String noteChange(NoteReceipt receipt) {
+    if (receipt.kind == null) return noteArchived;
+    final tools = receipt.tools.contains('create_note') ? const ['create_note'] : receipt.tools;
+    return tools.toSet().length == 1 ? noteChanges[tools.first] ?? noteUpdated : noteUpdated;
+  }
+
   /// Export, share and import (#215).
   String get export;
   String get exportNotes;
@@ -484,6 +504,12 @@ abstract class Strings {
 
   /// A search that found nothing, and what to try instead.
   String noNoteMentions(String query);
+
+  // The Notes list's filter chips (#793).
+  String get filterAll;
+  String get filterProjects;
+  String get filterTopics;
+  String get noFilteredNotes;
   String get restore;
   String restored(String title);
 
@@ -581,6 +607,10 @@ abstract class Strings {
   String get syncingNow;
   String get syncFailed;
   String get syncNever;
+
+  /// The home-screen widget (#799): its field, and the sync state without a time.
+  String get quickAdd;
+  String get syncedShort;
   String syncedAgo(Duration since);
   // Drive's status in plain words, never a provider's raw message (#480).
   String get drivePermissionAgain;
@@ -1098,6 +1128,31 @@ class EnglishStrings extends Strings {
   @override
   String get relatedNotes => 'Related notes';
   @override
+  Map<String, String> get noteChanges => const {
+    'create_note': 'Note created',
+    'add_note_entry': 'Entry added',
+    'add_todo': 'Todo added',
+    'complete_todo': 'Todo done',
+    'add_reminder': 'Reminder added',
+    'record_decision': 'Decision added',
+    'merge_notes': 'Notes merged',
+    'recategorize': 'Kind changed',
+    'pin_note': 'Pin changed',
+    'archive': 'Entries archived',
+  };
+  @override
+  String get noteArchived => 'Archived';
+  @override
+  String get noteUpdated => 'Note updated';
+  @override
+  String get openNote => 'Open';
+  @override
+  String get noteGone => 'That note is no longer there.';
+  @override
+  String decisionSource(String note) => 'Source: $note';
+  @override
+  String get openNoteLink => 'Open note';
+  @override
   String todoCount(int count) => '$count ${count == 1 ? 'todo' : 'todos'}';
   @override
   String get export => 'Export';
@@ -1430,6 +1485,14 @@ class EnglishStrings extends Strings {
   String noNoteMentions(String query) =>
       'No note mentions "$query". Try other words, or ask in the chat.';
   @override
+  String get filterAll => 'All';
+  @override
+  String get filterProjects => 'Projects';
+  @override
+  String get filterTopics => 'Topics';
+  @override
+  String get noFilteredNotes => 'No notes here. Pick another filter, or All.';
+  @override
   String get restore => 'Restore';
   @override
   String restored(String title) => 'Restored "$title".';
@@ -1656,6 +1719,10 @@ class EnglishStrings extends Strings {
   String get syncFailed => 'Not synced';
   @override
   String get syncNever => 'Not synced yet';
+  @override
+  String get quickAdd => 'Write or ask…';
+  @override
+  String get syncedShort => 'Synced';
   @override
   String syncedAgo(Duration since) {
     if (since.isNegative || since.inMinutes < 1) return 'Synced just now';
@@ -2265,6 +2332,31 @@ class TurkishStrings extends Strings {
   @override
   String get relatedNotes => 'İlgili notlar';
   @override
+  Map<String, String> get noteChanges => const {
+    'create_note': 'Not oluşturuldu',
+    'add_note_entry': 'Kayıt eklendi',
+    'add_todo': 'Yapılacak eklendi',
+    'complete_todo': 'Yapılacak bitti',
+    'add_reminder': 'Hatırlatıcı eklendi',
+    'record_decision': 'Karar eklendi',
+    'merge_notes': 'Notlar birleştirildi',
+    'recategorize': 'Türü değişti',
+    'pin_note': 'Sabitleme değişti',
+    'archive': 'Kayıtlar arşivlendi',
+  };
+  @override
+  String get noteArchived => 'Arşivlendi';
+  @override
+  String get noteUpdated => 'Not güncellendi';
+  @override
+  String get openNote => 'Aç';
+  @override
+  String get noteGone => 'Bu not artık yok.';
+  @override
+  String decisionSource(String note) => 'Kaynak: $note';
+  @override
+  String get openNoteLink => 'Notu aç';
+  @override
   String todoCount(int count) => '$count iş';
   @override
   String caps(String text) => text.replaceAll('i', 'İ').toUpperCase();
@@ -2594,6 +2686,14 @@ class TurkishStrings extends Strings {
   String noNoteMentions(String query) =>
       '"$query" geçen bir not yok. Başka kelimeler dene ya da sohbette sor.';
   @override
+  String get filterAll => 'Tümü';
+  @override
+  String get filterProjects => 'Projeler';
+  @override
+  String get filterTopics => 'Konular';
+  @override
+  String get noFilteredNotes => 'Burada not yok. Başka bir filtre ya da Tümü seç.';
+  @override
   String get restore => 'Geri getir';
   @override
   String restored(String title) => '"$title" geri getirildi.';
@@ -2816,6 +2916,10 @@ class TurkishStrings extends Strings {
   String get syncFailed => 'Eşitlenmedi';
   @override
   String get syncNever => 'Henüz eşitlenmedi';
+  @override
+  String get quickAdd => 'Yaz ya da sor…';
+  @override
+  String get syncedShort => 'Eşitlendi';
   @override
   String syncedAgo(Duration since) {
     if (since.isNegative || since.inMinutes < 1) return 'Az önce eşitlendi';

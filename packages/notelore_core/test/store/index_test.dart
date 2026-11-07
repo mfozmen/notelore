@@ -313,12 +313,22 @@ void main() {
       });
 
       test('notesWith: every word, in the title or the text, folded (#508)', () {
-        Iterable<String> slugs(String query) => idx.notesWith(query).map((n) => n.$2);
+        Iterable<String> slugs(String query) => idx.notesWith(query).keys.map((n) => n.$2);
         expect(slugs('mopsos'), ['mopsos']); // the title
         expect(slugs('mopsos crypto'), ['mopsos']); // the title and the text
         expect(slugs('crypto muhasebeci'), isEmpty); // no note says both
         expect(slugs('GORUSULDU'), ['sirket-kurulusu']); // case and accents
         expect(idx.notesWith('  '), isEmpty);
+      });
+
+      test('notesWith: the line with the most words, or none for a title match (#803)', () {
+        const mopsos = ('project', 'mopsos');
+        const sirket = ('topic', 'sirket-kurulusu');
+        expect(idx.notesWith('crypto')[mopsos], 'Considered adding crypto, postponed.');
+        expect(idx.notesWith('database sqlite')[mopsos], contains('SQLite'));
+        expect(idx.notesWith('mopsos'), {mopsos: null});
+        expect(idx.notesWith('GÖRÜŞÜLDÜ')[sirket], 'Muhasebeci ile görüşüldü, ücret 2.500 TL.');
+        expect(idx.notesWith('muhasebecı')[sirket], startsWith('Muhasebeci')); // ı is i
       });
 
       test('search tolerates query syntax', () {
@@ -412,6 +422,32 @@ void main() {
       });
     });
   }
+
+  test('notesWith starts a long line near its match (#803)', () {
+    final dir = tempDir();
+    final long = createNote(p.join(dir, 'notes'), 'topic', 'Long', today: today);
+    final words = List.filled(20, 'filler').join(' ');
+    addEntry(long, '$words needle $words', today: today);
+    addEntry(long, 'short haystack', today: today);
+    final other = createNote(p.join(dir, 'notes'), 'topic', 'Other', today: today);
+    addEntry(other, '${'x' * 80} needle', today: today); // no space to cut at
+    final index = NoteIndex(p.join(dir, 'i.sqlite'), p.join(dir, 'notes'))..rebuild();
+    addTearDown(index.close);
+    expect(index.notesWith('needle'), {
+      ('topic', 'long'): '…${'filler ' * 3}needle $words',
+      ('topic', 'other'): '${'x' * 80} needle',
+    });
+    expect(index.notesWith('haystack')[('topic', 'long')], 'short haystack');
+  });
+
+  test('matchRanges: where the words are, folded, merged', () {
+    expect(matchRanges('Muhasebeci ile görüşüldü', 'GORUSULDU'), [(15, 24)]);
+    expect(matchRanges('İstanbul Işık', 'istanbul ışık'), [(0, 8), (9, 13)]);
+    expect(matchRanges('a crypto, b CRYPTO', 'crypto'), [(2, 8), (12, 18)]);
+    expect(matchRanges('postgresql', 'post gres stg'), [(0, 8)]);
+    expect(matchRanges('ﬁle', 'f'), [(0, 1)]); // a ligature folds to two letters
+    expect(matchRanges('anything', ' - '), isEmpty);
+  });
 
   test('reopening without FTS5 rebuilds the derived tables', () {
     final first = NoteIndex(db, root, fts5: true)..rebuild();
