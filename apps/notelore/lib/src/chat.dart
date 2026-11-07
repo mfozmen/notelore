@@ -42,8 +42,8 @@ class _ChatScreenState extends State<ChatScreen> {
   /// The line a screen reader hears now, on Android; for one frame only.
   ChatLine? _live;
 
-  /// The note [receipt] names, where it is now; a note deleted or moved since says so.
-  void _openReceipt(NoteReceipt receipt) {
+  /// The note of that [kind] and [slug], where it is now; a note deleted or moved since says so.
+  void _openNote(String kind, String slug) {
     final session = widget.session;
     String? read(NoteInfo note) {
       try {
@@ -53,10 +53,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     }
 
-    final note = session
-        .listNotes()
-        .where((n) => n.kind == receipt.kind && n.slug == receipt.slug)
-        .firstOrNull;
+    final note = session.listNotes().where((n) => n.kind == kind && n.slug == slug).firstOrNull;
     final text = note == null ? null : read(note);
     if (note != null && text != null) {
       final show = widget.showNote;
@@ -388,7 +385,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                       child: session.transcript.isEmpty
                           ? EmptyChat(s, example: session.ready ? _example : null)
-                          : _Lines(session, live: _live, open: _openReceipt),
+                          : _Lines(session, live: _live, open: _openNote),
                     ),
                   ),
                 ),
@@ -571,8 +568,8 @@ class _EmptyChatState extends State<EmptyChat> {
 class _Lines extends StatelessWidget {
   const _Lines(this.session, {required this.open, this.live});
 
-  /// Opens the note a receipt names.
-  final ValueChanged<NoteReceipt> open;
+  /// Opens the note a card names.
+  final _OpenNote open;
 
   /// The newest line, when a screen reader is to hear it now.
   final ChatLine? live;
@@ -613,17 +610,25 @@ class _Lines extends StatelessWidget {
     int resendable,
     Strings s,
   ) {
+    final today = session.clock().toLocal();
     if (session.busy) {
       if (index == 0) {
         return _Thinking(s, fixed: session.preparing ? s.devicePreparing : null);
       }
-      return _Bubble(lines[index - 1], s, newest: newest.contains(index - 1), open: open);
+      return _Bubble(
+        lines[index - 1],
+        s,
+        newest: newest.contains(index - 1),
+        open: open,
+        today: today,
+      );
     }
     return _Bubble(
       lines[index],
       s,
       newest: newest.contains(index),
       open: open,
+      today: today,
       // The line a turn just added is read out once; the history stays quiet.
       live: index == 0 && lines[0] == live,
       resend: index == resendable ? session.resend : null,
@@ -1433,6 +1438,7 @@ class _Bubble extends StatelessWidget {
     this.line,
     this.strings, {
     required this.open,
+    required this.today,
     this.newest = false,
     this.live = false,
     this.resend,
@@ -1442,8 +1448,11 @@ class _Bubble extends StatelessWidget {
     this.reported = false,
   });
 
-  /// Opens the note one of the answer's receipts names.
-  final ValueChanged<NoteReceipt> open;
+  /// Opens the note one of the answer's cards names.
+  final _OpenNote open;
+
+  /// For the year a card's date leaves out.
+  final DateTime today;
 
   /// For the newest answer: tell that it was wrong (#753), or take that back.
   final VoidCallback? report;
@@ -1556,7 +1565,13 @@ class _Bubble extends StatelessWidget {
   List<Widget> _under(List<String> answers, ColorScheme colors) => [
     for (final card in line.cards)
       switch (card) {
-        NoteReceipt() => _Receipt(card, strings, open: () => open(card)),
+        NoteReceipt() => _Receipt(card, strings, open: () => open(card.kind!, card.slug)),
+        DecisionSource() => _Source(
+          card,
+          strings,
+          today: today,
+          open: () => open(card.kind, card.slug),
+        ),
       },
     if (answer case final answer? when answers.isNotEmpty)
       Wrap(
@@ -1688,6 +1703,98 @@ class _ErrorRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+typedef _OpenNote = void Function(String kind, String slug);
+
+/// A current decision the answer looked up (#792), as the index holds it: the
+/// note view's decision card with its note and an Open below.
+class _Source extends StatelessWidget {
+  const _Source(this.source, this.strings, {required this.today, required this.open});
+
+  final DecisionSource source;
+  final Strings strings;
+  final DateTime today;
+  final VoidCallback open;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final label = theme.extension<NoteloreTokens>()!.label;
+    final muted = theme.textTheme.bodyMedium?.copyWith(
+      fontSize: 13.5,
+      color: colors.onSurfaceVariant,
+    );
+    final card = Card(
+      margin: const EdgeInsets.symmetric(vertical: Gap.xs),
+      child: Padding(
+        padding: const EdgeInsets.only(left: Gap.m, right: Gap.xs, top: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: Gap.m - Gap.xs),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      strings.caps(source.topic),
+                      semanticsLabel: source.topic,
+                      style: label,
+                    ),
+                  ),
+                  Text(
+                    strings.shortDate(source.date, today),
+                    style: label.copyWith(
+                      fontSize: 10,
+                      letterSpacing: 0.6,
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: Gap.xs),
+            Text(
+              source.value,
+              style: theme.textTheme.titleMedium?.copyWith(fontSize: 20, height: 1.25),
+            ),
+            if (source.reason case final reason?) ...[
+              const SizedBox(height: Gap.xs),
+              Text(reason, style: muted),
+            ],
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    strings.decisionSource(source.title),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: muted,
+                  ),
+                ),
+                TextButton(
+                  onPressed: open,
+                  child: Text(
+                    '${strings.openNoteLink} →',
+                    semanticsLabel: '${strings.openNoteLink} ${source.title}',
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: Layout.column),
+        child: card,
       ),
     );
   }

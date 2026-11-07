@@ -541,6 +541,28 @@ final class NoteReceipt extends AnswerCard {
   final List<String> tools;
 }
 
+/// A current decision the turn looked up (#792), as the index holds it, and
+/// the note it is in.
+final class DecisionSource extends AnswerCard {
+  const DecisionSource(
+    this.slug,
+    this.kind,
+    this.title,
+    this.topic,
+    this.date,
+    this.value,
+    this.reason,
+  );
+
+  final String slug;
+  final String kind;
+  final String title;
+  final String topic;
+  final DateTime date;
+  final String value;
+  final String? reason;
+}
+
 final _isoDate = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
 void _delete(File file) => file.deleteSync();
@@ -656,6 +678,27 @@ class Toolbox {
     if (_changed.remove(_rel(from)) case final tools?) (_changed[_rel(to)] ??= []).addAll(tools);
   }
 
+  /// This turn's current decisions looked up, first ones first.
+  final _sources = <DecisionSource>[];
+
+  List<DecisionSource> sources() => List.unmodifiable(_sources);
+
+  void _cite(String slug, String? kind, Decision d) {
+    if (d.superseded != null || _sources.length == 3) return;
+    final path = _path(slug, kind);
+    final real = _kindOf(_rel(path))!;
+    if (_sources.any((s) => s.slug == slug && s.kind == real && s.topic == d.topic)) return;
+    _sources.add(
+      DecisionSource(slug, real, notes.titleOf(File(path)), d.topic, d.date, d.value, d.reason),
+    );
+  }
+
+  /// The kind whose folder holds the note at [rel]; null in the archive.
+  String? _kindOf(String rel) => [
+    for (final MapEntry(:key, :value) in notes.kinds.entries)
+      if (p.url.dirname(rel) == value) key,
+  ].firstOrNull;
+
   /// This turn's changed notes as they are now, the deleted ones (an empty
   /// create undone) left out.
   List<NoteReceipt> receipts() => [
@@ -663,10 +706,7 @@ class Toolbox {
       if (File(p.joinAll([root, ...rel.split('/')])) case final file when file.existsSync())
         NoteReceipt(
           p.basenameWithoutExtension(rel),
-          [
-            for (final MapEntry(:key, :value) in notes.kinds.entries)
-              if (p.url.dirname(rel) == value) key,
-          ].firstOrNull,
+          _kindOf(rel),
           notes.titleOf(file),
           List.unmodifiable(tools),
         ),
@@ -677,6 +717,7 @@ class Toolbox {
     final any = _created.isNotEmpty;
     _created.clear();
     _changed.clear();
+    _sources.clear();
     _asked.clear();
     _heldSlugs.clear();
     _missing.clear();
@@ -896,12 +937,18 @@ class Toolbox {
   Object _getDecision(String slug, String topic, String? kind) {
     final real = _realSlug(slug, kind); // and the same "pass kind" message as every other tool
     final decision = _fresh().getDecision(real, topic, kind: kind);
-    return decision == null ? "No active decision for '$topic' in '$slug'." : _decision(decision);
+    if (decision == null) return "No active decision for '$topic' in '$slug'.";
+    _cite(real, kind, decision);
+    return _decision(decision);
   }
 
   List<Map<String, Object?>> _decisionHistory(String slug, String? topic, String? kind) {
     final real = _realSlug(slug, kind);
-    return [for (final d in _fresh().decisionHistory(real, topic: topic, kind: kind)) _decision(d)];
+    final history = _fresh().decisionHistory(real, topic: topic, kind: kind);
+    for (final d in history) {
+      _cite(real, kind, d);
+    }
+    return [for (final d in history) _decision(d)];
   }
 
   Map<String, Object?> _merge(String from, String into) {
