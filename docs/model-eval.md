@@ -267,3 +267,24 @@ Findings:
 - **Collection stays the weakest kind**: 54/73 held-out and 12/20 on the cases.
 - On the 44 cases, decision drops 8 → 6/8 and question 18 → 16/20. That is two runs of greedy decoding on few cases, but these are the ones to watch in the next run.
 - **v8 replaces v7.** It is in Ollama as `notelore-qwen3-4b-v8`.
+
+## A one-line plan before the first tool call, 2026-11-08 (#608)
+
+**Setup**
+- v7's data with a `plan: <note> → <action>` line written into each turn's first tool call, derived from the verified turn (#789). v7's recipe, trained on Kaggle.
+- The rule agreed beforehand: keep the plan line only at +5 points of first-call accuracy (`--first-write`).
+- Q4_K_M, greedy, slim.
+
+| | Held-out (292) | Held-out, first write | 44 cases | 44 cases, first write |
+|---|---|---|---|---|
+| v7 | 240 (82%) | 229 (78%) | 34 (77%) | 32 (73%) |
+| v7 + plan | 242 (83%) | 229 (78%) | 36 (82%) | 34 (77%) |
+| v8 (for scale) | 255 (87.3%) | | | |
+
+Held-out by kind, v7 → v7 + plan: collection 52 → 62/73, todo-done 14 → 16/20, question 34 → 35/36; decision 16 → 11/18, new-note 14 → 12/15, unclear 9 → 8/15, plan 11 → 10/15, chat 15 → 14/15.
+
+Findings:
+
+- **Dropped.** First-call accuracy on the held-out set does not move (229 both), far from the +5 points.
+- **The plan line trades decisions for collections.** It picks the right list ten more times, but files five more decisions as plain entries. That trade is not worth a format the app has to strip.
+- **More data beats it**: v8 alone is 13 held-out cases ahead of the plan run.
