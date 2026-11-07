@@ -247,6 +247,18 @@ abstract class Strings {
   String get relatedNotes;
   String todoCount(int count);
 
+  /// The week look back on Sundays (#804).
+  String get thisWeek;
+  String get weekDecided;
+  String get weekDone;
+  String get weekOverdue;
+  String get hideThisWeek;
+
+  /// "2–8 Nov", or "26 Oct – 1 Nov" across two months.
+  String weekRange(DateTime from, DateTime to) => from.month == to.month
+      ? '${from.day}–${to.day} ${months[to.month - 1]}'
+      : '${shortDate(from, to)} – ${shortDate(to, to)}';
+
   /// [text] in capitals, for a section label.
   String caps(String text) => text.toUpperCase();
 
@@ -474,6 +486,8 @@ abstract class Strings {
   String get allowNotifications;
   String get notificationsBlocked;
   String get reminderHidden;
+  String get reminderDone;
+  String get reminderSnooze;
 
   // Reminders through Google Calendar (#432).
   String get addToCalendar;
@@ -610,6 +624,15 @@ abstract class Strings {
 
   /// The home-screen widget (#799): its field, and the sync state without a time.
   String get quickAdd;
+
+  /// The desktop's quick-add window and its shortcut (#800).
+  String get quickTitle;
+  String get quickKeys;
+  String get quickToChat;
+  String get quickLast;
+  String get quickShortcut;
+  String quickShortcutInfo(String keys);
+  String get quickShortcutTaken;
   String get syncedShort;
   String syncedAgo(Duration since);
   // Drive's status in plain words, never a provider's raw message (#480).
@@ -1128,6 +1151,16 @@ class EnglishStrings extends Strings {
   @override
   String get relatedNotes => 'Related notes';
   @override
+  String get thisWeek => 'This week';
+  @override
+  String get weekDecided => 'Decided';
+  @override
+  String get weekDone => 'Done';
+  @override
+  String get weekOverdue => 'Overdue';
+  @override
+  String get hideThisWeek => 'Hide for this week';
+  @override
   Map<String, String> get noteChanges => const {
     'create_note': 'Note created',
     'add_note_entry': 'Entry added',
@@ -1431,6 +1464,10 @@ class EnglishStrings extends Strings {
   @override
   String get reminderHidden => 'You have a reminder.';
   @override
+  String get reminderDone => 'Done';
+  @override
+  String get reminderSnooze => 'Snooze 1 hour';
+  @override
   String get addToCalendar => 'Add to Google Calendar';
   @override
   String get addToCalendarHint =>
@@ -1721,6 +1758,20 @@ class EnglishStrings extends Strings {
   String get syncNever => 'Not synced yet';
   @override
   String get quickAdd => 'Write or ask…';
+  @override
+  String get quickTitle => 'Notelore · Quick note';
+  @override
+  String get quickKeys => 'Enter sends · Esc closes';
+  @override
+  String get quickToChat => 'Goes to the chat';
+  @override
+  String get quickLast => 'Last';
+  @override
+  String get quickShortcut => 'Quick note shortcut';
+  @override
+  String quickShortcutInfo(String keys) => '$keys opens a small window from any app.';
+  @override
+  String get quickShortcutTaken => 'Another app uses this shortcut, so it does nothing now.';
   @override
   String get syncedShort => 'Synced';
   @override
@@ -2332,6 +2383,16 @@ class TurkishStrings extends Strings {
   @override
   String get relatedNotes => 'İlgili notlar';
   @override
+  String get thisWeek => 'Bu hafta';
+  @override
+  String get weekDecided => 'Kararlar';
+  @override
+  String get weekDone => 'Bitenler';
+  @override
+  String get weekOverdue => 'Gecikenler';
+  @override
+  String get hideThisWeek => 'Bu hafta gizle';
+  @override
   Map<String, String> get noteChanges => const {
     'create_note': 'Not oluşturuldu',
     'add_note_entry': 'Kayıt eklendi',
@@ -2632,6 +2693,10 @@ class TurkishStrings extends Strings {
   @override
   String get reminderHidden => 'Bir hatırlatıcın var.';
   @override
+  String get reminderDone => 'Bitti';
+  @override
+  String get reminderSnooze => '1 saat ertele';
+  @override
   String get addToCalendar => "Google Takvim'e ekle";
   @override
   String get addToCalendarHint => 'Yalnızca kendi takvimi: diğer takvimlerine dokunulmaz.';
@@ -2918,6 +2983,21 @@ class TurkishStrings extends Strings {
   String get syncNever => 'Henüz eşitlenmedi';
   @override
   String get quickAdd => 'Yaz ya da sor…';
+  @override
+  String get quickTitle => 'Notelore · Hızlı not';
+  @override
+  String get quickKeys => 'Enter gönderir · Esc kapatır';
+  @override
+  String get quickToChat => 'Sohbete eklenir';
+  @override
+  String get quickLast => 'Önceki';
+  @override
+  String get quickShortcut => 'Hızlı not kısayolu';
+  @override
+  String quickShortcutInfo(String keys) => '$keys her uygulamadan küçük bir pencere açar.';
+  @override
+  String get quickShortcutTaken =>
+      'Bu kısayolu başka bir uygulama kullanıyor; şimdilik bir şey yapmıyor.';
   @override
   String get syncedShort => 'Eşitlendi';
   @override

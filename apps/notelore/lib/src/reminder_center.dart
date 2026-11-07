@@ -24,6 +24,7 @@ class ReminderCenter extends ChangeNotifier {
     required this.offThread,
     required this.isPrivate,
     required this.hiddenText,
+    required this.actionLabels,
     required this.save,
     required this.share,
   });
@@ -44,6 +45,9 @@ class ReminderCenter extends ChangeNotifier {
 
   /// What a reminder says while the lock is on.
   final String Function() hiddenText;
+
+  /// The labels of a notification's Done and Snooze 1 hour (#801).
+  final ({String done, String snooze}) Function() actionLabels;
 
   /// Remembers this device's settings; [share] marks the shared ones changed.
   final void Function() save;
@@ -201,7 +205,8 @@ class ReminderCenter extends ChangeNotifier {
         allowed = await device.ask();
       }
       remindersAllowed = allowed;
-      await scheduleReminders(device, due, anew: anew);
+      final (:done, :snooze) = actionLabels();
+      await scheduleReminders(device, due, (notes: root, done: done, snooze: snooze), anew: anew);
     } on Exception {
       return; // no notifications here: the reminders stay in the notes
     } finally {

@@ -36,6 +36,12 @@ void main() {
     expect(harness.reminders.pending.values, ['Dentist']);
     expect(harness.reminders.scheduled.single.at, DateTime(2099, 5, 1, 10));
     expect(harness.reminders.scheduled.single.note, 'Health');
+    // Its Done and Snooze act on these notes, labelled in the user's language (#801).
+    expect(harness.reminders.actions.single, (
+      notes: harness.paths.notes.path,
+      done: 'Done',
+      snooze: 'Snooze 1 hour',
+    ));
     // Nothing pops up over the app (or its lock) at start: Settings offers it.
     expect(harness.reminders.asked, 0);
     expect(session.remindersAllowed, isFalse);

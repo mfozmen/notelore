@@ -208,6 +208,12 @@ void main() {
     expect(tr.todoCount(3), '3 iş');
   });
 
+  test('the week look back names its days, across a month too (#804)', () {
+    expect(en.weekRange(DateTime(2026, 11, 2), DateTime(2026, 11, 8)), '2–8 Nov');
+    expect(en.weekRange(DateTime(2026, 10, 26), DateTime(2026, 11, 1)), '26 Oct – 1 Nov');
+    expect(tr.weekRange(DateTime(2026, 11, 2), DateTime(2026, 11, 8)), '2–8 Kas');
+  });
+
   test('the sync state says how long ago, in both languages (#774)', () {
     expect(en.syncedAgo(const Duration(seconds: 20)), 'Synced just now');
     expect(en.syncedAgo(const Duration(minutes: 2)), 'Synced 2 min ago');
@@ -374,6 +380,11 @@ void main() {
       'comingUp': s.comingUp,
       'relatedNotes': s.relatedNotes,
       'todoCount': s.todoCount(3),
+      'thisWeek': s.thisWeek,
+      'weekDecided': s.weekDecided,
+      'weekDone': s.weekDone,
+      'weekOverdue': s.weekOverdue,
+      'hideThisWeek': s.hideThisWeek,
       'export': s.export,
       'exportNotes': s.exportNotes,
       'importNotes': s.importNotes,
@@ -516,6 +527,13 @@ void main() {
       'syncFailed': s.syncFailed,
       'syncNever': s.syncNever,
       'quickAdd': s.quickAdd,
+      'quickTitle': s.quickTitle,
+      'quickKeys': s.quickKeys,
+      'quickToChat': s.quickToChat,
+      'quickLast': s.quickLast,
+      'quickShortcut': s.quickShortcut,
+      'quickShortcutInfo': s.quickShortcutInfo('Ctrl+Alt+N'),
+      'quickShortcutTaken': s.quickShortcutTaken,
       'syncedShort': s.syncedShort,
       'syncedAgo': s.syncedAgo(const Duration(minutes: 2)),
       'drivePermissionAgain': s.drivePermissionAgain,
