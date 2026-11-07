@@ -545,6 +545,7 @@ class _NotesScreenState extends State<NotesScreen> {
       strings: widget.session.strings,
       today: widget.session.clock().toLocal(),
       selected: wide && _isOpen(note),
+      query: _search.text.trim().isEmpty ? null : _search.text,
       onTap: () => _openNote(note, wide: wide),
     ),
   );
@@ -1083,14 +1084,15 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
   }
 }
 
-/// One note in the list: its title, newest words, kind, date, tags and open
-/// todos (#773).
+/// One note in the list: its title, newest words (or, under a [query], the
+/// line that matched, its words marked), kind, date, tags and open todos (#773).
 class _NoteRow extends StatelessWidget {
   const _NoteRow(
     this.note, {
     required this.strings,
     required this.today,
     required this.selected,
+    required this.query,
     required this.onTap,
   });
 
@@ -1098,7 +1100,22 @@ class _NoteRow extends StatelessWidget {
   final Strings strings;
   final DateTime today;
   final bool selected;
+  final String? query;
   final VoidCallback onTap;
+
+  /// [text] with the words of [query] in [mark].
+  static TextSpan _marked(String text, String query, TextStyle mark) {
+    var at = 0;
+    return TextSpan(
+      children: [
+        for (final (start, end) in matchRanges(text, query)) ...[
+          if (start > at) TextSpan(text: text.substring(at, start)),
+          TextSpan(text: text.substring(start, at = end), style: mark),
+        ],
+        if (at < text.length) TextSpan(text: text.substring(at)),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1143,8 +1160,14 @@ class _NoteRow extends StatelessWidget {
             if (note.excerpt.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: Gap.xs),
-                child: Text(
-                  note.excerpt,
+                child: Text.rich(
+                  query == null
+                      ? TextSpan(text: note.excerpt)
+                      : _marked(
+                          note.excerpt,
+                          query!,
+                          TextStyle(color: colors.primary, fontWeight: FontWeight.w600),
+                        ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: muted?.copyWith(fontSize: 13, height: 1.4),
