@@ -82,7 +82,8 @@ Map<String, Object> widgetData(Session session, DateTime today) {
 }
 
 /// Hands what [take] returns to the session once it is set up and unlocked,
-/// and gives [draw] what the widget shows whenever a turn or a sync ends.
+/// and gives [draw] what the widget shows whenever a turn or a sync ends, or
+/// the app lock is turned on or off.
 class QuickDelivery {
   QuickDelivery(this.session, this.take, {this.draw}) {
     session.addListener(_changed);
@@ -97,12 +98,14 @@ class QuickDelivery {
 
   QuickOpen? _waiting;
   var _working = false;
+  late var _locking = session.lock.enabled;
 
   void _changed() {
     _deliver();
     final working = session.busy || session.syncing;
-    if (_working && !working) redraw();
+    if ((_working && !working) || _locking != session.lock.enabled) redraw();
     _working = working;
+    _locking = session.lock.enabled;
   }
 
   /// Draws the widget now: at start, and when the app goes to the background.
