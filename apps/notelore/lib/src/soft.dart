@@ -50,6 +50,13 @@ class SoftNavBar extends StatelessWidget {
   /// The bar's own height, without the fade over it and the system's inset.
   static const double height = 64;
 
+  /// The bar's widest: the design's 360-point phone less its margins, so on a
+  /// wider phone the tabs stay close instead of spreading out.
+  static const double width = 328;
+
+  /// The chosen tab's orb: nearly the bar's height.
+  static const double orb = 46;
+
   /// The fade over the bar, where the page scrolls out of sight.
   static const double fade = 24;
 
@@ -77,24 +84,27 @@ class SoftNavBar extends StatelessWidget {
           color: colors.surface,
           child: Padding(
             padding: EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.m + bottom),
-            child: DecoratedBox(
-              decoration: _barDecoration(colors),
-              child: SizedBox(
-                height: height,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: Gap.s + 2),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      for (final (i, (icon, chosen, label)) in destinations.indexed)
-                        _Tab(
-                          icon: icon,
-                          chosen: chosen,
-                          label: label,
-                          selected: i == selected,
-                          onTap: () => onSelected(i),
-                        ),
-                    ],
+            child: Center(
+              child: DecoratedBox(
+                decoration: _barDecoration(colors),
+                child: SizedBox(
+                  height: height,
+                  width: width,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: Gap.s + 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        for (final (i, (icon, chosen, label)) in destinations.indexed)
+                          _Tab(
+                            icon: icon,
+                            chosen: chosen,
+                            label: label,
+                            selected: i == selected,
+                            onTap: () => onSelected(i),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -134,23 +144,26 @@ class _Tab extends StatelessWidget {
             ),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 18, 0),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                spacing: Gap.s,
-                children: [
-                  AppIcons.duo(chosen, size: 22, color: colors.onPrimary),
-                  Flexible(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: colors.onPrimary,
-                        fontWeight: FontWeight.w600,
+              child: SizedBox(
+                height: SoftNavBar.orb,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  spacing: Gap.s,
+                  children: [
+                    AppIcons.duo(chosen, size: 22, color: colors.onPrimary),
+                    Flexible(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: colors.onPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           )
@@ -194,6 +207,18 @@ ShapeDecoration _barDecoration(ColorScheme colors) => ShapeDecoration(
       spreadRadius: -11,
     ),
   ],
+);
+
+/// A header's icon button in the Soft look: a 38-point circle on the card
+/// colour with a soft edge, padded out to a 48-point target.
+ButtonStyle softRound(ColorScheme colors) => IconButton.styleFrom(
+  fixedSize: const Size.square(38),
+  iconSize: 20,
+  minimumSize: const Size.square(38),
+  padding: EdgeInsets.zero,
+  tapTargetSize: MaterialTapTargetSize.padded,
+  backgroundColor: colors.surfaceContainerLow,
+  shape: softBorder(colors, BorderRadius.circular(19)),
 );
 
 /// The Soft switch's look: a sunken track and an orb for a knob. Its

@@ -10,6 +10,7 @@ import 'icons.dart';
 import 'note_view.dart';
 import 'section_label.dart';
 import 'session.dart';
+import 'soft.dart';
 import 'strings.dart';
 import 'sync_state.dart';
 import 'theme.dart';
@@ -182,18 +183,20 @@ class _NotesScreenState extends State<NotesScreen> {
       RefreshIndicator(key: _refresher, onRefresh: _refresh, child: child);
 
   Widget _listHeader(BuildContext context, List<NoteInfo> notes) => Padding(
-    // Gap.xs, not Gap.s: the menu icon sits 12px inside its 48px button, so
-    // its edge lands on the field's Gap.m edge below.
-    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.xs, 0),
+    // The round button sits 5 points inside its 48-point target, so its edge
+    // lands on the field's Gap.m edge below.
+    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m - 5, 0),
     child: Align(alignment: Alignment.centerRight, child: _listActions(context, notes)),
   );
 
   Widget _listActions(BuildContext context, List<NoteInfo> notes) {
     final s = widget.session.strings;
+    final round = softRound(Theme.of(context).colorScheme);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
+          style: round,
           tooltip: s.archive,
           icon: const Icon(AppIcons.archive),
           onPressed: () => Layout.isWide(context)
@@ -202,6 +205,7 @@ class _NotesScreenState extends State<NotesScreen> {
                     .push(MaterialPageRoute<void>(builder: (_) => ArchiveScreen(widget.session))),
         ),
         IconButton(
+          style: round,
           tooltip: s.refresh,
           icon: const Icon(AppIcons.refresh),
           // The pull's spinner shows it, and a tap while it runs is ignored.
@@ -209,6 +213,7 @@ class _NotesScreenState extends State<NotesScreen> {
         ),
         PopupMenuButton<_NotesAction>(
           key: const Key('notes-more'),
+          style: round,
           tooltip: s.moreNoteActions,
           icon: const Icon(AppIcons.moreVert),
           onSelected: (action) async {
