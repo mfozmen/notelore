@@ -667,7 +667,7 @@ class _QuickShortcutCard extends StatelessWidget {
     final s = session.strings;
     return Card(
       child: SwitchListTile(
-        secondary: const Icon(Icons.keyboard_command_key),
+        secondary: const Icon(AppIcons.command),
         title: Text(s.quickShortcut),
         subtitle: Text(
           [s.quickShortcutInfo(quick.keysLabel), if (quick.taken) s.quickShortcutTaken].join(' '),

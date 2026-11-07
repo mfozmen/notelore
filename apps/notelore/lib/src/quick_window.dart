@@ -15,6 +15,7 @@ import 'package:flutter/services.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'chat.dart' show Orb;
+import 'icons.dart';
 import 'mark.dart';
 import 'session.dart';
 import 'strings.dart' show Strings;
@@ -255,15 +256,12 @@ class _QuickAddScreenState extends State<QuickAddScreen> {
                   typed.text.trim().isNotEmpty
                       ? IconButton(
                           tooltip: s.send,
-                          icon: const Icon(Icons.arrow_upward, color: Colors.white),
+                          icon: const Icon(AppIcons.send, color: Colors.white),
                           onPressed: () => window.send(_text.text),
                         )
                       : IconButton(
                           tooltip: listening ? s.stopTalking : s.talk,
-                          icon: Icon(
-                            listening ? Icons.arrow_upward : Icons.mic_none,
-                            color: Colors.white,
-                          ),
+                          icon: Icon(listening ? AppIcons.send : AppIcons.mic, color: Colors.white),
                           onPressed: _talk,
                         ),
                 ),
@@ -284,7 +282,7 @@ class _QuickAddScreenState extends State<QuickAddScreen> {
     ),
     child: Row(
       children: [
-        Icon(Icons.check, size: 16, color: colors.primary),
+        Icon(AppIcons.check, size: 16, color: colors.primary),
         const SizedBox(width: Gap.s),
         Expanded(
           child: Text.rich(

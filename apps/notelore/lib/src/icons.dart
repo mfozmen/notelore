@@ -24,6 +24,7 @@ abstract final class AppIcons {
   static const calendar = IconData(0xe7b4, fontFamily: _regular);
   static const chart = IconData(0xe150, fontFamily: _regular);
   static const chat = IconData(0xe166, fontFamily: _regular);
+  static const check = IconData(0xe182, fontFamily: _regular);
   static const checked = IconData(0xe184, fontFamily: _fill);
   static const checklist = IconData(0xeadc, fontFamily: _regular);
   static const chevronLeft = IconData(0xe138, fontFamily: _regular);
@@ -35,6 +36,7 @@ abstract final class AppIcons {
   static const cloudOff = IconData(0xe1b6, fontFamily: _regular);
   static const cloudUpload = IconData(0xe1ae, fontFamily: _regular);
   static const collapse = IconData(0xe13c, fontFamily: _regular);
+  static const command = IconData(0xe1c4, fontFamily: _regular);
   static const contrast = IconData(0xe18c, fontFamily: _regular);
   static const copy = IconData(0xe1ca, fontFamily: _regular);
   static const cost = IconData(0xe78e, fontFamily: _regular);
