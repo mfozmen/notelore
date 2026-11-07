@@ -917,6 +917,18 @@ void main() {
     expect(again.chatTextStep, 2);
   });
 
+  test('a closed week look back stays closed after a restart, on this device (#804)', () async {
+    final harness = Harness();
+    final session = harness.session();
+    await session.load();
+    expect(session.lookBackClosed, isNull);
+    session.closeLookBack('2026-11-08');
+    expect(session.lookBackClosed, '2026-11-08');
+    final again = harness.session();
+    await again.load();
+    expect(again.lookBackClosed, '2026-11-08');
+  });
+
   test('web search: on by default where the provider has it, and can be turned off', () async {
     final harness = Harness();
     final session = harness.session();

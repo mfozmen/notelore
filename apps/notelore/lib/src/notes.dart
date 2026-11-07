@@ -50,10 +50,23 @@ class _NotesScreenState extends State<NotesScreen> {
   void initState() {
     super.initState();
     widget.session.addListener(_sessionChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _quick()); // asked before Notes opened
   }
 
   void _sessionChanged() {
     if (mounted) setState(() {});
+    _quick();
+  }
+
+  /// The note a tap on the home-screen widget asked for (#799), when it is still there.
+  void _quick() {
+    final open = widget.session.quickOpen;
+    if (!mounted || open?.kind == null) return;
+    widget.session.quickOpen = null;
+    final note = widget.session.listNotes().where(
+      (n) => n.kind == open!.kind && n.slug == open.slug,
+    );
+    if (note.firstOrNull case final note?) _openNote(note, wide: Layout.isWide(context));
   }
 
   @override
@@ -509,22 +522,45 @@ class _NotesScreenState extends State<NotesScreen> {
           if (item.todo && !item.day.isBefore(today) && known.containsKey((item.kind, item.slug)))
             item,
     ];
+    final week = _week(today, known);
+    void open(DayItem item) => _openNote(known[(item.kind, item.slug)]!, wide: wide);
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
       children: [
-        if (coming.isNotEmpty)
-          _ComingUp(
-            coming,
+        if (week != null)
+          _LookBack(
+            week,
+            today: today,
             strings: s,
-            open: (item) => _openNote(known[(item.kind, item.slug)]!, wide: wide),
+            open: open,
+            close: () => widget.session.closeLookBack(isoDate(today)),
           ),
+        if (coming.isNotEmpty) _ComingUp(coming, strings: s, open: open),
         if (pinned.isNotEmpty) SectionLabel(s.pinnedNotes, strings: s),
         for (final note in pinned) _card(context, note, wide: wide),
         if (pinned.isNotEmpty && others.isNotEmpty) SectionLabel(s.otherNotes, strings: s),
         for (final note in others) _card(context, note, wide: wide),
       ],
     );
+  }
+
+  /// This week's look back, on a Sunday it was not closed and not over a search,
+  /// within the notes the list shows; null when there is nothing to look back on.
+  ({List<DayItem> decided, List<DayItem> done, List<DayItem> overdue})? _week(
+    DateTime today,
+    Map<(String, String), NoteInfo> known,
+  ) {
+    if (today.weekday != DateTime.sunday ||
+        _search.text.trim().isNotEmpty ||
+        widget.session.lookBackClosed == isoDate(today)) {
+      return null;
+    }
+    final all = weekItems(widget.session.paths.notes.path, today: today);
+    List<DayItem> shown(List<DayItem> items) =>
+        items.where((i) => known.containsKey((i.kind, i.slug))).toList();
+    final week = (decided: shown(all.decided), done: shown(all.done), overdue: shown(all.overdue));
+    return week.decided.isEmpty && week.done.isEmpty && week.overdue.isEmpty ? null : week;
   }
 
   /// Read once: the app rebuilds on every session change, and a deleted note
@@ -676,6 +712,49 @@ class _NotesScreenState extends State<NotesScreen> {
   );
 }
 
+/// The small mono labels of the cards over the list.
+TextStyle _mono(ThemeData theme) => theme.extension<NoteloreTokens>()!.label.copyWith(
+  fontSize: 10,
+  letterSpacing: 0.6,
+  color: theme.colorScheme.onSurfaceVariant,
+);
+
+/// An outlined card over the notes list, holding [children].
+class _Panel extends StatelessWidget {
+  const _Panel({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: Gap.s, bottom: Gap.xs),
+    child: Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 12, bottom: Gap.xs),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+      ),
+    ),
+  );
+}
+
+/// [items], at most three, a hairline between them.
+List<Widget> _dayRows(
+  List<DayItem> items, {
+  required Strings strings,
+  required ValueChanged<DayItem> open,
+  bool late = false,
+}) => [
+  for (final (index, item) in items.take(3).indexed) ...[
+    if (index > 0) const Divider(indent: Gap.m, endIndent: Gap.m),
+    _DayRow(item, strings: strings, open: open, late: late),
+  ],
+];
+
 /// The open todos due from today on, the soonest first, at most three; a row
 /// opens its note.
 class _ComingUp extends StatelessWidget {
@@ -688,45 +767,131 @@ class _ComingUp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = strings;
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final mono = theme.extension<NoteloreTokens>()!.label.copyWith(
-      fontSize: 10,
-      letterSpacing: 0.6,
-      color: colors.onSurfaceVariant,
-    );
-    return Padding(
-      padding: const EdgeInsets.only(top: Gap.s, bottom: Gap.xs),
-      child: Card(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: colors.outlineVariant),
+    return _Panel(
+      children: [
+        SectionLabel(
+          s.comingUp,
+          strings: s,
+          padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.xs),
+          trailing: Text(
+            s.todoCount(items.length),
+            textAlign: TextAlign.end,
+            style: _mono(Theme.of(context)),
+          ),
         ),
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 12, bottom: Gap.xs),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        ..._dayRows(items, strings: s, open: open),
+      ],
+    );
+  }
+}
+
+/// The week from Monday to this Sunday: the decisions taken, the todos done and
+/// those still late, each with its count and at most three rows.
+class _LookBack extends StatelessWidget {
+  const _LookBack(
+    this.week, {
+    required this.today,
+    required this.strings,
+    required this.open,
+    required this.close,
+  });
+
+  final ({List<DayItem> decided, List<DayItem> done, List<DayItem> overdue}) week;
+  final DateTime today;
+  final Strings strings;
+  final ValueChanged<DayItem> open;
+  final VoidCallback close;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = strings;
+    final theme = Theme.of(context);
+    final monday = DateTime(today.year, today.month, today.day - 6);
+    return _Panel(
+      children: [
+        SectionLabel(
+          s.thisWeek,
+          strings: s,
+          padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.xs, 0),
+          trailing: Row(
             children: [
-              SectionLabel(
-                s.comingUp,
-                strings: s,
-                padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.xs),
-                trailing: Text(s.todoCount(items.length), textAlign: TextAlign.end, style: mono),
+              Expanded(
+                child: Text(
+                  s.caps(s.weekRange(monday, today)),
+                  textAlign: TextAlign.end,
+                  style: _mono(theme),
+                ),
               ),
-              for (final (index, item) in items.take(3).indexed) ...[
-                if (index > 0) const Divider(indent: Gap.m, endIndent: Gap.m),
-                _row(theme, item, mono),
-              ],
+              IconButton(
+                tooltip: s.hideThisWeek,
+                icon: const Icon(Icons.close, size: 18),
+                onPressed: close,
+              ),
             ],
           ),
         ),
-      ),
+        _group(theme, 'decided', s.weekDecided, week.decided),
+        _group(theme, 'done', s.weekDone, week.done),
+        _group(theme, 'overdue', s.weekOverdue, week.overdue, late: true),
+      ],
     );
   }
 
-  Widget _row(ThemeData theme, DayItem item, TextStyle mono) {
+  /// A group's name and count, then its first rows.
+  Widget _group(
+    ThemeData theme,
+    String key,
+    String name,
+    List<DayItem> items, {
+    bool late = false,
+  }) {
     final colors = theme.colorScheme;
+    final tone = late && items.isNotEmpty ? colors.error : colors.primary;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          key: Key('week-$key'),
+          padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  strings.caps(name),
+                  semanticsLabel: name,
+                  style: _mono(theme).copyWith(letterSpacing: 1.1),
+                ),
+              ),
+              Text(
+                '${items.length}',
+                style: theme.textTheme.titleMedium?.copyWith(fontSize: 18, height: 1, color: tone),
+              ),
+            ],
+          ),
+        ),
+        ..._dayRows(items, strings: strings, open: open, late: late),
+      ],
+    );
+  }
+}
+
+/// A dated item: its day in large numerals over the month, its words and its
+/// note; a tap opens the note.
+class _DayRow extends StatelessWidget {
+  const _DayRow(this.item, {required this.strings, required this.open, this.late = false});
+
+  final DayItem item;
+  final Strings strings;
+  final ValueChanged<DayItem> open;
+
+  /// Already late: the day in the error colour.
+  final bool late;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final mono = _mono(theme);
     return InkWell(
       onTap: () => open(item),
       child: Padding(
@@ -745,7 +910,7 @@ class _ComingUp extends StatelessWidget {
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontSize: 20,
                       height: 1,
-                      color: colors.primary,
+                      color: late ? colors.error : colors.primary,
                     ),
                   ),
                   Text(

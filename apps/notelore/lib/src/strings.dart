@@ -244,6 +244,18 @@ abstract class Strings {
   String get comingUp;
   String todoCount(int count);
 
+  /// The week look back on Sundays (#804).
+  String get thisWeek;
+  String get weekDecided;
+  String get weekDone;
+  String get weekOverdue;
+  String get hideThisWeek;
+
+  /// "2–8 Nov", or "26 Oct – 1 Nov" across two months.
+  String weekRange(DateTime from, DateTime to) => from.month == to.month
+      ? '${from.day}–${to.day} ${months[to.month - 1]}'
+      : '${shortDate(from, to)} – ${shortDate(to, to)}';
+
   /// [text] in capitals, for a section label.
   String caps(String text) => text.toUpperCase();
 
@@ -606,6 +618,10 @@ abstract class Strings {
   String get syncingNow;
   String get syncFailed;
   String get syncNever;
+
+  /// The home-screen widget (#799): its field, and the sync state without a time.
+  String get quickAdd;
+  String get syncedShort;
   String syncedAgo(Duration since);
   // Drive's status in plain words, never a provider's raw message (#480).
   String get drivePermissionAgain;
@@ -1120,6 +1136,16 @@ class EnglishStrings extends Strings {
   String get otherNotes => 'Others';
   @override
   String get comingUp => 'Coming up';
+  @override
+  String get thisWeek => 'This week';
+  @override
+  String get weekDecided => 'Decided';
+  @override
+  String get weekDone => 'Done';
+  @override
+  String get weekOverdue => 'Overdue';
+  @override
+  String get hideThisWeek => 'Hide for this week';
   @override
   Map<String, String> get noteChanges => const {
     'create_note': 'Note created',
@@ -1716,6 +1742,10 @@ class EnglishStrings extends Strings {
   String get syncFailed => 'Not synced';
   @override
   String get syncNever => 'Not synced yet';
+  @override
+  String get quickAdd => 'Write or ask…';
+  @override
+  String get syncedShort => 'Synced';
   @override
   String syncedAgo(Duration since) {
     if (since.isNegative || since.inMinutes < 1) return 'Synced just now';
@@ -2323,6 +2353,16 @@ class TurkishStrings extends Strings {
   @override
   String get comingUp => 'Yaklaşanlar';
   @override
+  String get thisWeek => 'Bu hafta';
+  @override
+  String get weekDecided => 'Kararlar';
+  @override
+  String get weekDone => 'Bitenler';
+  @override
+  String get weekOverdue => 'Gecikenler';
+  @override
+  String get hideThisWeek => 'Bu hafta gizle';
+  @override
   Map<String, String> get noteChanges => const {
     'create_note': 'Not oluşturuldu',
     'add_note_entry': 'Kayıt eklendi',
@@ -2911,6 +2951,10 @@ class TurkishStrings extends Strings {
   String get syncFailed => 'Eşitlenmedi';
   @override
   String get syncNever => 'Henüz eşitlenmedi';
+  @override
+  String get quickAdd => 'Yaz ya da sor…';
+  @override
+  String get syncedShort => 'Eşitlendi';
   @override
   String syncedAgo(Duration since) {
     if (since.isNegative || since.inMinutes < 1) return 'Az önce eşitlendi';

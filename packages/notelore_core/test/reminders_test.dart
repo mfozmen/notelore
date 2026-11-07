@@ -234,4 +234,26 @@ void main() {
       expect(health(), before);
     });
   });
+
+  test('the week looked back on: decisions that stand, todos done, todos late (#804)', () {
+    final shed = p.join(root, 'projects', 'garden-shed.md');
+    recordDecision(shed, 'roof', 'Tin', today: d(2026, 10, 18));
+    recordDecision(shed, 'wood', 'Pine', today: d(2026, 10, 20));
+    recordDecision(shed, 'wood', 'Oak', reason: 'Lasts longer', today: d(2026, 10, 22));
+    addTodo(shed, 'Late one', due: d(2026, 10, 10), today: d(2026, 10, 1));
+    addTodo(shed, 'Done this week', due: d(2026, 10, 21), today: d(2026, 10, 1));
+    addTodo(shed, 'Done before', due: d(2026, 10, 12), today: d(2026, 10, 1));
+    addTodo(shed, 'Due today', due: d(2026, 10, 25), today: d(2026, 10, 1));
+    completeTodo(shed, 2, today: d(2026, 10, 21));
+    completeTodo(shed, 3, today: d(2026, 10, 12));
+    final week = weekItems(root, today: DateTime(2026, 10, 25, 9));
+    expect(week.decided.map((i) => (i.day, i.text, i.note, i.todo)), [
+      (DateTime(2026, 10, 22), 'wood: Oak', 'Garden Shed', false),
+    ]);
+    expect(week.done.map((i) => (i.day, i.text, i.number)), [
+      (DateTime(2026, 10, 21), 'Done this week', 2),
+    ]);
+    expect(week.overdue.map((i) => (i.day, i.text)), [(DateTime(2026, 10, 10), 'Late one')]);
+    expect((week.overdue.first.kind, week.overdue.first.slug), ('project', 'garden-shed'));
+  });
 }

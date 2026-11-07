@@ -59,7 +59,8 @@ export 'src/reminders.dart'
         maxScheduledReminders,
         reminderDone,
         snoozeReminder,
-        upcomingReminders;
+        upcomingReminders,
+        weekItems;
 export 'src/secret.dart' show defaultIterations, hashSecret, verifySecret;
 export 'src/store/about_me.dart'
     show aboutMe, aboutMeFacts, aboutMePath, forgetAboutMe, rememberAboutMe, updateAboutMe;

@@ -34,6 +34,7 @@ import 'device_native.dart';
 import 'lock_state.dart';
 import 'pdf_native.dart';
 import 'prefs.dart';
+import 'quick_widget.dart' show QuickOpen;
 import 'reminder_center.dart';
 import 'reminder_notifier.dart';
 import 'strings.dart';
@@ -643,6 +644,14 @@ class Session extends ChangeNotifier {
     _saveUi();
   }
 
+  /// The Sunday whose look back was closed here, as an ISO date, never synced.
+  String? lookBackClosed;
+
+  void closeLookBack(String sunday) {
+    lookBackClosed = sunday;
+    _saveUi();
+  }
+
   /// Announces the language and look, and remembers them on this device.
   void _saveUi() {
     notifyListeners();
@@ -657,6 +666,7 @@ class Session extends ChangeNotifier {
           if (setUpBefore) 'setUp': true,
           if (chatTextStep != chatTextDefault) 'chatTextStep': chatTextStep,
           if (reminderCenter.calendarNudged) 'calendarNudged': true,
+          'lookBackClosed': ?lookBackClosed,
         }),
       );
     } on FileSystemException {
@@ -686,6 +696,10 @@ class Session extends ChangeNotifier {
       };
       microphone = switch (saved['microphone']) {
         final String id => id,
+        _ => null,
+      };
+      lookBackClosed = switch (saved['lookBackClosed']) {
+        final String day => day,
         _ => null,
       };
     } on Exception {
@@ -843,6 +857,14 @@ class Session extends ChangeNotifier {
   void receiveSharedText(String text) {
     draft = draft.isEmpty ? text : '$draft\n\n$text';
     sharedDraftVersion++;
+    notifyListeners();
+  }
+
+  /// What a tap on the home-screen widget asked for (#799), until a screen takes it.
+  QuickOpen? quickOpen;
+
+  void openQuick(QuickOpen open) {
+    quickOpen = open;
     notifyListeners();
   }
 

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notelore's mark as lib/src/mark.dart draws it: radius 0.22, inset 0.13. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="20dp"
+    android:height="20dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <path
+        android:fillColor="#C2410C"
+        android:pathData="M22,0H78A22,22 0,0 1,100 22V78A22,22 0,0 1,78 100H22A22,22 0,0 1,0 78V22A22,22 0,0 1,22 0Z" />
+    <group android:translateX="13" android:translateY="13" android:scaleX="0.74" android:scaleY="0.74">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M14,12L29,34L40.885,16.568L62,50L62,12L86,12L86,88L62,88L38,50L38,88L14,88Z" />
+        <path android:fillColor="#FFB68E" android:pathData="M62,88L62,60L86,60Z" />
+    </group>
+</vector>

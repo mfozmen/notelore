@@ -16,6 +16,7 @@ import 'package:notelore/src/chat.dart';
 import 'package:notelore/src/empty_state.dart';
 import 'package:notelore/src/mark.dart';
 import 'package:notelore/src/note_view.dart';
+import 'package:notelore/src/quick_widget.dart';
 import 'package:notelore/src/section_label.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/settings.dart';
@@ -883,6 +884,47 @@ void main() {
     await tester.pumpAndSettle();
     expect(field.controller!.text, 'Shared words');
     expect(harness.provider.asked, hasLength(1));
+  });
+
+  testWidgets('the home-screen widget opens the composer, voice mode or a note (#799)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness(answers: ['Saved.']);
+    harness.speech.phrases.add('sesli');
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final path = createNote(harness.paths.notes.path, 'project', 'Atlas', today: DateTime(2026));
+    session.index.markChanged(path);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    session.openQuick(QuickOpen.write);
+    await tester.pumpAndSettle();
+    final field = find.descendant(
+      of: find.byKey(const Key('message')),
+      matching: find.byType(EditableText),
+    );
+    expect(tester.widget<EditableText>(field).focusNode.hasFocus, isTrue);
+    expect(session.quickOpen, isNull);
+    session.openQuick(const QuickOpen.note('project', 'atlas'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Pin'), findsOneWidget); // the note's reader
+    expect(session.quickOpen, isNull);
+    // From the open note: back to the chat, listening until a tap sends.
+    session.openQuick(QuickOpen.talk);
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Pin'), findsNothing);
+    expect(find.byTooltip('Stop and send'), findsOneWidget);
+    expect(session.quickOpen, isNull);
+    // A note gone since the widget drew it: the list, nothing open.
+    File(path).deleteSync();
+    session.index.markChanged(path);
+    await tester.tap(find.byTooltip('Stop and send'));
+    await tester.pumpAndSettle();
+    session.openQuick(const QuickOpen.note('project', 'atlas'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Pin'), findsNothing);
+    expect(session.quickOpen, isNull);
   });
 
   testWidgets('chat: a question offers its answers as buttons, sent once (#210)', (tester) async {
@@ -2711,6 +2753,104 @@ void main() {
     expect(find.widgetWithText(ListTile, 'Note 8'), findsNothing);
     final chosen = find.widgetWithText(FilterChip, '#t9', skipOffstage: false);
     expect(tester.widget<FilterChip>(chosen).selected, isTrue);
+  });
+
+  testWidgets('notes: on Sunday the week looks back over Coming up, and closes (#804)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness, clock: () => DateTime(2026, 11, 8, 10));
+    await connect(tester, key: 'k');
+    final root = harness.paths.notes.path;
+    final day = DateTime(2026, 11, 1);
+    final atlas = createNote(root, 'project', 'Atlas', today: day);
+    recordDecision(atlas, 'db', 'SQLite', today: DateTime(2026, 11, 3));
+    recordDecision(atlas, 'host', 'Fly', today: DateTime(2026, 11, 5));
+    recordDecision(atlas, 'auth', 'Passkeys', today: DateTime(2026, 11, 6));
+    recordDecision(atlas, 'ci', 'Actions', today: DateTime(2026, 11, 7)); // the fourth
+    addTodo(atlas, 'Book the room', due: DateTime(2026, 11, 2), today: day);
+    addTodo(atlas, 'Shipped it', due: DateTime(2026, 11, 4), today: day);
+    addTodo(atlas, 'Kick-off notes', due: DateTime(2026, 11, 12), today: day);
+    completeTodo(atlas, 2, today: DateTime(2026, 11, 4));
+    final books = createNote(root, 'topic', 'Books', today: day);
+    addTodo(books, 'Return it', due: DateTime(2026, 10, 30), today: day);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    String count(String group) => tester
+        .widget<Text>(
+          find.descendant(of: find.byKey(Key('week-$group')), matching: find.byType(Text)).last,
+        )
+        .data!;
+    expect(find.text('THIS WEEK'), findsOneWidget);
+    expect(find.text('2–8 NOV'), findsOneWidget);
+    expect(count('decided'), '4');
+    expect(count('done'), '1');
+    expect(count('overdue'), '2');
+    expect(find.text('db: SQLite'), findsOneWidget);
+    expect(find.text('auth: Passkeys'), findsOneWidget);
+    expect(find.text('ci: Actions'), findsNothing);
+    expect(find.text('Shipped it'), findsOneWidget);
+    double top(String text) => tester.getTopLeft(find.text(text)).dy;
+    expect(top('Return it'), lessThan(top('Book the room'))); // the oldest first
+    expect(top('THIS WEEK'), lessThan(top('COMING UP')));
+    // The filters narrow it; a search hides it.
+    await tester.tap(find.widgetWithText(FilterChip, 'Topics'));
+    await tester.pumpAndSettle();
+    expect(count('decided'), '0');
+    expect(count('overdue'), '1');
+    expect(find.text('Book the room'), findsNothing);
+    await tester.tap(find.widgetWithText(FilterChip, 'All'));
+    await tester.enterText(find.byKey(const Key('notes-search')), 'Atlas');
+    await tester.pumpAndSettle();
+    expect(find.text('THIS WEEK'), findsNothing);
+    await tester.enterText(find.byKey(const Key('notes-search')), '');
+    await tester.pumpAndSettle();
+    // A row opens its note.
+    await tester.tap(find.text('host: Fly'));
+    await tester.pumpAndSettle();
+    expect(find.byType(NoteView), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    // Closed for this week, on this device.
+    await tester.tap(find.byTooltip('Hide for this week'));
+    await tester.pumpAndSettle();
+    expect(find.text('THIS WEEK'), findsNothing);
+    expect(session.lookBackClosed, '2026-11-08');
+    expect(find.text('COMING UP'), findsOneWidget);
+  });
+
+  testWidgets('notes: no week look back on other days, an empty week, or once closed (#804)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    var now = DateTime(2026, 11, 7, 10);
+    final session = await pumpApp(tester, harness, clock: () => now);
+    await connect(tester, key: 'k');
+    final path = createNote(harness.paths.notes.path, 'topic', 'Books', today: today);
+    addTodo(path, 'Return it', due: DateTime(2026, 11, 1), today: today);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('THIS WEEK'), findsNothing); // a Saturday
+    now = DateTime(2026, 11, 15, 10);
+    session.closeLookBack('2026-11-08'); // last week's
+    await tester.pumpAndSettle();
+    expect(find.text('THIS WEEK'), findsOneWidget);
+    // At 2x text on a narrow phone nothing overflows.
+    tester.view.physicalSize = const Size(900, 2400); // 360 dp
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    session.closeLookBack('2026-11-15');
+    await tester.pumpAndSettle();
+    expect(find.text('THIS WEEK'), findsNothing);
+    now = DateTime(2026, 11, 22, 10);
+    completeTodo(path, 1, today: now); // dated in an older week: nothing to look back on
+    session.notifyListeners();
+    await tester.pumpAndSettle();
+    expect(find.text('THIS WEEK'), findsNothing);
   });
 
   testWidgets('notes: no Coming up without open todos ahead (#782)', (tester) async {
