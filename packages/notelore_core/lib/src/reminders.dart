@@ -60,10 +60,80 @@ List<DueReminder> _dueFromNote(Note note, String rel, DateTime now) {
   return due;
 }
 
-DueReminder _due(Reminder reminder, String rel, DateTime at, String note) {
-  final key = '$rel\n${reminder.render()}${reminder.monthly ? '\n${isoDate(at)}' : ''}';
-  return DueReminder(stableId(key), at, note, _flat(reminder.text), end: _end(reminder, at));
+DueReminder _due(Reminder reminder, String rel, DateTime at, String note) =>
+    DueReminder(_id(reminder, rel, at), at, note, _flat(reminder.text), end: _end(reminder, at));
+
+int _id(Reminder reminder, String rel, DateTime at) =>
+    stableId('$rel\n${reminder.render()}${reminder.monthly ? '\n${isoDate(at)}' : ''}');
+
+/// The reminder a notification with [id] rang for, and its note; null when no
+/// note has it any more (edited or synced away since). A monthly one's turns
+/// of the last two months count, for an action taken late.
+({String path, String rel, Note note, Reminder reminder})? _rung(
+  String root,
+  int id,
+  DateTime now,
+) {
+  final since = now.subtract(const Duration(days: 62));
+  for (final folder in kinds.values) {
+    for (final file in markdownFiles(p.join(root, folder))) {
+      final note = _readable(file.path);
+      if (note == null) continue;
+      final rel = p.posix.joinAll(p.split(p.relative(file.path, from: root)));
+      for (final reminder
+          in note.section('reminders')?.entries.whereType<Reminder>() ?? const <Reminder>[]) {
+        if (_occurrences(reminder, since).any((at) => _id(reminder, rel, at) == id)) {
+          return (path: file.path, rel: rel, note: note, reminder: reminder);
+        }
+      }
+    }
+  }
+  return null;
 }
+
+/// A notification's Snooze 1 hour (#801): the reminder moves to an hour after
+/// [now], keeping its length; a monthly one keeps its series and gets this
+/// turn once more beside it. The reminder the device should schedule, or null
+/// when no note has it any more.
+DueReminder? snoozeReminder(String root, int id, {required DateTime now, DateTime? today}) {
+  final rung = _rung(root, id, now);
+  if (rung == null) return null;
+  final (:path, :rel, :note, :reminder) = rung;
+  final later = now.add(const Duration(hours: 1));
+  final at = DateTime(later.year, later.month, later.day, later.hour, later.minute);
+  final start = _at(reminder);
+  final end = _end(reminder, start)?.difference(start);
+  final moved = Reminder(
+    DateTime.utc(at.year, at.month, at.day),
+    reminder.text,
+    time: _clock(at),
+    end: end == null ? null : _clock(at.add(end)),
+  );
+  moveReminder(path, reminder, moved, keep: reminder.monthly, today: today);
+  return _due(moved, rel, at, note.title);
+}
+
+/// A notification's Done (#801): ticks the open todo in the same note that
+/// says what the reminder says. The reminder itself has rung and stays, so
+/// without such a todo nothing changes. True when a todo was ticked.
+bool reminderDone(String root, int id, {required DateTime now, DateTime? today}) {
+  final rung = _rung(root, id, now);
+  if (rung == null) return false;
+  final said = _plain(rung.reminder.text);
+  final todos = rung.note.section('todo')?.entries.whereType<Todo>() ?? const <Todo>[];
+  for (final (i, todo) in todos.indexed) {
+    if (!todo.done && _plain(todo.text) == said) {
+      completeTodo(rung.path, i + 1, today: today, expect: todo.text);
+      return true;
+    }
+  }
+  return false;
+}
+
+String _plain(String text) => text.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+
+String _clock(DateTime at) =>
+    '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
 
 /// The note at [path], or null when it is none or cannot be read (not UTF-8,
 /// held by another app): the other notes still count.

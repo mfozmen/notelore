@@ -166,6 +166,75 @@ void main() {
     expect((items.first.kind, items.first.slug), ('project', 'garden-shed'));
   });
 
+  group('a notification\'s actions (#801)', () {
+    int idOf(String text, {DateTime? at}) =>
+        upcomingReminders(root, now: at ?? now).firstWhere((r) => r.text == text).id;
+    String health() => File(p.join(root, 'topics', 'health.md')).readAsStringSync();
+    String healthPath() => p.join(root, 'topics', 'health.md');
+    final pressed = DateTime(2026, 10, 19, 14, 31, 40);
+
+    test('Snooze 1 hour moves the reminder an hour on, keeping its length', () {
+      addReminder(
+        healthPath(),
+        'Team meeting',
+        d(2026, 10, 19),
+        time: '14:30',
+        today: d(2026, 10, 1),
+      );
+      final id = idOf('Team meeting');
+      final moved = snoozeReminder(root, id, now: pressed, today: d(2026, 10, 19))!;
+      expect(health(), contains('- 2026-10-19 15:31-16:31: Team meeting\n'));
+      expect(health(), isNot(contains('14:30-15:30: Team meeting')));
+      // What the device schedules is what the notes now say, under the same id.
+      final due = upcomingReminders(root, now: pressed).firstWhere((r) => r.text == 'Team meeting');
+      expect(
+        (moved.id, moved.at, moved.note, moved.text),
+        (due.id, due.at, 'Health', 'Team meeting'),
+      );
+    });
+
+    test('snoozing a monthly reminder keeps the series and adds this once', () {
+      addReminder(
+        healthPath(),
+        'Rent',
+        d(2026, 9, 19),
+        time: '14:30',
+        monthly: true,
+        today: d(2026, 9, 1),
+      );
+      final id = idOf('Rent', at: DateTime(2026, 10, 19, 14));
+      final moved = snoozeReminder(root, id, now: pressed, today: d(2026, 10, 19))!;
+      expect(health(), contains('- 2026-09-19 14:30 (monthly): Rent\n'));
+      expect(health(), contains('- 2026-10-19 15:31: Rent\n'));
+      expect(moved.at, DateTime(2026, 10, 19, 15, 31));
+    });
+
+    test('Done ticks the open todo the reminder is about, and only that', () {
+      addTodo(healthPath(), 'Call the clinic', today: d(2026, 10, 1));
+      addTodo(healthPath(), 'later  TODAY', today: d(2026, 10, 1));
+      final id = idOf('Later today');
+      expect(reminderDone(root, id, now: pressed, today: d(2026, 10, 19)), isTrue);
+      expect(health(), contains('- [ ] 2026-10-01: Call the clinic'));
+      expect(health(), contains('- [x] 2026-10-01: later  TODAY'));
+      expect(health(), contains('- 2026-10-19 14:30: Later today')); // the reminder stays
+    });
+
+    test('Done on a reminder without an open todo changes nothing: it has rung', () {
+      addTodo(healthPath(), 'Later today', today: d(2026, 10, 1));
+      completeTodo(healthPath(), 1, today: d(2026, 10, 1));
+      final before = health();
+      expect(reminderDone(root, idOf('Later today'), now: pressed), isFalse);
+      expect(health(), before);
+    });
+
+    test('a reminder edited or synced away since it rang is left alone', () {
+      final before = health();
+      expect(snoozeReminder(root, 12345, now: pressed), isNull);
+      expect(reminderDone(root, 12345, now: pressed), isFalse);
+      expect(health(), before);
+    });
+  });
+
   test('the week looked back on: decisions that stand, todos done, todos late (#804)', () {
     final shed = p.join(root, 'projects', 'garden-shed.md');
     recordDecision(shed, 'roof', 'Tin', today: d(2026, 10, 18));

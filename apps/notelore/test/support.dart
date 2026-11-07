@@ -590,6 +590,7 @@ class FakeCalendar implements ReminderCalendar {
 class FakeReminders implements ReminderNotifier {
   final pending = <int, String>{};
   final scheduled = <DueReminder>[];
+  final actions = <ReminderActions>[];
   final cancelled = <int>[];
   var allowed = true;
 
@@ -631,9 +632,10 @@ class FakeReminders implements ReminderNotifier {
   }
 
   @override
-  Future<void> schedule(DueReminder reminder) async {
+  Future<void> schedule(DueReminder reminder, ReminderActions actions) async {
     _check();
     scheduled.add(reminder);
+    this.actions.add(actions);
     pending[reminder.id] = reminder.text;
   }
 

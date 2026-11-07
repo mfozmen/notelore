@@ -3,13 +3,16 @@
 /// thin; the scheduling around it is tested with a fake.
 library;
 
+import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import 'reminder_notifier.dart';
+import 'strings.dart';
 
 // coverage:ignore-start
 /// This device's notifications where the app has them: Android, Windows, macOS.
@@ -20,26 +23,59 @@ ReminderNotifier? platformNotifier() =>
     ? PluginNotifier()
     : null;
 
+/// A notification's Done or Snooze 1 hour on Android while the app is not
+/// running (#801): the plugin starts this in an isolate of its own.
+@pragma('vm:entry-point')
+Future<void> reminderActionInBackground(NotificationResponse response) =>
+    actOnReminder(PluginNotifier(), response.actionId, response.payload, now: DateTime.now());
+
 /// The platform's notifications, through flutter_local_notifications. Thin
 /// glue `flutter test` cannot load; everything around it is tested with a fake.
 class PluginNotifier implements ReminderNotifier {
   final _plugin = FlutterLocalNotificationsPlugin();
-  late final Future<void> _ready = _plugin.initialize(
-    settings: const InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-      // Asked for when the first reminder needs it, not at start.
-      macOS: DarwinInitializationSettings(
-        requestAlertPermission: false,
-        requestBadgePermission: false,
-        requestSoundPermission: false,
+  late final Future<void> _ready = _setUp();
+
+  Future<void> _setUp() async {
+    // macOS fixes its buttons' words at start: the system's language.
+    final words = stringsFor(AppLanguage.system, PlatformDispatcher.instance.locale.languageCode);
+    await _plugin.initialize(
+      settings: InitializationSettings(
+        android: const AndroidInitializationSettings('@mipmap/ic_launcher'),
+        // Asked for when the first reminder needs it, not at start.
+        macOS: DarwinInitializationSettings(
+          requestAlertPermission: false,
+          requestBadgePermission: false,
+          requestSoundPermission: false,
+          notificationCategories: [
+            DarwinNotificationCategory(
+              _category,
+              actions: [
+                DarwinNotificationAction.plain(doneAction, words.reminderDone),
+                DarwinNotificationAction.plain(snoozeAction, words.reminderSnooze),
+              ],
+            ),
+          ],
+        ),
+        windows: const WindowsInitializationSettings(
+          appName: 'Notelore',
+          appUserModelId: 'io.github.mfozmen.notelore',
+          guid: '21c33f16-810c-4a91-a6d3-613a5d8c3e7c',
+        ),
       ),
-      windows: WindowsInitializationSettings(
-        appName: 'Notelore',
-        appUserModelId: 'io.github.mfozmen.notelore',
-        guid: '21c33f16-810c-4a91-a6d3-613a5d8c3e7c',
-      ),
-    ),
-  );
+      onDidReceiveNotificationResponse: _respond,
+      onDidReceiveBackgroundNotificationResponse: reminderActionInBackground,
+    );
+    // A desktop app a button started: its action, once set up.
+    final launch = await _plugin.getNotificationAppLaunchDetails();
+    if (launch?.notificationResponse case final response? when launch!.didNotificationLaunchApp) {
+      _respond(response);
+    }
+  }
+
+  static const _category = 'reminder';
+
+  void _respond(NotificationResponse response) =>
+      unawaited(actOnReminder(this, response.actionId, response.payload, now: DateTime.now()));
 
   AndroidFlutterLocalNotificationsPlugin? get _android =>
       _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -71,8 +107,9 @@ class PluginNotifier implements ReminderNotifier {
   }
 
   @override
-  Future<void> schedule(DueReminder reminder) async {
+  Future<void> schedule(DueReminder reminder, ReminderActions actions) async {
     await _ready;
+    final payload = reminderPayload(reminder, actions);
     // Exactly at its minute where the user allows exact alarms; otherwise
     // Android may deliver it a little later.
     final exact = await _android?.canScheduleExactNotifications() ?? true;
@@ -82,7 +119,8 @@ class PluginNotifier implements ReminderNotifier {
       body: reminder.text,
       // As a UTC instant, so no timezone database is shipped.
       scheduledDate: tz.TZDateTime.from(reminder.at.toUtc(), tz.UTC),
-      notificationDetails: const NotificationDetails(
+      payload: payload,
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           'reminders',
           'Reminders',
@@ -91,9 +129,22 @@ class PluginNotifier implements ReminderNotifier {
           priority: Priority.high,
           // A lock screen set to hide sensitive content hides it (#431).
           visibility: NotificationVisibility.private,
+          // Handled in the background, without opening the app or its lock.
+          actions: [
+            AndroidNotificationAction(doneAction, actions.done),
+            AndroidNotificationAction(snoozeAction, actions.snooze),
+          ],
         ),
-        macOS: DarwinNotificationDetails(),
-        windows: WindowsNotificationDetails(),
+        macOS: const DarwinNotificationDetails(categoryIdentifier: _category),
+        windows: WindowsNotificationDetails(
+          actions: [
+            WindowsAction(content: actions.done, arguments: actionArguments(payload, doneAction)),
+            WindowsAction(
+              content: actions.snooze,
+              arguments: actionArguments(payload, snoozeAction),
+            ),
+          ],
+        ),
       ),
       androidScheduleMode: exact
           ? AndroidScheduleMode.exactAllowWhileIdle

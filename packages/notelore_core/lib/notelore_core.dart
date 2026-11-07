@@ -52,7 +52,15 @@ export 'src/providers/validator.dart'
         ollamaStartModel,
         validateKey;
 export 'src/reminders.dart'
-    show DayItem, DueReminder, calendarItems, maxScheduledReminders, upcomingReminders, weekItems;
+    show
+        DayItem,
+        DueReminder,
+        calendarItems,
+        maxScheduledReminders,
+        reminderDone,
+        snoozeReminder,
+        upcomingReminders,
+        weekItems;
 export 'src/secret.dart' show defaultIterations, hashSecret, verifySecret;
 export 'src/store/about_me.dart'
     show aboutMe, aboutMeFacts, aboutMePath, forgetAboutMe, rememberAboutMe, updateAboutMe;
