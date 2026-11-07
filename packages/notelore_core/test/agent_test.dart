@@ -637,6 +637,22 @@ void failureTests() {
     expect(agent.cards, isEmpty);
   });
 
+  test('an answer from get_decision carries its source card (#792)', () async {
+    final box = newBox();
+    final provider = ScriptedProvider([
+      toolUse('create_note', 't1', {'kind': 'project', 'title': 'Atlas'}),
+      toolUse('record_decision', 't2', {'slug': 'atlas', 'topic': 'db', 'value': 'Postgres'}),
+      text('Saved.'),
+      toolUse('get_decision', 't3', {'slug': 'atlas', 'topic': 'db'}),
+      text('Postgres.'),
+    ]);
+    final agent = Agent(provider, box, today: today);
+    await agent.ask('Atlas: we picked Postgres');
+    expect(agent.cards.whereType<DecisionSource>(), isEmpty);
+    await agent.ask('Which database?');
+    expect([for (final c in agent.cards) (c as DecisionSource).value], ['Postgres']);
+  });
+
   test('an answer that leaves its new note empty gets one reminder to fill it (#756)', () async {
     final box = newBox();
     final provider = ScriptedProvider([

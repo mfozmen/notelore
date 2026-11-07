@@ -135,7 +135,7 @@ export 'src/sync/merge.dart'
         decide,
         threeWay;
 export 'src/sync/resolve.dart' show Ask, ModelResolver, askProvider;
-export 'src/tools.dart' show AnswerCard, NoteReceipt, Toolbox, noteTools, slimTools;
+export 'src/tools.dart' show AnswerCard, DecisionSource, NoteReceipt, Toolbox, noteTools, slimTools;
 export 'src/usage.dart'
     show
         MeteredProvider,

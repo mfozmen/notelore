@@ -143,6 +143,105 @@ void main() {
     });
   });
 
+  group('decision source cards (#792)', () {
+    Harness atlas(List<Object> answers) {
+      final harness = Harness(
+        answers: [
+          ...calls([
+            (
+              'record_decision',
+              {
+                'slug': 'project-atlas',
+                'topic': 'database',
+                'value': 'Postgres',
+                'reason': 'Mature and well known.',
+              },
+            ),
+            ('record_decision', {'slug': 'project-atlas', 'topic': 'hosting', 'value': 'Fly'}),
+          ], 'Saved.'),
+          ...answers,
+        ],
+      );
+      createNote(harness.paths.notes.path, 'project', 'Project Atlas', today: today);
+      return harness;
+    }
+
+    final asks = calls([
+      ('get_decision', {'slug': 'project-atlas', 'topic': 'database'}),
+      ('get_decision', {'slug': 'project-atlas', 'topic': 'hosting'}),
+    ], 'You picked Postgres and Fly.');
+    final open = find.text('Open note →');
+
+    Future<void> asked(WidgetTester tester, Harness harness) async {
+      await pumpApp(tester, harness);
+      await connect(tester, key: 'k');
+      await say(tester, 'Atlas: Postgres, because it is mature; Fly for hosting');
+      expect(find.text('Source: Project Atlas'), findsNothing); // a write has receipts only
+      await say(tester, 'Which database and hosting?');
+    }
+
+    testWidgets('each decision the answer used shows as the index has it; Open pushes the note', (
+      tester,
+    ) async {
+      phone(tester);
+      await asked(tester, atlas(asks));
+      expect(find.text('DATABASE'), findsOneWidget);
+      expect(find.text('HOSTING'), findsOneWidget);
+      expect(find.text('30 Sep'), findsNWidgets(2));
+      final value = find.text('Postgres');
+      expect(tester.widget<Text>(value).style!.fontFamily, 'Fraunces');
+      final theme = Theme.of(tester.element(value));
+      expect(
+        tester.widget<Text>(find.text('Mature and well known.')).style!.color,
+        theme.colorScheme.onSurfaceVariant,
+      );
+      expect(find.ancestor(of: value, matching: find.byType(Card)), findsOneWidget);
+      expect(find.text('Source: Project Atlas'), findsNWidgets(2));
+      expect(open, findsNWidgets(2));
+      final button = find.ancestor(of: open.first, matching: find.byType(TextButton));
+      expect(tester.getSize(button).height, greaterThanOrEqualTo(48));
+      expect(
+        tester.getSemantics(button),
+        matchesSemantics(
+          label: 'Open note Project Atlas',
+          isButton: true,
+          hasTapAction: true,
+          hasEnabledState: true,
+          isEnabled: true,
+          isFocusable: true,
+          hasFocusAction: true,
+        ),
+      );
+      await tester.tap(open.first);
+      await tester.pumpAndSettle();
+      expect(find.byType(WritableNoteView), findsOneWidget);
+    });
+
+    testWidgets('on the desktop Open shows the note in the Notes reader', (tester) async {
+      desktop(tester, 1280);
+      await asked(tester, atlas(asks));
+      await tester.tap(open.first);
+      await tester.pumpAndSettle();
+      expect(find.byType(NotesScreen), findsOneWidget);
+      expect(find.byType(NoteView), findsOneWidget);
+    });
+
+    testWidgets('in Turkish and at night, the footer in Turkish', (tester) async {
+      phone(tester);
+      dark(tester);
+      final session = await pumpApp(tester, atlas(asks));
+      await connect(tester, key: 'k');
+      session.setLanguage(AppLanguage.tr);
+      await tester.pumpAndSettle();
+      await say(tester, 'Hangi veritabanı?', send: 'Gönder');
+      expect(find.text('Kaynak: Project Atlas'), findsNothing);
+      await say(tester, 'Hangi veritabanı?', send: 'Gönder');
+      expect(find.text('Kaynak: Project Atlas'), findsNWidgets(2));
+      expect(find.text('Notu aç →'), findsNWidgets(2));
+      expect(find.text('30 Eyl'), findsNWidgets(2));
+    });
+  });
+
   BoxDecoration? decorationAbove(WidgetTester tester, Finder finder) {
     final box = tester.widget<Container>(
       find.ancestor(of: finder, matching: find.byType(Container)).first,

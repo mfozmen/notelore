@@ -255,6 +255,10 @@ abstract class Strings {
   String get openNote;
   String get noteGone;
 
+  /// A decision's source card (#792): its note, and the link that opens it.
+  String decisionSource(String note);
+  String get openNoteLink;
+
   /// What [receipt] says the turn did to its note: a new note is new, and
   /// different changes together are an update.
   String noteChange(NoteReceipt receipt) {
@@ -1137,6 +1141,10 @@ class EnglishStrings extends Strings {
   String get openNote => 'Open';
   @override
   String get noteGone => 'That note is no longer there.';
+  @override
+  String decisionSource(String note) => 'Source: $note';
+  @override
+  String get openNoteLink => 'Open note';
   @override
   String todoCount(int count) => '$count ${count == 1 ? 'todo' : 'todos'}';
   @override
@@ -2335,6 +2343,10 @@ class TurkishStrings extends Strings {
   String get openNote => 'Aç';
   @override
   String get noteGone => 'Bu not artık yok.';
+  @override
+  String decisionSource(String note) => 'Kaynak: $note';
+  @override
+  String get openNoteLink => 'Notu aç';
   @override
   String todoCount(int count) => '$count iş';
   @override
