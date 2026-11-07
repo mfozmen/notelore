@@ -1790,6 +1790,11 @@ class Session extends ChangeNotifier {
 
   List<NoteInfo> listNotes() => (index..rebuild()).listNotes();
 
+  /// The Notes list's kind and tag filters; here so they outlive the screen
+  /// while the app runs, and never saved.
+  String? notesKind;
+  String? notesTag;
+
   /// Of [notes], those with every word of [query] in their title or their
   /// words, folded like the index's search.
   List<NoteInfo> findNotes(String query, List<NoteInfo> notes) {
