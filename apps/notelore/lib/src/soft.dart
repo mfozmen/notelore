@@ -78,7 +78,7 @@ class SoftNavBar extends StatelessWidget {
           child: Padding(
             padding: EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.m + bottom),
             child: DecoratedBox(
-              decoration: softDecoration(colors, radius: height / 2, raised: true),
+              decoration: _barDecoration(colors),
               child: SizedBox(
                 height: height,
                 child: Padding(
@@ -179,33 +179,22 @@ class _Tab extends StatelessWidget {
   }
 }
 
-/// A card's soft edge: a hairline, a light catching its top, and by day a
-/// gentle shadow tinted by the accent; at night a faint glow inside instead.
-ShapeDecoration softDecoration(ColorScheme colors, {required double radius, bool raised = false}) {
-  final light = colors.brightness == Brightness.light;
-  return ShapeDecoration(
-    color: colors.surfaceContainerLow,
-    shape: softBorder(colors, BorderRadius.circular(radius)),
-    shadows: light
-        ? [
-            BoxShadow(
-              color: colors.primary.withValues(alpha: raised ? .3 : .18),
-              offset: Offset(0, raised ? 12 : 8),
-              blurRadius: raised ? 28 : 20,
-              spreadRadius: raised ? -10 : -12,
-            ),
-          ]
-        : [
-            if (raised)
-              const BoxShadow(
-                color: Colors.black,
-                offset: Offset(0, 12),
-                blurRadius: 28,
-                spreadRadius: -12,
-              ),
-          ],
-  );
-}
+/// The floating bar's soft edge, and its shadow: tinted by the accent by day,
+/// a plain dark one at night.
+ShapeDecoration _barDecoration(ColorScheme colors) => ShapeDecoration(
+  color: colors.surfaceContainerLow,
+  shape: softBorder(colors, BorderRadius.circular(SoftNavBar.height / 2)),
+  shadows: [
+    BoxShadow(
+      color: colors.brightness == Brightness.light
+          ? colors.primary.withValues(alpha: .3)
+          : Colors.black,
+      offset: const Offset(0, 12),
+      blurRadius: 28,
+      spreadRadius: -11,
+    ),
+  ],
+);
 
 /// The Soft switch's look: a sunken track and an orb for a knob. Its
 /// [SoftSwitchTile] row is the target and says the state.
