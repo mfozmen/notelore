@@ -13,6 +13,8 @@ typedef _WaitNative = Uint32 Function(IntPtr, Uint32);
 typedef _WaitDart = int Function(int, int);
 typedef _CloseNative = Int32 Function(IntPtr);
 typedef _CloseDart = int Function(int);
+typedef _NotifyNative = Void Function(Int32, Uint32, Pointer<Void>, Pointer<Void>);
+typedef _NotifyDart = void Function(int, int, Pointer<Void>, Pointer<Void>);
 
 Future<void> main(List<String> args) async {
   if (args.length != 1) exit(64);
@@ -27,7 +29,7 @@ Future<void> main(List<String> args) async {
 
   var ok = true;
   try {
-    await applyUpdate(job);
+    await applyUpdate(job, refreshIcons: Platform.isWindows ? _refreshIcons : null);
   } on Object catch (error) {
     ok = false;
     _log(job, '$error');
@@ -56,6 +58,16 @@ void _waitFor(int pid) {
   if (handle == 0) return;
   wait(handle, infinite);
   close(handle);
+}
+
+/// SHChangeNotify(SHCNE_ASSOCCHANGED), as the setup's ChangesAssociations does:
+/// without it the taskbar, Start and desktop shortcuts keep the old icon.
+void _refreshIcons() {
+  final shell32 = DynamicLibrary.open('shell32.dll');
+  final notify = shell32.lookupFunction<_NotifyNative, _NotifyDart>('SHChangeNotify');
+  const assocChanged = 0x08000000;
+  const idList = 0x0000;
+  notify(assocChanged, idList, nullptr, nullptr);
 }
 
 void _log(UpdateJob job, String message) {
