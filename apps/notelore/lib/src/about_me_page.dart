@@ -64,7 +64,7 @@ class AboutMeScreen extends StatelessWidget {
         ),
         if (session.chatKeepsFacts) ...[
           const SizedBox(height: Gap.m),
-          FilledButton.tonal(onPressed: toChat, child: Text(session.strings.goToChat)),
+          OutlinedButton(onPressed: toChat, child: Text(session.strings.goToChat)),
         ],
       ],
     ),
@@ -118,7 +118,7 @@ class AboutMeScreen extends StatelessWidget {
       final label = Text(session.strings.addFact);
       void add() => _edit(context);
       return wide
-          ? FilledButton.tonalIcon(icon: const Icon(AppIcons.add), label: label, onPressed: add)
+          ? OutlinedButton.icon(icon: const Icon(AppIcons.add), label: label, onPressed: add)
           : FloatingActionButton.extended(
               backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Theme.of(context).colorScheme.onPrimary,
@@ -135,7 +135,14 @@ class AboutMeScreen extends StatelessWidget {
     final add = !session.chatKeepsFacts;
     return Scaffold(
       appBar: AppBar(leading: AppMenu.button(context), title: Text(session.strings.aboutMeSection)),
-      floatingActionButton: add && !wide ? _add(wide: false) : null,
+      // A Scaffold floats its button over the keyboard, not over padding: lift it
+      // clear of the phone's tab bar by hand.
+      floatingActionButton: add && !wide
+          ? Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
+              child: _add(wide: false),
+            )
+          : null,
       body: Builder(
         builder: (context) => Align(
           alignment: Alignment.topCenter,
@@ -154,7 +161,10 @@ class AboutMeScreen extends StatelessWidget {
     final entries = session.aboutMeEntries();
     return ListView(
       // Room under the last row for the button that floats over it on a phone.
-      padding: EdgeInsets.only(top: Gap.s, bottom: add && !wide ? 96 : Gap.l),
+      padding: EdgeInsets.only(
+        top: Gap.s,
+        bottom: (add && !wide ? 96 : Gap.l) + MediaQuery.paddingOf(context).bottom,
+      ),
       children: [
         if (entries.isEmpty) _empty(theme),
         for (final section in aboutMeSections.keys)

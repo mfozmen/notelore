@@ -481,18 +481,21 @@ class _NotesScreenState extends State<NotesScreen> {
             slivers: [
               SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(
-                  child: EmptyState(
-                    icon: AppIcons.noteEmpty,
-                    title: s.noNotes,
-                    actions: [
-                      FilledButton.tonal(onPressed: widget.toChat, child: Text(s.goToChat)),
-                      OutlinedButton.icon(
-                        onPressed: _import,
-                        icon: const Icon(AppIcons.fileOpen),
-                        label: Text(s.importNotes),
-                      ),
-                    ],
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
+                  child: Center(
+                    child: EmptyState(
+                      icon: AppIcons.noteEmpty,
+                      title: s.noNotes,
+                      actions: [
+                        OutlinedButton(onPressed: widget.toChat, child: Text(s.goToChat)),
+                        OutlinedButton.icon(
+                          onPressed: _import,
+                          icon: const Icon(AppIcons.fileOpen),
+                          label: Text(s.importNotes),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -527,7 +530,13 @@ class _NotesScreenState extends State<NotesScreen> {
     void open(DayItem item) => _openNote(known[(item.kind, item.slug)]!, wide: wide);
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
+      // The phone's tab bar floats over the end: the last card scrolls clear of it.
+      padding: EdgeInsets.fromLTRB(
+        Gap.m,
+        Gap.s,
+        Gap.m,
+        Gap.l + MediaQuery.paddingOf(context).bottom,
+      ),
       children: [
         if (week != null)
           _LookBack(

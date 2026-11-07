@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/setup.dart';
+import 'package:notelore/src/soft.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
@@ -179,7 +179,10 @@ void main() {
     expect(on('ollama', 'Free'), findsOneWidget);
     // The choice is marked by an icon, not by colour alone.
     expect(
-      find.descendant(of: card('ollama'), matching: find.byIcon(AppIcons.checked)),
+      find.descendant(
+        of: card('ollama'),
+        matching: find.byWidgetPredicate((w) => w is SoftRadio && w.selected),
+      ),
       findsOneWidget,
     );
   });
@@ -223,7 +226,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('option-openai')),
-        matching: find.byIcon(AppIcons.checked),
+        matching: find.byWidgetPredicate((w) => w is SoftRadio && w.selected),
       ),
       findsOneWidget,
     );

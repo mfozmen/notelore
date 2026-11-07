@@ -19,6 +19,7 @@ import 'section_label.dart' show Label;
 import 'session.dart';
 import 'settings.dart';
 import 'setup.dart';
+import 'soft.dart';
 import 'strings.dart';
 import 'sync_state.dart';
 import 'theme.dart';
@@ -490,6 +491,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       body: DecoratedBox(
         decoration: BoxDecoration(gradient: theme.extension<NoteloreTokens>()!.glow),
         child: SafeArea(
+          bottom: wide,
           child: wide
               ? Row(
                   children: [
@@ -507,25 +509,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               : AppMenu(open: () => _scaffold.currentState!.openDrawer(), child: page),
         ),
       ),
-      bottomNavigationBar: wide
+      // The pages scroll on under the floating bar; its height reaches them as
+      // bottom padding. It steps aside for the keyboard, which would otherwise
+      // leave that padding as a gap over the keys.
+      extendBody: true,
+      bottomNavigationBar: wide || MediaQuery.viewInsetsOf(context).bottom > 0
           ? null
-          : DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
-              ),
-              child: NavigationBar(
-                selectedIndex: tab,
-                onDestinationSelected: select,
-                destinations: [
-                  for (final (icon, chosen, label) in destinations)
-                    NavigationDestination(
-                      icon: Icon(icon),
-                      selectedIcon: AppIcons.duo(chosen),
-                      label: label,
-                    ),
-                ],
-              ),
-            ),
+          : SoftNavBar(destinations: destinations, selected: tab, onSelected: select),
     );
   }
 }
@@ -976,14 +966,10 @@ class _SideRail extends StatelessWidget {
     return NavigationRail(
       extended: extended,
       minExtendedWidth: 232,
-      // Clear, so the night's glow shows through; the chosen item on a card.
+      // Clear, so the night's glow shows through; the chosen item an orb, as
+      // on the phone's bar.
       backgroundColor: Colors.transparent,
-      useIndicator: true,
-      indicatorColor: colors.surfaceContainerLow,
-      indicatorShape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: colors.outlineVariant),
-      ),
+      useIndicator: false,
       // Labels sized for reading at a desk, not a phone's caption.
       selectedLabelTextStyle: labels.copyWith(
         fontWeight: FontWeight.w600,
@@ -1000,7 +986,16 @@ class _SideRail extends StatelessWidget {
         for (final (icon, chosen, label) in destinations)
           NavigationRailDestination(
             icon: Icon(icon),
-            selectedIcon: AppIcons.duo(chosen),
+            selectedIcon: Container(
+              width: 56,
+              height: 32,
+              decoration: BoxDecoration(
+                gradient: orbFill(colors),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: orbGlow(colors, blur: 12, y: 4),
+              ),
+              child: AppIcons.duo(chosen, color: colors.onPrimary),
+            ),
             label: Text(label),
           ),
       ],

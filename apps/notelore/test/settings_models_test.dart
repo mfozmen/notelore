@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:notelore/src/icons.dart';
+import 'package:notelore/src/soft.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'app_chatgpt_test.dart' show pumpPlanApp;
@@ -75,7 +75,10 @@ void main() {
     expect(session.spec!.name, 'openai');
     expect(row('openai'), findsOneWidget);
     expect(
-      find.descendant(of: row('openai'), matching: find.byIcon(AppIcons.checked)),
+      find.descendant(
+        of: row('openai'),
+        matching: find.byWidgetPredicate((w) => w is SoftRadio && w.selected),
+      ),
       findsOneWidget,
     );
     // One tap: back on Claude, said briefly.
@@ -116,15 +119,15 @@ void main() {
       // The chat asks for a model where the message box was; notes still open.
       await tester.pageBack(); // the phone's Settings page
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Chat'));
+      await tester.tap(tab('Chat'));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('message')), findsNothing);
       expect(find.text('Connect a model to start'), findsOneWidget);
       expect(find.byTooltip('Resend'), findsNothing); // nothing to send it with
-      await tester.tap(find.text('Notes'));
+      await tester.tap(tab('Notes'));
       await tester.pumpAndSettle();
       expect(find.text('Notes'), findsWidgets);
-      await tester.tap(find.text('Chat'));
+      await tester.tap(tab('Chat'));
       await tester.pumpAndSettle();
       // Connect from the chat: the wizard, then back with the message box.
       await tester.tap(find.widgetWithText(FilledButton, 'Connect a model'));

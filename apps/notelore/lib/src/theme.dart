@@ -26,9 +26,9 @@ enum Appearance {
 }
 
 /// Corner radii: cards and tiles, and the rounder input fields.
-const _card = 18.0;
+const _card = 22.0;
 const _field = 28.0;
-const _control = 12.0;
+const _soft = 20.0;
 
 /// The spacing steps every screen uses.
 abstract final class Gap {
@@ -219,6 +219,97 @@ NoteloreTokens _tokens(ColorScheme colors) {
         );
 }
 
+/// The orb's fill for a control with words or a glyph on it: lit at its top
+/// left, deeper at its rim, and [ColorScheme.onPrimary] keeps 4.5:1 on it
+/// everywhere but the far corner.
+RadialGradient orbFill(ColorScheme colors) {
+  final accent = colors.primary;
+  final light = colors.brightness == Brightness.light;
+  return RadialGradient(
+    center: const Alignment(-0.7, -0.9),
+    radius: 1.6,
+    stops: const [0, .45, 1],
+    colors: [
+      Color.lerp(accent, Colors.white, light ? .14 : .3)!,
+      accent,
+      light ? const Color(0xFF9A3412) : Color.lerp(accent, Colors.black, .15)!,
+    ],
+  );
+}
+
+/// [child] dimmed and a little smaller while [pressed]: the press feedback
+/// that stands in for a ripple.
+Widget pressFeedback({required bool pressed, required Widget child}) => AnimatedScale(
+  scale: pressed ? .96 : 1,
+  duration: const Duration(milliseconds: 90),
+  child: AnimatedOpacity(
+    opacity: pressed ? .75 : 1,
+    duration: const Duration(milliseconds: 90),
+    child: child,
+  ),
+);
+
+/// The accent's soft glow under an orb.
+List<BoxShadow> orbGlow(ColorScheme colors, {double blur = 18, double y = 6}) => [
+  BoxShadow(color: colors.primary.withValues(alpha: .45), offset: Offset(0, y), blurRadius: blur),
+];
+
+/// A soft card's edge on [colors]: by day a light along its top, at night a
+/// faint glow of the accent inside.
+SoftBorder softBorder(ColorScheme colors, BorderRadiusGeometry radius) {
+  final light = colors.brightness == Brightness.light;
+  return SoftBorder(
+    borderRadius: radius,
+    side: BorderSide(
+      color: light ? colors.outlineVariant.withValues(alpha: .75) : colors.outlineVariant,
+    ),
+    highlight: Colors.white.withValues(alpha: light ? .8 : .07),
+    glow: light ? Colors.transparent : colors.primary.withValues(alpha: .16),
+  );
+}
+
+/// A rounded rectangle with a hairline, a 1-point light along its top edge and
+/// a blurred [glow] inside it, all drawn over the content's edge.
+@immutable
+class SoftBorder extends RoundedRectangleBorder {
+  const SoftBorder({required this.highlight, required this.glow, super.side, super.borderRadius});
+
+  final Color highlight;
+  final Color glow;
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
+    final edge = borderRadius.resolve(textDirection).toRRect(rect);
+    canvas
+      ..save()
+      ..clipRRect(edge)
+      ..drawDRRect(
+        edge.inflate(40),
+        edge,
+        Paint()
+          ..color = glow
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
+      )
+      // Where the edge and the edge one point lower differ, inside: the top rim.
+      ..drawPath(
+        Path()
+          ..fillType = PathFillType.evenOdd
+          ..addRRect(edge)
+          ..addRRect(edge.shift(const Offset(0, 1))),
+        Paint()..color = highlight,
+      )
+      ..restore();
+    super.paint(canvas, rect, textDirection: textDirection);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is SoftBorder && super == other && other.highlight == highlight && other.glow == glow;
+
+  @override
+  int get hashCode => Object.hash(super.hashCode, highlight, glow);
+}
+
 /// Lists the bundled fonts' licenses on Flutter's licenses page.
 void addFontLicenses() {
   const files = {
@@ -262,8 +353,13 @@ ThemeData noteloreTheme(Brightness brightness) {
   final rounded = RoundedRectangleBorder(borderRadius: BorderRadius.circular(_card));
   final edge = BorderSide(color: colors.outlineVariant);
   const tap = Size(48, 48);
-  WidgetStateProperty<T> picked<T>(T on, T off) =>
-      WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? on : off);
+  final light = brightness == Brightness.light;
+  // No ripple: a press dims and shrinks the button's insides a little instead.
+  Widget press(BuildContext _, Set<WidgetState> states, Widget? child) =>
+      pressFeedback(pressed: states.contains(WidgetState.pressed), child: child!);
+  final noPressTint = WidgetStateProperty.resolveWith<Color?>(
+    (states) => states.contains(WidgetState.pressed) ? Colors.transparent : null,
+  );
   return ThemeData(
     colorScheme: colors,
     textTheme: _type,
@@ -275,6 +371,7 @@ ThemeData noteloreTheme(Brightness brightness) {
     ),
     scaffoldBackgroundColor: colors.surface,
     visualDensity: VisualDensity.standard,
+    splashFactory: NoSplash.splashFactory,
     actionIconTheme: ActionIconThemeData(
       backButtonIconBuilder: (_) => const Icon(AppIcons.back),
       closeButtonIconBuilder: (_) => const Icon(AppIcons.close),
@@ -286,10 +383,12 @@ ThemeData noteloreTheme(Brightness brightness) {
       centerTitle: false,
     ),
     cardTheme: CardThemeData(
-      elevation: 0,
       margin: EdgeInsets.zero,
       color: colors.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_card), side: edge),
+      // Soft, not raised: a faint accent shadow by day, none at night.
+      elevation: light ? 2 : 0,
+      shadowColor: colors.primary.withValues(alpha: .35),
+      shape: softBorder(colors, BorderRadius.circular(_card)),
     ),
     listTileTheme: ListTileThemeData(shape: rounded, minVerticalPadding: Gap.s),
     inputDecorationTheme: InputDecorationTheme(
@@ -316,37 +415,82 @@ ThemeData noteloreTheme(Brightness brightness) {
         borderSide: BorderSide(color: colors.error, width: 2),
       ),
     ),
+    // The main action is an orb: lit, with the accent's glow under it.
     filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(minimumSize: tap, shape: const StadiumBorder()),
+      style:
+          FilledButton.styleFrom(
+            minimumSize: tap,
+            shape: const StadiumBorder(),
+            foregroundColor: colors.onPrimary,
+          ).copyWith(
+            overlayColor: noPressTint,
+            backgroundBuilder: (context, states, child) => states.contains(WidgetState.disabled)
+                ? child!
+                : press(
+                    context,
+                    states,
+                    DecoratedBox(
+                      decoration: ShapeDecoration(
+                        shape: const StadiumBorder(),
+                        gradient: orbFill(colors),
+                        shadows: orbGlow(colors, blur: 16),
+                      ),
+                      child: child,
+                    ),
+                  ),
+          ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(minimumSize: tap, shape: const StadiumBorder()),
+      style: OutlinedButton.styleFrom(
+        minimumSize: tap,
+        shape: const StadiumBorder(),
+        backgroundColor: colors.surfaceContainerLow,
+        side: edge,
+      ).copyWith(overlayColor: noPressTint, backgroundBuilder: press),
     ),
-    textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(minimumSize: tap)),
-    iconButtonTheme: IconButtonThemeData(style: IconButton.styleFrom(minimumSize: tap)),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(minimumSize: tap)
+          .copyWith(overlayColor: noPressTint, backgroundBuilder: press),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(minimumSize: tap)
+          .copyWith(overlayColor: noPressTint, backgroundBuilder: press),
+    ),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: colors.primary,
+      foregroundColor: colors.onPrimary,
+      shape: const StadiumBorder(),
+      elevation: 3,
+      focusElevation: 3,
+      hoverElevation: 4,
+      highlightElevation: 1,
+    ),
+    // A chosen chip glows; the others sit soft on the page.
     chipTheme: ChipThemeData(
-      shape: StadiumBorder(side: edge),
+      shape: StadiumBorder(side: BorderSide(color: colors.outlineVariant)),
       backgroundColor: colors.surfaceContainerLow,
+      elevation: 2,
+      pressElevation: 0,
+      shadowColor: Colors.transparent,
+      selectedShadowColor: colors.primary.withValues(alpha: .6),
     ),
-    snackBarTheme: SnackBarThemeData(behavior: SnackBarBehavior.floating, shape: rounded),
+    checkboxTheme: CheckboxThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
+      side: BorderSide(color: colors.outline, width: 1.5),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      shape: softBorder(colors, BorderRadius.circular(24)),
+      backgroundColor: colors.surfaceContainerLow,
+      contentTextStyle: _sans.copyWith(fontSize: 14, color: colors.onSurface),
+      actionTextColor: colors.onPrimaryContainer,
+      actionBackgroundColor: colors.primaryContainer,
+      closeIconColor: colors.onSurfaceVariant,
+      elevation: light ? 4 : 2,
+    ),
     bannerTheme: MaterialBannerThemeData(
       backgroundColor: colors.surfaceContainerLow,
       dividerColor: colors.outlineVariant,
-    ),
-    // No pill: the chosen tab is told by the accent alone (its labels are sized in Home).
-    navigationBarTheme: NavigationBarThemeData(
-      elevation: 0,
-      backgroundColor: colors.surface,
-      surfaceTintColor: Colors.transparent,
-      indicatorColor: Colors.transparent,
-      iconTheme: picked(
-        IconThemeData(color: colors.primary),
-        IconThemeData(color: colors.onSurfaceVariant),
-      ),
-      labelTextStyle: picked(
-        _sans.copyWith(fontSize: 12, fontWeight: FontWeight.w600, color: colors.primary),
-        _sans.copyWith(fontSize: 12, fontWeight: FontWeight.w500, color: colors.onSurfaceVariant),
-      ),
     ),
     navigationRailTheme: NavigationRailThemeData(
       backgroundColor: colors.surface,
@@ -360,22 +504,21 @@ ThemeData noteloreTheme(Brightness brightness) {
         filled: true,
         fillColor: colors.surfaceContainerLow,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(_control), borderSide: edge),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(_soft), borderSide: edge),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(_control),
+          borderRadius: BorderRadius.circular(_soft),
           borderSide: edge,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(_control),
+          borderRadius: BorderRadius.circular(_soft),
           borderSide: BorderSide(color: colors.primary, width: 2),
         ),
       ),
       menuStyle: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(colors.surfaceContainerHigh),
         elevation: const WidgetStatePropertyAll(3),
-        shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(_control)),
-        ),
+        shadowColor: WidgetStatePropertyAll(colors.primary.withValues(alpha: .35)),
+        shape: WidgetStatePropertyAll(softBorder(colors, BorderRadius.circular(_soft))),
         padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: Gap.xs)),
       ),
     ),

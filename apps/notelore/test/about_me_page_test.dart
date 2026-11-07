@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/about_me_page.dart';
+import 'package:notelore/src/soft.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'app_test.dart' show connect, phone, pumpApp;
@@ -24,8 +25,11 @@ void main() {
     await connect(tester, key: 'k');
     await session.setAboutMeToCloud(false); // a cloud model, so the button is the way
     // A place of its own in the bottom bar, beside Notes and Calendar (#669).
-    expect(find.byType(NavigationDestination), findsNWidgets(4));
-    await tester.tap(find.text('About me'));
+    expect(
+      find.descendant(of: find.byType(SoftNavBar), matching: find.byType(Tooltip)),
+      findsNWidgets(4),
+    );
+    await tester.tap(tab('About me'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Tell the assistant about yourself'), findsOneWidget);
@@ -109,7 +113,7 @@ void main() {
     final session = await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
     await session.setAboutMeToCloud(false); // a cloud model, so the button is the way
-    await tester.tap(find.text('About me'));
+    await tester.tap(tab('About me'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Add a fact'));
@@ -163,7 +167,7 @@ void main() {
     for (var i = 0; i < 8; i++) {
       await session.rememberFact('Fact number $i');
     }
-    await tester.tap(find.text('About me'));
+    await tester.tap(tab('About me'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('Kept from cloud models'),
@@ -182,14 +186,14 @@ void main() {
     final session = await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
     await session.setAboutMeToCloud(true);
-    await tester.tap(find.text('About me'));
+    await tester.tap(tab('About me'));
     await tester.pumpAndSettle();
     // Empty, the way to fill it is the chat.
     await tester.tap(find.text('Go to chat'));
     await tester.pumpAndSettle();
     expect(find.byType(AboutMeScreen), findsNothing);
     await session.rememberFact('Likes tea');
-    await tester.tap(find.text('About me'));
+    await tester.tap(tab('About me'));
     await tester.pumpAndSettle();
     expect(find.text('Go to chat'), findsNothing);
     expect(find.text('Add a fact'), findsNothing);
@@ -212,7 +216,7 @@ void main() {
     final session = await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
     await session.setAboutMeToCloud(false); // a cloud model, so the button is the way
-    await tester.tap(find.text('About me'));
+    await tester.tap(tab('About me'));
     await tester.pumpAndSettle();
     expect(find.text('Add a fact'), findsOneWidget);
     expect(find.byType(FloatingActionButton), findsNothing); // by the list, not a far corner

@@ -173,7 +173,7 @@ class _PatternPadState extends State<PatternPad> {
               onPressed: widget.enabled && _dots.isNotEmpty ? _clear : null,
               child: Text(s.clearPattern),
             ),
-            FilledButton.tonal(
+            OutlinedButton(
               onPressed: widget.enabled && _dots.length >= minPatternDots ? _finish : null,
               child: Text(s.patternDone),
             ),
