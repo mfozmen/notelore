@@ -355,6 +355,31 @@ void main() {
     expect(find.byType(SoftNavBar), findsOneWidget);
   });
 
+  testWidgets('the phone headers: the menu and the Notes actions are soft round buttons', (
+    tester,
+  ) async {
+    phone(tester);
+    await pumpApp(tester, Harness());
+    await choose(tester, 'Ollama (local)');
+    await tester.tap(find.text('Connect'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start'));
+    await tester.pumpAndSettle();
+    final fill = Theme.of(tester.element(find.byType(SoftNavBar))).colorScheme.surfaceContainerLow;
+    void round(String tooltip) {
+      final button = find.ancestor(of: find.byTooltip(tooltip), matching: find.byType(Material));
+      expect(tester.widget<Material>(button.first).color, fill, reason: tooltip);
+      expect(tester.getSize(button.first), const Size.square(38), reason: tooltip);
+    }
+
+    round('Open navigation menu');
+    await tester.tap(tab('Notes'));
+    await tester.pumpAndSettle();
+    for (final tooltip in ['Open navigation menu', 'Archive', 'Refresh', 'More note actions']) {
+      round(tooltip);
+    }
+  });
+
   testWidgets('setup: Ollama with no model installed says which one to pull (#471)', (
     tester,
   ) async {
@@ -3406,7 +3431,12 @@ void main() {
     }
     expect(find.byType(RefreshProgressIndicator), findsOneWidget); // up long enough to see
     await tester.pumpAndSettle();
-    expect(tester.getSize(find.byTooltip('Refresh')).height, greaterThanOrEqualTo(48));
+    expect(
+      tester
+          .getSize(find.ancestor(of: find.byTooltip('Refresh'), matching: find.byType(IconButton)))
+          .height,
+      greaterThanOrEqualTo(48),
+    );
 
     await tester.tap(find.byKey(const Key('notes-more')));
     await tester.pumpAndSettle();

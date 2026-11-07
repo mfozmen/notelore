@@ -220,6 +220,20 @@ void main() {
     expect(one == RoundedRectangleBorder(borderRadius: one.borderRadius, side: one.side), isFalse);
   });
 
+  test('a soft border keeps its light and glow when a button copies it with its side', () {
+    final c = noteloreTheme(Brightness.dark).colorScheme;
+    final one = softBorder(c, BorderRadius.circular(8));
+    expect(one.copyWith(), one);
+    final round = one.copyWith(
+      side: const BorderSide(width: 2),
+      borderRadius: BorderRadius.circular(19),
+    );
+    expect(round.glow, one.glow);
+    expect(round.highlight, one.highlight);
+    expect(round.side.width, 2);
+    expect(round.borderRadius, BorderRadius.circular(19));
+  });
+
   test('the tokens a scheme has no role for: decision card, night glow, mono label', () {
     final kil = noteloreTheme(Brightness.light).extension<NoteloreTokens>()!;
     expect(kil.hot.colors, const [Color(0xFFEA580C), Color(0xFF9A3412)]);
