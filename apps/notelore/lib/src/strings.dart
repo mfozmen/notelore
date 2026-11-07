@@ -242,6 +242,9 @@ abstract class Strings {
 
   /// The open todos due soon, over the notes list (#782).
   String get comingUp;
+
+  /// Notes like the open one, at the foot of its page (#802).
+  String get relatedNotes;
   String todoCount(int count);
 
   /// The week look back on Sundays (#804).
@@ -1145,6 +1148,8 @@ class EnglishStrings extends Strings {
   String get otherNotes => 'Others';
   @override
   String get comingUp => 'Coming up';
+  @override
+  String get relatedNotes => 'Related notes';
   @override
   String get thisWeek => 'This week';
   @override
@@ -2375,6 +2380,8 @@ class TurkishStrings extends Strings {
   String get otherNotes => 'Diğerleri';
   @override
   String get comingUp => 'Yaklaşanlar';
+  @override
+  String get relatedNotes => 'İlgili notlar';
   @override
   String get thisWeek => 'Bu hafta';
   @override

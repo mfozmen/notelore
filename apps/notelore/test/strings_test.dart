@@ -378,6 +378,7 @@ void main() {
       'pinnedNotes': s.pinnedNotes,
       'otherNotes': s.otherNotes,
       'comingUp': s.comingUp,
+      'relatedNotes': s.relatedNotes,
       'todoCount': s.todoCount(3),
       'thisWeek': s.thisWeek,
       'weekDecided': s.weekDecided,

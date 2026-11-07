@@ -146,6 +146,27 @@ void main() {
         expect(idx.related('Odd Mopsos').map((r) => r.slug), ['mopsos', 'odd-date']);
       });
 
+      test('a note page\'s related notes (#802): shared title words or tags, best first', () {
+        for (final (title, tags) in [
+          ('Mopsos launch', ['investing']),
+          ('Mopsos', <String>[]),
+          ('Garden', ['investing']),
+          ('Unrelated', ['cooking']),
+        ]) {
+          createNote(root, 'topic', title, tags: tags, today: today);
+        }
+        idx
+          ..invalidateAll()
+          ..rebuild();
+        expect(idx.relatedTo('project', 'mopsos').map((n) => n.slug), [
+          'mopsos-launch',
+          'garden',
+          'mopsos',
+        ]);
+        expect(idx.relatedTo('topic', 'unrelated'), isEmpty);
+        expect(idx.relatedTo('topic', 'gone'), isEmpty);
+      });
+
       test('getDecision is the newest active one', () {
         expect(
           idx.getDecision('mopsos', 'database'),

@@ -2434,6 +2434,26 @@ void main() {
     expect(find.text('Garden shed'), findsOneWidget);
   });
 
+  testWidgets('notes: a related note opens on its own page (#802)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    createNote(harness.paths.notes.path, 'topic', 'Okunan kitaplar', today: today);
+    await tester.tap(tab('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    expect(find.text('RELATED NOTES'), findsOneWidget);
+    await tester.tap(find.text('Okunan kitaplar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kitaplar'), findsOneWidget); // the related card of the new page
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Okunan kitaplar'), findsOneWidget); // back on the first one's page
+  });
+
   testWidgets('notes: a search shows the line that matched, its words marked (#803)', (
     tester,
   ) async {

@@ -639,6 +639,25 @@ class NoteIndex {
     return found..sort(order);
   }
 
+  /// The notes the note at [kind]/[slug] links to on its page, best first: by
+  /// the title words [related] finds plus the tags they share.
+  List<NoteInfo> relatedTo(String kind, String slug) {
+    final notes = listNotes();
+    final self = notes.where((n) => n.kind == kind && n.slug == slug).firstOrNull;
+    if (self == null) return [];
+    final words = {for (final r in related(self.title)) (r.slug, r.kind): r.titleWords.length};
+    int score(NoteInfo n) =>
+        (words[(n.slug, n.kind)] ?? 0) + n.tags.where(self.tags.contains).length;
+    final found = [
+      for (final n in notes)
+        if (n != self && score(n) > 0) n,
+    ];
+    return found..sort((a, b) {
+      final by = score(b).compareTo(score(a));
+      return by != 0 ? by : a.slug.compareTo(b.slug);
+    });
+  }
+
   /// The [words] that share a search term with a word of [title].
   static List<String> _shared(List<String> words, String title) {
     final theirs = _terms(_titleWords(title).join(' ')).toSet();

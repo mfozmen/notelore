@@ -274,6 +274,26 @@ void main() {
     expect(harness.provider.asked.last, 've sonra'); // said once
   });
 
+  test('relatedNotes: at most three, never the note itself (#802)', () async {
+    final harness = Harness();
+    final session = harness.session();
+    for (final title in [
+      'Kitaplar',
+      'Kitaplar 2025',
+      'Kitaplar 2024',
+      'Kitaplar okul',
+      'Filmler',
+    ]) {
+      createNote(harness.paths.notes.path, 'topic', title, today: today);
+    }
+    final note = session.listNotes().firstWhere((n) => n.title == 'Kitaplar');
+    expect(session.relatedNotes(note).map((n) => n.title), [
+      'Kitaplar 2024',
+      'Kitaplar 2025',
+      'Kitaplar okul',
+    ]);
+  });
+
   test('pinNote: already so counts as done, a gone note as not (#775)', () async {
     final harness = Harness();
     final session = harness.session();
