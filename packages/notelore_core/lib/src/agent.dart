@@ -236,6 +236,9 @@ class Agent {
   /// again may write them twice.
   var wroteNotes = false;
 
+  /// What the last [ask]'s answer shows under its words ([Toolbox.receipts]).
+  List<AnswerCard> cards = const [];
+
   /// Completes with [TurnStopped] to end the running turn.
   Completer<AgentResponse>? _stop;
 
@@ -291,6 +294,7 @@ class Agent {
       rethrow;
     } finally {
       timer.cancel();
+      cards = toolbox.receipts();
       // An answered turn keeps what it made: "open a project Mopsos" is a note.
       if (toolbox.forgetCreated()) wroteNotes = true;
     }

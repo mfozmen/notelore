@@ -1279,7 +1279,8 @@ void main() {
     await tester.tap(find.byTooltip('Send'));
     await tester.pumpAndSettle();
     session.transcript.addAll([
-      for (var i = 0; i < 30; i++) (role: ChatRole.user, text: 'line $i'),
+      for (var i = 0; i < 30; i++)
+        (role: ChatRole.user, text: 'line $i', cards: const <AnswerCard>[]),
     ]);
     session.notifyListeners();
     await tester.pumpAndSettle();

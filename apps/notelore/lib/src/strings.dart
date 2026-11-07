@@ -247,6 +247,22 @@ abstract class Strings {
   /// [text] in capitals, for a section label.
   String caps(String text) => text.toUpperCase();
 
+  /// A receipt under an answer (#791): the words for each writing tool, for a
+  /// whole note archived, and for several changes at once.
+  Map<String, String> get noteChanges;
+  String get noteArchived;
+  String get noteUpdated;
+  String get openNote;
+  String get noteGone;
+
+  /// What [receipt] says the turn did to its note: a new note is new, and
+  /// different changes together are an update.
+  String noteChange(NoteReceipt receipt) {
+    if (receipt.kind == null) return noteArchived;
+    final tools = receipt.tools.contains('create_note') ? const ['create_note'] : receipt.tools;
+    return tools.toSet().length == 1 ? noteChanges[tools.first] ?? noteUpdated : noteUpdated;
+  }
+
   /// Export, share and import (#215).
   String get export;
   String get exportNotes;
@@ -1092,6 +1108,27 @@ class EnglishStrings extends Strings {
   String get otherNotes => 'Others';
   @override
   String get comingUp => 'Coming up';
+  @override
+  Map<String, String> get noteChanges => const {
+    'create_note': 'Note created',
+    'add_note_entry': 'Entry added',
+    'add_todo': 'Todo added',
+    'complete_todo': 'Todo done',
+    'add_reminder': 'Reminder added',
+    'record_decision': 'Decision added',
+    'merge_notes': 'Notes merged',
+    'recategorize': 'Kind changed',
+    'pin_note': 'Pin changed',
+    'archive': 'Entries archived',
+  };
+  @override
+  String get noteArchived => 'Archived';
+  @override
+  String get noteUpdated => 'Note updated';
+  @override
+  String get openNote => 'Open';
+  @override
+  String get noteGone => 'That note is no longer there.';
   @override
   String todoCount(int count) => '$count ${count == 1 ? 'todo' : 'todos'}';
   @override
@@ -2257,6 +2294,27 @@ class TurkishStrings extends Strings {
   String get otherNotes => 'Diğerleri';
   @override
   String get comingUp => 'Yaklaşanlar';
+  @override
+  Map<String, String> get noteChanges => const {
+    'create_note': 'Not oluşturuldu',
+    'add_note_entry': 'Kayıt eklendi',
+    'add_todo': 'Yapılacak eklendi',
+    'complete_todo': 'Yapılacak bitti',
+    'add_reminder': 'Hatırlatıcı eklendi',
+    'record_decision': 'Karar eklendi',
+    'merge_notes': 'Notlar birleştirildi',
+    'recategorize': 'Türü değişti',
+    'pin_note': 'Sabitleme değişti',
+    'archive': 'Kayıtlar arşivlendi',
+  };
+  @override
+  String get noteArchived => 'Arşivlendi';
+  @override
+  String get noteUpdated => 'Not güncellendi';
+  @override
+  String get openNote => 'Aç';
+  @override
+  String get noteGone => 'Bu not artık yok.';
   @override
   String todoCount(int count) => '$count iş';
   @override

@@ -33,6 +33,38 @@ void main() {
     expect(tr.appLockOff, 'Kapalı: Notelore açılırken uygulama kilidi istemez.');
   });
 
+  test('a receipt names what the turn did to its note, in both languages (#791)', () {
+    NoteReceipt receipt(List<String> tools, {String? kind = 'project'}) =>
+        NoteReceipt('atlas', kind, 'Atlas', tools);
+    final writes = [
+      for (final tool in noteTools)
+        if (describeTool(tool.name) == 'Writing the notes' && !tool.name.contains('about_me'))
+          tool.name,
+    ];
+    for (final s in [en, tr]) {
+      final said = {
+        for (final tool in writes) s.noteChange(receipt([tool])),
+      };
+      expect(said, hasLength(writes.length), reason: s.languageCode); // each its own words
+      // A new note is what it is; several changes are an update; an archived note is archived.
+      expect(
+        s.noteChange(receipt(['create_note', 'record_decision'])),
+        s.noteChange(receipt(['create_note'])),
+      );
+      expect(
+        s.noteChange(receipt(['add_todo', 'record_decision'])),
+        s.noteChange(receipt(['something_new'])),
+      );
+      expect(s.noteChange(receipt(['add_todo', 'add_todo'])), s.noteChange(receipt(['add_todo'])));
+      expect(said, isNot(contains(s.noteChange(receipt(['add_todo', 'archive'], kind: null)))));
+    }
+    expect(en.noteChange(receipt(['record_decision'])), 'Decision added');
+    expect(tr.noteChange(receipt(['record_decision'])), 'Karar eklendi');
+    expect(en.noteChange(receipt(['archive'], kind: null)), 'Archived');
+    expect(tr.noteChange(receipt(['archive'], kind: null)), 'Arşivlendi');
+    expect((tr.openNote, tr.noteGone), ('Aç', 'Bu not artık yok.'));
+  });
+
   test('every text the core produces has Turkish', () {
     final produced = [
       'Thinking',
