@@ -13,6 +13,7 @@ import 'quick_window.dart' show QuickWindow;
 import 'section_label.dart';
 import 'session.dart';
 import 'setup.dart' show ProviderWizard;
+import 'soft.dart';
 import 'strings.dart';
 import 'theme.dart';
 import 'update.dart' show appVersion;
@@ -411,7 +412,7 @@ class _ModelCard extends StatelessWidget {
                 onSelected: (m) => _pick(context, m),
               ),
             ),
-            SwitchListTile(
+            SoftSwitchTile(
               secondary: const Icon(AppIcons.web),
               title: Text(s.webSearch),
               subtitle: Text(webSearch),
@@ -551,12 +552,11 @@ class _ConnectionsState extends State<_Connections> {
                   dimension: 24,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
-                _ when spec == session.spec => Icon(
-                  AppIcons.checked,
-                  color: colors.primary,
+                _ when spec == session.spec => SoftRadio(
+                  selected: true,
                   semanticLabel: s.nowUsing(s.providerName(spec)),
                 ),
-                _ => const Icon(AppIcons.unchecked),
+                _ => const SoftRadio(selected: false),
               },
               title: Text(s.providerName(spec)),
               subtitle: Text(s.groupHeading(spec.group)),
@@ -666,7 +666,7 @@ class _QuickShortcutCard extends StatelessWidget {
   Widget _card() {
     final s = session.strings;
     return Card(
-      child: SwitchListTile(
+      child: SoftSwitchTile(
         secondary: const Icon(AppIcons.command),
         title: Text(s.quickShortcut),
         subtitle: Text(
@@ -688,7 +688,7 @@ class _PrivacyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-    child: SwitchListTile(
+    child: SoftSwitchTile(
       secondary: const Icon(AppIcons.shield),
       title: Text(session.strings.aboutMeToCloud),
       subtitle: Text(session.strings.aboutMeToCloudWhy),
@@ -968,7 +968,7 @@ class _LockCard extends StatelessWidget {
                       onPressed: () => turnLockOff(context, session),
                       label: Text(s.turnOff),
                     )
-                  : FilledButton.tonalIcon(
+                  : OutlinedButton.icon(
                       icon: const Icon(AppIcons.lock),
                       onPressed: () => turnLockOn(context, session),
                       label: Text(s.turnOn),
@@ -1036,13 +1036,13 @@ class _RemindersCard extends StatelessWidget {
 
   Widget _action(IconData icon, String label, VoidCallback onPressed) => Padding(
     padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.s),
-    child: FilledButton.tonalIcon(icon: Icon(icon), onPressed: onPressed, label: Text(label)),
+    child: OutlinedButton.icon(icon: Icon(icon), onPressed: onPressed, label: Text(label)),
   );
 
   Widget _calendarSwitch(BuildContext context) {
     final s = session.strings;
     final problem = session.calendarProblem;
-    return SwitchListTile(
+    return SoftSwitchTile(
       // Busy while the sign-in runs: a second tap waits.
       secondary: session.calendarBusy
           ? const SizedBox.square(
@@ -1267,14 +1267,22 @@ Widget _picker<T>({
   final budget = scale <= 1 ? null : (28 / scale).floor().clamp(8, 64);
   String fitted(String label) =>
       budget == null || label.length <= budget ? label : '${label.substring(0, budget - 1)}…';
+  final colors = Theme.of(context).colorScheme;
+  // The caret on a small tinted disc, as the Soft look's pickers have it.
+  Widget caret(IconData icon) => Container(
+    width: 32,
+    height: 32,
+    decoration: BoxDecoration(shape: BoxShape.circle, color: colors.primaryContainer),
+    child: Icon(icon, size: 18, color: colors.primary),
+  );
   return DropdownMenu<T>(
     key: key,
     menuController: menuController,
     initialSelection: value,
     requestFocusOnTap: false,
     expandedInsets: EdgeInsets.zero,
-    trailingIcon: const Icon(AppIcons.expand),
-    selectedTrailingIcon: const Icon(AppIcons.collapse),
+    trailingIcon: caret(AppIcons.expand),
+    selectedTrailingIcon: caret(AppIcons.collapse),
     helperText: helper,
     dropdownMenuEntries: [
       for (final (value, label) in entries)

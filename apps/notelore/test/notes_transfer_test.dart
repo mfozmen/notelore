@@ -28,7 +28,7 @@ void main() {
     await connect(tester, key: 'k');
     createNote(harness.paths.notes.path, 'project', 'Mopsos', today: today);
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     return harness;
   }

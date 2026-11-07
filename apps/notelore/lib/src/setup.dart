@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'icons.dart';
 import 'mark.dart';
 import 'session.dart';
+import 'soft.dart';
 import 'strings.dart';
 import 'theme.dart';
 import 'whisper_model.dart' show DownloadProblem;
@@ -1136,10 +1137,7 @@ class _OptionCard extends StatelessWidget {
                   spacing: Gap.s,
                   children: [
                     Expanded(child: Text(s.providerName(spec), style: theme.textTheme.titleMedium)),
-                    Icon(
-                      chosen ? AppIcons.checked : AppIcons.unchecked,
-                      color: chosen ? colors.primary : muted,
-                    ),
+                    SoftRadio(selected: chosen),
                   ],
                 ),
                 // Who it suits: what decides, so it comes first.

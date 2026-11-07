@@ -84,9 +84,9 @@ void main() {
       expect(find.byType(NoteView), findsOneWidget);
       expect(find.byType(WritableNoteView), findsNothing); // the pane, not a page
       // Back in the Notes tab later, the list shows with no note forced open.
-      await tester.tap(find.text('Chat'));
+      await tester.tap(tab('Chat'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Notes'));
+      await tester.tap(tab('Notes'));
       await tester.pumpAndSettle();
       expect(find.byType(NoteView), findsNothing);
     });

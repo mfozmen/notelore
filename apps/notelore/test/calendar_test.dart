@@ -33,7 +33,7 @@ void main() {
   ) async {
     phone(tester);
     final harness = await withPlans(tester);
-    await tester.tap(find.text('Calendar'));
+    await tester.tap(tab('Calendar'));
     await tester.pumpAndSettle();
     expect(find.text('October 2026'), findsOneWidget);
     final order = [
@@ -61,7 +61,7 @@ void main() {
   ) async {
     phone(tester);
     final harness = await withPlans(tester);
-    await tester.tap(find.text('Calendar'));
+    await tester.tap(tab('Calendar'));
     await tester.pumpAndSettle();
     expect(find.byType(Checkbox), findsNWidgets(2));
     await tester.tap(find.byType(Checkbox).first); // Order timber, under Overdue
@@ -78,7 +78,7 @@ void main() {
   ) async {
     phone(tester);
     await withPlans(tester);
-    await tester.tap(find.text('Calendar'));
+    await tester.tap(tab('Calendar'));
     await tester.pumpAndSettle();
     await tester.tap(find.bySemanticsLabel('Sunday, 25 October').first);
     await tester.pumpAndSettle();
@@ -119,7 +119,7 @@ void main() {
   testWidgets('calendar: reminder and todo titles share one edge (#711)', (tester) async {
     phone(tester);
     await withPlans(tester);
-    await tester.tap(find.text('Calendar'));
+    await tester.tap(tab('Calendar'));
     await tester.pumpAndSettle();
     final reminder = tester.getTopLeft(find.text('Dentist'));
     final todo = tester.getTopLeft(find.text('Paint the door'));
@@ -133,7 +133,7 @@ void main() {
     tester.platformDispatcher.textScaleFactorTestValue = 2.0;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await withPlans(tester);
-    await tester.tap(find.text('Calendar'));
+    await tester.tap(tab('Calendar'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     final day = find
@@ -149,7 +149,7 @@ void main() {
     tester.platformDispatcher.textScaleFactorTestValue = 2.0;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await withPlans(tester);
-    await tester.tap(find.text('Calendar'));
+    await tester.tap(tab('Calendar'));
     await tester.pumpAndSettle();
     final cell = tester.getSize(
       find
@@ -175,7 +175,7 @@ void main() {
     addTearDown(tester.view.reset);
     await pumpApp(tester, Harness(), clock: () => now);
     await connect(tester, key: 'k');
-    await tester.tap(find.text('Calendar'));
+    await tester.tap(tab('Calendar'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Nothing planned'), findsOneWidget);
     expect(find.byType(EmptyState), findsOneWidget); // one empty look, shared (#721)

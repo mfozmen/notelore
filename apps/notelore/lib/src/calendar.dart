@@ -70,6 +70,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         appBar: AppBar(leading: AppMenu.button(context), title: Text(s.calendar)),
         body: LayoutBuilder(
           builder: (context, box) => _layout(
+            context,
             wide: box.maxWidth >= Layout.wide,
             grid: _grid(s, items, today),
             list: _list(s, items, today),
@@ -103,7 +104,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         icon: AppIcons.eventEmpty,
         title: s.nothingPlanned,
         hint: s.calendarExample,
-        actions: [FilledButton.tonal(onPressed: widget.toChat, child: Text(s.goToChat))],
+        actions: [OutlinedButton(onPressed: widget.toChat, child: Text(s.goToChat))],
       );
     }
     return _Agenda(
@@ -122,7 +123,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   /// Side by side on a wide window, the list beside the grid; one below the
   /// other on a phone.
-  Widget _layout({required bool wide, required Widget grid, required Widget list}) => wide
+  Widget _layout(
+    BuildContext context, {
+    required bool wide,
+    required Widget grid,
+    required Widget list,
+  }) => wide
       ? Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -150,7 +156,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ],
         )
       : ListView(
-          padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.l),
+          padding: EdgeInsets.fromLTRB(
+            Gap.m,
+            0,
+            Gap.m,
+            Gap.l + MediaQuery.paddingOf(context).bottom,
+          ),
           children: [grid, list],
         );
 }

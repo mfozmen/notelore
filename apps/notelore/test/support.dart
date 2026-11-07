@@ -729,3 +729,10 @@ Future<void> openSettings(WidgetTester tester, String section) async {
   }
   await tester.pumpAndSettle();
 }
+
+/// A main tab by its label: the phone's bar shows only the chosen tab's label
+/// and has every label as a tooltip; the desktop rail shows them all.
+Finder tab(String label) {
+  final tip = find.byTooltip(label);
+  return tip.evaluate().isNotEmpty ? tip : find.text(label);
+}
