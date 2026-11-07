@@ -123,6 +123,11 @@ check(
     clean({"role": "assistant", "content": "I will read it.", "tool_calls": [call]}),
     {"role": "assistant", "content": "", "tool_calls": [call]},
 )
+check(
+    "but keeps the one-line plan (#608)",
+    clean({"role": "assistant", "content": "plan: x → answer", "tool_calls": [call]}),
+    {"role": "assistant", "content": "plan: x → answer", "tool_calls": [call]},
+)
 check("other roles stay as they are", clean({"role": "user", "content": " hi "}), {"role": "user", "content": " hi "})
 
 # Token ids: 7 opens a message, 8 is "assistant\n", 4 "user\n", 9 closes a message.
