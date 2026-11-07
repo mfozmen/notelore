@@ -92,6 +92,10 @@ void main() {
       delivery.redraw();
       expect(drawn, hasLength(2));
       expect(drawn.last['hint'], session.strings.quickAdd);
+      // Turning the lock on takes the titles off the home screen at once.
+      await session.lock.set('2468');
+      expect(drawn, hasLength(3));
+      expect(drawn.last['notes'], isEmpty);
     });
 
     test('the sync state, only once Drive is connected', () {

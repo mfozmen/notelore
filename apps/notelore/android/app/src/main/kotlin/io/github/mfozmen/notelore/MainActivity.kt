@@ -32,7 +32,10 @@ class MainActivity : FlutterFragmentActivity() {
 
     private fun keep(intent: Intent?) {
         if (intent?.action == QuickWidget.ACTION) {
-            if ((intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0) quick = intent.dataString
+            // Only through the unexported alias, which no other app can address: a tap
+            // on "talk" starts the microphone, and its words reach the assistant.
+            val ours = intent.component?.className == "$packageName.QuickOpen"
+            if (ours && (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0) quick = intent.dataString
             return
         }
         if (intent == null || intent.action != Intent.ACTION_SEND) return
