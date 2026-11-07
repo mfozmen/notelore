@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:notelore_core/notelore_core.dart';
-import 'package:path/path.dart' as p;
 
 import 'app.dart' show AppMenu;
 import 'empty_state.dart';
@@ -49,26 +48,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       setState(() {}); // archived or moved since the list was drawn
       return;
     }
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => Scaffold(
-          appBar: AppBar(title: Text(item.note)),
-          body: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: Layout.column),
-              child: WritableNoteView(
-                session,
-                note,
-                text,
-                folder: p.dirname(notePath(session.paths.notes.path, item.kind, item.slug)),
-                strings: session.strings,
-                today: _today,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    pushNote(context, session, note, text);
   }
 
   Future<void> _complete(DayItem item) => widget.session.setTodoDone(

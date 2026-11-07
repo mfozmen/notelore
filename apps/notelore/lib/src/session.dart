@@ -72,7 +72,8 @@ ReminderCalendar _googleCalendar(OAuthSignIn auth) => GoogleCalendar(http.Client
 /// or the provider's usage limit).
 enum ChatRole { user, assistant, error, pending }
 
-typedef ChatLine = ({ChatRole role, String text});
+/// [cards]: what an answer shows under its words (#791); empty on every other line.
+typedef ChatLine = ({ChatRole role, String text, List<AnswerCard> cards});
 
 /// What happened to one imported file: null when it was not a note.
 typedef ImportReport = ({String file, Imported? imported});
@@ -388,7 +389,7 @@ class Session extends ChangeNotifier {
     for (var i = 0; i < transcript.length; i++) {
       final line = transcript[i];
       if (line.role == ChatRole.assistant || !line.text.contains(marker)) continue;
-      transcript[i] = (role: line.role, text: line.text.replaceAll(marker, ''));
+      transcript[i] = (role: line.role, text: line.text.replaceAll(marker, ''), cards: line.cards);
     }
     try {
       File(p.joinAll([paths.notes.path, ...rel.split('/')])).deleteSync();
@@ -1273,7 +1274,7 @@ class Session extends ChangeNotifier {
       await retryNow();
       return false;
     }
-    transcript.add((role: ChatRole.user, text: message));
+    transcript.add((role: ChatRole.user, text: message, cards: const []));
     reported = null;
     if (busy) {
       _later.add(message); // joins the running turn at its next step
@@ -1351,7 +1352,9 @@ class Session extends ChangeNotifier {
       if (queued) _sent(message);
       delivered = true;
       toolCalls = _toolCalls(asked.messages.skip(before));
-      transcript.add(fresh = (role: ChatRole.assistant, text: strings.core(answer)));
+      transcript.add(
+        fresh = (role: ChatRole.assistant, text: strings.core(answer), cards: asked.cards),
+      );
       // Seen only once answered: a failed turn's notice goes out again.
       _lastNotes = _noteTitles(); // the agent's own changes included
       if (asked.wroteNotes) await refreshReminders();
@@ -1414,6 +1417,7 @@ class Session extends ChangeNotifier {
           if (wrote) strings.notesMayBeSaved,
           if (later && images) strings.imagesCannotWait,
         ].join('\n\n'),
+        cards: const [],
       ),
     );
   }
@@ -1443,7 +1447,7 @@ class Session extends ChangeNotifier {
   void _enqueue(String message) {
     _outbox.add(message);
     final at = transcript.lastIndexWhere((l) => l.role == ChatRole.user && l.text == message);
-    final line = (role: ChatRole.pending, text: message);
+    final ChatLine line = (role: ChatRole.pending, text: message, cards: const []);
     at < 0 ? transcript.add(line) : transcript[at] = line;
     _saveQueue();
     _startRetrying();
@@ -1458,7 +1462,7 @@ class Session extends ChangeNotifier {
     if (_outbox.firstOrNull != message) return;
     _outbox.removeAt(0);
     final at = transcript.indexWhere((l) => l.role == ChatRole.pending && l.text == message);
-    if (at >= 0) transcript[at] = (role: ChatRole.user, text: message);
+    if (at >= 0) transcript[at] = (role: ChatRole.user, text: message, cards: const []);
     _saveQueue();
     if (_outbox.isEmpty) _stopRetrying();
   }
@@ -1487,7 +1491,7 @@ class Session extends ChangeNotifier {
       final saved = jsonDecode(File(_pending).readAsStringSync());
       for (final message in saved is List ? saved.whereType<String>() : const <String>[]) {
         _outbox.add(message);
-        transcript.add((role: ChatRole.pending, text: message));
+        transcript.add((role: ChatRole.pending, text: message, cards: const []));
       }
     } on Exception {
       // none yet, or damaged: nothing waits

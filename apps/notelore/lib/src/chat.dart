@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show FileSystemException;
 import 'dart:math';
 
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
@@ -13,7 +14,9 @@ import 'package:notelore_core/notelore_core.dart';
 
 import 'audio_file.dart';
 import 'model_names.dart';
+import 'note_view.dart' show pushNote;
 import 'plain_text.dart';
+import 'section_label.dart' show Star;
 import 'session.dart';
 import 'setup.dart' show ProviderWizard;
 import 'strings.dart';
@@ -23,9 +26,13 @@ import 'voice.dart';
 import 'web_link.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen(this.session, {super.key});
+  const ChatScreen(this.session, {this.showNote, super.key});
 
   final Session session;
+
+  /// Shows the note a receipt opens beside the notes list, on a wide window.
+  /// Without it the note opens as a page of its own.
+  final ValueChanged<NoteInfo>? showNote;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -34,6 +41,31 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   /// The line a screen reader hears now, on Android; for one frame only.
   ChatLine? _live;
+
+  /// The note [receipt] names, where it is now; a note deleted or moved since says so.
+  void _openReceipt(NoteReceipt receipt) {
+    final session = widget.session;
+    String? read(NoteInfo note) {
+      try {
+        return session.readNote(note);
+      } on FileSystemException {
+        return null;
+      }
+    }
+
+    final note = session
+        .listNotes()
+        .where((n) => n.kind == receipt.kind && n.slug == receipt.slug)
+        .firstOrNull;
+    final text = note == null ? null : read(note);
+    if (note != null && text != null) {
+      final show = widget.showNote;
+      return show != null ? show(note) : pushNote(context, session, note, text);
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(session.strings.noteGone)));
+  }
 
   /// A line a turn just added, once (#502). Android's TalkBack reads it as a
   /// live region (an announcement would cut its speech short); elsewhere it is
@@ -356,7 +388,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                       child: session.transcript.isEmpty
                           ? EmptyChat(s, example: session.ready ? _example : null)
-                          : _Lines(session, live: _live),
+                          : _Lines(session, live: _live, open: _openReceipt),
                     ),
                   ),
                 ),
@@ -537,7 +569,10 @@ class _EmptyChatState extends State<EmptyChat> {
 
 /// The conversation, newest at the bottom; while a turn runs, its waiting line.
 class _Lines extends StatelessWidget {
-  const _Lines(this.session, {this.live});
+  const _Lines(this.session, {required this.open, this.live});
+
+  /// Opens the note a receipt names.
+  final ValueChanged<NoteReceipt> open;
 
   /// The newest line, when a screen reader is to hear it now.
   final ChatLine? live;
@@ -582,12 +617,13 @@ class _Lines extends StatelessWidget {
       if (index == 0) {
         return _Thinking(s, fixed: session.preparing ? s.devicePreparing : null);
       }
-      return _Bubble(lines[index - 1], s, newest: newest.contains(index - 1));
+      return _Bubble(lines[index - 1], s, newest: newest.contains(index - 1), open: open);
     }
     return _Bubble(
       lines[index],
       s,
       newest: newest.contains(index),
+      open: open,
       // The line a turn just added is read out once; the history stays quiet.
       live: index == 0 && lines[0] == live,
       resend: index == resendable ? session.resend : null,
@@ -1396,6 +1432,7 @@ class _Bubble extends StatelessWidget {
   const _Bubble(
     this.line,
     this.strings, {
+    required this.open,
     this.newest = false,
     this.live = false,
     this.resend,
@@ -1404,6 +1441,9 @@ class _Bubble extends StatelessWidget {
     this.report,
     this.reported = false,
   });
+
+  /// Opens the note one of the answer's receipts names.
+  final ValueChanged<NoteReceipt> open;
 
   /// For the newest answer: tell that it was wrong (#753), or take that back.
   final VoidCallback? report;
@@ -1501,22 +1541,7 @@ class _Bubble extends StatelessWidget {
         // Answers are what one copies; one's own older lines keep quiet.
         shown: newest || resend != null || line.role == ChatRole.assistant,
         end: mine,
-        content: [
-          bubble,
-          if (answer case final answer? when answers.isNotEmpty)
-            Wrap(
-              spacing: Gap.s,
-              runSpacing: Gap.xs,
-              children: [
-                for (final a in answers)
-                  OutlinedButton(
-                    onPressed: () => answer(a),
-                    style: OutlinedButton.styleFrom(backgroundColor: colors.surfaceContainerLow),
-                    child: Text(a),
-                  ),
-              ],
-            ),
-        ],
+        content: [bubble, ..._under(answers, colors)],
         // Close under its words (full-size targets, pulled up a little), the
         // icons level with the words' edge.
         actions: Transform.translate(
@@ -1526,6 +1551,27 @@ class _Bubble extends StatelessWidget {
       ),
     );
   }
+
+  /// Under the words: the answer's cards, then the [answers] it suggests.
+  List<Widget> _under(List<String> answers, ColorScheme colors) => [
+    for (final card in line.cards)
+      switch (card) {
+        NoteReceipt() => _Receipt(card, strings, open: () => open(card)),
+      },
+    if (answer case final answer? when answers.isNotEmpty)
+      Wrap(
+        spacing: Gap.s,
+        runSpacing: Gap.xs,
+        children: [
+          for (final a in answers)
+            OutlinedButton(
+              onPressed: () => answer(a),
+              style: OutlinedButton.styleFrom(backgroundColor: colors.surfaceContainerLow),
+              child: Text(a),
+            ),
+        ],
+      ),
+  ];
 
   /// Copy, and for the newest lines Resend and This was wrong (filled once reported).
   Widget _actions(VoidCallback copy, Color reportedColor, Color muted) {
@@ -1643,6 +1689,89 @@ class _ErrorRow extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// What the turn did to one note (#791): a mono pill with the note and the
+/// change, then Open; an archived note has no Open.
+class _Receipt extends StatelessWidget {
+  const _Receipt(this.receipt, this.strings, {required this.open});
+
+  final NoteReceipt receipt;
+  final Strings strings;
+  final VoidCallback open;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final label = theme.extension<NoteloreTokens>()!.label;
+    final change = strings.noteChange(receipt);
+    final edge = BorderSide(color: colors.outlineVariant);
+    const side = Gap.s + Gap.xs;
+    return Stack(
+      children: [
+        // Ink, not a box: the Open's ripple shows on it. Thinner than the
+        // 48 dp row, which is all Open's target.
+        Positioned.fill(
+          top: Gap.s - 2,
+          bottom: Gap.s - 2,
+          child: Ink(
+            decoration: ShapeDecoration(
+              color: colors.surfaceContainerLow,
+              shape: StadiumBorder(side: edge),
+            ),
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(width: side),
+            Star(label.color!),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                '${strings.caps(receipt.title)} · ${strings.caps(change)}',
+                semanticsLabel: '${receipt.title}, $change',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: label,
+              ),
+            ),
+            if (receipt.kind == null)
+              const SizedBox(width: side, height: 48)
+            else ...[
+              const SizedBox(width: side),
+              Container(width: 1, height: 16, color: colors.outlineVariant),
+              Semantics(
+                container: true,
+                button: true,
+                label: '${strings.openNote} ${receipt.title}',
+                onTap: open,
+                excludeSemantics: true,
+                child: InkWell(
+                  onTap: open,
+                  customBorder: const StadiumBorder(),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: side),
+                      child: Center(
+                        widthFactor: 1,
+                        child: Text(
+                          strings.openNote,
+                          style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
     );
   }
 }
