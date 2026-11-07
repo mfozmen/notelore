@@ -1557,13 +1557,14 @@ class EnglishStrings extends Strings {
   String restoreTaken(String title) =>
       'A note called "$title" already exists, so this one stays in the archive.';
   @override
-  String get webSearch => 'Look things up on the web';
+  String get webSearch => 'Web search';
   @override
   String get webSearchExplained =>
-      'Only when it helps get a note right, like the author of a book you mention.';
+      'When on, the assistant can look up a missing fact on the web and add it to the note.';
   @override
   String get webSearchBilled =>
-      'Only when it helps get a note right. Anthropic bills each search on top of the tokens.';
+      'When on, the assistant can look up a missing fact on the web and add it to the note. '
+      'Anthropic bills each search on top of the tokens.';
   @override
   String get webSearchUnavailable => 'Not available with this provider.';
   @override
@@ -2783,13 +2784,14 @@ class TurkishStrings extends Strings {
   String restoreTaken(String title) =>
       '"$title" adında bir not zaten var, bu yüzden bu not arşivde kalıyor.';
   @override
-  String get webSearch => 'Gerekirse internette araştır';
+  String get webSearch => 'Web araması';
   @override
   String get webSearchExplained =>
-      'Yalnızca notu doğru tutmaya yardım edecekse; örneğin andığın bir kitabın yazarı.';
+      'Açıkken asistan eksik bir bilgiyi webde bulup nota ekleyebilir.';
   @override
   String get webSearchBilled =>
-      'Yalnızca notu doğru tutmaya yardım edecekse. Anthropic her aramayı ayrıca ücretlendirir.';
+      'Açıkken asistan eksik bir bilgiyi webde bulup nota ekleyebilir. '
+      'Anthropic her aramayı ayrıca ücretlendirir.';
   @override
   String get webSearchUnavailable => 'Bu sağlayıcıda kullanılamıyor.';
   @override
