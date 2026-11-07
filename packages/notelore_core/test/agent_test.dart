@@ -608,10 +608,33 @@ void failureTests() {
     expect(agent.wroteNotes, isFalse);
     await expectLater(agent.ask('note this'), throwsA(isA<NetworkError>()));
     expect(agent.wroteNotes, isTrue); // the note is on disk, the turn is not in history
+    expect([for (final c in agent.cards) (c as NoteReceipt).slug], ['mopsos']);
     expect(File(p.join(box.root, 'projects', 'mopsos.md')).existsSync(), isTrue);
     expect(agent.messages, isEmpty);
     expect(await agent.ask('thanks'), 'ok');
     expect(agent.wroteNotes, isFalse);
+  });
+
+  test('an answer carries a receipt for each note its turn changed (#791)', () async {
+    final box = newBox();
+    final provider = ScriptedProvider([
+      toolUse('create_note', 't1', {'kind': 'project', 'title': 'Atlas'}),
+      toolUse('record_decision', 't2', {'slug': 'atlas', 'topic': 'db', 'value': 'Postgres'}),
+      text('Saved.'),
+      toolUse('read_note', 't3', {'slug': 'atlas'}),
+      text('Postgres.'),
+    ]);
+    final agent = Agent(provider, box, today: today);
+    await agent.ask('Atlas: we picked Postgres');
+    expect(
+      [
+        for (final card in agent.cards)
+          if (card case NoteReceipt(:final slug, :final tools)) '$slug: ${tools.join(' ')}',
+      ],
+      ['atlas: create_note record_decision'],
+    );
+    await agent.ask('Which database?');
+    expect(agent.cards, isEmpty);
   });
 
   test('an answer that leaves its new note empty gets one reminder to fill it (#756)', () async {

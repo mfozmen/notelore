@@ -517,12 +517,13 @@ ArchivedNote _archived(String archive, File file) {
     file.path,
     (entries ? rest.skip(1) : rest).join('/'),
     day.substring(0, day.length.clamp(0, 10)), // `<date>-2` is that day too
-    _titleOf(file),
+    titleOf(file),
     entries: entries,
   );
 }
 
-String _titleOf(File file) {
+/// The title of the note in [file], or its name when it is no note (or gone).
+String titleOf(File file) {
   try {
     return readNote(file.path).title;
   } on Exception {

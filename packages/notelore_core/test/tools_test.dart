@@ -51,6 +51,71 @@ void main() {
     }
   });
 
+  test('receipts name each note the tools changed, from what ran (#791)', () {
+    List<(String, String?, String, String)> receipts() => [
+      for (final r in box.receipts()) (r.slug, r.kind, r.title, r.tools.join(' ')),
+    ];
+    expect(receipts(), isEmpty);
+    call('create_note', {'kind': 'project', 'title': 'Atlas'});
+    call('add_note_entry', {'slug': 'atlas', 'text': 'Kickoff on Monday.'});
+    call('create_note', {'kind': 'topic', 'title': 'Books'});
+    call('add_todo', {'slug': 'books', 'text': 'Buy Dune'});
+    call('complete_todo', {'slug': 'books', 'number': 1});
+    call('add_reminder', {'slug': 'books', 'at': '2026-10-02', 'text': 'Library'});
+    call('pin_note', {'slug': 'books', 'pinned': true});
+    // Reads and failed writes change nothing.
+    call('read_note', {'slug': 'atlas'});
+    expect(call('add_todo', {'slug': 'missing', 'text': 'x'}), startsWith('Error:'));
+    call('record_decision', {'slug': 'atlas', 'topic': 'database', 'value': 'Postgres'});
+    expect(receipts(), [
+      ('atlas', 'project', 'Atlas', 'create_note add_note_entry record_decision'),
+      ('books', 'topic', 'Books', 'create_note add_todo complete_todo add_reminder pin_note'),
+    ]);
+    // A moved note keeps its receipt where it is now; an archived one has no kind.
+    call('recategorize', {'slug': 'books', 'to_kind': 'project'});
+    call('create_note', {'kind': 'topic', 'title': 'Old'});
+    call('add_note_entry', {'slug': 'old', 'text': 'Done with it.'});
+    call('archive', {'slug': 'old'});
+    call('create_note', {'kind': 'topic', 'title': 'Shed'});
+    call('add_note_entry', {'slug': 'shed', 'text': 'Paint it green.'});
+    call('merge_notes', {'from': 'shed', 'into': 'atlas'});
+    call('archive', {
+      'slug': 'atlas',
+      'entries': {
+        'notes': [1],
+      },
+    });
+    expect(receipts(), [
+      (
+        'atlas',
+        'project',
+        'Atlas',
+        'create_note add_note_entry record_decision merge_notes archive',
+      ),
+      (
+        'books',
+        'project',
+        'Books',
+        'create_note add_todo complete_todo add_reminder pin_note recategorize',
+      ),
+      ('old', null, 'Old', 'create_note add_note_entry archive'),
+      ('shed', null, 'Shed', 'create_note add_note_entry'),
+    ]);
+    // A file that is not a note is named after itself; forgetCreated clears them.
+    File(p.join(box.root, 'projects', 'books.md')).writeAsStringSync('plain text');
+    expect(receipts()[1].$3, 'books');
+    box.forgetCreated();
+    expect(receipts(), isEmpty);
+  });
+
+  test('a note the turn made and took back empty has no receipt (#791)', () {
+    call('create_note', {'kind': 'topic', 'title': 'Empty'});
+    call('create_note', {'kind': 'topic', 'title': 'Kept'});
+    call('add_note_entry', {'slug': 'kept', 'text': 'Something.'});
+    box.takeBackEmpty();
+    expect([for (final r in box.receipts()) r.slug], ['kept']);
+  });
+
   test('a name with no registry entry fails and touches nothing (#658)', () {
     final made = box.call('create_note', {'kind': 'topic', 'title': 'Books'});
     expect(made, contains('books'));

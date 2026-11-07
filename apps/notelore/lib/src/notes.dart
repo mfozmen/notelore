@@ -17,9 +17,12 @@ import 'transfer.dart';
 /// Every project and topic, newest first; a tap opens the note read-only, beside
 /// the list on a wide window. The open note's header archives it.
 class NotesScreen extends StatefulWidget {
-  const NotesScreen(this.session, {required this.toChat, super.key});
+  const NotesScreen(this.session, {required this.toChat, this.open, super.key});
 
   final Session session;
+
+  /// Open in the reader from the start: the note a chat receipt opened.
+  final NoteInfo? open;
 
   /// Goes to the chat, where notes are made (#721).
   final VoidCallback toChat;
@@ -32,7 +35,10 @@ enum _NotesAction { import, export }
 
 class _NotesScreenState extends State<NotesScreen> {
   /// The note open beside the list on a wide window, read once.
-  (NoteInfo, String)? _reading;
+  late (NoteInfo, String)? _reading = switch (widget.open) {
+    final note? => (note, widget.session.readNote(note)),
+    null => null,
+  };
 
   /// What the list is narrowed to; empty shows every note.
   final _search = TextEditingController();

@@ -159,7 +159,10 @@ void main() {
     });
     final sent = session.send('Mopsos: weekly.');
     expect(session.busy, isTrue);
-    expect(session.transcript.last, (role: ChatRole.user, text: 'Mopsos: weekly.'));
+    expect(
+      (session.transcript.last.role, session.transcript.last.text),
+      (ChatRole.user, 'Mopsos: weekly.'),
+    );
     expect(harness.deviceEngine.asked, isEmpty);
     gate.complete();
     expect(await sent, isTrue);

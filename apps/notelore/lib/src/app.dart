@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:notelore_core/notelore_core.dart' show NoteInfo;
 import 'package:url_launcher/url_launcher.dart';
 
 import 'about_me_page.dart';
@@ -153,6 +154,9 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> with WidgetsBindingObserver {
   var _tab = 0;
+
+  /// The note a receipt in the chat opens in the Notes reader, on a wide window.
+  NoteInfo? _shown;
   final _scaffold = GlobalKey<ScaffoldState>();
   late int _seenSharedDraft;
   String? _available; // a newer version
@@ -362,8 +366,14 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         body: ChatScreen(widget.session),
       ),
     ),
-    0 => ChatScreen(widget.session),
-    1 => NotesScreen(widget.session, toChat: () => setState(() => _tab = 0)),
+    0 => ChatScreen(
+      widget.session,
+      showNote: (note) => setState(() {
+        _tab = 1;
+        _shown = note;
+      }),
+    ),
+    1 => NotesScreen(widget.session, open: _shown, toChat: () => setState(() => _tab = 0)),
     2 => CalendarScreen(widget.session, toChat: () => setState(() => _tab = 0)),
     3 => Builder(
       builder: (context) => AboutMeScreen(
@@ -402,7 +412,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       if (wide) (Icons.settings_outlined, Icons.settings, s.settings),
     ];
     final tab = _tab < destinations.length ? _tab : 0; // a window made narrow on Settings
-    void select(int tab) => setState(() => _tab = tab);
+    void select(int tab) => setState(() {
+      _tab = tab;
+      _shown = null;
+    });
     final page = Column(
       children: [
         if (_available case final version?)
