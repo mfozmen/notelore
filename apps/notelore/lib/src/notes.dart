@@ -483,7 +483,7 @@ class _NotesScreenState extends State<NotesScreen> {
                 hasScrollBody: false,
                 child: Center(
                   child: EmptyState(
-                    icon: AppIcons.noteActive,
+                    icon: AppIcons.noteEmpty,
                     title: s.noNotes,
                     actions: [
                       FilledButton.tonal(onPressed: widget.toChat, child: Text(s.goToChat)),

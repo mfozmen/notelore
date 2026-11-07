@@ -9,7 +9,8 @@ typedef Duotone = ({IconData line, IconData fill});
 
 /// Every glyph the app draws, from the bundled Phosphor fonts: Regular
 /// everywhere, Fill for a toggle's "on" state, Duotone for the active tab and
-/// empty screens. Code points are Phosphor 2.1's.
+/// empty screens. Code points are Phosphor 2.1's; one glyph has the same one in
+/// every font, so the family alone picks Regular or Fill.
 abstract final class AppIcons {
   static const add = IconData(0xe3d4, fontFamily: _regular);
   static const alarm = IconData(0xe006, fontFamily: _regular);
@@ -132,6 +133,7 @@ abstract final class AppIcons {
     line: IconData(0xe34d, fontFamily: _duotone),
     fill: IconData(0xe34c, fontFamily: _duotone),
   );
+  static const Duotone noteEmpty = noteActive;
   static const Duotone archiveEmpty = (
     line: IconData(0xe00d, fontFamily: _duotone),
     fill: IconData(0xe00c, fontFamily: _duotone),
