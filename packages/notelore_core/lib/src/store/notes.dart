@@ -306,6 +306,21 @@ void addReminder(
   writeNote(path, note, today: day);
 }
 
+/// Puts [to] in place of the reminder [from] (#801), or right after it when
+/// [keep], as snoozing one turn of a monthly reminder does.
+void moveReminder(String path, Reminder from, Reminder to, {bool keep = false, DateTime? today}) {
+  final note = readNote(path);
+  final entries = _section(note, 'reminders').entries;
+  final index = entries.indexOf(from);
+  if (index < 0) throw ArgumentError.value(from.render(), 'from', 'no such reminder');
+  if (keep) {
+    entries.insert(index + 1, to);
+  } else {
+    entries[index] = to;
+  }
+  writeNote(path, note, today: today);
+}
+
 String _endAfter(String time, int minutes) {
   final [hour, minute] = time.split(':').map(int.parse).toList();
   final total = (hour * 60 + minute + minutes) % (24 * 60);

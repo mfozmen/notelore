@@ -154,6 +154,7 @@ class Session extends ChangeNotifier {
     offThread: offThread,
     isPrivate: () => lock.enabled,
     hiddenText: () => strings.reminderHidden,
+    actionLabels: () => (done: strings.reminderDone, snooze: strings.reminderSnooze),
     save: _saveUi,
     share: _touch,
   )..addListener(notifyListeners);

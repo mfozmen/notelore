@@ -362,6 +362,27 @@ void main() {
       );
     });
 
+    test('moveReminder puts the new line in place of the old, or beside it (#801)', () {
+      final path = createNote(root, 'project', 'Mopsos', today: today);
+      addReminder(path, 'Call', d(2026, 11, 4), time: '20:00', today: today);
+      addReminder(path, 'Rent', d(2026, 11, 5), time: '09:00', monthly: true, today: today);
+      addReminder(path, 'Last', d(2026, 11, 6), today: today);
+      final call = Reminder(d(2026, 11, 4), 'Call', time: '20:00');
+      final rent = Reminder(d(2026, 11, 5), 'Rent', time: '09:00', monthly: true);
+      moveReminder(path, call, Reminder(d(2026, 11, 4), 'Call', time: '21:00'), today: today);
+      moveReminder(path, rent, Reminder(d(2026, 11, 5), 'Rent', time: '10:00'), keep: true);
+      expect(
+        read(path),
+        endsWith(
+          '- 2026-11-04 21:00: Call\n'
+          '- 2026-11-05 09:00 (monthly): Rent\n'
+          '- 2026-11-05 10:00: Rent\n'
+          '- 2026-11-06: Last\n',
+        ),
+      );
+      expect(() => moveReminder(path, call, call), throwsA(isA<ArgumentError>()));
+    });
+
     test('identical todos are completed by position', () {
       final path = createNote(root, 'project', 'Mopsos', today: today);
       addTodo(path, 'same', today: today);

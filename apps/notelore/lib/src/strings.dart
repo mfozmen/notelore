@@ -451,6 +451,8 @@ abstract class Strings {
   String get allowNotifications;
   String get notificationsBlocked;
   String get reminderHidden;
+  String get reminderDone;
+  String get reminderSnooze;
 
   // Reminders through Google Calendar (#432).
   String get addToCalendar;
@@ -1370,6 +1372,10 @@ class EnglishStrings extends Strings {
   String get notificationsBlocked => 'Turn on notifications for Notelore in the system settings.';
   @override
   String get reminderHidden => 'You have a reminder.';
+  @override
+  String get reminderDone => 'Done';
+  @override
+  String get reminderSnooze => 'Snooze 1 hour';
   @override
   String get addToCalendar => 'Add to Google Calendar';
   @override
@@ -2532,6 +2538,10 @@ class TurkishStrings extends Strings {
   String get notificationsBlocked => 'Notelore için bildirimleri sistem ayarlarından aç.';
   @override
   String get reminderHidden => 'Bir hatırlatıcın var.';
+  @override
+  String get reminderDone => 'Bitti';
+  @override
+  String get reminderSnooze => '1 saat ertele';
   @override
   String get addToCalendar => "Google Takvim'e ekle";
   @override
