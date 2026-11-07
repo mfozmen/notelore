@@ -637,6 +637,45 @@
      "?"
     ]
    }
+  },
+  {
+   "id": "aboutme-en-car-to-note",
+   "kind": "about-me",
+   "lang": "en",
+   "message": "I always pump the tyres on my car up to 36 psi.",
+   "notes": {
+    "about-me.md": "# About me\n\n## Family\n\n- My wife is Mira.\n"
+   },
+   "expect": {
+    "tools_not": [
+     "remember_about_me",
+     "update_about_me"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]*\\.md$": [
+      "36 psi"
+     ]
+    }
+   }
+  },
+  {
+   "id": "aboutme-en-person-to-about-me",
+   "kind": "about-me",
+   "lang": "en",
+   "message": "My brother Tomas is a nurse in Lyon.",
+   "notes": {
+    "about-me.md": "# About me\n\n## Family\n\n- My wife is Mira.\n"
+   },
+   "expect": {
+    "tools": [
+     "remember_about_me"
+    ],
+    "notes": {
+     "^about-me\\.md$": [
+      "Tomas"
+     ]
+    }
+   }
   }
  ]
 }

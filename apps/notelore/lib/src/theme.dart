@@ -284,6 +284,15 @@ class SoftBorder extends RoundedRectangleBorder {
   final Color highlight;
   final Color glow;
 
+  // A button resolves its shape through copyWith; the inherited one returns a plain border.
+  @override
+  SoftBorder copyWith({BorderSide? side, BorderRadiusGeometry? borderRadius}) => SoftBorder(
+    highlight: highlight,
+    glow: glow,
+    side: side ?? this.side,
+    borderRadius: borderRadius ?? this.borderRadius,
+  );
+
   @override
   void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
     final edge = borderRadius.resolve(textDirection).toRRect(rect);

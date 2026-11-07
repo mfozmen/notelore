@@ -409,6 +409,16 @@ void main() {
     expect(prompt, contains('ask first when it is not clear'));
   });
 
+  test('a fact about a thing the user owns goes to a note, not About me (#822)', () {
+    final remember = noteTools.firstWhere((t) => t.name == 'remember_about_me').description;
+    for (final text in [systemPrompt(today), slimSystemPrompt(today), remember]) {
+      // "Routines" read a car's tyre pressure as a fact about the person.
+      expect(text, isNot(contains('routines')));
+      expect(text, contains('a car, a house, a device'));
+      expect(text, contains('maintenance'));
+    }
+  });
+
   test('the prompt looks for related notes before creating one (#229)', () {
     expect(systemPrompt(today), contains('related_notes'));
   });
