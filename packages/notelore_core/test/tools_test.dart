@@ -108,6 +108,41 @@ void main() {
     expect(receipts(), isEmpty);
   });
 
+  test('sources cite the current decisions the decision tools found, at most 3 (#792)', () {
+    List<String> sources() => [
+      for (final s in box.sources())
+        '${s.slug} ${s.kind} ${s.title} ${s.topic} ${s.date.toIso8601String().substring(0, 10)} '
+            '${s.value} ${s.reason}',
+    ];
+    call('create_note', {'kind': 'project', 'title': 'Atlas'});
+    call('record_decision', {'slug': 'atlas', 'topic': 'db', 'value': 'MySQL'});
+    call('record_decision', {
+      'slug': 'atlas',
+      'topic': 'db',
+      'value': 'Postgres',
+      'reason': 'Mature.',
+    });
+    call('record_decision', {'slug': 'atlas', 'topic': 'host', 'value': 'Fly'});
+    call('record_decision', {'slug': 'atlas', 'topic': 'ci', 'value': 'GitHub'});
+    call('record_decision', {'slug': 'atlas', 'topic': 'cdn', 'value': 'None'});
+    // Nothing found, or a failed call, cites nothing.
+    call('get_decision', {'slug': 'atlas', 'topic': 'auth'});
+    call('get_decision', {'slug': 'missing', 'topic': 'db'});
+    call('decision_history', {'slug': 'atlas', 'topic': 'auth'});
+    expect(sources(), isEmpty);
+    call('get_decision', {'slug': 'atlas', 'topic': 'db'});
+    call('get_decision', {'slug': 'atlas', 'topic': 'db'}); // the same decision once
+    // History cites the current decisions only, never a superseded one.
+    call('decision_history', {'slug': 'atlas'});
+    expect(sources(), [
+      'atlas project Atlas db 2026-09-30 Postgres Mature.',
+      'atlas project Atlas host 2026-09-30 Fly null',
+      'atlas project Atlas ci 2026-09-30 GitHub null',
+    ]);
+    box.forgetCreated();
+    expect(sources(), isEmpty);
+  });
+
   test('a note the turn made and took back empty has no receipt (#791)', () {
     call('create_note', {'kind': 'topic', 'title': 'Empty'});
     call('create_note', {'kind': 'topic', 'title': 'Kept'});
