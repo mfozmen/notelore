@@ -244,6 +244,18 @@ abstract class Strings {
   String get comingUp;
   String todoCount(int count);
 
+  /// The week look back on Sundays (#804).
+  String get thisWeek;
+  String get weekDecided;
+  String get weekDone;
+  String get weekOverdue;
+  String get hideThisWeek;
+
+  /// "2–8 Nov", or "26 Oct – 1 Nov" across two months.
+  String weekRange(DateTime from, DateTime to) => from.month == to.month
+      ? '${from.day}–${to.day} ${months[to.month - 1]}'
+      : '${shortDate(from, to)} – ${shortDate(to, to)}';
+
   /// [text] in capitals, for a section label.
   String caps(String text) => text.toUpperCase();
 
@@ -1122,6 +1134,16 @@ class EnglishStrings extends Strings {
   String get otherNotes => 'Others';
   @override
   String get comingUp => 'Coming up';
+  @override
+  String get thisWeek => 'This week';
+  @override
+  String get weekDecided => 'Decided';
+  @override
+  String get weekDone => 'Done';
+  @override
+  String get weekOverdue => 'Overdue';
+  @override
+  String get hideThisWeek => 'Hide for this week';
   @override
   Map<String, String> get noteChanges => const {
     'create_note': 'Note created',
@@ -2324,6 +2346,16 @@ class TurkishStrings extends Strings {
   String get otherNotes => 'Diğerleri';
   @override
   String get comingUp => 'Yaklaşanlar';
+  @override
+  String get thisWeek => 'Bu hafta';
+  @override
+  String get weekDecided => 'Kararlar';
+  @override
+  String get weekDone => 'Bitenler';
+  @override
+  String get weekOverdue => 'Gecikenler';
+  @override
+  String get hideThisWeek => 'Bu hafta gizle';
   @override
   Map<String, String> get noteChanges => const {
     'create_note': 'Not oluşturuldu',

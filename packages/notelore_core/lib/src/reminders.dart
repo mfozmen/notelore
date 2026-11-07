@@ -211,6 +211,67 @@ Iterable<DayItem> _dayItems(Note note, String kind, String slug, DateTime from) 
   }
 }
 
+/// The week from Monday to [today] under [root]: the decisions taken in it that
+/// still stand, the done todos dated in it, and the open todos dated before
+/// [today]. A todo keeps no date of its completion, so "done this week" goes
+/// by the todo's own date.
+({List<DayItem> decided, List<DayItem> done, List<DayItem> overdue}) weekItems(
+  String root, {
+  required DateTime today,
+}) {
+  final day = DateTime(today.year, today.month, today.day);
+  final monday = DateTime(day.year, day.month, day.day - (day.weekday - 1));
+  bool inWeek(DateTime date) => !date.isBefore(monday) && !date.isAfter(day);
+  final notes = _notesUnder(root);
+  List<DayItem> sorted(Iterable<DayItem> items) => items.toList()..sort(_byDay);
+  return (
+    decided: sorted(notes.expand((found) => _standingDecisions(found, inWeek))),
+    done: sorted(notes.expand((found) => _todos(found, (t) => t.done && inWeek(t.date)))),
+    overdue: sorted(notes.expand((found) => _todos(found, (t) => !t.done && t.date.isBefore(day)))),
+  );
+}
+
+/// A readable note under the notes folder, with its kind and slug.
+typedef _Found = ({Note note, String kind, String slug});
+
+List<_Found> _notesUnder(String root) => [
+  for (final MapEntry(key: kind, value: folder) in kinds.entries)
+    for (final file in markdownFiles(p.join(root, folder)))
+      if (_readable(file.path) case final note?)
+        (note: note, kind: kind, slug: p.basenameWithoutExtension(file.path)),
+];
+
+DayItem _weekItem(_Found found, DateTime date, String text, {required bool todo, int number = 0}) =>
+    DayItem(
+      day: DateTime(date.year, date.month, date.day),
+      time: null,
+      text: _flat(text),
+      note: found.note.title,
+      kind: found.kind,
+      slug: found.slug,
+      todo: todo,
+      number: number,
+    );
+
+Iterable<DayItem> _standingDecisions(_Found found, bool Function(DateTime) inWeek) sync* {
+  for (final entry in found.note.section('decisions')?.entries ?? const <NoteEntry>[]) {
+    if (entry case final Decision d when d.superseded == null && inWeek(d.date)) {
+      yield _weekItem(found, d.date, '${d.topic}: ${d.value}', todo: false);
+    }
+  }
+}
+
+/// The todos of [found] that pass [keep], with their number in the section.
+Iterable<DayItem> _todos(_Found found, bool Function(Todo) keep) sync* {
+  var number = 0;
+  for (final entry in found.note.section('todo')?.entries ?? const <NoteEntry>[]) {
+    if (entry case final Todo todo) {
+      number++;
+      if (keep(todo)) yield _weekItem(found, todo.date, todo.text, todo: true, number: number);
+    }
+  }
+}
+
 Iterable<DayItem> _reminderItems(
   Reminder reminder,
   DayItem Function(DateTime, String?, String, {required bool todo}) item,
