@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The home-screen widget (#799) in Orman. -->
+<resources>
+    <color name="qw_card">#131B16</color>
+    <color name="qw_field">#0C120E</color>
+    <color name="qw_line">#223026</color>
+    <color name="qw_text">#E9EFE9</color>
+    <color name="qw_muted">#8FA093</color>
+    <color name="qw_accent">#D9884F</color>
+    <color name="qw_avatar">#18231C</color>
+    <color name="qw_orb_light">#FFF1E6</color>
+    <color name="qw_orb">#D9884F</color>
+    <color name="qw_orb_dark">#623D24</color>
+</resources>

@@ -34,6 +34,7 @@ import 'device_native.dart';
 import 'lock_state.dart';
 import 'pdf_native.dart';
 import 'prefs.dart';
+import 'quick_widget.dart' show QuickOpen;
 import 'reminder_center.dart';
 import 'reminder_notifier.dart';
 import 'strings.dart';
@@ -841,6 +842,14 @@ class Session extends ChangeNotifier {
   void receiveSharedText(String text) {
     draft = draft.isEmpty ? text : '$draft\n\n$text';
     sharedDraftVersion++;
+    notifyListeners();
+  }
+
+  /// What a tap on the home-screen widget asked for (#799), until a screen takes it.
+  QuickOpen? quickOpen;
+
+  void openQuick(QuickOpen open) {
+    quickOpen = open;
     notifyListeners();
   }
 

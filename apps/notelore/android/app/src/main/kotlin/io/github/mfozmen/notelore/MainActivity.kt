@@ -17,6 +17,9 @@ class MainActivity : FlutterFragmentActivity() {
     /** What another app shared ("Share → Notelore"), until the Dart side takes it. */
     private var shared: Map<String, String?>? = null
 
+    /** The link of the last tap on the home-screen widget (#799), until the Dart side takes it. */
+    private var quick: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) keep(intent) // not again after a restore
@@ -28,6 +31,10 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     private fun keep(intent: Intent?) {
+        if (intent?.action == QuickWidget.ACTION) {
+            if ((intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0) quick = intent.dataString
+            return
+        }
         if (intent == null || intent.action != Intent.ACTION_SEND) return
         if (intent.type?.startsWith("text/") != true) return
         // Reopened from Recents (after the process was gone): the same share again, not a new one.
@@ -48,6 +55,21 @@ class MainActivity : FlutterFragmentActivity() {
                     shared = null
                 } else {
                     result.notImplemented()
+                }
+            }
+        // The home-screen widget (quick_widget_native.dart): a tap asked for, and what it shows.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "io.github.mfozmen.notelore/widget")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "take" -> {
+                        result.success(quick)
+                        quick = null
+                    }
+                    "draw" -> {
+                        QuickWidget.refresh(this, call.arguments as String)
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
                 }
             }
         // An attached audio file's sound (audio_native.dart, #285), decoded off the UI thread.

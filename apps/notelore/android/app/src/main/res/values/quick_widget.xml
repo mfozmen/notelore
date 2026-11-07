@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The home-screen widget (#799) in Kil; values-night holds Orman. -->
+<resources>
+    <color name="qw_card">#FFFAF4</color>
+    <color name="qw_field">#F6EFE6</color>
+    <color name="qw_line">#EADCCB</color>
+    <color name="qw_text">#2B1A12</color>
+    <color name="qw_muted">#8A6A58</color>
+    <color name="qw_accent">#C2410C</color>
+    <color name="qw_avatar">#FBE6D4</color>
+    <color name="qw_orb_light">#FED7AA</color>
+    <color name="qw_orb">#EA580C</color>
+    <color name="qw_orb_dark">#7C2D12</color>
+</resources>

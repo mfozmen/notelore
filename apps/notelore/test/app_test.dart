@@ -16,6 +16,7 @@ import 'package:notelore/src/chat.dart';
 import 'package:notelore/src/empty_state.dart';
 import 'package:notelore/src/mark.dart';
 import 'package:notelore/src/note_view.dart';
+import 'package:notelore/src/quick_widget.dart';
 import 'package:notelore/src/section_label.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/settings.dart';
@@ -883,6 +884,47 @@ void main() {
     await tester.pumpAndSettle();
     expect(field.controller!.text, 'Shared words');
     expect(harness.provider.asked, hasLength(1));
+  });
+
+  testWidgets('the home-screen widget opens the composer, voice mode or a note (#799)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness(answers: ['Saved.']);
+    harness.speech.phrases.add('sesli');
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final path = createNote(harness.paths.notes.path, 'project', 'Atlas', today: DateTime(2026));
+    session.index.markChanged(path);
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    session.openQuick(QuickOpen.write);
+    await tester.pumpAndSettle();
+    final field = find.descendant(
+      of: find.byKey(const Key('message')),
+      matching: find.byType(EditableText),
+    );
+    expect(tester.widget<EditableText>(field).focusNode.hasFocus, isTrue);
+    expect(session.quickOpen, isNull);
+    session.openQuick(const QuickOpen.note('project', 'atlas'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Pin'), findsOneWidget); // the note's reader
+    expect(session.quickOpen, isNull);
+    // From the open note: back to the chat, listening until a tap sends.
+    session.openQuick(QuickOpen.talk);
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Pin'), findsNothing);
+    expect(find.byTooltip('Stop and send'), findsOneWidget);
+    expect(session.quickOpen, isNull);
+    // A note gone since the widget drew it: the list, nothing open.
+    File(path).deleteSync();
+    session.index.markChanged(path);
+    await tester.tap(find.byTooltip('Stop and send'));
+    await tester.pumpAndSettle();
+    session.openQuick(const QuickOpen.note('project', 'atlas'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Pin'), findsNothing);
+    expect(session.quickOpen, isNull);
   });
 
   testWidgets('chat: a question offers its answers as buttons, sent once (#210)', (tester) async {

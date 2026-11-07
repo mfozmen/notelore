@@ -779,6 +779,31 @@ class _Composer extends StatefulWidget {
 class _ComposerState extends State<_Composer> {
   VoiceMode get _voice => widget.voice;
 
+  final _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    widget.session.addListener(_quick);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _quick()); // asked before the chat opened
+  }
+
+  @override
+  void dispose() {
+    widget.session.removeListener(_quick);
+    _focus.dispose();
+    super.dispose();
+  }
+
+  /// The home-screen widget's field or mic (#799): typing, or talking until a tap sends.
+  void _quick() {
+    final open = widget.session.quickOpen;
+    if (!mounted || open == null || open.kind != null) return;
+    widget.session.quickOpen = null;
+    if (!open.voice) return _focus.requestFocus();
+    if (_voice.state != VoiceState.listening) _toggleTalk();
+  }
+
   /// When the talk button last went down (the pointer's own clock).
   var _down = Duration.zero;
 
@@ -880,6 +905,7 @@ class _ComposerState extends State<_Composer> {
             session,
             voice: _voice,
             message: widget.message,
+            focus: _focus,
             send: widget.send,
             attach: widget.attach,
             recording: _Recording(
@@ -911,6 +937,7 @@ class _ComposerRow extends StatelessWidget {
     this.session, {
     required this.voice,
     required this.message,
+    required this.focus,
     required this.send,
     required this.attach,
     required this.recording,
@@ -920,6 +947,7 @@ class _ComposerRow extends StatelessWidget {
   final Session session;
   final VoiceMode voice;
   final TextEditingController message;
+  final FocusNode focus;
   final Future<void> Function() send;
   final Future<void> Function() attach;
   final Widget recording;
@@ -971,7 +999,7 @@ class _ComposerRow extends StatelessWidget {
             // the field's text stays in its controller.
             child: voice.state == VoiceState.listening
                 ? recording
-                : _MessageField(message, voice: voice, hint: s.message, send: send),
+                : _MessageField(message, focus: focus, voice: voice, hint: s.message, send: send),
           ),
           if (voice.state == VoiceState.speaking)
             IconButton(
@@ -1053,12 +1081,14 @@ class _Orb extends StatelessWidget {
 class _MessageField extends StatelessWidget {
   const _MessageField(
     this.controller, {
+    required this.focus,
     required this.voice,
     required this.hint,
     required this.send,
   });
 
   final TextEditingController controller;
+  final FocusNode focus;
   final VoiceMode voice;
   final String hint;
   final Future<void> Function() send;
@@ -1067,6 +1097,7 @@ class _MessageField extends StatelessWidget {
   Widget build(BuildContext context) => TextField(
     key: const Key('message'),
     controller: controller,
+    focusNode: focus,
     minLines: 1,
     maxLines: 5,
     textInputAction: TextInputAction.send,

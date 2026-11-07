@@ -2,4 +2,6 @@
 <resources>
     <string name="sign_in_channel">Sign-in</string>
     <string name="sign_in_waiting">Waiting for the sign-in to finish</string>
+    <string name="quick_hint">Write or ask…</string>
+    <string name="quick_description">Write or ask, and open your latest notes</string>
 </resources>
