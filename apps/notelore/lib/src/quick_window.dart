@@ -17,6 +17,7 @@ import 'package:notelore_core/notelore_core.dart';
 import 'chat.dart' show Orb;
 import 'mark.dart';
 import 'session.dart';
+import 'strings.dart' show Strings;
 import 'theme.dart';
 import 'voice.dart';
 
@@ -38,8 +39,9 @@ abstract interface class QuickHost {
   Future<void> front();
 }
 
-/// What the shortcut does, and the quick window's state.
-class QuickWindow {
+/// What the shortcut does, and the quick window's state; it notifies when
+/// [taken] changes.
+class QuickWindow extends ChangeNotifier {
   QuickWindow(this.session, this.host) {
     session.addListener(_changed);
   }
@@ -58,8 +60,15 @@ class QuickWindow {
     final on = session.quickShortcut;
     _listening = on;
     final held = await host.listen(on: on);
-    taken = on && !held;
+    if (on != _listening) return; // a later toggle's own call decides
+    final now = on && !held;
+    if (now == taken) return;
+    taken = now;
+    notifyListeners();
   }
+
+  /// The shortcut in words: Ctrl+Alt+N, ⌥⌘N.
+  String get keysLabel => host.keys.join(host.keys.any((key) => key.length > 1) ? '+' : '');
 
   void _changed() {
     if (_listening != null && session.quickShortcut != _listening) unawaited(_listen());
@@ -91,7 +100,11 @@ class QuickWindow {
     await session.send(text.trim());
   }
 
-  void dispose() => session.removeListener(_changed);
+  @override
+  void dispose() {
+    session.removeListener(_changed);
+    super.dispose();
+  }
 }
 
 /// The last turn's write receipt, as one line: "Reminder added · Health".
@@ -176,64 +189,7 @@ class _QuickAddScreenState extends State<QuickAddScreen> {
                   ],
                 ),
                 const SizedBox(height: Gap.s),
-                // The chat composer's field: its edge takes the accent while focused.
-                Focus(
-                  canRequestFocus: false,
-                  skipTraversal: true,
-                  child: Builder(
-                    builder: (context) => Container(
-                      padding: const EdgeInsets.all(Gap.xs),
-                      decoration: BoxDecoration(
-                        color: colors.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(28),
-                        border: Focus.of(context).hasFocus
-                            ? Border.all(color: colors.primary, width: 2)
-                            : Border.all(color: colors.outlineVariant),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              key: const Key('quick-message'),
-                              controller: _text,
-                              autofocus: true,
-                              textInputAction: TextInputAction.send,
-                              onSubmitted: window.send,
-                              decoration: InputDecoration(
-                                hintText: listening ? s.listening : s.quickAdd,
-                                filled: false,
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: Gap.s),
-                              ),
-                            ),
-                          ),
-                          // Send once something is typed, as in the chat; the mic before.
-                          ValueListenableBuilder(
-                            valueListenable: _text,
-                            builder: (context, typed, _) => Orb(
-                              typed.text.trim().isNotEmpty
-                                  ? IconButton(
-                                      tooltip: s.send,
-                                      icon: const Icon(Icons.arrow_upward, color: Colors.white),
-                                      onPressed: () => window.send(_text.text),
-                                    )
-                                  : IconButton(
-                                      tooltip: listening ? s.stopTalking : s.talk,
-                                      icon: Icon(
-                                        listening ? Icons.arrow_upward : Icons.mic_none,
-                                        color: Colors.white,
-                                      ),
-                                      onPressed: _talk,
-                                    ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                _field(s, colors, listening: listening),
                 const SizedBox(height: Gap.s),
                 Row(
                   children: [
@@ -247,34 +203,7 @@ class _QuickAddScreenState extends State<QuickAddScreen> {
                 ],
                 if (receipt != null) ...[
                   const SizedBox(height: Gap.s),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
-                    decoration: BoxDecoration(
-                      color: colors.primaryContainer,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.check, size: 16, color: colors.primary),
-                        const SizedBox(width: Gap.s),
-                        Expanded(
-                          child: Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: '${s.quickLast}: ',
-                                  style: TextStyle(color: colors.onSurfaceVariant),
-                                ),
-                                TextSpan(text: receipt),
-                              ],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  _receipt(receipt, s, colors),
                 ],
               ],
             ),
@@ -283,6 +212,98 @@ class _QuickAddScreenState extends State<QuickAddScreen> {
       ),
     );
   }
+
+  /// The chat composer's field: its edge takes the accent while focused.
+  Widget _field(Strings s, ColorScheme colors, {required bool listening}) {
+    final window = widget.window;
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      child: Builder(
+        builder: (context) => Container(
+          padding: const EdgeInsets.all(Gap.xs),
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(28),
+            border: Focus.of(context).hasFocus
+                ? Border.all(color: colors.primary, width: 2)
+                : Border.all(color: colors.outlineVariant),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const Key('quick-message'),
+                  controller: _text,
+                  autofocus: true,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: window.send,
+                  decoration: InputDecoration(
+                    hintText: listening ? s.listening : s.quickAdd,
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: Gap.s),
+                  ),
+                ),
+              ),
+              // Send once something is typed, as in the chat; the mic before.
+              ValueListenableBuilder(
+                valueListenable: _text,
+                builder: (context, typed, _) => Orb(
+                  typed.text.trim().isNotEmpty
+                      ? IconButton(
+                          tooltip: s.send,
+                          icon: const Icon(Icons.arrow_upward, color: Colors.white),
+                          onPressed: () => window.send(_text.text),
+                        )
+                      : IconButton(
+                          tooltip: listening ? s.stopTalking : s.talk,
+                          icon: Icon(
+                            listening ? Icons.arrow_upward : Icons.mic_none,
+                            color: Colors.white,
+                          ),
+                          onPressed: _talk,
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The last answer's write receipt, its value weighing more than the label.
+  Widget _receipt(String receipt, Strings s, ColorScheme colors) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s),
+    decoration: BoxDecoration(
+      color: colors.primaryContainer,
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: Row(
+      children: [
+        Icon(Icons.check, size: 16, color: colors.primary),
+        const SizedBox(width: Gap.s),
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: '${s.quickLast}: ',
+                  style: TextStyle(color: colors.onSurfaceVariant),
+                ),
+                TextSpan(text: receipt),
+              ],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 /// One key of the shortcut, drawn as a key.

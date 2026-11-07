@@ -29,6 +29,7 @@ class QuickWindow {
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel_;
   bool listening_ = false;
   bool compact_ = false;
+  bool opening_ = false;
   WINDOWPLACEMENT placement_{sizeof(WINDOWPLACEMENT)};
   RECT frame_{};
   LONG_PTR style_ = 0;

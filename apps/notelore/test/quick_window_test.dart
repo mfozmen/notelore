@@ -16,11 +16,13 @@ import 'app_test.dart' show pumpApp;
 import 'support.dart';
 
 class FakeHost implements QuickHost {
+  FakeHost({this.keys = const ['Ctrl', 'Alt', 'N']});
+
   final calls = <String>[];
   var free = true;
 
   @override
-  List<String> get keys => const ['Ctrl', 'Alt', 'N'];
+  final List<String> keys;
 
   @override
   Future<bool> listen({required bool on}) async {
@@ -68,6 +70,26 @@ void main() {
     session.setQuickShortcut(on: true);
     await pumpEventQueue();
     expect(quick.taken, isTrue);
+  });
+
+  test('the keys in words, as each platform writes them', () {
+    expect(quick.keysLabel, 'Ctrl+Alt+N');
+    final mac = QuickWindow(session, FakeHost(keys: const ['⌥', '⌘', 'N']));
+    addTearDown(mac.dispose);
+    expect(mac.keysLabel, '⌥⌘N');
+  });
+
+  test('two quick toggles: only the last one decides whether it is taken', () async {
+    await quick.start();
+    host.free = false;
+    session.setQuickShortcut(on: false);
+    session.setQuickShortcut(on: true);
+    await pumpEventQueue();
+    expect(quick.taken, isTrue);
+    host.free = true;
+    session.setQuickShortcut(on: false);
+    await pumpEventQueue();
+    expect(quick.taken, isFalse);
   });
 
   test('an app not set up, or locked, comes to the front as itself', () async {
@@ -266,5 +288,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(session.quickShortcut, isFalse);
     expect(host.calls.last, 'unlisten');
+    expect(find.textContaining('Another app uses this shortcut'), findsNothing);
+    await tester.tap(find.text('Quick note shortcut'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Another app uses this shortcut'), findsOneWidget);
   });
 }

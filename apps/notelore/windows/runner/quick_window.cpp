@@ -53,7 +53,8 @@ QuickWindow::~QuickWindow() { Listen(false); }
 
 bool QuickWindow::Handle(UINT message, WPARAM wparam) {
   // A click on another app: the window steps back, as Esc would.
-  if (message == WM_ACTIVATE && LOWORD(wparam) == WA_INACTIVE && compact_) {
+  if (message == WM_ACTIVATE && LOWORD(wparam) == WA_INACTIVE && compact_ &&
+      !opening_) {
     Restore(false);
     channel_->InvokeMethod("closed", nullptr);
     return false;
@@ -88,6 +89,7 @@ void QuickWindow::Compact() {
   GetWindowRect(window_, &frame_);
   style_ = GetWindowLongPtr(window_, GWL_STYLE);
   compact_ = true;
+  opening_ = true;  // a passing deactivation while it takes the focus is not a click away
   // On the screen the person works on: the one under the app they are in.
   HMONITOR monitor = MonitorFromWindow(previous_ ? previous_ : window_,
                                        MONITOR_DEFAULTTONEAREST);
@@ -108,6 +110,7 @@ void QuickWindow::Compact() {
   SetWindowPos(window_, HWND_TOPMOST, x, y, width, height,
                SWP_FRAMECHANGED | SWP_SHOWWINDOW);
   TakeFocus(window_);
+  opening_ = false;
 }
 
 void QuickWindow::Restore(bool refocus) {

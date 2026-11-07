@@ -1080,7 +1080,7 @@ class _ComposerRow extends StatelessWidget {
 /// The glowing accent circle behind Talk and Send: lit from the top left,
 /// darker at its rim, with a soft glow of the accent under it.
 class Orb extends StatelessWidget {
-  const Orb(this.child);
+  const Orb(this.child, {super.key});
 
   final Widget child;
 
