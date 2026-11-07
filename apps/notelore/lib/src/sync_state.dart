@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'icons.dart';
 import 'session.dart';
 import 'settings.dart';
 import 'theme.dart';
@@ -44,16 +45,16 @@ class _SyncStateState extends State<SyncState> {
     late final IconData icon;
     late final String text;
     if (session.syncing) {
-      icon = Icons.sync;
+      icon = AppIcons.sync;
       text = s.syncingNow;
     } else if (session.syncFailed) {
-      icon = Icons.cloud_off_outlined;
+      icon = AppIcons.cloudOff;
       text = s.syncFailed;
     } else if (session.lastSynced case final synced?) {
-      icon = Icons.cloud_done_outlined;
+      icon = AppIcons.cloudDone;
       text = s.syncedAgo(session.clock().toUtc().difference(synced));
     } else {
-      icon = Icons.cloud_outlined;
+      icon = AppIcons.cloud;
       text = s.syncNever;
     }
     final muted = Theme.of(context).textTheme.bodySmall

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'app.dart' show AppMenu;
+import 'icons.dart';
 import 'section_label.dart';
 import 'session.dart';
 import 'theme.dart';
@@ -54,7 +55,7 @@ class AboutMeScreen extends StatelessWidget {
     padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, Gap.m),
     child: Column(
       children: [
-        Icon(Icons.person_outline, size: 48, color: theme.colorScheme.primary),
+        Icon(AppIcons.person, size: 48, color: theme.colorScheme.primary),
         const SizedBox(height: Gap.m),
         Text(
           session.strings.aboutMeEmpty,
@@ -99,7 +100,7 @@ class AboutMeScreen extends StatelessWidget {
                 trailing: IconButton(
                   tooltip: s.delete,
                   color: colors.onSurfaceVariant,
-                  icon: const Icon(Icons.delete_outline, size: 20),
+                  icon: const Icon(AppIcons.delete, size: 20),
                   onPressed: () => _delete(context, entry.fact, section),
                 ),
               ),
@@ -117,12 +118,12 @@ class AboutMeScreen extends StatelessWidget {
       final label = Text(session.strings.addFact);
       void add() => _edit(context);
       return wide
-          ? FilledButton.tonalIcon(icon: const Icon(Icons.add), label: label, onPressed: add)
+          ? FilledButton.tonalIcon(icon: const Icon(AppIcons.add), label: label, onPressed: add)
           : FloatingActionButton.extended(
               backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Theme.of(context).colorScheme.onPrimary,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-              icon: const Icon(Icons.add),
+              icon: const Icon(AppIcons.add),
               label: label,
               onPressed: add,
             );
@@ -175,7 +176,7 @@ class AboutMeScreen extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             child: ListTile(
               contentPadding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.s, Gap.xs),
-              leading: Icon(Icons.shield_outlined, color: theme.colorScheme.primary),
+              leading: Icon(AppIcons.shield, color: theme.colorScheme.primary),
               title: Text(
                 s.aboutMeShared(session.aboutMeToCloud),
                 style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
@@ -187,7 +188,7 @@ class AboutMeScreen extends StatelessWidget {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-              trailing: Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant),
+              trailing: Icon(AppIcons.chevronRight, color: theme.colorScheme.onSurfaceVariant),
               onTap: privacy,
             ),
           ),

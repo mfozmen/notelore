@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'about_me_page.dart';
 import 'calendar.dart';
 import 'chat.dart';
+import 'icons.dart';
 import 'lock.dart';
 import 'mark.dart';
 import 'notes.dart';
@@ -411,11 +412,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     // task: Settings, secondary, is in the menu at the top (#509).
     final wide = width >= Layout.wide;
     final destinations = [
-      (Icons.chat_bubble_outline, Icons.chat_bubble, s.chat),
-      (Icons.description_outlined, Icons.description, s.notes),
-      (Icons.calendar_month_outlined, Icons.calendar_month, s.calendar),
-      (Icons.person_outline, Icons.person, s.aboutMeSection),
-      if (wide) (Icons.settings_outlined, Icons.settings, s.settings),
+      (AppIcons.chat, AppIcons.chatActive, s.chat),
+      (AppIcons.note, AppIcons.noteActive, s.notes),
+      (AppIcons.calendar, AppIcons.calendarActive, s.calendar),
+      (AppIcons.person, AppIcons.personActive, s.aboutMeSection),
+      if (wide) (AppIcons.settings, AppIcons.settingsActive, s.settings),
     ];
     final tab = _tab < destinations.length ? _tab : 0; // a window made narrow on Settings
     void select(int tab) => setState(() {
@@ -515,7 +516,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   for (final (icon, chosen, label) in destinations)
                     NavigationDestination(
                       icon: Icon(icon),
-                      selectedIcon: Icon(chosen),
+                      selectedIcon: AppIcons.duo(chosen),
                       label: label,
                     ),
                 ],
@@ -538,7 +539,7 @@ class AppMenu extends InheritedWidget {
     if (menu == null) return null;
     return IconButton(
       tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
-      icon: const Icon(Icons.menu),
+      icon: const Icon(AppIcons.menu),
       onPressed: menu.open,
     );
   }
@@ -627,7 +628,7 @@ class _SignInBannerState extends State<_SignInBanner> {
     final s = widget.session.strings;
     final colors = Theme.of(context).colorScheme;
     return MaterialBanner(
-      leading: Icon(Icons.cloud_off_outlined, color: colors.primary),
+      leading: Icon(AppIcons.cloudOff, color: colors.primary),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Gap.s,
@@ -676,7 +677,7 @@ class _CalendarBannerState extends State<_CalendarBanner> {
     final s = session.strings;
     final colors = Theme.of(context).colorScheme;
     return MaterialBanner(
-      leading: Icon(Icons.event_available_outlined, color: colors.primary),
+      leading: Icon(AppIcons.event, color: colors.primary),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Gap.s,
@@ -714,7 +715,7 @@ class _HeldBanner extends StatelessWidget {
     final sure = await showDialog<bool>(
       context: context,
       builder: (dialog) => AlertDialog(
-        icon: Icon(Icons.delete_outline, color: Theme.of(dialog).colorScheme.error),
+        icon: Icon(AppIcons.delete, color: Theme.of(dialog).colorScheme.error),
         title: Text(s.deleteHeldQuestion(held.length)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -754,7 +755,7 @@ class _HeldBanner extends StatelessWidget {
     final s = session.strings;
     final idle = !session.syncing;
     return MaterialBanner(
-      leading: Icon(Icons.cloud_off_outlined, color: Theme.of(context).colorScheme.primary),
+      leading: Icon(AppIcons.cloudOff, color: Theme.of(context).colorScheme.primary),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Gap.s,
@@ -805,9 +806,9 @@ class _DeviceUpdateBanner extends StatelessWidget {
       // One action sits beside the text, with almost no room above it.
       padding: const EdgeInsetsDirectional.only(start: Gap.m, top: Gap.s, bottom: Gap.s),
       leading: Icon(switch (update) {
-        DeviceUpdate.failed => Icons.error_outline,
-        DeviceUpdate.done => Icons.check_circle_outline,
-        _ => Icons.download_outlined,
+        DeviceUpdate.failed => AppIcons.error,
+        DeviceUpdate.done => AppIcons.done,
+        _ => AppIcons.download,
       }, color: colors.primary),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -957,7 +958,7 @@ class _SideRail extends StatelessWidget {
     required this.extended,
   });
 
-  final List<(IconData, IconData, String)> destinations;
+  final List<(IconData, Duotone, String)> destinations;
   final Session session;
   final int selected;
   final ValueChanged<int> select;
@@ -995,7 +996,7 @@ class _SideRail extends StatelessWidget {
         for (final (icon, chosen, label) in destinations)
           NavigationRailDestination(
             icon: Icon(icon),
-            selectedIcon: Icon(chosen),
+            selectedIcon: AppIcons.duo(chosen),
             label: Text(label),
           ),
       ],

@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 
 import 'app.dart' show AppMenu;
 import 'empty_state.dart';
+import 'icons.dart';
 import 'note_view.dart';
 import 'section_label.dart';
 import 'session.dart';
@@ -194,7 +195,7 @@ class _NotesScreenState extends State<NotesScreen> {
       children: [
         IconButton(
           tooltip: s.archive,
-          icon: const Icon(Icons.inventory_2_outlined),
+          icon: const Icon(AppIcons.archive),
           onPressed: () => Layout.isWide(context)
               ? setState(() => _archive = true)
               : Navigator.of(context)
@@ -202,14 +203,14 @@ class _NotesScreenState extends State<NotesScreen> {
         ),
         IconButton(
           tooltip: s.refresh,
-          icon: const Icon(Icons.refresh),
+          icon: const Icon(AppIcons.refresh),
           // The pull's spinner shows it, and a tap while it runs is ignored.
           onPressed: () => _refresher.currentState?.show(),
         ),
         PopupMenuButton<_NotesAction>(
           key: const Key('notes-more'),
           tooltip: s.moreNoteActions,
-          icon: const Icon(Icons.more_vert),
+          icon: const Icon(AppIcons.moreVert),
           onSelected: (action) async {
             switch (action) {
               case _NotesAction.import:
@@ -341,12 +342,12 @@ class _NotesScreenState extends State<NotesScreen> {
             decoration: InputDecoration(
               hintText: s.searchNotes,
               hintStyle: TextStyle(fontSize: 14.5, color: colors.onSurfaceVariant),
-              prefixIcon: Icon(Icons.search, size: 20, color: colors.onSurfaceVariant),
+              prefixIcon: Icon(AppIcons.search, size: 20, color: colors.onSurfaceVariant),
               suffixIcon: _search.text.isEmpty
                   ? null
                   : IconButton(
                       tooltip: s.clearSearch,
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(AppIcons.close),
                       onPressed: () => setState(_search.clear),
                     ),
             ),
@@ -482,13 +483,13 @@ class _NotesScreenState extends State<NotesScreen> {
                 hasScrollBody: false,
                 child: Center(
                   child: EmptyState(
-                    icon: Icons.description_outlined,
+                    icon: AppIcons.noteActive,
                     title: s.noNotes,
                     actions: [
                       FilledButton.tonal(onPressed: widget.toChat, child: Text(s.goToChat)),
                       OutlinedButton.icon(
                         onPressed: _import,
-                        icon: const Icon(Icons.file_open_outlined),
+                        icon: const Icon(AppIcons.fileOpen),
                         label: Text(s.importNotes),
                       ),
                     ],
@@ -603,12 +604,12 @@ class _NotesScreenState extends State<NotesScreen> {
                 _pin(note, pinned: note.pinned),
                 IconButton(
                   tooltip: s.export,
-                  icon: const Icon(Icons.ios_share),
+                  icon: const Icon(AppIcons.share),
                   onPressed: () => _export([note]),
                 ),
                 IconButton(
                   tooltip: s.delete,
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const Icon(AppIcons.delete),
                   onPressed: () => _delete(note),
                 ),
               ],
@@ -631,7 +632,7 @@ class _NotesScreenState extends State<NotesScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.menu_book_outlined, size: 56, color: Theme.of(context).colorScheme.primary),
+            Icon(AppIcons.book, size: 56, color: Theme.of(context).colorScheme.primary),
             const SizedBox(height: Gap.m),
             Text(
               s.pickNote,
@@ -666,12 +667,12 @@ class _NotesScreenState extends State<NotesScreen> {
               ),
               IconButton(
                 tooltip: widget.session.strings.export,
-                icon: const Icon(Icons.ios_share),
+                icon: const Icon(AppIcons.share),
                 onPressed: () => _export([note]),
               ),
               IconButton(
                 tooltip: widget.session.strings.delete,
-                icon: const Icon(Icons.delete_outline),
+                icon: const Icon(AppIcons.delete),
                 onPressed: () async {
                   if (await _delete(note) && reader.mounted) Navigator.of(reader).pop();
                 },
@@ -703,8 +704,8 @@ class _NotesScreenState extends State<NotesScreen> {
     builder: (context) => IconButton(
       tooltip: pinned ? widget.session.strings.unpin : widget.session.strings.pin,
       isSelected: pinned,
-      icon: const Icon(Icons.push_pin_outlined),
-      selectedIcon: Icon(Icons.push_pin, color: Theme.of(context).colorScheme.primary),
+      icon: const Icon(AppIcons.pin),
+      selectedIcon: Icon(AppIcons.pinOn, color: Theme.of(context).colorScheme.primary),
       onPressed: () async {
         if (await widget.session.pinNote(note, pinned: !pinned)) done?.call();
       },
@@ -824,7 +825,7 @@ class _LookBack extends StatelessWidget {
               ),
               IconButton(
                 tooltip: s.hideThisWeek,
-                icon: const Icon(Icons.close, size: 18),
+                icon: const Icon(AppIcons.close, size: 18),
                 onPressed: close,
               ),
             ],
@@ -1063,7 +1064,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     final sure = await showDialog<bool>(
       context: context,
       builder: (dialog) => AlertDialog(
-        icon: Icon(Icons.delete_forever_outlined, color: colors.error),
+        icon: Icon(AppIcons.deleteForever, color: colors.error),
         title: Text(title),
         content: Text(body),
         actions: [
@@ -1104,13 +1105,13 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
         title: archived.entries ? Text(s.archivedTitle(archived)) : null,
         actions: [
           TextButton.icon(
-            icon: const Icon(Icons.restore),
+            icon: const Icon(AppIcons.restore),
             label: Text(s.restore),
             onPressed: () => _restore(archived, close),
           ),
           IconButton(
             tooltip: s.deleteForever,
-            icon: const Icon(Icons.delete_forever_outlined),
+            icon: const Icon(AppIcons.deleteForever),
             onPressed: () async {
               if (await _deleteForever(archived)) close();
             },
@@ -1162,13 +1163,14 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
             PopupMenuButton<String>(
               key: const Key('archive-more'),
               tooltip: s.archiveActions,
+              icon: const Icon(AppIcons.moreVert),
               onSelected: (_) => _empty(archived.length),
               itemBuilder: (_) => [
                 PopupMenuItem(
                   value: 'empty',
                   child: Row(
                     children: [
-                      Icon(Icons.delete_sweep_outlined, color: colors.error),
+                      Icon(AppIcons.cleanup, color: colors.error),
                       const SizedBox(width: Gap.s),
                       Expanded(
                         child: Text(s.emptyArchive, style: TextStyle(color: colors.error)),
@@ -1188,7 +1190,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
           constraints: const BoxConstraints(maxWidth: Layout.column),
           child: archived.isEmpty
               ? Center(
-                  child: EmptyState(icon: Icons.inventory_2_outlined, title: s.archiveEmpty),
+                  child: EmptyState(icon: AppIcons.archiveEmpty, title: s.archiveEmpty),
                 )
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
@@ -1196,7 +1198,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                   separatorBuilder: (_, _) => const SizedBox(height: Gap.s),
                   itemBuilder: (context, index) => Card(
                     child: ListTile(
-                      leading: const Icon(Icons.inventory_2_outlined),
+                      leading: const Icon(AppIcons.archive),
                       title: Text(s.archivedTitle(archived[index])),
                       subtitle: Text(
                         s.archivedOn(
@@ -1213,19 +1215,20 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                         children: [
                           IconButton(
                             tooltip: s.restore,
-                            icon: const Icon(Icons.restore),
+                            icon: const Icon(AppIcons.restore),
                             onPressed: () => _restore(archived[index], () {}),
                           ),
                           PopupMenuButton<String>(
                             key: ValueKey('archive-note-more-${archived[index].original}'),
                             tooltip: s.moreNoteActions,
+                            icon: const Icon(AppIcons.moreVert),
                             onSelected: (_) => _deleteForever(archived[index]),
                             itemBuilder: (_) => [
                               PopupMenuItem(
                                 value: 'delete',
                                 child: Row(
                                   children: [
-                                    Icon(Icons.delete_forever_outlined, color: colors.error),
+                                    Icon(AppIcons.deleteForever, color: colors.error),
                                     const SizedBox(width: Gap.s),
                                     Expanded(
                                       child: Text(
@@ -1307,10 +1310,7 @@ class _NoteRow extends StatelessWidget {
           radius: 16,
           backgroundColor: colors.primaryContainer,
           foregroundColor: colors.primary,
-          child: Icon(
-            note.kind == 'project' ? Icons.folder_outlined : Icons.sell_outlined,
-            size: 18,
-          ),
+          child: Icon(note.kind == 'project' ? AppIcons.folder : AppIcons.tag, size: 18),
         ),
         title: Text(
           note.title,
@@ -1362,7 +1362,7 @@ class _NoteRow extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.checklist, size: 16, color: colors.primary),
+                        Icon(AppIcons.checklist, size: 16, color: colors.primary),
                         const SizedBox(width: Gap.xs),
                         Text('${note.openTodos}', style: muted?.copyWith(color: colors.primary)),
                       ],

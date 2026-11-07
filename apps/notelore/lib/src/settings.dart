@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
-
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'icons.dart';
 import 'lock.dart';
 import 'mark.dart';
 import 'model_names.dart';
@@ -20,15 +20,15 @@ import 'whisper_speech.dart' show MicrophoneChoice;
 
 /// Settings' categories: the side list on a wide window, the phone's menu.
 enum SettingsSection {
-  model(Icons.auto_awesome_outlined),
-  voice(Icons.record_voice_over_outlined),
-  sync(Icons.cloud_outlined),
-  appearance(Icons.palette_outlined),
-  lock(Icons.lock_outline),
-  privacy(Icons.shield_outlined),
-  reminders(Icons.notifications_outlined),
-  advanced(Icons.insights_outlined),
-  about(Icons.info_outline);
+  model(AppIcons.sparkle),
+  voice(AppIcons.voice),
+  sync(AppIcons.cloud),
+  appearance(AppIcons.palette),
+  lock(AppIcons.lock),
+  privacy(AppIcons.shield),
+  reminders(AppIcons.notifications),
+  advanced(AppIcons.insights),
+  about(AppIcons.info);
 
   const SettingsSection(this.icon);
 
@@ -398,7 +398,7 @@ class _ModelCard extends StatelessWidget {
           children: [
             _Connections(session),
             _SettingRow(
-              icon: Icons.psychology_outlined,
+              icon: AppIcons.brain,
               title: s.modelInUse,
               control: _ModelPicker(
                 session: session,
@@ -410,7 +410,7 @@ class _ModelCard extends StatelessWidget {
               ),
             ),
             SwitchListTile(
-              secondary: const Icon(Icons.travel_explore),
+              secondary: const Icon(AppIcons.web),
               title: Text(s.webSearch),
               subtitle: Text(webSearch),
               value: session.webSearch && spec.webSearch,
@@ -550,11 +550,11 @@ class _ConnectionsState extends State<_Connections> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
                 _ when spec == session.spec => Icon(
-                  Icons.check_circle,
+                  AppIcons.checked,
                   color: colors.primary,
                   semanticLabel: s.nowUsing(s.providerName(spec)),
                 ),
-                _ => const Icon(Icons.radio_button_unchecked),
+                _ => const Icon(AppIcons.unchecked),
               },
               title: Text(s.providerName(spec)),
               subtitle: Text(s.groupHeading(spec.group)),
@@ -564,7 +564,7 @@ class _ConnectionsState extends State<_Connections> {
                 tooltip: s.remove,
                 // A removal never wears the accent colour of the one in use.
                 color: colors.onSurfaceVariant,
-                icon: const Icon(Icons.delete_outline),
+                icon: const Icon(AppIcons.delete),
                 onPressed: _switching != null ? null : () => _remove(spec),
               ),
             ),
@@ -590,7 +590,7 @@ class _ConnectionsState extends State<_Connections> {
         // OpenAI's guidelines link the plan's usage; here rather than by the composer (#507).
         if (session.spec?.access == ProviderAccess.signIn)
           ListTile(
-            leading: const Icon(Icons.open_in_new),
+            leading: const Icon(AppIcons.openInNew),
             title: Text(s.manageUsage),
             subtitle: Text(s.usingChatGptPlan),
             onTap: () =>
@@ -599,7 +599,7 @@ class _ConnectionsState extends State<_Connections> {
         Padding(
           padding: EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, session.spec == null ? Gap.m : Gap.xs),
           child: OutlinedButton.icon(
-            icon: const Icon(Icons.add),
+            icon: const Icon(AppIcons.add),
             label: Text(s.connectAnother),
             onPressed: _connectAnother,
           ),
@@ -609,7 +609,7 @@ class _ConnectionsState extends State<_Connections> {
             padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, Gap.m),
             child: TextButton.icon(
               style: TextButton.styleFrom(foregroundColor: colors.error),
-              icon: const Icon(Icons.logout),
+              icon: const Icon(AppIcons.logout),
               label: Text(s.removeAllModels),
               onPressed: _switching != null ? null : _removeAll,
             ),
@@ -636,10 +636,10 @@ class _AdvancedCard extends StatelessWidget {
     return Card(
       child: ListTile(
         key: const Key('open-usage'),
-        leading: const Icon(Icons.bar_chart),
+        leading: const Icon(AppIcons.chart),
         title: Text(s.usage),
         subtitle: Text(s.usageWhat),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: const Icon(AppIcons.chevronRight),
         onTap:
             onOpen ??
             () =>
@@ -660,7 +660,7 @@ class _PrivacyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     child: SwitchListTile(
-      secondary: const Icon(Icons.shield_outlined),
+      secondary: const Icon(AppIcons.shield),
       title: Text(session.strings.aboutMeToCloud),
       subtitle: Text(session.strings.aboutMeToCloudWhy),
       value: session.aboutMeToCloud,
@@ -682,7 +682,7 @@ class _LanguageCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: Gap.s),
         child: _SettingRow(
-          icon: Icons.translate,
+          icon: AppIcons.translate,
           title: s.appLanguage,
           control: _picker(
             context: context,
@@ -716,7 +716,7 @@ class _LookCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ListTile(leading: const Icon(Icons.contrast), title: Text(s.theme)),
+            ListTile(leading: const Icon(AppIcons.contrast), title: Text(s.theme)),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Gap.m),
               child: Wrap(
@@ -744,9 +744,9 @@ class _LookCard extends StatelessWidget {
                       ),
                       label: Text(s.appearanceName(a)),
                       avatar: Icon(switch (a) {
-                        Appearance.system => Icons.brightness_auto_outlined,
-                        Appearance.light => Icons.light_mode_outlined,
-                        Appearance.dark => Icons.dark_mode_outlined,
+                        Appearance.system => AppIcons.systemMode,
+                        Appearance.light => AppIcons.lightMode,
+                        Appearance.dark => AppIcons.darkMode,
                       }),
                       showCheckmark: false,
                       selected: session.appearance == a,
@@ -780,7 +780,7 @@ class _ChatTextCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ListTile(
-              leading: const Icon(Icons.format_size),
+              leading: const Icon(AppIcons.textSize),
               title: Text(s.chatTextSize),
               subtitle: Text(s.chatTextSizeWhy),
             ),
@@ -792,7 +792,7 @@ class _ChatTextCard extends StatelessWidget {
                 children: [
                   IconButton(
                     tooltip: s.textSizeSmaller,
-                    icon: const Icon(Icons.text_decrease),
+                    icon: const Icon(AppIcons.textSmaller),
                     onPressed: step > 0 ? session.zoomChatOut : null,
                   ),
                   ConstrainedBox(
@@ -805,7 +805,7 @@ class _ChatTextCard extends StatelessWidget {
                   ),
                   IconButton(
                     tooltip: s.textSizeLarger,
-                    icon: const Icon(Icons.text_increase),
+                    icon: const Icon(AppIcons.textBigger),
                     onPressed: step < last ? session.zoomChatIn : null,
                   ),
                   if (step != Session.chatTextDefault)
@@ -839,7 +839,7 @@ class _VoiceCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ListTile(
-              leading: const Icon(Icons.record_voice_over_outlined),
+              leading: const Icon(AppIcons.voice),
               title: Text(s.whisper),
               subtitle: Text(s.whisperWhy),
             ),
@@ -868,7 +868,7 @@ class _VoiceCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: Gap.m),
                 child: OutlinedButton.icon(
-                  icon: const Icon(Icons.refresh),
+                  icon: const Icon(AppIcons.refresh),
                   onPressed: session.downloadWhisper,
                   label: Text(s.tryAgain),
                 ),
@@ -886,7 +886,7 @@ class _VoiceCard extends StatelessWidget {
     // A microphone unplugged since it was picked: the default.
     final chosen = microphones.any((m) => m.id == session.microphone) ? session.microphone : null;
     return _SettingRow(
-      icon: Icons.mic_none,
+      icon: AppIcons.mic,
       title: s.microphone,
       control: Row(
         children: [
@@ -902,7 +902,7 @@ class _VoiceCard extends StatelessWidget {
           // One plugged in since Settings opened.
           IconButton(
             tooltip: s.listMicrophones,
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(AppIcons.refresh),
             onPressed: listAgain,
           ),
         ],
@@ -927,7 +927,7 @@ class _LockCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ListTile(
-              leading: const Icon(Icons.lock_outline),
+              leading: const Icon(AppIcons.lock),
               title: Text(s.protection),
               subtitle: Text(session.lock.enabled ? s.appLockOn(session.lock.kind) : s.appLockOff),
             ),
@@ -935,12 +935,12 @@ class _LockCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: Gap.m),
               child: session.lock.enabled
                   ? OutlinedButton.icon(
-                      icon: const Icon(Icons.lock_open_outlined),
+                      icon: const Icon(AppIcons.lockOpen),
                       onPressed: () => turnLockOff(context, session),
                       label: Text(s.turnOff),
                     )
                   : FilledButton.tonalIcon(
-                      icon: const Icon(Icons.lock_outline),
+                      icon: const Icon(AppIcons.lock),
                       onPressed: () => turnLockOn(context, session),
                       label: Text(s.turnOn),
                     ),
@@ -980,22 +980,22 @@ class _RemindersCard extends StatelessWidget {
       return [
         ListTile(
           // Without the grant here, this device still reminds.
-          leading: const Icon(Icons.notifications_outlined),
+          leading: const Icon(AppIcons.notifications),
           title: Text(s.howRemindersArrive),
           subtitle: Text(s.calendarElsewhere),
         ),
-        _action(Icons.login, s.signInCalendar, session.signInCalendar),
+        _action(AppIcons.login, s.signInCalendar, session.signInCalendar),
       ];
     }
     // This device's notifications, where it has them at all.
     if (session.remindersAllowed != false) return const [];
     return [
       ListTile(
-        leading: const Icon(Icons.notifications_off_outlined),
+        leading: const Icon(AppIcons.notificationsOff),
         title: Text(s.howRemindersArrive),
         subtitle: Text(s.remindersOff),
       ),
-      _action(Icons.notifications_active_outlined, s.allowNotifications, () async {
+      _action(AppIcons.notificationsOn, s.allowNotifications, () async {
         final messenger = ScaffoldMessenger.of(context);
         // Refused before, the system asks no more: say where to turn them on.
         if (!await session.allowReminders()) {
@@ -1023,7 +1023,7 @@ class _RemindersCard extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
             )
-          : const Icon(Icons.calendar_month_outlined),
+          : const Icon(AppIcons.calendar),
       title: Text(s.addToCalendar),
       // What went wrong stands under the switch it belongs to.
       subtitle: problem == null
@@ -1079,7 +1079,7 @@ class _AboutCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.m),
                 child: OutlinedButton.icon(
-                  icon: const Icon(Icons.system_update_alt),
+                  icon: const Icon(AppIcons.update),
                   onPressed: check,
                   label: Text(s.checkForUpdates),
                 ),
@@ -1088,7 +1088,7 @@ class _AboutCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.m),
                 child: FilledButton.icon(
-                  icon: const Icon(Icons.system_update_alt),
+                  icon: const Icon(AppIcons.update),
                   onPressed: update,
                   label: Text('${s.update} $version'),
                 ),
@@ -1182,7 +1182,7 @@ class _ModelPickerState extends State<_ModelPicker> {
                     alignment: Alignment.centerLeft,
                     child: TextButton.icon(
                       onPressed: _retry,
-                      icon: const Icon(Icons.refresh),
+                      icon: const Icon(AppIcons.refresh),
                       label: Text(s.tryAgain),
                     ),
                   ),
@@ -1244,6 +1244,8 @@ Widget _picker<T>({
     initialSelection: value,
     requestFocusOnTap: false,
     expandedInsets: EdgeInsets.zero,
+    trailingIcon: const Icon(AppIcons.expand),
+    selectedTrailingIcon: const Icon(AppIcons.collapse),
     helperText: helper,
     dropdownMenuEntries: [
       for (final (value, label) in entries)
@@ -1331,14 +1333,14 @@ class _DriveSection extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!session.driveAvailable) {
       return ListTile(
-        leading: const Icon(Icons.cloud_off_outlined),
+        leading: const Icon(AppIcons.cloudOff),
         title: Text(session.strings.drive),
         subtitle: Text(session.strings.driveNotSetUp),
       );
     }
     if (!session.driveConnected) {
       return ListTile(
-        leading: const Icon(Icons.cloud_outlined),
+        leading: const Icon(AppIcons.cloud),
         title: Text(session.strings.drive),
         subtitle: Text(session.syncStatus ?? session.strings.driveExplained),
         trailing: FilledButton(
@@ -1352,7 +1354,7 @@ class _DriveSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ListTile(
-          leading: const Icon(Icons.cloud_done_outlined),
+          leading: const Icon(AppIcons.cloudDone),
           title: Text(session.strings.drive),
           subtitle: Text(
             session.syncing
@@ -1368,7 +1370,7 @@ class _DriveSection extends StatelessWidget {
             children: [
               TextButton.icon(
                 onPressed: session.syncing ? null : session.syncNow,
-                icon: const Icon(Icons.sync),
+                icon: const Icon(AppIcons.sync),
                 label: Text(session.strings.syncNow),
               ),
               TextButton.icon(
@@ -1378,7 +1380,7 @@ class _DriveSection extends StatelessWidget {
                   Navigator.of(context).popUntil((route) => route.isFirst);
                   session.disconnectDrive();
                 },
-                icon: const Icon(Icons.link_off),
+                icon: const Icon(AppIcons.linkOff),
                 label: Text(session.strings.disconnectDrive),
               ),
             ],
