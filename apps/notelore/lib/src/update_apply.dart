@@ -81,8 +81,13 @@ final class UpdateJob {
 
 /// Copies every staged file into place, verifying its hash before and after.
 /// On any failure every touched file is put back from the backup; throws
-/// [UpdateApplyFailed].
-Future<void> applyUpdate(UpdateJob job, {void Function(String message)? log}) async {
+/// [UpdateApplyFailed]. [refreshIcons] runs once the new files are in: the
+/// setup tells the shell its icons changed, so this path must too.
+Future<void> applyUpdate(
+  UpdateJob job, {
+  void Function(String message)? log,
+  void Function()? refreshIcons,
+}) async {
   final install = Directory(job.install);
   final staging = Directory(job.staging);
   if (!install.existsSync()) throw UpdateApplyFailed('no app folder at ${job.install}');
@@ -102,6 +107,7 @@ Future<void> applyUpdate(UpdateJob job, {void Function(String message)? log}) as
     backup.deleteSync(recursive: true);
     rethrow;
   }
+  refreshIcons?.call();
 }
 
 void _copyOne(
