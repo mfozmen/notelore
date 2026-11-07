@@ -1801,12 +1801,23 @@ class Session extends ChangeNotifier {
   String? notesTag;
 
   /// Of [notes], those with every word of [query] in their title or their
-  /// words, folded like the index's search.
+  /// words, folded like the index's search; the line that matched stands in
+  /// for the newest words, unless only the title did.
   List<NoteInfo> findNotes(String query, List<NoteInfo> notes) {
     final found = index.notesWith(query);
     return [
       for (final note in notes)
-        if (found.contains((note.kind, note.slug))) note,
+        if (found.containsKey((note.kind, note.slug)))
+          NoteInfo(
+            note.slug,
+            note.kind,
+            note.title,
+            note.updated,
+            pinned: note.pinned,
+            excerpt: found[(note.kind, note.slug)] ?? note.excerpt,
+            tags: note.tags,
+            openTodos: note.openTodos,
+          ),
     ];
   }
 

@@ -530,27 +530,33 @@ class NoteIndex {
 
   /// The notes (kind, slug) where every word of [query] is in the title or
   /// the text, case and accents folded: the notes list's filter, which narrows
-  /// as words are added, unlike [search]'s ranked recall.
+  /// as words are added, unlike [search]'s ranked recall. Each maps to its line
+  /// with the most of the words, or null when only the title has them.
   // shortcut: folds every note's text per call; an index column if notes grow to thousands.
-  Set<(String, String)> notesWith(String query) {
-    final words = _fold(query).split(_nonWord).where((w) => w.isNotEmpty).toList();
+  Map<(String, String), String?> notesWith(String query) {
+    final words = _words(query);
     if (words.isEmpty) return {};
-    final texts = <String, (String, String, StringBuffer)>{
+    final notes = <String, (String, String, StringBuffer, List<String>)>{
       for (final row in _db.select(
         'SELECT path, kind, slug, title FROM files WHERE title IS NOT NULL',
       ))
         row.columnAt(0) as String: (
           row.columnAt(1) as String,
           row.columnAt(2) as String,
-          StringBuffer(_fold(row.columnAt(3) as String)),
+          StringBuffer(_loose(row.columnAt(3) as String)),
+          [],
         ),
     };
-    for (final row in _db.select('SELECT path, text FROM content')) {
-      texts[row.columnAt(0)]?.$3.write('\n${_fold(row.columnAt(1) as String)}');
+    for (final row in _db.select('SELECT path, text FROM content ORDER BY rowid')) {
+      if (notes[row.columnAt(0)] case (_, _, final folded, final lines)?) {
+        final text = row.columnAt(1) as String;
+        folded.write('\n${_loose(text)}');
+        lines.addAll(text.split('\n'));
+      }
     }
     return {
-      for (final (kind, slug, text) in texts.values)
-        if (words.every(text.toString().contains)) (kind, slug),
+      for (final (kind, slug, folded, lines) in notes.values)
+        if (words.every(folded.toString().contains)) (kind, slug): _bestLine(lines, words),
     };
   }
 
@@ -665,6 +671,63 @@ final _mark = RegExp(r'\p{M}', unicode: true);
 String _fold(String text) => unorm.nfkd(text.toLowerCase()).replaceAll(_mark, '');
 
 final _nonWord = RegExp(r'[^\p{L}\p{N}]+', unicode: true);
+
+/// [_fold] with dotless ı as i, so "isik" finds "Işık" and "ılık" finds "ILIK".
+String _loose(String text) => _fold(text).replaceAll('ı', 'i');
+
+List<String> _words(String query) =>
+    _loose(query).split(_nonWord).where((w) => w.isNotEmpty).toList();
+
+/// The line of [lines] with the most [words], trimmed; null when none has one.
+/// A match deep in a long line is brought near its start, so it shows.
+String? _bestLine(List<String> lines, List<String> words) {
+  String? best;
+  var most = 0;
+  for (final line in lines) {
+    final folded = _loose(line);
+    final count = words.where(folded.contains).length;
+    if (count > most) (best, most) = (line.trim(), count);
+  }
+  if (best == null) return null;
+  final first = _ranges(best, words).first.$1;
+  final cut = first > 60 ? best.lastIndexOf(' ', first - 20) : -1;
+  return cut < 0 ? best : '…${best.substring(cut + 1)}';
+}
+
+/// Where the words of [query] are in [text], folded like [NoteIndex.notesWith]:
+/// sorted (start, end) offsets into [text], overlaps merged. For highlighting.
+List<(int, int)> matchRanges(String text, String query) => _ranges(text, _words(query));
+
+List<(int, int)> _ranges(String text, List<String> words) {
+  // Folded per character, so each folded unit knows the text it came from.
+  final folded = StringBuffer();
+  final starts = <int>[];
+  final ends = <int>[];
+  var at = 0;
+  for (final rune in text.runes) {
+    final char = String.fromCharCode(rune);
+    final loose = _loose(char);
+    folded.write(loose);
+    starts.addAll(List.filled(loose.length, at));
+    at += char.length;
+    ends.addAll(List.filled(loose.length, at));
+  }
+  final hay = folded.toString();
+  final found = [
+    for (final word in words)
+      for (var i = hay.indexOf(word); i >= 0; i = hay.indexOf(word, i + 1))
+        (starts[i], ends[i + word.length - 1]),
+  ]..sort((a, b) => a.$1.compareTo(b.$1));
+  final merged = <(int, int)>[];
+  for (final range in found) {
+    if (merged.isNotEmpty && range.$1 <= merged.last.$2) {
+      merged.last = (merged.last.$1, max(merged.last.$2, range.$2));
+    } else {
+      merged.add(range);
+    }
+  }
+  return merged;
+}
 
 /// The words of [query], folded and cut to prefixes, so suffixes do not matter.
 /// A long word gives two terms: a stem without its last three letters, and its
