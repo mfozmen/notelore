@@ -642,8 +642,7 @@ class Session extends ChangeNotifier {
     _saveUi();
   }
 
-  /// The Sunday (YYYY-MM-DD) whose week look back was closed on this device;
-  /// never synced.
+  /// The Sunday whose look back was closed here, as an ISO date, never synced.
   String? lookBackClosed;
 
   void closeLookBack(String sunday) {
