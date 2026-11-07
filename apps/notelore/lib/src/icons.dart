@@ -8,7 +8,7 @@ const _duotone = 'Phosphor Duotone';
 typedef Duotone = ({IconData line, IconData fill});
 
 /// Every glyph the app draws, from the bundled Phosphor fonts: Regular
-/// everywhere, Fill for a toggle's "on" state, Duotone for the active tab and
+/// everywhere, Fill for a toggle's "on" state and Send, Duotone for the active tab and
 /// empty screens. Code points are Phosphor 2.1's; one glyph has the same one in
 /// every font, so the family alone picks Regular or Fill.
 abstract final class AppIcons {
@@ -86,7 +86,7 @@ abstract final class AppIcons {
   static const restore = IconData(0xe038, fontFamily: _regular);
   static const schedule = IconData(0xe19a, fontFamily: _regular);
   static const search = IconData(0xe30c, fontFamily: _regular);
-  static const send = IconData(0xe08e, fontFamily: _regular);
+  static const send = IconData(0xe08e, fontFamily: _fill);
   static const settings = IconData(0xe270, fontFamily: _regular);
   static const share = IconData(0xeaf0, fontFamily: _regular);
   static const shield = IconData(0xe40a, fontFamily: _regular);
