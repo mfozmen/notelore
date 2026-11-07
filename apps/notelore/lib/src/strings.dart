@@ -497,6 +497,12 @@ abstract class Strings {
 
   /// A search that found nothing, and what to try instead.
   String noNoteMentions(String query);
+
+  // The Notes list's filter chips (#793).
+  String get filterAll;
+  String get filterProjects;
+  String get filterTopics;
+  String get noFilteredNotes;
   String get restore;
   String restored(String title);
 
@@ -1461,6 +1467,14 @@ class EnglishStrings extends Strings {
   @override
   String noNoteMentions(String query) =>
       'No note mentions "$query". Try other words, or ask in the chat.';
+  @override
+  String get filterAll => 'All';
+  @override
+  String get filterProjects => 'Projects';
+  @override
+  String get filterTopics => 'Topics';
+  @override
+  String get noFilteredNotes => 'No notes here. Pick another filter, or All.';
   @override
   String get restore => 'Restore';
   @override
@@ -2644,6 +2658,14 @@ class TurkishStrings extends Strings {
   @override
   String noNoteMentions(String query) =>
       '"$query" geçen bir not yok. Başka kelimeler dene ya da sohbette sor.';
+  @override
+  String get filterAll => 'Tümü';
+  @override
+  String get filterProjects => 'Projeler';
+  @override
+  String get filterTopics => 'Konular';
+  @override
+  String get noFilteredNotes => 'Burada not yok. Başka bir filtre ya da Tümü seç.';
   @override
   String get restore => 'Geri getir';
   @override
