@@ -20,8 +20,9 @@ class QuickWindow {
 
  private:
   bool Listen(bool on);
+  bool TypesOnAltGr() const;
   void Compact();
-  void Restore();
+  void Restore(bool refocus);
   void Front();
 
   HWND window_;

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
@@ -667,7 +668,10 @@ class _QuickShortcutCard extends StatelessWidget {
         secondary: const Icon(Icons.keyboard_command_key),
         title: Text(s.quickShortcut),
         subtitle: Text(
-          [s.quickShortcutInfo(quick.host.keys), if (quick.taken) s.quickShortcutTaken].join(' '),
+          [
+            s.quickShortcutInfo(quick.host.keys.join(Platform.isMacOS ? '' : '+')),
+            if (quick.taken) s.quickShortcutTaken,
+          ].join(' '),
         ),
         value: session.quickShortcut,
         onChanged: (on) => session.setQuickShortcut(on: on),

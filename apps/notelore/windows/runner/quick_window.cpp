@@ -7,16 +7,17 @@ namespace {
 
 constexpr int kHotkey = 0x4E4C;  // any id unique to this window
 constexpr int kWidth = 460;
-constexpr int kHeight = 260;
+constexpr int kHeight = 224;
 constexpr int kTop = 64;
 
 // Takes the focus from the app in front. Windows keeps it from a background
 // process even after the shortcut, unless their input queues are joined.
 void TakeFocus(HWND window) {
+  BringWindowToTop(window);
+  if (SetForegroundWindow(window)) return;
   const DWORD front = GetWindowThreadProcessId(GetForegroundWindow(), nullptr);
   const DWORD self = GetCurrentThreadId();
   const bool joined = front != self && AttachThreadInput(front, self, TRUE);
-  BringWindowToTop(window);
   SetForegroundWindow(window);
   if (joined) AttachThreadInput(front, self, FALSE);
 }
@@ -37,7 +38,7 @@ QuickWindow::QuickWindow(HWND window, flutter::BinaryMessenger* messenger)
       Compact();
       result->Success();
     } else if (method == "restore") {
-      Restore();
+      Restore(true);
       result->Success();
     } else if (method == "front") {
       Front();
@@ -51,14 +52,31 @@ QuickWindow::QuickWindow(HWND window, flutter::BinaryMessenger* messenger)
 QuickWindow::~QuickWindow() { Listen(false); }
 
 bool QuickWindow::Handle(UINT message, WPARAM wparam) {
+  // A click on another app: the window steps back, as Esc would.
+  if (message == WM_ACTIVATE && LOWORD(wparam) == WA_INACTIVE && compact_) {
+    Restore(false);
+    channel_->InvokeMethod("closed", nullptr);
+    return false;
+  }
   if (message != WM_HOTKEY || wparam != kHotkey) return false;
   channel_->InvokeMethod("pressed", nullptr);
   return true;
 }
 
+// Windows reads Ctrl+Alt as AltGr: where AltGr+N types a letter (Polish ń),
+// the shortcut would take it from every app, so it counts as taken.
+bool QuickWindow::TypesOnAltGr() const {
+  BYTE keys[256] = {};
+  keys[VK_CONTROL] = keys[VK_LCONTROL] = keys[VK_MENU] = keys[VK_RMENU] = 0x80;
+  HKL layout = GetKeyboardLayout(0);
+  WCHAR typed[4];
+  const UINT scan = MapVirtualKeyEx('N', MAPVK_VK_TO_VSC, layout);
+  return ToUnicodeEx('N', scan, keys, typed, 4, 4, layout) != 0;
+}
+
 bool QuickWindow::Listen(bool on) {
   if (listening_) UnregisterHotKey(window_, kHotkey);
-  listening_ = on && RegisterHotKey(window_, kHotkey,
+  listening_ = on && !TypesOnAltGr() && RegisterHotKey(window_, kHotkey,
                                     MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, 'N');
   return listening_ || !on;
 }
@@ -92,7 +110,7 @@ void QuickWindow::Compact() {
   TakeFocus(window_);
 }
 
-void QuickWindow::Restore() {
+void QuickWindow::Restore(bool refocus) {
   if (!compact_) return;
   compact_ = false;
   SetWindowLongPtr(window_, GWL_STYLE, style_);
@@ -107,7 +125,7 @@ void QuickWindow::Restore() {
                  frame_.right - frame_.left, frame_.bottom - frame_.top,
                  SWP_NOZORDER | SWP_NOACTIVATE);
   }
-  if (previous_ && previous_ != window_ && IsWindow(previous_)) {
+  if (refocus && previous_ && previous_ != window_ && IsWindow(previous_)) {
     SetForegroundWindow(previous_);
   }
 }

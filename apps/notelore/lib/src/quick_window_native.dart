@@ -16,7 +16,7 @@ const _channel = MethodChannel('io.github.mfozmen.notelore/quick');
 
 class _ChannelHost implements QuickHost {
   @override
-  String get keys => Platform.isMacOS ? '⌥⌘N' : 'Ctrl+Alt+N';
+  List<String> get keys => Platform.isMacOS ? const ['⌥', '⌘', 'N'] : const ['Ctrl', 'Alt', 'N'];
 
   @override
   Future<bool> listen({required bool on}) async =>
@@ -37,7 +37,12 @@ void setUpQuickWindow(Session session) {
   if (!Platform.isWindows && !Platform.isMacOS) return;
   final quick = session.quickWindow = QuickWindow(session, _ChannelHost());
   _channel.setMethodCallHandler((call) async {
-    if (call.method == 'pressed') await quick.pressed();
+    switch (call.method) {
+      case 'pressed':
+        await quick.pressed();
+      case 'closed':
+        quick.closed();
+    }
   });
   // A runner without the channel (the tests' host) has no quick window.
   unawaited(
