@@ -1061,7 +1061,7 @@ class _ComposerRow extends StatelessWidget {
               onPressed: session.stop,
             ),
           if (typed.text.trim().isNotEmpty)
-            _Orb(
+            Orb(
               IconButton(
                 key: const Key('send'),
                 tooltip: s.send,
@@ -1080,8 +1080,8 @@ class _ComposerRow extends StatelessWidget {
 
 /// The glowing accent circle behind Talk and Send: lit from the top left,
 /// darker at its rim, with a soft glow of the accent under it.
-class _Orb extends StatelessWidget {
-  const _Orb(this.child);
+class Orb extends StatelessWidget {
+  const Orb(this.child, {super.key});
 
   final Widget child;
 
@@ -1206,7 +1206,7 @@ class _TalkButton extends StatelessWidget {
         canRequestFocus: false,
         skipTraversal: true,
         onKeyEvent: (_, event) => onKey(event),
-        child: _Orb(
+        child: Orb(
           IconButton(
             tooltip: label,
             icon: Icon(

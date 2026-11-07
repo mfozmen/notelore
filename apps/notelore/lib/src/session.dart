@@ -35,6 +35,7 @@ import 'lock_state.dart';
 import 'pdf_native.dart';
 import 'prefs.dart';
 import 'quick_widget.dart' show QuickOpen;
+import 'quick_window.dart' show QuickWindow;
 import 'reminder_center.dart';
 import 'reminder_notifier.dart';
 import 'strings.dart';
@@ -637,6 +638,25 @@ class Session extends ChangeNotifier {
 
   void resetChatText() => setChatTextStep(chatTextDefault);
 
+  /// The desktop's quick-add shortcut (#800), on unless turned off on this device.
+  var quickShortcut = true;
+
+  void setQuickShortcut({required bool on}) {
+    quickShortcut = on;
+    _saveUi();
+  }
+
+  /// The desktop's quick-add window (#800), set up at start; null on phones.
+  QuickWindow? quickWindow;
+
+  /// The window is the small quick-add one now.
+  var quickAddOpen = false;
+
+  void showQuickAdd({required bool open}) {
+    quickAddOpen = open;
+    notifyListeners();
+  }
+
   void setChatTextStep(int step) {
     final next = step.clamp(0, chatTextSteps.length - 1);
     if (next == chatTextStep) return;
@@ -665,6 +685,7 @@ class Session extends ChangeNotifier {
           'microphone': ?microphone,
           if (setUpBefore) 'setUp': true,
           if (chatTextStep != chatTextDefault) 'chatTextStep': chatTextStep,
+          if (!quickShortcut) 'quickShortcut': false,
           if (reminderCenter.calendarNudged) 'calendarNudged': true,
           'lookBackClosed': ?lookBackClosed,
         }),
@@ -690,6 +711,7 @@ class Session extends ChangeNotifier {
         ..clear()
         ..addAll((saved['dropCalendars'] as List? ?? const []).whereType<String>());
       setUpBefore = saved['setUp'] == true;
+      quickShortcut = saved['quickShortcut'] != false;
       chatTextStep = switch (saved['chatTextStep']) {
         final int step when step >= 0 && step < chatTextSteps.length => step,
         _ => chatTextDefault,
