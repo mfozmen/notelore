@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/soft.dart';
@@ -34,14 +35,32 @@ void main() {
       expect(find.byTooltip('Notes'), findsOneWidget);
       expect(
         tester.getSemantics(find.byTooltip('Notes')),
-        matchesSemantics(label: 'Notes', isButton: true, hasSelectedState: true),
+        matchesSemantics(
+          label: 'Notes',
+          isButton: true,
+          hasSelectedState: true,
+          hasTapAction: true,
+        ),
       );
       expect(
         tester.getSemantics(find.byTooltip('Chat')),
-        matchesSemantics(label: 'Chat', isButton: true, hasSelectedState: true, isSelected: true),
+        matchesSemantics(
+          label: 'Chat',
+          isButton: true,
+          hasSelectedState: true,
+          isSelected: true,
+          hasTapAction: true,
+        ),
       );
       await tester.tap(find.byTooltip('Notes'));
       expect(picked, [1]);
+      // A screen reader activates it, and a keyboard can reach and press it.
+      tester.semantics.tap(find.semantics.byLabel('Chat'));
+      expect(picked, [1, 0]);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(picked.length, 3);
       // Every tab keeps the 48-point target.
       expect(tester.getSize(find.byTooltip('Notes')).height, greaterThanOrEqualTo(48));
       semantics.dispose();

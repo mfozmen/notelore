@@ -159,13 +159,16 @@ class _Tab extends StatelessWidget {
       button: true,
       selected: selected,
       label: label,
+      onTap: onTap,
       excludeSemantics: true,
       child: Tooltip(
         message: label,
         excludeFromSemantics: true,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
+        // An InkWell, not a bare gesture, so a keyboard can focus and press it.
+        child: InkWell(
           onTap: onTap,
+          customBorder: const StadiumBorder(),
+          highlightColor: Colors.transparent,
           child: Pressed(
             child: SizedBox(height: 48, child: Center(widthFactor: 1, child: pill)),
           ),
