@@ -2550,6 +2550,133 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('notes: chips filter by kind and tag, with search and Coming up (#793)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness, clock: () => DateTime(2026, 11, 7, 10));
+    await connect(tester, key: 'k');
+    final root = harness.paths.notes.path;
+    final day = DateTime(2026, 11, 1);
+    final atlas = createNote(root, 'project', 'Atlas', tags: ['work'], today: day);
+    addTodo(atlas, 'Kick-off notes', due: DateTime(2026, 11, 12), today: day);
+    final trip = createNote(root, 'project', 'Lisbon trip', tags: ['family'], today: day);
+    addTodo(trip, 'Pack', due: DateTime(2026, 11, 8), today: day);
+    createNote(root, 'topic', 'Desk setup', tags: ['work', 'home'], today: day);
+    createNote(root, 'topic', 'Books', today: day);
+    await session.pinNote(
+      session.listNotes().firstWhere((n) => n.title == 'Desk setup'),
+      pinned: true,
+    );
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    Finder chip(String label) => find.widgetWithText(FilterChip, label);
+    bool on(String label) => tester.widget<FilterChip>(chip(label)).selected;
+    Future<void> pick(String label) async {
+      await tester.ensureVisible(chip(label));
+      await tester.tap(chip(label));
+    }
+
+    // All, the kinds, then the tags, the most used first.
+    double left(String label) => tester.getTopLeft(chip(label)).dx;
+    expect(left('All'), lessThan(left('Projects')));
+    expect(left('Projects'), lessThan(left('Topics')));
+    expect(left('Topics'), lessThan(left('#work')));
+    expect(left('#work'), lessThan(left('#family')));
+    expect(left('#family'), lessThan(left('#home')));
+    expect(on('All'), isTrue);
+    expect(tester.getSize(chip('Topics')).height, greaterThanOrEqualTo(48));
+    Finder note(String title) => find.widgetWithText(ListTile, title);
+    await pick('Projects');
+    await tester.pumpAndSettle();
+    expect(on('All'), isFalse);
+    expect(note('Atlas'), findsOneWidget);
+    expect(note('Lisbon trip'), findsOneWidget);
+    expect(note('Desk setup'), findsNothing);
+    expect(find.text('PINNED'), findsNothing);
+    // One tag joins the kind; Coming up follows.
+    await pick('#work');
+    await tester.pumpAndSettle();
+    expect(note('Atlas'), findsOneWidget);
+    expect(note('Lisbon trip'), findsNothing);
+    expect(find.text('Kick-off notes'), findsOneWidget);
+    expect(find.text('Pack'), findsNothing);
+    // One kind at a time, and the tag stays.
+    await pick('Topics');
+    await tester.pumpAndSettle();
+    expect(on('Projects'), isFalse);
+    expect(note('Desk setup'), findsOneWidget);
+    expect(note('Books'), findsNothing);
+    expect(find.text('COMING UP'), findsNothing);
+    expect(find.text('PINNED'), findsOneWidget);
+    // A tag tapped again comes off; one tag at a time.
+    await pick('#work');
+    await tester.pumpAndSettle();
+    expect(note('Books'), findsOneWidget);
+    await pick('#family');
+    await tester.pumpAndSettle();
+    expect(find.text('No notes here. Pick another filter, or All.'), findsOneWidget);
+    await pick('Topics');
+    await tester.pumpAndSettle();
+    expect(note('Lisbon trip'), findsOneWidget);
+    await pick('#home');
+    await tester.pumpAndSettle();
+    expect(on('#family'), isFalse);
+    expect(note('Desk setup'), findsOneWidget);
+    // The chosen tag moves first, in sight when the screen opens again.
+    expect(left('#home'), lessThan(left('#work')));
+    expect(left('Topics'), lessThan(left('#home')));
+    // With search: both narrow.
+    await tester.enterText(find.byKey(const Key('notes-search')), 'Atlas');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('No note mentions "Atlas"'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('notes-search')), '');
+    await tester.pumpAndSettle();
+    // Kept while the app runs, across tabs.
+    await tester.tap(find.text('Chat'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(on('#home'), isTrue);
+    expect(note('Atlas'), findsNothing);
+    // All clears both.
+    await pick('Projects');
+    await tester.pumpAndSettle();
+    await pick('All');
+    await tester.pumpAndSettle();
+    expect(on('All'), isTrue);
+    expect(on('Projects'), isFalse);
+    expect(on('#home'), isFalse);
+    for (final title in ['Atlas', 'Lisbon trip', 'Desk setup', 'Books']) {
+      expect(note(title), findsOneWidget);
+    }
+  });
+
+  testWidgets('notes: the eight most used tags, and a chosen one always (#793)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final root = harness.paths.notes.path;
+    for (var i = 0; i < 10; i++) {
+      createNote(root, 'topic', 'Note $i', tags: ['t$i', 'common'], today: today);
+    }
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    // #common, then by name.
+    expect(find.widgetWithText(FilterChip, '#common'), findsOneWidget);
+    expect(find.widgetWithText(FilterChip, '#t6'), findsOneWidget);
+    expect(find.widgetWithText(FilterChip, '#t7'), findsNothing);
+    session.notesTag = 't9';
+    session.notifyListeners();
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(ListTile, 'Note 9'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, 'Note 8'), findsNothing);
+    final chosen = find.widgetWithText(FilterChip, '#t9', skipOffstage: false);
+    expect(tester.widget<FilterChip>(chosen).selected, isTrue);
+  });
+
   testWidgets('notes: no Coming up without open todos ahead (#782)', (tester) async {
     phone(tester);
     final harness = Harness();
@@ -2956,7 +3083,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(session.listNotes().single.openTodos, 2);
     expect(find.text('Considered crypto, postponed.'), findsOneWidget); // the newest words
-    expect(find.textContaining('#investing'), findsOneWidget);
+    // On the row; the filter chip above is another (#793).
+    expect(
+      find.descendant(of: find.byType(ListTile), matching: find.textContaining('#investing')),
+      findsOneWidget,
+    );
     expect(
       find.descendant(of: find.byType(ListTile), matching: find.text('2')),
       findsOneWidget,
@@ -2985,6 +3116,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('No notes yet. Tell the assistant something to remember.'), findsOneWidget);
     expect(find.byType(EmptyState), findsOneWidget);
+    expect(find.byType(FilterChip), findsNothing); // nothing to filter (#793)
     expect(find.widgetWithText(OutlinedButton, 'Import notes'), findsOneWidget);
     // The way to make one: the chat, as the main action (#721).
     await tester.tap(find.text('Go to chat'));
