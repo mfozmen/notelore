@@ -67,6 +67,17 @@
             android:name=".SignInService"
             android:exported="false"
             android:foregroundServiceType="shortService"/>
+        <!-- The home-screen widget (#799); only the system draws it. -->
+        <receiver
+            android:name=".QuickWidget"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quick_widget_info"/>
+        </receiver>
         <receiver
             android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"/>

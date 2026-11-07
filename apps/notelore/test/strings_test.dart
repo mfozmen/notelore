@@ -514,6 +514,8 @@ void main() {
       'syncingNow': s.syncingNow,
       'syncFailed': s.syncFailed,
       'syncNever': s.syncNever,
+      'quickAdd': s.quickAdd,
+      'syncedShort': s.syncedShort,
       'syncedAgo': s.syncedAgo(const Duration(minutes: 2)),
       'drivePermissionAgain': s.drivePermissionAgain,
       'signedOutOfGoogle': s.signedOutOfGoogle,

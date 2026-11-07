@@ -604,6 +604,10 @@ abstract class Strings {
   String get syncingNow;
   String get syncFailed;
   String get syncNever;
+
+  /// The home-screen widget (#799): its field, and the sync state without a time.
+  String get quickAdd;
+  String get syncedShort;
   String syncedAgo(Duration since);
   // Drive's status in plain words, never a provider's raw message (#480).
   String get drivePermissionAgain;
@@ -1710,6 +1714,10 @@ class EnglishStrings extends Strings {
   String get syncFailed => 'Not synced';
   @override
   String get syncNever => 'Not synced yet';
+  @override
+  String get quickAdd => 'Write or ask…';
+  @override
+  String get syncedShort => 'Synced';
   @override
   String syncedAgo(Duration since) {
     if (since.isNegative || since.inMinutes < 1) return 'Synced just now';
@@ -2901,6 +2909,10 @@ class TurkishStrings extends Strings {
   String get syncFailed => 'Eşitlenmedi';
   @override
   String get syncNever => 'Henüz eşitlenmedi';
+  @override
+  String get quickAdd => 'Yaz ya da sor…';
+  @override
+  String get syncedShort => 'Eşitlendi';
   @override
   String syncedAgo(Duration since) {
     if (since.isNegative || since.inMinutes < 1) return 'Az önce eşitlendi';

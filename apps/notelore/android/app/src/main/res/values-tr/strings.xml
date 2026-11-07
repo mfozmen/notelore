@@ -2,4 +2,6 @@
 <resources>
     <string name="sign_in_channel">Oturum açma</string>
     <string name="sign_in_waiting">Oturum açmanın bitmesi bekleniyor</string>
+    <string name="quick_hint">Yaz ya da sor…</string>
+    <string name="quick_description">Yaz ya da sor, son notlarını aç</string>
 </resources>

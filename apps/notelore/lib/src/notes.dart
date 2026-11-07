@@ -50,10 +50,23 @@ class _NotesScreenState extends State<NotesScreen> {
   void initState() {
     super.initState();
     widget.session.addListener(_sessionChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _quick()); // asked before Notes opened
   }
 
   void _sessionChanged() {
     if (mounted) setState(() {});
+    _quick();
+  }
+
+  /// The note a tap on the home-screen widget asked for (#799), when it is still there.
+  void _quick() {
+    final open = widget.session.quickOpen;
+    if (!mounted || open?.kind == null) return;
+    widget.session.quickOpen = null;
+    final note = widget.session.listNotes().where(
+      (n) => n.kind == open!.kind && n.slug == open.slug,
+    );
+    if (note.firstOrNull case final note?) _openNote(note, wide: Layout.isWide(context));
   }
 
   @override

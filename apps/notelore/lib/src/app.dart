@@ -194,6 +194,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   }
 
   void _showSharedDraft() {
+    if (widget.session.quickOpen case final open?) {
+      // A tap on the home-screen widget (#799): its screen comes to the front and takes it.
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      final tab = open.kind == null ? 0 : 1;
+      if (_tab != tab) setState(() => _tab = tab);
+    }
     if (_seenSharedDraft == widget.session.sharedDraftVersion) return;
     _seenSharedDraft = widget.session.sharedDraftVersion;
     if (_tab != 0) setState(() => _tab = 0);
