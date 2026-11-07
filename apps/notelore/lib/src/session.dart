@@ -642,6 +642,15 @@ class Session extends ChangeNotifier {
     _saveUi();
   }
 
+  /// The Sunday (YYYY-MM-DD) whose week look back was closed on this device;
+  /// never synced.
+  String? lookBackClosed;
+
+  void closeLookBack(String sunday) {
+    lookBackClosed = sunday;
+    _saveUi();
+  }
+
   /// Announces the language and look, and remembers them on this device.
   void _saveUi() {
     notifyListeners();
@@ -656,6 +665,7 @@ class Session extends ChangeNotifier {
           if (setUpBefore) 'setUp': true,
           if (chatTextStep != chatTextDefault) 'chatTextStep': chatTextStep,
           if (reminderCenter.calendarNudged) 'calendarNudged': true,
+          'lookBackClosed': ?lookBackClosed,
         }),
       );
     } on FileSystemException {
@@ -685,6 +695,10 @@ class Session extends ChangeNotifier {
       };
       microphone = switch (saved['microphone']) {
         final String id => id,
+        _ => null,
+      };
+      lookBackClosed = switch (saved['lookBackClosed']) {
+        final String day => day,
         _ => null,
       };
     } on Exception {

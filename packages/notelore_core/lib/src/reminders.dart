@@ -211,6 +211,55 @@ Iterable<DayItem> _dayItems(Note note, String kind, String slug, DateTime from) 
   }
 }
 
+/// The week from Monday to [today] under [root]: the decisions taken in it that
+/// still stand, the done todos dated in it, and the open todos dated before
+/// [today]. A todo keeps no date of its completion, so "done this week" goes
+/// by the todo's own date.
+({List<DayItem> decided, List<DayItem> done, List<DayItem> overdue}) weekItems(
+  String root, {
+  required DateTime today,
+}) {
+  final day = DateTime(today.year, today.month, today.day);
+  final monday = DateTime(day.year, day.month, day.day - (day.weekday - 1));
+  bool inWeek(DateTime date) => !date.isBefore(monday) && !date.isAfter(day);
+  final decided = <DayItem>[];
+  final done = <DayItem>[];
+  final overdue = <DayItem>[];
+  for (final MapEntry(key: kind, value: folder) in kinds.entries) {
+    for (final file in markdownFiles(p.join(root, folder))) {
+      final note = _readable(file.path);
+      if (note == null) continue;
+      DayItem item(DateTime date, String text, {required bool todo, int number = 0}) => DayItem(
+        day: DateTime(date.year, date.month, date.day),
+        time: null,
+        text: _flat(text),
+        note: note.title,
+        kind: kind,
+        slug: p.basenameWithoutExtension(file.path),
+        todo: todo,
+        number: number,
+      );
+      for (final entry in note.section('decisions')?.entries ?? const <NoteEntry>[]) {
+        if (entry case final Decision d when d.superseded == null && inWeek(d.date)) {
+          decided.add(item(d.date, '${d.topic}: ${d.value}', todo: false));
+        }
+      }
+      var number = 0;
+      for (final entry in note.section('todo')?.entries ?? const <NoteEntry>[]) {
+        if (entry case final Todo todo) {
+          number++;
+          if (todo.done ? inWeek(todo.date) : todo.date.isBefore(day)) {
+            (todo.done ? done : overdue).add(
+              item(todo.date, todo.text, todo: true, number: number),
+            );
+          }
+        }
+      }
+    }
+  }
+  return (decided: decided..sort(_byDay), done: done..sort(_byDay), overdue: overdue..sort(_byDay));
+}
+
 Iterable<DayItem> _reminderItems(
   Reminder reminder,
   DayItem Function(DateTime, String?, String, {required bool todo}) item,
