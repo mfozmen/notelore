@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/empty_state.dart';
 import 'package:notelore/src/note_view.dart';
+import 'package:notelore/src/soft.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
@@ -165,6 +166,23 @@ void main() {
     final chip = tester.getRect(find.widgetWithText(TextButton, 'TODAY')).left;
     expect(chip - month, greaterThanOrEqualTo(Gap.s));
   });
+
+  for (final (now, weeks) in [(DateTime(2026, 10, 19), 5), (DateTime(2026, 11, 7), 6)]) {
+    testWidgets('calendar: the month card hugs its $weeks weeks, the text clears the bar (#816)', (
+      tester,
+    ) async {
+      phone(tester);
+      await pumpApp(tester, Harness(), clock: () => now);
+      await connect(tester, key: 'k');
+      await tester.tap(tab('Calendar'));
+      await tester.pumpAndSettle();
+      expect(tester.getSize(find.byType(GridView)).height, weeks * 48);
+      await tester.drag(find.byType(ListView).first, const Offset(0, -1000));
+      await tester.pumpAndSettle();
+      final button = tester.getRect(find.text('Go to chat'));
+      expect(button.bottom, lessThan(tester.getRect(find.byType(SoftNavBar)).top));
+    });
+  }
 
   testWidgets('calendar: empty, it says where things come from; a wide window side by side', (
     tester,
