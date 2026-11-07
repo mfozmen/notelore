@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/gestures.dart'
     show PointerDeviceKind, PointerScrollEvent, PointerSignalEvent, kLongPressTimeout, kTouchSlop;
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart' show CustomSemanticsAction, SemanticsService;
+import 'package:flutter/semantics.dart' show CustomSemanticsAction, SemanticsRole, SemanticsService;
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:notelore_core/notelore_core.dart';
@@ -1591,11 +1591,11 @@ class _Bubble extends StatelessWidget {
         shown: newest || resend != null || line.role == ChatRole.assistant,
         end: mine,
         content: [bubble, ..._under(answers, colors)],
-        // Close under its words (full-size targets, pulled up a little), the
-        // icons level with the words' edge.
+        // Close under its words (full-size targets, pulled up into the
+        // bubble's own bottom room), the icons level with the words' edge.
         actions: Transform.translate(
-          offset: Offset(mine ? Gap.s : -Gap.s - Gap.xs, -Gap.s),
-          child: _actions(copy, colors.primary, colors.onSurfaceVariant),
+          offset: Offset(mine ? Gap.s : -Gap.s - Gap.xs, mine ? -Gap.s - Gap.xs : -Gap.m - Gap.xs),
+          child: _actions(copy, colors.primary, colors.onSurfaceVariant.withValues(alpha: .8)),
         ),
       ),
     );
@@ -1633,7 +1633,7 @@ class _Bubble extends StatelessWidget {
     Widget button(String tooltip, IconData icon, VoidCallback onPressed, [Color? color]) =>
         IconButton(
           tooltip: tooltip,
-          icon: Icon(icon, size: 18, color: color ?? muted),
+          icon: Icon(icon, size: 17, color: color ?? muted),
           onPressed: onPressed,
         );
     return Row(
@@ -1990,8 +1990,15 @@ class _BubbleText extends StatelessWidget {
 /// One selection runs across the whole answer (#335).
 Widget _markdown(BuildContext context, String text, TextStyle style) {
   final theme = Theme.of(context);
-  final body = theme.textTheme.bodyMedium!.merge(style);
+  final body = theme.textTheme.bodyMedium!
+      .merge(style)
+      .copyWith(fontSize: AnswerStyle.size, height: AnswerStyle.lineHeight);
   final color = style.color!;
+  final number = theme.extension<NoteloreTokens>()!.label.copyWith(
+    fontSize: AnswerStyle.numberSize,
+    letterSpacing: .9,
+    height: AnswerStyle.lineHeight,
+  );
   final tint = color.withValues(alpha: AnswerStyle.tint);
   final code = body.copyWith(
     fontFamily: 'monospace',
@@ -2000,9 +2007,15 @@ Widget _markdown(BuildContext context, String text, TextStyle style) {
   TextStyle heading(TextStyle? size) =>
       size!.copyWith(color: color, fontWeight: AnswerStyle.headingWeight);
   return SelectionArea(
-    child: MarkdownBody(
+    child: _AnswerMarkdown(
       data: text,
       onTapLink: (_, href, _) => openWebLink(href),
+      // A top-level item is numbered on its card; a nested one keeps its bullet.
+      bulletBuilder: (b) => switch ((b.nestLevel, b.style)) {
+        (0, _) => Text('${b.index + 1}'.padLeft(2, '0'), style: number),
+        (_, BulletStyle.unorderedList) => Text('•', textAlign: TextAlign.center, style: body),
+        _ => Text('${b.index + 1}.', textAlign: TextAlign.right, style: body),
+      },
       // A code block's box carries the tint; its letters are not tinted again.
       syntaxHighlighter: _PlainCode(code),
       // Never fetched: an image address could carry the notes off to whoever
@@ -2018,6 +2031,8 @@ Widget _markdown(BuildContext context, String text, TextStyle style) {
         h3Padding: const EdgeInsets.only(top: Gap.xs),
         p: body,
         listBullet: body,
+        // Grows with the text size, so a number never breaks in two.
+        listIndent: MediaQuery.textScalerOf(context).scale(24),
         strong: const TextStyle(fontWeight: FontWeight.bold).copyWith(color: color),
         em: const TextStyle(fontStyle: FontStyle.italic).copyWith(color: color),
         a: TextStyle(
@@ -2053,6 +2068,80 @@ class _PlainCode extends SyntaxHighlighter {
 
   @override
   TextSpan format(String source) => TextSpan(style: style, text: source);
+}
+
+/// An answer's Markdown with each top-level list on a soft card, and the
+/// closing line after a list a little quieter.
+class _AnswerMarkdown extends MarkdownBody {
+  const _AnswerMarkdown({
+    required super.data,
+    super.onTapLink,
+    super.bulletBuilder,
+    super.syntaxHighlighter,
+    super.imageBuilder,
+    super.styleSheet,
+  });
+
+  // The builder hands over a list as a Column of item Rows with spacers
+  // between; no other block starts with a Row.
+  static bool _isList(Widget block) => block is Column && block.children.firstOrNull is Row;
+
+  // A paragraph or heading; code, quotes and tables come in other boxes.
+  static bool _isText(Widget block) => block is Column && !_isList(block);
+
+  @override
+  Widget build(BuildContext context, List<Widget>? children) {
+    // Blocks and their spacers alternate, so the block before is two back.
+    final blocks = children!;
+    return super.build(context, [
+      for (final (i, block) in blocks.indexed)
+        if (_isList(block))
+          _ListCard((block as Column).children.whereType<Row>().toList())
+        else if (i == blocks.length - 1 && i >= 2 && _isList(blocks[i - 2]) && _isText(block))
+          Opacity(opacity: AnswerStyle.closing, child: block)
+        else
+          block,
+    ]);
+  }
+}
+
+/// A list's [items] on a soft card, a hairline between them; a screen reader
+/// hears a list, item by item.
+class _ListCard extends StatelessWidget {
+  const _ListCard(this.items);
+
+  final List<Widget> items;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    // As wide as the answer, also for a list of short items.
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(vertical: Gap.xs),
+    child: Semantics(
+      role: SemanticsRole.list,
+      container: true,
+      child: Card(
+        // Its own node would sit between the list and its items.
+        semanticContainer: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: Gap.xs),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final (i, item) in items.indexed) ...[
+                if (i > 0) const Divider(height: 1),
+                Semantics(
+                  role: SemanticsRole.listItem,
+                  container: true,
+                  child: Padding(padding: AnswerStyle.listRow, child: item),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 /// One file sent with a message: a kind's icon and its name on one line; the
