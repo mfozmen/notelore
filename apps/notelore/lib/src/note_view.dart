@@ -6,6 +6,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
+import 'icons.dart';
 import 'section_label.dart';
 import 'session.dart' show Session, withoutFrontMatter;
 import 'strings.dart';
@@ -410,7 +411,7 @@ class NoteView extends StatelessWidget {
           onChanged: (done) => onTodo(number, todo.text, done ?? false),
         ),
         null => Icon(
-          todo.done ? Icons.check_circle : Icons.radio_button_unchecked,
+          todo.done ? AppIcons.checked : AppIcons.unchecked,
           size: 20,
           color: todo.done ? colors.outline : colors.onSurfaceVariant,
         ),
@@ -474,7 +475,7 @@ class NoteView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
-                passed ? Icons.history : Icons.notifications_outlined,
+                passed ? AppIcons.history : AppIcons.notifications,
                 size: 18,
                 color: passed ? colors.outline : colors.primary,
               ),
@@ -590,10 +591,7 @@ class _RelatedCard extends StatelessWidget {
           radius: 14,
           backgroundColor: colors.primaryContainer,
           foregroundColor: colors.primary,
-          child: Icon(
-            note.kind == 'project' ? Icons.folder_outlined : Icons.sell_outlined,
-            size: 16,
-          ),
+          child: Icon(note.kind == 'project' ? AppIcons.folder : AppIcons.tag, size: 16),
         ),
         title: Text(
           note.title,
@@ -613,7 +611,7 @@ class _RelatedCard extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
         ),
-        trailing: Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
+        trailing: Icon(AppIcons.chevronRight, color: colors.onSurfaceVariant),
         onTap: onTap,
       ),
     );
@@ -642,7 +640,7 @@ class _NoteImageState extends State<_NoteImage> {
     final uri = widget.uri;
     final s = widget.s;
     Widget failed(BuildContext context, _, _) =>
-        _card(context, const Icon(Icons.broken_image_outlined), s.imageFailed);
+        _card(context, const Icon(AppIcons.brokenImage), s.imageFailed);
     if (!uri.hasScheme) {
       final path = p.normalize(p.join(widget.folder, Uri.decodeComponent(uri.path)));
       // Only inside the notes folder (the note's folder's parent): a note never probes the disk.
@@ -672,7 +670,7 @@ class _NoteImageState extends State<_NoteImage> {
     }
     return _card(
       context,
-      Icon(Icons.image_outlined, color: Theme.of(context).colorScheme.primary),
+      Icon(AppIcons.image, color: Theme.of(context).colorScheme.primary),
       s.tapToShow,
       onTap: () => setState(() => _shown = true),
     );

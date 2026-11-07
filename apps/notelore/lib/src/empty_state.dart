@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'icons.dart';
 import 'theme.dart';
 
 /// One look for an empty screen (#721): a primary icon, a line of body text,
@@ -13,7 +14,7 @@ class EmptyState extends StatelessWidget {
     super.key,
   });
 
-  final IconData icon;
+  final Duotone icon;
   final String title;
   final String? hint;
   final List<Widget> actions;
@@ -27,7 +28,7 @@ class EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 48, color: theme.colorScheme.primary),
+          AppIcons.duo(icon, size: 48, color: theme.colorScheme.primary),
           const SizedBox(height: Gap.m),
           Text(title, textAlign: TextAlign.center, style: theme.textTheme.bodyLarge),
           if (hint case final hint?) ...[

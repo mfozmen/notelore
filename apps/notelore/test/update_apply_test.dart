@@ -45,9 +45,11 @@ void main() {
     write(p.join(staging, 'data', 'fresh.txt'), 'new file');
 
     final logs = <String>[];
+    var refreshed = 0;
     await applyUpdate(
       job({'data/app.so': next, 'notelore.exe': exe, 'data/fresh.txt': fresh}),
       log: logs.add,
+      refreshIcons: () => refreshed++,
     );
 
     expect(File(p.join(install, 'data', 'app.so')).readAsStringSync(), 'new app');
@@ -55,16 +57,19 @@ void main() {
     expect(File(p.join(install, 'data', 'fresh.txt')).readAsStringSync(), 'new file');
     expect(Directory(p.join(install, '.notelore-backup')).existsSync(), isFalse);
     expect(logs, ['updated 3 files']);
+    expect(refreshed, 1);
   });
 
   test('a staged file with the wrong hash installs nothing', () async {
     write(p.join(install, 'app.so'), 'old');
     write(p.join(staging, 'app.so'), 'tampered');
 
+    var refreshed = 0;
     await expectLater(
-      applyUpdate(job({'app.so': hashOf('expected')})),
+      applyUpdate(job({'app.so': hashOf('expected')}), refreshIcons: () => refreshed++),
       throwsA(isA<UpdateApplyFailed>()),
     );
+    expect(refreshed, 0);
     expect(File(p.join(install, 'app.so')).readAsStringSync(), 'old');
     expect(Directory(p.join(install, '.notelore-backup')).existsSync(), isFalse);
   });

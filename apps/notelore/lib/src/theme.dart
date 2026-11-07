@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'icons.dart';
 import 'schemes.dart';
 
 /// Light, dark, or whatever the device uses.
@@ -225,6 +226,7 @@ void addFontLicenses() {
     'Plus Jakarta Sans': 'OFL-PlusJakartaSans.txt',
     'JetBrains Mono': 'OFL-JetBrainsMono.txt',
     'Noto Sans': 'OFL.txt',
+    'Phosphor Icons': 'MIT-Phosphor.txt',
   };
   LicenseRegistry.addLicense(() async* {
     for (final MapEntry(key: font, value: file) in files.entries) {
@@ -273,6 +275,10 @@ ThemeData noteloreTheme(Brightness brightness) {
     ),
     scaffoldBackgroundColor: colors.surface,
     visualDensity: VisualDensity.standard,
+    actionIconTheme: ActionIconThemeData(
+      backButtonIconBuilder: (_) => const Icon(AppIcons.back),
+      closeButtonIconBuilder: (_) => const Icon(AppIcons.close),
+    ),
     appBarTheme: AppBarTheme(
       backgroundColor: colors.surface,
       surfaceTintColor: Colors.transparent,

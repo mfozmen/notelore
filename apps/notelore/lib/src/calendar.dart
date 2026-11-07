@@ -6,6 +6,7 @@ import 'package:notelore_core/notelore_core.dart';
 
 import 'app.dart' show AppMenu;
 import 'empty_state.dart';
+import 'icons.dart';
 import 'note_view.dart';
 import 'section_label.dart';
 import 'session.dart';
@@ -99,7 +100,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _list(Strings s, List<DayItem> items, DateTime today) {
     if (items.isEmpty) {
       return EmptyState(
-        icon: Icons.event_available,
+        icon: AppIcons.eventEmpty,
         title: s.nothingPlanned,
         hint: s.calendarExample,
         actions: [FilledButton.tonal(onPressed: widget.toChat, child: Text(s.goToChat))],
@@ -193,7 +194,7 @@ class _MonthGrid extends StatelessWidget {
             IconButton(
               tooltip: s.previousMonth,
               color: colors.onSurfaceVariant,
-              icon: const Icon(Icons.chevron_left),
+              icon: const Icon(AppIcons.chevronLeft),
               onPressed: () => turn(-1),
             ),
             Expanded(
@@ -230,7 +231,7 @@ class _MonthGrid extends StatelessWidget {
             IconButton(
               tooltip: s.nextMonth,
               color: colors.onSurfaceVariant,
-              icon: const Icon(Icons.chevron_right),
+              icon: const Icon(AppIcons.chevronRight),
               onPressed: () => turn(1),
             ),
           ],
@@ -425,7 +426,7 @@ class _Agenda extends StatelessWidget {
               children: [
                 Expanded(child: Text(_heading(day), style: theme.textTheme.titleMedium)),
                 TextButton.icon(
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(AppIcons.close),
                   label: Text(s.showAll),
                   onPressed: showAll,
                 ),
@@ -513,7 +514,7 @@ class _Item extends StatelessWidget {
                   side: BorderSide(color: late ? colors.error : colors.primary, width: 2),
                   onChanged: (_) => toggle(item),
                 )
-              : Icon(Icons.alarm, size: 20, color: late ? colors.error : colors.primary),
+              : Icon(AppIcons.alarm, size: 20, color: late ? colors.error : colors.primary),
         ),
       ),
       title: Text(
