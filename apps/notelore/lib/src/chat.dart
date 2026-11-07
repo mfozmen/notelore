@@ -1541,26 +1541,7 @@ class _Bubble extends StatelessWidget {
         // Answers are what one copies; one's own older lines keep quiet.
         shown: newest || resend != null || line.role == ChatRole.assistant,
         end: mine,
-        content: [
-          bubble,
-          for (final card in line.cards)
-            switch (card) {
-              NoteReceipt() => _Receipt(card, strings, open: () => open(card)),
-            },
-          if (answer case final answer? when answers.isNotEmpty)
-            Wrap(
-              spacing: Gap.s,
-              runSpacing: Gap.xs,
-              children: [
-                for (final a in answers)
-                  OutlinedButton(
-                    onPressed: () => answer(a),
-                    style: OutlinedButton.styleFrom(backgroundColor: colors.surfaceContainerLow),
-                    child: Text(a),
-                  ),
-              ],
-            ),
-        ],
+        content: [bubble, ..._under(answers, colors)],
         // Close under its words (full-size targets, pulled up a little), the
         // icons level with the words' edge.
         actions: Transform.translate(
@@ -1570,6 +1551,27 @@ class _Bubble extends StatelessWidget {
       ),
     );
   }
+
+  /// Under the words: the answer's cards, then the [answers] it suggests.
+  List<Widget> _under(List<String> answers, ColorScheme colors) => [
+    for (final card in line.cards)
+      switch (card) {
+        NoteReceipt() => _Receipt(card, strings, open: () => open(card)),
+      },
+    if (answer case final answer? when answers.isNotEmpty)
+      Wrap(
+        spacing: Gap.s,
+        runSpacing: Gap.xs,
+        children: [
+          for (final a in answers)
+            OutlinedButton(
+              onPressed: () => answer(a),
+              style: OutlinedButton.styleFrom(backgroundColor: colors.surfaceContainerLow),
+              child: Text(a),
+            ),
+        ],
+      ),
+  ];
 
   /// Copy, and for the newest lines Resend and This was wrong (filled once reported).
   Widget _actions(VoidCallback copy, Color reportedColor, Color muted) {

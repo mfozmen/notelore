@@ -658,7 +658,6 @@ class Toolbox {
 
   /// This turn's changed notes as they are now, the deleted ones (an empty
   /// create undone) left out.
-  /// create taken back) has none.
   List<NoteReceipt> receipts() => [
     for (final MapEntry(key: rel, value: tools) in _changed.entries)
       if (File(p.joinAll([root, ...rel.split('/')])) case final file when file.existsSync())

@@ -608,6 +608,7 @@ void failureTests() {
     expect(agent.wroteNotes, isFalse);
     await expectLater(agent.ask('note this'), throwsA(isA<NetworkError>()));
     expect(agent.wroteNotes, isTrue); // the note is on disk, the turn is not in history
+    expect([for (final c in agent.cards) (c as NoteReceipt).slug], ['mopsos']);
     expect(File(p.join(box.root, 'projects', 'mopsos.md')).existsSync(), isTrue);
     expect(agent.messages, isEmpty);
     expect(await agent.ask('thanks'), 'ok');
