@@ -277,8 +277,11 @@ void main() {
     await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     final field = tester.getRect(find.byKey(const Key('notes-search')));
-    final icon = tester.getRect(find.byIcon(AppIcons.moreVert));
-    expect(icon.right, closeTo(field.right, 0.5));
+    // The round button's circle, its visible edge.
+    final button = tester.getRect(
+      find.ancestor(of: find.byIcon(AppIcons.moreVert), matching: find.byType(Material)).first,
+    );
+    expect(button.right, closeTo(field.right, 0.5));
   });
 
   testWidgets('notes on a wide window: Pin in the open note moves it under Pinned (#775)', (

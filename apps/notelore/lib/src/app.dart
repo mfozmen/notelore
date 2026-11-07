@@ -532,6 +532,7 @@ class AppMenu extends InheritedWidget {
     final menu = context.dependOnInheritedWidgetOfExactType<AppMenu>();
     if (menu == null) return null;
     return IconButton(
+      style: softRound(Theme.of(context).colorScheme),
       tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
       icon: const Icon(AppIcons.menu),
       onPressed: menu.open,

@@ -67,6 +67,91 @@ void main() {
     });
   }
 
+  const four = [
+    (AppIcons.chat, AppIcons.chatActive, 'Chat'),
+    (AppIcons.note, AppIcons.noteActive, 'Notes'),
+    (AppIcons.calendar, AppIcons.calendarActive, 'Calendar'),
+    (AppIcons.person, AppIcons.personActive, 'About me'),
+  ];
+
+  for (final width in [360.0, 412.0]) {
+    for (final scale in [1.0, 2.0]) {
+      testWidgets('the bar on a $width-point phone at ${scale}x text: a tall orb, the tabs close', (
+        tester,
+      ) async {
+        tester.view
+          ..physicalSize = Size(width, 800)
+          ..devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: noteloreTheme(Brightness.dark),
+            home: MediaQuery.withClampedTextScaling(
+              minScaleFactor: scale,
+              maxScaleFactor: scale,
+              child: Scaffold(
+                bottomNavigationBar: SoftNavBar(
+                  destinations: four,
+                  selected: 0,
+                  onSelected: (_) {},
+                ),
+              ),
+            ),
+          ),
+        );
+        final bar = tester.getRect(
+          find.descendant(
+            of: find.byType(SoftNavBar),
+            matching: find.byWidgetPredicate(
+              (w) => w is DecoratedBox && w.decoration is ShapeDecoration,
+            ),
+          ),
+        );
+        expect(bar.height, SoftNavBar.height);
+        // As wide as the design's 360-point frame draws it, centred on a wider phone.
+        expect(bar.width, 328);
+        expect(bar.center.dx, width / 2);
+        final orb = tester.getRect(
+          find.descendant(of: find.byTooltip('Chat'), matching: find.byType(DecoratedBox)),
+        );
+        expect(orb.height, greaterThanOrEqualTo(44));
+        expect(orb.left - bar.left, lessThanOrEqualTo(12));
+        for (final label in ['Notes', 'Calendar', 'About me']) {
+          expect(tester.getSize(find.byTooltip(label)).height, greaterThanOrEqualTo(48));
+          expect(tester.getSize(find.byTooltip(label)).width, greaterThanOrEqualTo(48));
+        }
+        expect(bar.right - tester.getRect(find.byTooltip('About me')).right, lessThanOrEqualTo(12));
+      });
+    }
+  }
+
+  for (final brightness in Brightness.values) {
+    testWidgets('a soft round button: a filled circle in a 48-point target ($brightness)', (
+      tester,
+    ) async {
+      final colors = noteloreTheme(brightness).colorScheme;
+      await _pump(
+        tester,
+        IconButton(
+          style: softRound(colors),
+          tooltip: 'Menu',
+          icon: const Icon(AppIcons.menu),
+          onPressed: () {},
+        ),
+        brightness: brightness,
+      );
+      final button = find.byType(IconButton);
+      final material = find.descendant(of: button, matching: find.byType(Material));
+      expect(tester.widget<Material>(material).color, colors.surfaceContainerLow);
+      expect(
+        tester.widget<Material>(material).shape,
+        softBorder(colors, BorderRadius.circular(19)),
+      );
+      expect(tester.getSize(material), const Size.square(38));
+      expect(tester.getSize(button), const Size.square(48));
+    });
+  }
+
   testWidgets('a press dims and shrinks, and comes back on release or cancel', (tester) async {
     await _pump(
       tester,
