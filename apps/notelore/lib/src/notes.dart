@@ -362,24 +362,7 @@ class _NotesScreenState extends State<NotesScreen> {
   Widget _filters(BuildContext context, List<NoteInfo> all) {
     final s = widget.session.strings;
     final session = widget.session;
-    final counts = <String, int>{};
-    for (final note in all) {
-      for (final tag in note.tags) {
-        counts[tag] = (counts[tag] ?? 0) + 1;
-      }
-    }
-    final byUse = counts.keys.toList()
-      ..sort((a, b) {
-        final more = counts[b]!.compareTo(counts[a]!);
-        return more != 0 ? more : a.compareTo(b);
-      });
-    // The chosen tag first, so it is in sight when the screen opens again.
-    final tags = byUse.take(8).toList();
-    if (session.notesTag case final chosen?) {
-      tags
-        ..remove(chosen)
-        ..insert(0, chosen);
-    }
+    final tags = _filterTags(all, chosen: session.notesTag);
     return SingleChildScrollView(
       key: const Key('note-filters'),
       scrollDirection: Axis.horizontal,
@@ -414,6 +397,29 @@ class _NotesScreenState extends State<NotesScreen> {
         ],
       ),
     );
+  }
+
+  /// The eight most used tags, most used first, then by name; the chosen tag
+  /// leads so it is in sight when the screen opens again.
+  static List<String> _filterTags(List<NoteInfo> all, {String? chosen}) {
+    final counts = <String, int>{};
+    for (final note in all) {
+      for (final tag in note.tags) {
+        counts[tag] = (counts[tag] ?? 0) + 1;
+      }
+    }
+    final byUse = counts.keys.toList()
+      ..sort((a, b) {
+        final more = counts[b]!.compareTo(counts[a]!);
+        return more != 0 ? more : a.compareTo(b);
+      });
+    final tags = byUse.take(8).toList();
+    if (chosen != null) {
+      tags
+        ..remove(chosen)
+        ..insert(0, chosen);
+    }
+    return tags;
   }
 
   Widget _chip(
