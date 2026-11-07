@@ -109,8 +109,8 @@ typedef Pause = void Function(Duration duration);
 
 void _rename(String source, String target) => File(source).renameSync(target);
 
-/// UTF-8, LF, written to a temp file next to [path] and renamed into place;
-/// not at all when [unchanged], asked right before the rename, says no.
+/// UTF-8, LF, through a temp file next to [path] that is renamed into place.
+/// Skipped when [unchanged], asked just before the rename, says no.
 void atomicWrite(
   String path,
   String text, {
@@ -663,7 +663,7 @@ String archiveEntries(
   }
   writeNote(target, archive, today: day); // archive first: a failure here loses nothing
   note.meta['updated'] = day;
-  // Changed since: the entries stay in the note too, rather than its new lines going.
+  // A note changed meanwhile throws: its entries are then in both places, none lost.
   _writeChecked(path, before, note);
   return target;
 }
