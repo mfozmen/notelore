@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/icons.dart';
@@ -263,9 +264,9 @@ void main() {
     await pumpApp(tester, Harness(answers: ['Saved.']));
     await connect(tester, key: 'k');
     await say(tester, 'Kitaplari rafa koy');
-    final theme = Theme.of(tester.element(find.byType(MarkdownBody)));
+    final theme = Theme.of(tester.element(answerBody));
     final tokens = theme.extension<NoteloreTokens>()!;
-    expect(decorationAbove(tester, find.byType(MarkdownBody)), isNull);
+    expect(decorationAbove(tester, answerBody), isNull);
     final mine = decorationAbove(tester, find.text('Kitaplari rafa koy'))!;
     expect(mine.color, theme.colorScheme.primaryContainer);
     expect(mine.border, Border.all(color: tokens.mineBorder));
@@ -278,10 +279,126 @@ void main() {
         bottomRight: Radius.circular(6),
       ),
     );
-    // The message actions are quiet: small, in the muted colour.
+    // The message actions are quiet: small, in the muted colour a little dimmed,
+    // still on full-size targets.
     final copy = tester.widget<Icon>(find.byIcon(AppIcons.copy).first);
-    expect(copy.size, 18);
-    expect(copy.color, theme.colorScheme.onSurfaceVariant);
+    expect(copy.size, 17);
+    expect(copy.color, theme.colorScheme.onSurfaceVariant.withValues(alpha: .8));
+    final target = find.ancestor(
+      of: find.byIcon(AppIcons.copy).first,
+      matching: find.byType(IconButton),
+    );
+    expect(tester.getSize(target), const Size(48, 48));
+  });
+
+  group('an answer (#827)', () {
+    const answer =
+        'Planned for Notelore:\n\n'
+        '- A watch app.\n'
+        '- Rename the web search setting.\n'
+        '  - and its hint\n'
+        '- Fix the tyre note.\n\n'
+        'These are notes; there is no to-do.';
+    final card = find.ancestor(of: find.text('A watch app.'), matching: find.byType(Card));
+
+    testWidgets('reads a step smaller, with room between its lines', (tester) async {
+      phone(tester);
+      await pumpApp(tester, Harness(answers: [answer]));
+      await connect(tester, key: 'k');
+      await say(tester, 'plans?');
+      final body = tester.widget<MarkdownBody>(answerBody).styleSheet!.p!;
+      expect(body.fontSize, AnswerStyle.size);
+      expect(body.height, AnswerStyle.lineHeight);
+    });
+
+    testWidgets('a list sits on a soft card: a row per item, a hairline between, mono numbers', (
+      tester,
+    ) async {
+      phone(tester);
+      dark(tester);
+      await pumpApp(tester, Harness(answers: [answer]));
+      await connect(tester, key: 'k');
+      await say(tester, 'plans?');
+      expect(card, findsOneWidget);
+      final theme = Theme.of(tester.element(card));
+      for (final item in ['A watch app.', 'Rename the web search setting.', 'Fix the tyre note.']) {
+        expect(find.descendant(of: card, matching: find.text(item)), findsOneWidget);
+      }
+      expect(find.descendant(of: card, matching: find.byType(Divider)), findsNWidgets(2));
+      final one = tester.widget<Text>(find.text('01'));
+      expect(one.style!.fontFamily, 'JetBrains Mono');
+      expect(one.style!.color, theme.colorScheme.primary);
+      expect(find.text('02'), findsOneWidget);
+      expect(find.text('03'), findsOneWidget);
+      // A nested list keeps its plain bullet, inside its item's row.
+      expect(find.descendant(of: card, matching: find.text('•')), findsOneWidget);
+      // The lead-in and the closing line are not on the card; the closing one is quieter.
+      expect(find.descendant(of: card, matching: find.text('Planned for Notelore:')), findsNothing);
+      final closing = find.text('These are notes; there is no to-do.');
+      expect(find.descendant(of: card, matching: closing), findsNothing);
+      expect(
+        tester.widget<Opacity>(find.ancestor(of: closing, matching: find.byType(Opacity))).opacity,
+        AnswerStyle.closing,
+      );
+      expect(
+        find.ancestor(of: find.text('Planned for Notelore:'), matching: find.byType(Opacity)),
+        findsNothing,
+      );
+      // A screen reader hears a list, item by item.
+      bool role(Widget w, SemanticsRole r) => w is Semantics && w.properties.role == r;
+      expect(find.byWidgetPredicate((w) => role(w, SemanticsRole.list)), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => role(w, SemanticsRole.listItem)), findsNWidgets(3));
+    });
+
+    testWidgets('an ordered list counts from its own start; 2x text keeps the numbers whole', (
+      tester,
+    ) async {
+      phone(tester);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pumpApp(tester, Harness(answers: ['Next:\n\n3. Ship\n   1. Build\n4. Tell']));
+      await connect(tester, key: 'k');
+      await say(tester, 'next?');
+      expect(find.text('03'), findsOneWidget);
+      expect(find.text('04'), findsOneWidget);
+      expect(find.text('1.'), findsOneWidget); // a nested one keeps its own
+      // One line: the number's column grows with the text.
+      final number = tester.getSize(find.text('03'));
+      expect(
+        number.height,
+        lessThan(tester.widget<Text>(find.text('03')).style!.fontSize! * 2 * 2),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('on a wide window the card keeps to the answer\'s readable line', (tester) async {
+      desktop(tester, 1600);
+      await pumpApp(tester, Harness(answers: [answer]));
+      await connect(tester, key: 'k');
+      await say(tester, 'plans?');
+      final context = tester.element(answerBody);
+      expect(
+        tester.getSize(card).width,
+        lessThanOrEqualTo(Layout.bubbleFor(context, MediaQuery.sizeOf(context).width)),
+      );
+    });
+
+    testWidgets('a quote closing an answer after a list is not dimmed', (tester) async {
+      phone(tester);
+      await pumpApp(tester, Harness(answers: ['- One\n- Two\n\n> Keep the old server.']));
+      await connect(tester, key: 'k');
+      await say(tester, 'hi');
+      expect(find.descendant(of: answerBody, matching: find.byType(Opacity)), findsNothing);
+    });
+
+    testWidgets('an answer with no list has no card and nothing dimmed', (tester) async {
+      phone(tester);
+      await pumpApp(tester, Harness(answers: ['Saved.\n\nAnything else?']));
+      await connect(tester, key: 'k');
+      await say(tester, 'hi');
+      expect(find.descendant(of: answerBody, matching: find.byType(Card)), findsNothing);
+      expect(find.descendant(of: answerBody, matching: find.byType(Opacity)), findsNothing);
+    });
   });
 
   testWidgets('the talk button is a glowing orb, in Orman too', (tester) async {

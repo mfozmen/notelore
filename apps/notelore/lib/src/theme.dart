@@ -41,6 +41,17 @@ abstract final class Gap {
 /// How an answer's Markdown is drawn on its bubble (#335). The tints are of the
 /// bubble's own text colour, so they read in both themes.
 abstract final class AnswerStyle {
+  /// The answer's words: a step under the body size, with room between lines.
+  static const double size = 13;
+  static const double lineHeight = 1.6;
+
+  /// A list card's row, and the accent number that starts it.
+  static const listRow = EdgeInsets.symmetric(horizontal: 14, vertical: 10);
+  static const double numberSize = 11.5;
+
+  /// The closing line after a list, a little quieter than the rest.
+  static const double closing = .78;
+
   /// As bold words: an answer keeps to two weights.
   static const headingWeight = FontWeight.bold;
 
