@@ -300,7 +300,15 @@ class _NotesScreenState extends State<NotesScreen> {
         ],
       );
     }
-    final notes = _search.text.trim().isEmpty ? all : widget.session.findNotes(_search.text, all);
+    final session = widget.session;
+    final filtered = [
+      for (final note in all)
+        if ((session.notesKind ?? note.kind) == note.kind &&
+            (session.notesTag == null || note.tags.contains(session.notesTag)))
+          note,
+    ];
+    final searching = _search.text.trim().isNotEmpty;
+    final notes = searching ? session.findNotes(_search.text, filtered) : filtered;
     return Column(
       children: [
         if (wide) _listHeader(context, all),
@@ -325,6 +333,7 @@ class _NotesScreenState extends State<NotesScreen> {
             ),
           ),
         ),
+        _filters(context, all),
         Expanded(
           child: _refreshable(
             notes.isEmpty
@@ -334,16 +343,101 @@ class _NotesScreenState extends State<NotesScreen> {
                     padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, 0),
                     children: [
                       Text(
-                        s.noNoteMentions(_search.text.trim()),
+                        searching ? s.noNoteMentions(_search.text.trim()) : s.noFilteredNotes,
                         textAlign: TextAlign.center,
                         style: TextStyle(color: colors.onSurfaceVariant),
                       ),
                     ],
                   )
-                : _shown(context, notes, wide: wide, all: all),
+                // Coming up only lists notes in `all`, so it follows the filters too.
+                : _shown(context, notes, wide: wide, all: filtered),
           ),
         ),
       ],
+    );
+  }
+
+  /// All, the two kinds, then the eight most used tags (and the chosen one,
+  /// even when no note carries it any more); one kind and one tag at a time.
+  Widget _filters(BuildContext context, List<NoteInfo> all) {
+    final s = widget.session.strings;
+    final session = widget.session;
+    final counts = <String, int>{};
+    for (final note in all) {
+      for (final tag in note.tags) {
+        counts[tag] = (counts[tag] ?? 0) + 1;
+      }
+    }
+    final byUse = counts.keys.toList()
+      ..sort((a, b) {
+        final more = counts[b]!.compareTo(counts[a]!);
+        return more != 0 ? more : a.compareTo(b);
+      });
+    // The chosen tag first, so it is in sight when the screen opens again.
+    final tags = byUse.take(8).toList();
+    if (session.notesTag case final chosen?) {
+      tags
+        ..remove(chosen)
+        ..insert(0, chosen);
+    }
+    return SingleChildScrollView(
+      key: const Key('note-filters'),
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, 0),
+      child: Row(
+        children: [
+          _chip(
+            context,
+            s.filterAll,
+            selected: session.notesKind == null && session.notesTag == null,
+            onTap: () => setState(
+              () => session
+                ..notesKind = null
+                ..notesTag = null,
+            ),
+          ),
+          for (final (kind, label) in [('project', s.filterProjects), ('topic', s.filterTopics)])
+            _chip(
+              context,
+              label,
+              selected: session.notesKind == kind,
+              onTap: () =>
+                  setState(() => session.notesKind = session.notesKind == kind ? null : kind),
+            ),
+          for (final tag in tags)
+            _chip(
+              context,
+              '#$tag',
+              selected: session.notesTag == tag,
+              onTap: () => setState(() => session.notesTag = session.notesTag == tag ? null : tag),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(
+    BuildContext context,
+    String label, {
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(right: Gap.s),
+      child: FilterChip(
+        label: Text(label),
+        selected: selected,
+        showCheckmark: false,
+        selectedColor: colors.primary,
+        side: selected ? BorderSide(color: colors.primary) : null,
+        labelStyle: TextStyle(
+          color: selected ? colors.onPrimary : colors.onSurface,
+          fontWeight: selected ? FontWeight.w600 : null,
+        ),
+        materialTapTargetSize: MaterialTapTargetSize.padded,
+        onSelected: (_) => onTap(),
+      ),
     );
   }
 
