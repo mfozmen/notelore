@@ -13,12 +13,15 @@ void main() {
   testWidgets("the bundled fonts' licenses are on Flutter's licenses page", (tester) async {
     addFontLicenses();
     final entries = await tester.runAsync(() => LicenseRegistry.licenses.toList());
-    final fonts = {
+    Set<String> under(String license) => {
       for (final entry in entries!)
-        if (entry.paragraphs.any((p) => p.text.contains('SIL OPEN FONT LICENSE')))
-          ...entry.packages,
+        if (entry.paragraphs.any((p) => p.text.contains(license))) ...entry.packages,
     };
-    expect(fonts, containsAll(['Fraunces', 'Plus Jakarta Sans', 'JetBrains Mono', 'Noto Sans']));
+    expect(
+      under('SIL OPEN FONT LICENSE'),
+      containsAll(['Fraunces', 'Plus Jakarta Sans', 'JetBrains Mono', 'Noto Sans']),
+    );
+    expect(under('MIT License'), contains('Phosphor Icons'));
   });
 
   test('light and dark: flat cards and 48-point tap targets', () {

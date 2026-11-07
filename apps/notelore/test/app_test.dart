@@ -14,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
 import 'package:notelore/src/chat.dart';
 import 'package:notelore/src/empty_state.dart';
+import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/mark.dart';
 import 'package:notelore/src/note_view.dart';
 import 'package:notelore/src/quick_widget.dart';
@@ -1683,7 +1684,7 @@ void main() {
     await tester.pumpAndSettle();
     final row = find.byKey(const Key('chat-error'));
     expect(row, findsOneWidget);
-    expect(find.descendant(of: row, matching: find.byIcon(Icons.error_outline)), findsOneWidget);
+    expect(find.descendant(of: row, matching: find.byIcon(AppIcons.error)), findsOneWidget);
     final notice = find.descendant(of: row, matching: find.textContaining('having trouble'));
     expect(notice, findsOneWidget);
     expect(
@@ -1723,7 +1724,7 @@ void main() {
       find.descendant(of: status, matching: find.byType(CircularProgressIndicator)),
       findsNothing,
     );
-    expect(find.descendant(of: status, matching: find.byIcon(Icons.more_horiz)), findsOneWidget);
+    expect(find.descendant(of: status, matching: find.byIcon(AppIcons.moreHoriz)), findsOneWidget);
     await tester.tap(find.byTooltip('Stop the answer')); // end the turn and its deadline
     await tester.pumpAndSettle();
   });
@@ -1973,7 +1974,7 @@ void main() {
     await tester.pump();
     expect(find.text('Listening… tap to send'), findsOneWidget); // on after the finger is up
     expect(find.byTooltip('Stop and send'), findsOneWidget);
-    expect(find.byIcon(Icons.arrow_upward), findsOneWidget);
+    expect(find.byIcon(AppIcons.send), findsOneWidget);
     final stop = await tester.createGesture();
     await stop.down(
       tester.getCenter(find.byTooltip('Stop and send')),
@@ -2534,8 +2535,8 @@ void main() {
     expect(find.byTooltip('Unpin'), findsOneWidget);
     // Coloured in the app bar too, not only filled.
     expect(
-      tester.widget<Icon>(find.byIcon(Icons.push_pin)).color,
-      Theme.of(tester.element(find.byIcon(Icons.push_pin))).colorScheme.primary,
+      tester.widget<Icon>(find.byIcon(AppIcons.pinOn)).color,
+      Theme.of(tester.element(find.byIcon(AppIcons.pinOn))).colorScheme.primary,
     );
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -3714,7 +3715,7 @@ void main() {
     final label = theme.extension<NoteloreTokens>()!.label;
     expect(tester.widget<Text>(find.text('Notelore')).style!.fontFamily, label.fontFamily);
     expect(find.descendant(of: find.byType(AppBar), matching: find.byType(Star)), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.menu));
+    await tester.tap(find.byIcon(AppIcons.menu));
     await tester.pumpAndSettle();
     final drawer = tester.widget<Drawer>(find.byType(Drawer));
     expect(drawer.backgroundColor, theme.colorScheme.surface);

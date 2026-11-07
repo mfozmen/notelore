@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'icons.dart';
 import 'mark.dart';
 import 'session.dart';
 import 'strings.dart';
@@ -283,7 +284,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
         enableSuggestions: false,
         decoration: InputDecoration(
           labelText: s.apiKey,
-          prefixIcon: const Icon(Icons.key_outlined),
+          prefixIcon: const Icon(AppIcons.key),
           helperText: _pasted ? s.keyFromClipboard : null,
           errorText: _keyMissing ? s.pasteKeyFirst : _keyRefused,
         ),
@@ -372,7 +373,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
   /// The peak of the wizard: what is connected, and that it can change later.
   List<Widget> _done(Strings s, ThemeData theme, Color muted) => [
     const SizedBox(height: Gap.l),
-    Icon(Icons.check_circle_rounded, size: 64, color: theme.colorScheme.primary),
+    Icon(AppIcons.done, size: 64, color: theme.colorScheme.primary),
     const SizedBox(height: Gap.l),
     Text(
       s.connectedTo(s.providerName(_spec)),
@@ -476,7 +477,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       if (_noPlan) ...[
         FilledButton.icon(
           onPressed: _freeGemini,
-          icon: const Icon(Icons.open_in_new),
+          icon: const Icon(AppIcons.openInNew),
           label: Text(s.getFreeGeminiKey),
         ),
         TextButton(onPressed: _checking ? null : _connect, child: Text(_connectLabel(s))),
@@ -720,7 +721,7 @@ class _Steps extends StatelessWidget {
                             launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
                           );
                         },
-                        icon: const Icon(Icons.open_in_new, size: 18),
+                        icon: const Icon(AppIcons.openInNew, size: 18),
                         label: Text(openLabel(Uri.parse(url).host)),
                       ),
                     ],
@@ -758,7 +759,7 @@ class _NoPlan extends StatelessWidget {
             Row(
               spacing: Gap.s,
               children: [
-                Icon(Icons.info_outline, color: colors.primary),
+                Icon(AppIcons.info, color: colors.primary),
                 Expanded(child: Text(strings.noChatGptPlan, style: theme.textTheme.titleMedium)),
               ],
             ),
@@ -771,7 +772,7 @@ class _NoPlan extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               spacing: Gap.s,
               children: [
-                Icon(Icons.privacy_tip_outlined, size: 16, color: colors.onSurfaceVariant),
+                Icon(AppIcons.privacy, size: 16, color: colors.onSurfaceVariant),
                 Expanded(
                   child: Text(
                     strings.freeGeminiPrivacy,
@@ -925,9 +926,9 @@ class _Welcome extends StatelessWidget {
           style: theme.textTheme.bodyLarge?.copyWith(color: colors.onSurfaceVariant),
         ),
         const SizedBox(height: Gap.l),
-        _Reason(Icons.cloud_done_outlined, strings.welcomeDrive),
+        _Reason(AppIcons.cloudDone, strings.welcomeDrive),
         const SizedBox(height: Gap.m),
-        _Reason(Icons.lock_outline, strings.welcomePrivate),
+        _Reason(AppIcons.lock, strings.welcomePrivate),
       ],
     );
   }
@@ -976,7 +977,7 @@ class _SignInProblem extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: Gap.m,
             children: [
-              Icon(Icons.error_outline, color: colors.onErrorContainer),
+              Icon(AppIcons.error, color: colors.onErrorContainer),
               Expanded(
                 // Selectable: a command in it (ollama pull …) can be copied.
                 child: SelectableText(problem, style: TextStyle(color: colors.onErrorContainer)),
@@ -1136,7 +1137,7 @@ class _OptionCard extends StatelessWidget {
                   children: [
                     Expanded(child: Text(s.providerName(spec), style: theme.textTheme.titleMedium)),
                     Icon(
-                      chosen ? Icons.check_circle : Icons.radio_button_unchecked,
+                      chosen ? AppIcons.checked : AppIcons.unchecked,
                       color: chosen ? colors.primary : muted,
                     ),
                   ],
@@ -1158,17 +1159,17 @@ class _OptionCard extends StatelessWidget {
                           child: Column(
                             spacing: Gap.xs,
                             children: [
-                              _Line(Icons.payments_outlined, s.optionCost(spec)),
+                              _Line(AppIcons.cost, s.optionCost(spec)),
                               // Where the notes go: a lock only when they stay here.
                               _Line(
-                                local ? Icons.lock_outline : Icons.cloud_upload_outlined,
+                                local ? AppIcons.lock : AppIcons.cloudUpload,
                                 s.optionPrivacy(spec),
                               ),
-                              _Line(Icons.auto_awesome_outlined, s.optionQuality(spec)),
+                              _Line(AppIcons.sparkle, s.optionQuality(spec)),
                               _Line(
                                 spec.access == ProviderAccess.signIn
-                                    ? Icons.bolt_outlined
-                                    : Icons.build_outlined,
+                                    ? AppIcons.bolt
+                                    : AppIcons.build,
                                 s.optionEffort(spec),
                               ),
                             ],

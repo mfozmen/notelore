@@ -55,7 +55,7 @@ Notelore starts on the cheapest model your provider offers (with Gemini, on gemi
 ## Using it
 
 - **Its mark:** a folded ribbon N, its end cut like a bookmark, on terracotta; on Android it follows the system's themed icons.
-- **Its look:** Kil, warm clay, in light mode and Orman, a forest at night, in dark mode, set in Fraunces and Plus Jakarta Sans. The fonts come with the app, so it looks the same offline. Answers sit on the page without a bubble, your own messages on a soft tint, and the talk button is a glowing orb; at night a faint glow lights the top of the screen.
+- **Its look:** Kil, warm clay, in light mode and Orman, a forest at night, in dark mode, set in Fraunces and Plus Jakarta Sans, with Phosphor icons (the active tab and empty screens in two tones). The fonts and icons come with the app, so it looks the same offline. Answers sit on the page without a bubble, your own messages on a soft tint, and the talk button is a glowing orb; at night a faint glow lights the top of the screen.
 - **On a phone:** the bottom bar holds Chat, Notes and Calendar; Settings is in the menu (☰) at the top left of each, in the same categories as on the desktop, each on its own page.
 - **On the desktop:** a side rail (with labels when the window is wide enough) replaces the phone's bottom bar, with Settings in it, and the chat is a readable column.
 - **Chat:**

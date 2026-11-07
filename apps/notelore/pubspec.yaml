@@ -62,6 +62,7 @@ flutter:
     - assets/fonts/OFL-Fraunces.txt
     - assets/fonts/OFL-PlusJakartaSans.txt
     - assets/fonts/OFL-JetBrainsMono.txt
+    - assets/fonts/MIT-Phosphor.txt
     # Google's G for the Sign in with Google button (assets/google/README.md).
     - assets/google/g_light.png
     - assets/google/g_dark.png
@@ -93,3 +94,14 @@ flutter:
       fonts:
         - asset: assets/fonts/JetBrainsMono-Medium.ttf
           weight: 500
+    # Phosphor Icons 2.1 (MIT, MIT-Phosphor.txt), bundled: phosphor_flutter
+    # subclasses IconData, which Flutter made final. Release builds subset them.
+    - family: Phosphor
+      fonts:
+        - asset: assets/fonts/Phosphor-Regular.ttf
+    - family: Phosphor Fill
+      fonts:
+        - asset: assets/fonts/Phosphor-Fill.ttf
+    - family: Phosphor Duotone
+      fonts:
+        - asset: assets/fonts/Phosphor-Duotone.ttf

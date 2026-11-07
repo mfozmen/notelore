@@ -9,6 +9,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'icons.dart';
 import 'lock_state.dart';
 import 'mark.dart';
 import 'pattern_pad.dart';
@@ -191,7 +192,7 @@ class _LockScreenState extends State<LockScreen> {
   List<Widget> _deviceOpener(Strings s) => [
     FilledButton.icon(
       key: const Key('unlock-device'),
-      icon: const Icon(Icons.fingerprint),
+      icon: const Icon(AppIcons.fingerprint),
       onPressed: _checking ? null : _unlockWithDevice,
       label: Text(s.unlock),
     ),
@@ -341,13 +342,13 @@ class _ChooseLock extends StatelessWidget {
             _DeviceChoice(s, available: available.data),
             ListTile(
               key: const Key('lock-pattern'),
-              leading: const Icon(Icons.pattern),
+              leading: const Icon(AppIcons.pattern),
               title: Text(s.lockWithPattern),
               onTap: () => Navigator.pop(context, LockKind.pattern),
             ),
             ListTile(
               key: const Key('lock-pin'),
-              leading: const Icon(Icons.pin_outlined),
+              leading: const Icon(AppIcons.pinCode),
               title: Text(s.lockWithPin),
               onTap: () => Navigator.pop(context, LockKind.pin),
             ),
@@ -374,7 +375,7 @@ class _DeviceChoice extends StatelessWidget {
     return ListTile(
       key: const Key('lock-device'),
       enabled: available ?? false,
-      leading: const Icon(Icons.fingerprint),
+      leading: const Icon(AppIcons.fingerprint),
       title: Wrap(
         spacing: Gap.s,
         crossAxisAlignment: WrapCrossAlignment.center,

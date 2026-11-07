@@ -13,6 +13,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'audio_file.dart';
+import 'icons.dart';
 import 'model_names.dart';
 import 'note_view.dart' show pushNote;
 import 'plain_text.dart';
@@ -395,7 +396,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       constraints: const BoxConstraints(maxWidth: Layout.column),
                       child: MaterialBanner(
                         leading: Icon(
-                          Icons.warning_amber,
+                          AppIcons.warning,
                           color: Theme.of(context).colorScheme.primary,
                         ),
                         content: Text(s.modelGone(s.providerName(session.spec!), session.model!)),
@@ -517,7 +518,7 @@ class _EmptyChatState extends State<EmptyChat> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.edit_note, size: 56, color: colors.primary),
+            AppIcons.duo(AppIcons.chatEmpty, size: 56, color: colors.primary),
             const SizedBox(height: Gap.m),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 300),
@@ -540,7 +541,7 @@ class _EmptyChatState extends State<EmptyChat> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () => example(e),
-                      icon: Icon(Icons.north_west, size: 18, color: colors.primary),
+                      icon: Icon(AppIcons.insert, size: 18, color: colors.primary),
                       label: Text(e),
                       style: OutlinedButton.styleFrom(
                         alignment: AlignmentDirectional.centerStart,
@@ -755,7 +756,7 @@ class _ModelBar extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         spacing: 6,
         children: [
-          Icon(Icons.auto_awesome_outlined, size: 16, color: colors.primary),
+          Icon(AppIcons.sparkle, size: 16, color: colors.primary),
           // The model first: a narrow pill cuts the plan's words, not its name.
           // Nothing to switch to: it wraps, so the plan notice is never cut.
           Flexible(
@@ -766,7 +767,7 @@ class _ModelBar extends StatelessWidget {
               style: style,
             ),
           ),
-          if (switchable) Icon(Icons.expand_more, size: 16, color: colors.onSurfaceVariant),
+          if (switchable) Icon(AppIcons.expand, size: 16, color: colors.onSurfaceVariant),
         ],
       ),
     );
@@ -1032,7 +1033,7 @@ class _ComposerRow extends StatelessWidget {
         children: [
           IconButton(
             tooltip: s.attachFile,
-            icon: Icon(Icons.attach_file, color: colors.onSurfaceVariant),
+            icon: Icon(AppIcons.attach, color: colors.onSurfaceVariant),
             onPressed: attach,
           ),
           Expanded(
@@ -1045,7 +1046,7 @@ class _ComposerRow extends StatelessWidget {
           if (voice.state == VoiceState.speaking)
             IconButton(
               tooltip: s.stopReading,
-              icon: const Icon(Icons.volume_off_outlined),
+              icon: const Icon(AppIcons.volumeOff),
               onPressed: voice.end,
             ),
           // While a turn runs, Stop is the thing to do: filled in the talk
@@ -1056,7 +1057,7 @@ class _ComposerRow extends StatelessWidget {
             (typed.text.trim().isEmpty && !listening ? IconButton.filled : IconButton.filledTonal)(
               key: const Key('stop'),
               tooltip: s.stop,
-              icon: const Icon(Icons.stop),
+              icon: const Icon(AppIcons.stop),
               onPressed: session.stop,
             ),
           if (typed.text.trim().isNotEmpty)
@@ -1064,7 +1065,7 @@ class _ComposerRow extends StatelessWidget {
               IconButton(
                 key: const Key('send'),
                 tooltip: s.send,
-                icon: const Icon(Icons.arrow_upward, color: Colors.white),
+                icon: const Icon(AppIcons.send, color: Colors.white),
                 onPressed: send,
               ),
             )
@@ -1209,7 +1210,7 @@ class _TalkButton extends StatelessWidget {
           IconButton(
             tooltip: label,
             icon: Icon(
-              stop ? Icons.arrow_upward : (listening ? Icons.mic : Icons.mic_none),
+              stop ? AppIcons.send : (listening ? AppIcons.micOn : AppIcons.mic),
               color: Colors.white,
             ),
             onPressed: () {},
@@ -1264,7 +1265,7 @@ class _RecordingState extends State<_Recording> {
       ),
       child: Row(
         children: [
-          Icon(Icons.mic, color: colors.onPrimaryContainer),
+          Icon(AppIcons.micOn, color: colors.onPrimaryContainer),
           const SizedBox(width: Gap.s),
           Expanded(
             child: Text(
@@ -1279,7 +1280,7 @@ class _RecordingState extends State<_Recording> {
           if (widget.discard case (final tooltip, final drop)?)
             IconButton(
               tooltip: tooltip,
-              icon: Icon(Icons.close, color: colors.onPrimaryContainer),
+              icon: Icon(AppIcons.close, color: colors.onPrimaryContainer),
               onPressed: drop,
             ),
         ],
@@ -1300,7 +1301,7 @@ class _VoiceStatus extends StatelessWidget {
     child: Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.volume_up, size: 18, color: Theme.of(context).colorScheme.primary),
+        Icon(AppIcons.volumeOn, size: 18, color: Theme.of(context).colorScheme.primary),
         const SizedBox(width: Gap.s),
         // wraps on a narrow phone
         Flexible(child: Text(strings.speaking, key: const Key('voice-state'))),
@@ -1372,7 +1373,7 @@ class _ThinkingState extends State<_Thinking> {
               dimension: 18,
               // Less motion asked for: a still mark instead of a spinner.
               child: MediaQuery.disableAnimationsOf(context)
-                  ? Icon(Icons.more_horiz, size: 18, color: muted)
+                  ? Icon(AppIcons.moreHoriz, size: 18, color: muted)
                   : CircularProgressIndicator(strokeWidth: 2, color: muted),
             ),
             Flexible(
@@ -1563,7 +1564,7 @@ class _Bubble extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.schedule, size: 16, color: colors.onSurfaceVariant),
+              Icon(AppIcons.schedule, size: 16, color: colors.onSurfaceVariant),
               const SizedBox(width: Gap.xs),
               Text(strings.waitingToSend, style: TextStyle(color: colors.onSurfaceVariant)),
               if (retry case final retry?)
@@ -1630,12 +1631,12 @@ class _Bubble extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        button(strings.copy, Icons.copy, copy),
-        if (resend case final resend?) button(strings.resend, Icons.replay, resend),
+        button(strings.copy, AppIcons.copy, copy),
+        if (resend case final resend?) button(strings.resend, AppIcons.replay, resend),
         if (report case final report?)
           reported
-              ? button(strings.wrongAnswerTakeBack, Icons.thumb_down, report, reportedColor)
-              : button(strings.wrongAnswer, Icons.thumb_down_outlined, report),
+              ? button(strings.wrongAnswerTakeBack, AppIcons.thumbDownOn, report, reportedColor)
+              : button(strings.wrongAnswer, AppIcons.thumbDown, report),
       ],
     );
   }
@@ -1715,7 +1716,7 @@ class _ErrorRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 spacing: Gap.s,
                 children: [
-                  Icon(Icons.error_outline, size: 20, color: colors.error),
+                  Icon(AppIcons.error, size: 20, color: colors.error),
                   Flexible(
                     child: Text(
                       message,
@@ -1728,7 +1729,7 @@ class _ErrorRow extends StatelessWidget {
               if (retry case final retry?)
                 TextButton.icon(
                   onPressed: retry,
-                  icon: const Icon(Icons.refresh, size: 18),
+                  icon: const Icon(AppIcons.refresh, size: 18),
                   label: Text(strings.tryAgain),
                 ),
             ],
@@ -1968,10 +1969,9 @@ class _BubbleText extends StatelessWidget {
       spacing: Gap.xs,
       children: [
         if (text.isNotEmpty) words,
-        for (final name in files)
-          _AttachmentLine(name, Icons.description_outlined, s.attachedFile(name), style),
+        for (final name in files) _AttachmentLine(name, AppIcons.note, s.attachedFile(name), style),
         for (final name in images)
-          _AttachmentLine(name, Icons.image_outlined, s.attachedImage(name), style),
+          _AttachmentLine(name, AppIcons.image, s.attachedImage(name), style),
       ],
     );
   }

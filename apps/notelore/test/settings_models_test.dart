@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/icons.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'app_chatgpt_test.dart' show pumpPlanApp;
@@ -74,7 +75,7 @@ void main() {
     expect(session.spec!.name, 'openai');
     expect(row('openai'), findsOneWidget);
     expect(
-      find.descendant(of: row('openai'), matching: find.byIcon(Icons.check_circle)),
+      find.descendant(of: row('openai'), matching: find.byIcon(AppIcons.checked)),
       findsOneWidget,
     );
     // One tap: back on Claude, said briefly.

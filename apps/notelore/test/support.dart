@@ -5,13 +5,13 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:file_selector_platform_interface/file_selector_platform_interface.dart';
-import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:notelore/src/device_auth.dart';
 import 'package:notelore/src/drive_auth.dart' show Awake;
+import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/reminder_notifier.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/transfer.dart';
@@ -715,7 +715,7 @@ class FakeTranscriber implements Transcriber {
 /// Opens Settings at [section] ("Model", "Sync"…): on a phone from the menu at
 /// the top (#509), on a wide window from the side rail, then its section list.
 Future<void> openSettings(WidgetTester tester, String section) async {
-  final menu = find.byIcon(Icons.menu);
+  final menu = find.byIcon(AppIcons.menu);
   if (menu.evaluate().isNotEmpty) {
     await tester.tap(menu.first);
     await tester.pumpAndSettle();

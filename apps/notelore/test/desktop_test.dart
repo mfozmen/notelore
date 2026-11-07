@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore_core/notelore_core.dart';
 
@@ -205,7 +206,7 @@ void main() {
     await connect(tester, key: 'k');
     await session.connectDrive();
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.cloud_done_outlined), findsOneWidget);
+    expect(find.byIcon(AppIcons.cloudDone), findsOneWidget);
   });
 
   testWidgets('desktop: the sync state sits at the foot of the rail (#774)', (tester) async {
@@ -258,7 +259,7 @@ void main() {
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
     final field = tester.getRect(find.byKey(const Key('notes-search')));
-    final icon = tester.getRect(find.byIcon(Icons.more_vert));
+    final icon = tester.getRect(find.byIcon(AppIcons.moreVert));
     expect(icon.right, closeTo(field.right, 0.5));
   });
 

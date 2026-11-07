@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/note_view.dart';
 import 'package:notelore/src/notes.dart';
 import 'package:notelore/src/strings.dart' show AppLanguage;
@@ -278,7 +279,7 @@ void main() {
       ),
     );
     // The message actions are quiet: small, in the muted colour.
-    final copy = tester.widget<Icon>(find.byIcon(Icons.copy).first);
+    final copy = tester.widget<Icon>(find.byIcon(AppIcons.copy).first);
     expect(copy.size, 18);
     expect(copy.color, theme.colorScheme.onSurfaceVariant);
   });
@@ -324,7 +325,7 @@ void main() {
       style.shape!.resolve({}),
       RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     );
-    expect(tester.widget<Icon>(find.byIcon(Icons.north_west).first).color, colors.primary);
+    expect(tester.widget<Icon>(find.byIcon(AppIcons.insert).first).color, colors.primary);
   });
 
   testWidgets('the model is a bordered pill with the accent spark', (tester) async {
@@ -332,7 +333,7 @@ void main() {
     await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
     final colors = Theme.of(tester.element(orb)).colorScheme;
-    final spark = find.byIcon(Icons.auto_awesome_outlined);
+    final spark = find.byIcon(AppIcons.sparkle);
     expect(tester.widget<Icon>(spark).color, colors.primary);
     final pill = tester.widget<Container>(
       find.ancestor(of: spark, matching: find.byType(Container)).first,
@@ -359,6 +360,6 @@ void main() {
       find.descendant(of: find.byType(MaterialBanner), matching: find.byType(Material)).first,
     );
     expect(strip.color, colors.surfaceContainerLow);
-    expect(tester.widget<Icon>(find.byIcon(Icons.warning_amber)).color, colors.primary);
+    expect(tester.widget<Icon>(find.byIcon(AppIcons.warning)).color, colors.primary);
   });
 }

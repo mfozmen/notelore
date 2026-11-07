@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/note_view.dart';
 import 'package:notelore/src/strings.dart';
 import 'package:notelore/src/theme.dart';
@@ -104,8 +105,8 @@ void main() {
         tester.getTopLeft(find.text(text)).dy,
     ];
     expect(order, orderedEquals([...order]..sort()));
-    expect(find.byIcon(Icons.radio_button_unchecked), findsNWidgets(2));
-    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    expect(find.byIcon(AppIcons.unchecked), findsNWidgets(2));
+    expect(find.byIcon(AppIcons.checked), findsOneWidget);
     expect(find.text('Overdue, 15 Oct'), findsOneWidget);
     expect(find.text('2 Nov'), findsOneWidget);
   });
@@ -176,8 +177,8 @@ kind: topic
     expect(find.text('3 Nov · 09:30'), findsOneWidget);
     // A past one says so in words and with its own icon, not by colour alone.
     expect(find.text('Passed, 15 Oct · 18:00'), findsOneWidget);
-    expect(find.byIcon(Icons.notifications_outlined), findsNWidgets(2));
-    expect(find.byIcon(Icons.history), findsNWidgets(2));
+    expect(find.byIcon(AppIcons.notifications), findsNWidgets(2));
+    expect(find.byIcon(AppIcons.history), findsNWidgets(2));
     expect(find.text('not a reminder, as written'), findsOneWidget);
   });
 

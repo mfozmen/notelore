@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/setup.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore_core/notelore_core.dart';
@@ -178,7 +179,7 @@ void main() {
     expect(on('ollama', 'Free'), findsOneWidget);
     // The choice is marked by an icon, not by colour alone.
     expect(
-      find.descendant(of: card('ollama'), matching: find.byIcon(Icons.check_circle)),
+      find.descendant(of: card('ollama'), matching: find.byIcon(AppIcons.checked)),
       findsOneWidget,
     );
   });
@@ -222,7 +223,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('option-openai')),
-        matching: find.byIcon(Icons.check_circle),
+        matching: find.byIcon(AppIcons.checked),
       ),
       findsOneWidget,
     );
