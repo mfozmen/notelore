@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'lock.dart';
 import 'mark.dart';
 import 'model_names.dart';
+import 'quick_window.dart' show QuickWindow;
 import 'section_label.dart';
 import 'session.dart';
 import 'setup.dart' show ProviderWizard;
@@ -146,6 +147,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       SettingsSection.privacy: [_PrivacyCard(session)],
       SettingsSection.reminders: [_RemindersCard(session)],
       SettingsSection.advanced: [
+        if (session.quickWindow case final quick?) _QuickShortcutCard(session, quick),
         _AdvancedCard(
           session,
           onOpen: widget.section == null && Layout.isWide(context)
@@ -645,6 +647,30 @@ class _AdvancedCard extends StatelessWidget {
             () =>
                 Navigator.of(context)
                     .push(MaterialPageRoute<void>(builder: (_) => UsagePage(session))),
+      ),
+    );
+  }
+}
+
+/// The desktop's quick-note shortcut (#800): on or off on this device.
+class _QuickShortcutCard extends StatelessWidget {
+  const _QuickShortcutCard(this.session, this.quick);
+
+  final Session session;
+  final QuickWindow quick;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = session.strings;
+    return Card(
+      child: SwitchListTile(
+        secondary: const Icon(Icons.keyboard_command_key),
+        title: Text(s.quickShortcut),
+        subtitle: Text(
+          [s.quickShortcutInfo(quick.host.keys), if (quick.taken) s.quickShortcutTaken].join(' '),
+        ),
+        value: session.quickShortcut,
+        onChanged: (on) => session.setQuickShortcut(on: on),
       ),
     );
   }

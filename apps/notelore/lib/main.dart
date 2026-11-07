@@ -13,6 +13,7 @@ import 'src/drive_auth.dart';
 import 'src/keychain_vault.dart';
 import 'src/network_native.dart';
 import 'src/quick_widget_native.dart';
+import 'src/quick_window_native.dart';
 import 'src/reminder_native.dart';
 import 'src/reminder_notifier.dart';
 import 'src/session.dart';
@@ -84,5 +85,6 @@ Future<Session> openSession({
   await session.load();
   if (phone && Platform.isAndroid) listenForShares(session); // "Share → Notelore" (#211)
   if (phone && Platform.isAndroid) listenForQuickWidget(session); // the home-screen widget (#799)
+  if (!phone) setUpQuickWindow(session); // Ctrl+Alt+N, the quick-add window (#800)
   return session;
 }

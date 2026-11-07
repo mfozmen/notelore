@@ -13,6 +13,7 @@ import 'chat.dart';
 import 'lock.dart';
 import 'mark.dart';
 import 'notes.dart';
+import 'quick_window.dart';
 import 'section_label.dart' show Label;
 import 'session.dart';
 import 'settings.dart';
@@ -121,6 +122,9 @@ class _NoteloreAppState extends State<NoteloreApp> with WidgetsBindingObserver {
             AsyncSnapshot(:final Session data) when data.lock.locked => LockScreen(data),
             // A Google account first, then the provider (#208).
             AsyncSnapshot(:final Session data) when data.needsGoogle => GoogleScreen(data),
+            AsyncSnapshot(data: Session(quickAddOpen: true, :final quickWindow?)) => QuickAddScreen(
+              quickWindow,
+            ),
             AsyncSnapshot(:final Session data) =>
               (data.ready || data.setUpBefore) && !data.finishingSetup
                   ? Home(data, updater: widget.updater, exitApp: widget.exitApp)

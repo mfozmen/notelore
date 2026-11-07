@@ -607,6 +607,15 @@ abstract class Strings {
 
   /// The home-screen widget (#799): its field, and the sync state without a time.
   String get quickAdd;
+
+  /// The desktop's quick-add window and its shortcut (#800).
+  String get quickTitle;
+  String get quickKeys;
+  String get quickToChat;
+  String get quickLast;
+  String get quickShortcut;
+  String quickShortcutInfo(String keys);
+  String get quickShortcutTaken;
   String get syncedShort;
   String syncedAgo(Duration since);
   // Drive's status in plain words, never a provider's raw message (#480).
@@ -1716,6 +1725,20 @@ class EnglishStrings extends Strings {
   String get syncNever => 'Not synced yet';
   @override
   String get quickAdd => 'Write or ask…';
+  @override
+  String get quickTitle => 'Notelore · Quick note';
+  @override
+  String get quickKeys => 'Enter sends · Esc closes';
+  @override
+  String get quickToChat => 'Goes to the chat';
+  @override
+  String get quickLast => 'Last';
+  @override
+  String get quickShortcut => 'Quick note shortcut';
+  @override
+  String quickShortcutInfo(String keys) => '$keys opens a small window from any app.';
+  @override
+  String get quickShortcutTaken => 'Another app uses this shortcut, so it does nothing now.';
   @override
   String get syncedShort => 'Synced';
   @override
@@ -2911,6 +2934,21 @@ class TurkishStrings extends Strings {
   String get syncNever => 'Henüz eşitlenmedi';
   @override
   String get quickAdd => 'Yaz ya da sor…';
+  @override
+  String get quickTitle => 'Notelore · Hızlı not';
+  @override
+  String get quickKeys => 'Enter gönderir · Esc kapatır';
+  @override
+  String get quickToChat => 'Sohbete eklenir';
+  @override
+  String get quickLast => 'Önceki';
+  @override
+  String get quickShortcut => 'Hızlı not kısayolu';
+  @override
+  String quickShortcutInfo(String keys) => '$keys her uygulamadan küçük bir pencere açar.';
+  @override
+  String get quickShortcutTaken =>
+      'Bu kısayolu başka bir uygulama kullanıyor; şimdilik bir şey yapmıyor.';
   @override
   String get syncedShort => 'Eşitlendi';
   @override
