@@ -1566,11 +1566,17 @@ class _Bubble extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(AppIcons.schedule, size: 16, color: colors.onSurfaceVariant),
-              const SizedBox(width: Gap.xs),
-              Text(strings.waitingToSend, style: TextStyle(color: colors.onSurfaceVariant)),
+              Tooltip(
+                message: strings.waitingToSend,
+                child: Icon(AppIcons.schedule, size: 20, color: colors.onSurfaceVariant),
+              ),
               if (retry case final retry?)
-                TextButton(onPressed: retry, child: Text(strings.tryNow)),
+                IconButton(
+                  tooltip: strings.tryNow,
+                  iconSize: 20,
+                  icon: const Icon(AppIcons.refresh),
+                  onPressed: retry,
+                ),
             ],
           ),
         ],

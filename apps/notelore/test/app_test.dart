@@ -458,6 +458,7 @@ void main() {
     tester,
   ) async {
     phone(tester);
+    final semantics = tester.ensureSemantics();
     final harness = Harness(answers: [const NetworkError('offline'), 'Kaydettim.']);
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
@@ -466,12 +467,23 @@ void main() {
     await tester.tap(find.byTooltip('Send'));
     await tester.pumpAndSettle();
     expect(find.text('kitabı kaydet'), findsOneWidget);
-    expect(find.text('Waiting to send'), findsOneWidget);
+    // Icons alone say it (#819): the words are their tooltips and labels.
+    expect(find.text('Waiting to send'), findsNothing);
+    expect(find.byTooltip('Waiting to send'), findsOneWidget);
+    expect(
+      tester.getSemantics(find.byTooltip('Waiting to send')),
+      isSemantics(tooltip: 'Waiting to send'),
+    );
+    expect(find.text('Try now'), findsNothing);
+    final tryNow = find.widgetWithIcon(IconButton, AppIcons.refresh);
+    expect(tester.widget<IconButton>(tryNow).tooltip, 'Try now');
+    expect(tester.getSize(tryNow).shortestSide, greaterThanOrEqualTo(48));
     expect(find.textContaining('offline'), findsNothing); // not an error
-    await tester.tap(find.text('Try now'));
+    await tester.tap(find.byTooltip('Try now'));
     await tester.pumpAndSettle();
     expect(find.text('Kaydettim.'), findsOneWidget);
-    expect(find.text('Waiting to send'), findsNothing);
+    expect(find.byTooltip('Waiting to send'), findsNothing);
+    semantics.dispose();
   });
 
   testWidgets('chat: an empty chat offers examples; a tap puts one in the box (#289)', (
@@ -2001,6 +2013,8 @@ void main() {
     expect(find.text('Listening… tap to send'), findsOneWidget); // on after the finger is up
     expect(find.byTooltip('Stop and send'), findsOneWidget);
     expect(find.byIcon(AppIcons.send), findsOneWidget);
+    // Bold like the filled mic beside it (#819): Fill's arrow-up.
+    expect((AppIcons.send.fontFamily, AppIcons.send.codePoint), ('Phosphor Fill', 0xe08e));
     final stop = await tester.createGesture();
     await stop.down(
       tester.getCenter(find.byTooltip('Stop and send')),
@@ -2179,7 +2193,7 @@ void main() {
     await connect(tester, key: 'k');
     await openSettings(tester, 'Model');
     expect(find.textContaining('bills each search'), findsOneWidget); // Claude
-    await tester.tap(find.text('Look things up on the web'));
+    await tester.tap(find.text('Web search'));
     await tester.pumpAndSettle();
     expect(session.webSearch, isFalse);
     expect(harness.searches.last, isFalse);
@@ -2190,7 +2204,7 @@ void main() {
     await pumpApp(tester, Harness());
     await connect(tester, provider: 'GPT (OpenAI)', key: 'sk');
     await openSettings(tester, 'Model');
-    expect(find.textContaining('like the author of a book'), findsOneWidget);
+    expect(find.textContaining('look up a missing fact on the web'), findsOneWidget);
   });
 
   testWidgets('settings: Ollama cannot search the web', (tester) async {
