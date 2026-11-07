@@ -115,7 +115,7 @@ DueReminder? snoozeReminder(String root, int id, {required DateTime now, DateTim
 
 /// A notification's Done (#801): ticks the open todo in the same note that
 /// says what the reminder says. The reminder itself has rung and stays, so
-/// without such a todo nothing changes. Whether a todo was ticked.
+/// without such a todo nothing changes. True when a todo was ticked.
 bool reminderDone(String root, int id, {required DateTime now, DateTime? today}) {
   final rung = _rung(root, id, now);
   if (rung == null) return false;

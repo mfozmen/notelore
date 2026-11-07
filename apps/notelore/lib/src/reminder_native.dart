@@ -26,23 +26,14 @@ ReminderNotifier? platformNotifier() =>
 /// A notification's Done or Snooze 1 hour on Android while the app is not
 /// running (#801): the plugin starts this in an isolate of its own.
 @pragma('vm:entry-point')
-Future<void> reminderActionInBackground(NotificationResponse response) => actOnReminder(
-  PluginNotifier(background: true),
-  response.actionId,
-  response.payload,
-  now: DateTime.now(),
-);
+Future<void> reminderActionInBackground(NotificationResponse response) =>
+    actOnReminder(PluginNotifier(), response.actionId, response.payload, now: DateTime.now());
 
 /// The platform's notifications, through flutter_local_notifications. Thin
 /// glue `flutter test` cannot load; everything around it is tested with a fake.
 class PluginNotifier implements ReminderNotifier {
-  /// [background]: in [reminderActionInBackground]'s isolate, which only
-  /// schedules; the app's own start already set the plugin up.
-  PluginNotifier({this.background = false});
-
-  final bool background;
   final _plugin = FlutterLocalNotificationsPlugin();
-  late final Future<void> _ready = background ? Future.value() : _setUp();
+  late final Future<void> _ready = _setUp();
 
   Future<void> _setUp() async {
     // macOS fixes its buttons' words at start: the system's language.

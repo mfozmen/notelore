@@ -83,19 +83,37 @@ Future<void> actOnReminder(
   String? payload, {
   required DateTime now,
 }) async {
-  if (payload == null) return;
-  final carried = jsonDecode(payload) as Map<String, Object?>;
-  final id = carried['id']! as int;
-  final notes = carried['notes']! as String;
-  switch (carried['action'] ?? action) {
-    case doneAction:
-      reminderDone(notes, id, now: now);
-    case snoozeAction:
-      if (snoozeReminder(notes, id, now: now) case final moved?) {
-        await device.schedule(
-          DueReminder(moved.id, moved.at, carried['note']! as String, carried['text']! as String),
-          (notes: notes, done: carried['done']! as String, snooze: carried['snooze']! as String),
-        );
-      }
+  if (_carried(payload)
+      case {
+            'id': final int id,
+            'notes': final String notes,
+            'note': final String note,
+            'text': final String text,
+            'done': final String done,
+            'snooze': final String snooze,
+          } &&
+          final carried) {
+    switch (carried['action'] ?? action) {
+      case doneAction:
+        reminderDone(notes, id, now: now);
+      case snoozeAction:
+        if (snoozeReminder(notes, id, now: now) case final moved?) {
+          await device.schedule(DueReminder(moved.id, moved.at, note, text), (
+            notes: notes,
+            done: done,
+            snooze: snooze,
+          ));
+        }
+    }
+  }
+}
+
+/// The payload as JSON, or null when it is none or not JSON (not one of ours).
+Object? _carried(String? payload) {
+  if (payload == null) return null;
+  try {
+    return jsonDecode(payload);
+  } on FormatException {
+    return null;
   }
 }

@@ -75,6 +75,9 @@ void main() {
       await actOnReminder(device, snoozeAction, null, now: rang);
       final gone = payload().replaceFirst(RegExp(r'"id":\d+'), '"id":7');
       await actOnReminder(device, snoozeAction, gone, now: rang);
+      // Not one of ours: ignored, never an error in the background isolate.
+      await actOnReminder(device, snoozeAction, 'launch', now: rang);
+      await actOnReminder(device, snoozeAction, '{"id":"1"}', now: rang);
       expect(File(health).readAsStringSync(), before);
       expect(device.scheduled, isEmpty);
     });
