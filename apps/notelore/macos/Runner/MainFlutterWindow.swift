@@ -52,6 +52,7 @@ final class QuickWindow {
   private var saved: (frame: NSRect, style: NSWindow.StyleMask, level: NSWindow.Level,
                       miniaturized: Bool, visible: Bool)?
   private var previous: NSRunningApplication?
+  private var opening = false
 
   private static let width: CGFloat = 460
   private static let height: CGFloat = 224
@@ -64,7 +65,7 @@ final class QuickWindow {
       NotificationCenter.default.addObserver(
         forName: NSWindow.didResignKeyNotification, object: window, queue: .main
       ) { [weak self] _ in
-        guard let self, self.saved != nil else { return }
+        guard let self, self.saved != nil, !self.opening else { return }
         self.restore(refocus: false)
         self.channel.invokeMethod("closed", arguments: nil)
       }
@@ -105,6 +106,9 @@ final class QuickWindow {
   private func compact() {
     if saved != nil { return front() }
     previous = NSWorkspace.shared.frontmostApplication
+    // Going borderless and active can resign the key on the way: not a click away.
+    opening = true
+    DispatchQueue.main.async { self.opening = false }
     saved = (window.frame, window.styleMask, window.level, window.isMiniaturized, window.isVisible)
     let screen = NSScreen.main ?? window.screen ?? NSScreen.screens[0]
     let area = screen.visibleFrame
