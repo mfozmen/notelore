@@ -3450,15 +3450,12 @@ void main() {
     expect(lines, containsAll(['Saved to Mopsos.', 'Reason: single user', 'See the docs.']));
     expect(lines.where((l) => l.contains('**') && l != '**not** markdown'), isEmpty);
     expect(lines, contains('**not** markdown'));
-    final body = tester.widget<MarkdownBody>(find.byType(MarkdownBody));
+    final body = tester.widget<MarkdownBody>(answerBody);
     // One selection across the whole answer (#335), not one per paragraph.
     expect(body.selectable, isFalse);
-    expect(
-      find.ancestor(of: find.byType(MarkdownBody), matching: find.byType(SelectionArea)),
-      findsOneWidget,
-    );
+    expect(find.ancestor(of: answerBody, matching: find.byType(SelectionArea)), findsOneWidget);
     // The bubble's own colour for every part, so it reads in both themes.
-    final ink = Theme.of(tester.element(find.byType(MarkdownBody))).colorScheme.onSurface;
+    final ink = Theme.of(tester.element(answerBody)).colorScheme.onSurface;
     final sheet = body.styleSheet!;
     expect(
       [
@@ -3473,7 +3470,7 @@ void main() {
       everyElement(ink),
     );
     // A link looks like one: the theme's primary colour, underlined.
-    final theme = Theme.of(tester.element(find.byType(MarkdownBody)));
+    final theme = Theme.of(tester.element(answerBody));
     expect(sheet.a!.color, theme.colorScheme.primary);
     expect(sheet.a!.decoration, TextDecoration.underline);
     // Code in a monospace face on every platform, not only where "monospace" exists,
@@ -3499,7 +3496,7 @@ void main() {
     expect(block.style!.fontFamily, 'monospace');
     // The paragraph's own step makes up the top of the bubble, so it is even.
     final bubble = tester.widget<Container>(
-      find.ancestor(of: find.byType(MarkdownBody), matching: find.byType(Container)).first,
+      find.ancestor(of: answerBody, matching: find.byType(Container)).first,
     );
     expect(bubble.padding!.vertical, (Gap.m - Gap.xs) * 2 - Gap.xs);
     await tapOnPart(tester, 'the docs');

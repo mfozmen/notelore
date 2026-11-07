@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:file_selector_platform_interface/file_selector_platform_interface.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -736,3 +737,6 @@ Finder tab(String label) {
   final tip = find.byTooltip(label);
   return tip.evaluate().isNotEmpty ? tip : find.text(label);
 }
+
+/// The answers' Markdown: the chat's own kind of [MarkdownBody].
+final answerBody = find.byWidgetPredicate((w) => w is MarkdownBody);
