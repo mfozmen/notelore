@@ -25,7 +25,11 @@ check("a gift list is a gift list in either language", scenarios.themes("topics/
 check("a reading list is a book list", scenarios.themes("topics/books-on-my-nightstand.md"), {"books"})
 check("a project is no list", scenarios.themes("projects/garden-shed.md"), set())
 
-for case in scenarios.cases(random.Random(7)):
+generated = scenarios.cases(random.Random(7))
+asked = [c["expect"] for c in generated if c["id"].startswith("note-") and c["kind"] == "question"]
+check("a question on a note expects its answer and no tool", (bool(asked), all(list(e) == ["answer"] for e in asked)), (True, True))
+
+for case in generated:
     if case["id"].startswith("done-other-"):
         # The entry's result names a matching todo (#731), so no read is required (#733).
         check(f"{case['id']} is filed as an entry, unread", case["expect"]["tools"], ["add_note_entry"])

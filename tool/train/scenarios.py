@@ -740,6 +740,284 @@ REMINDERS += [
     ("tr", "Ortak Masraflar", "topic", "Ayın 1'inde kirayı bölüştürmeyi hatırlat.", "2026-11-01", "kira"),
 ]
 
+# v9 (#604): more scenarios, weighted to collection, the student's weakest kind
+# (v8: 54/73 held-out): a new list beside lists of other kinds, which of several
+# similar lists, twin lists, cross-language lists; plus decisions and questions
+# phrased without the note's title.
+NEW_LISTS += [
+    ("en", "Cheese to try: an aged Comté.", r"^topics/[^/]*cheese[^/]*\.md$", "Comté"),
+    ("en", "Whisky to try: a peated Islay single malt.", r"^topics/[^/]*whisk[^/]*\.md$", "Islay"),
+    ("en", "Perfume I'd like to smell in a shop: Terre d'Hermès.", r"^topics/[^/]*(perfume|fragrance|scent)[^/]*\.md$", "Terre"),
+    ("en", "Baby name we like: Elodie.", r"^topics/[^/]*name[^/]*\.md$", "Elodie"),
+    ("en", "Knitting pattern to try: a cabled beanie.", r"^topics/[^/]*knit[^/]*\.md$", "beanie"),
+    ("en", "LEGO set I want: the bonsai tree.", r"^topics/[^/]*lego[^/]*\.md$", "bonsai"),
+    ("en", "Bird I want to spot this spring: a hoopoe.", r"^topics/[^/]*bird[^/]*\.md$", "hoopoe"),
+    ("en", "Magic trick I want to show the kids: the French drop.", r"^topics/[^/]*(magic|trick)[^/]*\.md$", "French drop"),
+    ("en", "Chess opening to study: the Caro-Kann.", r"^topics/[^/]*(chess|opening)[^/]*\.md$", "Caro-Kann"),
+    ("en", "Font I like for headings: Fraunces.", r"^topics/[^/]*(font|typeface)[^/]*\.md$", "Fraunces"),
+    ("en", "Side project idea: a CLI that renames photos by date.", r"^topics/[^/]*(idea|side)[^/]*\.md$", "renames"),
+    ("en", "Word I want to remember: sonder.", r"^topics/[^/]*(word|vocab)[^/]*\.md$", "sonder"),
+    ("en", "Quote I liked: the obstacle is the way.", r"^topics/[^/]*quote[^/]*\.md$", "obstacle"),
+    ("en", "Mechanical keyboard I'm eyeing: a Keychron Q1.", r"^topics/[^/]*keyboard[^/]*\.md$", "Keychron"),
+    ("en", "Newsletter to subscribe to: Money Stuff.", r"^topics/[^/]*newsletter[^/]*\.md$", "Money Stuff"),
+    ("en", "YouTube channel to follow: Practical Engineering.", r"^topics/[^/]*(youtube|channel)[^/]*\.md$", "Practical Engineering"),
+    ("en", "Camera lens I'd like: a 35mm f/1.8.", r"^topics/[^/]*(lens|camera)[^/]*\.md$", "35mm"),
+    ("tr", "Denenecek peynir: Ezine'den eski kaşar.", r"^topics/[^/]*peynir[^/]*\.md$", "kaşar"),
+    ("tr", "Bebek ismi fikri: Defne.", r"^topics/[^/]*(isim|bebek)[^/]*\.md$", "Defne"),
+    ("tr", "Denemek istediğim parfüm: bir vetiver kokusu.", r"^topics/[^/]*(parfum|koku)[^/]*\.md$", "vetiver"),
+    ("tr", "Örgü modeli fikri: burgulu bere.", r"^topics/[^/]*orgu[^/]*\.md$", "bere"),
+    ("tr", "Almak istediğim lego seti: bir deniz feneri.", r"^topics/[^/]*lego[^/]*\.md$", "deniz feneri"),
+    ("tr", "Bu bahar görmek istediğim kuş: arıkuşu.", r"^topics/[^/]*kus[^/]*\.md$", "arıkuşu"),
+    ("tr", "Sihirbazlık numarası fikri: kaybolan bozuk para.", r"^topics/[^/]*(sihir|numara)[^/]*\.md$", "bozuk para"),
+    ("tr", "Çalışacağım satranç açılışı: Sicilya savunması.", r"^topics/[^/]*(satranc|acilis)[^/]*\.md$", "Sicilya"),
+    ("tr", "Beğendiğim yazı tipi: IBM Plex Sans.", r"^topics/[^/]*(yazi|font)[^/]*\.md$", "Plex"),
+    ("tr", "Yan proje fikri: durağa gelen otobüsleri gösteren bir ekran.", r"^topics/[^/]*(fikir|proje)[^/]*\.md$", "otobüs"),
+    ("tr", "Aklımda kalsın diye bir kelime: yakamoz.", r"^topics/[^/]*kelime[^/]*\.md$", "yakamoz"),
+    ("tr", "Hoşuma giden bir söz: damlaya damlaya göl olur.", r"^topics/[^/]*(soz|alinti)[^/]*\.md$", "damlaya"),
+    ("tr", "Almak istediğim klavye: sessiz tuşlu bir mekanik klavye.", r"^topics/[^/]*klavye[^/]*\.md$", "sessiz"),
+    ("tr", "Abone olmak istediğim bülten: haftalık bir bilim bülteni.", r"^topics/[^/]*bulten[^/]*\.md$", "bilim"),
+    ("tr", "Takip edilecek YouTube kanalı: Usta Marangoz.", r"^topics/[^/]*(youtube|kanal)[^/]*\.md$", "Usta Marangoz"),
+    ("tr", "Almak istediğim objektif: 50mm f/1.8.", r"^topics/[^/]*(objektif|kamera)[^/]*\.md$", "50mm"),
+]
+
+FIRST_OF_KIND += [
+    ("en", "Just started Remarkably Bright Creatures.", r"^topics/[^/]*book[^/]*\.md$", "Remarkably Bright"),
+    ("en", "Finished the first chapter of The Thursday Murder Club tonight.", r"^topics/[^/]*book[^/]*\.md$", "Thursday Murder Club"),
+    ("en", "My sister lent me Circe, I'm reading it now.", r"^topics/[^/]*book[^/]*\.md$", "Circe"),
+    ("en", "Watching Paddington 2 with the kids tonight.", r"^topics/[^/]*(film|movie)[^/]*\.md$", "Paddington"),
+    ("en", "Film recommendation from work: The Lunchbox.", r"^topics/[^/]*(film|movie)[^/]*\.md$", "Lunchbox"),
+    ("en", "Recipe I want to make: lamb tagine with apricots.", r"^topics/[^/]*recipe[^/]*\.md$", "tagine"),
+    ("en", "Saw a recipe for a crispy gnocchi traybake, want to try it.", r"^topics/[^/]*recipe[^/]*\.md$", "traybake"),
+    ("en", "Someday I want to see the northern lights in Tromsø.", r"^topics/[^/]*(place|visit|travel)[^/]*\.md$", "Tromsø"),
+    ("en", "I'd love to walk around Granada one day.", r"^topics/[^/]*(place|visit|travel)[^/]*\.md$", "Granada"),
+    ("en", "Gift idea for Mum's birthday: a silk pillowcase.", r"^topics/[^/]*gift[^/]*\.md$", "pillowcase"),
+    ("en", "Podcast someone recommended: Revisionist History.", r"^topics/[^/]*podcast[^/]*\.md$", "Revisionist"),
+    ("en", "Restaurant to try: a Georgian place called Supra.", r"^topics/[^/]*restaurant[^/]*\.md$", "Supra"),
+    ("en", "Album to listen to properly: Kind of Blue.", r"^topics/[^/]*(album|music)[^/]*\.md$", "Kind of Blue"),
+    ("tr", "Bu aralar Benim Adım Kırmızı'yı okuyorum.", r"^topics/[^/]*kitap[^/]*\.md$", "Benim Adım Kırmızı"),
+    ("tr", "Annemin önerdiği Sessiz Ev'e başladım.", r"^topics/[^/]*kitap[^/]*\.md$", "Sessiz Ev"),
+    ("tr", "Metroda Kafamda Bir Tuhaflık okuyorum.", r"^topics/[^/]*kitap[^/]*\.md$", "Tuhaflık"),
+    ("tr", "Bu gece Selvi Boylum Al Yazmalım'ı izleyeceğim.", r"^topics/[^/]*film[^/]*\.md$", "Selvi Boylum"),
+    ("tr", "Arkadaşım Tabutta Rövaşata'yı önerdi, izlemek istiyorum.", r"^topics/[^/]*film[^/]*\.md$", "Rövaşata"),
+    ("tr", "Denenecek yemek: fırında kabak mücveri.", r"^topics/[^/]*(tarif|yemek)[^/]*\.md$", "mücver"),
+    ("tr", "Yapmak istediğim tarif: cevizli tarhana çorbası.", r"^topics/[^/]*(tarif|yemek)[^/]*\.md$", "tarhana"),
+    ("tr", "Bir gün Kemaliye'ye gitmek istiyorum.", r"^topics/[^/]*(gez|yer)[^/]*\.md$", "Kemaliye"),
+    ("tr", "Gezmek istediğim yer: Şirince.", r"^topics/[^/]*(gez|yer)[^/]*\.md$", "Şirince"),
+    ("tr", "Kardeşime hediye fikri: bir deri cüzdan.", r"^topics/[^/]*hediye[^/]*\.md$", "cüzdan"),
+    ("tr", "Dinlenecek podcast: Bir Şehir Bir Hikâye.", r"^topics/[^/]*podcast[^/]*\.md$", "Bir Şehir"),
+    ("tr", "Gidilecek restoran: Kadıköy'de Lokanta Nar.", r"^topics/[^/]*(restoran|lokanta)[^/]*\.md$", "Lokanta Nar"),
+    ("tr", "Dinlemek istediğim albüm: Gece Yolcuları.", r"^topics/[^/]*(album|muzik)[^/]*\.md$", "Gece Yolcuları"),
+]
+
+MIXED_LISTS += [
+    ("en", {"books": "Books by the Bed", "podcasts": "Podcast Queue", "restaurants": "Restaurants Nearby", "gifts": "Gift Ideas for Friends"}, [
+        ("Started Wolf Hall on the bus today.", "books", "Wolf Hall"),
+        ("Next up: Babel by R. F. Kuang.", "books", "Babel"),
+        ("Podcast to queue: Darknet Diaries.", "podcasts", "Darknet Diaries"),
+        ("I should listen to Planet Money.", "podcasts", "Planet Money"),
+        ("Restaurant to try near us: Osteria Lupa.", "restaurants", "Osteria Lupa"),
+        ("Heard the new ramen bar Kumo is great, want to go.", "restaurants", "Kumo"),
+        ("Gift idea for Ece: a pottery class voucher.", "gifts", "voucher"),
+        ("For Jonah's birthday: a field guide to mushrooms.", "gifts", "mushrooms"),
+    ]),
+    ("en", {"films": "Films for Sunday", "places": "Travel Someday", "recipes": "Weeknight Recipes", "music": "Albums to Hear"}, [
+        ("Film for Sunday afternoon: Amélie.", "films", "Amélie"),
+        ("I want to watch Roman Holiday again.", "films", "Roman Holiday"),
+        ("Someday: a road trip through Scotland.", "places", "Scotland"),
+        ("I'd love to visit Oaxaca.", "places", "Oaxaca"),
+        ("Weeknight recipe to try: sheet pan fajitas.", "recipes", "fajitas"),
+        ("Quick dinner idea: peanut noodles.", "recipes", "peanut"),
+        ("Album to hear in full: Rumours.", "music", "Rumours"),
+        ("I should finally listen to OK Computer.", "music", "OK Computer"),
+    ]),
+    ("tr", {"books": "Başucu Kitapları", "podcasts": "Dinlenecek Podcastler", "restaurants": "Gidilecek Restoranlar", "gifts": "Hediye Fikirleri"}, [
+        ("Başucumda şimdi Kuyruklu Yıldız Altında Bir İzdivaç var.", "books", "İzdivaç"),
+        ("Okumak istediğim kitap: Bir Tereddüdün Romanı.", "books", "Tereddüdün"),
+        ("Dinlenecek podcast: Kayıp Arşiv.", "podcasts", "Kayıp Arşiv"),
+        ("Şu podcasti dinlemeliyim: Gece Masalları.", "podcasts", "Gece Masalları"),
+        ("Gidilecek restoran: Karaköy'de Balıkçı Selim.", "restaurants", "Balıkçı Selim"),
+        ("Moda'da yeni bir meyhane açılmış, Asmalı Avlu, gitmek istiyorum.", "restaurants", "Asmalı Avlu"),
+        ("Ablama hediye: seramik bir vazo.", "gifts", "vazo"),
+        ("Hediye fikri: dedeme büyüteçli bir okuma lambası.", "gifts", "okuma lambası"),
+    ]),
+    ("tr", {"films": "Hafta Sonu Filmleri", "places": "Gezi Hayalleri", "recipes": "Hafta İçi Yemekleri", "music": "Dinlenecek Müzikler"}, [
+        ("Hafta sonu izlenecek: Masumlar Apartmanı.", "films", "Masumlar Apartmanı"),
+        ("Şu filmi izlemek istiyorum: Kelebekler.", "films", "Kelebekler"),
+        ("Bir gün Van Gölü'nün etrafını dolaşmak istiyorum.", "places", "Van Gölü"),
+        ("Gezilecek yer: Harran.", "places", "Harran"),
+        ("Hafta içi yemeği: fırında mantarlı makarna.", "recipes", "mantarlı makarna"),
+        ("Kolay akşam yemeği fikri: ıspanaklı yumurta.", "recipes", "ıspanaklı yumurta"),
+        ("Dinlenecek albüm: Moğollar'ın ilk albümü.", "music", "Moğollar"),
+        ("Şu albümü baştan sona dinlemeliyim: Anadolu Pop Derlemesi.", "music", "Anadolu Pop"),
+    ]),
+]
+
+# Twin lists beyond now and later: done and to do, one person and another, work and fun.
+TWIN_LISTS += [
+    ("en", "Films Watched This Year", "Films for Later", [
+        ("Watched Oppenheimer last night, loved it.", True, "Oppenheimer"),
+        ("Just saw The Iron Claw at the cinema.", True, "Iron Claw"),
+        ("Want to watch Godzilla Minus One sometime.", False, "Godzilla"),
+        ("Someone said I must see Prisoners, adding it for later.", False, "Prisoners"),
+    ]),
+    ("en", "Places I've Been", "Places I Want to Go", [
+        ("We got back from Sarajevo last week.", True, "Sarajevo"),
+        ("Spent the weekend in Bruges.", True, "Bruges"),
+        ("One day I'd like to see Petra.", False, "Petra"),
+        ("Dream trip: the Azores.", False, "Azores"),
+    ]),
+    ("en", "Recipes That Worked", "Recipes to Try Later", [
+        ("Made the cardamom buns again, they came out great.", True, "cardamom"),
+        ("The aubergine parmigiana worked really well.", True, "parmigiana"),
+        ("Want to try a Thai green curry sometime.", False, "green curry"),
+        ("Saw a recipe for French onion soup, will try it later.", False, "onion soup"),
+    ]),
+    ("en", "Gift Ideas for Mom", "Gift Ideas for Dad", [
+        ("Mom would love a reading light.", True, "reading light"),
+        ("For Mom: a cashmere cardigan.", True, "cardigan"),
+        ("Dad needs a new toolbox.", False, "toolbox"),
+        ("Gift for Dad: a good pair of gardening gloves.", False, "gardening gloves"),
+    ]),
+    ("en", "Work Reading", "Fun Reading", [
+        ("For work I'm reading The Phoenix Project.", True, "Phoenix Project"),
+        ("Started Team Topologies for the job.", True, "Team Topologies"),
+        ("Just for fun I'm reading Good Omens.", False, "Good Omens"),
+        ("Holiday read: The Rosie Project.", False, "Rosie Project"),
+    ]),
+    ("tr", "İzlediğim Filmler", "İzlenecekler", [
+        ("Dün akşam Babamın Sesi'ni izledim, çok güzeldi.", True, "Babamın Sesi"),
+        ("Geçen hafta Kurak Günler'i izledim.", True, "Kurak Günler"),
+        ("İzlemek istediğim film: Annemin Şarkısı.", False, "Annemin Şarkısı"),
+        ("Bir ara Klondike'ı izlemeliyim.", False, "Klondike"),
+    ]),
+    ("tr", "Gittiğim Yerler", "Gitmek İstediğim Yerler", [
+        ("Geçen ay Beypazarı'na gittik.", True, "Beypazarı"),
+        ("Hafta sonu Cumalıkızık'taydık.", True, "Cumalıkızık"),
+        ("Bir gün Ihlara Vadisi'ni görmek istiyorum.", False, "Ihlara"),
+        ("Gitmek istediğim yer: Kekova.", False, "Kekova"),
+    ]),
+    ("tr", "Annem İçin Hediyeler", "Babam İçin Hediyeler", [
+        ("Anneme bir bitki çayı seti alabilirim.", True, "bitki çayı"),
+        ("Annem için hediye: yün terlik.", True, "terlik"),
+        ("Babama bir el feneri iyi olur.", False, "el feneri"),
+        ("Babam için hediye: satranç takımı.", False, "satranç"),
+    ]),
+    ("tr", "Bitirdiğim Kitaplar", "Okunacak Kitaplar", [
+        ("Kiralık Konak'ı bitirdim.", True, "Kiralık Konak"),
+        ("Dün gece Fareler ve İnsanlar'ı bitirdim.", True, "Fareler ve İnsanlar"),
+        ("Okunacaklara ekle: Dava.", False, "Dava"),
+        ("Bir ara Yabancı'yı okumak istiyorum.", False, "Yabancı"),
+    ]),
+    ("tr", "İş İçin Okuduklarım", "Keyif İçin Okuduklarım", [
+        ("İş için Derin Çalışma'yı okuyorum.", True, "Derin Çalışma"),
+        ("İş için şu an Atomik Alışkanlıklar okuyorum.", True, "Atomik"),
+        ("Keyif için Martı Jonathan Livingston okuyorum.", False, "Martı"),
+        ("Tatilde keyfine okumak için: Kumarbaz.", False, "Kumarbaz"),
+    ]),
+]
+
+COLLECTIONS += [
+    ("en", "Wines to Try", "Rioja Reserva",
+     ["a Greek Assyrtiko", "a Portuguese Vinho Verde", "a Lebanese red", "an Austrian Grüner"],
+     ["Wine to try: {x}.", "Add {x} to the wines to try."]),
+    ("en", "Hiking Trails", "Carpathian ridge walk",
+     ["the West Highland Way", "the Kumano Kodo", "the Camino Portugués", "the Tour du Mont Blanc"],
+     ["Trail to hike one day: {x}.", "Add {x} to my hiking trails."]),
+    ("en", "Houseplants Wishlist", "Monstera",
+     ["a string of pearls", "a ZZ plant", "a peace lily", "a calathea"],
+     ["Plant I'd like: {x}.", "Houseplant to get: {x}."]),
+    ("en", "Series to Binge", "Mad Men",
+     ["Severance", "Shōgun", "The Bear", "Blue Eye Samurai"],
+     ["Series to binge: {x}.", "Add {x} to the series list."]),
+    ("en", "Online Courses", "Intro to Linear Algebra",
+     ["a watercolour course", "a course on Python testing", "a first aid course", "a bookkeeping course"],
+     ["Course to take: {x}.", "I'd like to sign up for {x}."]),
+    ("tr", "Denenecek Şaraplar", "Kalecik Karası",
+     ["bir Narince", "bir Boğazkere", "bir Emir", "bir Sultaniye"],
+     ["Denenecek şarap: {x}.", "Şarap listeme {x} ekle."]),
+    ("tr", "Yürüyüş Rotaları", "Belgrad Ormanı turu",
+     ["Evliya Çelebi Yolu", "Frig Vadisi", "Karia Yolu", "Aziz Pavlus Yolu"],
+     ["Yürümek istediğim rota: {x}.", "Rotalara ekle: {x}."]),
+    ("tr", "Alınacak Bitkiler", "Kauçuk",
+     ["bir orkide", "bir sukulent", "bir zamioculcas", "bir aloe vera"],
+     ["Bitki listeme ekle: {x}.", "Eve almak istediğim bitki: {x}."]),
+    ("tr", "İzlenecek Diziler", "Leyla ile Mecnun",
+     ["Masum", "Kulüp", "Yalancı", "Şahsiyet"],
+     ["Dizi listeme {x} ekle.", "Şu diziyi izlemeliyim: {x}."]),
+    ("tr", "Katılmak İstediğim Kurslar", "Fotoğrafçılık kursu",
+     ["ebru kursu", "ahşap oymacılığı kursu", "işaret dili kursu", "yüzme kursu"],
+     ["Kurslara ekle: {x}.", "Gitmek istediğim kurs: {x}."]),
+]
+
+# A list item in one language for a list in the other.
+CROSS += [
+    ("en", "Okuduğum Kitaplar", "topic", "I'm reading The Bastard of Istanbul now.", "collection", "add_note_entry", "Bastard of Istanbul"),
+    ("en", "İzlenecek Filmler", "topic", "Film to watch: Climates.", "collection", "add_note_entry", "Climates"),
+    ("en", "Denenecek Tarifler", "topic", "Recipe to try: stuffed peppers with rice.", "collection", "add_note_entry", "peppers"),
+    ("en", "Gidilecek Yerler", "topic", "Add Bodrum to the places to visit.", "collection", "add_note_entry", "Bodrum"),
+    ("en", "Dinlenecek Albümler", "topic", "Album to listen to: Işık Doğudan Yükselir.", "collection", "add_note_entry", "Doğudan"),
+    ("en", "Öğrenilecek Konular", "topic", "Something I want to learn: calligraphy.", "collection", "add_note_entry", "calligraphy"),
+    ("en", "Okunacak Makaleler", "topic", "Paper to read: the BERT paper.", "collection", "add_note_entry", "BERT"),
+    ("en", "Denenecek Şaraplar", "topic", "Wine to try: a Papazkarası.", "collection", "add_note_entry", "Papazkarası"),
+    ("tr", "Books I'm Reading", "topic", "Şu an Dorian Gray'in Portresi'ni okuyorum.", "collection", "add_note_entry", "Dorian Gray"),
+    ("tr", "Films to Watch", "topic", "İzlenecek film: Roma.", "collection", "add_note_entry", "Roma"),
+    ("tr", "Recipes to Try", "topic", "Denenecek tarif: limonlu kuskus salatası.", "collection", "add_note_entry", "kuskus"),
+    ("tr", "Places to Visit", "topic", "Bir gün Saraybosna'ya gitmek istiyorum.", "collection", "add_note_entry", "Saraybosna"),
+    ("tr", "Gift Ideas", "topic", "Hediye fikri: kuzenime bir bulmaca kitabı.", "collection", "add_note_entry", "bulmaca"),
+    ("tr", "Podcasts to Try", "topic", "Denenecek podcast: Serial.", "collection", "add_note_entry", "Serial"),
+    ("tr", "Board Games to Buy", "topic", "Alınacak kutu oyunu: Codenames.", "collection", "add_note_entry", "Codenames"),
+    ("tr", "Restaurants to Try", "topic", "Gidilecek restoran: Lokanta 1741.", "collection", "add_note_entry", "1741"),
+]
+
+# Rows shaped like CROSS, in either language: a decision said without "we
+# picked", and a question naming the subject rather than the note (no tool:
+# the answer must hold the word).
+ON_NOTE = [
+    ("en", "Garden Shed", "project", "Garden shed: switching the roof to cedar shingles.", "decision", "record_decision", "cedar"),
+    ("en", "Podcast Launch", "project", "Podcast launch moves hosting to Buzzsprout.", "decision", "record_decision", "Buzzsprout"),
+    ("en", "Kitchen Renovation", "project", "We're going with brass handles for the kitchen cabinets.", "decision", "record_decision", "brass"),
+    ("en", "Marathon Training", "project", "Marathon training: settled on a Garmin Forerunner as the watch.", "decision", "record_decision", "Garmin"),
+    ("en", "Boat Restoration", "project", "Boat restoration: the outboard is out, we're going electric with a Torqeedo.", "decision", "record_decision", "Torqeedo"),
+    ("en", "Home Office", "project", "Home office: final call on the desk, a walnut sit-stand desk.", "decision", "record_decision", "walnut"),
+    ("en", "Community Garden", "project", "Community garden goes with drip irrigation from now on.", "decision", "record_decision", "drip"),
+    ("en", "Family Photo Book", "project", "For the photo book, Saal Digital instead of Blurb.", "decision", "record_decision", "Saal"),
+    ("en", "Charity Run", "project", "Charity run: the route changes to the riverside path.", "decision", "record_decision", "riverside"),
+    ("en", "Board Game Design", "project", "Board game design: the theme is now space salvage, not deep sea.", "decision", "record_decision", "salvage"),
+    ("tr", "Mobil Uygulama", "project", "Mobil uygulama artık Firebase yerine Appwrite kullanacak.", "decision", "record_decision", "Appwrite"),
+    ("tr", "Düğün Hazırlığı", "project", "Düğün hazırlığı: davetiyede kararımız kraft kâğıt oldu.", "decision", "record_decision", "kraft"),
+    ("tr", "Yaz Tatili", "project", "Yaz tatilinde butik otelden vazgeçtik, pansiyonda kalacağız.", "decision", "record_decision", "pansiyon"),
+    ("tr", "Blog Sitesi", "project", "Blog sitesini Netlify'dan Cloudflare Pages'e taşıyoruz.", "decision", "record_decision", "Cloudflare"),
+    ("tr", "Kahve Dükkanı", "project", "Kahve dükkanında fincanlar için karar: el yapımı seramik.", "decision", "record_decision", "seramik"),
+    ("tr", "Köy Evi Onarımı", "project", "Köy evinin çatısında kiremit yerine taş plaka kullanacağız.", "decision", "record_decision", "taş"),
+    ("tr", "Satranç Turnuvası", "project", "Satranç turnuvası: süre artık 10 dakika artı 5 saniye.", "decision", "record_decision", "10"),
+    ("tr", "Ehliyet Kursu", "project", "Ehliyet kursunda manuel vitese geçmeye karar verdim.", "decision", "record_decision", "manuel"),
+    ("tr", "Tarif Uygulaması", "project", "Tarif uygulamasında veritabanını SQLite'tan Isar'a çeviriyoruz.", "decision", "record_decision", "Isar"),
+    ("tr", "Arıcılık", "project", "Arıcılıkta karar kıldık: kışın kovanları straforla saracağız.", "decision", "record_decision", "strafor"),
+    ("en", "Kitchen Renovation", "project", "Which countertop did we go with?", "question", None, "Quartz"),
+    ("en", "Marathon Training", "project", "What running shoes did I decide on?", "question", None, "Brooks"),
+    ("en", "Home Office", "project", "Which office chair did we choose?", "question", None, "Aeron"),
+    ("en", "Garden Shed", "project", "What roof material did we pick for the shed?", "question", None, "Metal"),
+    ("en", "Podcast Launch", "project", "Where is the podcast hosted?", "question", None, "Anchor"),
+    ("en", "Family Photo Book", "project", "Which printer are we using for the photo book?", "question", None, "Blurb"),
+    ("en", "Woodworking Bench", "project", "What kind of vise did I settle on?", "question", None, "Leg"),
+    ("en", "Community Garden", "project", "How many plots do we have at the garden?", "question", None, "twelve"),
+    ("en", "Boat Restoration", "project", "What is the hull made of?", "question", None, "fibreglass"),
+    ("en", "Health", "topic", "Did I note anything about my blood test?", "question", None, "normal"),
+    ("tr", "Mobil Uygulama", "project", "Backend olarak ne kullanıyorduk?", "question", None, "Firebase"),
+    ("tr", "Düğün Hazırlığı", "project", "Düğüne kaç davetli geliyordu?", "question", None, "120"),
+    ("tr", "Blog Sitesi", "project", "Siteyi nerede barındırıyoruz?", "question", None, "Netlify"),
+    ("tr", "Kahve Dükkanı", "project", "Hangi espresso makinesini seçmiştik?", "question", None, "Marzocco"),
+    ("tr", "Yoga Stüdyosu", "project", "Stüdyonun zemini ne olacaktı?", "question", None, "Mantar"),
+    ("tr", "Arıcılık", "project", "Hangi arı ırkını seçtik?", "question", None, "Kafkas"),
+    ("tr", "Ehliyet Kursu", "project", "Otomatik mi manuel mi seçmiştim?", "question", None, "Otomatik"),
+    ("tr", "Köy Evi Onarımı", "project", "Köy evinin çatısı ne olacaktı?", "question", None, "Kiremit"),
+    ("tr", "Araba", "topic", "Lastikler ne zaman değişecekti?", "question", None, "Kasım"),
+    ("tr", "Mahalle Pazarı", "project", "Pazar nerede kurulacaktı?", "question", None, "Okul"),
+    ("en", "Kahve Dükkanı", "project", "Where will the coffee shop be?", "question", None, "Moda"),
+    ("tr", "Home Office", "project", "Çalışma odası için hangi sandalyeyi seçtik?", "question", None, "Aeron"),
+    ("en", "Satranç Turnuvası", "project", "Where is the chess tournament held?", "question", None, "school"),
+]
+
 
 def cases(rng, t=None):
     """The cases [t]'s tables make (this module's by default; the held-out set
@@ -816,11 +1094,13 @@ def cases(rng, t=None):
         add(f"newlist-{i}", "collection", lang, {}, msg, {"tools": ["create_note"], "notes": {pattern: [item]}})
     for i, (lang, msg, pattern, item) in enumerate(t.FIRST_OF_KIND):
         add(f"newlist-first-{i}", "collection", lang, {}, msg, {"tools": ["create_note"], "notes": {pattern: [item]}})
-    for lang, titles, messages in t.MIXED_LISTS:
+    for k, (lang, titles, messages) in enumerate(t.MIXED_LISTS):
         notes = {path("topic", t): note(t, "topic", lang) for t in titles.values()}
+        # The first two sets keep their v5 ids, which earlier training rows carry.
+        tag = lang if k < 2 else slug(next(iter(titles.values())))
         for i, (msg, kind, item) in enumerate(messages):
             p = path("topic", titles[kind])
-            add(f"mixed-{lang}-{i}", "collection", lang, notes, msg, {"notes": {f"^{re.escape(p)}$": [item]}})
+            add(f"mixed-{tag}-{i}", "collection", lang, notes, msg, {"notes": {f"^{re.escape(p)}$": [item]}})
     for lang, now, later, messages in t.TWIN_LISTS:
         notes = {path("topic", t): note(t, "topic", lang) for t in (now, later)}
         for i, (msg, is_now, item) in enumerate(messages):
@@ -834,10 +1114,12 @@ def cases(rng, t=None):
                       {"tools": [tool], "notes": {f"^{re.escape(p)}$": [word] if word else []}})
             add(f"contrast-{slug(title)}-{i}", case_kind, lang, notes, msg, expect)
     # A message in one language about a note in the other (#599).
-    for i, (lang, title, kind, msg, case_kind, tool, word) in enumerate(t.CROSS):
-        p = path(kind, title)
-        add(f"cross-{i}", case_kind, lang, {p: written[p]}, msg,
-            {"tools": [tool], "notes": {f"^{re.escape(p)}$": [word] if word else []}})
+    for prefix, rows in (("cross", t.CROSS), ("note", t.ON_NOTE)):
+        for i, (lang, title, kind, msg, case_kind, tool, word) in enumerate(rows):
+            p = path(kind, title)
+            expect = ({"answer": [word]} if tool is None else
+                      {"tools": [tool], "notes": {f"^{re.escape(p)}$": [word] if word else []}})
+            add(f"{prefix}-{i}", case_kind, lang, {p: written[p]}, msg, expect)
     for i, (lang, msg, pattern, word) in enumerate(t.NEW_PROJECTS):
         add(f"new-{i}", "new-note", lang, {}, msg, {"tools": ["create_note"], "notes": {pattern: [word] if word else []}})
 
