@@ -2390,6 +2390,41 @@ void main() {
     expect(find.text('Garden shed'), findsOneWidget);
   });
 
+  testWidgets('notes: a search shows the line that matched, its words marked (#803)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final books = createNote(harness.paths.notes.path, 'topic', 'Books', today: today);
+    addEntry(books, 'Sinekli Bakkal by Halide Edib', today: today);
+    addEntry(books, 'Bought a reading lamp', today: today);
+    session.notifyListeners();
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('Bought a reading lamp'), findsOneWidget); // the newest words
+    final search = find.byKey(const Key('notes-search'));
+    await tester.enterText(search, 'SİNEKLİ halide');
+    await tester.pumpAndSettle();
+    expect(find.text('Bought a reading lamp'), findsNothing);
+    final line = find.text('Sinekli Bakkal by Halide Edib', findRichText: true);
+    final spans = <TextSpan>[];
+    tester.widget<RichText>(line).text.visitChildren((span) {
+      if (span case TextSpan(text: _?)) spans.add(span);
+      return true;
+    });
+    final accent = Theme.of(tester.element(line)).colorScheme.primary;
+    expect(
+      [for (final span in spans) (span.text, span.style?.color == accent)],
+      [('Sinekli', true), (' Bakkal by ', false), ('Halide', true), (' Edib', false)],
+    );
+    expect(spans.first.style?.fontWeight, FontWeight.w600);
+    await tester.enterText(search, 'books'); // only the title: the newest words stay
+    await tester.pumpAndSettle();
+    expect(find.text('Bought a reading lamp', findRichText: true), findsOneWidget);
+  });
+
   testWidgets('notes: the archive lists what was deleted and restores it', (tester) async {
     phone(tester);
     final harness = Harness();
