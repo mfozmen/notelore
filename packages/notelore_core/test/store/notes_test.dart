@@ -197,6 +197,35 @@ void main() {
       );
     });
 
+    test('two writers on one note: both changes survive (#801)', () {
+      final path = createNote(root, 'project', 'Mopsos', today: today);
+      var calls = 0;
+      updateNote(path, (note) {
+        // Another writer (a notification's action in another isolate) gets in
+        // between this read and this write.
+        if (calls++ == 0) addTodo(path, 'from the button', today: today);
+        note.section('notes')!.entries.insert(0, Entry(today, 'from the agent'));
+      }, today: today);
+      expect(calls, 2); // re-read and applied again
+      expect(entries(path, 'todo').first, Todo(today, 'from the button'));
+      expect(entries(path, 'notes').first, Entry(today, 'from the agent'));
+    });
+
+    test('a note that keeps changing under a write fails it, losing nothing', () {
+      final path = createNote(root, 'project', 'Mopsos', today: today);
+      var calls = 0;
+      expect(
+        () => updateNote(path, (note) {
+          addEntry(path, 'other ${calls++}', today: today);
+          note.section('todo')!.entries.add(Todo(today, 'never written'));
+        }, today: today),
+        throwsA(isA<NoteChanged>()),
+      );
+      expect(entries(path, 'notes').whereType<Entry>(), hasLength(calls));
+      expect(entries(path, 'todo').whereType<Todo>(), isEmpty);
+      expect(NoteChanged(path).toString(), contains('changed while it was written'));
+    });
+
     test('writeNote maintains updated', () {
       final path = createNote(root, 'project', 'Mopsos', today: today);
       writeNote(path, readNote(path), today: d(2026, 10, 2));

@@ -109,9 +109,15 @@ typedef Pause = void Function(Duration duration);
 
 void _rename(String source, String target) => File(source).renameSync(target);
 
-/// UTF-8, LF, written to a temp file next to [path] and renamed into place.
-void atomicWrite(String path, String text, {Rename rename = _rename, Pause pause = sleep}) =>
-    atomicWriteBytes(path, utf8.encode(text), rename: rename, pause: pause);
+/// UTF-8, LF, written to a temp file next to [path] and renamed into place;
+/// not at all when [unchanged], asked right before the rename, says no.
+void atomicWrite(
+  String path,
+  String text, {
+  Rename rename = _rename,
+  Pause pause = sleep,
+  bool Function()? unchanged,
+}) => atomicWriteBytes(path, utf8.encode(text), rename: rename, pause: pause, unchanged: unchanged);
 
 /// [atomicWrite] for bytes: an attachment (#279).
 void atomicWriteBytes(
@@ -119,6 +125,7 @@ void atomicWriteBytes(
   List<int> bytes, {
   Rename rename = _rename,
   Pause pause = sleep,
+  bool Function()? unchanged,
 }) {
   Directory(p.dirname(path)).createSync(recursive: true);
   final random = Random();
@@ -134,6 +141,7 @@ void atomicWriteBytes(
     } finally {
       handle.closeSync();
     }
+    if (unchanged != null && !unchanged()) throw NoteChanged(path);
     moveWithRetry(tmp.path, path, rename: rename, pause: pause);
   } catch (_) {
     if (tmp.existsSync()) tmp.deleteSync();
@@ -175,6 +183,54 @@ void writeNote(String path, Note note, {DateTime? today}) {
   note.meta['updated'] = today ?? localToday();
   atomicWrite(path, unorm.nfc(serialize(note)));
 }
+
+/// The note at a path changed between a read and the write meant to follow it.
+final class NoteChanged implements Exception {
+  const NoteChanged(this.path);
+  final String path;
+
+  @override
+  String toString() => '$path changed while it was written; try again';
+}
+
+/// How often [updateNote] reads a note again that changed under it.
+const _updateAttempts = 5;
+
+/// Reads the note at [path], lets [change] edit it and writes it back, unless
+/// the file changed meanwhile (another isolate, a sync, an editor): then it
+/// reads it again and applies [change] anew, so neither writer's change is
+/// lost. [touch] maintains `updated`. Throws [NoteChanged] when it never holds
+/// still.
+void updateNote(
+  String path,
+  void Function(Note note) change, {
+  DateTime? today,
+  bool touch = true,
+  Rename rename = _rename,
+}) {
+  for (var attempt = 1; ; attempt++) {
+    final before = File(path).readAsStringSync();
+    final note = parse(before);
+    change(note);
+    if (touch) note.meta['updated'] = today ?? localToday();
+    try {
+      _writeChecked(path, before, note, rename: rename);
+      return;
+    } on NoteChanged {
+      if (attempt == _updateAttempts) rethrow;
+    }
+  }
+}
+
+/// Writes [note] to [path] only while the file still holds [before].
+// shortcut: the check and the rename are two steps, so a write landing in the
+// microseconds between them still wins; a cross-isolate lock would close it.
+void _writeChecked(String path, String before, Note note, {Rename rename = _rename}) => atomicWrite(
+  path,
+  unorm.nfc(serialize(note)),
+  rename: rename,
+  unchanged: () => File(path).readAsStringSync() == before,
+);
 
 // ---------------------------------------------------------------- sections and entries
 
@@ -263,17 +319,17 @@ String createNote(
 }
 
 void addEntry(String path, String text, {DateTime? today}) {
-  final note = readNote(path);
   final day = today ?? localToday();
-  _append(_section(note, 'notes'), Entry(day, _text(text)));
-  writeNote(path, note, today: day);
+  updateNote(path, (note) => _append(_section(note, 'notes'), Entry(day, _text(text))), today: day);
 }
 
 void addTodo(String path, String text, {DateTime? due, DateTime? today}) {
-  final note = readNote(path);
   final day = today ?? localToday();
-  _append(_section(note, 'todo'), Todo(due ?? day, _text(text)));
-  writeNote(path, note, today: day);
+  updateNote(
+    path,
+    (note) => _append(_section(note, 'todo'), Todo(due ?? day, _text(text))),
+    today: day,
+  );
 }
 
 /// Adds a reminder for [date], at [time] (`HH:MM`, local) if given, and its
@@ -297,28 +353,23 @@ void addReminder(
     final minutes = estimateReminderDuration(text);
     if (minutes > 15) end = _endAfter(time, minutes);
   }
-  final note = readNote(path);
-  final day = today ?? localToday();
-  _append(
-    _section(note, 'reminders'),
-    Reminder(date, _text(text), time: time, end: end, monthly: monthly),
-  );
-  writeNote(path, note, today: day);
+  final reminder = Reminder(date, _text(text), time: time, end: end, monthly: monthly);
+  updateNote(path, (note) => _append(_section(note, 'reminders'), reminder), today: today);
 }
 
 /// Puts [to] in place of the reminder [from] (#801), or right after it when
 /// [keep], as snoozing one turn of a monthly reminder does.
 void moveReminder(String path, Reminder from, Reminder to, {bool keep = false, DateTime? today}) {
-  final note = readNote(path);
-  final entries = _section(note, 'reminders').entries;
-  final index = entries.indexOf(from);
-  if (index < 0) throw ArgumentError.value(from.render(), 'from', 'no such reminder');
-  if (keep) {
-    entries.insert(index + 1, to);
-  } else {
-    entries[index] = to;
-  }
-  writeNote(path, note, today: today);
+  updateNote(path, (note) {
+    final entries = _section(note, 'reminders').entries;
+    final index = entries.indexOf(from);
+    if (index < 0) throw ArgumentError.value(from.render(), 'from', 'no such reminder');
+    if (keep) {
+      entries.insert(index + 1, to);
+    } else {
+      entries[index] = to;
+    }
+  }, today: today);
 }
 
 String _endAfter(String time, int minutes) {
@@ -336,20 +387,20 @@ void reopenTodo(String path, int number, {DateTime? today, String? expect}) =>
     _setTodoDone(path, number, done: false, today: today, expect: expect);
 
 void _setTodoDone(String path, int number, {required bool done, DateTime? today, String? expect}) {
-  final note = readNote(path);
-  final section = _section(note, 'todo');
-  final todos = [
-    for (var i = 0; i < section.entries.length; i++)
-      if (section.entries[i] case final Todo todo) (i, todo),
-  ];
-  final (position, todo) = todos[_todoIndex(section.heading, todos, number, done)];
-  // A sync or an edit may have moved the todo since the screen drew it: never
-  // write a different line than the one the person tapped.
-  if (expect != null && todo.text != expect) {
-    throw RangeError('$number is "${todo.text}", not "$expect".');
-  }
-  section.entries[position] = Todo(todo.date, todo.text, done: done);
-  writeNote(path, note, today: today);
+  updateNote(path, (note) {
+    final section = _section(note, 'todo');
+    final todos = [
+      for (var i = 0; i < section.entries.length; i++)
+        if (section.entries[i] case final Todo todo) (i, todo),
+    ];
+    final (position, todo) = todos[_todoIndex(section.heading, todos, number, done)];
+    // A sync or an edit may have moved the todo since the screen drew it: never
+    // write a different line than the one the person tapped.
+    if (expect != null && todo.text != expect) {
+      throw RangeError('$number is "${todo.text}", not "$expect".');
+    }
+    section.entries[position] = Todo(todo.date, todo.text, done: done);
+  }, today: today);
 }
 
 int _todoIndex(String heading, List<(int, Todo)> todos, int number, bool done) {
@@ -376,18 +427,19 @@ void recordDecision(String path, String topic, String value, {String? reason, Da
   if (key.isEmpty || key.contains('*') || key.contains('\n')) {
     throw ArgumentError.value(topic, 'topic', 'decision topic must be a short one-line key');
   }
-  final note = readNote(path);
   final day = today ?? localToday();
-  final section = _section(note, 'decisions');
-  for (var i = 0; i < section.entries.length; i++) {
-    if (section.entries[i] case Decision(topic: final t, superseded: null) && final decision
-        when t == key) {
-      section.entries[i] = Decision(decision.date, t, decision.text, superseded: day);
-    }
-  }
   final why = reason == null || reason.isEmpty ? '' : ' ${_text(reason)}';
-  _append(section, Decision(day, key, '${_text(value).replaceFirst(RegExp(r'\.+$'), '')}.$why'));
-  writeNote(path, note, today: day);
+  final text = '${_text(value).replaceFirst(RegExp(r'\.+$'), '')}.$why';
+  updateNote(path, (note) {
+    final section = _section(note, 'decisions');
+    for (var i = 0; i < section.entries.length; i++) {
+      if (section.entries[i] case Decision(topic: final t, superseded: null) && final decision
+          when t == key) {
+        section.entries[i] = Decision(decision.date, t, decision.text, superseded: day);
+      }
+    }
+    _append(section, Decision(day, key, text));
+  }, today: day);
 }
 
 /// The newest non-superseded decision for [topic]; deterministic, no model involved.
@@ -447,7 +499,8 @@ String recategorize(
   }
   note.meta['kind'] = kind ?? note.meta['kind'];
   after.isEmpty ? note.meta.remove('tags') : note.meta['tags'] = after;
-  writeNote(path, note, today: today);
+  note.meta['updated'] = today ?? localToday();
+  _writeChecked(path, before, note);
   if (target == path) return path;
   try {
     Directory(p.dirname(target)).createSync(recursive: true);
@@ -462,12 +515,12 @@ String recategorize(
 /// Pins the note at [path] to the top of the list, or unpins it: `pinned: true`
 /// in its front matter, or no key. `updated` stays: a pin is not an edit.
 void setPinned(String path, {required bool pinned}) {
-  final note = readNote(path);
-  if ((note.meta['pinned'] == true) == pinned) {
-    throw ArgumentError(pinned ? 'the note is already pinned' : 'the note is not pinned');
-  }
-  pinned ? note.meta['pinned'] = true : note.meta.remove('pinned');
-  atomicWrite(path, unorm.nfc(serialize(note)));
+  updateNote(path, touch: false, (note) {
+    if ((note.meta['pinned'] == true) == pinned) {
+      throw ArgumentError(pinned ? 'the note is already pinned' : 'the note is not pinned');
+    }
+    pinned ? note.meta['pinned'] = true : note.meta.remove('pinned');
+  });
 }
 
 /// [tags] without [remove] and with [add], lowercase and once each.
@@ -547,15 +600,17 @@ class RestoreTaken implements Exception {
 String restoreArchived(String root, ArchivedNote archived, {DateTime? today}) {
   final target = p.joinAll([root, ...archived.original.split('/')]);
   if (archived.entries && File(target).existsSync()) {
-    final note = readNote(target);
-    for (final section in readNote(archived.path).sections) {
-      if (section.key case final key?) {
-        for (final entry in section.entries.where((e) => e is! Raw)) {
-          _append(_section(note, key, _lang(note)), entry);
+    final back = readNote(archived.path).sections;
+    // The note first: a failure here loses nothing.
+    updateNote(target, (note) {
+      for (final section in back) {
+        if (section.key case final key?) {
+          for (final entry in section.entries.where((e) => e is! Raw)) {
+            _append(_section(note, key, _lang(note)), entry);
+          }
         }
       }
-    }
-    writeNote(target, note, today: today); // the note first: a failure here loses nothing
+    }, today: today);
     File(archived.path).deleteSync(); // now in the note
     removeEmptyFolders(p.dirname(archived.path), within: p.join(root, archiveFolder));
     return target;
@@ -583,7 +638,8 @@ String archiveEntries(
   Map<String, List<int>> selection, {
   DateTime? today,
 }) {
-  final note = readNote(path);
+  final before = File(path).readAsStringSync();
+  final note = parse(before);
   final day = today ?? localToday();
   final target = p.join(root, archiveFolder, isoDate(day), _entries, p.relative(path, from: root));
   final archive = File(target).existsSync()
@@ -606,7 +662,9 @@ String archiveEntries(
     }
   }
   writeNote(target, archive, today: day); // archive first: a failure here loses nothing
-  writeNote(path, note, today: day);
+  note.meta['updated'] = day;
+  // Changed since: the entries stay in the note too, rather than its new lines going.
+  _writeChecked(path, before, note);
   return target;
 }
 
@@ -630,17 +688,22 @@ MergeResult mergeNotes(
     throw ArgumentError.value(fromPath, 'from', 'a note cannot be merged into itself');
   }
   final from = readNote(fromPath);
-  final into = readNote(intoPath);
   final day = today ?? localToday();
-  final tally = _Tally();
-  _mergePreamble(into, from, tally);
-  for (final section in from.sections) {
-    _mergeSection(into, section, tally);
-  }
-  if (into.section('decisions') case final decisions?) _oneActivePerTopic(decisions);
-  _joinTags(into, from);
-  into.meta['updated'] = day;
-  atomicWrite(intoPath, unorm.nfc(serialize(into)), rename: rename);
+  var tally = _Tally();
+  updateNote(
+    intoPath,
+    (into) {
+      tally = _Tally();
+      _mergePreamble(into, from, tally);
+      for (final section in from.sections) {
+        _mergeSection(into, section, tally);
+      }
+      if (into.section('decisions') case final decisions?) _oneActivePerTopic(decisions);
+      _joinTags(into, from);
+    },
+    today: day,
+    rename: rename,
+  );
   return (
     archivedTo: archiveNote(root, fromPath, today: day),
     added: tally.added,
