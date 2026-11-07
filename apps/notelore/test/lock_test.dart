@@ -171,7 +171,7 @@ void main() {
     await tester.pumpAndSettle();
     final clear = find.widgetWithText(TextButton, 'Clear');
     expect(tester.widget<TextButton>(clear).onPressed, isNull); // visible, disabled
-    Rect done() => tester.getRect(find.widgetWithText(FilledButton, 'Done'));
+    Rect done() => tester.getRect(find.widgetWithText(OutlinedButton, 'Done'));
     final before = done();
     await tester.tap(dot(1));
     await tester.pump();
@@ -198,7 +198,7 @@ void main() {
       await tester.pump();
     }
     expect(
-      tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Done')).onPressed,
+      tester.widget<OutlinedButton>(find.widgetWithText(OutlinedButton, 'Done')).onPressed,
       isNull,
     );
     await tester.tap(find.text('Clear'));

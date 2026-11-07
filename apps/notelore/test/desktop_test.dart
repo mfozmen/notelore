@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/note_view.dart';
+import 'package:notelore/src/soft.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore_core/notelore_core.dart';
 
@@ -58,7 +59,7 @@ void main() {
     desktop(tester, 1600);
     await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(SoftNavBar), findsNothing);
     final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
     expect(rail.extended, isTrue); // room for the labels
     final colors = Theme.of(tester.element(find.byType(NavigationRail))).colorScheme;
@@ -75,15 +76,7 @@ void main() {
     phone(tester);
     await tester.pumpAndSettle();
     expect(find.byType(NavigationRail), findsNothing);
-    expect(find.byType(NavigationBar), findsOneWidget);
-    // A hairline over the bar, as the rail has its divider beside it.
-    final line = tester.widget<DecoratedBox>(
-      find.ancestor(of: find.byType(NavigationBar), matching: find.byType(DecoratedBox)).first,
-    );
-    expect(
-      (line.decoration as BoxDecoration).border,
-      Border(top: BorderSide(color: colors.outlineVariant)),
-    );
+    expect(find.byType(SoftNavBar), findsOneWidget);
   });
 
   testWidgets('a draft survives the side rail and a resize to the phone layout', (tester) async {
@@ -94,7 +87,7 @@ void main() {
     await tester.enterText(find.byKey(const Key('message')), 'half a thought');
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Chat'));
+    await tester.tap(tab('Chat'));
     await tester.pumpAndSettle();
     expect(draft(), 'half a thought');
     phone(tester); // the layout changes under the chat
@@ -226,7 +219,7 @@ void main() {
     await connect(tester, key: 'k');
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
     createNote(harness.paths.notes.path, 'project', 'Mopsos', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('Pick a note to read it here.'), findsOneWidget);
     expect(find.byTooltip('Archive'), findsOneWidget);
@@ -281,7 +274,7 @@ void main() {
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     final field = tester.getRect(find.byKey(const Key('notes-search')));
     final icon = tester.getRect(find.byIcon(AppIcons.moreVert));
@@ -297,7 +290,7 @@ void main() {
     await connect(tester, key: 'k');
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
     createNote(harness.paths.notes.path, 'topic', 'Filmler', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
@@ -317,7 +310,7 @@ void main() {
     await connect(tester, key: 'k');
     final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
     addTodo(path, 'Return the book', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
@@ -333,7 +326,7 @@ void main() {
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
@@ -377,7 +370,7 @@ void main() {
     await connect(tester, key: 'k');
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
     expect(find.byType(NavigationRail), findsOneWidget);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('Pick a note to read it here.'), findsOneWidget);
     await tester.tap(find.text('Settings'));
@@ -390,7 +383,7 @@ void main() {
     final harness = Harness();
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('No notes yet. Tell the assistant something to remember.'), findsOneWidget);
     expect(find.text('Pick a note to read it here.'), findsNothing);
@@ -410,7 +403,7 @@ void main() {
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Archive'));
     await tester.pumpAndSettle();
@@ -495,7 +488,7 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('the rail: the brand label, the chosen item on a card, the sync at its foot (#782)', (
+  testWidgets('the rail: the brand label, the chosen item an orb, the sync at its foot (#782)', (
     tester,
   ) async {
     desktop(tester, 1600);
@@ -504,12 +497,18 @@ void main() {
     final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
     final theme = Theme.of(tester.element(find.byType(NavigationRail)));
     expect(rail.backgroundColor, Colors.transparent); // the night's glow shows through
-    expect(rail.useIndicator, isTrue);
-    expect(rail.indicatorColor, theme.colorScheme.surfaceContainerLow);
-    expect(
-      (rail.indicatorShape! as RoundedRectangleBorder).side.color,
-      theme.colorScheme.outlineVariant,
+    // The chosen item is an orb, as on the phone's bar.
+    expect(rail.useIndicator, isFalse);
+    final orbs = find.descendant(
+      of: find.byType(NavigationRail),
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is Container &&
+            w.decoration is BoxDecoration &&
+            (w.decoration! as BoxDecoration).gradient == orbFill(theme.colorScheme),
+      ),
     );
+    expect(orbs, findsOneWidget);
     expect(rail.trailingAtBottom, isTrue);
     final label = theme.extension<NoteloreTokens>()!.label;
     expect(tester.widget<Text>(find.text('Notelore')).style!.fontFamily, label.fontFamily);

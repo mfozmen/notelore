@@ -432,6 +432,8 @@ class _ChatScreenState extends State<ChatScreen> {
                       child: _NoModel(session),
                     ),
                   ),
+                // Clear of the phone's floating tab bar.
+                SizedBox(height: MediaQuery.paddingOf(context).bottom),
               ],
             ),
           ),

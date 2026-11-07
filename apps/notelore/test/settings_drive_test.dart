@@ -35,7 +35,7 @@ void main() {
     expect(find.text('Synced: 1 received.'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('T'), findsOneWidget); // the pulled note is listed
     await openSync(tester);
@@ -55,7 +55,7 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('T'), findsOneWidget);
   });
@@ -223,7 +223,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
       await tester.pumpAndSettle();
       expect(find.textContaining('removed from Google Drive'), findsNothing);
-      await tester.tap(find.text('Notes'));
+      await tester.tap(tab('Notes'));
       await tester.pumpAndSettle();
       expect(find.text('A'), findsNothing);
     });

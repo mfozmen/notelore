@@ -22,6 +22,7 @@ import 'package:notelore/src/section_label.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/settings.dart';
 import 'package:notelore/src/share_in.dart';
+import 'package:notelore/src/soft.dart';
 import 'package:notelore/src/strings.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore/src/voice.dart';
@@ -351,7 +352,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Start'));
     await tester.pumpAndSettle();
-    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(SoftNavBar), findsOneWidget);
   });
 
   testWidgets('setup: Ollama with no model installed says which one to pull (#471)', (
@@ -600,7 +601,7 @@ void main() {
     // The next start: locked, nothing of the notes or the chat shows.
     await restart(tester, harness);
     expect(find.text('Notelore is locked'), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(SoftNavBar), findsNothing);
     expect(find.byKey(const Key('message')), findsNothing);
     await tester.enterText(find.byKey(const Key('unlock')), '1357');
     await tester.tap(find.text('Unlock'));
@@ -685,7 +686,7 @@ void main() {
     await connect(tester, key: 'k');
     createNote(harness.paths.notes.path, 'topic', 'Secret plans', today: today);
     await session.lock.set('2468');
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Secret plans'));
     await tester.pumpAndSettle();
@@ -699,7 +700,7 @@ void main() {
     await tester.enterText(find.byKey(const Key('unlock')), '2468');
     await tester.tap(find.text('Unlock'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Secret plans'));
     await tester.pumpAndSettle();
@@ -840,25 +841,25 @@ void main() {
     await connect(tester, key: 'k');
     String draft() => tester.widget<TextField>(find.byKey(const Key('message'))).controller!.text;
     await tester.enterText(find.byKey(const Key('message')), 'yarım kalan');
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Chat'));
+    await tester.tap(tab('Chat'));
     await tester.pumpAndSettle();
     expect(draft(), 'yarım kalan');
     await tester.tap(find.byTooltip('Send'));
     await tester.pumpAndSettle();
     expect(draft(), isEmpty);
-    await tester.tap(find.text('Calendar'));
+    await tester.tap(tab('Calendar'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Chat'));
+    await tester.tap(tab('Chat'));
     await tester.pumpAndSettle();
     expect(draft(), isEmpty); // the sent text does not come back
     // Clearing it by hand is a draft too: an empty one.
     await tester.enterText(find.byKey(const Key('message')), 'x');
     await tester.enterText(find.byKey(const Key('message')), '');
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Chat'));
+    await tester.tap(tab('Chat'));
     await tester.pumpAndSettle();
     expect(draft(), isEmpty);
   });
@@ -869,7 +870,7 @@ void main() {
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     await tester.enterText(find.byKey(const Key('message')), 'My draft');
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     final delivery = ShareDelivery(session, () async => {'text': 'Shared words'});
     addTearDown(delivery.dispose);
@@ -897,7 +898,7 @@ void main() {
     await connect(tester, key: 'k');
     final path = createNote(harness.paths.notes.path, 'project', 'Atlas', today: DateTime(2026));
     session.index.markChanged(path);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     session.openQuick(QuickOpen.write);
     await tester.pumpAndSettle();
@@ -1618,9 +1619,9 @@ void main() {
     expect(live(find.text('İkinci cevap.')), isTrue);
     expect(live(find.text('Birinci cevap.')), isFalse); // the earlier one stays quiet
     // Read once: back on the tab, it is history, not news.
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Chat'));
+    await tester.tap(tab('Chat'));
     await tester.pumpAndSettle();
     expect(live(find.text('İkinci cevap.')), isFalse);
     semantics.dispose();
@@ -1661,9 +1662,9 @@ void main() {
       tester.getSemantics(find.text('Hangi proje?')).flagsCollection.isLiveRegion,
       isFalse, // not twice: no live region where the announcement already spoke
     );
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Chat'));
+    await tester.tap(tab('Chat'));
     await tester.pumpAndSettle();
     expect(announced, hasLength(1));
     semantics.dispose();
@@ -2341,7 +2342,7 @@ void main() {
     final session = await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     await session.connectDrive();
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('Synced just now'), findsOneWidget);
     harness.remote.hold = Completer();
@@ -2372,7 +2373,7 @@ void main() {
     final session = await pumpApp(tester, harness, clock: () => now);
     await connect(tester, key: 'k');
     await session.connectDrive();
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('Synced just now'), findsOneWidget);
     now = now.add(const Duration(minutes: 2));
@@ -2385,7 +2386,7 @@ void main() {
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
@@ -2402,7 +2403,7 @@ void main() {
     createNote(harness.paths.notes.path, 'project', 'Garden shed', today: today);
     createNote(harness.paths.notes.path, 'project', 'İş planı', today: today);
     session.notifyListeners();
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     final search = find.byKey(const Key('notes-search'));
     await tester.enterText(search, 'sinekli'); // in a note's words
@@ -2464,7 +2465,7 @@ void main() {
     addEntry(books, 'Sinekli Bakkal by Halide Edib', today: today);
     addEntry(books, 'Bought a reading lamp', today: today);
     session.notifyListeners();
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('Bought a reading lamp'), findsOneWidget); // the newest words
     final search = find.byKey(const Key('notes-search'));
@@ -2494,7 +2495,7 @@ void main() {
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Archive'));
     await tester.pumpAndSettle();
@@ -2543,7 +2544,7 @@ void main() {
     await connect(tester, key: 'k');
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
     createNote(harness.paths.notes.path, 'topic', 'Filmler', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('PINNED'), findsNothing);
     expect(find.text('OTHERS'), findsNothing);
@@ -2603,7 +2604,7 @@ void main() {
     addTodo(trip, 'Check in', due: DateTime(2026, 11, 18), today: day);
     addTodo(trip, 'Pack', due: DateTime(2026, 11, 7), today: day); // today counts
     addTodo(trip, 'Taxi home', due: DateTime(2026, 11, 20), today: day); // the fourth
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('COMING UP'), findsOneWidget);
     expect(find.text('4 todos'), findsOneWidget);
@@ -2642,7 +2643,7 @@ void main() {
     await connect(tester, key: 'k');
     final path = createNote(harness.paths.notes.path, 'topic', 'Books', today: today);
     addTodo(path, 'Return it', due: DateTime(2026, 11, 12), today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     final day = tester.getSize(find.text('12'));
     expect(day.width, greaterThan(day.height)); // "12" side by side, not stacked
@@ -2668,7 +2669,7 @@ void main() {
       session.listNotes().firstWhere((n) => n.title == 'Desk setup'),
       pinned: true,
     );
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     Finder chip(String label) => find.widgetWithText(FilterChip, label);
     bool on(String label) => tester.widget<FilterChip>(chip(label)).selected;
@@ -2733,9 +2734,9 @@ void main() {
     await tester.enterText(find.byKey(const Key('notes-search')), '');
     await tester.pumpAndSettle();
     // Kept while the app runs, across tabs.
-    await tester.tap(find.text('Chat'));
+    await tester.tap(tab('Chat'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     expect(on('#home'), isTrue);
     expect(note('Atlas'), findsNothing);
@@ -2761,7 +2762,7 @@ void main() {
     for (var i = 0; i < 10; i++) {
       createNote(root, 'topic', 'Note $i', tags: ['t$i', 'common'], today: today);
     }
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     // #common, then by name.
     expect(find.widgetWithText(FilterChip, '#common'), findsOneWidget);
@@ -2796,7 +2797,7 @@ void main() {
     completeTodo(atlas, 2, today: DateTime(2026, 11, 4));
     final books = createNote(root, 'topic', 'Books', today: day);
     addTodo(books, 'Return it', due: DateTime(2026, 10, 30), today: day);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     String count(String group) => tester
         .widget<Text>(
@@ -2851,7 +2852,7 @@ void main() {
     await connect(tester, key: 'k');
     final path = createNote(harness.paths.notes.path, 'topic', 'Books', today: today);
     addTodo(path, 'Return it', due: DateTime(2026, 11, 1), today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('THIS WEEK'), findsNothing); // a Saturday
     now = DateTime(2026, 11, 15, 10);
@@ -2881,7 +2882,7 @@ void main() {
     await connect(tester, key: 'k');
     final path = createNote(harness.paths.notes.path, 'topic', 'Books', today: today);
     addTodo(path, 'Return the old one', due: DateTime(2026, 11, 1), today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('Books'), findsOneWidget);
     expect(find.text('COMING UP'), findsNothing);
@@ -2894,7 +2895,7 @@ void main() {
     await connect(tester, key: 'k');
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
     await session.deleteNote(session.listNotes().single);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Archive'));
     await tester.pumpAndSettle();
@@ -2918,7 +2919,7 @@ void main() {
     createNote(odd.parent.parent.parent.path, 'topic', 'Kitaplar', today: today);
     File(p.join(harness.paths.notes.path, 'topics', 'kitaplar.md'))
         .renameSync(p.join(odd.path, 'kitaplar.md'));
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Archive'));
     await tester.pumpAndSettle();
@@ -2939,7 +2940,7 @@ void main() {
     for (final note in session.listNotes()) {
       await session.deleteNote(note);
     }
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Archive'));
     await tester.pumpAndSettle();
@@ -2996,7 +2997,7 @@ void main() {
     archiveEntries(harness.paths.notes.path, path, {
       'notes': [1],
     }, today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Archive'));
     await tester.pumpAndSettle();
@@ -3019,7 +3020,7 @@ void main() {
       await session.deleteNote(note); // two in the archive
     }
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Archive'));
     await tester.pumpAndSettle();
@@ -3036,7 +3037,7 @@ void main() {
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
@@ -3175,7 +3176,7 @@ void main() {
     File(p.join(root, 'attachments', '2026-10-18', 'photo.png'))
       ..parent.createSync(recursive: true)
       ..writeAsBytesSync([0]);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
@@ -3223,7 +3224,7 @@ void main() {
     await connect(tester, key: 'k');
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
     createNote(harness.paths.notes.path, 'project', 'Mopsos', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Kitaplar'));
@@ -3276,7 +3277,7 @@ void main() {
     addEntry(path, 'Considered crypto, postponed.', today: today);
     addTodo(path, 'Add Drive backup', today: today);
     addTodo(path, 'Write the README', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     expect(session.listNotes().single.openTodos, 2);
     expect(find.text('Considered crypto, postponed.'), findsOneWidget); // the newest words
@@ -3309,7 +3310,7 @@ void main() {
     );
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('No notes yet. Tell the assistant something to remember.'), findsOneWidget);
     expect(find.byType(EmptyState), findsOneWidget);
@@ -3323,7 +3324,7 @@ void main() {
     await tester.pump(); // the Send button appears with the text
     await tester.tap(find.byTooltip('Send'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('Mopsos'), findsOneWidget);
     expect(find.text('Project · updated 30 Sep'), findsOneWidget);
@@ -3347,7 +3348,7 @@ void main() {
     await connect(tester, key: 'k');
     final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
     addTodo(path, 'Return the book', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kitaplar'));
     await tester.pumpAndSettle();
@@ -3376,7 +3377,7 @@ void main() {
     await pumpApp(tester, harness);
     await connect(tester, key: 'k');
     createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
 
     expect(find.byTooltip('Archive'), findsOneWidget);
@@ -3535,7 +3536,7 @@ void main() {
     addEntry(path, '[Example](https://example.com/page)', today: today);
     addEntry(path, 'https://example.com/bare', today: today); // a bare URL is a link too
 
-    await tester.tap(find.text('Notes'));
+    await tester.tap(tab('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Links'));
     await tester.pumpAndSettle();
@@ -3763,8 +3764,8 @@ void main() {
       findsOneWidget,
     );
     // Every tab's page and bar are clear, so the glow shows behind them all.
-    for (final tab in ['Chat', 'Notes', 'Calendar', 'About me']) {
-      await tester.tap(find.text(tab).last);
+    for (final name in ['Chat', 'Notes', 'Calendar', 'About me']) {
+      await tester.tap(tab(name));
       await tester.pumpAndSettle();
       final page = find.descendant(
         of: find.byType(Scaffold).first,
@@ -3773,7 +3774,7 @@ void main() {
       final bar = find.descendant(of: page.first, matching: find.byType(AppBar));
       for (final painted in [page, bar]) {
         final material = find.descendant(of: painted.first, matching: find.byType(Material));
-        expect(tester.widget<Material>(material.first).color, Colors.transparent, reason: tab);
+        expect(tester.widget<Material>(material.first).color, Colors.transparent, reason: name);
       }
     }
   });

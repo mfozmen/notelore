@@ -24,13 +24,15 @@ void main() {
     expect(under('MIT License'), contains('Phosphor Icons'));
   });
 
-  test('light and dark: flat cards and 48-point tap targets', () {
+  test('light and dark: soft cards and 48-point tap targets', () {
     final light = noteloreTheme(Brightness.light);
     final dark = noteloreTheme(Brightness.dark);
     expect(light.colorScheme.brightness, Brightness.light);
     expect(dark.colorScheme.brightness, Brightness.dark);
     for (final theme in [light, dark]) {
-      expect(theme.cardTheme.elevation, 0); // outlines, not shadows
+      // A gentle shadow by day; at night the card's inner glow does it.
+      expect(theme.cardTheme.elevation, theme.brightness == Brightness.light ? 2 : 0);
+      expect(theme.splashFactory, NoSplash.splashFactory);
       expect(theme.snackBarTheme.behavior, SnackBarBehavior.floating);
       expect(theme.filledButtonTheme.style!.minimumSize!.resolve({}), const Size(48, 48));
       expect(theme.iconButtonTheme.style!.minimumSize!.resolve({}), const Size(48, 48));
@@ -169,12 +171,14 @@ void main() {
     }
   });
 
-  test('the shapes: round bordered cards, a round bordered field, plain navigation', () {
+  test('the shapes: soft round cards, a round bordered field, plain navigation', () {
     for (final theme in [noteloreTheme(Brightness.light), noteloreTheme(Brightness.dark)]) {
       final c = theme.colorScheme;
-      final card = theme.cardTheme.shape! as RoundedRectangleBorder;
-      expect(card.borderRadius, BorderRadius.circular(18));
-      expect(card.side.color, c.outlineVariant);
+      final card = theme.cardTheme.shape! as SoftBorder;
+      expect(card.borderRadius, BorderRadius.circular(22));
+      expect(card, softBorder(c, BorderRadius.circular(22)));
+      // By day a light along the top; at night the accent glows inside.
+      expect(card.glow.a, theme.brightness == Brightness.light ? 0 : greaterThan(0));
       expect(theme.cardTheme.color, c.surfaceContainerLow);
       final field = theme.inputDecorationTheme;
       expect(field.fillColor, c.surfaceContainerLow);
@@ -183,19 +187,37 @@ void main() {
       expect(enabled.borderSide.color, c.outlineVariant);
       expect((theme.chipTheme.shape! as StadiumBorder).side.color, c.outlineVariant);
       expect(theme.appBarTheme.backgroundColor, c.surface);
-      final bar = theme.navigationBarTheme;
-      expect(bar.backgroundColor, c.surface);
-      expect(bar.indicatorColor, Colors.transparent);
-      expect(bar.iconTheme!.resolve({WidgetState.selected})!.color, c.primary);
-      expect(bar.iconTheme!.resolve({})!.color, c.onSurfaceVariant);
-      expect(bar.labelTextStyle!.resolve({WidgetState.selected})!.color, c.primary);
-      expect(bar.labelTextStyle!.resolve({})!.color, c.onSurfaceVariant);
       final rail = theme.navigationRailTheme;
       expect(rail.backgroundColor, c.surface);
       expect(rail.useIndicator, isFalse);
       expect(rail.selectedIconTheme!.color, c.primary);
       expect(rail.unselectedIconTheme!.color, c.onSurfaceVariant);
     }
+  });
+
+  test('words on an orb read at 4.5:1 or more, but at its lit corner', () {
+    for (final brightness in Brightness.values) {
+      final c = noteloreTheme(brightness).colorScheme;
+      final orb = orbFill(c).colors;
+      expect(orb[1], c.primary);
+      for (final color in orb.skip(1)) {
+        expect(contrast(c.onPrimary, color), greaterThanOrEqualTo(4.5), reason: '$brightness');
+      }
+      expect(contrast(c.onPrimary, orb.first), greaterThanOrEqualTo(4), reason: '$brightness');
+      expect(orbGlow(c).single.color, c.primary.withValues(alpha: .45));
+    }
+  });
+
+  test('a soft border equals another only with the same light and glow', () {
+    final c = noteloreTheme(Brightness.dark).colorScheme;
+    final one = softBorder(c, BorderRadius.circular(8));
+    expect(one, softBorder(c, BorderRadius.circular(8)));
+    expect(one.hashCode, softBorder(c, BorderRadius.circular(8)).hashCode);
+    expect(
+      one == softBorder(noteloreTheme(Brightness.light).colorScheme, one.borderRadius),
+      isFalse,
+    );
+    expect(one == RoundedRectangleBorder(borderRadius: one.borderRadius, side: one.side), isFalse);
   });
 
   test('the tokens a scheme has no role for: decision card, night glow, mono label', () {
