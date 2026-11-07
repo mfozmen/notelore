@@ -290,6 +290,8 @@ class _MonthGrid extends StatelessWidget {
   Widget _days(ColorScheme colors, int lead, int days) => GridView.builder(
     shrinkWrap: true,
     physics: const NeverScrollableScrollPhysics(),
+    // Without it the grid pads itself by the floating bar's inset, a gap under the weeks.
+    padding: EdgeInsets.zero,
     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
       crossAxisCount: 7,
       mainAxisExtent: 48,
