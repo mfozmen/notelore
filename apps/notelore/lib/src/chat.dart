@@ -1989,7 +1989,7 @@ Widget _markdown(BuildContext context, String text, TextStyle style) {
       .copyWith(fontSize: AnswerStyle.size, height: AnswerStyle.lineHeight);
   final color = style.color!;
   final number = theme.extension<NoteloreTokens>()!.label.copyWith(
-    fontSize: 11.5,
+    fontSize: AnswerStyle.numberSize,
     letterSpacing: .9,
     height: AnswerStyle.lineHeight,
   );
@@ -2080,6 +2080,9 @@ class _AnswerMarkdown extends MarkdownBody {
   // between; no other block starts with a Row.
   static bool _isList(Widget block) => block is Column && block.children.firstOrNull is Row;
 
+  // A paragraph or heading; code, quotes and tables come in other boxes.
+  static bool _isText(Widget block) => block is Column && !_isList(block);
+
   @override
   Widget build(BuildContext context, List<Widget>? children) {
     // Blocks and their spacers alternate, so the block before is two back.
@@ -2088,7 +2091,7 @@ class _AnswerMarkdown extends MarkdownBody {
       for (final (i, block) in blocks.indexed)
         if (_isList(block))
           _ListCard((block as Column).children.whereType<Row>().toList())
-        else if (i == blocks.length - 1 && i >= 2 && _isList(blocks[i - 2]))
+        else if (i == blocks.length - 1 && i >= 2 && _isList(blocks[i - 2]) && _isText(block))
           Opacity(opacity: AnswerStyle.closing, child: block)
         else
           block,
@@ -2124,10 +2127,7 @@ class _ListCard extends StatelessWidget {
                 Semantics(
                   role: SemanticsRole.listItem,
                   container: true,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    child: item,
-                  ),
+                  child: Padding(padding: AnswerStyle.listRow, child: item),
                 ),
               ],
             ],

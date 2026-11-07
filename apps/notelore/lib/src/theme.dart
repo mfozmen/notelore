@@ -45,6 +45,10 @@ abstract final class AnswerStyle {
   static const double size = 13;
   static const double lineHeight = 1.6;
 
+  /// A list card's row, and the accent number that starts it.
+  static const listRow = EdgeInsets.symmetric(horizontal: 14, vertical: 10);
+  static const double numberSize = 11.5;
+
   /// The closing line after a list, a little quieter than the rest.
   static const double closing = .78;
 

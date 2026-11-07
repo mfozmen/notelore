@@ -383,6 +383,14 @@ void main() {
       );
     });
 
+    testWidgets('a quote closing an answer after a list is not dimmed', (tester) async {
+      phone(tester);
+      await pumpApp(tester, Harness(answers: ['- One\n- Two\n\n> Keep the old server.']));
+      await connect(tester, key: 'k');
+      await say(tester, 'hi');
+      expect(find.descendant(of: answerBody, matching: find.byType(Opacity)), findsNothing);
+    });
+
     testWidgets('an answer with no list has no card and nothing dimmed', (tester) async {
       phone(tester);
       await pumpApp(tester, Harness(answers: ['Saved.\n\nAnything else?']));
