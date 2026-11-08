@@ -112,6 +112,20 @@ void main() {
       throwsArgumentError,
     );
   });
+  test('verdicts: good, the default bad, and old files without one (#833)', () {
+    final now = DateTime.utc(2026, 11, 8);
+    saveFeedback(dir.path, turn, model: 'm', verdict: 'good', now: now);
+    saveFeedback(dir.path, turn, model: 'm', now: now.add(const Duration(seconds: 1)));
+    saveFeedback(dir.path, turn, model: 'other', now: now.add(const Duration(seconds: 2)));
+    final old = File(p.joinAll([dir.path, ...feedbackFolder.split('/'), 'old.md']))
+      ..createSync(recursive: true)
+      ..writeAsStringSync('- Model: m\n');
+    expect(old.existsSync(), isTrue);
+    final counts = feedbackCounts(dir.path);
+    expect(counts['m'], (good: 1, bad: 2)); // the old file counts as bad
+    expect(counts['other'], (good: 0, bad: 1));
+  });
+
   test('a test-space report says so (#832)', () {
     final rel = saveFeedback(
       dir.path,

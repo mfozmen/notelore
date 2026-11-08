@@ -256,6 +256,33 @@ void main() {
     },
   );
 
+  test('a good rating, replacing the other one, and taking it back (#833)', () async {
+    final harness = Harness(answers: ['Tamam.']);
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    await session.send('Kahve aldım');
+    final bad = await session.reportWrong('Should have ticked the todo');
+    expect(session.reportedVerdict, 'bad');
+    final feedback = Directory(
+      p.joinAll([harness.paths.notes.path, ...'.notelore/feedback'.split('/')]),
+    );
+    final good = await session.reportGood();
+    expect(feedback.listSync().whereType<File>(), hasLength(1)); // replaced, not added
+    expect(
+      File(p.joinAll([harness.paths.notes.path, ...good.split('/')])).readAsStringSync(),
+      contains('- Verdict: good\n'),
+    );
+    expect(session.reportedVerdict, 'good');
+    final again = await session.reportWrong('Ticked the wrong one');
+    expect(feedback.listSync().whereType<File>(), hasLength(1));
+    expect(
+      File(p.joinAll([harness.paths.notes.path, ...again.split('/')])).readAsStringSync(),
+      contains('- Verdict: bad\n'),
+    );
+    expect(bad, isNotEmpty);
+    await session.takeBackFeedback(again);
+    expect(session.reportedVerdict, isNull);
+  });
   test('notes archived since the last turn are named to the model as unusable (#205)', () async {
     final harness = Harness(answers: ['Okudum.', 'Tamam.', 'Peki.']);
     final session = harness.session();

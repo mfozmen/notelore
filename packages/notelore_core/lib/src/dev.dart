@@ -32,6 +32,7 @@ import 'providers/deepseek.dart';
 import 'providers/http.dart';
 import 'providers/ollama.dart';
 import 'providers/providers.dart';
+import 'store/feedback.dart' show feedbackCounts;
 import 'store/index.dart';
 import 'tools.dart';
 
@@ -42,12 +43,25 @@ const _usage =
     ' | distill [--provider=<name>] [--model=<id>] [--cases=<file>] [--out=<file>] [--slim]'
     ' [--samples=<k>] [--keep-failed=<file>]'
     ' | reprompt --in=<file> --out=<file> [--slim]'
+    ' | feedback (good and bad reports by model, from <notes>/.notelore/feedback)'
     ' (--slim: the prompt and tools of the model on the device;'
     ' --greedy: temperature 0, on ollama or opencode; --runs: the set n times, eval only;'
     ' --first-write: each turn only to its first write, scored with what it wanted;'
     ' --parallel: n cases at once, as many as OLLAMA_NUM_PARALLEL;'
     ' --provider=opencode: an OpenCode Go model, key NOTELORE_OPENCODE_API_KEY in the'
     ' environment or <state>/dev-secrets.json)';
+
+/// Prints each model's good and bad reports, or that there are none (#833).
+void _feedback(String notesRoot, StringSink out) {
+  final counts = feedbackCounts(notesRoot);
+  if (counts.isEmpty) {
+    out.writeln('No feedback yet.');
+    return;
+  }
+  for (final MapEntry(key: model, value: (:good, :bad)) in counts.entries) {
+    out.writeln('$model: $good good, $bad bad');
+  }
+}
 
 /// A trace file's name for a run started at [time]: UTC to the microsecond,
 /// always six digits, so names sort in time order (`toIso8601String()` drops
@@ -72,7 +86,7 @@ bool _valid(String? command, String message, _Plan plan) {
         'chat' => message.isNotEmpty && !evalOnly && !distillOnly,
         'eval' => !distillOnly,
         'distill' => !evalOnly,
-        'signin' || 'models' || 'reprompt' => !evalOnly && !distillOnly,
+        'signin' || 'models' || 'reprompt' || 'feedback' => !evalOnly && !distillOnly,
         _ => false,
       };
 }
@@ -140,6 +154,8 @@ Future<int> runDev(
         out.writeln('Signed in with ChatGPT.');
       case 'models':
         out.writeln((await listChatGptModels(auth.token, client: traced)).join('\n'));
+      case 'feedback':
+        _feedback(paths.notes.path, out);
       case 'reprompt':
         _reprompt(
           File(p.join(currentDirectory.path, options['in'] ?? 'train.jsonl')),

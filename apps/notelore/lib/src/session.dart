@@ -565,15 +565,29 @@ class Session extends ChangeNotifier {
   /// Keeps the newest turn as feedback for the model's training (#753), in the
   /// notes folder so it syncs; its path relative to the notes. In the test
   /// space it lands in the real folder, marked as a test (#832).
-  Future<String> reportWrong(String expected) => _exclusive(() async {
+  Future<String> reportWrong(String expected) => _report(expected, 'bad');
+
+  /// Keeps the newest turn as a good example (#833); no expectation to give.
+  Future<String> reportGood() => _report('', 'good');
+
+  /// Saves the turn with [verdict], taking back the rating it replaces.
+  Future<String> _report(String expected, String verdict) => _exclusive(() async {
+    final old = reported;
     final rel = reported = saveFeedback(
       (realNotes ?? paths.notes).path,
       _agent!.messages,
       model: '${spec!.name} $model',
       expected: expected,
+      verdict: verdict,
       space: testSpace ? 'test' : null,
       now: clock(),
     );
+    reportedVerdict = verdict;
+    // Saved first: a failed write keeps the rating it would have replaced.
+    if (old != null) {
+      final file = File(p.joinAll([(realNotes ?? paths.notes).path, ...old.split('/')]));
+      if (file.existsSync()) file.deleteSync();
+    }
     notifyListeners();
     return rel;
   });
@@ -581,12 +595,18 @@ class Session extends ChangeNotifier {
   /// The newest answer's report, until it is taken back or the next message goes.
   String? reported;
 
-  /// Undoes [reportWrong].
+  /// good or ad for [reported]; null before a rating (#833).
+  String? reportedVerdict;
+
+  /// Takes back a rating, good or wrong.
   Future<void> takeBackFeedback(String rel) => _exclusive(() async {
     // Both the snackbar's Undo and the filled button take it back; the second finds it gone.
     final file = File(p.joinAll([(realNotes ?? paths.notes).path, ...rel.split('/')]));
     if (file.existsSync()) file.deleteSync();
-    if (reported == rel) reported = null;
+    if (reported == rel) {
+      reported = null;
+      reportedVerdict = null;
+    }
     notifyListeners();
   });
 
@@ -1335,6 +1355,7 @@ class Session extends ChangeNotifier {
     }
     transcript.add((role: ChatRole.user, text: message, cards: const []));
     reported = null;
+    reportedVerdict = null;
     if (busy) {
       _later.add(message); // joins the running turn at its next step
       notifyListeners();

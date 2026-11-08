@@ -308,6 +308,8 @@ void main() {
       'send': s.send,
       'resend': s.resend,
       'copy': s.copy,
+      'goodAnswer': s.goodAnswer,
+      'goodAnswerTakeBack': s.goodAnswerTakeBack,
       'wrongAnswer': s.wrongAnswer,
       'wrongAnswerWhy': s.wrongAnswerWhy,
       'wrongAnswerExpected': s.wrongAnswerExpected,

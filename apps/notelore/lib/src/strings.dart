@@ -126,6 +126,8 @@ abstract class Strings {
   String get copy;
 
   /// Telling that an answer was wrong, kept for the model's training (#753).
+  String get goodAnswer;
+  String get goodAnswerTakeBack;
   String get wrongAnswer;
   String get wrongAnswerWhy;
   String get wrongAnswerExpected;
@@ -898,6 +900,10 @@ class EnglishStrings extends Strings {
   String get resend => 'Resend';
   @override
   String get copy => 'Copy';
+  @override
+  String get goodAnswer => 'Good answer';
+  @override
+  String get goodAnswerTakeBack => 'Take back the good rating';
   @override
   String get wrongAnswer => 'This was wrong';
   @override
@@ -2142,6 +2148,10 @@ class TurkishStrings extends Strings {
   String get resend => 'Yeniden gönder';
   @override
   String get copy => 'Kopyala';
+  @override
+  String get goodAnswer => 'İyi yanıt';
+  @override
+  String get goodAnswerTakeBack => 'İyi bildirimini geri al';
   @override
   String get wrongAnswer => 'Bu yanlıştı';
   @override
