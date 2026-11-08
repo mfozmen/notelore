@@ -65,10 +65,13 @@ typedef RemoteFor = Remote Function(DriveAuth auth);
 /// The platform keystore. On macOS the login keychain: the data-protection one
 /// needs a signed app with a keychain-access-groups entitlement, which debug
 /// builds do not have.
-const appKeys = FlutterSecureStorage(mOptions: MacOsOptions(usesDataProtectionKeychain: false));
+const appKeys = FlutterSecureStorage(
+  mOptions: MacOsOptions(usesDataProtectionKeychain: false),
+);
 
 Remote _driveRemote(DriveAuth auth) => DriveRemote(http.Client(), auth.token);
-ReminderCalendar _googleCalendar(OAuthSignIn auth) => GoogleCalendar(http.Client(), auth.token);
+ReminderCalendar _googleCalendar(OAuthSignIn auth) =>
+    GoogleCalendar(http.Client(), auth.token);
 
 /// [pending]: the user's message, still waiting to reach the model (offline,
 /// or the provider's usage limit).
@@ -128,7 +131,10 @@ class Session extends ChangeNotifier {
        deviceAuth = deviceAuth ?? LocalDeviceAuth(),
        // Time that only moves forward; a given clock stands in for it, unless told apart.
        uptime = uptime ?? _uptimeOf(clock),
-       index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path),
+       index = NoteIndex(
+         p.join(paths.state.path, 'index.sqlite'),
+         paths.notes.path,
+       ),
        manifest = Manifest(paths.state.path);
 
   final NotelorePaths paths;
@@ -157,7 +163,8 @@ class Session extends ChangeNotifier {
     offThread: offThread,
     isPrivate: () => lock.enabled,
     hiddenText: () => strings.reminderHidden,
-    actionLabels: () => (done: strings.reminderDone, snooze: strings.reminderSnooze),
+    actionLabels: () =>
+        (done: strings.reminderDone, snooze: strings.reminderSnooze),
     save: _saveUi,
     share: _touch,
   )..addListener(notifyListeners);
@@ -173,7 +180,8 @@ class Session extends ChangeNotifier {
   bool get calendarNudge => reminderCenter.calendarNudge;
   void calendarNudgeLater() => reminderCenter.calendarNudgeLater();
   bool get calendarAvailable => calendarAuth != null;
-  Future<void> refreshReminders({bool ask = true}) => reminderCenter.refreshReminders(ask: ask);
+  Future<void> refreshReminders({bool ask = true}) =>
+      reminderCenter.refreshReminders(ask: ask);
   Future<void> signInCalendar() => reminderCenter.signInCalendar();
   Future<void> setCalendar(bool on) => reminderCenter.setCalendar(on);
   Future<bool> allowReminders() => reminderCenter.allowReminders();
@@ -208,8 +216,9 @@ class Session extends ChangeNotifier {
 
   /// What voice mode listens with: Whisper once downloaded (#168), the
   /// device's recognizer until then.
-  Speech get speech =>
-      whisper.ready ? _whisperSpeech ??= makeWhisper(whisper, () => microphone) : _device;
+  Speech get speech => whisper.ready
+      ? _whisperSpeech ??= makeWhisper(whisper, () => microphone)
+      : _device;
   Speech? _whisperSpeech;
 
   /// On-device Whisper, downloaded on request into this device's state.
@@ -240,19 +249,25 @@ class Session extends ChangeNotifier {
     return [
       for (final file in dir.listSync().whereType<File>())
         if (RegExp(r'\.gguf(\.part)?$').hasMatch(file.path) &&
-            !pinned.contains(p.basename(file.path).replaceFirst(RegExp(r'\.part$'), '')))
+            !pinned.contains(
+              p.basename(file.path).replaceFirst(RegExp(r'\.part$'), ''),
+            ))
           file,
     ];
   }
 
-  String get _deviceFile => switch (_oldDeviceFiles.where((f) => f.path.endsWith('.gguf'))) {
-    final old when old.isNotEmpty && !deviceModel.ready => p.basename(old.first.path),
-    _ => deviceFiles.first.name,
-  };
+  String get _deviceFile =>
+      switch (_oldDeviceFiles.where((f) => f.path.endsWith('.gguf'))) {
+        final old when old.isNotEmpty && !deviceModel.ready => p.basename(
+          old.first.path,
+        ),
+        _ => deviceFiles.first.name,
+      };
 
   /// A file Windows still holds (antivirus, an indexer) stays: the next start tries again.
   Future<void> _dropOldDeviceFiles() => Future.wait([
-    for (final old in _oldDeviceFiles) old.delete().then<void>((_) {}, onError: (Object _) {}),
+    for (final old in _oldDeviceFiles)
+      old.delete().then<void>((_) {}, onError: (Object _) {}),
   ]);
 
   /// Where a new device model from an app update stands; null when there is
@@ -311,8 +326,13 @@ class Session extends ChangeNotifier {
   final LocalEngine Function(String path) makeDeviceEngine;
 
   /// [chosen]'s provider: the model on the device runs on the one engine.
-  LlmProvider _providerFor(ProviderSpec chosen, String key, String chosenModel) {
-    if (chosen.access == ProviderAccess.deviceFile) return device.provider(chosenModel);
+  LlmProvider _providerFor(
+    ProviderSpec chosen,
+    String key,
+    String chosenModel,
+  ) {
+    if (chosen.access == ProviderAccess.deviceFile)
+      return device.provider(chosenModel);
     return makeProvider(
       chosen,
       key,
@@ -348,7 +368,8 @@ class Session extends ChangeNotifier {
   /// Skipped while the setup wizard is testing the model: that test turn has
   /// another prompt and would replace the cache just filled.
   void _startDevicePrefill() {
-    if (!finishingSetup) device.startPrefill(slimSystemPrompt(today), slimTools);
+    if (!finishingSetup)
+      device.startPrefill(slimSystemPrompt(today), slimTools);
   }
 
   /// The model on the device is offered (where llama.cpp runs: Android,
@@ -360,7 +381,8 @@ class Session extends ChangeNotifier {
 
   /// How the link reader finds a host's addresses, to stay off private ones (#315).
   final Resolve resolve;
-  final Speech Function(WhisperModel model, String? Function() microphone) makeWhisper;
+  final Speech Function(WhisperModel model, String? Function() microphone)
+  makeWhisper;
 
   /// Whisper over an attached audio file (#285), and the platform's decoder
   /// for what is not WAV (null where there is none).
@@ -385,14 +407,25 @@ class Session extends ChangeNotifier {
     if (!rel.startsWith('$attachmentsFolder/') ||
         rel
             .split('/')
-            .any((part) => part.isEmpty || part == '.' || part == '..' || part.contains(r'\'))) {
+            .any(
+              (part) =>
+                  part.isEmpty ||
+                  part == '.' ||
+                  part == '..' ||
+                  part.contains(r'\'),
+            )) {
       return;
     }
     final marker = ' original="$rel"';
     for (var i = 0; i < transcript.length; i++) {
       final line = transcript[i];
-      if (line.role == ChatRole.assistant || !line.text.contains(marker)) continue;
-      transcript[i] = (role: line.role, text: line.text.replaceAll(marker, ''), cards: line.cards);
+      if (line.role == ChatRole.assistant || !line.text.contains(marker))
+        continue;
+      transcript[i] = (
+        role: line.role,
+        text: line.text.replaceAll(marker, ''),
+        cards: line.cards,
+      );
     }
     try {
       File(p.joinAll([paths.notes.path, ...rel.split('/')])).deleteSync();
@@ -438,7 +471,11 @@ class Session extends ChangeNotifier {
 
   Future<void> downloadWhisper() async {
     if (whisperProgress != null) return;
-    await _fetch(whisper, (done) => whisperProgress = done, (why) => whisperProblem = why);
+    await _fetch(
+      whisper,
+      (done) => whisperProgress = done,
+      (why) => whisperProblem = why,
+    );
   }
 
   /// Downloads [model], telling [progress] (null when over) and [problem].
@@ -520,22 +557,37 @@ class Session extends ChangeNotifier {
   List<String> aboutMeFacts() => aboutMe(paths.notes.path);
 
   /// Each fact with its section, in the file's order (#671).
-  List<({String section, String fact})> aboutMeEntries() => core.aboutMeFacts(paths.notes.path);
+  List<({String section, String fact})> aboutMeEntries() =>
+      core.aboutMeFacts(paths.notes.path);
 
   /// Adds [fact] to [section], a new heading in the app's language; throws
   /// [ArgumentError] when it is empty or already there.
-  Future<void> rememberFact(String fact, {String section = 'other'}) => _aboutMe(
-    () => rememberAboutMe(paths.notes.path, fact, section: section, lang: strings.languageCode),
-  );
+  Future<void> rememberFact(String fact, {String section = 'other'}) =>
+      _aboutMe(
+        () => rememberAboutMe(
+          paths.notes.path,
+          fact,
+          section: section,
+          lang: strings.languageCode,
+        ),
+      );
 
   /// Replaces [old] with [fact], moved to [section] when given; throws
   /// [ArgumentError] when [old] is gone or [fact] is taken.
-  Future<void> updateFact(String old, String fact, {String? section}) => _aboutMe(
-    () => updateAboutMe(paths.notes.path, old, fact, section: section, lang: strings.languageCode),
-  );
+  Future<void> updateFact(String old, String fact, {String? section}) =>
+      _aboutMe(
+        () => updateAboutMe(
+          paths.notes.path,
+          old,
+          fact,
+          section: section,
+          lang: strings.languageCode,
+        ),
+      );
 
   /// Removes [fact]; throws [ArgumentError] when it is gone.
-  Future<void> forgetFact(String fact) => _aboutMe(() => forgetAboutMe(paths.notes.path, fact));
+  Future<void> forgetFact(String fact) =>
+      _aboutMe(() => forgetAboutMe(paths.notes.path, fact));
 
   // Refused or not, the screens reread: a refusal often means another device changed it.
   Future<void> _aboutMe(void Function() change) => _exclusive(() async {
@@ -552,27 +604,46 @@ class Session extends ChangeNotifier {
 
   /// Keeps the newest turn as feedback for the model's training (#753), in the
   /// notes folder so it syncs; its path relative to the notes.
-  Future<String> reportWrong(String expected) => _exclusive(() async {
-    final rel = reported = saveFeedback(
-      paths.notes.path,
-      _agent!.messages,
-      model: '${spec!.name} $model',
-      expected: expected,
-      now: clock(),
-    );
-    notifyListeners();
-    return rel;
-  });
+  Future<String> reportWrong(String expected) => _report(expected, 'bad');
+
+  /// Keeps the newest turn as a good example (#833); no expectation to give.
+  Future<String> reportGood() => _report('', 'good');
+
+  /// Saves the turn with [verdict], taking back the rating it replaces.
+  Future<String> _report(String expected, String verdict) =>
+      _exclusive(() async {
+        if (reported case final old?) {
+          final file = File(p.joinAll([paths.notes.path, ...old.split('/')]));
+          if (file.existsSync()) file.deleteSync();
+        }
+        final rel = reported = saveFeedback(
+          paths.notes.path,
+          _agent!.messages,
+          model: '${spec!.name} $model',
+          expected: expected,
+          verdict: verdict,
+          now: clock(),
+        );
+        reportedVerdict = verdict;
+        notifyListeners();
+        return rel;
+      });
 
   /// The newest answer's report, until it is taken back or the next message goes.
   String? reported;
+
+  /// good or ad for [reported]; null before a rating (#833).
+  String? reportedVerdict;
 
   /// Undoes [reportWrong].
   Future<void> takeBackFeedback(String rel) => _exclusive(() async {
     // Both the snackbar's Undo and the filled button take it back; the second finds it gone.
     final file = File(p.joinAll([paths.notes.path, ...rel.split('/')]));
     if (file.existsSync()) file.deleteSync();
-    if (reported == rel) reported = null;
+    if (reported == rel) {
+      reported = null;
+      reportedVerdict = null;
+    }
     notifyListeners();
   });
 
@@ -709,7 +780,9 @@ class Session extends ChangeNotifier {
       reminderCenter.calendarNudged = saved['calendarNudged'] == true;
       reminderCenter.dropCalendars
         ..clear()
-        ..addAll((saved['dropCalendars'] as List? ?? const []).whereType<String>());
+        ..addAll(
+          (saved['dropCalendars'] as List? ?? const []).whereType<String>(),
+        );
       setUpBefore = saved['setUp'] == true;
       quickShortcut = saved['quickShortcut'] != false;
       chatTextStep = switch (saved['chatTextStep']) {
@@ -817,7 +890,10 @@ class Session extends ChangeNotifier {
 
   String _titleOf(String rel) {
     try {
-      return parse(File(p.joinAll([paths.notes.path, ...rel.split('/')])).readAsStringSync()).title;
+      return parse(
+        File(p.joinAll([paths.notes.path, ...rel.split('/')]))
+            .readAsStringSync(),
+      ).title;
     } on Exception {
       return rel.split('/').last;
     }
@@ -850,13 +926,17 @@ class Session extends ChangeNotifier {
 
   void _markGoogle({required bool signedIn}) {
     _google = signedIn;
-    (_googleMark..parent.createSync(recursive: true)).writeAsStringSync(signedIn ? 'in' : 'out');
+    (_googleMark..parent.createSync(recursive: true)).writeAsStringSync(
+      signedIn ? 'in' : 'out',
+    );
   }
 
   /// From the mark; a device without one (set up before #208) counts as signed
   /// in when it is connected now or has synced before, which holds offline too.
   void _loadGoogle() {
-    final mark = _googleMark.existsSync() ? _googleMark.readAsStringSync() : null;
+    final mark = _googleMark.existsSync()
+        ? _googleMark.readAsStringSync()
+        : null;
     if (mark == null && (driveConnected || manifest.paths().isNotEmpty)) {
       _markGoogle(signedIn: true);
     } else {
@@ -895,7 +975,8 @@ class Session extends ChangeNotifier {
   bool get ready => _agent != null;
 
   /// The system prompt of the wizard's one test turn (#361).
-  static const trySystem = 'You are Notelore. Reply in one short sentence, in the language asked.';
+  static const trySystem =
+      'You are Notelore. Reply in one short sentence, in the language asked.';
 
   /// One real turn with the connected model, no tools and no notes: the answer
   /// shows the user it works. It costs a few tokens, as the wizard says.
@@ -976,9 +1057,14 @@ class Session extends ChangeNotifier {
     // the grant lacks drive.appdata since v0.17.0 (#479). Say so, never stop
     // syncing in silence.
     if (_google && driveAuth != null && !driveConnected) {
-      _needSignIn(strings.drivePermissionAgain, 'no grant for the Drive scopes at start');
+      _needSignIn(
+        strings.drivePermissionAgain,
+        'no grant for the Drive scopes at start',
+      );
     }
-    await refreshReminders(ask: false); // nothing pops up at start, over the lock too
+    await refreshReminders(
+      ask: false,
+    ); // nothing pops up at start, over the lock too
     notifyListeners();
     if (driveConnected) unawaited(syncNow());
   }
@@ -996,12 +1082,19 @@ class Session extends ChangeNotifier {
 
   Future<void> _loadProvider() async {
     final saved = _readSettings();
-    if (saved case {'provider': final String name, 'model': final String chosen}) {
+    if (saved case {
+      'provider': final String name,
+      'model': final String chosen,
+    }) {
       final found = providerSpecs.where((s) => s.name == name).firstOrNull;
       if (found == null) return;
-      final key = found.requiresApiKey ? await keys.read(key: _keyName(found)) : '';
+      final key = found.requiresApiKey
+          ? await keys.read(key: _keyName(found))
+          : '';
       if (key == null) return; // the keystore lost it: set up again
-      if (found.access == ProviderAccess.signIn && !(await chatGpt?.signedIn() ?? false)) return;
+      if (found.access == ProviderAccess.signIn &&
+          !(await chatGpt?.signedIn() ?? false))
+        return;
       if (found.access == ProviderAccess.localMark) await _markOllama(found);
       models = switch (saved['models']) {
         final List<Object?> listed => listed.whereType<String>().toList(),
@@ -1038,7 +1131,9 @@ class Session extends ChangeNotifier {
   /// Back to a connected model with its stored key, checked again; never opens
   /// a browser. Throws [StateError] when it is not connected (any more).
   Future<void> switchTo(ProviderSpec spec) async {
-    final key = spec.access == ProviderAccess.signIn ? '' : await keys.read(key: _keyName(spec));
+    final key = spec.access == ProviderAccess.signIn
+        ? ''
+        : await keys.read(key: _keyName(spec));
     if (key == null) throw StateError('${spec.displayName} is not connected');
     await _connect(spec, key, signIn: false);
   }
@@ -1100,17 +1195,25 @@ class Session extends ChangeNotifier {
   /// The models [spec] offers. A key is checked by listing them; the ChatGPT
   /// plan signs in first when [signIn] (only on connect: a refresh never opens
   /// a browser).
-  Future<List<String>> _models(ProviderSpec spec, String key, {required bool signIn}) async =>
-      switch (spec.access) {
-        // Its one model, once its file is here; nothing to ask a server.
-        ProviderAccess.deviceFile
-            when !deviceModel.ready && _deviceFile == deviceFiles.first.name =>
-          throw const TransientValidationError('Download the model first'),
-        ProviderAccess.deviceFile => [spec.defaultModel],
-        ProviderAccess.apiKey ||
-        ProviderAccess.localMark => currentModels(spec.name, await validate(spec, key)),
-        ProviderAccess.signIn => currentModels(spec.name, await _planModels(signIn: signIn)),
-      };
+  Future<List<String>> _models(
+    ProviderSpec spec,
+    String key, {
+    required bool signIn,
+  }) async => switch (spec.access) {
+    // Its one model, once its file is here; nothing to ask a server.
+    ProviderAccess.deviceFile
+        when !deviceModel.ready && _deviceFile == deviceFiles.first.name =>
+      throw const TransientValidationError('Download the model first'),
+    ProviderAccess.deviceFile => [spec.defaultModel],
+    ProviderAccess.apiKey || ProviderAccess.localMark => currentModels(
+      spec.name,
+      await validate(spec, key),
+    ),
+    ProviderAccess.signIn => currentModels(
+      spec.name,
+      await _planModels(signIn: signIn),
+    ),
+  };
 
   Future<List<String>> _planModels({required bool signIn}) async {
     if (signIn) await chatGpt!.signIn();
@@ -1140,7 +1243,8 @@ class Session extends ChangeNotifier {
   /// can only talk with a model it has (#471).
   static String _fallback(ProviderSpec spec) => switch (spec) {
     ProviderSpec(id: ProviderId.ollama) => throw const NoLocalModel(),
-    ProviderSpec(:final defaultModel) when defaultModel.isNotEmpty => defaultModel,
+    ProviderSpec(:final defaultModel) when defaultModel.isNotEmpty =>
+      defaultModel,
     _ => throw TransientValidationError('${spec.displayName} lists no models'),
   };
 
@@ -1148,16 +1252,18 @@ class Session extends ChangeNotifier {
   /// Notelore's own first (#471). Gemini: its default when listed, the model a
   /// free AI Studio key has quota for; the cheapest listed is often a lite or
   /// preview one with none (#400). Any other: the cheapest listed.
-  static String? _startModel(ProviderSpec spec, List<String> listed) => switch (spec.id) {
-    ProviderId.ollama => ollamaStartModel(listed),
-    ProviderId.device => null,
-    ProviderId.gemini when listed.contains(spec.defaultModel) => spec.defaultModel,
-    ProviderId.chatgpt ||
-    ProviderId.anthropic ||
-    ProviderId.openai ||
-    ProviderId.gemini ||
-    ProviderId.deepseek => cheapestModel(spec.name, listed),
-  };
+  static String? _startModel(ProviderSpec spec, List<String> listed) =>
+      switch (spec.id) {
+        ProviderId.ollama => ollamaStartModel(listed),
+        ProviderId.device => null,
+        ProviderId.gemini when listed.contains(spec.defaultModel) =>
+          spec.defaultModel,
+        ProviderId.chatgpt ||
+        ProviderId.anthropic ||
+        ProviderId.openai ||
+        ProviderId.gemini ||
+        ProviderId.deepseek => cheapestModel(spec.name, listed),
+      };
 
   /// A blank [chosen] goes back to [defaultModel].
   Future<void> setModel(String chosen) async {
@@ -1168,7 +1274,9 @@ class Session extends ChangeNotifier {
   Future<void> _applyModel(String chosen) async {
     final current = spec;
     if (current == null) return;
-    final key = current.requiresApiKey ? await keys.read(key: _keyName(current)) : '';
+    final key = current.requiresApiKey
+        ? await keys.read(key: _keyName(current))
+        : '';
     if (key == null) return logout(); // the keystore lost it: set up again
     final trimmed = chosen.trim();
     final next = trimmed.isEmpty ? defaultModel : trimmed;
@@ -1178,7 +1286,8 @@ class Session extends ChangeNotifier {
 
   /// The chosen model is not among the ones the provider lists (any more): the
   /// chat asks the user to pick another. An empty list proves nothing.
-  bool get modelGone => models.isNotEmpty && model != null && !models.contains(model);
+  bool get modelGone =>
+      models.isNotEmpty && model != null && !models.contains(model);
 
   /// New models show up by themselves: on start the list is asked for again.
   /// Offline or refused, the old list stays; the chosen model never changes.
@@ -1196,7 +1305,9 @@ class Session extends ChangeNotifier {
     final current = spec;
     final chosen = model;
     if (current == null || chosen == null) return;
-    final key = current.requiresApiKey ? await keys.read(key: _keyName(current)) : '';
+    final key = current.requiresApiKey
+        ? await keys.read(key: _keyName(current))
+        : '';
     if (key == null) return logout(); // the keystore lost it: set up again
     final listed = await _models(current, key, signIn: false);
     // Logged out or switched provider while the list was on its way: it is stale.
@@ -1224,7 +1335,9 @@ class Session extends ChangeNotifier {
     _outbox.clear(); // dropped with the conversation, never run against another login
     _saveQueue();
     _stopRetrying();
-    for (final spec in providerSpecs.where((s) => s.access != ProviderAccess.signIn)) {
+    for (final spec in providerSpecs.where(
+      (s) => s.access != ProviderAccess.signIn,
+    )) {
       await keys.delete(key: _keyName(spec));
     }
     await chatGpt?.signOut();
@@ -1247,7 +1360,11 @@ class Session extends ChangeNotifier {
     model = chosenModel;
     if (chosen.access != ProviderAccess.deviceFile) unawaited(device.free());
     final toolbox = Toolbox(paths.notes.path, index, today: today);
-    _provider = MeteredProvider(_providerFor(chosen, key, chosenModel), chosen.name, usage);
+    _provider = MeteredProvider(
+      _providerFor(chosen, key, chosenModel),
+      chosen.name,
+      usage,
+    );
     final me = aboutMeToCloud || onThisMachine(chosen, chosenModel);
     // A model switch keeps the conversation (logout has already dropped it), except
     // what a local model was told about the person, on its way to a cloud one.
@@ -1261,14 +1378,19 @@ class Session extends ChangeNotifier {
       timing: timing,
       slim:
           chosen.access ==
-          ProviderAccess.deviceFile, // every token is read on the phone first (#447)
+          ProviderAccess
+              .deviceFile, // every token is read on the phone first (#447)
       aboutMe: me,
     )..messages.addAll(history);
     _startDevicePrefill();
     notifyListeners();
   }
 
-  void _save(ProviderSpec chosen, String chosenModel, List<String> listed) => atomicWrite(
+  void _save(
+    ProviderSpec chosen,
+    String chosenModel,
+    List<String> listed,
+  ) => atomicWrite(
     _settings,
     '${jsonEncode({'provider': chosen.name, 'model': chosenModel, 'models': listed})}\n',
   );
@@ -1283,7 +1405,8 @@ class Session extends ChangeNotifier {
   final _later = <String>[];
 
   /// The user's last message as it was sent; null before the first.
-  String? get lastSent => transcript.where((l) => l.role == ChatRole.user).lastOrNull?.text;
+  String? get lastSent =>
+      transcript.where((l) => l.role == ChatRole.user).lastOrNull?.text;
 
   /// Sends [lastSent] again, as a message of its own; nothing before the first.
   Future<void> resend() async {
@@ -1321,6 +1444,7 @@ class Session extends ChangeNotifier {
     }
     transcript.add((role: ChatRole.user, text: message, cards: const []));
     reported = null;
+    reportedVerdict = null;
     if (busy) {
       _later.add(message); // joins the running turn at its next step
       notifyListeners();
@@ -1331,7 +1455,11 @@ class Session extends ChangeNotifier {
 
   /// Turns until nothing written meanwhile is left; busy throughout. [images]
   /// go with the first.
-  Future<bool> _turns(String first, {bool queued = false, List<Block> images = const []}) async {
+  Future<bool> _turns(
+    String first, {
+    bool queued = false,
+    List<Block> images = const [],
+  }) async {
     busy = true;
     _halted = false;
     notifyListeners();
@@ -1349,7 +1477,8 @@ class Session extends ChangeNotifier {
         return _turn(current, queued: wasQueued, images: withImages);
       });
       if (firstTurn) {
-        delivered = turnDelivered; // only this message's turn owns its image original
+        delivered =
+            turnDelivered; // only this message's turn owns its image original
         firstTurn = false;
       }
       (message, fromQueue) = _next();
@@ -1370,9 +1499,14 @@ class Session extends ChangeNotifier {
   }
 
   /// One chat turn: the answer, or what its failure means.
-  Future<bool> _turn(String message, {required bool queued, required List<Block> images}) async {
+  Future<bool> _turn(
+    String message, {
+    required bool queued,
+    required List<Block> images,
+  }) async {
     final taken = <String>[];
-    Agent? asked; // the one that ran the turn, even if a logout replaced it since
+    Agent?
+    asked; // the one that ran the turn, even if a logout replaced it since
     // For the usage page (#481): counts only, never a word of the turn.
     final watch = Stopwatch()..start();
     final metered = _provider;
@@ -1381,7 +1515,8 @@ class Session extends ChangeNotifier {
     var failed = false;
     var delivered = false;
     try {
-      if (_stopped) throw const TurnStopped(); // stopped while queued behind a sync
+      if (_stopped)
+        throw const TurnStopped(); // stopped while queued behind a sync
       final withPages = await _withPages(message);
       if (_stopped) throw const TurnStopped(); // stopped while the pages loaded
       before = _agent!.messages.length;
@@ -1398,7 +1533,11 @@ class Session extends ChangeNotifier {
       delivered = true;
       toolCalls = _toolCalls(asked.messages.skip(before));
       transcript.add(
-        fresh = (role: ChatRole.assistant, text: strings.core(answer), cards: asked.cards),
+        fresh = (
+          role: ChatRole.assistant,
+          text: strings.core(answer),
+          cards: asked.cards,
+        ),
       );
       // Seen only once answered: a failed turn's notice goes out again.
       _lastNotes = _noteTitles(); // the agent's own changes included
@@ -1451,7 +1590,8 @@ class Session extends ChangeNotifier {
     required bool queued,
     required bool images,
   }) {
-    final later = error is NetworkError || (error is HttpError && error.status == 429);
+    final later =
+        error is NetworkError || (error is HttpError && error.status == 429);
     if (later && !wrote && !images) return _hold(message, fresh: !queued);
     if (queued) _sent(message); // it reached the model: no longer waiting
     transcript.add(
@@ -1491,23 +1631,33 @@ class Session extends ChangeNotifier {
   /// [message] joins the end of the queue, shown as waiting and kept.
   void _enqueue(String message) {
     _outbox.add(message);
-    final at = transcript.lastIndexWhere((l) => l.role == ChatRole.user && l.text == message);
-    final ChatLine line = (role: ChatRole.pending, text: message, cards: const []);
+    final at = transcript.lastIndexWhere(
+      (l) => l.role == ChatRole.user && l.text == message,
+    );
+    final ChatLine line = (
+      role: ChatRole.pending,
+      text: message,
+      cards: const [],
+    );
     at < 0 ? transcript.add(line) : transcript[at] = line;
     _saveQueue();
     _startRetrying();
     notifyListeners();
   }
 
-  void _startRetrying() => _retry ??= every(retryEvery, (_) => unawaited(retryNow()));
+  void _startRetrying() =>
+      _retry ??= every(retryEvery, (_) => unawaited(retryNow()));
 
   /// The first waiting [message] reached the model.
   void _sent(String message) {
     // Logged out meanwhile: the queue went with the conversation.
     if (_outbox.firstOrNull != message) return;
     _outbox.removeAt(0);
-    final at = transcript.indexWhere((l) => l.role == ChatRole.pending && l.text == message);
-    if (at >= 0) transcript[at] = (role: ChatRole.user, text: message, cards: const []);
+    final at = transcript.indexWhere(
+      (l) => l.role == ChatRole.pending && l.text == message,
+    );
+    if (at >= 0)
+      transcript[at] = (role: ChatRole.user, text: message, cards: const []);
     _saveQueue();
     if (_outbox.isEmpty) _stopRetrying();
   }
@@ -1534,9 +1684,14 @@ class Session extends ChangeNotifier {
   void _loadQueue() {
     try {
       final saved = jsonDecode(File(_pending).readAsStringSync());
-      for (final message in saved is List ? saved.whereType<String>() : const <String>[]) {
+      for (final message
+          in saved is List ? saved.whereType<String>() : const <String>[]) {
         _outbox.add(message);
-        transcript.add((role: ChatRole.pending, text: message, cards: const []));
+        transcript.add((
+          role: ChatRole.pending,
+          text: message,
+          cards: const [],
+        ));
       }
     } on Exception {
       // none yet, or damaged: nothing waits
@@ -1607,8 +1762,10 @@ class Session extends ChangeNotifier {
   /// again; a full Drive says so (only Drive's storage quota, never a rate
   /// limit, which would have the person delete things for nothing).
   void _driveFailed(HttpError error) {
-    if (error.status == 401) return _needSignIn(strings.signedOutOfGoogle, error.message);
-    if (kDebugMode) debugPrint('Google Drive: ${error.message}'); // the log only
+    if (error.status == 401)
+      return _needSignIn(strings.signedOutOfGoogle, error.message);
+    if (kDebugMode)
+      debugPrint('Google Drive: ${error.message}'); // the log only
     final full = error.message.toLowerCase().contains('storage quota');
     syncStatus = full ? strings.driveFull : strings.driveUnreachable;
   }
@@ -1616,7 +1773,8 @@ class Session extends ChangeNotifier {
   void _needSignIn(String status, String detail) {
     // A sync still running when the user signed out never asks them back in.
     if (!_google) return;
-    if (kDebugMode) debugPrint('Google Drive needs a sign-in: $detail'); // the log only
+    if (kDebugMode)
+      debugPrint('Google Drive needs a sign-in: $detail'); // the log only
     driveConnected = false;
     driveNeedsSignIn = true;
     syncStatus = status;
@@ -1687,7 +1845,9 @@ class Session extends ChangeNotifier {
 
   Future<void> _syncSettings(Remote remote) async {
     final listed = (await remote.list())[sharedSettings];
-    final theirs = listed == null ? null : _json(await remote.download(listed.id));
+    final theirs = listed == null
+        ? null
+        : _json(await remote.download(listed.id));
     final at = DateTime.tryParse('${theirs?['updated']}');
     final mine = _changedAt;
     if (at != null && (mine == null || at.isAfter(mine))) {
@@ -1695,7 +1855,8 @@ class Session extends ChangeNotifier {
       _touch(at);
       return;
     }
-    if (at != null && !mine!.isAfter(at)) return; // the same change on both sides
+    if (at != null && !mine!.isAfter(at))
+      return; // the same change on both sides
     final stamp = mine ?? clock();
     if (mine == null) _touch(stamp);
     final shared = {
@@ -1704,7 +1865,11 @@ class Session extends ChangeNotifier {
       'provider': ?spec?.name,
       'model': ?model,
     };
-    await remote.upload(sharedSettings, utf8.encode(jsonEncode(shared)), listed?.id);
+    await remote.upload(
+      sharedSettings,
+      utf8.encode(jsonEncode(shared)),
+      listed?.id,
+    );
   }
 
   static Map<String, Object?>? _json(List<int> data) {
@@ -1734,9 +1899,11 @@ class Session extends ChangeNotifier {
     final shared = SharedPrefs.fromJson(theirs);
     if (shared.language case final l?) _applyLanguage(l);
     _applyAppearance(shared.appearance ?? appearance);
-    if (shared.webSearch case final on? when on != webSearch) await _applyWebSearch(on);
+    if (shared.webSearch case final on? when on != webSearch)
+      await _applyWebSearch(on);
     await _adoptAboutMeToCloud(theirs['aboutMeToCloud']);
-    if (shared.calendar case final on?) reminderCenter.adopt(on, shared.calendarId);
+    if (shared.calendar case final on?)
+      reminderCenter.adopt(on, shared.calendarId);
     await _adoptProvider(theirs['provider'], theirs['model']);
   }
 
@@ -1744,15 +1911,21 @@ class Session extends ChangeNotifier {
   Future<void> _adoptProvider(Object? name, Object? chosen) async {
     // A local model is this machine's own: another device's choice of one stays there.
     if (name is! String || chosen is! String) return;
-    final found = providerSpecs.where((s) => s.name == name && !s.local).firstOrNull;
+    final found = providerSpecs
+        .where((s) => s.name == name && !s.local)
+        .firstOrNull;
     if (found == null) return;
     if (found == spec) {
       if (chosen != model) await _applyModel(chosen);
       return;
     }
-    final key = found.requiresApiKey ? await keys.read(key: _keyName(found)) : '';
+    final key = found.requiresApiKey
+        ? await keys.read(key: _keyName(found))
+        : '';
     if (key == null) return;
-    if (found.access == ProviderAccess.signIn && !(await chatGpt?.signedIn() ?? false)) return;
+    if (found.access == ProviderAccess.signIn &&
+        !(await chatGpt?.signedIn() ?? false))
+      return;
     models = const [];
     _save(found, chosen, models);
     _use(found, key, chosen);
@@ -1761,14 +1934,19 @@ class Session extends ChangeNotifier {
 
   /// One sync; the notes in [restore] go back to Drive as new, those in
   /// [remove] follow Drive's removal however many there are.
-  Future<void> syncNow({Set<String> restore = const {}, Set<String> remove = const {}}) async {
+  Future<void> syncNow({
+    Set<String> restore = const {},
+    Set<String> remove = const {},
+  }) async {
     if (!driveConnected) return;
     _pendingSyncs++;
     notifyListeners();
     await _exclusive(() async {
       var completed = false;
       try {
-        final resolver = _provider == null ? null : ModelResolver(askProvider(_provider!));
+        final resolver = _provider == null
+            ? null
+            : ModelResolver(askProvider(_provider!));
         final report = await sync(
           paths.notes.path,
           manifest,
@@ -1781,7 +1959,9 @@ class Session extends ChangeNotifier {
         _markSyncedNotes(report);
         completed = true;
         await _syncSettings(_remote!);
-        await refreshReminders(ask: false); // the notes' and the shared setting's
+        await refreshReminders(
+          ask: false,
+        ); // the notes' and the shared setting's
         syncStatus = _syncSummary(report, resolver);
         lastSynced = clock().toUtc();
         syncFailed = false;
@@ -1830,7 +2010,11 @@ class Session extends ChangeNotifier {
   }
 
   void _markSyncedNotes(SyncReport report) {
-    for (final rel in [...report.pulled, ...report.merged, ...report.removedLocal]) {
+    for (final rel in [
+      ...report.pulled,
+      ...report.merged,
+      ...report.removedLocal,
+    ]) {
       index.markChanged(p.joinAll([paths.notes.path, ...rel.split('/')]));
     }
   }
@@ -1884,7 +2068,10 @@ class Session extends ChangeNotifier {
       format,
       fonts: await _fonts,
     );
-    return exchange.send(files, subject: notes.length == 1 ? notes.single.title : 'Notelore');
+    return exchange.send(
+      files,
+      subject: notes.length == 1 ? notes.single.title : 'Notelore',
+    );
   }
 
   /// Imports the files the person picks, each on its own: a note that is not
@@ -1894,12 +2081,17 @@ class Session extends ChangeNotifier {
     final picked = await exchange.pick();
     if (picked.isEmpty) return const [];
     final reports = await _exclusive(
-      () async => [for (final file in picked) (file: file.name, imported: _import(file.bytes))],
+      () async => [
+        for (final file in picked)
+          (file: file.name, imported: _import(file.bytes)),
+      ],
     );
     const news = {ImportOutcome.added, ImportOutcome.renamed};
     final changed = reports.any((r) => news.contains(r.imported?.outcome));
     if (changed) {
-      unawaited(refreshReminders(ask: false)); // a shared note's reminders come too
+      unawaited(
+        refreshReminders(ask: false),
+      ); // a shared note's reminders come too
       notifyListeners();
       if (driveConnected) unawaited(syncNow());
     }
@@ -1909,7 +2101,8 @@ class Session extends ChangeNotifier {
   Imported? _import(List<int> bytes) {
     try {
       final imported = importNote(paths.notes.path, utf8.decode(bytes));
-      if (imported.outcome != ImportOutcome.alreadyThere) index.markChanged(imported.path);
+      if (imported.outcome != ImportOutcome.alreadyThere)
+        index.markChanged(imported.path);
       return imported;
     } on FormatException {
       return null; // not UTF-8, or not a Notelore note
@@ -1918,37 +2111,42 @@ class Session extends ChangeNotifier {
 
   /// Completes or reopens todo [number] in [note] (#512); false when the note
   /// is gone since the screen drew it.
-  Future<bool> setTodoDone(NoteInfo note, int number, {required bool done, String? text}) =>
-      _exclusive(() async {
-        final path = notePath(paths.notes.path, note.kind, note.slug);
-        if (!File(path).existsSync()) return false;
-        try {
-          if (done) {
-            completeTodo(path, number, today: today, expect: text);
-          } else {
-            reopenTodo(path, number, today: today, expect: text);
-          }
-        } on RangeError {
-          return false; // moved or gone since the screen drew it
-        }
-        index.markChanged(path);
-        notifyListeners();
-        return true;
-      });
-
-  /// Pins [note] to the top of the list or unpins it; false when it is gone.
-  Future<bool> pinNote(NoteInfo note, {required bool pinned}) => _exclusive(() async {
+  Future<bool> setTodoDone(
+    NoteInfo note,
+    int number, {
+    required bool done,
+    String? text,
+  }) => _exclusive(() async {
     final path = notePath(paths.notes.path, note.kind, note.slug);
     if (!File(path).existsSync()) return false;
     try {
-      setPinned(path, pinned: pinned);
-    } on ArgumentError {
-      // Already so: a sync or the assistant got there first.
+      if (done) {
+        completeTodo(path, number, today: today, expect: text);
+      } else {
+        reopenTodo(path, number, today: today, expect: text);
+      }
+    } on RangeError {
+      return false; // moved or gone since the screen drew it
     }
     index.markChanged(path);
     notifyListeners();
     return true;
   });
+
+  /// Pins [note] to the top of the list or unpins it; false when it is gone.
+  Future<bool> pinNote(NoteInfo note, {required bool pinned}) =>
+      _exclusive(() async {
+        final path = notePath(paths.notes.path, note.kind, note.slug);
+        if (!File(path).existsSync()) return false;
+        try {
+          setPinned(path, pinned: pinned);
+        } on ArgumentError {
+          // Already so: a sync or the assistant got there first.
+        }
+        index.markChanged(path);
+        notifyListeners();
+        return true;
+      });
 
   /// Moves [note] under `_archive/<date>/`: nothing is ever hard-deleted. Returns
   /// where it went, for [restoreNote]; null when a sync or a chat turn already
@@ -2005,18 +2203,23 @@ class Session extends ChangeNotifier {
   void _deleteArchived(ArchivedNote archived) {
     // Already gone (a sync, or by hand, since the list was drawn): nothing to do.
     if (File(archived.path).existsSync()) File(archived.path).deleteSync();
-    removeEmptyFolders(p.dirname(archived.path), within: p.join(paths.notes.path, archiveFolder));
+    removeEmptyFolders(
+      p.dirname(archived.path),
+      within: p.join(paths.notes.path, archiveFolder),
+    );
   }
 
   /// Undoes [deleteNote], unless a new note has taken the place meanwhile.
-  Future<void> restoreNote(NoteInfo note, String archived) => _exclusive(() async {
-    final path = notePath(paths.notes.path, note.kind, note.slug);
-    if (File(path).existsSync()) return; // never overwrite; the archive copy stays
-    moveWithRetry(archived, path);
-    index.markChanged(path);
-    unawaited(refreshReminders(ask: false));
-    notifyListeners();
-  });
+  Future<void> restoreNote(NoteInfo note, String archived) =>
+      _exclusive(() async {
+        final path = notePath(paths.notes.path, note.kind, note.slug);
+        if (File(path).existsSync())
+          return; // never overwrite; the archive copy stays
+        moveWithRetry(archived, path);
+        index.markChanged(path);
+        unawaited(refreshReminders(ask: false));
+        notifyListeners();
+      });
 
   /// The note's file as written, for the reader to lay out (#426).
   /// CRLF (an editor on Windows may save one) reads like LF.
@@ -2055,12 +2258,16 @@ String withoutFrontMatter(String text) {
 /// Ollama on a loopback [host] with a model it does not forward to ollama.com.
 bool onThisMachine(ProviderSpec provider, String model, {String? host}) {
   if (provider.access == ProviderAccess.deviceFile) return true;
-  if (provider.access != ProviderAccess.localMark || RegExp(r'[:-]cloud$').hasMatch(model)) {
+  if (provider.access != ProviderAccess.localMark ||
+      RegExp(r'[:-]cloud$').hasMatch(model)) {
     return false;
   }
   final at = host ?? ollamaHost();
   final name = Uri.tryParse(at.contains('://') ? at : 'http://$at')?.host ?? '';
-  return name == 'localhost' || name == '::1' || name == '0.0.0.0' || name.startsWith('127.');
+  return name == 'localhost' ||
+      name == '::1' ||
+      name == '0.0.0.0' ||
+      name.startsWith('127.');
 }
 
 /// A new device model from an app update: asked for, downloading, failed (the

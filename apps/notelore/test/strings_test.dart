@@ -12,12 +12,15 @@ void main() {
   final en = EnglishStrings();
   final tr = TurkishStrings();
 
-  test('the language: fixed, or the device one with English as the fallback', () {
-    expect(stringsFor(AppLanguage.tr, 'en').languageCode, 'tr');
-    expect(stringsFor(AppLanguage.en, 'tr').languageCode, 'en');
-    expect(stringsFor(AppLanguage.system, 'tr').languageCode, 'tr');
-    expect(stringsFor(AppLanguage.system, 'de').languageCode, 'en');
-  });
+  test(
+    'the language: fixed, or the device one with English as the fallback',
+    () {
+      expect(stringsFor(AppLanguage.tr, 'en').languageCode, 'tr');
+      expect(stringsFor(AppLanguage.en, 'tr').languageCode, 'en');
+      expect(stringsFor(AppLanguage.system, 'tr').languageCode, 'tr');
+      expect(stringsFor(AppLanguage.system, 'de').languageCode, 'en');
+    },
+  );
 
   test('user-facing speech copy names no engine, and the lock-off text is accurate (#538)', () {
     for (final s in [en, tr]) {
@@ -30,45 +33,71 @@ void main() {
       expect(words, isNot(contains('Whisper')));
       expect(words, isNot(contains('MB')));
     }
-    expect(tr.appLockOff, 'Kapalı: Notelore açılırken uygulama kilidi istemez.');
+    expect(
+      tr.appLockOff,
+      'Kapalı: Notelore açılırken uygulama kilidi istemez.',
+    );
   });
 
-  test('a receipt names what the turn did to its note, in both languages (#791)', () {
-    NoteReceipt receipt(List<String> tools, {String? kind = 'project'}) =>
-        NoteReceipt('atlas', kind, 'Atlas', tools);
-    final writes = [
-      for (final tool in noteTools)
-        if (describeTool(tool.name) == 'Writing the notes' && !tool.name.contains('about_me'))
-          tool.name,
-    ];
-    for (final s in [en, tr]) {
-      final said = {
-        for (final tool in writes) s.noteChange(receipt([tool])),
-      };
-      expect(said, hasLength(writes.length), reason: s.languageCode); // each its own words
-      // A new note is what it is; several changes are an update; an archived note is archived.
-      expect(
-        s.noteChange(receipt(['create_note', 'record_decision'])),
-        s.noteChange(receipt(['create_note'])),
-      );
-      expect(
-        s.noteChange(receipt(['add_todo', 'record_decision'])),
-        s.noteChange(receipt(['something_new'])),
-      );
-      expect(s.noteChange(receipt(['add_todo', 'add_todo'])), s.noteChange(receipt(['add_todo'])));
-      expect(said, isNot(contains(s.noteChange(receipt(['add_todo', 'archive'], kind: null)))));
-    }
-    expect(en.noteChange(receipt(['record_decision'])), 'Decision added');
-    expect(tr.noteChange(receipt(['record_decision'])), 'Karar eklendi');
-    expect(en.noteChange(receipt(['archive'], kind: null)), 'Archived');
-    expect(tr.noteChange(receipt(['archive'], kind: null)), 'Arşivlendi');
-    expect((tr.openNote, tr.noteGone), ('Aç', 'Bu not artık yok.'));
-  });
+  test(
+    'a receipt names what the turn did to its note, in both languages (#791)',
+    () {
+      NoteReceipt receipt(List<String> tools, {String? kind = 'project'}) =>
+          NoteReceipt('atlas', kind, 'Atlas', tools);
+      final writes = [
+        for (final tool in noteTools)
+          if (describeTool(tool.name) == 'Writing the notes' &&
+              !tool.name.contains('about_me'))
+            tool.name,
+      ];
+      for (final s in [en, tr]) {
+        final said = {
+          for (final tool in writes) s.noteChange(receipt([tool])),
+        };
+        expect(
+          said,
+          hasLength(writes.length),
+          reason: s.languageCode,
+        ); // each its own words
+        // A new note is what it is; several changes are an update; an archived note is archived.
+        expect(
+          s.noteChange(receipt(['create_note', 'record_decision'])),
+          s.noteChange(receipt(['create_note'])),
+        );
+        expect(
+          s.noteChange(receipt(['add_todo', 'record_decision'])),
+          s.noteChange(receipt(['something_new'])),
+        );
+        expect(
+          s.noteChange(receipt(['add_todo', 'add_todo'])),
+          s.noteChange(receipt(['add_todo'])),
+        );
+        expect(
+          said,
+          isNot(
+            contains(
+              s.noteChange(receipt(['add_todo', 'archive'], kind: null)),
+            ),
+          ),
+        );
+      }
+      expect(en.noteChange(receipt(['record_decision'])), 'Decision added');
+      expect(tr.noteChange(receipt(['record_decision'])), 'Karar eklendi');
+      expect(en.noteChange(receipt(['archive'], kind: null)), 'Archived');
+      expect(tr.noteChange(receipt(['archive'], kind: null)), 'Arşivlendi');
+      expect((tr.openNote, tr.noteGone), ('Aç', 'Bu not artık yok.'));
+    },
+  );
 
   test('every text the core produces has Turkish', () {
     final produced = [
       'Thinking',
-      for (final tool in ['search_notes', 'read_note', 'add_todo', 'something_new'])
+      for (final tool in [
+        'search_notes',
+        'read_note',
+        'add_todo',
+        'something_new',
+      ])
         describeTool(tool),
       '${const TurnStopped()}',
       'No answer in time, so I stopped. Please try again.',
@@ -87,7 +116,11 @@ void main() {
     expect(tr.cost(findProvider('device')), contains('cihazda'));
     for (final spec in providerSpecs) {
       expect(tr.cost(spec), isNot(spec.cost), reason: spec.name);
-      expect(tr.keySteps(spec), hasLength(spec.keySteps.length), reason: spec.name);
+      expect(
+        tr.keySteps(spec),
+        hasLength(spec.keySteps.length),
+        reason: spec.name,
+      );
       expect(tr.providerName(spec), isNotEmpty);
       expect(en.providerName(spec), spec.displayName);
       expect(en.cost(spec), spec.cost);
@@ -103,7 +136,11 @@ void main() {
         expect(line(en), isNotEmpty, reason: spec.name);
         expect(line(tr), isNot(line(en)), reason: spec.name);
       }
-      expect(tr.optionTags(spec), isNot(en.optionTags(spec)), reason: spec.name);
+      expect(
+        tr.optionTags(spec),
+        isNot(en.optionTags(spec)),
+        reason: spec.name,
+      );
     }
     expect(tr.providerName(findProvider('ollama')), 'Ollama (yerel)');
     for (final group in ProviderGroup.values) {
@@ -114,13 +151,26 @@ void main() {
 
   test('the key page link is named, not a URL that breaks at 2x (#714)', () {
     const pages = {
-      'console.anthropic.com': ('Open the Anthropic Console', "Anthropic Console'u aç"),
-      'platform.openai.com': ('Open the OpenAI platform', 'OpenAI platformunu aç'),
-      'aistudio.google.com': ('Open Google AI Studio', "Google AI Studio'yu aç"),
-      'platform.deepseek.com': ('Open the DeepSeek platform', 'DeepSeek platformunu aç'),
+      'console.anthropic.com': (
+        'Open the Anthropic Console',
+        "Anthropic Console'u aç",
+      ),
+      'platform.openai.com': (
+        'Open the OpenAI platform',
+        'OpenAI platformunu aç',
+      ),
+      'aistudio.google.com': (
+        'Open Google AI Studio',
+        "Google AI Studio'yu aç",
+      ),
+      'platform.deepseek.com': (
+        'Open the DeepSeek platform',
+        'DeepSeek platformunu aç',
+      ),
       'example.com': ('Open example.com', 'example.com adresini aç'),
     };
-    for (final MapEntry(key: host, value: (english, turkish)) in pages.entries) {
+    for (final MapEntry(key: host, value: (english, turkish))
+        in pages.entries) {
       expect(en.openKeyPage(host), english, reason: host);
       expect(tr.openKeyPage(host), turkish, reason: host);
     }
@@ -138,13 +188,23 @@ void main() {
         ])
           s.chatError(error),
       };
-      expect(said, hasLength(4), reason: s.languageCode); // 401 and 403 share one: the key
+      expect(
+        said,
+        hasLength(4),
+        reason: s.languageCode,
+      ); // 401 and 403 share one: the key
       for (final text in said) {
-        expect(text, isNot(matches(RegExp('HTTP|socket|x-api-key|rate_limit|overloaded'))));
+        expect(
+          text,
+          isNot(matches(RegExp('HTTP|socket|x-api-key|rate_limit|overloaded'))),
+        );
       }
       // Other refusals keep their detail, kindly framed; the core's own messages
       // (a Stop, the plan's limit) stay as they are.
-      expect(s.chatError(const HttpError(400, 'image too large')), contains('image too large'));
+      expect(
+        s.chatError(const HttpError(400, 'image too large')),
+        contains('image too large'),
+      );
       expect(s.chatError(const TurnStopped()), s.core('Stopped.'));
     }
   });
@@ -176,7 +236,10 @@ void main() {
 
   test('plenty of waiting lines in both languages, each its own', () {
     for (final s in [en, tr]) {
-      expect(s.waitingLines.length, greaterThanOrEqualTo(50)); // a long wait seldom repeats
+      expect(
+        s.waitingLines.length,
+        greaterThanOrEqualTo(50),
+      ); // a long wait seldom repeats
       expect(s.waitingLines.toSet(), hasLength(s.waitingLines.length));
       // Thinking, not answered: each ends with an ellipsis.
       expect(s.waitingLines.where((l) => !l.endsWith('…')), isEmpty);
@@ -186,14 +249,23 @@ void main() {
 
   test('the sync summary and the note kinds', () {
     expect(en.synced(0, 0, 0, 0), 'Synced; nothing changed.');
-    expect(en.synced(1, 2, 3, 4), contains('1 sent, 2 received, 3 merged, 4 waiting'));
-    expect(en.lockWaiting(const Duration(minutes: 5)), 'Too many tries. Try again in 5:00.');
+    expect(
+      en.synced(1, 2, 3, 4),
+      contains('1 sent, 2 received, 3 merged, 4 waiting'),
+    );
+    expect(
+      en.lockWaiting(const Duration(minutes: 5)),
+      'Too many tries. Try again in 5:00.',
+    );
     expect(
       tr.lockWaiting(const Duration(seconds: 30)),
       'Çok fazla deneme. 0:30 sonra tekrar dene.',
     );
     expect(tr.synced(0, 0, 0, 0), 'Eşitlendi; değişiklik yok.');
-    expect(tr.synced(1, 2, 3, 4), contains('1 gönderildi, 2 alındı, 3 birleştirildi, 4 '));
+    expect(
+      tr.synced(1, 2, 3, 4),
+      contains('1 gönderildi, 2 alındı, 3 birleştirildi, 4 '),
+    );
     expect(tr.noteSubtitle('project', '11 Eki'), 'Proje · güncelleme 11 Eki');
     expect(tr.noteSubtitle('topic', 'x'), startsWith('Konu'));
     expect(tr.noteSubtitle('other', 'x'), startsWith('other'));
@@ -209,9 +281,18 @@ void main() {
   });
 
   test('the week look back names its days, across a month too (#804)', () {
-    expect(en.weekRange(DateTime(2026, 11, 2), DateTime(2026, 11, 8)), '2–8 Nov');
-    expect(en.weekRange(DateTime(2026, 10, 26), DateTime(2026, 11, 1)), '26 Oct – 1 Nov');
-    expect(tr.weekRange(DateTime(2026, 11, 2), DateTime(2026, 11, 8)), '2–8 Kas');
+    expect(
+      en.weekRange(DateTime(2026, 11, 2), DateTime(2026, 11, 8)),
+      '2–8 Nov',
+    );
+    expect(
+      en.weekRange(DateTime(2026, 10, 26), DateTime(2026, 11, 1)),
+      '26 Oct – 1 Nov',
+    );
+    expect(
+      tr.weekRange(DateTime(2026, 11, 2), DateTime(2026, 11, 8)),
+      '2–8 Kas',
+    );
   });
 
   test('the sync state says how long ago, in both languages (#774)', () {
@@ -308,6 +389,8 @@ void main() {
       'send': s.send,
       'resend': s.resend,
       'copy': s.copy,
+      'goodAnswer': s.goodAnswer,
+      'goodAnswerTakeBack': s.goodAnswerTakeBack,
       'wrongAnswer': s.wrongAnswer,
       'wrongAnswerWhy': s.wrongAnswerWhy,
       'wrongAnswerExpected': s.wrongAnswerExpected,
@@ -615,7 +698,8 @@ void main() {
       'microphone': s.microphone,
       'systemMicrophone': s.systemMicrophone,
       'listMicrophones': s.listMicrophones,
-      for (final a in Appearance.values) 'appearance-${a.name}': s.appearanceName(a),
+      for (final a in Appearance.values)
+        'appearance-${a.name}': s.appearanceName(a),
     };
     final english = all(en);
     final turkish = all(tr);
@@ -633,75 +717,95 @@ void main() {
     }
   });
 
-  test('usage: tokens grouped, the cost an estimate, missing data said so (#217)', () {
-    const none = UsageSummary(UsageCount(), cost: 0, plan: false);
-    expect(en.usageLines(none), ['Nothing yet.']);
-    const known = UsageSummary(
-      UsageCount(calls: 3, input: 1234567, output: 8900),
-      cost: 2.5,
-      plan: false,
-    );
-    expect(en.usageLines(known), [
-      '1,234,567 read · 8,900 written',
-      'Estimated cost: about \$2.50',
-    ]);
-    expect(tr.usageLines(known), [
-      '1.234.567 okundu · 8.900 yazıldı',
-      'Tahmini maliyet: yaklaşık \$2,50',
-    ]);
-    const small = UsageSummary(
-      UsageCount(calls: 1, input: 10, output: 1),
-      cost: 0.00042,
-      plan: false,
-    );
-    expect(en.usageLines(small).last, 'Estimated cost: about \$0.0004');
-    const gaps = UsageSummary(
-      UsageCount(calls: 3, unreported: 1, input: 5, output: 1),
-      cost: null,
-      plan: false,
-    );
-    expect(en.usageLines(gaps), [
-      '5 read · 1 written',
-      '1 model call did not report usage',
-      'Estimated cost: not available',
-    ]);
-    // On a plan or a local model nothing is charged per token: said so, never "$0.00" (#436).
-    const onPlan = UsageSummary(
-      UsageCount(calls: 2, input: 53117, output: 422),
-      cost: 0,
-      plan: true,
-      billed: false,
-    );
-    expect(en.usageLines(onPlan).last, 'Included in your ChatGPT plan');
-    expect(tr.usageLines(onPlan).last, 'ChatGPT planına dahil');
-    const local = UsageSummary(UsageCount(calls: 1), cost: 0, plan: false, billed: false);
-    expect(en.usageLines(local).last, 'No per-token charge: a local model');
-    expect(tr.usageLines(local).last, 'Token başına ücret yok: yerel model');
-    const mixed = UsageSummary(UsageCount(calls: 2), cost: 0.5, plan: true);
-    expect(en.usageLines(mixed).sublist(1), [
-      'Estimated cost: about \$0.50',
-      'What ran on the ChatGPT plan is included in it',
-    ]);
-    expect(tr.usageLines(mixed).last, 'ChatGPT planında çalışan kısım plana dahil');
-    expect(tr.usagePlan, contains('planının'));
-    expect(tr.usageEstimate('d'), isNot(contains('nız')));
-    const blank = UsageSummary(UsageCount(calls: 2, unreported: 2), cost: null, plan: false);
-    expect(en.usageLines(blank), [
-      'Tokens: not available',
-      '2 model calls did not report usage',
-      'Estimated cost: not available',
-    ]);
-    expect(tr.usageLines(blank), [
-      'Token: bilgi yok',
-      '2 model çağrısı kullanım bildirmedi',
-      'Tahmini maliyet: bilgi yok',
-    ]);
-    expect(tr.usageLines(none), ['Henüz yok.']);
-    for (final s in [en, tr]) {
-      expect([s.usage, s.usageConversation, s.usagePlan, s.usageLocal], everyElement(isNotEmpty));
-      expect(s.usageEstimate('2026-10-17'), contains('2026-10-17'));
-    }
-  });
+  test(
+    'usage: tokens grouped, the cost an estimate, missing data said so (#217)',
+    () {
+      const none = UsageSummary(UsageCount(), cost: 0, plan: false);
+      expect(en.usageLines(none), ['Nothing yet.']);
+      const known = UsageSummary(
+        UsageCount(calls: 3, input: 1234567, output: 8900),
+        cost: 2.5,
+        plan: false,
+      );
+      expect(en.usageLines(known), [
+        '1,234,567 read · 8,900 written',
+        'Estimated cost: about \$2.50',
+      ]);
+      expect(tr.usageLines(known), [
+        '1.234.567 okundu · 8.900 yazıldı',
+        'Tahmini maliyet: yaklaşık \$2,50',
+      ]);
+      const small = UsageSummary(
+        UsageCount(calls: 1, input: 10, output: 1),
+        cost: 0.00042,
+        plan: false,
+      );
+      expect(en.usageLines(small).last, 'Estimated cost: about \$0.0004');
+      const gaps = UsageSummary(
+        UsageCount(calls: 3, unreported: 1, input: 5, output: 1),
+        cost: null,
+        plan: false,
+      );
+      expect(en.usageLines(gaps), [
+        '5 read · 1 written',
+        '1 model call did not report usage',
+        'Estimated cost: not available',
+      ]);
+      // On a plan or a local model nothing is charged per token: said so, never "$0.00" (#436).
+      const onPlan = UsageSummary(
+        UsageCount(calls: 2, input: 53117, output: 422),
+        cost: 0,
+        plan: true,
+        billed: false,
+      );
+      expect(en.usageLines(onPlan).last, 'Included in your ChatGPT plan');
+      expect(tr.usageLines(onPlan).last, 'ChatGPT planına dahil');
+      const local = UsageSummary(
+        UsageCount(calls: 1),
+        cost: 0,
+        plan: false,
+        billed: false,
+      );
+      expect(en.usageLines(local).last, 'No per-token charge: a local model');
+      expect(tr.usageLines(local).last, 'Token başına ücret yok: yerel model');
+      const mixed = UsageSummary(UsageCount(calls: 2), cost: 0.5, plan: true);
+      expect(en.usageLines(mixed).sublist(1), [
+        'Estimated cost: about \$0.50',
+        'What ran on the ChatGPT plan is included in it',
+      ]);
+      expect(
+        tr.usageLines(mixed).last,
+        'ChatGPT planında çalışan kısım plana dahil',
+      );
+      expect(tr.usagePlan, contains('planının'));
+      expect(tr.usageEstimate('d'), isNot(contains('nız')));
+      const blank = UsageSummary(
+        UsageCount(calls: 2, unreported: 2),
+        cost: null,
+        plan: false,
+      );
+      expect(en.usageLines(blank), [
+        'Tokens: not available',
+        '2 model calls did not report usage',
+        'Estimated cost: not available',
+      ]);
+      expect(tr.usageLines(blank), [
+        'Token: bilgi yok',
+        '2 model çağrısı kullanım bildirmedi',
+        'Tahmini maliyet: bilgi yok',
+      ]);
+      expect(tr.usageLines(none), ['Henüz yok.']);
+      for (final s in [en, tr]) {
+        expect([
+          s.usage,
+          s.usageConversation,
+          s.usagePlan,
+          s.usageLocal,
+        ], everyElement(isNotEmpty));
+        expect(s.usageEstimate('2026-10-17'), contains('2026-10-17'));
+      }
+    },
+  );
 
   test('a 429 with no quota at all says so; a busy one says wait (#400)', () {
     for (final s in [en, tr]) {
@@ -711,32 +815,51 @@ void main() {
         'generate_content_free_tier_requests, limit: 0, model: gemini-3.1-flash-lite',
       );
       expect(s.chatError(noQuota), s.errorNoQuota);
-      expect(s.chatError(const HttpError(429, 'limit: 10, retry in 30s')), s.errorBusy);
+      expect(
+        s.chatError(const HttpError(429, 'limit: 10, retry in 30s')),
+        s.errorBusy,
+      );
     }
     expect(en.errorNoQuota, contains('another model'));
   });
 
-  test('the busiest day says 1st, 2nd, 3rd, 11th to 13th and 21st right (#521)', () {
-    final en = EnglishStrings();
-    final days = {
-      1: '1st',
-      2: '2nd',
-      3: '3rd',
-      4: '4th',
-      11: '11th',
-      12: '12th',
-      13: '13th',
-      21: '21st',
-      22: '22nd',
-      23: '23rd',
-      30: '30th',
-      31: '31st',
-    };
-    for (final MapEntry(key: day, value: said) in days.entries) {
-      expect(en.busiestDay('5', day), 'Busiest day: the $said, 5', reason: '$day');
-    }
-    expect(TurkishStrings().busiestDay('5', 21), 'En yoğun gün: 21, 5'); // no suffix in Turkish
-    expect(TurkishStrings().deviceUpdateAsk(2497281120), contains('(2,5 GB)'));
-    expect(EnglishStrings().deviceUpdateAsk(2497281120), contains('(2.5 GB)'));
-  });
+  test(
+    'the busiest day says 1st, 2nd, 3rd, 11th to 13th and 21st right (#521)',
+    () {
+      final en = EnglishStrings();
+      final days = {
+        1: '1st',
+        2: '2nd',
+        3: '3rd',
+        4: '4th',
+        11: '11th',
+        12: '12th',
+        13: '13th',
+        21: '21st',
+        22: '22nd',
+        23: '23rd',
+        30: '30th',
+        31: '31st',
+      };
+      for (final MapEntry(key: day, value: said) in days.entries) {
+        expect(
+          en.busiestDay('5', day),
+          'Busiest day: the $said, 5',
+          reason: '$day',
+        );
+      }
+      expect(
+        TurkishStrings().busiestDay('5', 21),
+        'En yoğun gün: 21, 5',
+      ); // no suffix in Turkish
+      expect(
+        TurkishStrings().deviceUpdateAsk(2497281120),
+        contains('(2,5 GB)'),
+      );
+      expect(
+        EnglishStrings().deviceUpdateAsk(2497281120),
+        contains('(2.5 GB)'),
+      );
+    },
+  );
 }

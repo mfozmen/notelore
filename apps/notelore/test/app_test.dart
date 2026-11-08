@@ -1267,6 +1267,43 @@ void main() {
     expect(find.byTooltip('This was wrong'), findsOneWidget);
     expect(kept(), hasLength(1));
   });
+  testWidgets('chat: an answer can be liked, replaced and taken back (#833)', (tester) async {
+    phone(tester);
+    final harness = Harness(answers: ['Tamam.']);
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'selam');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    final feedback = Directory(p.join(harness.paths.notes.path, '.notelore', 'feedback'));
+    List<File> kept() =>
+        feedback.existsSync() ? feedback.listSync().whereType<File>().toList() : [];
+
+    // A thumb up keeps it as a good example, with no dialog.
+    await tester.tap(find.byTooltip('Good answer'));
+    await tester.pumpAndSettle();
+    expect(kept().single.readAsStringSync(), contains('- Verdict: good'));
+    expect(find.byTooltip('Take back the good rating'), findsOneWidget);
+
+    // The other thumb replaces it, the dialog asking what was wrong.
+    await tester.tap(find.byTooltip('This was wrong'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Keep'));
+    await tester.pumpAndSettle();
+    expect(kept(), hasLength(1));
+    expect(kept().single.readAsStringSync(), contains('- Verdict: bad'));
+
+    // Back to good: the bad file is taken back, not added to.
+    await tester.tap(find.byTooltip('Good answer'));
+    await tester.pumpAndSettle();
+    expect(kept(), hasLength(1));
+    expect(kept().single.readAsStringSync(), contains('- Verdict: good'));
+    await tester.tap(find.byTooltip('Take back the good rating'));
+    await tester.pumpAndSettle();
+    expect(kept(), isEmpty);
+    expect(session.reportedVerdict, isNull);
+  });
 
   testWidgets('chat: copy a message or an answer, with a short confirmation (#225)', (
     tester,

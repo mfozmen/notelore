@@ -20,6 +20,7 @@ String saveFeedback(
   List<Map<String, Object?>> messages, {
   required String model,
   String expected = '',
+  String verdict = 'bad',
   required DateTime now,
 }) {
   final start = messages.lastIndexWhere(_typed);
@@ -35,9 +36,28 @@ String saveFeedback(
   final turn = const JsonEncoder.withIndent('  ').convert(_withoutImages(messages.sublist(start)));
   atomicWrite(
     path,
-    '# Feedback, $stem\n\n- Model: $model\n- Expected: $said\n\n```json\n$turn\n```\n',
+    '# Feedback, $stem\n\n- Model: $model\n- Expected: $said\n'
+    '- Verdict: $verdict\n\n```json\n$turn\n```\n',
   );
   return rel;
+}
+
+/// The good and bad reports under [root]'s feedback folder, by the model that
+/// answered; a file without a verdict counts as bad, like the old ones (#833).
+Map<String, ({int good, int bad})> feedbackCounts(String root) {
+  final dir = Directory(p.joinAll([root, ...feedbackFolder.split('/')]));
+  if (!dir.existsSync()) return const {};
+  final counts = <String, ({int good, int bad})>{};
+  for (final file in dir.listSync().whereType<File>()) {
+    if (!file.path.endsWith('.md')) continue;
+    final text = file.readAsStringSync();
+    final model = RegExp(r'^- Model: (.*)$', multiLine: true).firstMatch(text)?.group(1)?.trim();
+    if (model == null || model.isEmpty) continue;
+    final good = RegExp(r'^- Verdict: good$', multiLine: true).hasMatch(text);
+    final old = counts[model] ?? (good: 0, bad: 0);
+    counts[model] = good ? (good: old.good + 1, bad: old.bad) : (good: old.good, bad: old.bad + 1);
+  }
+  return counts;
 }
 
 const _reminderMark = '(Notelore)';

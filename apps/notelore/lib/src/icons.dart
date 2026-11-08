@@ -100,6 +100,8 @@ abstract final class AppIcons {
   static const textSmaller = IconData(0xe32a, fontFamily: _regular);
   static const thumbDown = IconData(0xe48c, fontFamily: _regular);
   static const thumbDownOn = IconData(0xe48c, fontFamily: _fill);
+  static const thumbUp = IconData(0xe48e, fontFamily: _regular);
+  static const thumbUpOn = IconData(0xe48e, fontFamily: _fill);
   static const translate = IconData(0xe4a2, fontFamily: _regular);
   static const unchecked = IconData(0xe18a, fontFamily: _regular);
   static const update = IconData(0xe028, fontFamily: _regular);

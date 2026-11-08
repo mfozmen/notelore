@@ -626,6 +626,7 @@ class _Lines extends StatelessWidget {
         today: today,
       );
     }
+    final rate = index == 0 && lines[0].role == ChatRole.assistant && session.canReport;
     return _Bubble(
       lines[index],
       s,
@@ -637,25 +638,33 @@ class _Lines extends StatelessWidget {
       resend: index == resendable ? session.resend : null,
       retry: session.retryNow,
       answer: index == 0 && session.ready ? (a) => _answer(context, lines.length, a) : null,
-      report: index == 0 && lines[0].role == ChatRole.assistant && session.canReport
-          ? switch (session.reported) {
-              final rel? => () => session.takeBackFeedback(rel),
-              null => () => _report(context),
-            }
-          : null,
-      reported: session.reported != null,
+      reportGood: rate ? () => _rate(context, good: true) : null,
+      reportBad: rate ? () => _rate(context, good: false) : null,
+      verdict: session.reportedVerdict,
     );
   }
 
-  /// Keeps the newest turn for the model's training (#753), with what the user
-  /// expected; an Undo takes it back.
-  Future<void> _report(BuildContext context) async {
+  /// Rates the newest answer good or wrong (#753, #833), or takes that rating
+  /// back when it is the one already given; an Undo replaces it.
+  Future<void> _rate(BuildContext context, {required bool good}) async {
     final s = session.strings;
     final messenger = ScaffoldMessenger.of(context);
-    final expected = await showDialog<String>(context: context, builder: (_) => _WrongDialog(s));
-    // A model switch while the dialog was open may have dropped the turn.
-    if (expected == null || !session.canReport) return;
-    final rel = await session.reportWrong(expected);
+    final wanted = good ? 'good' : 'bad';
+    final current = session.reported;
+    if (session.reportedVerdict == wanted && current != null) {
+      await session.takeBackFeedback(current);
+      return;
+    }
+    final String rel;
+    if (good) {
+      if (!session.canReport) return;
+      rel = await session.reportGood();
+    } else {
+      final expected = await showDialog<String>(context: context, builder: (_) => _WrongDialog(s));
+      // A model switch while the dialog was open may have dropped the turn.
+      if (expected == null || !session.canReport) return;
+      rel = await session.reportWrong(expected);
+    }
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -1478,8 +1487,9 @@ class _Bubble extends StatelessWidget {
     this.resend,
     this.answer,
     this.retry,
-    this.report,
-    this.reported = false,
+    this.reportGood,
+    this.reportBad,
+    this.verdict,
   });
 
   /// Opens the note one of the answer's cards names.
@@ -1488,9 +1498,11 @@ class _Bubble extends StatelessWidget {
   /// For the year a card's date leaves out.
   final DateTime today;
 
-  /// For the newest answer: tell that it was wrong (#753), or take that back.
-  final VoidCallback? report;
-  final bool reported;
+  /// For the newest answer: rate it good or wrong (#753, #833), or take the
+  /// rating back.
+  final VoidCallback? reportGood;
+  final VoidCallback? reportBad;
+  final String? verdict;
 
   final ChatLine line;
   final Strings strings;
@@ -1628,8 +1640,9 @@ class _Bubble extends StatelessWidget {
       ),
   ];
 
-  /// Copy, and for the newest lines Resend and This was wrong (filled once reported).
-  Widget _actions(VoidCallback copy, Color reportedColor, Color muted) {
+  /// Copy, and for the newest lines Resend and the two ratings (filled while
+  /// that rating stands).
+  Widget _actions(VoidCallback copy, Color verdictColor, Color muted) {
     Widget button(String tooltip, IconData icon, VoidCallback onPressed, [Color? color]) =>
         IconButton(
           tooltip: tooltip,
@@ -1641,10 +1654,14 @@ class _Bubble extends StatelessWidget {
       children: [
         button(strings.copy, AppIcons.copy, copy),
         if (resend case final resend?) button(strings.resend, AppIcons.replay, resend),
-        if (report case final report?)
-          reported
-              ? button(strings.wrongAnswerTakeBack, AppIcons.thumbDownOn, report, reportedColor)
-              : button(strings.wrongAnswer, AppIcons.thumbDown, report),
+        if (reportGood case final good?)
+          verdict == 'good'
+              ? button(strings.goodAnswerTakeBack, AppIcons.thumbUpOn, good, verdictColor)
+              : button(strings.goodAnswer, AppIcons.thumbUp, good),
+        if (reportBad case final bad?)
+          verdict == 'bad'
+              ? button(strings.wrongAnswerTakeBack, AppIcons.thumbDownOn, bad, verdictColor)
+              : button(strings.wrongAnswer, AppIcons.thumbDown, bad),
       ],
     );
   }

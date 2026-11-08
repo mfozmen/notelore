@@ -32,6 +32,7 @@ import 'providers/deepseek.dart';
 import 'providers/http.dart';
 import 'providers/ollama.dart';
 import 'providers/providers.dart';
+import 'store/feedback.dart' show feedbackCounts;
 import 'store/index.dart';
 import 'tools.dart';
 
@@ -42,6 +43,7 @@ const _usage =
     ' | distill [--provider=<name>] [--model=<id>] [--cases=<file>] [--out=<file>] [--slim]'
     ' [--samples=<k>] [--keep-failed=<file>]'
     ' | reprompt --in=<file> --out=<file> [--slim]'
+    ' | feedback (good and bad reports by model, from <notes>/.notelore/feedback)'
     ' (--slim: the prompt and tools of the model on the device;'
     ' --greedy: temperature 0, on ollama or opencode; --runs: the set n times, eval only;'
     ' --first-write: each turn only to its first write, scored with what it wanted;'
@@ -55,7 +57,10 @@ const _usage =
 String traceName(DateTime time) {
   final utc = time.toUtc();
   final second = utc.toIso8601String().substring(0, 19).replaceAll(':', '-');
-  final micros = (utc.millisecond * 1000 + utc.microsecond).toString().padLeft(6, '0');
+  final micros = (utc.millisecond * 1000 + utc.microsecond).toString().padLeft(
+    6,
+    '0',
+  );
   return '$second.${micros}Z.log';
 }
 
@@ -72,7 +77,10 @@ bool _valid(String? command, String message, _Plan plan) {
         'chat' => message.isNotEmpty && !evalOnly && !distillOnly,
         'eval' => !distillOnly,
         'distill' => !evalOnly,
-        'signin' || 'models' || 'reprompt' => !evalOnly && !distillOnly,
+        'signin' ||
+        'models' ||
+        'reprompt' ||
+        'feedback' => !evalOnly && !distillOnly,
         _ => false,
       };
 }
@@ -88,7 +96,9 @@ Future<int> runDev(
   DateTime Function() now = DateTime.now,
 }) async {
   if ((environment['NOTELORE_HOME'] ?? '').isEmpty) {
-    out.writeln('Set NOTELORE_HOME (e.g. .dev-home): notelore_dev never touches the real notes.');
+    out.writeln(
+      'Set NOTELORE_HOME (e.g. .dev-home): notelore_dev never touches the real notes.',
+    );
     return 64;
   }
   final options = {
@@ -139,18 +149,39 @@ Future<int> runDev(
         await auth.signIn();
         out.writeln('Signed in with ChatGPT.');
       case 'models':
-        out.writeln((await listChatGptModels(auth.token, client: traced)).join('\n'));
+        out.writeln(
+          (await listChatGptModels(auth.token, client: traced)).join('\n'),
+        );
+      case 'feedback':
+        final counts = feedbackCounts(paths.notes.path);
+        if (counts.isEmpty) {
+          out.writeln('No feedback yet.');
+        } else {
+          for (final MapEntry(key: model, value: (:good, :bad))
+              in counts.entries) {
+            out.writeln('$model: $good good, $bad bad');
+          }
+        }
       case 'reprompt':
         _reprompt(
           File(p.join(currentDirectory.path, options['in'] ?? 'train.jsonl')),
-          File(p.join(currentDirectory.path, options['out'] ?? 'train-reprompted.jsonl')),
+          File(
+            p.join(
+              currentDirectory.path,
+              options['out'] ?? 'train-reprompted.jsonl',
+            ),
+          ),
           out,
           slim: slim,
         );
       case 'eval' || 'distill':
-        final cases = File(p.join(currentDirectory.path, options['cases'] ?? 'eval/cases.json'));
+        final cases = File(
+          p.join(currentDirectory.path, options['cases'] ?? 'eval/cases.json'),
+        );
         final keep = command == 'distill'
-            ? File(p.join(currentDirectory.path, options['out'] ?? 'train.jsonl'))
+            ? File(
+                p.join(currentDirectory.path, options['out'] ?? 'train.jsonl'),
+              )
             : null;
         await _eval(
           cases,
@@ -205,7 +236,10 @@ Future<void> _chat(
   StringSink out,
 ) async {
   final provider = await _provider(options, environment, auth, traced, out);
-  final index = NoteIndex(p.join(paths.state.path, 'index.sqlite'), paths.notes.path);
+  final index = NoteIndex(
+    p.join(paths.state.path, 'index.sqlite'),
+    paths.notes.path,
+  );
   try {
     final agent = Agent(
       provider,
@@ -253,14 +287,17 @@ Future<void> _eval(
   for (var run = 0; run < plan.runs; run++) {
     everyRun.add(
       await _runOnce(runnable, provider, plan, out, (result) {
-        if (keep != null) outcomes.add(_keepTurn(result, keep, done!, seen, failed));
+        if (keep != null)
+          outcomes.add(_keepTurn(result, keep, done!, seen, failed));
       }),
     );
   }
   out.writeln(summarizeRuns(everyRun));
-  if (plan.firstWrite) out.writeln(confusion(everyRun.expand((run) => run).toList()));
+  if (plan.firstWrite)
+    out.writeln(confusion(everyRun.expand((run) => run).toList()));
   if (keep == null) return;
-  if (finished.isNotEmpty) out.writeln('skipped ${finished.length} already done in ${done!.path}');
+  if (finished.isNotEmpty)
+    out.writeln('skipped ${finished.length} already done in ${done!.path}');
   _reportKept(outcomes, everyRun.single, keep, out);
 }
 
@@ -320,9 +357,16 @@ Future<List<EvalResult>> _runOnce(
     results.addAll(
       await Future.wait([
         for (final evalCase in batch)
-          runCase(evalCase, provider, slim: plan.slim, firstWrite: plan.firstWrite).then((r) {
+          runCase(
+            evalCase,
+            provider,
+            slim: plan.slim,
+            firstWrite: plan.firstWrite,
+          ).then((r) {
             final verdict = r.passed ? 'ok  ' : 'FAIL';
-            out.writeln('$verdict ${evalCase.id} (${r.took.inMilliseconds} ms) ${r.tools}');
+            out.writeln(
+              '$verdict ${evalCase.id} (${r.took.inMilliseconds} ms) ${r.tools}',
+            );
             ended(r);
             return r;
           }),
@@ -340,10 +384,15 @@ void _reportKept(
   File keep,
   StringSink out,
 ) {
-  final kept = outcomes.where((issues) => issues != null && issues.isEmpty).length;
+  final kept = outcomes
+      .where((issues) => issues != null && issues.isEmpty)
+      .length;
   out.writeln('kept $kept of ${results.length} in ${keep.path}');
-  final excluded = outcomes.whereType<Set<TrainingIssue>>().where((issues) => issues.isNotEmpty);
-  int count(TrainingIssue issue) => excluded.where((found) => found.contains(issue)).length;
+  final excluded = outcomes.whereType<Set<TrainingIssue>>().where(
+    (issues) => issues.isNotEmpty,
+  );
+  int count(TrainingIssue issue) =>
+      excluded.where((found) => found.contains(issue)).length;
   out.writeln(
     'excluded ${excluded.length} passing turns '
     '(tool errors: ${count(TrainingIssue.toolError)}; '
@@ -360,7 +409,9 @@ List<EvalCase> _runnable(List<EvalCase> all, bool search, StringSink out) {
   final runnable = all.where((c) => c.runsWith(search: search)).toList();
   final left = all.length - runnable.length;
   if (left > 0) {
-    out.writeln('left out $left ${left == 1 ? 'case that needs' : 'cases that need'} web search');
+    out.writeln(
+      'left out $left ${left == 1 ? 'case that needs' : 'cases that need'} web search',
+    );
   }
   return runnable;
 }
@@ -374,7 +425,10 @@ Set<String> _resume(File keep, File done) {
   final lines = keep.existsSync() ? keep.readAsLinesSync() : const <String>[];
   final kept = records.where((record) => record.endsWith('\tkept')).length;
   if (records.isEmpty || lines.length > kept) {
-    keep.writeAsStringSync(lines.take(kept).map((line) => '$line\n').join(), flush: true);
+    keep.writeAsStringSync(
+      lines.take(kept).map((line) => '$line\n').join(),
+      flush: true,
+    );
   }
   return {for (final record in records) record.split('\t').first};
 }
@@ -384,7 +438,9 @@ Set<String> _resume(File keep, File done) {
 void _resumeFailed(File failed, Set<String> finished) {
   if (!failed.existsSync()) return;
   final lines = failed.readAsLinesSync().where(
-    (line) => line.trim().isNotEmpty && finished.contains((jsonDecode(line) as Map)['id']),
+    (line) =>
+        line.trim().isNotEmpty &&
+        finished.contains((jsonDecode(line) as Map)['id']),
   );
   failed.writeAsStringSync(lines.map((line) => '$line\n').join(), flush: true);
 }
@@ -410,15 +466,25 @@ Set<TrainingIssue>? _keepTurn(
     );
   }
   var issues = result.passed ? trainingIssues(result.messages) : null;
-  if (issues != null && issues.isEmpty && !seen.add(jsonEncode(example['messages']))) {
+  if (issues != null &&
+      issues.isEmpty &&
+      !seen.add(jsonEncode(example['messages']))) {
     issues = {TrainingIssue.sameAsKept};
   }
   final keeps = issues != null && issues.isEmpty;
   if (keeps) {
-    keep.writeAsStringSync('${jsonEncode(example)}\n', mode: FileMode.append, flush: true);
+    keep.writeAsStringSync(
+      '${jsonEncode(example)}\n',
+      mode: FileMode.append,
+      flush: true,
+    );
   }
   final mark = keeps ? '\tkept' : '';
-  done.writeAsStringSync('${result.evalCase.id}$mark\n', mode: FileMode.append, flush: true);
+  done.writeAsStringSync(
+    '${result.evalCase.id}$mark\n',
+    mode: FileMode.append,
+    flush: true,
+  );
   return issues;
 }
 
@@ -450,12 +516,25 @@ Future<LlmProvider> _provider(
     Map<String, String> headers = const {},
     Object? body,
     required Duration timeout,
-  }) => request(traced, method, url, headers: headers, body: body, timeout: timeout);
+  }) => request(
+    traced,
+    method,
+    url,
+    headers: headers,
+    body: body,
+    timeout: timeout,
+  );
   if (temperature != null) {
     if (spec.access != ProviderAccess.localMark) {
-      throw StateError('--greedy works with --provider=ollama or opencode only');
+      throw StateError(
+        '--greedy works with --provider=ollama or opencode only',
+      );
     }
-    return OllamaProvider(model, transport: transport, temperature: temperature);
+    return OllamaProvider(
+      model,
+      transport: transport,
+      temperature: temperature,
+    );
   }
   return createProvider(
     spec,
@@ -469,7 +548,10 @@ Future<LlmProvider> _provider(
 
 /// API keys from [environment], or else from the dev secrets file's
 /// `NOTELORE_*` entries.
-Map<String, String> _keys(Map<String, Object?> secrets, Map<String, String> environment) => {
+Map<String, String> _keys(
+  Map<String, Object?> secrets,
+  Map<String, String> environment,
+) => {
   for (final MapEntry(:key, :value) in secrets.entries)
     if (key.startsWith('NOTELORE_') && value is String) key: value,
   ...environment,
@@ -479,7 +561,8 @@ Map<String, String> _keys(Map<String, Object?> secrets, Map<String, String> envi
 /// only; the app never offers it.
 const _openCode = 'opencode';
 
-bool _searches(String provider) => provider != _openCode && findProvider(provider).webSearch;
+bool _searches(String provider) =>
+    provider != _openCode && findProvider(provider).webSearch;
 
 LlmProvider _openCodeProvider(
   Map<String, String> options,
@@ -500,12 +583,20 @@ LlmProvider _openCodeProvider(
     // Its edge refuses unknown clients and routes by session: one per run.
     headers: {
       'User-Agent': 'notelore-dev',
-      'x-opencode-session': 'notelore-dev-${DateTime.now().microsecondsSinceEpoch}',
+      'x-opencode-session':
+          'notelore-dev-${DateTime.now().microsecondsSinceEpoch}',
     },
     disableThinking: false,
     temperature: temperature,
     transport: (method, url, {headers = const {}, body, required timeout}) =>
-        request(traced, method, url, headers: headers, body: body, timeout: timeout),
+        request(
+          traced,
+          method,
+          url,
+          headers: headers,
+          body: body,
+          timeout: timeout,
+        ),
   );
 }
 
@@ -518,19 +609,28 @@ void _printTools(List<Map<String, Object?>> messages, StringSink out) {
             out.writeln('→ ${block['name']} ${jsonEncode(block['input'])}');
           case 'tool_result':
             final text = '${block['content']}';
-            out.writeln('← ${text.length > 300 ? '${text.substring(0, 300)}…' : text}');
+            out.writeln(
+              '← ${text.length > 300 ? '${text.substring(0, 300)}…' : text}',
+            );
         }
       }
     }
   }
 }
 
-const _secretHeaders = {'authorization', 'x-api-key', 'x-goog-api-key', 'cookie'};
+const _secretHeaders = {
+  'authorization',
+  'x-api-key',
+  'x-goog-api-key',
+  'cookie',
+};
 
 final _jsonSecret = RegExp(
   r'"(access_token|refresh_token|id_token|code_verifier|client_secret)"\s*:\s*"[^"]*"',
 );
-final _formSecret = RegExp(r'(^|&)(code|code_verifier|refresh_token|client_secret)=[^&]*');
+final _formSecret = RegExp(
+  r'(^|&)(code|code_verifier|refresh_token|client_secret)=[^&]*',
+);
 
 /// [text] with token values replaced by `***`, in JSON and in form bodies.
 String redact(String text) => text
@@ -551,7 +651,9 @@ class TracingClient extends http.BaseClient {
         '$key: ${_secretHeaders.contains(key.toLowerCase()) ? '***' : value}',
     ];
     final body = request is http.Request ? request.body : '';
-    _log('> ${request.method} ${request.url}\n${headers.join('\n')}\n${redact(body)}');
+    _log(
+      '> ${request.method} ${request.url}\n${headers.join('\n')}\n${redact(body)}',
+    );
     final response = await _inner.send(request);
     final bytes = <int>[];
     var logged = false;

@@ -800,4 +800,14 @@ void main() {
     expect(lines.last, isNot(contains('secret-id')));
     traced.close();
   });
+  test('feedback prints the good and bad counts by model (#833)', () async {
+    expect(await run(['feedback']), 0);
+    expect('$out', contains('No feedback yet.'));
+    final feedback = Directory(home('notes/.notelore/feedback'))..createSync(recursive: true);
+    File(p.join(feedback.path, 'a.md')).writeAsStringSync('- Model: ollama v8\n- Verdict: good\n');
+    File(p.join(feedback.path, 'b.md')).writeAsStringSync('- Model: ollama v8\n');
+    out.clear();
+    expect(await run(['feedback']), 0);
+    expect('$out', contains('ollama v8: 1 good, 1 bad'));
+  });
 }
