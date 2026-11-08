@@ -20,6 +20,7 @@ String saveFeedback(
   List<Map<String, Object?>> messages, {
   required String model,
   String expected = '',
+  String? space,
   String verdict = 'bad',
   required DateTime now,
 }) {
@@ -37,7 +38,9 @@ String saveFeedback(
   atomicWrite(
     path,
     '# Feedback, $stem\n\n- Model: $model\n- Expected: $said\n'
-    '- Verdict: $verdict\n\n```json\n$turn\n```\n',
+    '- Verdict: $verdict\n'
+    '${space == null ? '' : '- Space: $space\n'}'
+    '\n```json\n$turn\n```\n',
   );
   return rel;
 }

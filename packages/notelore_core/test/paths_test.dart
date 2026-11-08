@@ -35,4 +35,14 @@ void main() {
     expect(resolve({}).state, same(state));
     expect(resolve({'NOTELORE_HOME': ''}).notes, same(notes));
   });
+  test('the test space sits under test/, beside the real notes (#832)', () {
+    final real = NotelorePaths(
+      notes: Directory(p.join(base, 'support', 'notes')),
+      state: Directory(p.join(base, 'support')),
+    );
+    final testSpace = NotelorePaths.test(real);
+    expect(testSpace.notes.path, p.join(base, 'support', 'test', 'notes'));
+    expect(testSpace.state.path, p.join(base, 'support', 'test'));
+    expect(real.spaceMarker.path, p.join(base, 'support', 'space'));
+  });
 }

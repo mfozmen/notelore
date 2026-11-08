@@ -28,6 +28,20 @@ class NotelorePaths {
     );
   }
 
+  /// The same installation's test space (#832): its own notes and state under
+  /// `test/`, beside the real ones, so the real notes are never touched.
+  factory NotelorePaths.test(NotelorePaths real) {
+    final root = real.notes.parent.path;
+    return NotelorePaths(
+      notes: Directory(p.join(root, 'test', 'notes')),
+      state: Directory(p.join(root, 'test')),
+    );
+  }
+
+  /// The switch between the real notes and the test space; `test` means the
+  /// test space is open.
+  File get spaceMarker => File(p.join(notes.parent.path, 'space'));
+
   /// Root of the Markdown notes tree (projects/, topics/, _archive/, .notelore/).
   final Directory notes;
 

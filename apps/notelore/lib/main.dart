@@ -26,6 +26,7 @@ void main() {
   runApp(
     NoteloreApp(
       open: openSession,
+      setTestSpace: setTestSpace,
       updater: updaterFor(
         system: Platform.operatingSystem,
         version: appVersion,
@@ -33,6 +34,33 @@ void main() {
       ),
     ),
   );
+}
+
+/// The real notes and state, before any test space (#832).
+NotelorePaths _realPaths(Map<String, String> env, Directory support) => NotelorePaths.resolve(
+  environment: env,
+  currentDirectory: Directory.current,
+  defaultNotes: Directory(p.join(support.path, 'notes')),
+  defaultState: support,
+);
+
+/// Whether the last switch chose the test space (#832).
+bool _inTestSpace(NotelorePaths real) {
+  final marker = real.spaceMarker;
+  return marker.existsSync() && marker.readAsStringSync().trim() == 'test';
+}
+
+/// Switches the app between the real notes and the test space (#832); the
+/// caller reopens its session afterwards.
+Future<void> setTestSpace(bool test, {Map<String, String>? environment}) async {
+  final support = await getApplicationSupportDirectory();
+  final marker = _realPaths(environment ?? Platform.environment, support).spaceMarker;
+  marker.parent.createSync(recursive: true);
+  if (test) {
+    marker.writeAsStringSync('test');
+  } else if (marker.existsSync()) {
+    marker.deleteSync();
+  }
 }
 
 /// The session on this device's folders: the notes and the derived state both
@@ -48,13 +76,10 @@ Future<Session> openSession({
   final env = environment ?? Platform.environment;
   final phone = mobile ?? (Platform.isAndroid || Platform.isIOS);
   final support = await getApplicationSupportDirectory();
-  final paths = NotelorePaths.resolve(
-    environment: env,
-    currentDirectory: Directory.current,
-    defaultNotes: Directory(p.join(support.path, 'notes')),
-    defaultState: support,
-  );
-  if ((env['NOTELORE_HOME'] ?? '').isEmpty) {
+  final real = _realPaths(env, support);
+  final test = _inTestSpace(real);
+  final paths = test ? NotelorePaths.test(real) : real;
+  if (!test && (env['NOTELORE_HOME'] ?? '').isEmpty) {
     final home = phone
         ? (await getApplicationDocumentsDirectory()).path
         : env['USERPROFILE'] ?? env['HOME'] ?? Directory.current.path;
@@ -81,6 +106,8 @@ Future<Session> openSession({
     timing: keySpace == 'notelore-dev' ? debugPrint : null, // #232: development runs only
     reminders: reminders(), // the notes' reminders as this device's notifications (#431)
     calendarAuth: calendarAuthFor(mobile: phone, keys: keys, keySpace: keySpace), // #432
+    testSpace: test,
+    realNotes: test ? real.notes : null,
   );
   await session.load();
   if (phone && Platform.isAndroid) listenForShares(session); // "Share → Notelore" (#211)

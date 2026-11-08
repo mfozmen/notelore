@@ -263,6 +263,7 @@ CROSS = [
 ]
 
 CONTRAST = []
+ON_NOTE = []
 
 CHAT = [
     ("en", "thanks a ton!"), ("en", "perfect, thank you"), ("en", "cool, that's all"), ("en", "nice one"),

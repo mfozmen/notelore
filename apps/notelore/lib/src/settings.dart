@@ -155,6 +155,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ? () => setState(() => _usage = true)
               : null,
         ),
+        _TestSpaceCard(session),
       ],
       SettingsSection.about: [
         _AboutCard(
@@ -674,6 +675,53 @@ class _QuickShortcutCard extends StatelessWidget {
         ),
         value: session.quickShortcut,
         onChanged: (on) => session.setQuickShortcut(on: on),
+      ),
+    );
+  }
+}
+
+/// The switch between the real notes and the test space (#832), and clearing
+/// the test space: its notes move to its own archive, nothing is deleted.
+class _TestSpaceCard extends StatelessWidget {
+  const _TestSpaceCard(this.session);
+
+  final Session session;
+
+  Future<void> _clear(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    await session.clearTestSpace();
+    messenger.showSnackBar(SnackBar(content: Text(session.strings.testSpaceCleared)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = session.strings;
+    final switchSpace = session.switchSpace;
+    return Card(
+      child: Column(
+        children: [
+          SwitchListTile(
+            key: const Key('test-space'),
+            secondary: const Icon(Icons.science_outlined),
+            title: Text(s.testSpace),
+            subtitle: Text(s.testSpaceWhy),
+            value: session.testSpace,
+            onChanged: switchSpace == null ? null : (on) => switchSpace(on),
+          ),
+          if (session.testSpace)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.s),
+                child: TextButton.icon(
+                  key: const Key('clear-test-space'),
+                  icon: const Icon(Icons.delete_sweep_outlined),
+                  label: Text(s.testSpaceClear),
+                  onPressed: () => _clear(context),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

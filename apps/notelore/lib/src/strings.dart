@@ -637,6 +637,13 @@ abstract class Strings {
   String get quickShortcutTaken;
   String get syncedShort;
   String syncedAgo(Duration since);
+
+  // The test space (#832).
+  String get testSpace;
+  String get testSpaceWhy;
+  String get testSpaceOn;
+  String get testSpaceClear;
+  String get testSpaceCleared;
   // Drive's status in plain words, never a provider's raw message (#480).
   String get drivePermissionAgain;
   String get drivePermissionsAll;
@@ -1788,6 +1795,18 @@ class EnglishStrings extends Strings {
     if (since.inHours < 24) return 'Synced ${since.inHours} h ago';
     return 'Synced ${since.inDays} d ago';
   }
+
+  @override
+  String get testSpace => 'Test space';
+  @override
+  String get testSpaceWhy =>
+      'A separate place to try the assistant: its notes never mix with yours and never sync.';
+  @override
+  String get testSpaceOn => 'Test space: these notes stay apart from your real ones.';
+  @override
+  String get testSpaceClear => 'Clear the test space';
+  @override
+  String get testSpaceCleared => 'The test notes moved to its archive.';
 
   @override
   String get drivePermissionAgain => 'Sign in to Google again to keep syncing your notes.';
@@ -3020,6 +3039,17 @@ class TurkishStrings extends Strings {
     return '${since.inDays} gün önce eşitlendi';
   }
 
+  @override
+  String get testSpace => 'Deneme alanı';
+  @override
+  String get testSpaceWhy =>
+      'Asistanı denemek için ayrı bir yer: notları seninkilere karışmaz ve eşitlenmez.';
+  @override
+  String get testSpaceOn => 'Deneme alanı: bu notlar gerçek notlarından ayrı kalır.';
+  @override
+  String get testSpaceClear => 'Deneme alanını temizle';
+  @override
+  String get testSpaceCleared => 'Deneme notları kendi arşivine taşındı.';
   @override
   String get drivePermissionAgain =>
       "Notlarının eşitlenmeye devam etmesi için Google'a yeniden giriş yap.";

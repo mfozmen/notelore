@@ -124,6 +124,8 @@ class Session extends ChangeNotifier {
     this.reminders,
     this.calendarAuth,
     this.calendarFor = _googleCalendar,
+    this.testSpace = false,
+    this.realNotes,
   }) : clock = clock ?? DateTime.timestamp,
        deviceAuth = deviceAuth ?? LocalDeviceAuth(),
        // Time that only moves forward; a given clock stands in for it, unless told apart.
@@ -133,6 +135,16 @@ class Session extends ChangeNotifier {
 
   final NotelorePaths paths;
   final Validate validate;
+
+  /// This session runs on the test space (#832): no note sync, and feedback
+  /// goes to [realNotes].
+  final bool testSpace;
+
+  /// The real notes' root while [testSpace] is on, for feedback only.
+  final Directory? realNotes;
+
+  /// Switches spaces from Settings; the app reopens its session after it.
+  Future<void> Function(bool test)? switchSpace;
 
   /// Hears how long a turn waited in the queue and each model and tool call
   /// took (#232); development runs only, never note text.
@@ -551,7 +563,8 @@ class Session extends ChangeNotifier {
   bool get canReport => _agent?.messages.isNotEmpty ?? false;
 
   /// Keeps the newest turn as feedback for the model's training (#753), in the
-  /// notes folder so it syncs; its path relative to the notes.
+  /// notes folder so it syncs; its path relative to the notes. In the test
+  /// space it lands in the real folder, marked as a test (#832).
   Future<String> reportWrong(String expected) => _report(expected, 'bad');
 
   /// Keeps the newest turn as a good example (#833); no expectation to give.
@@ -561,17 +574,18 @@ class Session extends ChangeNotifier {
   Future<String> _report(String expected, String verdict) => _exclusive(() async {
     final old = reported;
     final rel = reported = saveFeedback(
-      paths.notes.path,
+      (realNotes ?? paths.notes).path,
       _agent!.messages,
       model: '${spec!.name} $model',
       expected: expected,
       verdict: verdict,
+      space: testSpace ? 'test' : null,
       now: clock(),
     );
     reportedVerdict = verdict;
     // Saved first: a failed write keeps the rating it would have replaced.
     if (old != null) {
-      final file = File(p.joinAll([paths.notes.path, ...old.split('/')]));
+      final file = File(p.joinAll([(realNotes ?? paths.notes).path, ...old.split('/')]));
       if (file.existsSync()) file.deleteSync();
     }
     notifyListeners();
@@ -587,7 +601,7 @@ class Session extends ChangeNotifier {
   /// Takes back a rating, good or wrong.
   Future<void> takeBackFeedback(String rel) => _exclusive(() async {
     // Both the snackbar's Undo and the filled button take it back; the second finds it gone.
-    final file = File(p.joinAll([paths.notes.path, ...rel.split('/')]));
+    final file = File(p.joinAll([(realNotes ?? paths.notes).path, ...rel.split('/')]));
     if (file.existsSync()) file.deleteSync();
     if (reported == rel) {
       reported = null;
@@ -1780,10 +1794,14 @@ class Session extends ChangeNotifier {
     unawaited(_refreshQuietly()); // its model list
   }
 
+  /// Drive is connected and this is the real notes, not the test space (#832).
+  bool get _syncsNotes => driveConnected && !testSpace;
+
   /// One sync; the notes in [restore] go back to Drive as new, those in
   /// [remove] follow Drive's removal however many there are.
   Future<void> syncNow({Set<String> restore = const {}, Set<String> remove = const {}}) async {
-    if (!driveConnected) return;
+    // The test space never reads or writes Drive for its notes (#832).
+    if (!_syncsNotes) return;
     _pendingSyncs++;
     notifyListeners();
     await _exclusive(() async {
@@ -1829,6 +1847,19 @@ class Session extends ChangeNotifier {
       }
     });
   }
+
+  /// Moves every test-space note to the test space's own _archive/ (#832);
+  /// nothing is deleted.
+  Future<void> clearTestSpace() => _exclusive(() async {
+    if (!testSpace) return;
+    index.rebuild();
+    final today = clock().toLocal();
+    for (final note in index.listNotes()) {
+      archiveNote(paths.notes.path, notePath(paths.notes.path, note.kind, note.slug), today: today);
+    }
+    index.invalidateAll();
+    notifyListeners();
+  });
 
   /// What a finished sync says: what moved, how the model settled conflicts,
   /// and once, that the notes moved into Drive's hidden storage (#454).
