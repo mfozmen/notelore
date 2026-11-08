@@ -52,9 +52,9 @@ bool _inTestSpace(NotelorePaths real) {
 
 /// Switches the app between the real notes and the test space (#832); the
 /// caller reopens its session afterwards.
-Future<void> setTestSpace(bool test) async {
+Future<void> setTestSpace(bool test, {Map<String, String>? environment}) async {
   final support = await getApplicationSupportDirectory();
-  final marker = _realPaths(Platform.environment, support).spaceMarker;
+  final marker = _realPaths(environment ?? Platform.environment, support).spaceMarker;
   marker.parent.createSync(recursive: true);
   if (test) {
     marker.writeAsStringSync('test');

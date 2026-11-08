@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/session.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -17,9 +18,21 @@ void main() {
     addTearDown(() => real.deleteSync(recursive: true));
     final harness = Harness(auth: FakeAuth()..granted = true, answers: ['Saved.']);
     final switched = <bool>[];
-    final session = await pumpApp(tester, harness, testSpace: true, realNotes: real);
+    Future<Session> reopen() async {
+      final next = harness.session(owned: false, testSpace: true, realNotes: real);
+      await next.load();
+      return next;
+    }
+
+    final session = await pumpApp(
+      tester,
+      harness,
+      testSpace: true,
+      realNotes: real,
+      setTestSpace: (test) async => switched.add(test),
+      reopen: reopen,
+    );
     await connect(tester, key: 'k');
-    session.switchSpace = (test) async => switched.add(test);
     expect(find.text(session.strings.testSpaceOn), findsOneWidget);
 
     // A note written here never reaches the real folder.
@@ -50,17 +63,19 @@ void main() {
       isFalse,
     );
 
-    // The switch leaves the space; clearing moves its notes to its own archive.
+    // Clearing moves its notes to its own archive.
     await openSettings(tester, 'Advanced');
-    await tester.ensureVisible(find.byKey(const Key('test-space')));
-    await tester.tap(find.byKey(const Key('test-space')));
-    await tester.pumpAndSettle();
-    expect(switched, [false]);
     await tester.ensureVisible(find.byKey(const Key('clear-test-space')));
     await tester.tap(find.byKey(const Key('clear-test-space')));
     await tester.pumpAndSettle();
     expect(session.listNotes().map((n) => n.slug), isNot(contains('deneme')));
     expect(Directory(p.join(harness.paths.notes.path, '_archive')).existsSync(), isTrue);
     expect(find.text(session.strings.testSpaceCleared), findsOneWidget);
+
+    // The switch leaves the space: the app writes the choice and reopens there.
+    await tester.ensureVisible(find.byKey(const Key('test-space')));
+    await tester.tap(find.byKey(const Key('test-space')));
+    await tester.pumpAndSettle();
+    expect(switched, [false]);
   });
 }

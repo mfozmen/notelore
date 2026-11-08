@@ -42,6 +42,7 @@ Future<Session> pumpApp(
   bool testSpace = false,
   Directory? realNotes,
   Future<void> Function(bool test)? setTestSpace,
+  Future<Session> Function()? reopen,
 }) async {
   final session = harness.session(
     owned: false,
@@ -49,10 +50,13 @@ Future<Session> pumpApp(
     testSpace: testSpace,
     realNotes: realNotes,
   );
+  var reopened = false;
   addTearDown(() => tester.pumpWidget(const SizedBox()));
   await tester.pumpWidget(
     NoteloreApp(
       open: () async {
+        if (reopen != null && reopened) return reopen();
+        reopened = true;
         await session.load();
         return session;
       },
