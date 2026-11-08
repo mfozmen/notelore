@@ -559,10 +559,7 @@ class Session extends ChangeNotifier {
 
   /// Saves the turn with [verdict], taking back the rating it replaces.
   Future<String> _report(String expected, String verdict) => _exclusive(() async {
-    if (reported case final old?) {
-      final file = File(p.joinAll([paths.notes.path, ...old.split('/')]));
-      if (file.existsSync()) file.deleteSync();
-    }
+    final old = reported;
     final rel = reported = saveFeedback(
       paths.notes.path,
       _agent!.messages,
@@ -572,6 +569,11 @@ class Session extends ChangeNotifier {
       now: clock(),
     );
     reportedVerdict = verdict;
+    // Saved first: a failed write keeps the rating it would have replaced.
+    if (old != null) {
+      final file = File(p.joinAll([paths.notes.path, ...old.split('/')]));
+      if (file.existsSync()) file.deleteSync();
+    }
     notifyListeners();
     return rel;
   });
@@ -582,7 +584,7 @@ class Session extends ChangeNotifier {
   /// good or ad for [reported]; null before a rating (#833).
   String? reportedVerdict;
 
-  /// Undoes [reportWrong].
+  /// Takes back a rating, good or wrong.
   Future<void> takeBackFeedback(String rel) => _exclusive(() async {
     // Both the snackbar's Undo and the filled button take it back; the second finds it gone.
     final file = File(p.joinAll([paths.notes.path, ...rel.split('/')]));

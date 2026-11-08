@@ -48,12 +48,14 @@ Map<String, ({int good, int bad})> feedbackCounts(String root) {
   final dir = Directory(p.joinAll([root, ...feedbackFolder.split('/')]));
   if (!dir.existsSync()) return const {};
   final counts = <String, ({int good, int bad})>{};
+  final modelLine = RegExp(r'^- Model: (.*)$', multiLine: true);
+  final goodLine = RegExp(r'^- Verdict: good$', multiLine: true);
   for (final file in dir.listSync().whereType<File>()) {
     if (!file.path.endsWith('.md')) continue;
     final text = file.readAsStringSync();
-    final model = RegExp(r'^- Model: (.*)$', multiLine: true).firstMatch(text)?.group(1)?.trim();
+    final model = modelLine.firstMatch(text)?.group(1)?.trim();
     if (model == null || model.isEmpty) continue;
-    final good = RegExp(r'^- Verdict: good$', multiLine: true).hasMatch(text);
+    final good = goodLine.hasMatch(text);
     final old = counts[model] ?? (good: 0, bad: 0);
     counts[model] = good ? (good: old.good + 1, bad: old.bad) : (good: old.good, bad: old.bad + 1);
   }
