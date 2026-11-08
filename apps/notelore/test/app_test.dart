@@ -391,6 +391,21 @@ void main() {
     expect(find.textContaining('ollama pull qwen3:4b'), findsWidgets);
     expect(find.textContaining('No model is installed in Ollama'), findsOneWidget);
   });
+  testWidgets('setup: Ollama starts on the newest fine-tune installed (#834)', (tester) async {
+    phone(tester);
+    final harness = Harness()
+      ..models = [
+        'llama3.2:3b',
+        'notelore-qwen3-4b-v7',
+        'notelore-qwen3-4b-v8',
+        'notelore-qwen3-4b-v10',
+      ];
+    final session = await pumpApp(tester, harness);
+    await choose(tester, 'Ollama (local)');
+    await tester.tap(find.text('Connect'));
+    await tester.pumpAndSettle();
+    expect(session.model, 'notelore-qwen3-4b-v10'); // by version, not by letters
+  });
 
   testWidgets('chat: on a phone, sending closes the keyboard; the box opens it again (#497)', (
     tester,
