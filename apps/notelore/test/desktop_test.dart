@@ -309,7 +309,11 @@ void main() {
   testWidgets('notes on a wide window: a todo checkbox writes the note (#512)', (tester) async {
     desktop(tester, 1600);
     final harness = Harness();
-    await pumpApp(tester, harness);
+    await pumpApp(
+      tester,
+      harness,
+      clock: () => today.add(const Duration(days: 1)),
+    ); // a Thursday: neither upcoming nor in a Sunday look back
     await connect(tester, key: 'k');
     final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
     addTodo(path, 'Return the book', today: today);
