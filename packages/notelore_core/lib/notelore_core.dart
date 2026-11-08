@@ -14,18 +14,10 @@ export 'src/agent.dart'
         Attachment,
         attachedFiles,
         withAttachments;
-export 'src/i18n.dart'
-    show aboutMeSections, sectionHeading, sectionHeadings, sectionKey;
-export 'src/links.dart'
-    show LinkUnreadable, Resolve, WebPage, linksIn, readPage, withLinkedPages;
+export 'src/i18n.dart' show aboutMeSections, sectionHeading, sectionHeadings, sectionKey;
+export 'src/links.dart' show LinkUnreadable, Resolve, WebPage, linksIn, readPage, withLinkedPages;
 export 'src/oauth.dart'
-    show
-        MissingDriveGrant,
-        NoChatGptPlan,
-        NotSignedIn,
-        OAuthSignIn,
-        PartialGrant,
-        SignInFailed;
+    show MissingDriveGrant, NoChatGptPlan, NotSignedIn, OAuthSignIn, PartialGrant, SignInFailed;
 export 'src/paths.dart' show NotelorePaths;
 export 'src/providers/base.dart'
     show
@@ -44,17 +36,10 @@ export 'src/providers/base.dart'
         imageType,
         providerSpecs;
 export 'src/providers/chatgpt.dart'
-    show
-        BearerToken,
-        ChatGptProvider,
-        PlanLimitReached,
-        chatGptUsageUrl,
-        listChatGptModels;
+    show BearerToken, ChatGptProvider, PlanLimitReached, chatGptUsageUrl, listChatGptModels;
 export 'src/providers/chatgpt_auth.dart' show ChatGptAuth;
-export 'src/providers/http.dart'
-    show HttpError, NetworkError, Transport, defaultTransport;
-export 'src/providers/local.dart'
-    show LocalEngine, LocalModelFailed, LocalProvider;
+export 'src/providers/http.dart' show HttpError, NetworkError, Transport, defaultTransport;
+export 'src/providers/local.dart' show LocalEngine, LocalModelFailed, LocalProvider;
 export 'src/providers/ollama.dart' show ollamaHost;
 export 'src/providers/providers.dart' show createProvider;
 export 'src/providers/validator.dart'
@@ -78,13 +63,7 @@ export 'src/reminders.dart'
         weekItems;
 export 'src/secret.dart' show defaultIterations, hashSecret, verifySecret;
 export 'src/store/about_me.dart'
-    show
-        aboutMe,
-        aboutMeFacts,
-        aboutMePath,
-        forgetAboutMe,
-        rememberAboutMe,
-        updateAboutMe;
+    show aboutMe, aboutMeFacts, aboutMePath, forgetAboutMe, rememberAboutMe, updateAboutMe;
 export 'src/store/feedback.dart'
     show emptyNoteReminder, feedbackCounts, feedbackFolder, saveFeedback;
 export 'src/store/format.dart'
@@ -103,8 +82,7 @@ export 'src/store/format.dart'
         parseIsoDate,
         serialize;
 export 'src/store/front_matter.dart' show dumpFrontMatter, loadFrontMatter;
-export 'src/store/index.dart'
-    show Hit, NoteIndex, NoteInfo, fts5Available, matchRanges;
+export 'src/store/index.dart' show Hit, NoteIndex, NoteInfo, fts5Available, matchRanges;
 export 'src/store/move.dart' show moveNotes;
 export 'src/store/notes.dart'
     show
@@ -140,22 +118,12 @@ export 'src/store/notes.dart'
         writeNote;
 export 'src/store/stale.dart' show Stale, findStaleNotes;
 export 'src/store/transfer.dart'
-    show
-        ImportOutcome,
-        Imported,
-        LineStyle,
-        OutlineLine,
-        importNote,
-        metaLine,
-        notesHtml,
-        outline;
-export 'src/sync/calendar.dart'
-    show GoogleCalendar, ReminderCalendar, calendarScope;
+    show ImportOutcome, Imported, LineStyle, OutlineLine, importNote, metaLine, notesHtml, outline;
+export 'src/sync/calendar.dart' show GoogleCalendar, ReminderCalendar, calendarScope;
 export 'src/sync/drive.dart' show AccessToken, DriveRemote, driveScope;
 export 'src/sync/engine.dart' show Remote, RemoteFile, SyncReport, sync;
 export 'src/sync/google_auth.dart' show DriveAuth, LoopbackAuth;
-export 'src/sync/manifest.dart'
-    show Manifest, ManifestEntry, checkedRel, contentHash;
+export 'src/sync/manifest.dart' show Manifest, ManifestEntry, checkedRel, contentHash;
 export 'src/sync/merge.dart'
     show
         Clean,
@@ -169,8 +137,7 @@ export 'src/sync/merge.dart'
         decide,
         threeWay;
 export 'src/sync/resolve.dart' show Ask, ModelResolver, askProvider;
-export 'src/tools.dart'
-    show AnswerCard, DecisionSource, NoteReceipt, Toolbox, noteTools, slimTools;
+export 'src/tools.dart' show AnswerCard, DecisionSource, NoteReceipt, Toolbox, noteTools, slimTools;
 export 'src/usage.dart'
     show
         MeteredProvider,
