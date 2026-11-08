@@ -85,6 +85,28 @@ void main() {
     expect(real.keySpace, 'notelore');
   });
 
+  test(
+    'the test-space marker opens test/notes; setTestSpace writes and clears it (#832)',
+    () async {
+      final marker = File(p.join(root, 'support', 'space'))
+        ..createSync(recursive: true)
+        ..writeAsStringSync('test');
+      final session = await app.openSession(
+        environment: {'HOME': root},
+        mobile: false,
+        reminders: () => null,
+      );
+      addTearDown(session.dispose);
+      expect(session.paths.notes.path, p.join(root, 'support', 'test', 'notes'));
+      expect(session.paths.state.path, p.join(root, 'support', 'test'));
+      expect(session.testSpace, isTrue);
+      expect(session.realNotes!.path, p.join(root, 'support', 'notes'));
+      await app.setTestSpace(false, environment: {'HOME': root});
+      expect(marker.existsSync(), isFalse);
+      await app.setTestSpace(true, environment: {'HOME': root});
+      expect(marker.readAsStringSync(), 'test');
+    },
+  );
   testWidgets('main() runs the app, and closing it closes the session', (tester) async {
     await tester.runAsync(() async => app.main());
     await tester.pump();

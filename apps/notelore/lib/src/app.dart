@@ -33,9 +33,18 @@ final _dark = noteloreTheme(Brightness.dark);
 /// Opens the session (folders, index, saved provider), then shows setup until a
 /// provider is connected and the three tabs after that.
 class NoteloreApp extends StatefulWidget {
-  const NoteloreApp({required this.open, this.updater, this.exitApp = exit, super.key});
+  const NoteloreApp({
+    required this.open,
+    this.setTestSpace,
+    this.updater,
+    this.exitApp = exit,
+    super.key,
+  });
 
   final Future<Session> Function() open;
+
+  /// Writes the test-space choice (#832); the app reopens its session after.
+  final Future<void> Function(bool test)? setTestSpace;
 
   /// Null in development builds and on phones.
   final Updater? updater;
@@ -90,7 +99,38 @@ class _NoteloreAppState extends State<NoteloreApp> with WidgetsBindingObserver {
   Session? _opened;
 
   /// A session that finishes opening after the app is gone is closed at once.
-  void _adopt(Session session) => mounted ? _opened = session : session.dispose();
+  void _adopt(Session session) {
+    if (!mounted) {
+      session.dispose();
+      return;
+    }
+    _opened = session;
+    session.switchSpace = _switchSpace;
+  }
+
+  /// Moves to the real notes or the test space (#832) and reopens on it.
+  Future<void> _switchSpace(bool test) async {
+    final set = widget.setTestSpace;
+    if (set == null) return;
+    await set(test);
+    final Session next;
+    try {
+      next = await widget.open();
+    } catch (_) {
+      await set(!test); // it did not open: stay where we were
+      return;
+    }
+    if (!mounted) {
+      // coverage:ignore-start
+      next.dispose();
+      return;
+      // coverage:ignore-end
+    }
+    final old = _opened;
+    setState(() => _opened = next);
+    next.switchSpace = _switchSpace;
+    old?.dispose();
+  }
 
   @override
   void dispose() {
@@ -430,6 +470,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     });
     final page = Column(
       children: [
+        if (widget.session.testSpace) _TestSpaceBar(widget.session),
         if (_available case final version?)
           _inColumn(
             _UpdateBanner(
@@ -774,6 +815,37 @@ class Brand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const Label('Notelore', size: 12);
+}
+
+/// Says, on every screen, that the test space is open (#832).
+class _TestSpaceBar extends StatelessWidget {
+  const _TestSpaceBar(this.session);
+
+  final Session session;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      color: theme.colorScheme.tertiaryContainer,
+      padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, Gap.xs),
+      child: Row(
+        children: [
+          Icon(Icons.science_outlined, size: 16, color: theme.colorScheme.onTertiaryContainer),
+          const SizedBox(width: Gap.xs),
+          Flexible(
+            child: Text(
+              session.strings.testSpaceOn,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onTertiaryContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// A banner keeps to the chat's readable column on a wide window (#769).

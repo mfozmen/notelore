@@ -250,9 +250,13 @@ class Harness {
     bool reminders = true,
     bool calendar = true,
     bool? deviceModels,
+    bool testSpace = false,
+    Directory? realNotes,
   }) {
     final session = Session(
       paths,
+      testSpace: testSpace,
+      realNotes: realNotes,
       deviceModels: deviceModels ?? this.deviceModels,
       deviceFiles: deviceFiles,
       meteredNetwork: () async => metered,
