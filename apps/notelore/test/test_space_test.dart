@@ -78,4 +78,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(switched, [false]);
   });
+  testWidgets('a test space that cannot open stays in the current one (#832)', (tester) async {
+    phone(tester);
+    final real = Directory.systemTemp.createTempSync('notelore_real_');
+    addTearDown(() => real.deleteSync(recursive: true));
+    final switched = <bool>[];
+    final session = await pumpApp(
+      tester,
+      Harness(),
+      testSpace: true,
+      realNotes: real,
+      setTestSpace: (test) async => switched.add(test),
+      reopen: () async => throw StateError('no folders'),
+    );
+    await connect(tester, key: 'k');
+    await openSettings(tester, 'Advanced');
+    await tester.ensureVisible(find.byKey(const Key('test-space')));
+    await tester.tap(find.byKey(const Key('test-space')));
+    await tester.pumpAndSettle();
+    expect(switched, [false, true]); // the marker is put back
+    expect(session.testSpace, isTrue);
+  });
 }

@@ -113,7 +113,13 @@ class _NoteloreAppState extends State<NoteloreApp> with WidgetsBindingObserver {
     final set = widget.setTestSpace;
     if (set == null) return;
     await set(test);
-    final next = await widget.open();
+    final Session next;
+    try {
+      next = await widget.open();
+    } catch (_) {
+      await set(!test); // it did not open: stay where we were
+      return;
+    }
     if (!mounted) {
       // coverage:ignore-start
       next.dispose();
