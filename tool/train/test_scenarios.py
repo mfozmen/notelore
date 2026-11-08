@@ -29,6 +29,15 @@ generated = scenarios.cases(random.Random(7))
 asked = [c["expect"] for c in generated if c["id"].startswith("note-") and c["kind"] == "question"]
 check("a question on a note expects its answer and no tool", (bool(asked), all(list(e) == ["answer"] for e in asked)), (True, True))
 
+# A row about a note uses one an earlier table wrote, and a question's answer is in it.
+written = {p: text for c in generated for p, text in c["notes"].items()}
+for table in (scenarios.CROSS, scenarios.ON_NOTE):
+    for lang, title, kind, msg, case_kind, tool, word in table:
+        p = scenarios.path(kind, title)
+        check(f"{title} is written before a row uses it", p in written, True)
+        if tool is None:
+            check(f"the answer to {msg!r} is in {title}", word.casefold() in written.get(p, "").casefold(), True)
+
 for case in generated:
     if case["id"].startswith("done-other-"):
         # The entry's result names a matching todo (#731), so no read is required (#733).
