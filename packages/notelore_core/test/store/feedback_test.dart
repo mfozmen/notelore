@@ -112,4 +112,14 @@ void main() {
       throwsArgumentError,
     );
   });
+  test('a test-space report says so (#832)', () {
+    final rel = saveFeedback(
+      dir.path,
+      turn,
+      model: 'ollama notelore-qwen3-4b-v8',
+      space: 'test',
+      now: DateTime.utc(2026, 11, 8, 10),
+    );
+    expect(File(p.join(dir.path, rel)).readAsStringSync(), contains('- Space: test\n'));
+  });
 }

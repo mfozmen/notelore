@@ -20,6 +20,7 @@ String saveFeedback(
   List<Map<String, Object?>> messages, {
   required String model,
   String expected = '',
+  String? space,
   required DateTime now,
 }) {
   final start = messages.lastIndexWhere(_typed);
@@ -35,7 +36,9 @@ String saveFeedback(
   final turn = const JsonEncoder.withIndent('  ').convert(_withoutImages(messages.sublist(start)));
   atomicWrite(
     path,
-    '# Feedback, $stem\n\n- Model: $model\n- Expected: $said\n\n```json\n$turn\n```\n',
+    '# Feedback, $stem\n\n- Model: $model\n- Expected: $said\n'
+    '${space == null ? '' : '- Space: $space\n'}'
+    '\n```json\n$turn\n```\n',
   );
   return rel;
 }

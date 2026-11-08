@@ -35,8 +35,20 @@ import 'support.dart';
 
 /// The app on [harness]'s session. The app owns the session, so it is closed by
 /// unmounting the app before the temp folders go.
-Future<Session> pumpApp(WidgetTester tester, Harness harness, {DateTime Function()? clock}) async {
-  final session = harness.session(owned: false, clock: clock);
+Future<Session> pumpApp(
+  WidgetTester tester,
+  Harness harness, {
+  DateTime Function()? clock,
+  bool testSpace = false,
+  Directory? realNotes,
+  Future<void> Function(bool test)? setTestSpace,
+}) async {
+  final session = harness.session(
+    owned: false,
+    clock: clock,
+    testSpace: testSpace,
+    realNotes: realNotes,
+  );
   addTearDown(() => tester.pumpWidget(const SizedBox()));
   await tester.pumpWidget(
     NoteloreApp(
@@ -44,6 +56,7 @@ Future<Session> pumpApp(WidgetTester tester, Harness harness, {DateTime Function
         await session.load();
         return session;
       },
+      setTestSpace: setTestSpace,
     ),
   );
   await tester.pumpAndSettle();
