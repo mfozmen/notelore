@@ -51,6 +51,18 @@ const _usage =
     ' --provider=opencode: an OpenCode Go model, key NOTELORE_OPENCODE_API_KEY in the'
     ' environment or <state>/dev-secrets.json)';
 
+/// Prints each model's good and bad reports, or that there are none (#833).
+void _feedback(String notesRoot, StringSink out) {
+  final counts = feedbackCounts(notesRoot);
+  if (counts.isEmpty) {
+    out.writeln('No feedback yet.');
+    return;
+  }
+  for (final MapEntry(key: model, value: (:good, :bad)) in counts.entries) {
+    out.writeln('$model: $good good, $bad bad');
+  }
+}
+
 /// A trace file's name for a run started at [time]: UTC to the microsecond,
 /// always six digits, so names sort in time order (`toIso8601String()` drops
 /// zero microseconds, and `.120Z` sorts after `.120345Z`).
@@ -143,14 +155,7 @@ Future<int> runDev(
       case 'models':
         out.writeln((await listChatGptModels(auth.token, client: traced)).join('\n'));
       case 'feedback':
-        final counts = feedbackCounts(paths.notes.path);
-        if (counts.isEmpty) {
-          out.writeln('No feedback yet.');
-        } else {
-          for (final MapEntry(key: model, value: (:good, :bad)) in counts.entries) {
-            out.writeln('$model: $good good, $bad bad');
-          }
-        }
+        _feedback(paths.notes.path, out);
       case 'reprompt':
         _reprompt(
           File(p.join(currentDirectory.path, options['in'] ?? 'train.jsonl')),
