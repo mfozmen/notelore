@@ -3383,7 +3383,11 @@ void main() {
   ) async {
     phone(tester);
     final harness = Harness();
-    final session = await pumpApp(tester, harness);
+    final session = await pumpApp(
+      tester,
+      harness,
+      clock: () => today.add(const Duration(days: 1)),
+    ); // a Thursday: neither upcoming nor in a Sunday look back
     await connect(tester, key: 'k');
     final path = createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
     addTodo(path, 'Return the book', today: today);
