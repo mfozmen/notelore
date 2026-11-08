@@ -1773,11 +1773,14 @@ class Session extends ChangeNotifier {
     unawaited(_refreshQuietly()); // its model list
   }
 
+  /// Drive is connected and this is the real notes, not the test space (#832).
+  bool get _syncsNotes => driveConnected && !testSpace;
+
   /// One sync; the notes in [restore] go back to Drive as new, those in
   /// [remove] follow Drive's removal however many there are.
   Future<void> syncNow({Set<String> restore = const {}, Set<String> remove = const {}}) async {
     // The test space never reads or writes Drive for its notes (#832).
-    if (testSpace || !driveConnected) return;
+    if (!_syncsNotes) return;
     _pendingSyncs++;
     notifyListeners();
     await _exclusive(() async {
