@@ -1082,7 +1082,11 @@ class _SideRail extends StatelessWidget {
     );
   }
 
-  /// The extended rail clips each item to its icon row, flat under the orb's
-  /// glow: a 44 dp row makes a 56 dp item with room for the glow to fade.
-  Widget _slot(Widget icon) => extended ? SizedBox(height: 44, child: Center(child: icon)) : icon;
+  /// One height for the orb and a plain icon, so choosing a tab moves no row.
+  /// The extended rail clips each item to this row, flat under the orb's glow:
+  /// 44 dp makes a 56 dp item with room for the glow to fade.
+  Widget _slot(Widget icon) => SizedBox(
+    height: extended ? 44 : 32,
+    child: Center(child: icon),
+  );
 }

@@ -545,5 +545,13 @@ void main() {
     final clip = tester.getRect(find.ancestor(of: orb, matching: find.byType(ClipRect)).first);
     final reach = glow.offset.dy + 2 * Shadow.convertRadiusToSigma(glow.blurRadius);
     expect(clip.bottom - tester.getRect(orb).bottom, greaterThanOrEqualTo(reach));
+
+    desktop(tester, 1000); // the collapsed rail: choosing a tab moves no row
+    await tester.pumpAndSettle();
+    final notes = find.descendant(of: rail, matching: find.text('Notes'));
+    final top = tester.getTopLeft(notes).dy;
+    await tester.tap(find.descendant(of: rail, matching: find.text('Settings')));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(notes).dy, top);
   });
 }
