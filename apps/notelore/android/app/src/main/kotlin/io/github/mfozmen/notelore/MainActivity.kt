@@ -7,6 +7,8 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.core.content.FileProvider
+import com.google.android.gms.wearable.MessageClient
+import com.google.android.gms.wearable.Wearable
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -19,6 +21,13 @@ class MainActivity : FlutterFragmentActivity() {
 
     /** The link of the last tap on the home-screen widget (#799), until the Dart side takes it. */
     private var quick: String? = null
+
+    private var watchListener: MessageClient.OnMessageReceivedListener? = null
+
+    override fun onDestroy() {
+        watchListener?.let { Wearable.getMessageClient(this).removeListener(it) }
+        super.onDestroy()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -127,6 +136,23 @@ class MainActivity : FlutterFragmentActivity() {
                     result.notImplemented()
                 }
             }
+        // The watch app (watch_link.dart): messages both ways over the Wearable Data Layer.
+        val watch = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "io.github.mfozmen.notelore/watch")
+        watch.setMethodCallHandler { call, result ->
+            if (call.method != "send") return@setMethodCallHandler result.notImplemented()
+            val path = call.argument<String>("path")!!
+            val text = call.argument<String>("text")!!.encodeToByteArray()
+            Wearable.getNodeClient(this).connectedNodes.addOnCompleteListener { nodes ->
+                // No Play services, or no watch near: not sent.
+                val connected = if (nodes.isSuccessful) nodes.result else emptyList()
+                connected.forEach { Wearable.getMessageClient(this).sendMessage(it.id, path, text) }
+                result.success(connected.isNotEmpty())
+            }
+        }
+        watchListener?.let { Wearable.getMessageClient(this).removeListener(it) }
+        watchListener = MessageClient.OnMessageReceivedListener {
+            watch.invokeMethod("message", mapOf("path" to it.path, "text" to it.data.decodeToString()))
+        }.also { Wearable.getMessageClient(this).addListener(it) }
         // The in-app updater (update.dart): hands a downloaded APK to the installer.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "io.github.mfozmen.notelore/install")
             .setMethodCallHandler { call, result ->
