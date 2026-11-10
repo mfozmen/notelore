@@ -831,29 +831,32 @@ Future<void> _showModels(BuildContext context, Session session) async {
         PopupMenuItem(
           value: m,
           padding: EdgeInsets.zero,
-          // Ink, so the hover still shows on the current model's band.
-          child: Ink(
-            height: 48,
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-            decoration: BoxDecoration(color: m == current ? colors.primaryContainer : null),
-            child: Row(
-              spacing: Gap.s + Gap.xs,
-              children: [
-                SizedBox.square(
-                  dimension: 20,
-                  child: m == current
-                      ? Icon(AppIcons.check, size: 20, color: colors.onPrimaryContainer)
-                      : null,
-                ),
-                Flexible(
-                  child: Text(
-                    readableModel(m),
-                    overflow: TextOverflow.ellipsis,
-                    style: m == current ? TextStyle(color: colors.onPrimaryContainer) : null,
+          child: Semantics(
+            selected: m == current,
+            // Ink, so the hover still shows on the current model's band.
+            child: Ink(
+              height: 48,
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+              decoration: BoxDecoration(color: m == current ? colors.primaryContainer : null),
+              child: Row(
+                spacing: Gap.s + Gap.xs,
+                children: [
+                  SizedBox.square(
+                    dimension: 20,
+                    child: m == current
+                        ? Icon(AppIcons.check, size: 20, color: colors.onPrimaryContainer)
+                        : null,
                   ),
-                ),
-              ],
+                  Flexible(
+                    child: Text(
+                      readableModel(m),
+                      overflow: TextOverflow.ellipsis,
+                      style: m == current ? TextStyle(color: colors.onPrimaryContainer) : null,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
