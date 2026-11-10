@@ -195,6 +195,52 @@ void main() {
     }
   });
 
+  testWidgets('hover and press tint with the accent; a keyboard focus is a 2-point ring', (
+    tester,
+  ) async {
+    addTearDown(() => FocusManager.instance.highlightStrategy = FocusHighlightStrategy.automatic);
+    for (final theme in [noteloreTheme(Brightness.light), noteloreTheme(Brightness.dark)]) {
+      final c = theme.colorScheme;
+      // A bare InkWell takes these: never Material's grey.
+      expect(theme.hoverColor, c.primary.withValues(alpha: .08));
+      expect(theme.highlightColor, c.primary.withValues(alpha: .12));
+      expect(theme.focusColor, c.primary.withValues(alpha: .12));
+      final buttons = {
+        theme.textButtonTheme.style!: c.primary,
+        theme.iconButtonTheme.style!: c.primary,
+        theme.outlinedButtonTheme.style!: c.primary,
+        // On the orb the accent would not show; its own ink does.
+        theme.filledButtonTheme.style!: c.onPrimary,
+      };
+      for (final MapEntry(key: style, value: ink) in buttons.entries) {
+        expect(style.overlayColor!.resolve({WidgetState.hovered}), ink.withValues(alpha: .08));
+        expect(style.overlayColor!.resolve({WidgetState.focused}), ink.withValues(alpha: .08));
+        expect(
+          style.overlayColor!.resolve({WidgetState.hovered, WidgetState.pressed}),
+          ink.withValues(alpha: .12),
+        );
+        expect(style.overlayColor!.resolve({}), isNull);
+        FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+        expect(style.side!.resolve({WidgetState.focused}), BorderSide(color: c.primary, width: 2));
+        // A finger focuses nothing it should ring.
+        FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTouch;
+        expect(
+          style.side!.resolve({WidgetState.focused}),
+          isNot(BorderSide(color: c.primary, width: 2)),
+        );
+      }
+      expect(
+        theme.outlinedButtonTheme.style!.side!.resolve({}),
+        BorderSide(color: c.outlineVariant),
+      );
+      expect(theme.textButtonTheme.style!.side!.resolve({}), isNull);
+      // Menus: the soft card, not Material's square sheet.
+      final menu = theme.popupMenuTheme;
+      expect(menu.shape, softBorder(c, BorderRadius.circular(20)));
+      expect(menu.color, c.surfaceContainerHigh);
+    }
+  });
+
   test('words on an orb read at 4.5:1 or more, but at its lit corner', () {
     for (final brightness in Brightness.values) {
       final c = noteloreTheme(brightness).colorScheme;
