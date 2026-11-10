@@ -241,7 +241,7 @@ class SoftSwitch extends StatelessWidget {
         color: value
             ? Color.alphaBlend(colors.primary.withValues(alpha: .22), colors.surfaceContainerLow)
             : colors.surface,
-        border: value ? null : Border.all(color: colors.outlineVariant),
+        border: value ? null : Border.all(color: colors.outline),
       ),
       child: AnimatedAlign(
         alignment: value ? Alignment.centerRight : Alignment.centerLeft,
@@ -253,7 +253,7 @@ class SoftSwitch extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: value ? orbFill(colors) : null,
-            color: value ? null : Color.lerp(colors.onSurfaceVariant, colors.surface, .45),
+            color: value ? null : colors.outline,
             boxShadow: value
                 ? orbGlow(colors, blur: 8, y: 2)
                 : const [BoxShadow(color: Color(0x33000000), blurRadius: 3, offset: Offset(0, 1))],
