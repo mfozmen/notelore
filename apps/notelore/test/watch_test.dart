@@ -12,7 +12,7 @@ void main() {
     final session = await pumpApp(tester, Harness(answers: ['Tamam.']));
     await connect(tester, key: 'k');
     final channel = const MethodChannel('notelore.watch.test');
-    listenForWatchOn(session, channel);
+    listenForWatch(session, channel: channel);
     const codec = StandardMethodCodec();
 
     Future<Object?> ask(Object? text) {
