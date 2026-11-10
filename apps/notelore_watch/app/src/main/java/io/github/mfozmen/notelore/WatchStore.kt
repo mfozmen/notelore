@@ -18,7 +18,8 @@ object WatchStore {
     /** Sends every queued message not sent yet, in order, when the phone is back. */
     fun flush(context: Context) {
         val queue = queue(context)
-        val unsent = queue.pending.filterNot { it.sent }
+        // Everything unanswered; the phone ignores a repeat by its id.
+        val unsent = queue.pending
         if (unsent.isEmpty()) return
         Wearable.getNodeClient(context).connectedNodes.addOnSuccessListener { nodes ->
             for (node in nodes) {
@@ -59,6 +60,7 @@ object WatchStore {
                     text = item.getString("text"),
                     answer = if (item.isNull("answer")) null else item.getString("answer"),
                     sent = item.optBoolean("sent"),
+                    status = if (item.isNull("status")) null else item.getString("status"),
                 )
             }
         }.getOrDefault(emptyList())
@@ -72,7 +74,8 @@ object WatchStore {
                     .put("id", entry.id)
                     .put("text", entry.text)
                     .put("answer", entry.answer)
-                    .put("sent", entry.sent),
+                    .put("sent", entry.sent)
+                    .put("status", entry.status),
             )
         }
         context.getSharedPreferences(prefs, Context.MODE_PRIVATE).edit()

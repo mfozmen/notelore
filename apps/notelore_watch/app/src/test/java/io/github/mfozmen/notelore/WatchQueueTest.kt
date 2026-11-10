@@ -26,6 +26,15 @@ class WatchQueueTest {
     }
 
     @Test
+    fun `a phone status keeps the message queued`() {
+        queue.add("bir", id = "1")
+        queue.markSent("1")
+        queue.status("1", "locked")
+        assertEquals(1, queue.pending.size)
+        assertEquals("locked", queue.entries.single().status)
+    }
+
+    @Test
     fun `leaves the queue only when the phone answers`() {
         queue.add("bir", id = "1")
         queue.markSent("1")

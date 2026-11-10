@@ -62,8 +62,14 @@ class MainActivity : ComponentActivity() {
                     val listener = MessageClient.OnMessageReceivedListener { event ->
                         if (event.path == "/notelore/answer") {
                             runCatching { JSONObject(String(event.data)) }.getOrNull()?.let { payload ->
-                                WatchStore.queue(activity)
-                                    .answer(payload.optString("id"), payload.optString("answer"))
+                                val queue = WatchStore.queue(activity)
+                                val id = payload.optString("id")
+                                val answer = payload.optString("answer")
+                                if (payload.optBoolean("status")) {
+                                    queue.status(id, answer)
+                                } else {
+                                    queue.answer(id, answer)
+                                }
                                 runOnUiThread { refresh() }
                             }
                         }
@@ -103,14 +109,15 @@ class MainActivity : ComponentActivity() {
                                 verticalArrangement = Arrangement.spacedBy(2.dp),
                             ) {
                                 Text(entry.text)
-                                if (entry.answer == null) {
+                                val shown = entry.answer ?: entry.status
+                                if (shown == null) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(16.dp),
                                         strokeWidth = 2.dp,
                                     )
                                 } else {
                                     Text(
-                                        entry.answer,
+                                        shown,
                                         color = MaterialTheme.colors.primary,
                                         fontSize = 12.sp,
                                     )

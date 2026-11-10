@@ -27,29 +27,46 @@ class MainActivity : FlutterFragmentActivity() {
     /** The bridge to the Dart side for the watch (#823), while this activity lives. */
     private var watch: MethodChannel? = null
 
+    /** Requests already handed to Dart, so a retried one never runs twice. */
+    private val handled = mutableSetOf<String>()
+
+    /** Ask statuses: the turn did not run, so the watch keeps the message and tries again. */
+    private val statuses = setOf("locked", "not-ready", "busy", "empty")
+
     /** A message spoken on the watch: Dart runs the turn, the answer goes back. */
     private val watchListener = MessageClient.OnMessageReceivedListener { event: MessageEvent ->
         if (event.path != "/notelore/ask") return@OnMessageReceivedListener
         val payload = runCatching { JSONObject(String(event.data)) }.getOrNull()
             ?: return@OnMessageReceivedListener
         val id = payload.optString("id")
+        if (id.isEmpty() || id in handled) return@OnMessageReceivedListener
+        handled.add(id)
         val text = payload.optString("text")
         runOnUiThread {
             watch?.invokeMethod(
                 "ask",
                 text,
                 object : MethodChannel.Result {
-                    override fun success(result: Any?) = reply(id, result as? String ?: "")
-                    override fun error(code: String, message: String?, details: Any?) = reply(id, "error")
-                    override fun notImplemented() = reply(id, "error")
+                    override fun success(result: Any?) {
+                        val answer = result as? String ?: ""
+                        val status = answer in statuses
+                        if (status) handled.remove(id) // not run: a retry may
+                        reply(id, answer, status)
+                    }
+
+                    override fun error(code: String, message: String?, details: Any?) =
+                        reply(id, "error", false)
+
+                    override fun notImplemented() = reply(id, "error", false)
                 },
             )
         }
     }
 
     /** The answer for watch request [id], to every connected watch. */
-    private fun reply(id: String, answer: String) {
-        val data = JSONObject().put("id", id).put("answer", answer).toString().toByteArray()
+    private fun reply(id: String, answer: String, status: Boolean) {
+        val data = JSONObject().put("id", id).put("answer", answer).put("status", status)
+            .toString().toByteArray()
         Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nodes ->
             nodes.forEach { node ->
                 Wearable.getMessageClient(this).sendMessage(node.id, "/notelore/answer", data)

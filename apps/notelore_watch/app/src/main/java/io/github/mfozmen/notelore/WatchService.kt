@@ -10,7 +10,13 @@ class WatchService : WearableListenerService() {
     override fun onMessageReceived(event: MessageEvent) {
         if (event.path != "/notelore/answer") return
         val payload = runCatching { JSONObject(String(event.data)) }.getOrNull() ?: return
-        WatchStore.queue(this).answer(payload.optString("id"), payload.optString("answer"))
+        val id = payload.optString("id")
+        val answer = payload.optString("answer")
+        if (payload.optBoolean("status")) {
+            WatchStore.queue(this).status(id, answer) // not run: it stays queued
+        } else {
+            WatchStore.queue(this).answer(id, answer)
+        }
     }
 
     override fun onPeerConnected(peer: Node) {

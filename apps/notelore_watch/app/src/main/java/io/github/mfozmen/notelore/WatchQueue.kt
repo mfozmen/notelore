@@ -3,7 +3,13 @@ package io.github.mfozmen.notelore
 import java.util.UUID
 
 /** One message spoken on the watch, with the answer once the phone sends it. */
-data class WatchEntry(val id: String, val text: String, val answer: String?, val sent: Boolean)
+data class WatchEntry(
+    val id: String,
+    val text: String,
+    val answer: String?,
+    val sent: Boolean,
+    val status: String? = null,
+)
 
 /**
  * The watch's queue (#839): what was said while the phone was away, in order,
@@ -31,6 +37,11 @@ class WatchQueue(
     }
 
     fun answer(id: String, answer: String) {
-        save(load().map { if (it.id == id) it.copy(answer = answer) else it })
+        save(load().map { if (it.id == id) it.copy(answer = answer, status = null) else it })
+    }
+
+    /// A reason the turn did not run: shown, but the message stays queued.
+    fun status(id: String, status: String) {
+        save(load().map { if (it.id == id && it.answer == null) it.copy(status = status) else it })
     }
 }
