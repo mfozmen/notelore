@@ -47,6 +47,24 @@ void main() {
     expect((state().above, state().below), (true, false));
   });
 
+  testWidgets('a desk scrollbar paints above the mask, so its ends are never faded', (
+    tester,
+  ) async {
+    await pump(tester);
+    final mask = find.byType(ShaderMask);
+    expect(find.ancestor(of: mask, matching: find.byType(Scrollbar)), findsOneWidget);
+    expect(find.descendant(of: mask, matching: find.byType(Scrollbar)), findsNothing);
+    // The thumb follows the list it sits beside.
+    await tester.drag(find.byType(ListView).first, const Offset(0, -100));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Scrollbar>(find.byType(Scrollbar)).controller!.offset, greaterThan(0));
+  }, variant: TargetPlatformVariant.desktop());
+
+  testWidgets('a phone keeps its own scroll look: no scrollbar added', (tester) async {
+    await pump(tester);
+    expect(find.byType(Scrollbar), findsNothing);
+  }, variant: TargetPlatformVariant.mobile());
+
   test('the mask: clear at a faded edge, opaque elsewhere, never past the middle', () {
     final both = ScrollFade.mask(above: true, below: true, height: 240);
     expect(both.colors.map((c) => c.a), [0, 1, 1, 0]);

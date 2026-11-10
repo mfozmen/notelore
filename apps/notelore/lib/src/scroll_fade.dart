@@ -58,14 +58,40 @@ class ScrollFadeState extends State<ScrollFade> {
     return false;
   }
 
+  /// The list's position, shared with the desk scrollbar drawn above the mask.
+  final _controller = ScrollController();
+
   @override
-  Widget build(BuildContext context) => NotificationListener<Notification>(
-    onNotification: _scrolled,
-    child: ShaderMask(
-      blendMode: BlendMode.dstIn,
-      shaderCallback: (rect) =>
-          ScrollFade.mask(above: _above, below: _below, height: rect.height).createShader(rect),
-      child: widget.child,
-    ),
-  );
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final behavior = ScrollConfiguration.of(context);
+    // The behaviour's own scrollbar (none on a phone), moved above the mask so
+    // its ends are not faded with the list.
+    return behavior.buildScrollbar(
+      context,
+      NotificationListener<Notification>(
+        onNotification: _scrolled,
+        child: ShaderMask(
+          blendMode: BlendMode.dstIn,
+          shaderCallback: (rect) =>
+              ScrollFade.mask(above: _above, below: _below, height: rect.height).createShader(rect),
+          child: ScrollConfiguration(
+            behavior: behavior.copyWith(scrollbars: false),
+            // On every platform, so the list takes the controller the scrollbar follows.
+            child: PrimaryScrollController(
+              controller: _controller,
+              automaticallyInheritForPlatforms: TargetPlatform.values.toSet(),
+              child: widget.child,
+            ),
+          ),
+        ),
+      ),
+      ScrollableDetails.vertical(controller: _controller),
+    );
+  }
 }
