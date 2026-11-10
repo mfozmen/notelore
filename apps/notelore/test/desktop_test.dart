@@ -520,4 +520,38 @@ void main() {
     final label = theme.extension<NoteloreTokens>()!.label;
     expect(tester.widget<Text>(find.text('Notelore')).style!.fontFamily, label.fontFamily);
   });
+
+  testWidgets('the wide rail: 48 dp destinations, the orb glow inside its clip (#853)', (
+    tester,
+  ) async {
+    desktop(tester, 1600);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    final rail = find.byType(NavigationRail);
+    for (final label in ['Chat', 'Notes', 'Settings']) {
+      final item = find.ancestor(
+        of: find.descendant(of: rail, matching: find.text(label)),
+        matching: find.byWidgetPredicate((w) => w is InkResponse),
+      );
+      expect(tester.getSize(item.first).height, greaterThanOrEqualTo(48), reason: label);
+    }
+    final orb = find.descendant(
+      of: rail,
+      matching: find.byWidgetPredicate(
+        (w) => w is Container && w.decoration is BoxDecoration && w.constraints != null,
+      ),
+    );
+    final glow = (tester.widget<Container>(orb).decoration! as BoxDecoration).boxShadow!.single;
+    final clip = tester.getRect(find.ancestor(of: orb, matching: find.byType(ClipRect)).first);
+    final reach = glow.offset.dy + 2 * Shadow.convertRadiusToSigma(glow.blurRadius);
+    expect(clip.bottom - tester.getRect(orb).bottom, greaterThanOrEqualTo(reach));
+
+    desktop(tester, 1000); // the collapsed rail: choosing a tab moves no row
+    await tester.pumpAndSettle();
+    final notes = find.descendant(of: rail, matching: find.text('Notes'));
+    final top = tester.getTopLeft(notes).dy;
+    await tester.tap(find.descendant(of: rail, matching: find.text('Settings')));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(notes).dy, top);
+  });
 }

@@ -1058,16 +1058,18 @@ class _SideRail extends StatelessWidget {
       destinations: [
         for (final (icon, chosen, label) in destinations)
           NavigationRailDestination(
-            icon: Icon(icon),
-            selectedIcon: Container(
-              width: 56,
-              height: 32,
-              decoration: BoxDecoration(
-                gradient: orbFill(colors),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: orbGlow(colors, blur: 12, y: 4),
+            icon: _slot(Icon(icon)),
+            selectedIcon: _slot(
+              Container(
+                width: 56,
+                height: 32,
+                decoration: BoxDecoration(
+                  gradient: orbFill(colors),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: orbGlow(colors, blur: 8, y: 1),
+                ),
+                child: AppIcons.duo(chosen, color: colors.onPrimary),
               ),
-              child: AppIcons.duo(chosen, color: colors.onPrimary),
             ),
             label: Text(label),
           ),
@@ -1079,4 +1081,12 @@ class _SideRail extends StatelessWidget {
       ),
     );
   }
+
+  /// One height for the orb and a plain icon, so choosing a tab moves no row.
+  /// The extended rail clips each item to this row, flat under the orb's glow:
+  /// 44 dp makes a 56 dp item with room for the glow to fade.
+  Widget _slot(Widget icon) => SizedBox(
+    height: extended ? 44 : 32,
+    child: Center(child: icon),
+  );
 }
