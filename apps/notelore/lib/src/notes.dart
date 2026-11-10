@@ -766,10 +766,7 @@ class _Panel extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: Gap.s, bottom: Gap.xs),
     child: Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
+      shape: softBorder(Theme.of(context).colorScheme, BorderRadius.circular(Radii.panel)),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
@@ -1342,7 +1339,7 @@ class _NoteRow extends StatelessWidget {
       // The open note is told by its edge in the accent.
       shape: selected
           ? RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(Radii.card),
               side: BorderSide(color: colors.primary),
             )
           : null,

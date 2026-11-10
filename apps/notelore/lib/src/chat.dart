@@ -1079,7 +1079,7 @@ class _ComposerRow extends StatelessWidget {
           padding: const EdgeInsets.all(Gap.xs),
           decoration: BoxDecoration(
             color: colors.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(Radii.field),
             border: Focus.of(context).hasFocus
                 ? Border.all(color: colors.primary, width: 2)
                 : Border.all(color: colors.outlineVariant),
@@ -1837,13 +1837,10 @@ class _Source extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final label = theme.extension<NoteloreTokens>()!.label;
-    final muted = theme.textTheme.bodyMedium?.copyWith(
-      fontSize: 13.5,
-      color: colors.onSurfaceVariant,
-    );
-    final card = Card(
+    final tokens = theme.extension<NoteloreTokens>()!;
+    final label = tokens.label.copyWith(color: tokens.hotLabel);
+    final muted = theme.textTheme.bodyMedium?.copyWith(fontSize: 13.5);
+    final card = HotCard(
       margin: const EdgeInsets.symmetric(vertical: Gap.xs),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(Gap.m, 12, Gap.s, Gap.s),
@@ -1863,11 +1860,7 @@ class _Source extends StatelessWidget {
                   ),
                   Text(
                     strings.shortDate(source.date, today),
-                    style: label.copyWith(
-                      fontSize: 10,
-                      letterSpacing: 0.6,
-                      color: colors.onSurfaceVariant,
-                    ),
+                    style: label.copyWith(fontSize: 10, letterSpacing: 0.6),
                   ),
                 ],
               ),
@@ -1875,11 +1868,15 @@ class _Source extends StatelessWidget {
             const SizedBox(height: Gap.xs),
             Text(
               source.value,
-              style: theme.textTheme.titleMedium?.copyWith(fontSize: 20, height: 1.25),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontSize: 20,
+                height: 1.25,
+                color: tokens.hotValue,
+              ),
             ),
             if (source.reason case final reason?) ...[
               const SizedBox(height: Gap.xs),
-              Text(reason, style: muted),
+              Text(reason, style: muted?.copyWith(color: tokens.hotReason)),
             ],
             Row(
               children: [
@@ -1888,14 +1885,20 @@ class _Source extends StatelessWidget {
                     strings.decisionSource(source.title),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: muted,
+                    style: muted?.copyWith(color: tokens.hotSource),
                   ),
                 ),
                 TextButton(
                   onPressed: open,
+                  style: TextButton.styleFrom(foregroundColor: tokens.hotLink),
                   child: Text(
                     '${strings.openNoteLink} →',
                     semanticsLabel: '${strings.openNoteLink} ${source.title}',
+                    style: TextStyle(
+                      color: tokens.hotLink,
+                      decoration: TextDecoration.underline,
+                      decorationColor: tokens.hotLink,
+                    ),
                   ),
                 ),
               ],

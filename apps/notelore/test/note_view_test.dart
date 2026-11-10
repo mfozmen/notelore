@@ -96,6 +96,27 @@ void main() {
     expect(find.text('Single user, zero setup.'), findsOneWidget);
     expect(find.text('React + Vite'), findsOneWidget);
     expect(find.text('PostgreSQL'), findsNothing);
+    // The current ones are the coloured card, their words a hierarchy (#854).
+    final tokens = Theme.of(tester.element(find.text('SQLite'))).extension<NoteloreTokens>()!;
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is Ink && w.decoration == BoxDecoration(gradient: tokens.hot),
+      ),
+      findsNWidgets(2),
+    );
+    Color? color(String text) {
+      Color? found;
+      tester.widget<RichText>(find.text(text, findRichText: true).first).text.visitChildren((span) {
+        if (span is TextSpan && span.text == text) found = span.style?.color;
+        return found == null;
+      });
+      return found;
+    }
+
+    expect(
+      [color('DATABASE'), color('28 Sep'), color('SQLite'), color('Single user, zero setup.')],
+      [tokens.hotLabel, tokens.hotLabel, tokens.hotValue, tokens.hotReason],
+    );
     await tester.tap(find.text('Earlier decisions (1)'));
     await tester.pumpAndSettle();
     expect(find.textContaining('PostgreSQL', findRichText: true), findsOneWidget);
