@@ -113,4 +113,4 @@ Your notes live in the app's own storage on every device (one copy, nothing for 
 
 ## Development
 
-See [docs/development.md](docs/development.md).
+See [docs/development.md](docs/development.md). The Galaxy Watch app is in the works: [docs/wear-os.md](docs/wear-os.md).
