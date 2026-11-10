@@ -15,6 +15,7 @@ Tell it things; it writes tidy notes. Ask later, *"Which database did we pick fo
 - **Your choice of model:** your ChatGPT plan, Claude, GPT, Gemini, DeepSeek, or a local model with Ollama
 - **Talk or type:** voice mode listens and reads answers aloud
 - **Every device in sync** through your Google Drive: Windows, macOS and Android; the Notes screen shows how the sync stands under its title (at the foot of the rail on a desktop): syncing, the time since it last finished, or a problem you can tap to open Settings
+- **Galaxy Watch:** a small Wear OS app (Galaxy Watch first) sends what you say on the watch to the phone, which runs the turn and sends the full answer back; while the phone is away the watch keeps a queue and sends it in order when it returns. The watch has no account or key of its own, and says so while Notelore is locked or not set up
 - **English and Turkish**
 
 > [!NOTE]

@@ -66,4 +66,6 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     // The AppCompat launch theme the device lock prompt needs (local_auth, #295).
     implementation("androidx.appcompat:appcompat:1.7.0")
+    // The Wearable Data Layer: the Galaxy Watch app's messages (#823).
+    implementation("com.google.android.gms:play-services-wearable:20.0.1")
 }

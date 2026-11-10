@@ -10,6 +10,10 @@ import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import com.google.android.gms.wearable.MessageClient
+import com.google.android.gms.wearable.MessageEvent
+import com.google.android.gms.wearable.Wearable
+import org.json.JSONObject
 import java.io.File
 
 // A FragmentActivity: local_auth shows the device's own lock prompt (BiometricPrompt) in it (#295).
@@ -19,6 +23,44 @@ class MainActivity : FlutterFragmentActivity() {
 
     /** The link of the last tap on the home-screen widget (#799), until the Dart side takes it. */
     private var quick: String? = null
+
+    /** The bridge to the Dart side for the watch (#823), while this activity lives. */
+    private var watch: MethodChannel? = null
+
+    /** A message spoken on the watch: Dart runs the turn, the answer goes back. */
+    private val watchListener = MessageClient.OnMessageReceivedListener { event: MessageEvent ->
+        if (event.path != "/notelore/ask") return@OnMessageReceivedListener
+        val payload = runCatching { JSONObject(String(event.data)) }.getOrNull()
+            ?: return@OnMessageReceivedListener
+        val id = payload.optString("id")
+        val text = payload.optString("text")
+        runOnUiThread {
+            watch?.invokeMethod(
+                "ask",
+                text,
+                object : MethodChannel.Result {
+                    override fun success(result: Any?) = reply(id, result as? String ?: "")
+                    override fun error(code: String, message: String?, details: Any?) = reply(id, "error")
+                    override fun notImplemented() = reply(id, "error")
+                },
+            )
+        }
+    }
+
+    /** The answer for watch request [id], to every connected watch. */
+    private fun reply(id: String, answer: String) {
+        val data = JSONObject().put("id", id).put("answer", answer).toString().toByteArray()
+        Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nodes ->
+            nodes.forEach { node ->
+                Wearable.getMessageClient(this).sendMessage(node.id, "/notelore/answer", data)
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        runCatching { Wearable.getMessageClient(this).removeListener(watchListener) }
+        super.onDestroy()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +92,9 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        // The watch (#823): what it sends becomes a chat turn; the answer goes back.
+        watch = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "io.github.mfozmen.notelore/watch")
+        runCatching { Wearable.getMessageClient(this).addListener(watchListener) }
         // Shares (share_in.dart): asked for at start and on each return to the front.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "io.github.mfozmen.notelore/share")
             .setMethodCallHandler { call, result ->

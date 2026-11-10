@@ -1319,6 +1319,22 @@ class Session extends ChangeNotifier {
   /// The user's last message as it was sent; null before the first.
   String? get lastSent => transcript.where((l) => l.role == ChatRole.user).lastOrNull?.text;
 
+  /// One chat turn for a message spoken on the watch (#823): the assistant's
+  /// answer text, or a short status the watch turns into its own words.
+  Future<String> askFromWatch(String text) async {
+    if (!ready) return 'not-ready';
+    if (lock.locked) return 'locked';
+    if (busy || _outbox.isNotEmpty) return 'busy';
+    if (text.trim().isEmpty) return 'empty';
+    final before = transcript.length;
+    await send(text);
+    final said = transcript
+        .skip(before)
+        .where((line) => line.role == ChatRole.assistant || line.role == ChatRole.error)
+        .map((line) => line.text)
+        .lastOrNull;
+    return said ?? '';
+  }
   /// Sends [lastSent] again, as a message of its own; nothing before the first.
   Future<void> resend() async {
     // A provider switched to since cannot take the images: the words only.

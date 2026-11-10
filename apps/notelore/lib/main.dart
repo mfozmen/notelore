@@ -20,6 +20,7 @@ import 'src/session.dart';
 import 'src/share_native.dart';
 import 'src/theme.dart';
 import 'src/update.dart';
+import 'src/watch_bridge.dart';
 
 void main() {
   addFontLicenses();
@@ -110,6 +111,7 @@ Future<Session> openSession({
     realNotes: test ? real.notes : null,
   );
   await session.load();
+  if (Platform.isAndroid) listenForWatch(session); // the watch, through the phone (#823)
   if (phone && Platform.isAndroid) listenForShares(session); // "Share → Notelore" (#211)
   if (phone && Platform.isAndroid) listenForQuickWidget(session); // the home-screen widget (#799)
   if (!phone) setUpQuickWindow(session); // Ctrl+Alt+N, the quick-add window (#800)
