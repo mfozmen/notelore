@@ -368,6 +368,26 @@ const _type = TextTheme(
   labelSmall: _sans,
 );
 
+/// [ink] tints a pressed control, and more faintly a hovered or focused one,
+/// in its own shape.
+WidgetStateProperty<Color?> _tint(Color ink) => WidgetStateProperty.resolveWith((states) {
+  if (states.contains(WidgetState.pressed)) return ink.withValues(alpha: .12);
+  if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
+    return ink.withValues(alpha: .08);
+  }
+  return null;
+});
+
+/// A 2-point [ring] around a control the keyboard focused; a touch never rings.
+WidgetStateProperty<BorderSide?> _ring(Color ring, [BorderSide? rest]) =>
+    WidgetStateProperty.resolveWith(
+      (states) =>
+          states.contains(WidgetState.focused) &&
+              FocusManager.instance.highlightMode == FocusHighlightMode.traditional
+          ? BorderSide(color: ring, width: 2)
+          : rest,
+    );
+
 ThemeData noteloreTheme(Brightness brightness) {
   final colors = brightness == Brightness.light ? kil : orman;
   final rounded = RoundedRectangleBorder(borderRadius: BorderRadius.circular(_card));
@@ -377,22 +397,6 @@ ThemeData noteloreTheme(Brightness brightness) {
   // No ripple: a press dims and shrinks the button's insides a little instead.
   Widget press(BuildContext _, Set<WidgetState> states, Widget? child) =>
       pressFeedback(pressed: states.contains(WidgetState.pressed), child: child!);
-  // The accent tints hover and press in the control's own shape; a keyboard
-  // focus rings it, a touch never does.
-  WidgetStateProperty<Color?> tint(Color ink) => WidgetStateProperty.resolveWith(
-    (states) => states.contains(WidgetState.pressed)
-        ? ink.withValues(alpha: .12)
-        : states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)
-        ? ink.withValues(alpha: .08)
-        : null,
-  );
-  WidgetStateProperty<BorderSide?> ring([BorderSide? rest]) => WidgetStateProperty.resolveWith(
-    (states) =>
-        states.contains(WidgetState.focused) &&
-            FocusManager.instance.highlightMode == FocusHighlightMode.traditional
-        ? BorderSide(color: colors.primary, width: 2)
-        : rest,
-  );
   return ThemeData(
     colorScheme: colors,
     textTheme: _type,
@@ -459,8 +463,8 @@ ThemeData noteloreTheme(Brightness brightness) {
             shape: const StadiumBorder(),
             foregroundColor: colors.onPrimary,
           ).copyWith(
-            overlayColor: tint(colors.onPrimary),
-            side: ring(),
+            overlayColor: _tint(colors.onPrimary),
+            side: _ring(colors.primary),
             backgroundBuilder: (context, states, child) => states.contains(WidgetState.disabled)
                 ? child!
                 : press(
@@ -478,19 +482,30 @@ ThemeData noteloreTheme(Brightness brightness) {
           ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(
-        minimumSize: tap,
-        shape: const StadiumBorder(),
-        backgroundColor: colors.surfaceContainerLow,
-      ).copyWith(overlayColor: tint(colors.primary), side: ring(edge), backgroundBuilder: press),
+      style:
+          OutlinedButton.styleFrom(
+            minimumSize: tap,
+            shape: const StadiumBorder(),
+            backgroundColor: colors.surfaceContainerLow,
+          ).copyWith(
+            overlayColor: _tint(colors.primary),
+            side: _ring(colors.primary, edge),
+            backgroundBuilder: press,
+          ),
     ),
     textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(minimumSize: tap)
-          .copyWith(overlayColor: tint(colors.primary), side: ring(), backgroundBuilder: press),
+      style: TextButton.styleFrom(minimumSize: tap).copyWith(
+        overlayColor: _tint(colors.primary),
+        side: _ring(colors.primary),
+        backgroundBuilder: press,
+      ),
     ),
     iconButtonTheme: IconButtonThemeData(
-      style: IconButton.styleFrom(minimumSize: tap)
-          .copyWith(overlayColor: tint(colors.primary), side: ring(), backgroundBuilder: press),
+      style: IconButton.styleFrom(minimumSize: tap).copyWith(
+        overlayColor: _tint(colors.primary),
+        side: _ring(colors.primary),
+        backgroundBuilder: press,
+      ),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
       backgroundColor: colors.primary,
