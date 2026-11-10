@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -58,8 +59,18 @@ void main() {
       await connect(tester, key: 'k');
       await say(tester, 'Atlas: we picked Postgres');
       expect(label, findsOneWidget);
-      final open = find.widgetWithText(InkWell, 'Open');
+      final open = find.widgetWithText(TextButton, 'Open');
       expect(tester.getSize(open).height, greaterThanOrEqualTo(48));
+      // Hover and press tint the pill's own end, never the 48-point target around it.
+      final ink = tester.getRect(find.descendant(of: open, matching: find.byType(InkWell)));
+      final pill = tester.getRect(
+        find.descendant(
+          of: find.ancestor(of: label, matching: find.byType(Stack)).first,
+          matching: find.byType(Ink),
+        ),
+      );
+      expect((ink.top, ink.bottom), (pill.top, pill.bottom));
+      expect(ink.right, pill.right);
       final theme = Theme.of(tester.element(label));
       expect(tester.widget<Text>(label).style!.color, theme.colorScheme.primary);
       expect(
@@ -202,6 +213,18 @@ void main() {
       expect(open, findsNWidgets(2));
       final button = find.ancestor(of: open.first, matching: find.byType(TextButton));
       expect(tester.getSize(button).height, greaterThanOrEqualTo(48));
+      // Its hover stays clear of the card's edge.
+      final edge = tester.getRect(
+        find
+            .descendant(
+              of: find.ancestor(of: value, matching: find.byType(Card)),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      final hover = tester.getRect(button.first);
+      expect(edge.right - hover.right, Gap.s);
+      expect(edge.bottom - hover.bottom, Gap.s);
       expect(
         tester.getSemantics(button),
         matchesSemantics(
@@ -452,16 +475,48 @@ void main() {
     final colors = Theme.of(tester.element(orb)).colorScheme;
     final spark = find.byIcon(AppIcons.sparkle);
     expect(tester.widget<Icon>(spark).color, colors.primary);
-    final pill = tester.widget<Container>(
-      find.ancestor(of: spark, matching: find.byType(Container)).first,
+    final pill = find.ancestor(of: spark, matching: find.byType(TextButton));
+    final style = tester.widget<TextButton>(pill).style!;
+    expect(style.backgroundColor!.resolve({}), colors.surfaceContainerLow);
+    expect(style.shape!.resolve({}), StadiumBorder(side: BorderSide(color: colors.outlineVariant)));
+    // A 48-point target; the hover tints only the slim pill inside it.
+    expect(tester.getSize(pill).height, greaterThanOrEqualTo(48));
+    final ink = tester.getSize(find.descendant(of: pill, matching: find.byType(InkWell)));
+    expect(ink.height, lessThan(36));
+  });
+
+  testWidgets('the model menu is a soft card; the current model has a check', (tester) async {
+    phone(tester);
+    dark(tester);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await tester.tap(find.byTooltip('Change the model'));
+    await tester.pumpAndSettle();
+    final current = find.text('Claude Sonnet 5.5').last;
+    final colors = Theme.of(tester.element(current)).colorScheme;
+    final menu = tester.widget<Material>(
+      find.ancestor(of: current, matching: find.byType(Material)).first,
     );
+    expect(menu.shape, softBorder(colors, BorderRadius.circular(20)));
+    expect(menu.clipBehavior, Clip.antiAlias);
+    expect(find.byIcon(AppIcons.check), findsOneWidget);
     expect(
-      pill.decoration,
-      ShapeDecoration(
-        color: colors.surfaceContainerLow,
-        shape: StadiumBorder(side: BorderSide(color: colors.outlineVariant)),
-      ),
+      find.ancestor(of: find.byIcon(AppIcons.check), matching: find.byType(PopupMenuItem<String>)),
+      findsOneWidget,
     );
+    final band = tester.widget<Ink>(find.ancestor(of: current, matching: find.byType(Ink)));
+    expect((band.decoration! as BoxDecoration).color, colors.primaryContainer);
+    expect(tester.widget<Text>(current).style!.color, colors.onPrimaryContainer);
+    // A screen reader hears which one is in use, not only a sighted user.
+    expect(tester.getSemantics(current).flagsCollection.isSelected, Tristate.isTrue);
+    expect(tester.getSemantics(find.text('model-a')).flagsCollection.isSelected, Tristate.isFalse);
+    final other = tester.widget<Ink>(
+      find.ancestor(of: find.text('model-a'), matching: find.byType(Ink)),
+    );
+    expect((other.decoration! as BoxDecoration).color, isNull);
+    await tester.tap(find.text('model-a'));
+    await tester.pumpAndSettle();
+    expect(find.text('model-a'), findsOneWidget);
   });
 
   testWidgets('a banner is a card-coloured strip with the accent icon', (tester) async {

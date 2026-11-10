@@ -2385,8 +2385,12 @@ void main() {
     await tester.tap(find.byTooltip('Send'));
     await tester.pump();
     expect(
-      tester.widget<PopupMenuButton<String>>(find.byType(PopupMenuButton<String>)).enabled,
-      isFalse,
+      tester
+          .widget<TextButton>(
+            find.ancestor(of: find.text('model-b'), matching: find.byType(TextButton)),
+          )
+          .onPressed,
+      isNull,
     );
     await tester.tap(find.byTooltip('Stop the answer'));
     await tester.pumpAndSettle();
