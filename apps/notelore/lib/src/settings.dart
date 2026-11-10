@@ -360,7 +360,8 @@ class _UsagePane extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      ListTile(
+      AppBar(
+        primary: false,
         leading: softBack(context, onPressed: close),
         title: Text(session.strings.usage),
       ),

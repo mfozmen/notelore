@@ -7,6 +7,7 @@ import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/note_view.dart';
 import 'package:notelore/src/soft.dart';
 import 'package:notelore/src/theme.dart';
+import 'package:notelore/src/usage_page.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'app_test.dart' show connect, phone, pumpApp;
@@ -484,7 +485,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('open-usage')));
     await tester.pumpAndSettle();
-    softRoundCircle(tester, 'Back');
+    final pane = tester.getRect(find.byType(UsageView));
+    expect(softRoundCircle(tester, 'Back').left, pane.left + 8);
   });
 
   testWidgets('settings: the chat text size control keeps its width on a desktop (#716)', (

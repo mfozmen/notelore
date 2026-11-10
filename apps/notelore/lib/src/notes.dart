@@ -613,7 +613,7 @@ class _NotesScreenState extends State<NotesScreen> {
           // The note's own heading is its title; above it only its actions,
           // whose circles end Gap.s from the edge, as in an app bar.
           Padding(
-            padding: const EdgeInsets.fromLTRB(0, Gap.s, Gap.s - 5, 0),
+            padding: const EdgeInsets.fromLTRB(0, Gap.s, Gap.s - softRoundInset, 0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [

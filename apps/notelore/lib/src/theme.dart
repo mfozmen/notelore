@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 
 import 'icons.dart';
 import 'schemes.dart';
+import 'soft.dart' show softRoundInset, softRoundSize;
 
 /// Light, dark, or whatever the device uses.
 enum Appearance {
@@ -401,10 +402,9 @@ ThemeData noteloreTheme(Brightness brightness) {
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      // Header buttons are softRound: a 38-point circle 5 points inside its
-      // 48-point target. These put the circle Gap.s from either edge.
-      leadingWidth: 38 + 2 * Gap.s,
-      actionsPadding: const EdgeInsetsDirectional.only(end: Gap.s - 5),
+      // Header buttons are softRound: these put its circle Gap.s from either edge.
+      leadingWidth: softRoundSize + 2 * Gap.s,
+      actionsPadding: const EdgeInsetsDirectional.only(end: Gap.s - softRoundInset),
     ),
     cardTheme: CardThemeData(
       margin: EdgeInsets.zero,
