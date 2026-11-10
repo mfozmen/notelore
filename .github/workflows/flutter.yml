@@ -105,7 +105,8 @@ jobs:
       - name: Build the debug APK
         working-directory: apps/notelore
         run: flutter build apk --debug
-      # The watch app is a second module of the same Gradle build (docs/wear-os.md).
+      # The watch app is a second module of the same Gradle build (docs/wear-os.md); it needs
+      # the wrapper and local.properties the step above generates.
       - name: Build and test the Wear OS APK
         working-directory: apps/notelore/android
         run: ./gradlew :wear:assembleDebug :wear:testDebugUnitTest
