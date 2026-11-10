@@ -367,11 +367,25 @@ class _NotesScreenState extends State<NotesScreen> {
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, 0),
                     children: [
-                      Text(
-                        searching ? s.noNoteMentions(_search.text.trim()) : s.noFilteredNotes,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: colors.onSurfaceVariant),
-                      ),
+                      if (searching)
+                        EmptyState(
+                          icon: AppIcons.searchEmpty,
+                          title: s.noNoteMentions(_search.text.trim()),
+                          hint: s.chatCanLook,
+                          actions: [
+                            FilledButton(
+                              // Lands in the composer like a share, which also opens the chat.
+                              onPressed: () => session.receiveSharedText(_search.text.trim()),
+                              child: Text(s.askInChat),
+                            ),
+                          ],
+                        )
+                      else
+                        Text(
+                          s.noFilteredNotes,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: colors.onSurfaceVariant),
+                        ),
                     ],
                   )
                 // Coming up only lists notes in `all`, so it follows the filters too.

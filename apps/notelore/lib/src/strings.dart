@@ -518,8 +518,10 @@ abstract class Strings {
   String get searchNotes;
   String get clearSearch;
 
-  /// A search that found nothing, and what to try instead.
+  /// A search that found nothing, the chat that may find it, and the button there.
   String noNoteMentions(String query);
+  String get chatCanLook;
+  String get askInChat;
 
   // The Notes list's filter chips (#793).
   String get filterAll;
@@ -1532,8 +1534,11 @@ class EnglishStrings extends Strings {
   @override
   String get clearSearch => 'Clear';
   @override
-  String noNoteMentions(String query) =>
-      'No note mentions "$query". Try other words, or ask in the chat.';
+  String noNoteMentions(String query) => 'Nothing mentions “$query”';
+  @override
+  String get chatCanLook => 'The chat can look for what you meant.';
+  @override
+  String get askInChat => 'Ask in the chat';
   @override
   String get filterAll => 'All';
   @override
@@ -2778,8 +2783,11 @@ class TurkishStrings extends Strings {
   @override
   String get clearSearch => 'Temizle';
   @override
-  String noNoteMentions(String query) =>
-      '"$query" geçen bir not yok. Başka kelimeler dene ya da sohbette sor.';
+  String noNoteMentions(String query) => '“$query” geçen bir şey yok';
+  @override
+  String get chatCanLook => 'Ne demek istediğini sohbet arayabilir.';
+  @override
+  String get askInChat => 'Sohbette sor';
   @override
   String get filterAll => 'Tümü';
   @override

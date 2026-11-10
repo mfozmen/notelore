@@ -140,6 +140,10 @@ abstract final class AppIcons {
     line: IconData(0xe00d, fontFamily: _duotone),
     fill: IconData(0xe00c, fontFamily: _duotone),
   );
+  static const Duotone searchEmpty = (
+    line: IconData(0xe30d, fontFamily: _duotone),
+    fill: IconData(0xe30c, fontFamily: _duotone),
+  );
   static const Duotone eventEmpty = (
     line: IconData(0xe713, fontFamily: _duotone),
     fill: IconData(0xe712, fontFamily: _duotone),
