@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'icons.dart';
 import 'mark.dart';
+import 'scroll_fade.dart';
 import 'session.dart';
 import 'soft.dart';
 import 'strings.dart';
@@ -42,31 +43,6 @@ const _cardTop = 96.0;
 class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObserver {
   late ProviderSpec _spec = widget.session.spec ?? widget.session.providers.first;
   var _step = _Step.choose;
-
-  /// The phone's list goes on under the pinned action.
-  var _moreBelow = false;
-
-  /// Some of the list has scrolled up under the header (#472).
-  var _scrolledUnder = false;
-
-  bool _scrolled(Notification event) {
-    // The list's own scrolling only, not a field's or a selectable text's inside it.
-    final metrics = switch (event) {
-      ScrollNotification(depth: 0, :final metrics) ||
-      ScrollMetricsNotification(depth: 0, :final metrics) => metrics,
-      _ => null,
-    };
-    if (metrics == null) return false;
-    final more = metrics.extentAfter > 0;
-    final under = metrics.extentBefore > 0;
-    if (more != _moreBelow || under != _scrolledUnder) {
-      setState(() {
-        _moreBelow = more;
-        _scrolledUnder = under;
-      });
-    }
-    return false;
-  }
 
   /// The test turn's answer on Done (#361); null while it is on its way.
   String? _tried;
@@ -495,12 +471,6 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
     ],
   );
 
-  /// A hairline where the list runs on under the header or the action; the same
-  /// box either way, so nothing moves and the list beside it is never rebuilt
-  /// (its scroll offset would be lost).
-  static Widget _edge(String key, {required bool show}) =>
-      SizedBox(height: 1, child: show ? Divider(key: Key(key), height: 1) : null);
-
   /// A desk: one card of a readable width, like the sign-in's. A phone: the
   /// choices scroll and the action stays where the thumb is, above the keyboard
   /// too, when the window is tall enough; otherwise it all scrolls together.
@@ -547,23 +517,13 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
                       child: header(),
                     ),
                     const SizedBox(height: Gap.l),
-                    // As wide as the content: the gutter on the right is the scrollbar's.
-                    Padding(
-                      padding: const EdgeInsets.only(right: Gap.m),
-                      child: _edge('header-edge', show: _scrolledUnder),
-                    ),
                     Flexible(
-                      child: NotificationListener<Notification>(
-                        onNotification: _scrolled,
+                      child: ScrollFade(
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.only(right: Gap.m),
                           child: content,
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(right: Gap.m),
-                      child: _edge('action-edge', show: _moreBelow),
                     ),
                     const SizedBox(height: Gap.l),
                     Padding(
@@ -596,18 +556,14 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
           padding: const EdgeInsets.fromLTRB(Gap.s, Gap.s, Gap.l, 0),
           child: header(Gap.l - Gap.s),
         ),
-        _edge('header-edge', show: _scrolledUnder),
         Expanded(
-          child: NotificationListener<Notification>(
-            onNotification: _scrolled,
+          child: ScrollFade(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(Gap.l, Gap.l, Gap.l, Gap.m),
               child: content,
             ),
           ),
         ),
-        // An edge while the list runs on under the action (#352).
-        _edge('action-edge', show: _moreBelow),
         Padding(padding: const EdgeInsets.fromLTRB(Gap.l, Gap.s, Gap.l, Gap.m), child: action),
       ],
     );
@@ -639,17 +595,23 @@ class _StepHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       spacing: Gap.xs,
       children: [
-        Row(
-          spacing: Gap.s,
-          children: [
-            // The same room with or without a button, so nothing below shifts.
-            SizedBox.square(dimension: 48, child: leading),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.labelMedium
-                  ?.copyWith(color: colors.onSurfaceVariant),
-            ),
-          ],
+        // The same height with or without a button, so nothing below shifts.
+        SizedBox(
+          height: 48,
+          child: Row(
+            spacing: Gap.s,
+            children: [
+              if (leading != null) SizedBox.square(dimension: 48, child: leading),
+              Padding(
+                padding: EdgeInsets.only(left: leading == null ? inset : 0),
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelMedium
+                      ?.copyWith(color: colors.onSurfaceVariant),
+                ),
+              ),
+            ],
+          ),
         ),
         Padding(
           padding: EdgeInsets.only(left: inset),

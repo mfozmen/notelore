@@ -367,11 +367,25 @@ class _NotesScreenState extends State<NotesScreen> {
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, 0),
                     children: [
-                      Text(
-                        searching ? s.noNoteMentions(_search.text.trim()) : s.noFilteredNotes,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: colors.onSurfaceVariant),
-                      ),
+                      if (searching)
+                        EmptyState(
+                          icon: AppIcons.searchEmpty,
+                          title: s.noNoteMentions(_search.text.trim()),
+                          hint: s.chatCanLook,
+                          actions: [
+                            FilledButton(
+                              // Lands in the composer like a share, which also opens the chat.
+                              onPressed: () => session.receiveSharedText(_search.text.trim()),
+                              child: Text(s.askInChat),
+                            ),
+                          ],
+                        )
+                      else
+                        Text(
+                          s.noFilteredNotes,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: colors.onSurfaceVariant),
+                        ),
                     ],
                   )
                 // Coming up only lists notes in `all`, so it follows the filters too.
@@ -747,9 +761,13 @@ TextStyle _mono(ThemeData theme) => theme.extension<NoteloreTokens>()!.label.cop
 
 /// An outlined card over the notes list, holding [children].
 class _Panel extends StatelessWidget {
-  const _Panel({required this.children});
+  const _Panel({required this.children, this.corner, this.bottom = Gap.xs});
 
   final List<Widget> children;
+
+  /// Over the top end corner, so its 48 dp target does not push the first row down.
+  final Widget? corner;
+  final double bottom;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -760,9 +778,15 @@ class _Panel extends StatelessWidget {
         side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.only(top: 12, bottom: Gap.xs),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+      child: Stack(
+        children: [
+          Padding(
+            padding: EdgeInsets.only(top: 12, bottom: bottom),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+          ),
+          if (corner case final corner?)
+            PositionedDirectional(top: Gap.xs, end: Gap.xs, child: corner),
+        ],
       ),
     ),
   );
@@ -834,26 +858,28 @@ class _LookBack extends StatelessWidget {
     final theme = Theme.of(context);
     final monday = DateTime(today.year, today.month, today.day - 6);
     return _Panel(
+      // The rows' own Gap.s under the last one makes the 20 dp the label has above.
+      bottom: 12,
+      corner: IconButton(
+        tooltip: s.hideThisWeek,
+        icon: const Icon(AppIcons.close, size: 18),
+        onPressed: close,
+      ),
       children: [
         SectionLabel(
           s.thisWeek,
           strings: s,
-          padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.xs, 0),
-          trailing: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  s.caps(s.weekRange(monday, today)),
-                  textAlign: TextAlign.end,
-                  style: _mono(theme),
-                ),
-              ),
-              IconButton(
-                tooltip: s.hideThisWeek,
-                icon: const Icon(AppIcons.close, size: 18),
-                onPressed: close,
-              ),
-            ],
+          // Centred on the corner's close button, the date clear of it.
+          padding: const EdgeInsets.fromLTRB(
+            Gap.m,
+            Gap.s,
+            Gap.xs + kMinInteractiveDimension,
+            Gap.m,
+          ),
+          trailing: Text(
+            s.caps(s.weekRange(monday, today)),
+            textAlign: TextAlign.end,
+            style: _mono(theme),
           ),
         ),
         _group(theme, 'decided', s.weekDecided, week.decided),
@@ -878,7 +904,8 @@ class _LookBack extends StatelessWidget {
       children: [
         Padding(
           key: Key('week-$key'),
-          padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, 0),
+          // An empty group keeps a row's room under it, so the panel's bottom stays even.
+          padding: EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, items.isEmpty ? Gap.s : 0),
           child: Row(
             children: [
               Expanded(

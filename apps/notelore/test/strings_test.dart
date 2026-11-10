@@ -467,6 +467,8 @@ void main() {
       'searchNotes': s.searchNotes,
       'clearSearch': s.clearSearch,
       'noNoteMentions': s.noNoteMentions('x'),
+      'chatCanLook': s.chatCanLook,
+      'askInChat': s.askInChat,
       'filterAll': s.filterAll,
       'filterProjects': s.filterProjects,
       'filterTopics': s.filterTopics,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/empty_state.dart';
 import 'package:notelore/src/note_view.dart';
+import 'package:notelore/src/scroll_fade.dart';
 import 'package:notelore/src/soft.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore_core/notelore_core.dart';
@@ -127,6 +128,24 @@ void main() {
     expect(reminder.dx, closeTo(todo.dx, 0.5));
   });
 
+  testWidgets('calendar: the page fades under the header once scrolled, no hard cut', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = await withPlans(tester);
+    final health = p.join(harness.paths.notes.path, 'topics', 'health.md');
+    for (var d = 21; d < 31; d++) {
+      addReminder(health, 'Walk $d', day(d), today: day(1)); // more than a screen
+    }
+    await tester.tap(tab('Calendar'));
+    await tester.pumpAndSettle();
+    ScrollFadeState fade() => tester.state(find.byType(ScrollFade));
+    expect(fade().above, isFalse);
+    await tester.drag(find.text('October 2026'), const Offset(0, -200));
+    await tester.pumpAndSettle();
+    expect(fade().above, isTrue);
+  });
+
   testWidgets('calendar: at 2x text the grid does not overflow and a day is 48 (#705)', (
     tester,
   ) async {
@@ -198,6 +217,7 @@ void main() {
     expect(find.textContaining('Nothing planned'), findsOneWidget);
     expect(find.byType(EmptyState), findsOneWidget); // one empty look, shared (#721)
     expect(find.byType(VerticalDivider), findsWidgets);
+    expect(find.byType(ScrollFade), findsNWidgets(2)); // the grid and the list, each
     // The way to make one: the chat.
     await tester.tap(find.text('Go to chat'));
     await tester.pumpAndSettle();

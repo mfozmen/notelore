@@ -2535,11 +2535,33 @@ void main() {
     expect(find.text('İş planı'), findsOneWidget);
     await tester.enterText(search, 'zeppelin');
     await tester.pumpAndSettle();
-    expect(find.textContaining('No note mentions "zeppelin"'), findsOneWidget);
+    expect(find.text('Nothing mentions “zeppelin”'), findsOneWidget);
     await tester.tap(find.byTooltip('Clear'));
     await tester.pumpAndSettle();
     expect(find.text('Books'), findsOneWidget);
     expect(find.text('Garden shed'), findsOneWidget);
+  });
+
+  testWidgets('notes: a search with no result offers to ask the chat (#857)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Books', today: today);
+    session.notifyListeners();
+    await tester.tap(tab('Notes'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('notes-search')), ' zebra ');
+    await tester.pumpAndSettle();
+    expect(tester.widget<EmptyState>(find.byType(EmptyState)).icon, AppIcons.searchEmpty);
+    // A long pasted search stays a short title.
+    expect(tester.widget<Text>(find.text('Nothing mentions “zebra”')).maxLines, 3);
+    expect(find.text('The chat can look for what you meant.'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Ask in the chat'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ChatScreen), findsOneWidget);
+    expect(tester.widget<TextField>(find.byKey(const Key('message'))).controller!.text, 'zebra');
+    expect(harness.provider.asked, isEmpty); // shown for editing, not sent
   });
 
   testWidgets('notes: a related note opens on its own page (#802)', (tester) async {
@@ -2886,7 +2908,7 @@ void main() {
     // With search: both narrow.
     await tester.enterText(find.byKey(const Key('notes-search')), 'Atlas');
     await tester.pumpAndSettle();
-    expect(find.textContaining('No note mentions "Atlas"'), findsOneWidget);
+    expect(find.text('Nothing mentions “Atlas”'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('notes-search')), '');
     await tester.pumpAndSettle();
     // Kept while the app runs, across tabs.
@@ -2996,6 +3018,48 @@ void main() {
     expect(find.text('THIS WEEK'), findsNothing);
     expect(session.lookBackClosed, '2026-11-08');
     expect(find.text('COMING UP'), findsOneWidget);
+  });
+
+  testWidgets('notes: the week look back has even room above and below, a 48 dp close (#855)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness, clock: () => DateTime(2026, 11, 8, 10));
+    await connect(tester, key: 'k');
+    final root = harness.paths.notes.path;
+    final day = DateTime(2026, 11, 1);
+    final atlas = createNote(root, 'project', 'Atlas', today: day);
+    recordDecision(atlas, 'db', 'SQLite', today: DateTime(2026, 11, 3));
+    addTodo(atlas, 'Book the room', due: DateTime(2026, 11, 2), today: day);
+    await tester.tap(tab('Notes'));
+    await tester.pumpAndSettle();
+    final card = tester.getRect(
+      find.ancestor(of: find.text('THIS WEEK'), matching: find.byType(Card)).first,
+    );
+    final above = tester.getTopLeft(find.text('THIS WEEK')).dy - card.top;
+    final row = find.ancestor(of: find.text('Book the room'), matching: find.byType(InkWell));
+    final last = find.descendant(of: row.first, matching: find.text('Atlas'));
+    final below = card.bottom - tester.getBottomLeft(last).dy;
+    expect(above, closeTo(20, 2));
+    expect(below, closeTo(above, 2));
+    final close = tester.getRect(find.byTooltip('Hide for this week'));
+    expect(close.width, greaterThanOrEqualTo(48));
+    expect(close.height, greaterThanOrEqualTo(48));
+    expect(close.top - card.top, inInclusiveRange(Gap.xs, above)); // not on the edge
+    // An empty last group keeps the same room under it.
+    completeTodo(atlas, 1, today: DateTime(2026, 11, 4));
+    session.notifyListeners();
+    await tester.pumpAndSettle();
+    final overdue = find.descendant(
+      of: find.byKey(const Key('week-overdue')),
+      matching: find.byType(Text),
+    );
+    expect(tester.widget<Text>(overdue.last).data, '0');
+    final empty = tester.getRect(
+      find.ancestor(of: find.text('THIS WEEK'), matching: find.byType(Card)).first,
+    );
+    expect(empty.bottom - tester.getBottomLeft(overdue.first).dy, closeTo(above, 2));
   });
 
   testWidgets('notes: no week look back on other days, an empty week, or once closed (#804)', (
