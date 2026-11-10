@@ -3853,6 +3853,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
     expect(session.preparing, isTrue);
     expect(find.text(session.strings.devicePreparing), findsOneWidget);
+    // On the model pill's edge (#850).
+    expect(tester.getRect(find.byType(CircularProgressIndicator)).left, Gap.m);
     gate.complete();
     await tester.pump(const Duration(milliseconds: 1));
     await tester.pumpAndSettle();

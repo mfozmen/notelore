@@ -414,7 +414,10 @@ class _ChatScreenState extends State<ChatScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (session.preparing && !session.busy)
-                        _Thinking(s, fixed: s.devicePreparing),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+                          child: _Thinking(s, fixed: s.devicePreparing),
+                        ),
                       _ModelBar(session, menu: _modelMenu),
                       _Composer(
                         session,
@@ -1668,7 +1671,7 @@ class _Bubble extends StatelessWidget {
             _ when mine => -Gap.s - Gap.xs,
             _ when answer != null && answers.isNotEmpty => -Gap.m - Gap.xs,
             NoteReceipt() => Gap.s - _Receipt.inset - _iconInset,
-            DecisionSource() => Gap.s - Gap.xs - _iconInset,
+            DecisionSource() => Gap.s - _Source.margin - _iconInset,
             null => -Gap.m - Gap.xs,
           }),
           child: _actions(copy, colors.primary, colors.onSurfaceVariant.withValues(alpha: .8)),
@@ -1848,6 +1851,8 @@ typedef _OpenNote = void Function(String kind, String slug);
 class _Source extends StatelessWidget {
   const _Source(this.source, this.strings, {required this.today, required this.open});
 
+  static const double margin = Gap.xs;
+
   final DecisionSource source;
   final Strings strings;
   final DateTime today;
@@ -1863,7 +1868,7 @@ class _Source extends StatelessWidget {
       color: colors.onSurfaceVariant,
     );
     final card = Card(
-      margin: const EdgeInsets.symmetric(vertical: Gap.xs),
+      margin: const EdgeInsets.symmetric(vertical: margin),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(Gap.m, 12, Gap.s, Gap.s),
         child: Column(
