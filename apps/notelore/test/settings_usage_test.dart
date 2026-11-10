@@ -34,6 +34,17 @@ void main() {
     expect(find.byType(BackButton), findsOneWidget); // a page of its own
   });
 
+  testWidgets('settings pages: the way back is a soft round, 8 points in (#856)', (tester) async {
+    phone(tester);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await openUsage(tester);
+    expect(softRoundCircle(tester, 'Back').left, 8);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(softRoundCircle(tester, 'Back').left, 8); // the Advanced page
+  });
+
   testWidgets('usage page: both totals, the last days, each model, cost an estimate', (
     tester,
   ) async {

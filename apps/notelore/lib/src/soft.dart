@@ -221,6 +221,10 @@ ButtonStyle softRound(ColorScheme colors) => IconButton.styleFrom(
   shape: softBorder(colors, BorderRadius.circular(19)),
 );
 
+/// A page's way back as a [softRound]; without [onPressed] it pops the route.
+Widget softBack(BuildContext context, {VoidCallback? onPressed}) =>
+    BackButton(style: softRound(Theme.of(context).colorScheme), onPressed: onPressed);
+
 /// The Soft switch's look: a sunken track and an orb for a knob. Its
 /// [SoftSwitchTile] row is the target and says the state.
 class SoftSwitch extends StatelessWidget {

@@ -462,6 +462,31 @@ void main() {
     expect(find.byKey(const Key('open-usage')), findsOneWidget); // the section again
   });
 
+  testWidgets('wide: the open note\'s buttons and Usage\'s back are soft rounds (#856)', (
+    tester,
+  ) async {
+    desktop(tester, 1600);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    await tester.tap(tab('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    softRoundCircle(tester, 'Pin');
+    softRoundCircle(tester, 'Export');
+    final page = tester.getRect(find.byType(NoteView));
+    expect(softRoundCircle(tester, 'Delete').right, page.right - 8);
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Advanced'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('open-usage')));
+    await tester.pumpAndSettle();
+    softRoundCircle(tester, 'Back');
+  });
+
   testWidgets('settings: the chat text size control keeps its width on a desktop (#716)', (
     tester,
   ) async {

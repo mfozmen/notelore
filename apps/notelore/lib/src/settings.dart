@@ -174,7 +174,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final sections = SettingsSection.of(session);
     if (widget.section case final section?) {
       return Scaffold(
-        appBar: AppBar(title: Text(section.title(s))),
+        appBar: AppBar(leading: softBack(context), title: Text(section.title(s))),
         body: ListView(
           padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.l),
           children: [
@@ -361,7 +361,7 @@ class _UsagePane extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       ListTile(
-        leading: BackButton(onPressed: close),
+        leading: softBack(context, onPressed: close),
         title: Text(session.strings.usage),
       ),
       Expanded(child: UsageView(session)),
