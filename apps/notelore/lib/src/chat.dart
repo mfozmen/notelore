@@ -516,7 +516,7 @@ class _EmptyChatState extends State<EmptyChat> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(Gap.l, Gap.l, Gap.l, Gap.m),
+        padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, Gap.m),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1433,7 +1433,7 @@ class _ThinkingState extends State<_Thinking> {
       label: widget.fixed ?? widget.strings.working,
       excludeSemantics: true,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.s),
+        padding: const EdgeInsets.symmetric(vertical: Gap.s),
         child: Row(
           spacing: Gap.s,
           children: [
@@ -1662,8 +1662,15 @@ class _Bubble extends StatelessWidget {
         content: [bubble, ..._under(answers, colors)],
         // Close under its words (full-size targets, pulled up into the
         // bubble's own bottom room), the icons level with the words' edge.
+        // After a card there is no such room: the icons sit a Gap under its edge.
         actions: Transform.translate(
-          offset: Offset(mine ? Gap.s : -Gap.s - Gap.xs, mine ? -Gap.s - Gap.xs : -Gap.m - Gap.xs),
+          offset: Offset(mine ? Gap.s : -Gap.s - Gap.xs, switch (line.cards.lastOrNull) {
+            _ when mine => -Gap.s - Gap.xs,
+            _ when answer != null && answers.isNotEmpty => -Gap.m - Gap.xs,
+            NoteReceipt() => Gap.s - _Receipt.inset - _iconInset,
+            DecisionSource() => Gap.s - Gap.xs - _iconInset,
+            null => -Gap.m - Gap.xs,
+          }),
           child: _actions(copy, colors.primary, colors.onSurfaceVariant.withValues(alpha: .8)),
         ),
       ),
@@ -1703,7 +1710,7 @@ class _Bubble extends StatelessWidget {
     Widget button(String tooltip, IconData icon, VoidCallback onPressed, [Color? color]) =>
         IconButton(
           tooltip: tooltip,
-          icon: Icon(icon, size: 17, color: color ?? muted),
+          icon: Icon(icon, size: _actionIcon, color: color ?? muted),
           onPressed: onPressed,
         );
     return Row(
@@ -1735,6 +1742,11 @@ class _Bubble extends StatelessWidget {
         .withLightness(light ? 0.32 : 0.72)
         .toColor();
   }
+
+  static const double _actionIcon = 17;
+
+  /// From an action's 48 dp target to its icon.
+  static const _iconInset = (kMinInteractiveDimension - _actionIcon) / 2;
 
   /// The person's message: rounded, its corner on their side smaller.
   static const _mineRadius = BorderRadius.only(
@@ -1771,11 +1783,13 @@ class _Bubble extends StatelessWidget {
 }
 
 /// A failed turn, as a status between the lines (#306): an icon and what went
-/// wrong, centred, and its way out right there ([retry], for the newest one).
+/// wrong, and its way out under the words ([retry], for the newest one).
 /// The message keeps the normal text colour, so it reads as a notice, not an
 /// alarm; only the icon carries the error colour.
 class _ErrorRow extends StatelessWidget {
   const _ErrorRow(this.message, this.strings, {this.retry});
+
+  static const double _iconSize = 20;
 
   final String message;
   final Strings strings;
@@ -1792,13 +1806,14 @@ class _ErrorRow extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 480),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 spacing: Gap.s,
                 children: [
-                  Icon(AppIcons.error, size: 20, color: colors.error),
+                  Icon(AppIcons.error, size: _iconSize, color: colors.error),
                   Flexible(
                     child: Text(
                       message,
@@ -1809,10 +1824,14 @@ class _ErrorRow extends StatelessWidget {
                 ],
               ),
               if (retry case final retry?)
-                TextButton.icon(
-                  onPressed: retry,
-                  icon: const Icon(AppIcons.refresh, size: 18),
-                  label: Text(strings.tryAgain),
+                Padding(
+                  // The button's own 12 dp start padding puts its icon at the message's edge.
+                  padding: const EdgeInsetsDirectional.only(start: _iconSize + Gap.s - 12),
+                  child: TextButton.icon(
+                    onPressed: retry,
+                    icon: const Icon(AppIcons.refresh, size: 18),
+                    label: Text(strings.tryAgain),
+                  ),
                 ),
             ],
           ),
@@ -1919,6 +1938,9 @@ class _Source extends StatelessWidget {
 class _Receipt extends StatelessWidget {
   const _Receipt(this.receipt, this.strings, {required this.open});
 
+  /// From the 48 dp row to the pill drawn in it.
+  static const double inset = Gap.s - 2;
+
   final NoteReceipt receipt;
   final Strings strings;
   final VoidCallback open;
@@ -1935,8 +1957,8 @@ class _Receipt extends StatelessWidget {
       children: [
         // Thinner than the 48 dp row, which is all Open's target.
         Positioned.fill(
-          top: Gap.s - 2,
-          bottom: Gap.s - 2,
+          top: inset,
+          bottom: inset,
           child: Ink(
             decoration: ShapeDecoration(
               color: colors.surfaceContainerLow,

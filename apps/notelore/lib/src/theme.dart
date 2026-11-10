@@ -42,7 +42,7 @@ abstract final class Gap {
 /// bubble's own text colour, so they read in both themes.
 abstract final class AnswerStyle {
   /// The answer's words: a step under the body size, with room between lines.
-  static const double size = 13;
+  static const double size = 14;
   static const double lineHeight = 1.6;
 
   /// A list card's row, and the accent number that starts it.
