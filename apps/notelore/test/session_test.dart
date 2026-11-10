@@ -283,6 +283,7 @@ void main() {
     await session.takeBackFeedback(again);
     expect(session.reportedVerdict, isNull);
   });
+
   test('a message from the watch gets the answer, or why not (#823)', () async {
     final harness = Harness(answers: ['Tamam.']);
     final session = harness.session();
