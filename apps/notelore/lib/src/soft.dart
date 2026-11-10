@@ -209,17 +209,25 @@ ShapeDecoration _barDecoration(ColorScheme colors) => ShapeDecoration(
   ],
 );
 
+/// A [softRound]'s circle, and how far it sits inside its 48-point target.
+const softRoundSize = 38.0;
+const softRoundInset = (48 - softRoundSize) / 2;
+
 /// A header's icon button in the Soft look: a 38-point circle on the card
 /// colour with a soft edge, padded out to a 48-point target.
 ButtonStyle softRound(ColorScheme colors) => IconButton.styleFrom(
-  fixedSize: const Size.square(38),
+  fixedSize: const Size.square(softRoundSize),
   iconSize: 20,
-  minimumSize: const Size.square(38),
+  minimumSize: const Size.square(softRoundSize),
   padding: EdgeInsets.zero,
   tapTargetSize: MaterialTapTargetSize.padded,
   backgroundColor: colors.surfaceContainerLow,
   shape: softBorder(colors, BorderRadius.circular(19)),
 );
+
+/// A page's way back as a [softRound]; without [onPressed] it pops the route.
+Widget softBack(BuildContext context, {VoidCallback? onPressed}) =>
+    BackButton(style: softRound(Theme.of(context).colorScheme), onPressed: onPressed);
 
 /// The Soft switch's look: a sunken track and an orb for a knob. Its
 /// [SoftSwitchTile] row is the target and says the state.

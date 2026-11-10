@@ -3,6 +3,7 @@ import 'package:notelore_core/notelore_core.dart';
 
 import 'model_names.dart';
 import 'session.dart';
+import 'soft.dart';
 import 'strings.dart';
 import 'theme.dart';
 
@@ -17,7 +18,7 @@ class UsagePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(session.strings.usage)),
+    appBar: AppBar(leading: softBack(context), title: Text(session.strings.usage)),
     body: UsageView(session),
   );
 }

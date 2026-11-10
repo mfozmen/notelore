@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import 'icons.dart';
 import 'section_label.dart';
 import 'session.dart' show Session, withoutFrontMatter;
+import 'soft.dart';
 import 'strings.dart';
 import 'theme.dart';
 import 'web_link.dart';
@@ -18,8 +19,8 @@ void pushNote(BuildContext context, Session session, NoteInfo note, String text)
   final now = session.clock().toLocal();
   Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) => Scaffold(
-        appBar: AppBar(title: Text(note.title)),
+      builder: (page) => Scaffold(
+        appBar: AppBar(leading: softBack(page), title: Text(note.title)),
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: Layout.column),
