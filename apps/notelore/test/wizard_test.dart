@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/scroll_fade.dart';
 import 'package:notelore/src/setup.dart';
 import 'package:notelore/src/soft.dart';
 import 'package:notelore/src/theme.dart';
@@ -24,10 +25,10 @@ void main() {
         tester.getTopLeft(find.byKey(const Key('step-bar'))).dx,
         tester.getTopLeft(find.text('Choose a model provider')).dx,
       );
-      // The step's words start the line, next to the button's place.
+      // No back button on the first step: the step's words start at the title's edge.
       expect(
         tester.getTopLeft(find.text('Step 1 of 3')).dx,
-        lessThan(tester.getCenter(find.byKey(const Key('step-bar'))).dx),
+        tester.getTopLeft(find.text('Choose a model provider')).dx,
       );
       // Its right end too: the step's words sit above it, not beside it.
       expect(
@@ -451,16 +452,17 @@ void main() {
     expect(find.textContaining('pasted from the clipboard'), findsOneWidget);
   });
 
-  testWidgets('Connect on a phone: an edge over the pinned action while more is below (#352)', (
+  testWidgets('Connect on a phone: the list fades under the pinned action while more is below', (
     tester,
   ) async {
     phone(tester);
     await pumpApp(tester, Harness());
-    // Choose is a long list: more below, so the edge shows.
-    expect(find.byKey(const Key('action-edge')), findsOneWidget);
+    ScrollFadeState fade() => tester.state(find.byType(ScrollFade));
+    // Choose is a long list: more below, so it fades there.
+    expect((fade().above, fade().below), (false, true));
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -5000));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('action-edge')), findsNothing); // at the end: none
+    expect((fade().above, fade().below), (true, false)); // at the end: under the header only
   });
 
   testWidgets(
@@ -478,15 +480,15 @@ void main() {
         tester.widget<SingleChildScrollView>(list).padding,
         const EdgeInsets.only(right: Gap.m),
       );
-      expect(find.byKey(const Key('header-edge')), findsNothing);
-      expect(find.byKey(const Key('action-edge')), findsOneWidget); // more below
-      // Scrolled: an edge under the header, so the clipped text reads as scrolled away.
+      ScrollFadeState fade() => tester.state(find.byType(ScrollFade));
+      expect((fade().above, fade().below), (false, true)); // more below
+      // Scrolled: it fades under the header too, so the cut text reads as scrolled away.
       await tester.drag(list, const Offset(0, -120));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('header-edge')), findsOneWidget);
+      expect(fade().above, isTrue);
       await tester.drag(list, const Offset(0, -5000));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('action-edge')), findsNothing);
+      expect(fade().below, isFalse);
     },
   );
 
