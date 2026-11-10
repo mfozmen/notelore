@@ -420,7 +420,7 @@ class NoteView extends StatelessWidget {
         ),
         null => Icon(
           todo.done ? AppIcons.checked : AppIcons.unchecked,
-          size: 20,
+          size: 18,
           color: todo.done ? colors.outline : colors.onSurfaceVariant,
         ),
       };
@@ -469,7 +469,7 @@ class NoteView extends StatelessWidget {
         ),
       ),
       Expanded(
-        child: Padding(padding: const EdgeInsets.only(top: 12), child: text),
+        child: Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: text),
       ),
       const SizedBox(width: Gap.s),
       Padding(padding: const EdgeInsets.only(top: 12), child: date),

@@ -172,6 +172,32 @@ kind: topic
     }
   });
 
+  testWidgets('todos: a wrapped one keeps the space below it that a short one has (#852)', (
+    tester,
+  ) async {
+    await show(tester, '''---
+title: Passport
+kind: topic
+---
+# Passport
+
+## Todo
+- [ ] 2026-10-25: ${'Pay the fee at the bank with the reference number. ' * 8}
+- [ ] 2026-10-26: Short one
+- [ ] 2026-10-27: Last one
+''', onTodo: (_, _, _) {});
+    final wrapped = find.textContaining('Pay the fee', findRichText: true);
+    expect(tester.getSize(wrapped).height, greaterThan(40));
+    final next = tester.getTopLeft(find.text('Short one', findRichText: true)).dy;
+    // 12 dp under it and 12 above the next one, close to a short row's 16 + 12.
+    expect(next - tester.getBottomLeft(wrapped).dy, 24);
+  });
+
+  testWidgets('todos: a read-only mark is as wide as a reminder icon (#852)', (tester) async {
+    await show(tester, _mopsos);
+    expect(tester.getSize(find.byIcon(AppIcons.unchecked).first).width, 18);
+  });
+
   testWidgets('todos: the checkbox still takes a tap beside its square (#852)', (tester) async {
     final tapped = <int>[];
     await show(tester, _mopsos, onTodo: (number, _, _) => tapped.add(number));
