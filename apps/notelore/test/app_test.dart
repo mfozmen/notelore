@@ -2554,7 +2554,8 @@ void main() {
     await tester.enterText(find.byKey(const Key('notes-search')), ' zebra ');
     await tester.pumpAndSettle();
     expect(tester.widget<EmptyState>(find.byType(EmptyState)).icon, AppIcons.searchEmpty);
-    expect(find.text('Nothing mentions “zebra”'), findsOneWidget);
+    // A long pasted search stays a short title.
+    expect(tester.widget<Text>(find.text('Nothing mentions “zebra”')).maxLines, 3);
     expect(find.text('The chat can look for what you meant.'), findsOneWidget);
     await tester.tap(find.widgetWithText(FilledButton, 'Ask in the chat'));
     await tester.pumpAndSettle();

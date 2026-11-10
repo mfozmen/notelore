@@ -30,7 +30,14 @@ class EmptyState extends StatelessWidget {
         children: [
           AppIcons.duo(icon, size: 48, color: theme.colorScheme.primary),
           const SizedBox(height: Gap.m),
-          Text(title, textAlign: TextAlign.center, style: theme.textTheme.bodyLarge),
+          // A title can quote a long pasted search.
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyLarge,
+          ),
           if (hint case final hint?) ...[
             const SizedBox(height: Gap.s),
             Text(
