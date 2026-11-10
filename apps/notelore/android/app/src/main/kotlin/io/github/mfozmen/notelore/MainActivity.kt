@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.core.content.FileProvider
+import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.Wearable
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -145,12 +146,16 @@ class MainActivity : FlutterFragmentActivity() {
             Wearable.getNodeClient(this).connectedNodes.addOnCompleteListener { nodes ->
                 // No Play services, or no watch near: not sent.
                 val connected = if (nodes.isSuccessful) nodes.result else emptyList()
-                connected.forEach { Wearable.getMessageClient(this).sendMessage(it.id, path, text) }
-                result.success(connected.isNotEmpty())
+                val sends = connected.map { Wearable.getMessageClient(this).sendMessage(it.id, path, text) }
+                // Sent only once every send went through (a too-long message fails, for one).
+                Tasks.whenAllComplete(sends).addOnCompleteListener {
+                    result.success(sends.isNotEmpty() && sends.all { send -> send.isSuccessful })
+                }
             }
         }
         watchListener?.let { Wearable.getMessageClient(this).removeListener(it) }
         watchListener = MessageClient.OnMessageReceivedListener {
+            if (!it.path.startsWith("/notelore/")) return@OnMessageReceivedListener
             watch.invokeMethod("message", mapOf("path" to it.path, "text" to it.data.decodeToString()))
         }.also { Wearable.getMessageClient(this).addListener(it) }
         // The in-app updater (update.dart): hands a downloaded APK to the installer.
