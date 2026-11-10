@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -507,8 +508,8 @@ void main() {
     expect((band.decoration! as BoxDecoration).color, colors.primaryContainer);
     expect(tester.widget<Text>(current).style!.color, colors.onPrimaryContainer);
     // A screen reader hears which one is in use, not only a sighted user.
-    expect(tester.getSemantics(current), containsSemantics(isSelected: true));
-    expect(tester.getSemantics(find.text('model-a')), containsSemantics(isSelected: false));
+    expect(tester.getSemantics(current).flagsCollection.isSelected, Tristate.isTrue);
+    expect(tester.getSemantics(find.text('model-a')).flagsCollection.isSelected, Tristate.isFalse);
     final other = tester.widget<Ink>(
       find.ancestor(of: find.text('model-a'), matching: find.byType(Ink)),
     );
