@@ -66,4 +66,6 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     // The AppCompat launch theme the device lock prompt needs (local_auth, #295).
     implementation("androidx.appcompat:appcompat:1.7.0")
+    // Messages to and from the watch app (watch_link.dart).
+    implementation("com.google.android.gms:play-services-wearable:19.0.0")
 }

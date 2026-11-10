@@ -6,6 +6,7 @@ Requires [Flutter](https://docs.flutter.dev/get-started/install) (the version pi
 |---|---|
 | `packages/notelore_core` | pure Dart: note format, store, search index, sync, Drive, providers, agent |
 | `apps/notelore` | the Flutter app: Android, iOS, Windows, macOS |
+| `apps/notelore/android/wear` | the Wear OS watch app, native Kotlin: [`wear-os.md`](wear-os.md) |
 | `spec/fixtures` | the frozen format and merge contract from the original Python implementation |
 
 ```bash
@@ -57,6 +58,7 @@ It lives outside `test/`, so the test suite never writes these files.
 - Workflow in one page: [`CONTRIBUTING.md`](../CONTRIBUTING.md)
 - Design patterns: [`design-patterns.md`](design-patterns.md)
 - Note format: [`note-format.md`](note-format.md)
+- The Wear OS app, its emulator and a real watch: [`wear-os.md`](wear-os.md)
 - Roadmap: [`PLAN.md`](PLAN.md)
 
 On Windows a release also publishes a signed changed-files delta from each of
