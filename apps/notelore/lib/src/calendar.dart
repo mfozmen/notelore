@@ -8,6 +8,7 @@ import 'app.dart' show AppMenu;
 import 'empty_state.dart';
 import 'icons.dart';
 import 'note_view.dart';
+import 'scroll_fade.dart';
 import 'section_label.dart';
 import 'session.dart';
 import 'strings.dart';
@@ -134,9 +135,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
           children: [
             SizedBox(
               width: 380,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.m),
-                children: [grid],
+              child: ScrollFade(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.m),
+                  children: [grid],
+                ),
               ),
             ),
             const VerticalDivider(width: 1),
@@ -146,23 +149,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 alignment: Alignment.topLeft,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: Layout.column),
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.m),
-                    children: [list],
+                  child: ScrollFade(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(Gap.m, 0, Gap.m, Gap.m),
+                      children: [list],
+                    ),
                   ),
                 ),
               ),
             ),
           ],
         )
-      : ListView(
-          padding: EdgeInsets.fromLTRB(
-            Gap.m,
-            0,
-            Gap.m,
-            Gap.l + MediaQuery.paddingOf(context).bottom,
+      : ScrollFade(
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(
+              Gap.m,
+              0,
+              Gap.m,
+              Gap.l + MediaQuery.paddingOf(context).bottom,
+            ),
+            children: [grid, list],
           ),
-          children: [grid, list],
         );
 }
 
