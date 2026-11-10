@@ -5,6 +5,8 @@ import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/soft.dart';
 import 'package:notelore/src/theme.dart';
 
+import 'theme_test.dart' show contrast;
+
 Future<void> _pump(WidgetTester tester, Widget child, {Brightness brightness = Brightness.light}) =>
     tester.pumpWidget(
       MaterialApp(
@@ -212,6 +214,28 @@ void main() {
         ),
       );
       expect(tester.getSize(find.byType(SoftSwitchTile)).height, greaterThanOrEqualTo(48));
+    });
+  }
+
+  for (final brightness in Brightness.values) {
+    testWidgets('the off switch: knob and track edge meet 3:1 (WCAG 1.4.11) ($brightness)', (
+      tester,
+    ) async {
+      await _pump(tester, const SoftSwitch(value: false, enabled: true), brightness: brightness);
+      final colors = noteloreTheme(brightness).colorScheme;
+      final boxes = tester
+          .widgetList<Container>(
+            find.descendant(of: find.byType(SoftSwitch), matching: find.byType(Container)),
+          )
+          .map((c) => c.decoration! as BoxDecoration)
+          .toList();
+      final track = boxes.first, knob = boxes.last;
+      final edge = (track.border! as Border).top.color;
+      // The switch sits on a card or on the page.
+      for (final behind in [colors.surface, colors.surfaceContainerLow]) {
+        expect(contrast(knob.color!, behind), greaterThanOrEqualTo(3), reason: 'knob');
+        expect(contrast(edge, behind), greaterThanOrEqualTo(3), reason: 'track edge');
+      }
     });
   }
 
