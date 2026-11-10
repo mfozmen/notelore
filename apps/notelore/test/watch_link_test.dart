@@ -28,6 +28,10 @@ void main() {
     expect(await WatchLink().send('/notelore/answer', 'x'), isFalse);
   });
 
+  test('on a platform without the watch glue nothing is sent', () async {
+    expect(await WatchLink().send('/notelore/answer', 'x'), isFalse);
+  });
+
   test('messages from the watch reach the listener', () async {
     final heard = <(String, String)>[];
     WatchLink().listen((path, text) => heard.add((path, text)));

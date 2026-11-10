@@ -10,9 +10,15 @@ class WatchLink {
 
   final MethodChannel _channel;
 
-  /// Sends [text] on [path] to every connected watch; false when none is.
-  Future<bool> send(String path, String text) async =>
-      await _channel.invokeMethod<bool>('send', {'path': path, 'text': text}) ?? false;
+  /// Sends [text] on [path] to every connected watch; false when none is, or
+  /// on a platform without the glue (the desktop).
+  Future<bool> send(String path, String text) async {
+    try {
+      return await _channel.invokeMethod<bool>('send', {'path': path, 'text': text}) ?? false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
 
   /// Calls [onMessage] for each message the watch sends.
   void listen(void Function(String path, String text) onMessage) {
