@@ -1335,6 +1335,7 @@ class Session extends ChangeNotifier {
         .lastOrNull;
     return said ?? '';
   }
+
   /// Sends [lastSent] again, as a message of its own; nothing before the first.
   Future<void> resend() async {
     // A provider switched to since cannot take the images: the words only.
