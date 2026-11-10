@@ -91,7 +91,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   late final TextEditingController _message = TextEditingController(text: widget.session.draft)
     ..addListener(() => widget.session.draft = _message.text);
-  final _modelMenu = GlobalKey<PopupMenuButtonState<String>>();
+  final _modelMenu = GlobalKey();
 
   /// Push to talk, beside the message box.
   late final _voice = VoiceMode(widget.session, voice: widget.session.voice);
@@ -402,7 +402,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         content: Text(s.modelGone(s.providerName(session.spec!), session.model!)),
                         actions: [
                           FilledButton(
-                            onPressed: () => _modelMenu.currentState!.showButtonMenu(),
+                            onPressed: () => _showModels(_modelMenu.currentContext!, session),
                             child: Text(s.changeModel),
                           ),
                         ],
@@ -739,7 +739,7 @@ class _ModelBar extends StatelessWidget {
   const _ModelBar(this.session, {required this.menu});
 
   final Session session;
-  final GlobalKey<PopupMenuButtonState<String>> menu;
+  final GlobalKey menu;
 
   @override
   Widget build(BuildContext context) {
@@ -756,56 +756,110 @@ class _ModelBar extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final style = Theme.of(context).textTheme.labelMedium
         ?.copyWith(fontSize: 12, color: colors.onSurface);
-    // A bordered pill on the card colour; the arrow only when there is a choice.
-    final pill = Container(
-      padding: const EdgeInsetsDirectional.fromSTEB(10, Gap.xs, Gap.s, Gap.xs),
-      decoration: ShapeDecoration(
-        color: colors.surfaceContainerLow,
-        shape: StadiumBorder(side: BorderSide(color: colors.outlineVariant)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        spacing: 6,
-        children: [
-          Icon(AppIcons.sparkle, size: 16, color: colors.primary),
-          // The model first: a narrow pill cuts the plan's words, not its name.
-          // Nothing to switch to: it wraps, so the plan notice is never cut.
-          Flexible(
-            child: Text(
-              label,
-              maxLines: switchable ? 1 : 2,
-              overflow: TextOverflow.ellipsis,
-              style: style,
-            ),
+    const padding = EdgeInsetsDirectional.fromSTEB(10, Gap.xs, Gap.s, Gap.xs);
+    final shape = StadiumBorder(side: BorderSide(color: colors.outlineVariant));
+    final row = Row(
+      mainAxisSize: MainAxisSize.min,
+      spacing: 6,
+      children: [
+        Icon(AppIcons.sparkle, size: 16, color: colors.primary),
+        // The model first: a narrow pill cuts the plan's words, not its name.
+        // Nothing to switch to: it wraps, so the plan notice is never cut.
+        Flexible(
+          child: Text(
+            label,
+            maxLines: switchable ? 1 : 2,
+            overflow: TextOverflow.ellipsis,
+            style: style,
           ),
-          if (switchable) Icon(AppIcons.expand, size: 16, color: colors.onSurfaceVariant),
-        ],
-      ),
+        ),
+        if (switchable) Icon(AppIcons.expand, size: 16, color: colors.onSurfaceVariant),
+      ],
     );
     // At the composer's start, so it reads as a setting, not as a line of the chat.
     return Container(
       alignment: AlignmentDirectional.centerStart,
       padding: EdgeInsets.fromLTRB(Gap.m, switchable ? 0 : Gap.s, Gap.m, 0),
-      // The models the connected provider listed; switching keeps the conversation.
+      // A bordered pill on the card colour; a button, with the arrow, when there is
+      // a choice. The models the connected provider listed; switching keeps the
+      // conversation.
       child: switchable
-          ? PopupMenuButton<String>(
-              key: menu,
-              tooltip: s.changeTheModel,
-              enabled: !session.busy,
-              initialValue: session.model,
-              onSelected: session.setModel,
-              itemBuilder: (_) => [
-                for (final m in choices) PopupMenuItem(value: m, child: Text(readableModel(m))),
-              ],
-              // A full-height target around the slim pill.
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 48),
-                child: Center(widthFactor: 1, child: pill),
+          ? Tooltip(
+              message: s.changeTheModel,
+              child: TextButton(
+                key: menu,
+                onPressed: session.busy ? null : () => _showModels(menu.currentContext!, session),
+                // Slim, padded out to a 48-point target the hover does not fill.
+                style: TextButton.styleFrom(
+                  padding: padding,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.padded,
+                  backgroundColor: colors.surfaceContainerLow,
+                  shape: shape,
+                ),
+                child: row,
               ),
             )
-          : MediaQuery.withClampedTextScaling(maxScaleFactor: 1.5, child: pill),
+          : MediaQuery.withClampedTextScaling(
+              maxScaleFactor: 1.5,
+              child: Container(
+                padding: padding,
+                decoration: ShapeDecoration(color: colors.surfaceContainerLow, shape: shape),
+                child: row,
+              ),
+            ),
     );
   }
+}
+
+/// The models to switch to, over the pill at [context]; the current one checked.
+Future<void> _showModels(BuildContext context, Session session) async {
+  final colors = Theme.of(context).colorScheme;
+  final button = context.findRenderObject()! as RenderBox;
+  final overlay = Navigator.of(context).overlay!.context.findRenderObject()! as RenderBox;
+  final current = session.model;
+  final model = await showMenu<String>(
+    context: context,
+    position: RelativeRect.fromRect(
+      button.localToGlobal(Offset.zero, ancestor: overlay) & button.size,
+      Offset.zero & overlay.size,
+    ),
+    // The items' hover keeps inside the menu's round corners.
+    clipBehavior: Clip.antiAlias,
+    items: [
+      for (final m in {...session.models, ?current})
+        PopupMenuItem(
+          value: m,
+          padding: EdgeInsets.zero,
+          // Ink, so the hover still shows on the current model's band.
+          child: Ink(
+            height: 48,
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+            decoration: BoxDecoration(color: m == current ? colors.primaryContainer : null),
+            child: Row(
+              spacing: Gap.s + Gap.xs,
+              children: [
+                SizedBox.square(
+                  dimension: 20,
+                  child: m == current
+                      ? Icon(AppIcons.check, size: 20, color: colors.onPrimaryContainer)
+                      : null,
+                ),
+                Flexible(
+                  child: Text(
+                    readableModel(m),
+                    overflow: TextOverflow.ellipsis,
+                    style: m == current ? TextStyle(color: colors.onPrimaryContainer) : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+    ],
+  );
+  if (model != null) await session.setModel(model);
 }
 
 /// The message box and its one button, like a messenger's: Send with text,
@@ -1789,12 +1843,12 @@ class _Source extends StatelessWidget {
     final card = Card(
       margin: const EdgeInsets.symmetric(vertical: Gap.xs),
       child: Padding(
-        padding: const EdgeInsets.only(left: Gap.m, right: Gap.xs, top: 12),
+        padding: const EdgeInsets.fromLTRB(Gap.m, 12, Gap.s, Gap.s),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.only(right: Gap.m - Gap.xs),
+              padding: const EdgeInsets.only(right: Gap.m - Gap.s),
               child: Row(
                 children: [
                   Expanded(
@@ -1876,8 +1930,7 @@ class _Receipt extends StatelessWidget {
     const side = Gap.s + Gap.xs;
     return Stack(
       children: [
-        // Ink, not a box: the Open's ripple shows on it. Thinner than the
-        // 48 dp row, which is all Open's target.
+        // Thinner than the 48 dp row, which is all Open's target.
         Positioned.fill(
           top: Gap.s - 2,
           bottom: Gap.s - 2,
@@ -1914,21 +1967,18 @@ class _Receipt extends StatelessWidget {
                 label: '${strings.openNote} ${receipt.title}',
                 onTap: open,
                 excludeSemantics: true,
-                child: InkWell(
-                  onTap: open,
-                  customBorder: const StadiumBorder(),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: side),
-                      child: Center(
-                        widthFactor: 1,
-                        child: Text(
-                          strings.openNote,
-                          style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ),
+                // As tall as the pill, padded out to the 48-point row, so its
+                // hover and press fill the pill's end and nothing past it.
+                child: TextButton(
+                  onPressed: open,
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(48, 36),
+                    tapTargetSize: MaterialTapTargetSize.padded,
+                    padding: const EdgeInsets.symmetric(horizontal: side),
+                  ),
+                  child: Text(
+                    strings.openNote,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
               ),

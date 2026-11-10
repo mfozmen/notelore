@@ -377,8 +377,21 @@ ThemeData noteloreTheme(Brightness brightness) {
   // No ripple: a press dims and shrinks the button's insides a little instead.
   Widget press(BuildContext _, Set<WidgetState> states, Widget? child) =>
       pressFeedback(pressed: states.contains(WidgetState.pressed), child: child!);
-  final noPressTint = WidgetStateProperty.resolveWith<Color?>(
-    (states) => states.contains(WidgetState.pressed) ? Colors.transparent : null,
+  // The accent tints hover and press in the control's own shape; a keyboard
+  // focus rings it, a touch never does.
+  WidgetStateProperty<Color?> tint(Color ink) => WidgetStateProperty.resolveWith(
+    (states) => states.contains(WidgetState.pressed)
+        ? ink.withValues(alpha: .12)
+        : states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)
+        ? ink.withValues(alpha: .08)
+        : null,
+  );
+  WidgetStateProperty<BorderSide?> ring([BorderSide? rest]) => WidgetStateProperty.resolveWith(
+    (states) =>
+        states.contains(WidgetState.focused) &&
+            FocusManager.instance.highlightMode == FocusHighlightMode.traditional
+        ? BorderSide(color: colors.primary, width: 2)
+        : rest,
   );
   return ThemeData(
     colorScheme: colors,
@@ -392,6 +405,9 @@ ThemeData noteloreTheme(Brightness brightness) {
     scaffoldBackgroundColor: colors.surface,
     visualDensity: VisualDensity.standard,
     splashFactory: NoSplash.splashFactory,
+    hoverColor: colors.primary.withValues(alpha: .08),
+    highlightColor: colors.primary.withValues(alpha: .12),
+    focusColor: colors.primary.withValues(alpha: .12),
     actionIconTheme: ActionIconThemeData(
       backButtonIconBuilder: (_) => const Icon(AppIcons.back),
       closeButtonIconBuilder: (_) => const Icon(AppIcons.close),
@@ -443,7 +459,8 @@ ThemeData noteloreTheme(Brightness brightness) {
             shape: const StadiumBorder(),
             foregroundColor: colors.onPrimary,
           ).copyWith(
-            overlayColor: noPressTint,
+            overlayColor: tint(colors.onPrimary),
+            side: ring(),
             backgroundBuilder: (context, states, child) => states.contains(WidgetState.disabled)
                 ? child!
                 : press(
@@ -465,16 +482,15 @@ ThemeData noteloreTheme(Brightness brightness) {
         minimumSize: tap,
         shape: const StadiumBorder(),
         backgroundColor: colors.surfaceContainerLow,
-        side: edge,
-      ).copyWith(overlayColor: noPressTint, backgroundBuilder: press),
+      ).copyWith(overlayColor: tint(colors.primary), side: ring(edge), backgroundBuilder: press),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(minimumSize: tap)
-          .copyWith(overlayColor: noPressTint, backgroundBuilder: press),
+          .copyWith(overlayColor: tint(colors.primary), side: ring(), backgroundBuilder: press),
     ),
     iconButtonTheme: IconButtonThemeData(
       style: IconButton.styleFrom(minimumSize: tap)
-          .copyWith(overlayColor: noPressTint, backgroundBuilder: press),
+          .copyWith(overlayColor: tint(colors.primary), side: ring(), backgroundBuilder: press),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
       backgroundColor: colors.primary,
@@ -541,6 +557,12 @@ ThemeData noteloreTheme(Brightness brightness) {
         shape: WidgetStatePropertyAll(softBorder(colors, BorderRadius.circular(_soft))),
         padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: Gap.xs)),
       ),
+    ),
+    popupMenuTheme: PopupMenuThemeData(
+      color: colors.surfaceContainerHigh,
+      elevation: 3,
+      shadowColor: colors.primary.withValues(alpha: .35),
+      shape: softBorder(colors, BorderRadius.circular(_soft)),
     ),
     dividerTheme: DividerThemeData(color: colors.outlineVariant, space: 1),
   );

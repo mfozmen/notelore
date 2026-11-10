@@ -213,6 +213,7 @@ class _NotesScreenState extends State<NotesScreen> {
         ),
         PopupMenuButton<_NotesAction>(
           key: const Key('notes-more'),
+          clipBehavior: Clip.antiAlias,
           style: round,
           tooltip: s.moreNoteActions,
           icon: const Icon(AppIcons.moreVert),
@@ -1179,6 +1180,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
           if (archived.isNotEmpty)
             PopupMenuButton<String>(
               key: const Key('archive-more'),
+              clipBehavior: Clip.antiAlias,
               tooltip: s.archiveActions,
               icon: const Icon(AppIcons.moreVert),
               onSelected: (_) => _empty(archived.length),
@@ -1237,6 +1239,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                           ),
                           PopupMenuButton<String>(
                             key: ValueKey('archive-note-more-${archived[index].original}'),
+                            clipBehavior: Clip.antiAlias,
                             tooltip: s.moreNoteActions,
                             icon: const Icon(AppIcons.moreVert),
                             onSelected: (_) => _deleteForever(archived[index]),
