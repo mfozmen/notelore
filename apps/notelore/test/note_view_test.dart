@@ -135,6 +135,58 @@ void main() {
     expect((box.dy - title.dy).abs(), lessThanOrEqualTo(2.5));
   });
 
+  testWidgets('todos and reminders: one 16 dp edge, text at 42, 48 dp rows (#852)', (tester) async {
+    const source = '''---
+title: Passport
+kind: topic
+---
+# Passport
+
+## Todo
+- [ ] 2026-10-25: Fill in the form
+- [ ] 2026-10-26: Pay the fee
+
+## Reminders
+- 2026-10-21: Book the photos
+- 2026-11-03 09:30: Passport office
+''';
+    for (final onTodo in [null, (int _, String _, bool _) {}]) {
+      await show(tester, source, onTodo: onTodo);
+      double left(String text) => tester.getTopLeft(find.text(text, findRichText: true)).dx;
+      double top(String text) => tester.getTopLeft(find.text(text, findRichText: true)).dy;
+      for (final text in [
+        'Fill in the form',
+        'Pay the fee',
+        'Book the photos',
+        'Passport office',
+      ]) {
+        expect(left(text), 42, reason: text);
+      }
+      expect(tester.getTopLeft(find.byIcon(AppIcons.notifications).first).dx, Gap.m);
+      if (onTodo != null) {
+        // The 18 dp square a Checkbox paints sits in the middle of its box.
+        expect(tester.getCenter(find.byType(Checkbox).first).dx - 9, Gap.m);
+      }
+      expect(top('Pay the fee') - top('Fill in the form'), greaterThanOrEqualTo(48));
+      expect(top('Passport office') - top('Book the photos'), greaterThanOrEqualTo(48));
+    }
+  });
+
+  testWidgets('todos: the checkbox still takes a tap beside its square (#852)', (tester) async {
+    final tapped = <int>[];
+    await show(tester, _mopsos, onTodo: (number, _, _) => tapped.add(number));
+    final box = tester.getCenter(find.byType(Checkbox).first);
+    await tester.tapAt(Offset(Gap.m + 22, box.dy + 20));
+    expect(tapped, [2]);
+  });
+
+  testWidgets('the page ends with room above the system bar (#852)', (tester) async {
+    tester.view.viewPadding = const FakeViewPadding(bottom: 34);
+    await show(tester, _mopsos);
+    final list = tester.widget<ListView>(find.byType(ListView));
+    expect(list.padding?.resolve(TextDirection.ltr).bottom, Gap.l + 34);
+  });
+
   testWidgets('reminders: with the todos above the notes, coming ones first (#430)', (
     tester,
   ) async {

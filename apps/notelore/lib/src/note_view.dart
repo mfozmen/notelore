@@ -162,7 +162,12 @@ class NoteView extends StatelessWidget {
     }
     return SelectionArea(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(Gap.m, Gap.m, Gap.m, Gap.l),
+        padding: EdgeInsets.fromLTRB(
+          Gap.m,
+          Gap.m,
+          Gap.m,
+          Gap.l + MediaQuery.viewPaddingOf(context).bottom,
+        ),
         children: [
           ..._header(context, note),
           if (note.preamble.join('\n').trim() case final intro when intro.isNotEmpty) ...[
@@ -402,6 +407,9 @@ class NoteView extends StatelessWidget {
   Widget _todoMark(ColorScheme colors, int number, Todo todo, {required bool late}) =>
       switch (onTodo) {
         final onTodo? => Checkbox(
+          // A fixed 48 dp box on every platform, so _row can pull its 18 dp square to the edge.
+          materialTapTargetSize: MaterialTapTargetSize.padded,
+          visualDensity: VisualDensity.standard,
           value: todo.done,
           side: BorderSide(color: late ? colors.error : colors.primary, width: 2),
           fillColor: WidgetStateProperty.resolveWith(
@@ -420,37 +428,53 @@ class NoteView extends StatelessWidget {
   Widget _todoRow(ThemeData theme, int number, Todo todo, DateTime day) {
     final colors = theme.colorScheme;
     final late = !todo.done && todo.date.isBefore(day);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: Gap.xs),
-      child: MergeSemantics(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _todoMark(colors, number, todo, late: late),
-            const SizedBox(width: Gap.s),
-            Expanded(
-              child: Padding(
-                // A Checkbox is a 48 dp box; its 24 dp visual sits 12 dp down (#710).
-                padding: EdgeInsets.only(top: onTodo == null ? 0 : 12),
-                child: _markdown(
-                  todo.text,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: todo.done ? colors.onSurfaceVariant : null,
-                    decoration: todo.done ? TextDecoration.lineThrough : null,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: Gap.s),
-            Padding(
-              padding: EdgeInsets.only(top: onTodo == null ? 0 : 12),
-              child: _todoDate(theme, todo, late: late),
-            ),
-          ],
+    return MergeSemantics(
+      child: _row(
+        mark: _todoMark(colors, number, todo, late: late),
+        // The Checkbox's 48 dp box centres its 18 dp square.
+        inset: onTodo == null ? 0 : 15,
+        text: _markdown(
+          todo.text,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: todo.done ? colors.onSurfaceVariant : null,
+            decoration: todo.done ? TextDecoration.lineThrough : null,
+          ),
         ),
+        date: _todoDate(theme, todo, late: late),
       ),
     );
   }
+
+  /// A todo or reminder row, at least 48 dp tall: [mark] on the page's edge,
+  /// the text 26 dp in, the date at the right. [inset] is the empty space
+  /// left of what [mark] paints; that space hangs outside the row.
+  static Widget _row({
+    required Widget mark,
+    double inset = 0,
+    required Widget text,
+    required Widget date,
+  }) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      SizedBox(
+        width: 18 + Gap.s,
+        height: 48,
+        child: OverflowBox(
+          alignment: Alignment.centerLeft,
+          minWidth: 0,
+          minHeight: 0,
+          maxWidth: 48,
+          maxHeight: 48,
+          child: Transform.translate(offset: Offset(-inset, 0), child: mark),
+        ),
+      ),
+      Expanded(
+        child: Padding(padding: const EdgeInsets.only(top: 12), child: text),
+      ),
+      const SizedBox(width: Gap.s),
+      Padding(padding: const EdgeInsets.only(top: 12), child: date),
+    ],
+  );
 
   /// Coming ones by day and time, past ones after them, saying so in words
   /// and with their own icon. A reminder with no time counts until its day ends.
@@ -469,32 +493,22 @@ class NoteView extends StatelessWidget {
         for (final r in coming) (r, false),
         for (final r in past.toList().reversed) (r, true),
       ])
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: Gap.xs),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                passed ? AppIcons.history : AppIcons.notifications,
-                size: 18,
-                color: passed ? colors.outline : colors.primary,
-              ),
-              const SizedBox(width: Gap.s),
-              Expanded(
-                child: _markdown(
-                  reminder.text.replaceAll('\n  ', '\n'),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: passed ? colors.onSurfaceVariant : null,
-                  ),
-                ),
-              ),
-              const SizedBox(width: Gap.s),
-              Text(() {
-                final when = [_date(reminder.date), ?reminder.time].join(' · ');
-                return passed ? strings.reminderPassed(when) : when;
-              }(), style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
-            ],
+        _row(
+          mark: Icon(
+            passed ? AppIcons.history : AppIcons.notifications,
+            size: 18,
+            color: passed ? colors.outline : colors.primary,
           ),
+          text: _markdown(
+            reminder.text.replaceAll('\n  ', '\n'),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: passed ? colors.onSurfaceVariant : null,
+            ),
+          ),
+          date: Text(() {
+            final when = [_date(reminder.date), ?reminder.time].join(' · ');
+            return passed ? strings.reminderPassed(when) : when;
+          }(), style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
         ),
     ];
   }
