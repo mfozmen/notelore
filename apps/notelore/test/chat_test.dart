@@ -47,6 +47,14 @@ void main() {
   ) async {
     const edge = BorderSide(color: Color(0xFFFF8800), width: 2);
     const field = FieldDecoration(color: Color(0xFF101010), edge: edge, radius: 28);
+    // Equal fields compare equal, so a rebuild does not repaint the box.
+    final same = FieldDecoration(color: field.color, edge: edge, radius: 28);
+    expect(same, field);
+    expect(same.hashCode, field.hashCode);
+    expect(
+      same == const FieldDecoration(color: Color(0xFF101010), edge: edge, radius: 20),
+      isFalse,
+    );
     await tester.pumpWidget(
       const Center(
         child: SizedBox(width: 200, height: 56, child: DecoratedBox(decoration: field)),

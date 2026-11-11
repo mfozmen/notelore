@@ -1219,9 +1219,9 @@ RadialGradient orbEdge(Size size, double devicePixelRatio) {
 /// A rounded box of [color] with [edge] drawn inside it.
 ///
 /// Painted as two rounded rects, the edge's and the fill's, each blurred by a
-/// third of a device pixel, about an anti-aliased edge's spread: renderers draw
-/// that blur in a shader, so the round ends stay smooth where Impeller's
-/// multisampled path edge steps.
+/// sigma of .3 device pixel, near the .29 spread of the one-pixel box an
+/// anti-aliased edge covers. Renderers draw that blur in a shader, so the round
+/// ends stay smooth where Impeller's multisampled path edge steps.
 class FieldDecoration extends Decoration {
   const FieldDecoration({required this.color, required this.edge, required this.radius});
 
@@ -1231,6 +1231,16 @@ class FieldDecoration extends Decoration {
 
   @override
   EdgeInsetsGeometry get padding => EdgeInsets.all(edge.width);
+
+  @override
+  bool operator ==(Object other) =>
+      other is FieldDecoration &&
+      other.color == color &&
+      other.edge == edge &&
+      other.radius == radius;
+
+  @override
+  int get hashCode => Object.hash(color, edge, radius);
 
   @override
   BoxPainter createBoxPainter([VoidCallback? onChanged]) => _FieldPainter(this);
@@ -1243,7 +1253,7 @@ class _FieldPainter extends BoxPainter {
 
   @override
   void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
-    final soft = MaskFilter.blur(BlurStyle.normal, .3 / configuration.devicePixelRatio!);
+    final soft = MaskFilter.blur(BlurStyle.normal, .3 / (configuration.devicePixelRatio ?? 1));
     final outer = RRect.fromRectAndRadius(
       offset & configuration.size!,
       Radius.circular(field.radius),
