@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:math' show min;
 import 'dart:ui' show Tristate;
 
 import 'package:flutter/material.dart';
@@ -356,6 +358,7 @@ void main() {
       await say(tester, 'plans?');
       final body = tester.widget<MarkdownBody>(answerBody).styleSheet!.p!;
       expect(body.fontSize, AnswerStyle.size);
+      expect(AnswerStyle.size, 14); // a step under the person's 15 sp bubble
       expect(body.height, AnswerStyle.lineHeight);
     });
 
@@ -558,5 +561,86 @@ void main() {
     );
     expect(strip.color, colors.surfaceContainerLow);
     expect(tester.widget<Icon>(find.byIcon(AppIcons.warning)).color, colors.primary);
+  });
+
+  group('the chat rhythm (#850)', () {
+    final decides = calls([
+      ('record_decision', {'slug': 'project-atlas', 'topic': 'database', 'value': 'Postgres'}),
+    ], 'Saved.');
+    final looksUp = calls([
+      ('get_decision', {'slug': 'project-atlas', 'topic': 'database'}),
+    ], 'You picked Postgres.');
+
+    /// The top of the nearest Copy icon under [edge].
+    double copyUnder(WidgetTester tester, double edge) => find
+        .byIcon(AppIcons.copy)
+        .evaluate()
+        .map((e) => tester.getRect(find.byWidget(e.widget)).top)
+        .where((top) => top > edge - Gap.m)
+        .reduce(min);
+
+    testWidgets('after a card the actions sit a Gap under its edge, not on it', (tester) async {
+      phone(tester);
+      final harness = Harness(answers: [...decides, ...looksUp]);
+      createNote(harness.paths.notes.path, 'project', 'Project Atlas', today: today);
+      await pumpApp(tester, harness);
+      await connect(tester, key: 'k');
+      await say(tester, 'Atlas: we picked Postgres');
+      final pill = tester.getRect(
+        find.descendant(
+          of: find
+              .ancestor(
+                of: find.text('PROJECT ATLAS · DECISION ADDED'),
+                matching: find.byType(Stack),
+              )
+              .first,
+          matching: find.byType(Ink),
+        ),
+      );
+      expect(copyUnder(tester, pill.bottom) - pill.bottom, moreOrLessEquals(Gap.s));
+      await say(tester, 'Which database?');
+      final card = tester.getRect(
+        find
+            .descendant(
+              of: find.ancestor(of: find.text('Postgres'), matching: find.byType(Card)),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      expect(copyUnder(tester, card.bottom) - card.bottom, moreOrLessEquals(Gap.s));
+    });
+
+    testWidgets("the busy row sits on the answers' edge", (tester) async {
+      phone(tester);
+      await pumpApp(tester, Harness(answers: [Completer<AgentResponse>().future]));
+      await connect(tester, key: 'k');
+      await tester.enterText(find.byKey(const Key('message')), 'selam');
+      await tester.pump();
+      await tester.tap(find.byTooltip('Send'));
+      await tester.pump();
+      expect(tester.getRect(find.byType(CircularProgressIndicator)).left, Gap.m);
+      await tester.tap(find.byTooltip('Stop the answer'));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets("the starters sit on the composer's edges", (tester) async {
+      phone(tester);
+      await pumpApp(tester, Harness());
+      await connect(tester, key: 'k');
+      final width = tester.view.physicalSize.width / tester.view.devicePixelRatio;
+      final starter = tester.getRect(find.byType(OutlinedButton).first);
+      expect((starter.left, starter.right), (Gap.m, width - Gap.m));
+    });
+
+    testWidgets("the error's Try again starts at its message's edge", (tester) async {
+      phone(tester);
+      await pumpApp(tester, Harness(answers: [const HttpError(500, 'x')]));
+      await connect(tester, key: 'k');
+      await say(tester, 'selam');
+      final row = find.byKey(const Key('chat-error'));
+      final message = find.descendant(of: row, matching: find.textContaining('having trouble'));
+      final retry = find.descendant(of: row, matching: find.byIcon(AppIcons.refresh));
+      expect(tester.getRect(retry).left, tester.getRect(message).left);
+    });
   });
 }
