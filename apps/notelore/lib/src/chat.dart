@@ -155,11 +155,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final List<PickedFile> picked;
     try {
-      picked = _distinct(
-        dropped == null
-            ? await widget.session.exchange.pick(any: true, maxBytes: _maxFileBytes)
-            : await widget.session.exchange.read(dropped, maxBytes: _maxFileBytes),
-      );
+      picked = _distinct(await _picked(dropped));
     } on FileTooBig catch (big) {
       messenger
         ..hideCurrentSnackBar()
@@ -199,6 +195,11 @@ class _ChatScreenState extends State<ChatScreen> {
       widget.session.discardOriginal(path);
     }
   }
+
+  /// The files to attach: the ones dropped on the chat, or the ones the person picks.
+  Future<List<PickedFile>> _picked(List<DropItem>? dropped) => dropped != null
+      ? widget.session.exchange.read(dropped, maxBytes: _maxFileBytes)
+      : widget.session.exchange.pick(any: true, maxBytes: _maxFileBytes);
 
   /// [picked] as text attachments and images (with their names), or why they
   /// cannot go: the first file refused, else images the model cannot take now.
