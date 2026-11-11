@@ -297,10 +297,10 @@ Findings:
 - Trained on Kaggle's T4 across several sessions, 232 steps. The validation loss fell from 0.453 to 0.349 at the last step, which is the adapter kept.
 - Q4_K_M, greedy, slim. v8 was measured again on the same code: the case set has grown to 46 since v8's run, and the code under it changed.
 
-| | Held-out (292) | 46 cases × 2 | About me (14) |
+| | Held-out (292) | 46 cases × 2 | About me (14), full prompt |
 |---|---|---|---|
-| v8 | 259 (88.7%) | 72/92 (78%) | 1 (7%) |
-| **v9** | **260 (89.0%)** | **81/92 (88%)** | 1 (7%) |
+| v8 | 259 (88.7%) | 72/92 (78%) | 7 (50%) |
+| **v9** | **260 (89.0%)** | **81/92 (88%)** | 7 (50%) |
 
 Held-out by kind, v8 → v9: unclear 14 → 15/15, reminder 12 → 13/15, plan 13 → 14/15, collection 55 → 56/73; filing 32 → 31/36, chat 15 → 13/15. The other kinds are unchanged.
 
@@ -311,5 +311,6 @@ Findings:
 - **v9 holds v8's level on the held-out set**, one case ahead and within the noise. The 522 new turns did not move what v8 already did well.
 - **The gain is on the cases**: +9 over two runs, all of it decision and question, the two kinds v8 lost against v7.
 - **Collection is still the weakest kind**: 56/73 held-out, 13/20 on the cases. Most of its misses add to an existing list when the item belongs on a new one (`newlist-*`), or put a film or a recipe on the books list.
-- **About me fails on both models**: 1 of 14, the one case that only needs a read. Neither data set has a single `remember_about_me`, `update_about_me` or `forget_about_me` turn. The model writes person facts into a new `topics/family.md` or `topics/work.md`, or adds them to an existing note.
+- **About me is measured without `--slim`.** The about-me tools are not among the device model's tools (`slim: false`, #447), so a slim run cannot pass it: both models score 1 of 14 that way. The desktop runs the local model with the full prompt and tools.
+- **With the full prompt both models remember new facts but never update one**: 7 of 14 each. They call `remember_about_me` where a listed fact changes or gains a detail (5 cases), for a fact already listed, and when asked to move a fact from a note. Neither data set has an about-me turn.
 - **v9 can replace v8 on the desktop** (#834). It is in Ollama as `notelore-qwen3-4b-v9`.
