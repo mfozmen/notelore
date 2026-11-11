@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:file_selector_platform_interface/file_selector_platform_interface.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -733,6 +734,18 @@ Future<void> openSettings(WidgetTester tester, String section) async {
     await tester.tap(find.text(section).first);
   }
   await tester.pumpAndSettle();
+}
+
+/// The visible circle of the header button named [tooltip], once it is checked
+/// to be a `softRound`: 38 points on the card colour.
+Rect softRoundCircle(WidgetTester tester, String tooltip) {
+  final circle = find.ancestor(of: find.byTooltip(tooltip), matching: find.byType(Material)).first;
+  expect(
+    tester.widget<Material>(circle).color,
+    Theme.of(tester.element(circle)).colorScheme.surfaceContainerLow,
+  );
+  expect(tester.getSize(circle), const Size.square(38));
+  return tester.getRect(circle);
 }
 
 /// A main tab by its label: the phone's bar shows only the chosen tab's label
