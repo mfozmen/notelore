@@ -288,3 +288,28 @@ Findings:
 - **Dropped.** First-call accuracy on the held-out set does not move (229 both), far from the +5 points.
 - **The plan line trades decisions for collections.** It picks the right list ten more times, but files five more decisions as plain entries. That trade is not worth a format the app has to strip.
 - **More data beats it**: v8 alone is 13 held-out cases ahead of the plan run.
+
+## Fine-tune v9, 2026-11-11 (#604)
+
+**Setup**
+- v9 data: 2,064 turns, v8's 1,542 plus 522 new ones (#830).
+- v8's recipe: rank 16, one epoch, the loss on the answer alone, learning rate 2e-4.
+- Trained on Kaggle's T4 across several sessions, 232 steps. The validation loss fell from 0.453 to 0.349 at the last step, which is the adapter kept.
+- Q4_K_M, greedy, slim. v8 was measured again on the same code: the case set has grown to 46 since v8's run, and the code under it changed.
+
+| | Held-out (292) | 46 cases × 2 | About me (14) |
+|---|---|---|---|
+| v8 | 259 (88.7%) | 72/92 (78%) | 1 (7%) |
+| **v9** | **260 (89.0%)** | **81/92 (88%)** | 1 (7%) |
+
+Held-out by kind, v8 → v9: unclear 14 → 15/15, reminder 12 → 13/15, plan 13 → 14/15, collection 55 → 56/73; filing 32 → 31/36, chat 15 → 13/15. The other kinds are unchanged.
+
+On the 46 cases, v8 → v9 over both runs: decision 4 → 8/8, question 16 → 20/20, collection 12 → 13/20. Every other kind is the same.
+
+Findings:
+
+- **v9 holds v8's level on the held-out set**, one case ahead and within the noise. The 522 new turns did not move what v8 already did well.
+- **The gain is on the cases**: +9 over two runs, all of it decision and question, the two kinds v8 lost against v7.
+- **Collection is still the weakest kind**: 56/73 held-out, 13/20 on the cases. Most of its misses add to an existing list when the item belongs on a new one (`newlist-*`), or put a film or a recipe on the books list.
+- **About me fails on both models**: 1 of 14, the one case that only needs a read. Neither data set has a single `remember_about_me`, `update_about_me` or `forget_about_me` turn. The model writes person facts into a new `topics/family.md` or `topics/work.md`, or adds them to an existing note.
+- **v9 can replace v8 on the desktop** (#834). It is in Ollama as `notelore-qwen3-4b-v9`.
