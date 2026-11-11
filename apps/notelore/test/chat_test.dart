@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/chat.dart' show FieldDecoration, Orb, orbEdge;
 import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/note_view.dart';
 import 'package:notelore/src/notes.dart';
@@ -41,6 +42,58 @@ Future<void> say(WidgetTester tester, String message, {String send = 'Send'}) as
 
 /// The Kil and Orman look of the chat (#782); what it does is tested in app_test.
 void main() {
+  testWidgets('the message field paints its edge inside, as two softened rounded rects (#881)', (
+    tester,
+  ) async {
+    const edge = BorderSide(color: Color(0xFFFF8800), width: 2);
+    const field = FieldDecoration(color: Color(0xFF101010), edge: edge, radius: 28);
+    // Equal fields compare equal, so a rebuild does not repaint the box.
+    final same = FieldDecoration(color: field.color, edge: edge, radius: 28);
+    expect(same, field);
+    expect(same.hashCode, field.hashCode);
+    expect(
+      same == const FieldDecoration(color: Color(0xFF101010), edge: edge, radius: 20),
+      isFalse,
+    );
+    await tester.pumpWidget(
+      const Center(
+        child: SizedBox(width: 200, height: 56, child: DecoratedBox(decoration: field)),
+      ),
+    );
+    final outer = RRect.fromLTRBR(0, 0, 200, 56, const Radius.circular(28));
+    expect(
+      find.byType(DecoratedBox),
+      paints
+        ..rrect(rrect: outer, color: edge.color, hasMaskFilter: true)
+        ..rrect(rrect: outer.deflate(2), color: field.color, hasMaskFilter: true),
+    );
+  });
+
+  testWidgets('the orb fades its own rim over one device pixel (#881)', (tester) async {
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: noteloreTheme(Brightness.light),
+        home: const Center(child: Orb(SizedBox.square(dimension: 48))),
+      ),
+    );
+    final mask = tester.widget<ShaderMask>(
+      find.descendant(of: find.byType(Orb), matching: find.byType(ShaderMask)),
+    );
+    expect(mask.blendMode, BlendMode.dstIn);
+    final box = tester.widget<DecoratedBox>(
+      find.descendant(of: find.byType(ShaderMask), matching: find.byType(DecoratedBox)).first,
+    );
+    expect((box.decoration as BoxDecoration).shape, BoxShape.rectangle);
+
+    final edge = orbEdge(const Size.square(48), 2);
+    // Half a device pixel (.25) either side of the 24-point rim.
+    expect(edge.radius, 24.25 / 48);
+    expect(edge.stops, [0, 23.75 / 24.25, 1]);
+    expect(edge.colors, [Colors.white, Colors.white, Colors.transparent]);
+  });
+
   group('write receipts (#791)', () {
     Harness atlas(List<Object> answers) {
       final harness = Harness(answers: answers);
@@ -301,13 +354,7 @@ void main() {
     return box.decoration as BoxDecoration?;
   }
 
-  final orb = find.byWidgetPredicate(
-    (w) =>
-        w is DecoratedBox &&
-        w.decoration is BoxDecoration &&
-        (w.decoration as BoxDecoration).shape == BoxShape.circle &&
-        (w.decoration as BoxDecoration).gradient is RadialGradient,
-  );
+  final orb = find.byType(Orb);
 
   testWidgets('the answer sits on the page; the message on its own tint and edge', (tester) async {
     phone(tester);
@@ -458,9 +505,16 @@ void main() {
     await pumpApp(tester, Harness());
     await connect(tester, key: 'k');
     final colors = Theme.of(tester.element(orb)).colorScheme;
-    final decoration = tester.widget<DecoratedBox>(orb).decoration as BoxDecoration;
-    expect((decoration.gradient! as RadialGradient).colors[1], colors.primary);
-    expect(decoration.boxShadow!.single.color, colors.primary.withValues(alpha: .45));
+    BoxDecoration decoration(int i) =>
+        tester
+                .widgetList<DecoratedBox>(
+                  find.descendant(of: orb, matching: find.byType(DecoratedBox)),
+                )
+                .elementAt(i)
+                .decoration
+            as BoxDecoration;
+    expect(decoration(0).boxShadow!.single.color, colors.primary.withValues(alpha: .45));
+    expect((decoration(1).gradient! as RadialGradient).colors[1], colors.primary);
     expect(find.descendant(of: orb, matching: find.byTooltip('Tap or hold to talk')), findsOne);
     // The button's own Material sits inside the orb, so its splash, hover and
     // focus overlays paint above the gradient, not under it.
@@ -475,9 +529,9 @@ void main() {
     await connect(tester, key: 'k');
     final colors = Theme.of(tester.element(orb)).colorScheme;
     final field = find.ancestor(of: orb, matching: find.byKey(const Key('composer')));
-    final decoration = tester.widget<Container>(field).decoration! as BoxDecoration;
+    final decoration = tester.widget<Container>(field).decoration! as FieldDecoration;
     expect(decoration.color, colors.surfaceContainerLow);
-    expect(decoration.borderRadius, BorderRadius.circular(28));
+    expect(decoration.radius, 28);
     expect(find.descendant(of: field, matching: find.byTooltip('Attach a file')), findsOne);
     expect(find.descendant(of: field, matching: find.byKey(const Key('message'))), findsOne);
   });
@@ -500,9 +554,8 @@ void main() {
       final (b, o) = (box(), tester.getRect(orb));
       // The edge stays inside the box, on the column's edge, in both widths.
       final container = tester.widget<Container>(field);
-      final border = (container.decoration! as BoxDecoration).border! as Border;
-      expect(border.top.strokeAlign, BorderSide.strokeAlignInside);
-      expect(container.padding!.add(border.dimensions), const EdgeInsets.all(Gap.xs));
+      final edge = (container.decoration! as FieldDecoration).edge;
+      expect(container.padding!.add(EdgeInsets.all(edge.width)), const EdgeInsets.all(Gap.xs));
       expect(tester.getRect(clip).center.dy, moreOrLessEquals(b.center.dy, epsilon: .5));
       // Lifted 1 dp: the face's capitals sit low in their line box.
       expect(line().center.dy, moreOrLessEquals(b.center.dy - 1, epsilon: .5));

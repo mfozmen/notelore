@@ -1085,10 +1085,10 @@ class _ComposerRow extends StatelessWidget {
             key: const Key('composer'),
             margin: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.m),
             padding: EdgeInsets.all(Gap.xs - edge.width),
-            decoration: BoxDecoration(
+            decoration: FieldDecoration(
               color: colors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(Radii.field),
-              border: Border.fromBorderSide(edge),
+              edge: edge,
+              radius: Radii.field,
             ),
             child: _row(s, colors),
           );
@@ -1165,21 +1165,10 @@ class Orb extends StatelessWidget {
     final theme = Theme.of(context);
     final accent = theme.colorScheme.primary;
     final light = theme.brightness == Brightness.light;
+    final pixel = MediaQuery.devicePixelRatioOf(context);
     return DecoratedBox(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: RadialGradient(
-          center: const Alignment(-0.3, -0.4),
-          radius: 0.95,
-          stops: const [0, .55, 1],
-          colors: light
-              ? [
-                  const Color(0xFFFED7AA),
-                  theme.extension<NoteloreTokens>()!.bright,
-                  const Color(0xFF7C2D12),
-                ]
-              : [const Color(0xFFFFF1E6), accent, Color.lerp(accent, Colors.black, .55)!],
-        ),
         boxShadow: [
           BoxShadow(
             color: accent.withValues(alpha: .45),
@@ -1188,8 +1177,100 @@ class Orb extends StatelessWidget {
           ),
         ],
       ),
-      child: child,
+      // The fill is a square cut round by a mask, not a circle path: Impeller
+      // (macOS) edges a path by multisampling, which steps on a 1x screen.
+      child: ShaderMask(
+        blendMode: BlendMode.dstIn,
+        shaderCallback: (bounds) => orbEdge(bounds.size, pixel).createShader(bounds),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              center: const Alignment(-0.3, -0.4),
+              radius: 0.95,
+              stops: const [0, .55, 1],
+              colors: light
+                  ? [
+                      const Color(0xFFFED7AA),
+                      theme.extension<NoteloreTokens>()!.bright,
+                      const Color(0xFF7C2D12),
+                    ]
+                  : [const Color(0xFFFFF1E6), accent, Color.lerp(accent, Colors.black, .55)!],
+            ),
+          ),
+          child: child,
+        ),
+      ),
     );
+  }
+}
+
+/// The [Orb]'s round cut on a [size] box: opaque inside, fading out over one
+/// device pixel centred on the rim, as an anti-aliased circle's edge does.
+RadialGradient orbEdge(Size size, double devicePixelRatio) {
+  final rim = size.shortestSide / 2;
+  final half = .5 / devicePixelRatio;
+  return RadialGradient(
+    radius: (rim + half) / size.shortestSide,
+    stops: [0, (rim - half) / (rim + half), 1],
+    colors: const [Colors.white, Colors.white, Colors.transparent],
+  );
+}
+
+/// A rounded box of [color] with [edge] drawn inside it.
+///
+/// Painted as two rounded rects, the edge's and the fill's, each blurred by a
+/// sigma of .3 device pixel, near the .29 spread of the one-pixel box an
+/// anti-aliased edge covers. Renderers draw that blur in a shader, so the round
+/// ends stay smooth where Impeller's multisampled path edge steps.
+class FieldDecoration extends Decoration {
+  const FieldDecoration({required this.color, required this.edge, required this.radius});
+
+  final Color color;
+  final BorderSide edge;
+  final double radius;
+
+  @override
+  EdgeInsetsGeometry get padding => EdgeInsets.all(edge.width);
+
+  @override
+  bool operator ==(Object other) =>
+      other is FieldDecoration &&
+      other.color == color &&
+      other.edge == edge &&
+      other.radius == radius;
+
+  @override
+  int get hashCode => Object.hash(color, edge, radius);
+
+  @override
+  BoxPainter createBoxPainter([VoidCallback? onChanged]) => _FieldPainter(this);
+}
+
+class _FieldPainter extends BoxPainter {
+  _FieldPainter(this.field);
+
+  final FieldDecoration field;
+
+  @override
+  void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
+    final soft = MaskFilter.blur(BlurStyle.normal, .3 / (configuration.devicePixelRatio ?? 1));
+    final outer = RRect.fromRectAndRadius(
+      offset & configuration.size!,
+      Radius.circular(field.radius),
+    );
+    canvas
+      ..drawRRect(
+        outer,
+        Paint()
+          ..color = field.edge.color
+          ..maskFilter = soft,
+      )
+      ..drawRRect(
+        outer.deflate(field.edge.width),
+        Paint()
+          ..color = field.color
+          ..maskFilter = soft,
+      );
   }
 }
 
