@@ -620,22 +620,26 @@ class _NotesScreenState extends State<NotesScreen> {
     final s = widget.session.strings;
     final Widget content;
     if (_reading case (final note, final text)?) {
+      final round = softRound(Theme.of(context).colorScheme);
       content = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // The note's own heading is its title; above it only its actions.
+          // The note's own heading is its title; above it only its actions,
+          // whose circles end Gap.s from the edge, as in an app bar.
           Padding(
-            padding: const EdgeInsets.fromLTRB(0, Gap.s, Gap.s, 0),
+            padding: const EdgeInsets.fromLTRB(0, Gap.s, Gap.s - softRoundInset, 0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 _pin(note, pinned: note.pinned),
                 IconButton(
+                  style: round,
                   tooltip: s.export,
                   icon: const Icon(AppIcons.share),
                   onPressed: () => _export([note]),
                 ),
                 IconButton(
+                  style: round,
                   tooltip: s.delete,
                   icon: const Icon(AppIcons.delete),
                   onPressed: () => _delete(note),
@@ -690,17 +694,20 @@ class _NotesScreenState extends State<NotesScreen> {
         builder: (reader) => Scaffold(
           // The note's own heading is its title: the bar only holds its actions.
           appBar: AppBar(
+            leading: softBack(reader),
             actions: [
               StatefulBuilder(
                 builder: (context, setPin) =>
                     _pin(note, pinned: pinned, done: () => setPin(() => pinned = !pinned)),
               ),
               IconButton(
+                style: softRound(Theme.of(reader).colorScheme),
                 tooltip: widget.session.strings.export,
                 icon: const Icon(AppIcons.share),
                 onPressed: () => _export([note]),
               ),
               IconButton(
+                style: softRound(Theme.of(reader).colorScheme),
                 tooltip: widget.session.strings.delete,
                 icon: const Icon(AppIcons.delete),
                 onPressed: () async {
@@ -733,6 +740,7 @@ class _NotesScreenState extends State<NotesScreen> {
   /// The app bar's icon colour would hide `isSelected`, so the filled pin names its own.
   Widget _pin(NoteInfo note, {required bool pinned, VoidCallback? done}) => Builder(
     builder: (context) => IconButton(
+      style: softRound(Theme.of(context).colorScheme),
       tooltip: pinned ? widget.session.strings.unpin : widget.session.strings.pin,
       isSelected: pinned,
       icon: const Icon(AppIcons.pin),
@@ -765,10 +773,7 @@ class _Panel extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: Gap.s, bottom: Gap.xs),
     child: Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
+      shape: softBorder(Theme.of(context).colorScheme, BorderRadius.circular(Radii.panel)),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
@@ -1145,7 +1150,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     final s = widget.session.strings;
     return Scaffold(
       appBar: AppBar(
-        leading: widget.back == null ? null : BackButton(onPressed: close),
+        leading: softBack(context, onPressed: close),
         title: archived.entries ? Text(s.archivedTitle(archived)) : null,
         actions: [
           TextButton.icon(
@@ -1154,6 +1159,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
             onPressed: () => _restore(archived, close),
           ),
           IconButton(
+            style: softRound(Theme.of(context).colorScheme),
             tooltip: s.deleteForever,
             icon: const Icon(AppIcons.deleteForever),
             onPressed: () async {
@@ -1200,12 +1206,13 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        leading: widget.back == null ? null : BackButton(onPressed: widget.back),
+        leading: softBack(context, onPressed: widget.back),
         title: Text(s.archive),
         actions: [
           if (archived.isNotEmpty)
             PopupMenuButton<String>(
               key: const Key('archive-more'),
+              style: softRound(colors),
               clipBehavior: Clip.antiAlias,
               tooltip: s.archiveActions,
               icon: const Icon(AppIcons.moreVert),
@@ -1341,7 +1348,7 @@ class _NoteRow extends StatelessWidget {
       // The open note is told by its edge in the accent.
       shape: selected
           ? RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(Radii.card),
               side: BorderSide(color: colors.primary),
             )
           : null,

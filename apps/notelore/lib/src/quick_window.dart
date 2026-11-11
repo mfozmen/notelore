@@ -225,7 +225,7 @@ class _QuickAddScreenState extends State<QuickAddScreen> {
           padding: const EdgeInsets.all(Gap.xs),
           decoration: BoxDecoration(
             color: colors.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(Radii.field),
             border: Focus.of(context).hasFocus
                 ? Border.all(color: colors.primary, width: 2)
                 : Border.all(color: colors.outlineVariant),

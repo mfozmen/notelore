@@ -255,10 +255,7 @@ class _MonthGrid extends StatelessWidget {
           ],
         ),
         Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: colors.outlineVariant),
-          ),
+          shape: softBorder(colors, BorderRadius.circular(Radii.panel)),
           child: Padding(
             // Narrow sides, so a day keeps as much of its 48 dp width as fits.
             padding: const EdgeInsets.fromLTRB(Gap.xs, Gap.s, Gap.xs, Gap.xs),

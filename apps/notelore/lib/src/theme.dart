@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 
 import 'icons.dart';
 import 'schemes.dart';
+import 'soft.dart' show softRoundInset, softRoundSize;
 
 /// Light, dark, or whatever the device uses.
 enum Appearance {
@@ -25,10 +26,20 @@ enum Appearance {
   final ThemeMode mode;
 }
 
-/// Corner radii: cards and tiles, and the rounder input fields.
-const _card = 22.0;
-const _field = 28.0;
-const _soft = 20.0;
+/// Corner radii, the one table every rounded surface takes its corner from.
+abstract final class Radii {
+  /// Cards and tiles.
+  static const double card = 18;
+
+  /// Panels over a list, menus and pickers.
+  static const double panel = 20;
+
+  /// Text fields and the composer.
+  static const double field = 28;
+
+  /// Choice chips.
+  static const double chip = 10;
+}
 
 /// The spacing steps every screen uses.
 abstract final class Gap {
@@ -118,8 +129,11 @@ abstract final class Layout {
 class NoteloreTokens extends ThemeExtension<NoteloreTokens> {
   const NoteloreTokens({
     required this.hot,
-    required this.hotText,
+    required this.hotLabel,
     required this.hotValue,
+    required this.hotReason,
+    required this.hotSource,
+    required this.hotLink,
     required this.hotBorder,
     required this.glow,
     required this.mineBorder,
@@ -127,10 +141,15 @@ class NoteloreTokens extends ThemeExtension<NoteloreTokens> {
     required this.label,
   });
 
-  /// The current decision's card: its fill, its words, its value and its edge.
+  /// A found decision's card: its fill, its words from loudest ([hotValue])
+  /// to quietest ([hotSource]), its link and its edge. Each reads at 4.5:1 on
+  /// either end of the fill.
   final LinearGradient hot;
-  final Color hotText;
+  final Color hotLabel;
   final Color hotValue;
+  final Color hotReason;
+  final Color hotSource;
+  final Color hotLink;
   final Color hotBorder;
 
   /// The glow at the top of the screen at night; none by day.
@@ -148,8 +167,11 @@ class NoteloreTokens extends ThemeExtension<NoteloreTokens> {
   @override
   NoteloreTokens copyWith({
     LinearGradient? hot,
-    Color? hotText,
+    Color? hotLabel,
     Color? hotValue,
+    Color? hotReason,
+    Color? hotSource,
+    Color? hotLink,
     Color? hotBorder,
     RadialGradient? glow,
     Color? mineBorder,
@@ -157,8 +179,11 @@ class NoteloreTokens extends ThemeExtension<NoteloreTokens> {
     TextStyle? label,
   }) => NoteloreTokens(
     hot: hot ?? this.hot,
-    hotText: hotText ?? this.hotText,
+    hotLabel: hotLabel ?? this.hotLabel,
     hotValue: hotValue ?? this.hotValue,
+    hotReason: hotReason ?? this.hotReason,
+    hotSource: hotSource ?? this.hotSource,
+    hotLink: hotLink ?? this.hotLink,
     hotBorder: hotBorder ?? this.hotBorder,
     glow: glow ?? this.glow,
     mineBorder: mineBorder ?? this.mineBorder,
@@ -171,8 +196,11 @@ class NoteloreTokens extends ThemeExtension<NoteloreTokens> {
     if (other == null) return this;
     return NoteloreTokens(
       hot: LinearGradient.lerp(hot, other.hot, t)!,
-      hotText: Color.lerp(hotText, other.hotText, t)!,
+      hotLabel: Color.lerp(hotLabel, other.hotLabel, t)!,
       hotValue: Color.lerp(hotValue, other.hotValue, t)!,
+      hotReason: Color.lerp(hotReason, other.hotReason, t)!,
+      hotSource: Color.lerp(hotSource, other.hotSource, t)!,
+      hotLink: Color.lerp(hotLink, other.hotLink, t)!,
       hotBorder: Color.lerp(hotBorder, other.hotBorder, t)!,
       glow: RadialGradient.lerp(glow, other.glow, t),
       mineBorder: Color.lerp(mineBorder, other.mineBorder, t)!,
@@ -199,11 +227,15 @@ NoteloreTokens _tokens(ColorScheme colors) {
           hot: const LinearGradient(
             begin: _hotFrom,
             end: _hotTo,
-            colors: [Color(0xFFEA580C), Color(0xFF9A3412)],
+            colors: [Color(0xFFC2410C), Color(0xFF9A3412)],
           ),
-          hotText: const Color(0xFFFFF7ED),
-          hotValue: const Color(0xFFFFF7ED),
-          hotBorder: colors.outlineVariant,
+          // White on the fill's light end is only 5.2:1, so every step stays near white.
+          hotLabel: const Color(0xFFFFEDDD),
+          hotValue: Colors.white,
+          hotReason: const Color(0xFFFFF1E6),
+          hotSource: const Color(0xFFFCEEE2),
+          hotLink: const Color(0xFFFFF5D6),
+          hotBorder: const Color(0xFF7C2D12),
           glow: null,
           mineBorder: const Color(0xFFEFC4A2),
           bright: const Color(0xFFEA580C),
@@ -215,8 +247,11 @@ NoteloreTokens _tokens(ColorScheme colors) {
             end: _hotTo,
             colors: [Color(0xFF335240), Color(0xFF142019)],
           ),
-          hotText: const Color(0xFFD7E3D9),
-          hotValue: const Color(0xFFF0B47F),
+          hotLabel: const Color(0xFFF0C49A),
+          hotValue: const Color(0xFFF4F8F4),
+          hotReason: const Color(0xFFCFDDD2),
+          hotSource: const Color(0xFFB5C7BA),
+          hotLink: const Color(0xFFF2E6C9),
           hotBorder: colors.primary.withValues(alpha: .3),
           glow: const RadialGradient(
             center: Alignment.topCenter,
@@ -265,69 +300,51 @@ List<BoxShadow> orbGlow(ColorScheme colors, {double blur = 18, double y = 6}) =>
   BoxShadow(color: colors.primary.withValues(alpha: .45), offset: Offset(0, y), blurRadius: blur),
 ];
 
-/// A soft card's edge on [colors]: by day a light along its top, at night a
-/// faint glow of the accent inside.
-SoftBorder softBorder(ColorScheme colors, BorderRadiusGeometry radius) {
-  final light = colors.brightness == Brightness.light;
-  return SoftBorder(
-    borderRadius: radius,
-    side: BorderSide(
-      color: light ? colors.outlineVariant.withValues(alpha: .75) : colors.outlineVariant,
-    ),
-    highlight: Colors.white.withValues(alpha: light ? .8 : .07),
-    glow: light ? Colors.transparent : colors.primary.withValues(alpha: .16),
-  );
-}
+/// A card's crisp edge on [colors]: a hairline and nothing drawn inside it.
+/// The raised look comes from the card's shadow, never a glow.
+RoundedRectangleBorder softBorder(ColorScheme colors, BorderRadiusGeometry radius) =>
+    RoundedRectangleBorder(
+      borderRadius: radius,
+      side: BorderSide(color: colors.outlineVariant),
+    );
 
-/// A rounded rectangle with a hairline, a 1-point light along its top edge and
-/// a blurred [glow] inside it, all drawn over the content's edge.
-@immutable
-class SoftBorder extends RoundedRectangleBorder {
-  const SoftBorder({required this.highlight, required this.glow, super.side, super.borderRadius});
+/// A found decision's card: the [NoteloreTokens.hot] fill under [child], with
+/// a card's crisp edge and soft shadow. A text button on it tints and rings in
+/// [NoteloreTokens.hotLink], since Kil's accent matches the fill.
+class HotCard extends StatelessWidget {
+  const HotCard({required this.child, this.margin, super.key});
 
-  final Color highlight;
-  final Color glow;
-
-  // A button resolves its shape through copyWith; the inherited one returns a plain border.
-  @override
-  SoftBorder copyWith({BorderSide? side, BorderRadiusGeometry? borderRadius}) => SoftBorder(
-    highlight: highlight,
-    glow: glow,
-    side: side ?? this.side,
-    borderRadius: borderRadius ?? this.borderRadius,
-  );
+  final Widget child;
+  final EdgeInsetsGeometry? margin;
 
   @override
-  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
-    final edge = borderRadius.resolve(textDirection).toRRect(rect);
-    canvas
-      ..save()
-      ..clipRRect(edge)
-      ..drawDRRect(
-        edge.inflate(40),
-        edge,
-        Paint()
-          ..color = glow
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
-      )
-      // Where the edge and the edge one point lower differ, inside: the top rim.
-      ..drawPath(
-        Path()
-          ..fillType = PathFillType.evenOdd
-          ..addRRect(edge)
-          ..addRRect(edge.shift(const Offset(0, 1))),
-        Paint()..color = highlight,
-      )
-      ..restore();
-    super.paint(canvas, rect, textDirection: textDirection);
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = theme.extension<NoteloreTokens>()!;
+    final radius = BorderRadius.circular(Radii.card);
+    final link = tokens.hotLink;
+    return Card(
+      margin: margin,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(color: tokens.hotBorder),
+      ),
+      child: Ink(
+        decoration: BoxDecoration(gradient: tokens.hot),
+        child: TextButtonTheme(
+          data: TextButtonThemeData(
+            style: theme.textButtonTheme.style!.copyWith(
+              foregroundColor: WidgetStatePropertyAll(link),
+              overlayColor: _tint(link),
+              side: _ring(link),
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
   }
-
-  @override
-  bool operator ==(Object other) =>
-      other is SoftBorder && super == other && other.highlight == highlight && other.glow == glow;
-
-  @override
-  int get hashCode => Object.hash(super.hashCode, highlight, glow);
 }
 
 /// Lists the bundled fonts' licenses on Flutter's licenses page.
@@ -390,7 +407,7 @@ WidgetStateProperty<BorderSide?> _ring(Color ring, [BorderSide? rest]) =>
 
 ThemeData noteloreTheme(Brightness brightness) {
   final colors = brightness == Brightness.light ? kil : orman;
-  final rounded = RoundedRectangleBorder(borderRadius: BorderRadius.circular(_card));
+  final rounded = RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.card));
   final edge = BorderSide(color: colors.outlineVariant);
   const tap = Size(48, 48);
   final light = brightness == Brightness.light;
@@ -421,37 +438,43 @@ ThemeData noteloreTheme(Brightness brightness) {
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       centerTitle: false,
+      // Header buttons are softRound: these put its circle Gap.s from either edge.
+      leadingWidth: softRoundSize + 2 * Gap.s,
+      actionsPadding: const EdgeInsetsDirectional.only(end: Gap.s - softRoundInset),
     ),
     cardTheme: CardThemeData(
       margin: EdgeInsets.zero,
       color: colors.surfaceContainerLow,
-      // Soft, not raised: a faint accent shadow by day, none at night.
-      elevation: light ? 2 : 0,
-      shadowColor: colors.primary.withValues(alpha: .35),
-      shape: softBorder(colors, BorderRadius.circular(_card)),
+      // Raised by a soft shadow: tinted by the accent by day, plain at night.
+      elevation: 2,
+      shadowColor: light ? colors.primary.withValues(alpha: .35) : Colors.black,
+      shape: softBorder(colors, BorderRadius.circular(Radii.card)),
     ),
     listTileTheme: ListTileThemeData(shape: rounded, minVerticalPadding: Gap.s),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: colors.surfaceContainerLow,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(_field), borderSide: edge),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(Radii.field),
+        borderSide: edge,
+      ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(_field),
+        borderRadius: BorderRadius.circular(Radii.field),
         borderSide: edge,
       ),
       // The focused field stays visible for keyboard users.
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(_field),
+        borderRadius: BorderRadius.circular(Radii.field),
         borderSide: BorderSide(color: colors.primary, width: 2),
       ),
       // An error shows on the field's edge, not only in the line under it.
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(_field),
+        borderRadius: BorderRadius.circular(Radii.field),
         borderSide: BorderSide(color: colors.error),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(_field),
+        borderRadius: BorderRadius.circular(Radii.field),
         borderSide: BorderSide(color: colors.error, width: 2),
       ),
     ),
@@ -555,13 +578,16 @@ ThemeData noteloreTheme(Brightness brightness) {
         filled: true,
         fillColor: colors.surfaceContainerLow,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(_soft), borderSide: edge),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(Radii.panel),
+          borderSide: edge,
+        ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(_soft),
+          borderRadius: BorderRadius.circular(Radii.panel),
           borderSide: edge,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(_soft),
+          borderRadius: BorderRadius.circular(Radii.panel),
           borderSide: BorderSide(color: colors.primary, width: 2),
         ),
       ),
@@ -569,7 +595,7 @@ ThemeData noteloreTheme(Brightness brightness) {
         backgroundColor: WidgetStatePropertyAll(colors.surfaceContainerHigh),
         elevation: const WidgetStatePropertyAll(3),
         shadowColor: WidgetStatePropertyAll(colors.primary.withValues(alpha: .35)),
-        shape: WidgetStatePropertyAll(softBorder(colors, BorderRadius.circular(_soft))),
+        shape: WidgetStatePropertyAll(softBorder(colors, BorderRadius.circular(Radii.panel))),
         padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: Gap.xs)),
       ),
     ),
@@ -577,7 +603,7 @@ ThemeData noteloreTheme(Brightness brightness) {
       color: colors.surfaceContainerHigh,
       elevation: 3,
       shadowColor: colors.primary.withValues(alpha: .35),
-      shape: softBorder(colors, BorderRadius.circular(_soft)),
+      shape: softBorder(colors, BorderRadius.circular(Radii.panel)),
     ),
     dividerTheme: DividerThemeData(color: colors.outlineVariant, space: 1),
   );

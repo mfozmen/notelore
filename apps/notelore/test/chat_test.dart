@@ -204,11 +204,36 @@ void main() {
       final value = find.text('Postgres');
       expect(tester.widget<Text>(value).style!.fontFamily, 'Fraunces');
       final theme = Theme.of(tester.element(value));
+      final tokens = theme.extension<NoteloreTokens>()!;
+      Color? color(String text) => tester.widget<Text>(find.text(text).first).style!.color;
+      // A found decision is the coloured card, its words a hierarchy (#854).
       expect(
-        tester.widget<Text>(find.text('Mature and well known.')).style!.color,
-        theme.colorScheme.onSurfaceVariant,
+        [color('DATABASE'), color('30 Sep'), color('Postgres'), color('Mature and well known.')],
+        [tokens.hotLabel, tokens.hotLabel, tokens.hotValue, tokens.hotReason],
+      );
+      expect(color('Source: Project Atlas'), tokens.hotSource);
+      expect(tester.widget<Text>(open.first).style!.decoration, TextDecoration.underline);
+      final link = tester.widget<RichText>(
+        find.descendant(of: open.first, matching: find.byType(RichText)),
+      );
+      expect(link.text.style!.color, tokens.hotLink);
+      // The accent ring would vanish on the clay fill; a keyboard focus rings in the link colour.
+      FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+      addTearDown(() => FocusManager.instance.highlightStrategy = FocusHighlightStrategy.automatic);
+      expect(
+        TextButtonTheme.of(tester.element(open.first)).style!.side!.resolve({WidgetState.focused}),
+        BorderSide(color: tokens.hotLink, width: 2),
       );
       expect(find.ancestor(of: value, matching: find.byType(Card)), findsOneWidget);
+      expect(
+        find.ancestor(
+          of: value,
+          matching: find.byWidgetPredicate(
+            (w) => w is Ink && w.decoration == BoxDecoration(gradient: tokens.hot),
+          ),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Source: Project Atlas'), findsNWidgets(2));
       expect(open, findsNWidgets(2));
       final button = find.ancestor(of: open.first, matching: find.byType(TextButton));
