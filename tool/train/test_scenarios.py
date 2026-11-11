@@ -53,6 +53,20 @@ for case in generated:
                    if scenarios.themes(p) & wanted and not any(re.search(q, p) for q in patterns))
     check(f"{case['id']} has no other list of its kind to add to", clash, [])
 
+# About me (v10): every such case has the file, and only about-me cases do, so no
+# other case gets it as a distractor.
+about = [c for c in generated if c["kind"] == "about-me"]
+check("there are about-me cases", len(about) >= 80, True)
+check("every about-me case has the about-me file", all("about-me.md" in c["notes"] for c in about), True)
+check("no other case has the about-me file", any("about-me.md" in c["notes"] for c in generated if c["kind"] != "about-me"), False)
+updates = [c for c in about if "update_about_me" in c["expect"].get("tools", [])]
+check("updates outnumber plain remembers", len(updates) > sum("remember_about_me" in c["expect"].get("tools", []) for c in about) / 2, True)
+check("an update never also remembers", all("remember_about_me" in c["expect"]["tools_not"] for c in updates), True)
+for c in about:
+    if "update_about_me" in c["expect"].get("tools", []) or c["id"].startswith("aboutme-known-"):
+        check(f"{c['id']} has a fact to update or know", "\n- " in c["notes"]["about-me.md"], True)
+check("a new list beside a list of another kind", sum(c["id"].startswith("newlist-other-") for c in generated), 12)
+
 if failures:
     sys.exit(f"{failures} failed")
 print("ok")
