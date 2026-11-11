@@ -227,12 +227,15 @@ class NoteView extends StatelessWidget {
   );
 
   /// Inline Markdown: bold, links and images work in every line.
-  Widget _markdown(String text, {TextStyle? style}) => Builder(
+  Widget _markdown(String text, {TextStyle? style, Color? link}) => Builder(
     builder: (context) => MarkdownBody(
       data: text,
       onTapLink: (_, href, _) => openWebLink(href),
       imageBuilder: _image,
-      styleSheet: _sheet(Theme.of(context)).copyWith(p: style),
+      styleSheet: _sheet(Theme.of(context)).copyWith(
+        p: style,
+        a: link == null ? null : TextStyle(color: link),
+      ),
     ),
   );
 
@@ -311,10 +314,11 @@ class NoteView extends StatelessWidget {
 
   List<Widget> _decisions(BuildContext context, List<Decision> decisions) {
     final theme = Theme.of(context);
+    final tokens = theme.extension<NoteloreTokens>()!;
     final earlier = decisions.where((d) => d.superseded != null).toList();
     return [
       for (final decision in decisions.where((d) => d.superseded == null))
-        Card(
+        HotCard(
           margin: const EdgeInsets.only(bottom: Gap.s),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: 12),
@@ -327,16 +331,24 @@ class NoteView extends StatelessWidget {
                       child: Text(
                         strings.caps(decision.topic),
                         semanticsLabel: decision.topic,
-                        style: theme.extension<NoteloreTokens>()!.label,
+                        style: tokens.label.copyWith(color: tokens.hotLabel),
                       ),
                     ),
-                    Text(_date(decision.date), style: _mono(theme)),
+                    Text(
+                      _date(decision.date),
+                      style: _mono(theme).copyWith(color: tokens.hotLabel),
+                    ),
                   ],
                 ),
                 const SizedBox(height: Gap.xs),
                 _markdown(
                   decision.value,
-                  style: theme.textTheme.titleMedium?.copyWith(fontSize: 20, height: 1.25),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontSize: 20,
+                    height: 1.25,
+                    color: tokens.hotValue,
+                  ),
+                  link: tokens.hotLink,
                 ),
                 if (decision.reason case final reason?) ...[
                   const SizedBox(height: Gap.xs),
@@ -344,8 +356,9 @@ class NoteView extends StatelessWidget {
                     reason,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontSize: 13.5,
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: tokens.hotReason,
                     ),
+                    link: tokens.hotLink,
                   ),
                 ],
               ],

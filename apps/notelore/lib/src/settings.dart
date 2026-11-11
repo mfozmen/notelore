@@ -804,7 +804,7 @@ class _LookCard extends StatelessWidget {
                   for (final a in Appearance.values)
                     ChoiceChip(
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(Radii.chip),
                         side: BorderSide(
                           color: session.appearance == a
                               ? tokens.mineBorder
