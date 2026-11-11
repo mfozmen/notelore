@@ -1019,6 +1019,164 @@ ON_NOTE = [
 ]
 
 
+# About me (v10, #604): neither v8's nor v9's data has an about-me turn. Both
+# models remember a new fact but call remember_about_me where a listed one
+# changes, gains a detail or is already there, so updates and known facts weigh
+# most. Distilled with the full prompt: the device model has no about-me tools.
+REMEMBER, UPDATE, KNOWN, FORGET = "remember", "update", "known", "forget"
+ABOUT_ME = [
+    # (lang, facts by section, message, what it should do, words about-me.md then holds)
+    ("tr", {"family": ["Evliyim, eşim Burcu."]}, "Bu arada Kadıköy'de oturuyorum.", REMEMBER, ["## Ev", "Kadıköy"]),
+    ("tr", {"work": ["Bir bankada analistim."]}, "Annemin adı Nermin, babamınki Hüseyin.", REMEMBER, ["## Aile", "Nermin"]),
+    ("tr", {"home": ["Eskişehir'de oturuyorum."]}, "Bir mimarlık ofisinde proje yöneticisi olarak çalışıyorum.", REMEMBER, ["## İş", "mimarlık"]),
+    ("tr", {"family": ["İki kızım var."]}, "Bana Can diye hitap etmeni isterim, Cankat uzun geliyor.", REMEMBER, ["Can"]),
+    ("tr", {}, "Kardeşim Oğuz Almanya'da yaşıyor, Köln'de.", REMEMBER, ["Oğuz"]),
+    ("tr", {"work": ["Öğretmenim."]}, "Okul müdürümüzün adı Sevgi Hanım.", REMEMBER, ["Sevgi"]),
+    ("tr", {"family": ["Eşim Gamze."]}, "Vejetaryenim, yemek önerirken bunu bil.", REMEMBER, ["ejetaryen"]),
+    ("tr", {"home": ["Antalya'da yaşıyorum."]}, "Oğlum Efe 4 yaşında, anaokuluna gidiyor.", REMEMBER, ["## Aile", "Efe"]),
+    ("en", {"family": ["My husband is Marco."]}, "I work as a nurse at St. Mary's hospital.", REMEMBER, ["## Work", "nurse"]),
+    ("en", {"work": ["I'm a freelance translator."]}, "We live in Leeds, near the university.", REMEMBER, ["## Home", "Leeds"]),
+    ("en", {"home": ["I live in Porto."]}, "My daughter Lina is 10 and my son Oskar is 6.", REMEMBER, ["## Family", "Lina", "Oskar"]),
+    ("en", {}, "Please call me Jo, nobody uses Johanna.", REMEMBER, ["Jo"]),
+    ("en", {"family": ["I'm married to Grace."]}, "My sister Hannah lives in Dublin and teaches piano.", REMEMBER, ["Hannah"]),
+    ("en", {"work": ["I run a small bakery."]}, "My business partner at the bakery is Felix.", REMEMBER, ["Felix"]),
+    ("en", {"home": ["I live in Ghent."]}, "I don't drink coffee, only tea, keep that in mind for suggestions.", REMEMBER, ["tea"]),
+    ("en", {}, "I'm a software tester at a game studio in Łódź.", REMEMBER, ["## Work", "Łódź"]),
+
+    ("tr", {"family": ["Evliyim ve bir oğlum var."]}, "Oğlumun adı Kerem.", UPDATE, ["Kerem"]),
+    ("tr", {"family": ["Eşim Burcu."]}, "Burcu bu yıl öğretmenliğe başladı.", UPDATE, ["öğretmen"]),
+    ("tr", {"home": ["Eskişehir'de oturuyorum."]}, "Geçen hafta Bursa'ya taşındık.", UPDATE, ["Bursa"]),
+    ("tr", {"work": ["Bir bankada analistim."]}, "Bankadan ayrıldım, artık bir sigorta şirketinde risk uzmanıyım.", UPDATE, ["sigorta"]),
+    ("tr", {"family": ["Kızım Defne 5 yaşında."]}, "Defne bugün 6 yaşına bastı.", UPDATE, ["6"]),
+    ("tr", {"family": ["Bir kız kardeşim var."]}, "Kız kardeşimin adı Melis.", UPDATE, ["Melis"]),
+    ("tr", {"home": ["Ankara'da, Çankaya'da oturuyorum."]}, "Çankaya'dan Etimesgut'a taşındık.", UPDATE, ["Etimesgut"]),
+    ("tr", {"work": ["Yazılım geliştiriciyim."]}, "Bu ay takım liderliğine terfi ettim.", UPDATE, ["lider"]),
+    ("tr", {"family": ["Annem Nermin, Sivas'ta yaşıyor."]}, "Annem artık Sivas'ta değil, bizimle birlikte yaşıyor.", UPDATE, ["birlikte"]),
+    ("tr", {"other": ["Bana Mehmet diye hitap et."]}, "Artık bana Memo de, herkes öyle diyor.", UPDATE, ["Memo"]),
+    ("tr", {"family": ["Evliyim."]}, "Eşimin adı Tuba.", UPDATE, ["Tuba"]),
+    ("tr", {"family": ["Oğlum Efe anaokuluna gidiyor."]}, "Efe bu yıl ilkokula başladı.", UPDATE, ["ilkokul"]),
+    ("tr", {"work": ["Öğretmenim."]}, "Lisede matematik öğretmeniyim bu arada.", UPDATE, ["matematik"]),
+    ("tr", {"home": ["Bir apartman dairesinde oturuyorum."]}, "Daireden çıktık, bahçeli bir eve geçtik.", UPDATE, ["bahçeli"]),
+    ("en", {"family": ["I have a daughter."]}, "My daughter's name is Freya.", UPDATE, ["Freya"]),
+    ("en", {"family": ["I'm married."]}, "My wife's name is Noor.", UPDATE, ["Noor"]),
+    ("en", {"home": ["I live in Leeds."]}, "We moved from Leeds to York in the spring.", UPDATE, ["York"]),
+    ("en", {"work": ["I'm a junior designer at Brightline."]}, "I got promoted to senior designer at Brightline.", UPDATE, ["senior"]),
+    ("en", {"family": ["My son Oskar is 6."]}, "Oskar is 7 now.", UPDATE, ["7"]),
+    ("en", {"work": ["I work at a bookshop."]}, "I left the bookshop, I'm a librarian at the city library now.", UPDATE, ["librarian"]),
+    ("en", {"family": ["I have a brother."]}, "My brother is called Ravi.", UPDATE, ["Ravi"]),
+    ("en", {"other": ["Call me Johanna."]}, "Actually, just call me Jo from now on.", UPDATE, ["Jo"]),
+    ("en", {"home": ["I live in a flat in Porto."]}, "We bought a house in Matosinhos and moved last week.", UPDATE, ["Matosinhos"]),
+    ("en", {"family": ["My husband Marco is a chef."]}, "Marco opened his own restaurant this year.", UPDATE, ["restaurant"]),
+    ("en", {"work": ["I'm a nurse."]}, "I'm a nurse on the children's ward, by the way.", UPDATE, ["children"]),
+    ("en", {"family": ["We have a dog."]}, "Our dog is called Biscuit.", UPDATE, ["Biscuit"]),
+    ("en", {"family": ["My mum lives in Cork."]}, "Mum moved in with us in Galway last month.", UPDATE, ["Galway"]),
+
+    ("tr", {"home": ["Kadıköy'de, Moda'da oturuyorum."]}, "Bu arada Kadıköy'de yaşıyorum.", KNOWN, []),
+    ("tr", {"family": ["Eşim Gamze, iki kızımız var."]}, "Eşimin adı Gamze.", KNOWN, []),
+    ("tr", {"work": ["Bir bankada analistim."]}, "Bankada analist olarak çalışıyorum.", KNOWN, []),
+    ("tr", {"family": ["Oğlum Kerem 9 yaşında."]}, "Oğlum Kerem dokuz yaşında.", KNOWN, []),
+    ("tr", {"other": ["Bana Can diye hitap et."]}, "Bana Can de.", KNOWN, []),
+    ("tr", {"home": ["Eskişehir'de oturuyorum."]}, "Eskişehir'de yaşıyorum, bilgin olsun.", KNOWN, []),
+    ("en", {"home": ["I live in York."]}, "I live in York, just so you know.", KNOWN, []),
+    ("en", {"family": ["My wife is Noor."]}, "Noor is my wife.", KNOWN, []),
+    ("en", {"work": ["I'm a librarian at the city library."]}, "I work at the city library.", KNOWN, []),
+    ("en", {"family": ["My daughter Freya is 4."]}, "Freya is four.", KNOWN, []),
+    ("en", {"other": ["I don't drink coffee, only tea."]}, "Remember, no coffee for me, just tea.", KNOWN, []),
+    ("en", {"work": ["I run a small bakery with Felix."]}, "Felix and I run the bakery together.", KNOWN, []),
+
+    ("tr", {"family": ["Eşim Gamze."], "other": ["Bana Can diye hitap et."]}, "Bana Can deme artık, o bilgiyi sil.", FORGET, []),
+    ("tr", {"home": ["Bursa'da oturuyorum."], "work": ["Bir sigorta şirketinde çalışıyorum."]}, "Sigorta şirketinde çalıştığım bilgisi yanlış, unut onu.", FORGET, []),
+    ("tr", {"family": ["Bir kız kardeşim var, Melis."]}, "Kız kardeşimle ilgili bilgiyi kaldır lütfen.", FORGET, []),
+    ("tr", {"other": ["Vejetaryenim."]}, "Vejetaryen değilim, o yanlış kaydedilmiş, sil.", FORGET, []),
+    ("en", {"other": ["Call me Jo."]}, "Forget the bit about calling me Jo.", FORGET, []),
+    ("en", {"family": ["My brother Ravi lives in Pune."]}, "Please remove what you know about my brother.", FORGET, []),
+    ("en", {"work": ["I'm a nurse on the children's ward."]}, "That nurse thing is wrong, forget it.", FORGET, []),
+    ("en", {"home": ["I live in Ghent."]}, "Forget where I live.", FORGET, []),
+]
+
+# A fact in a note, moved to About me when the user asks: (lang, facts, note
+# title, its entry, message, words about-me.md then holds).
+ABOUT_ME_MOVES = [
+    ("tr", {"family": ["Eşim Burcu."]}, "Ev İşleri", "Ev adresim: Bahçelievler Mah. 1453 Sokak No: 7, Çankaya.",
+     "Ev İşleri notundaki adresimi Hakkımda'ya taşı.", ["1453 Sokak"]),
+    ("tr", {"work": ["Ar-Ge biriminde çalışıyorum."]}, "Çalışma Notları", "Yöneticim Levent Bey, Ar-Ge biriminde.",
+     "Çalışma notlarımdaki yöneticimin adını hakkımdaki bilgilere ekle, nottan da kaldır.", ["Levent"]),
+    ("tr", {"family": ["Annem Nermin."]}, "Aile Doğum Günleri", "Annemin doğum günü 14 Mart.",
+     "Annemin doğum gününü Aile Doğum Günleri notundan Hakkımda'ya taşı.", ["14 Mart"]),
+    ("tr", {"family": ["Kızım Defne 7 yaşında."]}, "Okul İşleri", "Kızım Defne 2-B sınıfında, öğretmeni Aylin Hanım.",
+     "Okul işleri notunda Defne'nin sınıfı yazıyor, onu Hakkımda'ya al.", ["2-B"]),
+    ("tr", {"home": ["Ankara'da oturuyorum."]}, "Taşınma", "Yeni adresimiz: Gazi Cad. No: 12, Etimesgut.",
+     "Taşınma notundaki yeni adresimizi hakkımdaki bilgilere taşı.", ["Gazi Cad"]),
+    ("en", {"family": ["My wife is Noor."]}, "Admin Stuff", "My home address is 4 Harbour Row, Galway.",
+     "Move my home address from Admin Stuff into About me.", ["Harbour Row"]),
+    ("en", {"work": ["I'm a designer at Brightline."]}, "Work Notes", "My line manager is Dana Whitfield.",
+     "Put my manager's name from Work Notes into About me and take it out of the note.", ["Dana"]),
+    ("en", {"family": ["My daughter Lina is 10."]}, "School Run", "Lina is in year 5, her teacher is Mr Okafor.",
+     "Move Lina's class from the School Run note to About me.", ["year 5"]),
+    ("en", {"home": ["I live in York."]}, "Moving House", "Our new address: 22 Mill Lane, York.",
+     "Take our new address from Moving House and keep it in About me.", ["Mill Lane"]),
+    ("en", {"family": ["I'm married to Grace."]}, "Family Notes", "My father-in-law is called Bernard.",
+     "Move my father-in-law's name from Family Notes into About me.", ["Bernard"]),
+]
+
+# Not about the user: a plan with someone the facts name, a thing they own, a
+# project's work, a question the facts answer, or health, which is asked about
+# first. (lang, facts, note title and kind or None, message, tool or None, word)
+ABOUT_ME_NOT = [
+    ("tr", {"family": ["Eşim Burcu."]}, ("Aile Planları", "topic"), "Eşimle cumartesi akşamı tiyatroya gideceğiz.", "add_reminder", "Burcu"),
+    ("tr", {"family": ["Oğlum Kerem 9 yaşında."]}, ("Aile Planları", "topic"), "Oğlumun pazartesi saat 4'te dişçi randevusu var.", "add_reminder", "Kerem"),
+    ("tr", {"family": ["Annem Nermin."]}, ("Aile Planları", "topic"), "Annemle pazar günü kahvaltıya gideceğiz.", "add_reminder", "Nermin"),
+    ("en", {"family": ["My wife is Noor."]}, ("Family Plans", "topic"), "My wife and I are going to a concert on Friday night.", "add_reminder", "Noor"),
+    ("en", {"family": ["My son Oskar is 7."]}, ("Family Plans", "topic"), "My son has football practice on Wednesday at 5.", "add_reminder", "Oskar"),
+    ("en", {"family": ["My mum is Ellen."]}, ("Family Plans", "topic"), "Taking my mum to the eye doctor on Tuesday at 10.", "add_reminder", "Ellen"),
+    ("tr", {"home": ["Bursa'da oturuyorum."]}, ("Otomobil Bakımı", "topic"), "Arabanın lastik basıncı önde 2.3 bar olmalı.", "add_note_entry", "2.3"),
+    ("tr", {"home": ["Bahçeli bir evde oturuyorum."]}, ("Ev Bakımı", "topic"), "Kombinin modeli Vaillant ecoTEC, servisi yılda bir.", "add_note_entry", "Vaillant"),
+    ("en", {"home": ["I live in York."]}, ("Car", "topic"), "The car takes 5W-30 oil, next change at 60,000 km.", "add_note_entry", "5W-30"),
+    ("en", {"home": ["I live in a house in Matosinhos."]}, ("House Maintenance", "topic"), "The boiler is a Baxi 800, serviced every October.", "add_note_entry", "Baxi"),
+    ("tr", {"work": ["Bir mimarlık ofisinde proje yöneticisiyim."]}, ("Kütüphane Projesi", "project"), "Kütüphane projesinde cephe için tuğlayı seçtik.", "record_decision", "tuğla"),
+    ("tr", {"work": ["Takım lideriyim."]}, ("Kurye Uygulaması", "project"), "Kurye uygulaması için yapılacak: giriş ekranını yeniden tasarla.", "add_todo", "giriş"),
+    ("en", {"work": ["I'm a senior designer at Brightline."]}, ("Brightline Rebrand", "project"), "Brightline rebrand: we picked teal as the main colour because it tested best.", "record_decision", "teal"),
+    ("en", {"work": ["I run a small bakery with Felix."]}, ("Bakery Website", "project"), "Add a todo to the bakery website: upload the new menu photos.", "add_todo", "photos"),
+    ("tr", {"family": ["Kızım Defne 6 yaşında."]}, None, "Kızım kaç yaşındaydı?", None, "6"),
+    ("tr", {"home": ["Bursa'da, Görükle'de oturuyorum."]}, None, "Hangi semtte oturduğumu biliyor musun?", None, "Görükle"),
+    ("en", {"work": ["I'm a librarian at the city library."]}, None, "Where do I work again?", None, "library"),
+    ("en", {"family": ["My brother Ravi lives in Pune."]}, None, "Which city does my brother live in?", None, "Pune"),
+    ("tr", {"home": ["Eskişehir'de oturuyorum."]}, None, "Şeker hastasıyım bu arada.", None, "?"),
+    ("en", {"work": ["I'm a freelance translator."]}, None, "I have asthma, by the way.", None, "?"),
+]
+
+ABOUT_ME_TOOLS = ["remember_about_me", "update_about_me", "forget_about_me"]
+SECTIONS = {"work": ("Work", "İş"), "home": ("Home", "Ev"), "family": ("Family", "Aile"),
+            "health": ("Health", "Sağlık"), "other": ("Other", "Diğer")}
+
+
+def about_me(facts, lang):
+    """about-me.md as the app writes it (store/about_me.dart)."""
+    parts = ["# About me", ""]
+    for key, (en, tr) in SECTIONS.items():
+        if key in facts:
+            parts += [f"## {tr if lang == 'tr' else en}", ""] + [f"- {fact}" for fact in facts[key]] + [""]
+    return "\n".join(parts).rstrip("\n") + "\n"
+
+
+# A new list beside a list of another kind: a book list being all there is
+# makes no film a book (v9's misses on the cases). (lang, the list there,
+# message, the new list's path, item)
+NEW_BESIDE = [
+    ("en", "Novels for the Summer", "Film I want to see: Aftersun.", r"^topics/[^/]*(film|movie)[^/]*\.md$", "Aftersun"),
+    ("en", "Novels for the Summer", "Recipe to try: miso aubergine.", r"^topics/[^/]*recipe[^/]*\.md$", "miso"),
+    ("en", "Weekend Film Picks", "Album to listen to: Blue Rev by Alvvays.", r"^topics/[^/]*(album|music)[^/]*\.md$", "Blue Rev"),
+    ("en", "Trips I Want to Take", "Podcast to check out: Song Exploder.", r"^topics/[^/]*podcast[^/]*\.md$", "Song Exploder"),
+    ("en", "Dinner Recipes", "Board game to buy: Cascadia.", r"^topics/[^/]*game[^/]*\.md$", "Cascadia"),
+    ("en", "Gifts for Friends", "Book to read: Piranesi.", r"^topics/[^/]*(book|read)[^/]*\.md$", "Piranesi"),
+    ("tr", "Yaz İçin Romanlar", "İzlemek istediğim film: Kuru Otlar Üstüne.", r"^topics/[^/]*film[^/]*\.md$", "Kuru Otlar"),
+    ("tr", "Yaz İçin Romanlar", "Denenecek tarif: fırında karnabahar.", r"^topics/[^/]*tarif[^/]*\.md$", "karnabahar"),
+    ("tr", "Hafta Sonu Filmleri", "Dinlenecek albüm: Dünya Yalan Söylüyor.", r"^topics/[^/]*(album|muzik)[^/]*\.md$", "Dünya Yalan"),
+    ("tr", "Gitmek İstediğim Şehirler", "Dinlemek istediğim podcast: Medyascope Kültür.", r"^topics/[^/]*podcast[^/]*\.md$", "Medyascope"),
+    ("tr", "Akşam Yemeği Tarifleri", "Alınacak kutu oyunu: Azul.", r"^topics/[^/]*oyun[^/]*\.md$", "Azul"),
+    ("tr", "Arkadaşlara Hediyeler", "Okumak istediğim kitap: Kürk Mantolu Madonna.", r"^topics/[^/]*(kitap|okuma)[^/]*\.md$", "Kürk Mantolu"),
+]
+
 def cases(rng, t=None):
     """The cases [t]'s tables make (this module's by default; the held-out set
     passes its own, #599)."""
@@ -1123,9 +1281,37 @@ def cases(rng, t=None):
     for i, (lang, msg, pattern, word) in enumerate(t.NEW_PROJECTS):
         add(f"new-{i}", "new-note", lang, {}, msg, {"tools": ["create_note"], "notes": {pattern: [word] if word else []}})
 
+    for i, (lang, existing, msg, pattern, item) in enumerate(getattr(t, "NEW_BESIDE", ())):
+        add(f"newlist-other-{i}", "collection", lang, {path("topic", existing): note(existing, "topic", lang)}, msg,
+            {"tools": ["create_note"], "notes": {pattern: [item]}})
+    me = r"^about-me\.md$"
+    kept = {r"^\.notelore/history/": []}  # where the app keeps the file an update replaced
+    for i, (lang, facts, msg, act, words) in enumerate(getattr(t, "ABOUT_ME", ())):
+        notes = {"about-me.md": about_me(facts, lang)}
+        expect = ({"tools_not": ABOUT_ME_TOOLS[:2] + ["add_note_entry", "create_note"]} if act == KNOWN else
+                  {"tools": [f"{act}_about_me"], "tools_not": [x for x in ABOUT_ME_TOOLS if x != f"{act}_about_me"],
+                   "notes": {me: words, **(kept if act != REMEMBER else {})}})
+        add(f"aboutme-{act}-{i}", "about-me", lang, notes, msg, expect)
+    for i, (lang, facts, title, entry, msg, words) in enumerate(getattr(t, "ABOUT_ME_MOVES", ())):
+        p = path("topic", title)
+        notes = {"about-me.md": about_me(facts, lang), p: note(title, "topic", lang, notes=[entry])}
+        # Remembered on its own or merged into a listed fact: either is right.
+        add(f"aboutme-move-{i}", "about-me", lang, notes, msg,
+            {"tools_not": ["forget_about_me"], "notes": {me: words, f"^{re.escape(p)}$": [], "^_archive/": [], **kept}})
+    for i, (lang, facts, where, msg, tool, word) in enumerate(getattr(t, "ABOUT_ME_NOT", ())):
+        notes = {"about-me.md": about_me(facts, lang)}
+        if where is None:
+            expect = {"tools_not": ABOUT_ME_TOOLS, "answer": [word]}
+        else:
+            title, kind = where
+            p = path(kind, title)
+            notes[p] = note(title, kind, lang)
+            expect = {"tools": [tool], "tools_not": ABOUT_ME_TOOLS, "notes": {f"^{re.escape(p)}$": [word]}}
+        add(f"aboutme-not-{i}", "about-me", lang, notes, msg, expect)
+
     # Every workspace holds other notes too, so a case is passed by choosing the
     # right note, not by writing to the only one there (v1 learned that).
-    pool = {p: text for case in out for p, text in case["notes"].items()}
+    pool = {p: text for case in out for p, text in case["notes"].items() if p != "about-me.md"}
     for case in out:
         # Never a note the case expects: a new list stays new, a choice stays one.
         # A plan may go in any note: its pattern matches all, so it gets distractors as they come.
@@ -1156,15 +1342,19 @@ def norm(text):
 
 
 def title_of(text):
-    return re.search(r"^title: (.*)$", text, re.M).group(1)
+    found = re.search(r"^title: (.*)$", text, re.M)
+    return found and found.group(1)  # about-me.md has no front matter
 
 
 def check(generated):
     """No message or note title of the exam, unique ids, and every expectation
     names exactly one note of its workspace (none for a new note or list)."""
-    exam = json.loads((ROOT / "eval/cases.json").read_text(encoding="utf-8"))
-    exam_messages = {norm(c["message"]) for c in exam["cases"]}
-    exam_titles = {title_of(t) for t in exam["notes"].values()}
+    exam_messages, exam_titles = set(), set()
+    for name in ("cases.json", "about-me.json"):
+        exam = json.loads((ROOT / "eval" / name).read_text(encoding="utf-8"))
+        exam_messages |= {norm(c["message"]) for c in exam["cases"]}
+        notes = [*exam["notes"].values(), *(t for c in exam["cases"] for t in c.get("notes", {}).values())]
+        exam_titles |= {title_of(t) for t in notes} - {None}
     for case in generated:
         assert norm(case["message"]) not in exam_messages, case["id"]
         for text in case["notes"].values():
@@ -1172,6 +1362,8 @@ def check(generated):
     assert len({c["id"] for c in generated}) == len(generated), "duplicate ids"
     for case in generated:
         for pattern in case["expect"].get("notes", {}):
+            if pattern.startswith(("^_archive/", r"^\.notelore/")):
+                continue  # a copy the app makes, never a note of the workspace
             matching = sum(bool(re.search(pattern, p)) for p in case["notes"])
             # A new note or list must not be there yet; any other case names exactly one note.
             if case["kind"] == "plan":
