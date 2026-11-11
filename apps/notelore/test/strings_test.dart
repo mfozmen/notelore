@@ -319,6 +319,7 @@ void main() {
       'feedbackSaved': s.feedbackSaved,
       'copied': s.copied,
       'attachFile': s.attachFile,
+      'dropToAttach': s.dropToAttach,
       'fileTooBig': s.fileTooBig('a.pdf'),
       'transcribing': s.transcribing('a.m4a'),
       'audioNeedsWhisper': s.audioNeedsWhisper('a.m4a'),

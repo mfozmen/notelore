@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io' show FileSystemException;
 import 'dart:math';
 
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/gestures.dart'
     show PointerDeviceKind, PointerScrollEvent, PointerSignalEvent, kLongPressTimeout, kTouchSlop;
@@ -93,6 +94,9 @@ class _ChatScreenState extends State<ChatScreen> {
     ..addListener(() => widget.session.draft = _message.text);
   final _modelMenu = GlobalKey();
 
+  /// A file is being dragged over the chat: the drop target shows.
+  var _dropping = false;
+
   /// Push to talk, beside the message box.
   late final _voice = VoiceMode(widget.session, voice: widget.session.voice);
 
@@ -147,11 +151,15 @@ class _ChatScreenState extends State<ChatScreen> {
   /// The largest file that is read at all; what is kept of it is smaller still.
   static const _maxFileBytes = 20 * 1024 * 1024;
 
-  Future<void> _attach() async {
+  Future<void> _attach([List<DropItem>? dropped]) async {
     final messenger = ScaffoldMessenger.of(context);
     final List<PickedFile> picked;
     try {
-      picked = _distinct(await widget.session.exchange.pick(any: true, maxBytes: _maxFileBytes));
+      picked = _distinct(
+        dropped == null
+            ? await widget.session.exchange.pick(any: true, maxBytes: _maxFileBytes)
+            : await widget.session.exchange.read(dropped, maxBytes: _maxFileBytes),
+      );
     } on FileTooBig catch (big) {
       messenger
         ..hideCurrentSnackBar()
@@ -361,7 +369,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final session = widget.session;
     final s = session.strings;
     // On a wide window the conversation is a readable column, like a page.
-    return CallbackShortcuts(
+    final chat = CallbackShortcuts(
       bindings: {
         for (final key in _zoomInKeys) key: session.zoomChatIn,
         for (final key in _zoomOutKeys) key: session.zoomChatOut,
@@ -438,6 +446,59 @@ class _ChatScreenState extends State<ChatScreen> {
                 // Clear of the phone's floating tab bar.
                 SizedBox(height: MediaQuery.paddingOf(context).bottom),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (session.exchange.mobile) return chat;
+    // Dropping on another screen does nothing: the chat is where a file goes.
+    return DropTarget(
+      onDragEntered: (_) => setState(() => _dropping = true),
+      onDragExited: (_) => setState(() => _dropping = false),
+      onDragDone: (details) {
+        setState(() => _dropping = false);
+        unawaited(_attach(details.files));
+      },
+      child: Stack(
+        children: [
+          chat,
+          if (_dropping) Positioned.fill(child: _DropTarget(s)),
+        ],
+      ),
+    );
+  }
+}
+
+/// The overlay while a file is dragged over the chat.
+class _DropTarget extends StatelessWidget {
+  const _DropTarget(this.s);
+
+  final Strings s;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return IgnorePointer(
+      child: ColoredBox(
+        color: theme.colorScheme.primary.withValues(alpha: 0.12),
+        child: Center(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(Radii.card),
+              border: Border.all(color: theme.colorScheme.primary, width: 2),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(Gap.l),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(AppIcons.attach, color: theme.colorScheme.primary),
+                  const SizedBox(width: Gap.s),
+                  Text(s.dropToAttach, style: theme.textTheme.titleMedium),
+                ],
+              ),
             ),
           ),
         ),

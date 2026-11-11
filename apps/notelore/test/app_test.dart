@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_selector/file_selector.dart' show XFile;
 import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
 import 'package:flutter/gestures.dart' show PointerDeviceKind, PointerScrollEvent;
@@ -1176,6 +1177,65 @@ void main() {
     await tester.tap(find.byTooltip('Attach a file'));
     await tester.pumpAndSettle();
     expect(harness.provider.asked, hasLength(1));
+  });
+
+  testWidgets('chat: a dropped file attaches like the button; refused files say so (#844)', (
+    tester,
+  ) async {
+    final harness = Harness(answers: ['Filed under Mopsos.']);
+    harness.mobile = false;
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    DropTarget target() => tester.widget<DropTarget>(find.byType(DropTarget));
+    const at = Offset.zero;
+    // The target shows while a file is over the chat, and goes when it leaves.
+    target().onDragEntered!(DropEventDetails(localPosition: at, globalPosition: at));
+    await tester.pump();
+    expect(find.text('Drop to attach'), findsOneWidget);
+    target().onDragExited!(DropEventDetails(localPosition: at, globalPosition: at));
+    await tester.pump();
+    expect(find.text('Drop to attach'), findsNothing);
+    // Text: sent with what is typed as its explanation, as the button does.
+    await tester.enterText(find.byKey(const Key('message')), 'for Mopsos');
+    target().onDragDone!(
+      DropDoneDetails(
+        files: [
+          DropItemFile.fromData(
+            Uint8List.fromList(utf8.encode('Ship in May.\n')),
+            path: 'plan.txt',
+          ),
+        ],
+        localPosition: at,
+        globalPosition: at,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Drop to attach'), findsNothing);
+    expect(harness.provider.asked, [
+      'for Mopsos\n\n<attached file="plan.txt">\nShip in May.\n</attached>',
+    ]);
+    expect(find.bySemanticsLabel('File: plan.txt'), findsOneWidget);
+    // Refused: the button's own words, and nothing is sent.
+    target().onDragDone!(
+      DropDoneDetails(
+        files: [
+          DropItemFile.fromData(Uint8List.fromList([0xff, 0xfe, 0x00, 0x89]), path: 'photo.jpg'),
+        ],
+        localPosition: at,
+        globalPosition: at,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('photo.jpg is none of them'), findsOneWidget);
+    expect(harness.provider.asked, hasLength(1));
+  });
+
+  testWidgets('chat: a phone has no drop target (#844)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    expect(find.byType(DropTarget), findsNothing);
   });
 
   testWidgets('chat: a PDF goes as its text; one with no text layer is refused (#284)', (
