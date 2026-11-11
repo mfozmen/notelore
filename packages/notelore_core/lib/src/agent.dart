@@ -128,12 +128,16 @@ final _answer = RegExp(r'\[\[([^\]]+)\]\]');
 
 /// [reply] split into its text and the answers the model suggests on its last
 /// line ("[[Yes]] [[No]]"); no answers when that line is anything else, or the
-/// text before it does not end with a question (a closing line of wiki links).
+/// last paragraph before it has no question (a closing line of wiki links).
 ({String text, List<String> answers}) suggestedAnswers(String reply) {
   final cut = reply.lastIndexOf('\n');
   final last = reply.substring(cut + 1);
   final text = cut < 0 ? '' : reply.substring(0, cut).trimRight();
-  if (!_answerLine.hasMatch(last) || !text.endsWith('?')) return (text: reply, answers: const []);
+  final gap = text.lastIndexOf('\n\n');
+  final paragraph = gap < 0 ? text : text.substring(gap + 2);
+  if (!_answerLine.hasMatch(last) || !paragraph.contains('?')) {
+    return (text: reply, answers: const []);
+  }
   return (text: text, answers: [for (final m in _answer.allMatches(last)) m[1]!.trim()]);
 }
 
