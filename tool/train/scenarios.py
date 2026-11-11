@@ -1285,17 +1285,19 @@ def cases(rng, t=None):
         add(f"newlist-other-{i}", "collection", lang, {path("topic", existing): note(existing, "topic", lang)}, msg,
             {"tools": ["create_note"], "notes": {pattern: [item]}})
     me = r"^about-me\.md$"
+    kept = {r"^\.notelore/history/": []}  # where the app keeps the file an update replaced
     for i, (lang, facts, msg, act, words) in enumerate(getattr(t, "ABOUT_ME", ())):
         notes = {"about-me.md": about_me(facts, lang)}
         expect = ({"tools_not": ABOUT_ME_TOOLS[:2] + ["add_note_entry", "create_note"]} if act == KNOWN else
                   {"tools": [f"{act}_about_me"], "tools_not": [x for x in ABOUT_ME_TOOLS if x != f"{act}_about_me"],
-                   "notes": {me: words}})
+                   "notes": {me: words, **(kept if act != REMEMBER else {})}})
         add(f"aboutme-{act}-{i}", "about-me", lang, notes, msg, expect)
     for i, (lang, facts, title, entry, msg, words) in enumerate(getattr(t, "ABOUT_ME_MOVES", ())):
         p = path("topic", title)
         notes = {"about-me.md": about_me(facts, lang), p: note(title, "topic", lang, notes=[entry])}
+        # Remembered on its own or merged into a listed fact: either is right.
         add(f"aboutme-move-{i}", "about-me", lang, notes, msg,
-            {"tools": ["remember_about_me"], "notes": {me: words, f"^{re.escape(p)}$": []}})
+            {"tools_not": ["forget_about_me"], "notes": {me: words, f"^{re.escape(p)}$": [], "^_archive/": [], **kept}})
     for i, (lang, facts, where, msg, tool, word) in enumerate(getattr(t, "ABOUT_ME_NOT", ())):
         notes = {"about-me.md": about_me(facts, lang)}
         if where is None:
@@ -1360,6 +1362,8 @@ def check(generated):
     assert len({c["id"] for c in generated}) == len(generated), "duplicate ids"
     for case in generated:
         for pattern in case["expect"].get("notes", {}):
+            if pattern.startswith(("^_archive/", r"^\.notelore/")):
+                continue  # a copy the app makes, never a note of the workspace
             matching = sum(bool(re.search(pattern, p)) for p in case["notes"])
             # A new note or list must not be there yet; any other case names exactly one note.
             if case["kind"] == "plan":

@@ -65,6 +65,14 @@ check("an update never also remembers", all("remember_about_me" in c["expect"]["
 for c in about:
     if "update_about_me" in c["expect"].get("tools", []) or c["id"].startswith("aboutme-known-"):
         check(f"{c['id']} has a fact to update or know", "\n- " in c["notes"]["about-me.md"], True)
+# The app keeps the replaced file under history and a moved entry under _archive.
+history, archive = r"^\.notelore/history/", "^_archive/"
+for c in about:
+    tools = c["expect"].get("tools", [])
+    if "update_about_me" in tools or "forget_about_me" in tools:
+        check(f"{c['id']} may keep a history copy", history in c["expect"]["notes"], True)
+    if c["id"].startswith("aboutme-move-"):
+        check(f"{c['id']} may archive the entry and update", (archive in c["expect"]["notes"], tools), (True, []))
 check("a new list beside a list of another kind", sum(c["id"].startswith("newlist-other-") for c in generated), 12)
 
 if failures:
