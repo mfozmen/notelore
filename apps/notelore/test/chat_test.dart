@@ -212,8 +212,18 @@ void main() {
         [tokens.hotLabel, tokens.hotLabel, tokens.hotValue, tokens.hotReason],
       );
       expect(color('Source: Project Atlas'), tokens.hotSource);
-      expect(color('Open note →'), tokens.hotLink);
       expect(tester.widget<Text>(open.first).style!.decoration, TextDecoration.underline);
+      final link = tester.widget<RichText>(
+        find.descendant(of: open.first, matching: find.byType(RichText)),
+      );
+      expect(link.text.style!.color, tokens.hotLink);
+      // The accent ring would vanish on the clay fill; a keyboard focus rings in the link colour.
+      FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+      addTearDown(() => FocusManager.instance.highlightStrategy = FocusHighlightStrategy.automatic);
+      expect(
+        TextButtonTheme.of(tester.element(open.first)).style!.side!.resolve({WidgetState.focused}),
+        BorderSide(color: tokens.hotLink, width: 2),
+      );
       expect(find.ancestor(of: value, matching: find.byType(Card)), findsOneWidget);
       expect(
         find.ancestor(

@@ -1890,12 +1890,10 @@ class _Source extends StatelessWidget {
                 ),
                 TextButton(
                   onPressed: open,
-                  style: TextButton.styleFrom(foregroundColor: tokens.hotLink),
                   child: Text(
                     '${strings.openNoteLink} →',
                     semanticsLabel: '${strings.openNoteLink} ${source.title}',
                     style: TextStyle(
-                      color: tokens.hotLink,
                       decoration: TextDecoration.underline,
                       decorationColor: tokens.hotLink,
                     ),

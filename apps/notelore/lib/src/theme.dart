@@ -308,7 +308,8 @@ RoundedRectangleBorder softBorder(ColorScheme colors, BorderRadiusGeometry radiu
     );
 
 /// A found decision's card: the [NoteloreTokens.hot] fill under [child], with
-/// a card's crisp edge and soft shadow.
+/// a card's crisp edge and soft shadow. A text button on it tints and rings in
+/// [NoteloreTokens.hotLink], since Kil's accent matches the fill.
 class HotCard extends StatelessWidget {
   const HotCard({required this.child, this.margin, super.key});
 
@@ -317,8 +318,10 @@ class HotCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = Theme.of(context).extension<NoteloreTokens>()!;
+    final theme = Theme.of(context);
+    final tokens = theme.extension<NoteloreTokens>()!;
     final radius = BorderRadius.circular(Radii.card);
+    final link = tokens.hotLink;
     return Card(
       margin: margin,
       clipBehavior: Clip.antiAlias,
@@ -328,7 +331,16 @@ class HotCard extends StatelessWidget {
       ),
       child: Ink(
         decoration: BoxDecoration(gradient: tokens.hot),
-        child: child,
+        child: TextButtonTheme(
+          data: TextButtonThemeData(
+            style: theme.textButtonTheme.style!.copyWith(
+              foregroundColor: WidgetStatePropertyAll(link),
+              overlayColor: _tint(link),
+              side: _ring(link),
+            ),
+          ),
+          child: child,
+        ),
       ),
     );
   }
