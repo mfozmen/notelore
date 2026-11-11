@@ -1071,32 +1071,28 @@ class _ComposerRow extends StatelessWidget {
     final s = session.strings;
     final colors = Theme.of(context).colorScheme;
     // One rounded field on the card colour holds the box and its buttons; its
-    // edge takes the accent while anything in it has the focus. The edge is
-    // drawn outside, so a thicker one never moves what is inside.
+    // edge takes the accent while anything in it has the focus. The padding
+    // gives back what the thicker edge takes, so nothing inside moves.
     return Focus(
       canRequestFocus: false,
       skipTraversal: true,
       child: Builder(
-        builder: (context) => Container(
-          key: const Key('composer'),
-          margin: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.m),
-          padding: const EdgeInsets.all(Gap.xs),
-          decoration: BoxDecoration(
-            color: colors.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(Radii.field),
-            border: Focus.of(context).hasFocus
-                ? Border.all(
-                    color: colors.primary,
-                    width: 2,
-                    strokeAlign: BorderSide.strokeAlignOutside,
-                  )
-                : Border.all(
-                    color: colors.outlineVariant,
-                    strokeAlign: BorderSide.strokeAlignOutside,
-                  ),
-          ),
-          child: _row(s, colors),
-        ),
+        builder: (context) {
+          final edge = Focus.of(context).hasFocus
+              ? BorderSide(color: colors.primary, width: 2)
+              : BorderSide(color: colors.outlineVariant);
+          return Container(
+            key: const Key('composer'),
+            margin: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.m),
+            padding: EdgeInsets.all(Gap.xs - edge.width),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(Radii.field),
+              border: Border.fromBorderSide(edge),
+            ),
+            child: _row(s, colors),
+          );
+        },
       ),
     );
   }

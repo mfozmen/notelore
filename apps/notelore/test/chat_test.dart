@@ -498,6 +498,11 @@ void main() {
 
     void centred() {
       final (b, o) = (box(), tester.getRect(orb));
+      // The edge stays inside the box, on the column's edge, in both widths.
+      final container = tester.widget<Container>(field);
+      final border = (container.decoration! as BoxDecoration).border! as Border;
+      expect(border.top.strokeAlign, BorderSide.strokeAlignInside);
+      expect(container.padding!.add(border.dimensions), const EdgeInsets.all(Gap.xs));
       expect(tester.getRect(clip).center.dy, moreOrLessEquals(b.center.dy, epsilon: .5));
       // Lifted 1 dp: the face's capitals sit low in their line box.
       expect(line().center.dy, moreOrLessEquals(b.center.dy - 1, epsilon: .5));
