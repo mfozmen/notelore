@@ -1071,7 +1071,8 @@ class _ComposerRow extends StatelessWidget {
     final s = session.strings;
     final colors = Theme.of(context).colorScheme;
     // One rounded field on the card colour holds the box and its buttons; its
-    // edge takes the accent while anything in it has the focus.
+    // edge takes the accent while anything in it has the focus. The edge is
+    // drawn outside, so a thicker one never moves what is inside.
     return Focus(
       canRequestFocus: false,
       skipTraversal: true,
@@ -1084,8 +1085,15 @@ class _ComposerRow extends StatelessWidget {
             color: colors.surfaceContainerLow,
             borderRadius: BorderRadius.circular(Radii.field),
             border: Focus.of(context).hasFocus
-                ? Border.all(color: colors.primary, width: 2)
-                : Border.all(color: colors.outlineVariant),
+                ? Border.all(
+                    color: colors.primary,
+                    width: 2,
+                    strokeAlign: BorderSide.strokeAlignOutside,
+                  )
+                : Border.all(
+                    color: colors.outlineVariant,
+                    strokeAlign: BorderSide.strokeAlignOutside,
+                  ),
           ),
           child: _row(s, colors),
         ),
@@ -1228,7 +1236,8 @@ class _MessageField extends StatelessWidget {
       border: InputBorder.none,
       enabledBorder: InputBorder.none,
       focusedBorder: InputBorder.none,
-      contentPadding: const EdgeInsets.symmetric(horizontal: Gap.xs, vertical: 14),
+      // As tall as the buttons beside it, and 1 dp up: the face's capitals sit low in their line.
+      contentPadding: const EdgeInsets.fromLTRB(Gap.xs, 11, Gap.xs, 13),
     ),
   );
 }
