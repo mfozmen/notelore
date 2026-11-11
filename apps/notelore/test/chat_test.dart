@@ -482,6 +482,54 @@ void main() {
     expect(find.descendant(of: field, matching: find.byKey(const Key('message'))), findsOne);
   });
 
+  testWidgets('the paperclip, the text and the orb sit on the box centre line (#873)', (
+    tester,
+  ) async {
+    phone(tester);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    final field = find.byKey(const Key('composer'));
+    final message = find.byKey(const Key('message'));
+    Rect box() =>
+        (tester.widget<Container>(field).margin! as EdgeInsets).deflateRect(tester.getRect(field));
+    final clip = find.descendant(of: find.byTooltip('Attach a file'), matching: find.byType(Icon));
+    Rect line() =>
+        tester.getRect(find.descendant(of: message, matching: find.byType(EditableText)));
+
+    void centred() {
+      final (b, o) = (box(), tester.getRect(orb));
+      // The edge stays inside the box, on the column's edge, in both widths.
+      final container = tester.widget<Container>(field);
+      final border = (container.decoration! as BoxDecoration).border! as Border;
+      expect(border.top.strokeAlign, BorderSide.strokeAlignInside);
+      expect(container.padding!.add(border.dimensions), const EdgeInsets.all(Gap.xs));
+      expect(tester.getRect(clip).center.dy, moreOrLessEquals(b.center.dy, epsilon: .5));
+      // Lifted 1 dp: the face's capitals sit low in their line box.
+      expect(line().center.dy, moreOrLessEquals(b.center.dy - 1, epsilon: .5));
+      expect(o.center.dy, moreOrLessEquals(b.center.dy, epsilon: .5));
+      // Concentric with the box's round end: the same inset above, below and on the right.
+      expect(o.top - b.top, moreOrLessEquals(b.bottom - o.bottom, epsilon: .5));
+      expect(b.right - o.right, moreOrLessEquals(b.bottom - o.bottom, epsilon: .5));
+      expect(b.height / 2, moreOrLessEquals(Radii.field, epsilon: .5));
+    }
+
+    centred();
+    final empty = box();
+    await tester.enterText(message, 'Postgres');
+    await tester.pumpAndSettle();
+    centred();
+    expect(box(), empty, reason: 'the focused edge does not grow the box');
+    // Many lines: the buttons stay on the last line, the orb in the bottom corner.
+    await tester.enterText(message, 'one\ntwo\nthree');
+    await tester.pumpAndSettle();
+    final (b, o) = (box(), tester.getRect(orb));
+    // The last 24 dp line's centre, plus the same 1 dp lift as one line.
+    final lastLine = line().bottom - 24 / 2;
+    expect(o.center.dy, moreOrLessEquals(lastLine + 1, epsilon: .5));
+    expect(tester.getRect(clip).center.dy, moreOrLessEquals(o.center.dy, epsilon: .5));
+    expect(b.right - o.right, moreOrLessEquals(b.bottom - o.bottom, epsilon: .5));
+  });
+
   testWidgets('the starters are bordered cards with the accent arrow', (tester) async {
     phone(tester);
     await pumpApp(tester, Harness());

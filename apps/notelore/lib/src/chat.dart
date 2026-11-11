@@ -1071,24 +1071,28 @@ class _ComposerRow extends StatelessWidget {
     final s = session.strings;
     final colors = Theme.of(context).colorScheme;
     // One rounded field on the card colour holds the box and its buttons; its
-    // edge takes the accent while anything in it has the focus.
+    // edge takes the accent while anything in it has the focus. The padding
+    // gives back what the thicker edge takes, so nothing inside moves.
     return Focus(
       canRequestFocus: false,
       skipTraversal: true,
       child: Builder(
-        builder: (context) => Container(
-          key: const Key('composer'),
-          margin: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.m),
-          padding: const EdgeInsets.all(Gap.xs),
-          decoration: BoxDecoration(
-            color: colors.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(Radii.field),
-            border: Focus.of(context).hasFocus
-                ? Border.all(color: colors.primary, width: 2)
-                : Border.all(color: colors.outlineVariant),
-          ),
-          child: _row(s, colors),
-        ),
+        builder: (context) {
+          final edge = Focus.of(context).hasFocus
+              ? BorderSide(color: colors.primary, width: 2)
+              : BorderSide(color: colors.outlineVariant);
+          return Container(
+            key: const Key('composer'),
+            margin: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, Gap.m),
+            padding: EdgeInsets.all(Gap.xs - edge.width),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(Radii.field),
+              border: Border.fromBorderSide(edge),
+            ),
+            child: _row(s, colors),
+          );
+        },
       ),
     );
   }
@@ -1228,7 +1232,8 @@ class _MessageField extends StatelessWidget {
       border: InputBorder.none,
       enabledBorder: InputBorder.none,
       focusedBorder: InputBorder.none,
-      contentPadding: const EdgeInsets.symmetric(horizontal: Gap.xs, vertical: 14),
+      // As tall as the buttons beside it, and 1 dp up: the face's capitals sit low in their line.
+      contentPadding: const EdgeInsets.fromLTRB(Gap.xs, 11, Gap.xs, 13),
     ),
   );
 }
