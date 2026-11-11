@@ -593,12 +593,14 @@ class _ConnectionsState extends State<_Connections> {
         _connected(),
         // OpenAI's guidelines link the plan's usage; here rather than by the composer (#507).
         if (session.spec?.access == ProviderAccess.signIn)
-          ListTile(
-            leading: const Icon(AppIcons.openInNew),
-            title: Text(s.manageUsage),
-            subtitle: Text(s.usingChatGptPlan),
-            onTap: () =>
-                launchUrl(Uri.parse(chatGptUsageUrl), mode: LaunchMode.externalApplication),
+          TallTile(
+            child: ListTile(
+              leading: const Icon(AppIcons.openInNew),
+              title: Text(s.manageUsage),
+              subtitle: Text(s.usingChatGptPlan),
+              onTap: () =>
+                  launchUrl(Uri.parse(chatGptUsageUrl), mode: LaunchMode.externalApplication),
+            ),
           ),
         Padding(
           padding: EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, session.spec == null ? Gap.m : Gap.xs),
@@ -638,17 +640,19 @@ class _AdvancedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = session.strings;
     return Card(
-      child: ListTile(
-        key: const Key('open-usage'),
-        leading: const Icon(AppIcons.chart),
-        title: Text(s.usage),
-        subtitle: Text(s.usageWhat),
-        trailing: const Icon(AppIcons.chevronRight),
-        onTap:
-            onOpen ??
-            () =>
-                Navigator.of(context)
-                    .push(MaterialPageRoute<void>(builder: (_) => UsagePage(session))),
+      child: TallTile(
+        child: ListTile(
+          key: const Key('open-usage'),
+          leading: const Icon(AppIcons.chart),
+          title: Text(s.usage),
+          subtitle: Text(s.usageWhat),
+          trailing: const Icon(AppIcons.chevronRight),
+          onTap:
+              onOpen ??
+              () =>
+                  Navigator.of(context)
+                      .push(MaterialPageRoute<void>(builder: (_) => UsagePage(session))),
+        ),
       ),
     );
   }
@@ -701,13 +705,15 @@ class _TestSpaceCard extends StatelessWidget {
     return Card(
       child: Column(
         children: [
-          SwitchListTile(
-            key: const Key('test-space'),
-            secondary: const Icon(Icons.science_outlined),
-            title: Text(s.testSpace),
-            subtitle: Text(s.testSpaceWhy),
-            value: session.testSpace,
-            onChanged: switchSpace == null ? null : (on) => switchSpace(on),
+          TallTile(
+            child: SwitchListTile(
+              key: const Key('test-space'),
+              secondary: const Icon(Icons.science_outlined),
+              title: Text(s.testSpace),
+              subtitle: Text(s.testSpaceWhy),
+              value: session.testSpace,
+              onChanged: switchSpace == null ? null : (on) => switchSpace(on),
+            ),
           ),
           if (session.testSpace)
             Align(
@@ -857,10 +863,12 @@ class _ChatTextCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ListTile(
-              leading: const Icon(AppIcons.textSize),
-              title: Text(s.chatTextSize),
-              subtitle: Text(s.chatTextSizeWhy),
+            TallTile(
+              child: ListTile(
+                leading: const Icon(AppIcons.textSize),
+                title: Text(s.chatTextSize),
+                subtitle: Text(s.chatTextSizeWhy),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Gap.m),
@@ -916,10 +924,12 @@ class _VoiceCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ListTile(
-              leading: const Icon(AppIcons.voice),
-              title: Text(s.whisper),
-              subtitle: Text(s.whisperWhy),
+            TallTile(
+              child: ListTile(
+                leading: const Icon(AppIcons.voice),
+                title: Text(s.whisper),
+                subtitle: Text(s.whisperWhy),
+              ),
             ),
             if (session.whisper.ready)
               FutureBuilder(future: microphones, builder: _microphone)
@@ -1004,10 +1014,14 @@ class _LockCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ListTile(
-              leading: const Icon(AppIcons.lock),
-              title: Text(s.protection),
-              subtitle: Text(session.lock.enabled ? s.appLockOn(session.lock.kind) : s.appLockOff),
+            TallTile(
+              child: ListTile(
+                leading: const Icon(AppIcons.lock),
+                title: Text(s.protection),
+                subtitle: Text(
+                  session.lock.enabled ? s.appLockOn(session.lock.kind) : s.appLockOff,
+                ),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Gap.m),
@@ -1056,11 +1070,13 @@ class _RemindersCard extends StatelessWidget {
       // Set up here already: the switch says enough.
       if (session.calendarHere != false) return const [];
       return [
-        ListTile(
-          // Without the grant here, this device still reminds.
-          leading: const Icon(AppIcons.notifications),
-          title: Text(s.howRemindersArrive),
-          subtitle: Text(s.calendarElsewhere),
+        TallTile(
+          child: ListTile(
+            // Without the grant here, this device still reminds.
+            leading: const Icon(AppIcons.notifications),
+            title: Text(s.howRemindersArrive),
+            subtitle: Text(s.calendarElsewhere),
+          ),
         ),
         _action(AppIcons.login, s.signInCalendar, session.signInCalendar),
       ];
@@ -1068,10 +1084,12 @@ class _RemindersCard extends StatelessWidget {
     // This device's notifications, where it has them at all.
     if (session.remindersAllowed != false) return const [];
     return [
-      ListTile(
-        leading: const Icon(AppIcons.notificationsOff),
-        title: Text(s.howRemindersArrive),
-        subtitle: Text(s.remindersOff),
+      TallTile(
+        child: ListTile(
+          leading: const Icon(AppIcons.notificationsOff),
+          title: Text(s.howRemindersArrive),
+          subtitle: Text(s.remindersOff),
+        ),
       ),
       _action(AppIcons.notificationsOn, s.allowNotifications, () async {
         final messenger = ScaffoldMessenger.of(context);
@@ -1418,20 +1436,24 @@ class _DriveSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!session.driveAvailable) {
-      return ListTile(
-        leading: const Icon(AppIcons.cloudOff),
-        title: Text(session.strings.drive),
-        subtitle: Text(session.strings.driveNotSetUp),
+      return TallTile(
+        child: ListTile(
+          leading: const Icon(AppIcons.cloudOff),
+          title: Text(session.strings.drive),
+          subtitle: Text(session.strings.driveNotSetUp),
+        ),
       );
     }
     if (!session.driveConnected) {
-      return ListTile(
-        leading: const Icon(AppIcons.cloud),
-        title: Text(session.strings.drive),
-        subtitle: Text(session.syncStatus ?? session.strings.driveExplained),
-        trailing: FilledButton(
-          onPressed: () => _connect(context),
-          child: Text(session.strings.connect),
+      return TallTile(
+        child: ListTile(
+          leading: const Icon(AppIcons.cloud),
+          title: Text(session.strings.drive),
+          subtitle: Text(session.syncStatus ?? session.strings.driveExplained),
+          trailing: FilledButton(
+            onPressed: () => _connect(context),
+            child: Text(session.strings.connect),
+          ),
         ),
       );
     }
@@ -1439,13 +1461,15 @@ class _DriveSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ListTile(
-          leading: const Icon(AppIcons.cloudDone),
-          title: Text(session.strings.drive),
-          subtitle: Text(
-            session.syncing
-                ? session.strings.syncing
-                : session.syncStatus ?? session.strings.connected,
+        TallTile(
+          child: ListTile(
+            leading: const Icon(AppIcons.cloudDone),
+            title: Text(session.strings.drive),
+            subtitle: Text(
+              session.syncing
+                  ? session.strings.syncing
+                  : session.syncStatus ?? session.strings.connected,
+            ),
           ),
         ),
         Padding(
