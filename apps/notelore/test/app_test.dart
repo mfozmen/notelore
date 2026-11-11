@@ -467,6 +467,21 @@ void main() {
     expect(tester.testTextInput.isVisible, isFalse);
   });
 
+  testWidgets('chat: the answer actions stay off the suggested-answer buttons (#871)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness(answers: ['Hangi proje?\n[[Mopsos]] [[Atlas]]']);
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await tester.enterText(find.byKey(const Key('message')), 'not al');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pumpAndSettle();
+    final action = tester.getRect(find.byTooltip('Copy').last); // the answer's
+    final button = tester.getRect(find.widgetWithText(OutlinedButton, 'Mopsos'));
+    expect(action.overlaps(button), isFalse);
+  });
   testWidgets('chat: a reply the background cut off arrives on return (#226)', (tester) async {
     phone(tester);
     final harness = Harness(answers: [const NetworkError('offline'), 'Geldi.']);
