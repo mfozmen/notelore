@@ -15,7 +15,8 @@ export 'src/agent.dart'
         attachedFiles,
         withAttachments;
 export 'src/i18n.dart' show aboutMeSections, sectionHeading, sectionHeadings, sectionKey;
-export 'src/links.dart' show LinkUnreadable, Resolve, WebPage, linksIn, readPage, withLinkedPages;
+export 'src/links.dart'
+    show LinkUnreadable, Resolve, WebPage, linksIn, readPage, trimmedLink, withLinkedPages;
 export 'src/oauth.dart'
     show MissingDriveGrant, NoChatGptPlan, NotSignedIn, OAuthSignIn, PartialGrant, SignInFailed;
 export 'src/paths.dart' show NotelorePaths;
