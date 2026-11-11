@@ -36,7 +36,7 @@ import time
 
 STARTED = time.monotonic()
 # 11 of Kaggle's 12 hours: an evaluation (~30 min) may still run on the stopping step.
-DATA, RUN, HOURS = "train-v8.jsonl", "v8", 11
+DATA, RUN, HOURS = "train-v10.jsonl", "v10", 11
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # one T4: the 4-bit model fits, and nothing is split
 subprocess.run(
