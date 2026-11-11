@@ -194,10 +194,16 @@ class Exchange {
               ),
             ],
     );
-    for (final file in picked) {
+    return read(picked, maxBytes: maxBytes);
+  }
+
+  /// [files] as [PickedFile]s, read the same way as a picked file: one over
+  /// [maxBytes] is refused with [FileTooBig] before it is read (#315).
+  Future<List<PickedFile>> read(List<XFile> files, {int? maxBytes}) async {
+    for (final file in files) {
       if (maxBytes != null && await file.length() > maxBytes) throw FileTooBig(file.name);
     }
-    return [for (final file in picked) (name: file.name, bytes: await file.readAsBytes())];
+    return [for (final file in files) (name: file.name, bytes: await file.readAsBytes())];
   }
 }
 
