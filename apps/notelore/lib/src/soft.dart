@@ -314,6 +314,11 @@ class _TallTileState extends State<TallTile> {
           text: node.text,
           textDirection: node.textDirection,
           textScaler: node.textScaler,
+          maxLines: node.maxLines,
+          locale: node.locale,
+          strutStyle: node.strutStyle,
+          textWidthBasis: node.textWidthBasis,
+          textHeightBehavior: node.textHeightBehavior,
         )..layout(maxWidth: node.size.width);
         lines = max(lines, painter.computeLineMetrics().length);
         painter.dispose();
