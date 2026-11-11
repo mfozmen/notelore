@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart' show LicenseRegistry;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,8 +32,7 @@ void main() {
     expect(light.colorScheme.brightness, Brightness.light);
     expect(dark.colorScheme.brightness, Brightness.dark);
     for (final theme in [light, dark]) {
-      // A gentle shadow by day; at night the card's inner glow does it.
-      expect(theme.cardTheme.elevation, theme.brightness == Brightness.light ? 2 : 0);
+      expect(theme.cardTheme.elevation, 2); // a gentle shadow, day and night
       expect(theme.splashFactory, NoSplash.splashFactory);
       expect(theme.snackBarTheme.behavior, SnackBarBehavior.floating);
       expect(theme.filledButtonTheme.style!.minimumSize!.resolve({}), const Size(48, 48));
@@ -171,14 +172,21 @@ void main() {
     }
   });
 
-  test('the shapes: soft round cards, a round bordered field, plain navigation', () {
+  test('one radius table: card 18, panel 20, field 28, chip 10', () {
+    expect((Radii.card, Radii.panel, Radii.field, Radii.chip), (18.0, 20.0, 28.0, 10.0));
+  });
+
+  test('the shapes: crisp cards with a soft shadow, a round bordered field, plain navigation', () {
     for (final theme in [noteloreTheme(Brightness.light), noteloreTheme(Brightness.dark)]) {
       final c = theme.colorScheme;
-      final card = theme.cardTheme.shape! as SoftBorder;
-      expect(card.borderRadius, BorderRadius.circular(22));
-      expect(card, softBorder(c, BorderRadius.circular(22)));
-      // By day a light along the top; at night the accent glows inside.
-      expect(card.glow.a, theme.brightness == Brightness.light ? 0 : greaterThan(0));
+      // A hairline and nothing drawn inside it: no top light, no glow.
+      final card = theme.cardTheme.shape!;
+      expect(card.runtimeType, RoundedRectangleBorder);
+      expect(card, softBorder(c, BorderRadius.circular(Radii.card)));
+      expect((card as RoundedRectangleBorder).side.width, 1);
+      // Raised in both themes.
+      expect(theme.cardTheme.elevation, greaterThan(0));
+      expect(theme.cardTheme.shadowColor!.a, greaterThan(0));
       expect(theme.cardTheme.color, c.surfaceContainerLow);
       final field = theme.inputDecorationTheme;
       expect(field.fillColor, c.surfaceContainerLow);
@@ -236,7 +244,7 @@ void main() {
       expect(theme.textButtonTheme.style!.side!.resolve({}), isNull);
       // Menus: the soft card, not Material's square sheet.
       final menu = theme.popupMenuTheme;
-      expect(menu.shape, softBorder(c, BorderRadius.circular(20)));
+      expect(menu.shape, softBorder(c, BorderRadius.circular(Radii.panel)));
       expect(menu.color, c.surfaceContainerHigh);
     }
   });
@@ -254,37 +262,10 @@ void main() {
     }
   });
 
-  test('a soft border equals another only with the same light and glow', () {
-    final c = noteloreTheme(Brightness.dark).colorScheme;
-    final one = softBorder(c, BorderRadius.circular(8));
-    expect(one, softBorder(c, BorderRadius.circular(8)));
-    expect(one.hashCode, softBorder(c, BorderRadius.circular(8)).hashCode);
-    expect(
-      one == softBorder(noteloreTheme(Brightness.light).colorScheme, one.borderRadius),
-      isFalse,
-    );
-    expect(one == RoundedRectangleBorder(borderRadius: one.borderRadius, side: one.side), isFalse);
-  });
-
-  test('a soft border keeps its light and glow when a button copies it with its side', () {
-    final c = noteloreTheme(Brightness.dark).colorScheme;
-    final one = softBorder(c, BorderRadius.circular(8));
-    expect(one.copyWith(), one);
-    final round = one.copyWith(
-      side: const BorderSide(width: 2),
-      borderRadius: BorderRadius.circular(19),
-    );
-    expect(round.glow, one.glow);
-    expect(round.highlight, one.highlight);
-    expect(round.side.width, 2);
-    expect(round.borderRadius, BorderRadius.circular(19));
-  });
-
   test('the tokens a scheme has no role for: decision card, night glow, mono label', () {
     final kil = noteloreTheme(Brightness.light).extension<NoteloreTokens>()!;
-    expect(kil.hot.colors, const [Color(0xFFEA580C), Color(0xFF9A3412)]);
-    expect((kil.hotText, kil.hotValue), (const Color(0xFFFFF7ED), const Color(0xFFFFF7ED)));
-    expect(kil.hotBorder, const Color(0xFFEADCCB));
+    expect(kil.hot.colors, const [Color(0xFFC2410C), Color(0xFF9A3412)]);
+    expect(kil.hotValue, Colors.white);
     expect(kil.glow, isNull); // only the night has one
     expect(kil.mineBorder, const Color(0xFFEFC4A2));
     expect(kil.bright, const Color(0xFFEA580C));
@@ -296,8 +277,6 @@ void main() {
 
     final orman = noteloreTheme(Brightness.dark).extension<NoteloreTokens>()!;
     expect(orman.hot.colors, const [Color(0xFF335240), Color(0xFF142019)]);
-    expect((orman.hotText, orman.hotValue), (const Color(0xFFD7E3D9), const Color(0xFFF0B47F)));
-    expect(orman.hotBorder, const Color(0xFFD9884F).withValues(alpha: .3));
     expect(orman.glow!.colors.first, const Color(0xFF1D3A2A));
     expect(orman.glow!.center, Alignment.topCenter);
     expect(orman.mineBorder, const Color(0x55D9884F));
@@ -305,14 +284,38 @@ void main() {
     expect(orman.label.color, const Color(0xFFD9884F));
   });
 
+  test(
+    "a found decision's words read at 4.5:1 or more anywhere on its card, brightest the value",
+    () {
+      for (final brightness in Brightness.values) {
+        final t = noteloreTheme(brightness).extension<NoteloreTokens>()!;
+        final words = [t.hotLabel, t.hotValue, t.hotReason, t.hotSource, t.hotLink];
+        for (final fill in t.hot.colors) {
+          for (final word in words) {
+            expect(contrast(word, fill), greaterThanOrEqualTo(4.5), reason: '$brightness $word');
+          }
+        }
+        // A hierarchy, not all one colour: the value brightest, the source softest.
+        final light = [for (final w in words) w.computeLuminance()];
+        expect(words.toSet(), hasLength(words.length));
+        expect(light.reduce(max), light[1]);
+        expect(light[3], lessThan(light[2]));
+        expect(light[2], lessThan(light[1]));
+      }
+    },
+  );
+
   test('the tokens copy and blend between day and night', () {
     final kil = noteloreTheme(Brightness.light).extension<NoteloreTokens>()!;
     final orman = noteloreTheme(Brightness.dark).extension<NoteloreTokens>()!;
     expect(kil.copyWith().hot, kil.hot);
     final changed = kil.copyWith(
       hot: orman.hot,
-      hotText: orman.hotText,
+      hotLabel: orman.hotLabel,
       hotValue: orman.hotValue,
+      hotReason: orman.hotReason,
+      hotSource: orman.hotSource,
+      hotLink: orman.hotLink,
       hotBorder: orman.hotBorder,
       glow: orman.glow,
       mineBorder: orman.mineBorder,
@@ -322,8 +325,11 @@ void main() {
     expect(
       [
         changed.hot,
-        changed.hotText,
+        changed.hotLabel,
         changed.hotValue,
+        changed.hotReason,
+        changed.hotSource,
+        changed.hotLink,
         changed.hotBorder,
         changed.glow,
         changed.mineBorder,
@@ -332,8 +338,11 @@ void main() {
       ],
       [
         orman.hot,
-        orman.hotText,
+        orman.hotLabel,
         orman.hotValue,
+        orman.hotReason,
+        orman.hotSource,
+        orman.hotLink,
         orman.hotBorder,
         orman.glow,
         orman.mineBorder,
@@ -341,11 +350,29 @@ void main() {
         orman.label,
       ],
     );
-    expect(kil.lerp(orman, 0).hotText, kil.hotText);
+    expect(kil.lerp(orman, 0).hotLabel, kil.hotLabel);
     final end = kil.lerp(orman, 1);
     expect(
-      [end.hotText, end.hotValue, end.mineBorder, end.bright],
-      [orman.hotText, orman.hotValue, orman.mineBorder, orman.bright],
+      [
+        end.hotLabel,
+        end.hotValue,
+        end.hotReason,
+        end.hotSource,
+        end.hotLink,
+        end.hotBorder,
+        end.mineBorder,
+        end.bright,
+      ],
+      [
+        orman.hotLabel,
+        orman.hotValue,
+        orman.hotReason,
+        orman.hotSource,
+        orman.hotLink,
+        orman.hotBorder,
+        orman.mineBorder,
+        orman.bright,
+      ],
     );
     expect(end.hot.colors, orman.hot.colors);
     expect(kil.lerp(null, .5), same(kil));
