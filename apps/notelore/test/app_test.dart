@@ -1263,7 +1263,8 @@ void main() {
       await pumpApp(tester, harness);
       await connect(tester, key: 'k');
       const typed =
-          '*not bold* see https://example.com/x, (https://example.org/p) and www.example.org.';
+          '*not bold* see https://example.com/x, (https://example.org/p), '
+          'https://?x and www.example.org.';
       await tester.enterText(find.byKey(const Key('message')), typed);
       await tester.pump();
       await tester.tap(find.byTooltip('Send'));
