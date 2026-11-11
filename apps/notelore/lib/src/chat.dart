@@ -1674,7 +1674,8 @@ class _Bubble extends StatelessWidget {
         actions: Transform.translate(
           offset: Offset(mine ? Gap.s : -Gap.s - Gap.xs, switch (line.cards.lastOrNull) {
             _ when mine => -Gap.s - Gap.xs,
-            _ when answer != null && answers.isNotEmpty => -Gap.m - Gap.xs,
+            // Suggested-answer buttons have a drawn edge like a card: the icons sit under it (#871).
+            _ when answer != null && answers.isNotEmpty => Gap.s - _iconInset,
             NoteReceipt() => Gap.s - _Receipt.inset - _iconInset,
             DecisionSource() => Gap.s - _Source.margin - _iconInset,
             null => -Gap.m - Gap.xs,
