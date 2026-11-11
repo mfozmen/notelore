@@ -523,7 +523,9 @@ void main() {
     await tester.enterText(message, 'one\ntwo\nthree');
     await tester.pumpAndSettle();
     final (b, o) = (box(), tester.getRect(orb));
-    expect(o.center.dy, moreOrLessEquals(line().bottom - 12 + 1, epsilon: .5));
+    // The last 24 dp line's centre, plus the same 1 dp lift as one line.
+    final lastLine = line().bottom - 24 / 2;
+    expect(o.center.dy, moreOrLessEquals(lastLine + 1, epsilon: .5));
     expect(tester.getRect(clip).center.dy, moreOrLessEquals(o.center.dy, epsilon: .5));
     expect(b.right - o.right, moreOrLessEquals(b.bottom - o.bottom, epsilon: .5));
   });
