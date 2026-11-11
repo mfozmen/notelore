@@ -316,7 +316,7 @@ class NoteView extends StatelessWidget {
         Card(
           margin: const EdgeInsets.only(bottom: Gap.s),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.s + Gap.xs),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

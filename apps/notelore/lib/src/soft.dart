@@ -2,7 +2,10 @@
 /// shape: the floating tab bar, the orb switch and radio, and press feedback.
 library;
 
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import 'icons.dart';
 import 'theme.dart';
@@ -91,7 +94,7 @@ class SoftNavBar extends StatelessWidget {
                   height: height,
                   width: width,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: Gap.s + 2),
+                    padding: const EdgeInsets.symmetric(horizontal: Gap.s),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -143,7 +146,7 @@ class _Tab extends StatelessWidget {
               boxShadow: orbGlow(colors),
             ),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 18, 0),
+              padding: const EdgeInsets.symmetric(horizontal: Gap.m),
               child: SizedBox(
                 height: SoftNavBar.orb,
                 child: Row(
@@ -209,17 +212,22 @@ ShapeDecoration _barDecoration(ColorScheme colors) => ShapeDecoration(
   ],
 );
 
-/// A header's icon button in the Soft look: a 38-point circle on the card
-/// colour with a soft edge, padded out to a 48-point target.
+/// A header's icon button in the Soft look: a [softRoundSize] circle on the
+/// card colour with a soft edge, padded out to a 48-point target.
 ButtonStyle softRound(ColorScheme colors) => IconButton.styleFrom(
-  fixedSize: const Size.square(38),
+  fixedSize: const Size.square(softRoundSize),
   iconSize: 20,
-  minimumSize: const Size.square(38),
+  minimumSize: const Size.square(softRoundSize),
   padding: EdgeInsets.zero,
   tapTargetSize: MaterialTapTargetSize.padded,
   backgroundColor: colors.surfaceContainerLow,
-  shape: softBorder(colors, BorderRadius.circular(19)),
+  shape: softBorder(colors, BorderRadius.circular(softRoundSize / 2)),
 );
+
+const double softRoundSize = 38;
+
+/// How far a [softRound] circle sits inside its 48-point target.
+const double softRoundInset = (kMinInteractiveDimension - softRoundSize) / 2;
 
 /// The Soft switch's look: a sunken track and an orb for a knob. Its
 /// [SoftSwitchTile] row is the target and says the state.
@@ -265,6 +273,87 @@ class SoftSwitch extends StatelessWidget {
   }
 }
 
+/// A [ListTile] whose text runs past two lines in one block, as a long subtitle
+/// does, gets its leading and trailing at the top beside the title; otherwise
+/// they stay centred.
+class TallTile extends StatefulWidget {
+  const TallTile({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  State<TallTile> createState() => _TallTileState();
+}
+
+class _TallTileState extends State<TallTile> {
+  var _top = false;
+
+  var _pending = false;
+
+  // ListTile picks its alignment before it knows its height, and sizes can
+  // only be read once layout is over: measure after the frame, apply in the next.
+  void _laidOut(RenderBox box) {
+    if (_pending) return;
+    _pending = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _pending = false;
+      if (!mounted) return;
+      final top = _longest(box) > 2;
+      if (top != _top) setState(() => _top = top);
+    });
+  }
+
+  static int _longest(RenderObject box) {
+    var lines = 0;
+    void visit(RenderObject node) {
+      if (node is RenderParagraph) {
+        final painter = TextPainter(
+          text: node.text,
+          textDirection: node.textDirection,
+          textScaler: node.textScaler,
+        )..layout(maxWidth: node.size.width);
+        lines = max(lines, painter.computeLineMetrics().length);
+        painter.dispose();
+      }
+      node.visitChildren(visit);
+    }
+
+    box.visitChildren(visit);
+    return lines;
+  }
+
+  @override
+  Widget build(BuildContext context) => ListTileTheme.merge(
+    titleAlignment: _top ? ListTileTitleAlignment.top : null,
+    child: _OnLayout(_laidOut, child: widget.child),
+  );
+}
+
+class _OnLayout extends SingleChildRenderObjectWidget {
+  const _OnLayout(this.onLayout, {required super.child});
+
+  final ValueChanged<RenderBox> onLayout;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) => _RenderOnLayout(onLayout);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderOnLayout renderObject) =>
+      renderObject.onLayout = onLayout;
+}
+
+class _RenderOnLayout extends RenderProxyBox {
+  _RenderOnLayout(this.onLayout);
+
+  ValueChanged<RenderBox> onLayout;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    onLayout(this);
+  }
+}
+
 /// [SwitchListTile]'s row with a [SoftSwitch]: the row toggles it, and a
 /// screen reader hears the title, the subtitle and the state as one.
 class SoftSwitchTile extends StatelessWidget {
@@ -289,13 +378,15 @@ class SoftSwitchTile extends StatelessWidget {
     return MergeSemantics(
       child: Semantics(
         toggled: value,
-        child: ListTile(
-          leading: secondary,
-          title: title,
-          subtitle: subtitle,
-          enabled: enabled,
-          onTap: enabled ? () => onChanged!(!value) : null,
-          trailing: SoftSwitch(value: value, enabled: enabled),
+        child: TallTile(
+          child: ListTile(
+            leading: secondary,
+            title: title,
+            subtitle: subtitle,
+            enabled: enabled,
+            onTap: enabled ? () => onChanged!(!value) : null,
+            trailing: SoftSwitch(value: value, enabled: enabled),
+          ),
         ),
       ),
     );

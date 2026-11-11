@@ -117,7 +117,13 @@ void main() {
           find.descendant(of: find.byTooltip('Chat'), matching: find.byType(DecoratedBox)),
         );
         expect(orb.height, greaterThanOrEqualTo(44));
-        expect(orb.left - bar.left, lessThanOrEqualTo(12));
+        // On the 4/8 grid: the bar's inset, and the orb's room around its icon and label.
+        expect(orb.left - bar.left, Gap.s);
+        final orbIcon = find
+            .descendant(of: find.byTooltip('Chat'), matching: find.byType(Icon))
+            .first;
+        expect(tester.getRect(orbIcon).left - orb.left, Gap.m);
+        expect(orb.right - tester.getRect(find.text('Chat')).right, Gap.m);
         for (final label in ['Notes', 'Calendar', 'About me']) {
           expect(tester.getSize(find.byTooltip(label)).height, greaterThanOrEqualTo(48));
           expect(tester.getSize(find.byTooltip(label)).width, greaterThanOrEqualTo(48));
@@ -238,6 +244,40 @@ void main() {
       }
     });
   }
+
+  testWidgets('a tile whose subtitle runs past two lines has its icon beside the title', (
+    tester,
+  ) async {
+    Future<void> tile(String subtitle) => _pump(
+      tester,
+      SizedBox(
+        width: 320,
+        child: TallTile(
+          child: ListTile(
+            leading: const Icon(AppIcons.shield),
+            title: const Text('Share'),
+            subtitle: Text(subtitle),
+            trailing: const Icon(AppIcons.chevronRight),
+          ),
+        ),
+      ),
+    );
+    final icon = find.byIcon(AppIcons.shield);
+    double offTitle() => tester.getTopLeft(icon).dy - tester.getTopLeft(find.text('Share')).dy;
+    double offMiddle() => tester.getCenter(icon).dy - tester.getCenter(find.byType(ListTile)).dy;
+
+    await tile('Two\nlines');
+    await tester.pumpAndSettle();
+    expect(offMiddle(), 0); // centred, as before
+
+    await tile('One\nTwo\nThree');
+    await tester.pumpAndSettle();
+    expect(offTitle(), 0);
+
+    await tile('One line');
+    await tester.pumpAndSettle();
+    expect(offMiddle(), 0);
+  });
 
   testWidgets('a switch without onChanged is dimmed and does nothing', (tester) async {
     await _pump(tester, const SoftSwitchTile(title: Text('Off'), value: true, onChanged: null));

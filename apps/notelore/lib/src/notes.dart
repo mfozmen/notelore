@@ -183,9 +183,8 @@ class _NotesScreenState extends State<NotesScreen> {
       RefreshIndicator(key: _refresher, onRefresh: _refresh, child: child);
 
   Widget _listHeader(BuildContext context, List<NoteInfo> notes) => Padding(
-    // The round button sits 5 points inside its 48-point target, so its edge
-    // lands on the field's Gap.m edge below.
-    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m - 5, 0),
+    // The round button's visible edge lands on the field's Gap.m edge below.
+    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m - softRoundInset, 0),
     child: Align(alignment: Alignment.centerRight, child: _listActions(context, notes)),
   );
 
@@ -1348,8 +1347,8 @@ class _NoteRow extends StatelessWidget {
           : null,
       clipBehavior: Clip.antiAlias,
       child: ListTile(
-        contentPadding: const EdgeInsets.fromLTRB(12, 4, Gap.m, 4),
-        horizontalTitleGap: 12,
+        contentPadding: const EdgeInsets.fromLTRB(Gap.s + Gap.xs, Gap.xs, Gap.m, Gap.xs),
+        horizontalTitleGap: Gap.s + Gap.xs,
         titleAlignment: ListTileTitleAlignment.top,
         selectedColor: colors.onSurface,
         // The kind at a glance: a folder for a project, a tag for a topic.

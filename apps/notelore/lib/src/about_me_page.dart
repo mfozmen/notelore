@@ -134,7 +134,24 @@ class AboutMeScreen extends StatelessWidget {
     final wide = Layout.isWide(context);
     final add = !session.chatKeepsFacts;
     return Scaffold(
-      appBar: AppBar(leading: AppMenu.button(context), title: Text(session.strings.aboutMeSection)),
+      appBar: AppBar(
+        leading: AppMenu.button(context),
+        // The title keeps to the list's column, so a wide window does not
+        // leave it at the far edge.
+        titleSpacing: 0,
+        title: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: Layout.column),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Gap.m),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(session.strings.aboutMeSection),
+              ),
+            ),
+          ),
+        ),
+      ),
       // A Scaffold floats its button over the keyboard, not over padding: lift it
       // clear of the phone's tab bar by hand.
       floatingActionButton: add && !wide

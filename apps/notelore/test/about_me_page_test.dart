@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/about_me_page.dart';
+import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/soft.dart';
 import 'package:notelore_core/notelore_core.dart';
 
@@ -209,6 +210,20 @@ void main() {
     expect(find.text('Add a fact'), findsOneWidget);
   });
 
+  testWidgets('privacy on a phone: the long switch row has its icon beside the title', (
+    tester,
+  ) async {
+    phone(tester);
+    await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await openSettings(tester, 'Privacy');
+    await tester.pumpAndSettle();
+    expect(
+      tester.getTopLeft(find.byIcon(AppIcons.shield)).dy,
+      tester.getTopLeft(find.text('Share with cloud models')).dy,
+    );
+  });
+
   testWidgets('about me: in the side rail on a wide window; Settings keeps Privacy', (
     tester,
   ) async {
@@ -220,6 +235,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Add a fact'), findsOneWidget);
     expect(find.byType(FloatingActionButton), findsNothing); // by the list, not a far corner
+    // The title starts on the column's edge, not at the window's.
+    final title = find.descendant(of: find.byType(AppBar), matching: find.text('About me'));
+    expect(tester.getTopLeft(title).dx, tester.getTopLeft(find.byType(Card).last).dx);
     await tester.tap(find.text('Add a fact'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('fact-field')), findsOneWidget);
