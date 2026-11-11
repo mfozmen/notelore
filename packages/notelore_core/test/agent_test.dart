@@ -370,6 +370,12 @@ void main() {
     final asked = suggestedAnswers('Which project?\n[[Mopsos]] [[ Atlas ]]');
     expect(asked.text, 'Which project?');
     expect(asked.answers, ['Mopsos', 'Atlas']);
+    // A sentence after the question keeps the answers (#879).
+    final later = suggestedAnswers(
+      'Arşivlememi onaylıyor musun? Proje dosyası yerinde kalacak.\n[[Evet]] [[Hayır]]',
+    );
+    expect(later.text, 'Arşivlememi onaylıyor musun? Proje dosyası yerinde kalacak.');
+    expect(later.answers, ['Evet', 'Hayır']);
     // Only a last line made of nothing else counts; a wiki link in a sentence stays.
     // A closing line of wiki links is not a question's answers ("?" must come before).
     for (final reply in [
@@ -378,6 +384,8 @@ void main() {
       '[[Yes]]\nMaybe.',
       'Hm?\n[[ ]]',
       'See also:\n[[Mopsos]] [[Atlas]]',
+      // The question has to be in the last paragraph, not an earlier one.
+      'Which one?\n\nSaved. See also:\n[[Mopsos]] [[Atlas]]',
     ]) {
       final plain = suggestedAnswers(reply);
       expect(plain.text, reply, reason: reply);
