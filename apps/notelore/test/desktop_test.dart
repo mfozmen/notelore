@@ -7,6 +7,7 @@ import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/note_view.dart';
 import 'package:notelore/src/soft.dart';
 import 'package:notelore/src/theme.dart';
+import 'package:notelore/src/usage_page.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'app_test.dart' show connect, phone, pumpApp;
@@ -460,6 +461,32 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('open-usage')), findsOneWidget); // the section again
+  });
+
+  testWidgets('wide: the open note\'s buttons and Usage\'s back are soft rounds (#856)', (
+    tester,
+  ) async {
+    desktop(tester, 1600);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    await tester.tap(tab('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    softRoundCircle(tester, 'Pin');
+    softRoundCircle(tester, 'Export');
+    final page = tester.getRect(find.byType(NoteView));
+    expect(softRoundCircle(tester, 'Delete').right, page.right - 8);
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Advanced'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('open-usage')));
+    await tester.pumpAndSettle();
+    final pane = tester.getRect(find.byType(UsageView));
+    expect(softRoundCircle(tester, 'Back').left, pane.left + 8);
   });
 
   testWidgets('settings: the chat text size control keeps its width on a desktop (#716)', (

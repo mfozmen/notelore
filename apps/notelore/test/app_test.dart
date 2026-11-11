@@ -2720,6 +2720,54 @@ void main() {
     expect(find.text('PINNED'), findsNothing);
   });
 
+  testWidgets('notes: header buttons are soft rounds, 8 points in from both edges (#856)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    await tester.tap(tab('Notes'));
+    await tester.pumpAndSettle();
+    const width = 432.0;
+    expect(softRoundCircle(tester, 'Open navigation menu').left, 8);
+    expect(softRoundCircle(tester, 'More note actions').right, width - 8);
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    expect(softRoundCircle(tester, 'Back').left, 8);
+    softRoundCircle(tester, 'Pin');
+    softRoundCircle(tester, 'Export');
+    expect(softRoundCircle(tester, 'Delete').right, width - 8);
+    await tester.tap(find.byTooltip('Delete'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Archive'));
+    await tester.pumpAndSettle();
+    expect(softRoundCircle(tester, 'Back').left, 8);
+    expect(softRoundCircle(tester, 'Archive actions').right, width - 8);
+    await tester.tap(find.text('Kitaplar'));
+    await tester.pumpAndSettle();
+    expect(softRoundCircle(tester, 'Back').left, 8);
+    expect(softRoundCircle(tester, 'Delete for good').right, width - 8);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Archive actions'), findsOneWidget); // the archive's list again
+  });
+
+  testWidgets('a note opened from the chat has a soft round way back (#856)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    createNote(harness.paths.notes.path, 'topic', 'Kitaplar', today: today);
+    final note = session.listNotes().single;
+    pushNote(tester.element(find.byType(ChatScreen)), session, note, session.readNote(note));
+    await tester.pumpAndSettle();
+    expect(softRoundCircle(tester, 'Back').left, 8);
+  });
+
   testWidgets('notes: Coming up lists the next open todos, soonest first, at most 3 (#782)', (
     tester,
   ) async {
