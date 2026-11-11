@@ -2220,7 +2220,7 @@ class _BubbleText extends StatelessWidget {
     final words = markdown
         ? _markdown(context, text, style)
         : SelectionArea(
-            child: _LinkedText(text, style: style, selectionColor: selectionColor),
+            child: LinkedText(text, style: style, selectionColor: selectionColor),
           );
     if (files.isEmpty && images.isEmpty) return words;
     final s = strings;
@@ -2240,19 +2240,20 @@ class _BubbleText extends StatelessWidget {
 
 /// The person's own words, shown as typed; a web address in them opens on tap
 /// (#880), as an answer's links do.
-class _LinkedText extends StatefulWidget {
-  const _LinkedText(this.text, {required this.style, this.selectionColor});
+class LinkedText extends StatefulWidget {
+  const LinkedText(this.text, {required this.style, this.selectionColor, super.key});
 
   final String text;
   final TextStyle style;
   final Color? selectionColor;
 
   @override
-  State<_LinkedText> createState() => _LinkedTextState();
+  State<LinkedText> createState() => _LinkedTextState();
 }
 
-class _LinkedTextState extends State<_LinkedText> {
+class _LinkedTextState extends State<LinkedText> {
   final _taps = <TapGestureRecognizer>[];
+  late List<InlineSpan> _spans = _makeSpans();
 
   static final _web = RegExp(
     r'''https?://[^\s<>"'\[\]{}]+|\bwww\.[^\s<>"'\[\]{}]+''',
@@ -2260,19 +2261,28 @@ class _LinkedTextState extends State<_LinkedText> {
   );
 
   @override
-  void dispose() {
-    for (final tap in _taps) {
-      tap.dispose();
+  void didUpdateWidget(LinkedText old) {
+    super.didUpdateWidget(old);
+    if (old.text != widget.text) {
+      _clearTaps();
+      _spans = _makeSpans();
     }
-    super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
+  void dispose() {
+    _clearTaps();
+    super.dispose();
+  }
+
+  void _clearTaps() {
     for (final tap in _taps) {
       tap.dispose();
     }
     _taps.clear();
+  }
+
+  List<InlineSpan> _makeSpans() {
     final spans = <InlineSpan>[];
     var at = 0;
     for (final match in _web.allMatches(widget.text)) {
@@ -2293,14 +2303,20 @@ class _LinkedTextState extends State<_LinkedText> {
       );
       at = end;
     }
-    if (spans.isEmpty) {
+    if (spans.isEmpty) return spans;
+    spans.add(TextSpan(text: widget.text.substring(at)));
+    return spans;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_spans.isEmpty) {
       return Text(widget.text, style: widget.style, selectionColor: widget.selectionColor);
     }
-    spans.add(TextSpan(text: widget.text.substring(at)));
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: Text.rich(
-        TextSpan(style: widget.style, children: spans),
+        TextSpan(style: widget.style, children: _spans),
         selectionColor: widget.selectionColor,
       ),
     );

@@ -7,13 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:notelore/src/chat.dart' show FieldDecoration, Orb, orbEdge;
+import 'package:notelore/src/chat.dart' show FieldDecoration, LinkedText, Orb, orbEdge;
 import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/note_view.dart';
 import 'package:notelore/src/notes.dart';
 import 'package:notelore/src/strings.dart' show AppLanguage;
 import 'package:notelore/src/theme.dart';
 import 'package:notelore_core/notelore_core.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'app_test.dart' show connect, phone, pumpApp;
 import 'desktop_test.dart' show desktop;
@@ -743,5 +744,27 @@ void main() {
       final retry = find.descendant(of: row, matching: find.byIcon(AppIcons.refresh));
       expect(tester.getRect(retry).left, tester.getRect(message).left);
     });
+  });
+
+  testWidgets('LinkedText: a web address opens, and a changed message keeps its own links (#880)', (
+    tester,
+  ) async {
+    final launcher = FakeLauncher();
+    UrlLauncherPlatform.instance = launcher;
+    Widget at(String text) => MaterialApp(
+      home: Scaffold(body: LinkedText(text, style: const TextStyle())),
+    );
+    await tester.pumpWidget(at('no link here'));
+    expect(find.text('no link here'), findsOneWidget);
+    await tester.pumpWidget(at('see https://a.test/x'));
+    await tester.tapOnText(find.textRange.ofSubstring('https://a.test/x'));
+    await tester.pump();
+    expect(launcher.opened, ['https://a.test/x']);
+    // The same state builds the new text's links, not the old message's.
+    await tester.pumpWidget(at('now https://b.test/y'));
+    await tester.tapOnText(find.textRange.ofSubstring('https://b.test/y'));
+    await tester.pump();
+    expect(launcher.opened, ['https://a.test/x', 'https://b.test/y']);
+    await tester.pumpWidget(const SizedBox());
   });
 }
