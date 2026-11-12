@@ -4,6 +4,7 @@ import 'dart:math' show min;
 import 'dart:ui' show Tristate;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:flutter/semantics.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -95,6 +96,55 @@ void main() {
     expect(edge.colors, [Colors.white, Colors.white, Colors.transparent]);
   });
 
+  testWidgets('nothing of the orb shows beside its rim, on a part pixel too (#890)', (
+    tester,
+  ) async {
+    const ground = Color(0xFF101010);
+    for (final dpr in [1.0, 2.0]) {
+      tester.view.devicePixelRatio = dpr;
+      addTearDown(tester.view.reset);
+      final boundary = GlobalKey();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: noteloreTheme(Brightness.dark),
+          home: Align(
+            alignment: Alignment.topLeft,
+            child: RepaintBoundary(
+              key: boundary,
+              child: const ColoredBox(
+                color: ground,
+                // A part-pixel offset, as the orb gets in a real layout.
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(10.3, 10, 9.7, 10),
+                  child: Orb(SizedBox.square(dimension: 48)),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      final render = boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      final (width, height, bytes) = (await tester.runAsync(() async {
+        final image = await render.toImage(pixelRatio: dpr);
+        return (image.width, image.height, (await image.toByteData())!);
+      }))!;
+      // The 44 dp orb's centre, in device pixels.
+      final centre = (10.3 + 24) * dpr;
+      final reach = (22 + .5) * dpr + .5;
+      for (var y = 0; y < height; y++) {
+        for (var x = 0; x < width; x++) {
+          if ((x + .5 - centre).abs() <= reach) continue;
+          final at = (y * width + x) * 4;
+          expect(
+            [bytes.getUint8(at), bytes.getUint8(at + 1), bytes.getUint8(at + 2)],
+            [0x10, 0x10, 0x10],
+            reason: 'pixel ($x, $y) at ${dpr}x',
+          );
+        }
+      }
+    }
+  });
+
   testWidgets('the orb is 44 dp in its 48 dp slot; its button still takes 48 (#888)', (
     tester,
   ) async {
@@ -111,7 +161,10 @@ void main() {
     final slot = tester.getRect(find.byType(Orb));
     expect(slot.size, const Size.square(48));
     final mask = find.descendant(of: find.byType(Orb), matching: find.byType(ShaderMask));
-    expect(tester.getRect(mask), slot.deflate(2));
+    // The mask reaches 2 dp past the fill it cuts round (#890).
+    expect(tester.getRect(mask), slot);
+    final fill = find.descendant(of: mask, matching: find.byType(DecoratedBox));
+    expect(tester.getRect(fill), slot.deflate(2));
     // The button's ink and focus ring follow the orb; its target stays 48.
     final ink = find.descendant(of: find.byType(Orb), matching: find.byType(InkWell));
     expect(tester.getRect(ink), slot.deflate(2));
