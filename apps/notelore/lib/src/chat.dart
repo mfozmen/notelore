@@ -6,7 +6,13 @@ import 'dart:math';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/gestures.dart'
-    show PointerDeviceKind, PointerScrollEvent, PointerSignalEvent, kLongPressTimeout, kTouchSlop;
+    show
+        PointerDeviceKind,
+        PointerScrollEvent,
+        PointerSignalEvent,
+        TapGestureRecognizer,
+        kLongPressTimeout,
+        kTouchSlop;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart' show CustomSemanticsAction, SemanticsRole, SemanticsService;
 import 'package:flutter/services.dart';
@@ -2214,7 +2220,7 @@ class _BubbleText extends StatelessWidget {
     final words = markdown
         ? _markdown(context, text, style)
         : SelectionArea(
-            child: Text(text, style: style, selectionColor: selectionColor),
+            child: LinkedText(text, style: style, selectionColor: selectionColor),
           );
     if (files.isEmpty && images.isEmpty) return words;
     final s = strings;
@@ -2228,6 +2234,91 @@ class _BubbleText extends StatelessWidget {
         for (final name in images)
           _AttachmentLine(name, AppIcons.image, s.attachedImage(name), style),
       ],
+    );
+  }
+}
+
+/// The person's own words, shown as typed; a web address in them opens on tap
+/// (#880), as an answer's links do.
+class LinkedText extends StatefulWidget {
+  const LinkedText(this.text, {required this.style, this.selectionColor, super.key});
+
+  final String text;
+  final TextStyle style;
+  final Color? selectionColor;
+
+  @override
+  State<LinkedText> createState() => _LinkedTextState();
+}
+
+class _LinkedTextState extends State<LinkedText> {
+  final _taps = <TapGestureRecognizer>[];
+  late List<InlineSpan> _spans = _makeSpans();
+
+  static final _web = RegExp(
+    r'''https?://[^\s<>"'\[\]{}]+|\bwww\.[^\s<>"'\[\]{}]+''',
+    caseSensitive: false,
+  );
+
+  @override
+  void didUpdateWidget(LinkedText old) {
+    super.didUpdateWidget(old);
+    if (old.text != widget.text) {
+      _clearTaps();
+      _spans = _makeSpans();
+    }
+  }
+
+  @override
+  void dispose() {
+    _clearTaps();
+    super.dispose();
+  }
+
+  void _clearTaps() {
+    for (final tap in _taps) {
+      tap.dispose();
+    }
+    _taps.clear();
+  }
+
+  List<InlineSpan> _makeSpans() {
+    final spans = <InlineSpan>[];
+    var at = 0;
+    for (final match in _web.allMatches(widget.text)) {
+      final link = trimmedLink(match[0]!);
+      final href = link.toLowerCase().startsWith('www.') ? 'https://$link' : link;
+      final uri = Uri.tryParse(href);
+      if (uri == null || !uri.hasAuthority) continue;
+      final end = match.start + link.length;
+      if (match.start > at) spans.add(TextSpan(text: widget.text.substring(at, match.start)));
+      final tap = TapGestureRecognizer()..onTap = () => openWebLink(href);
+      _taps.add(tap);
+      spans.add(
+        TextSpan(
+          text: widget.text.substring(match.start, end),
+          style: const TextStyle(decoration: TextDecoration.underline),
+          recognizer: tap,
+        ),
+      );
+      at = end;
+    }
+    if (spans.isEmpty) return spans;
+    spans.add(TextSpan(text: widget.text.substring(at)));
+    return spans;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_spans.isEmpty) {
+      return Text(widget.text, style: widget.style, selectionColor: widget.selectionColor);
+    }
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Text.rich(
+        TextSpan(style: widget.style, children: _spans),
+        selectionColor: widget.selectionColor,
+      ),
     );
   }
 }

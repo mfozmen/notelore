@@ -18,7 +18,7 @@ import 'package:http/http.dart' as http;
 List<Uri> linksIn(String text, {int max = 3}) {
   final found = <String>{};
   for (final match in RegExp(r'''https?://[^\s<>"'\[\]{}]+''').allMatches(text)) {
-    found.add(_trimmed(match[0]!));
+    found.add(trimmedLink(match[0]!));
     if (found.length == max) break;
   }
   return [for (final link in found) Uri.parse(link)];
@@ -26,7 +26,7 @@ List<Uri> linksIn(String text, {int max = 3}) {
 
 /// [link] without the sentence's punctuation after it, nor a closing
 /// parenthesis that opens nowhere in it: "(see https://e.com/x)" (#275).
-String _trimmed(String link) {
+String trimmedLink(String link) {
   var end = link.length;
   while (end > 0) {
     final last = link[end - 1];

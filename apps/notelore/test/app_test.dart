@@ -1253,6 +1253,38 @@ void main() {
     expect(find.byType(DropTarget), findsNothing);
   });
 
+  testWidgets(
+    'chat: a web address in the person\'s own message opens; the words stay as typed (#880)',
+    (tester) async {
+      phone(tester);
+      final launcher = FakeLauncher();
+      UrlLauncherPlatform.instance = launcher;
+      final harness = Harness(answers: ['Saved.']);
+      await pumpApp(tester, harness);
+      await connect(tester, key: 'k');
+      const typed =
+          '*not bold* see https://example.com/x, (https://example.org/p), '
+          'https://?x and www.example.org.';
+      await tester.enterText(find.byKey(const Key('message')), typed);
+      await tester.pump();
+      await tester.tap(find.byTooltip('Send'));
+      await tester.pumpAndSettle();
+      // The words are exactly as typed: the asterisks are not Markdown here.
+      expect(find.text(typed), findsOneWidget);
+      // A link opens; trailing punctuation and a balanced ')' stay out of it.
+      await tester.tapOnText(find.textRange.ofSubstring('https://example.com/x'));
+      await tester.pumpAndSettle();
+      expect(launcher.opened, ['https://example.com/x']);
+      await tester.tapOnText(find.textRange.ofSubstring('https://example.org/p'));
+      await tester.pumpAndSettle();
+      expect(launcher.opened.last, 'https://example.org/p');
+      // A www. address opens over https.
+      await tester.tapOnText(find.textRange.ofSubstring('www.example.org'));
+      await tester.pumpAndSettle();
+      expect(launcher.opened.last, 'https://www.example.org');
+    },
+  );
+
   testWidgets('chat: a PDF goes as its text; one with no text layer is refused (#284)', (
     tester,
   ) async {
