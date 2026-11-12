@@ -2675,6 +2675,43 @@ void main() {
     expect(harness.provider.asked, isEmpty); // shown for editing, not sent
   });
 
+  testWidgets('notes: a search under a filter says how many notes are outside it (#864)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final books = createNote(harness.paths.notes.path, 'topic', 'Books', today: today);
+    addEntry(books, 'reading lamp', today: today);
+    final atlas = createNote(harness.paths.notes.path, 'project', 'Atlas', today: today);
+    addEntry(atlas, 'zebra sighting at the zoo', today: today);
+    session.notifyListeners();
+    await tester.tap(tab('Notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Projects'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('notes-search')), 'zebra');
+    await tester.pumpAndSettle();
+    expect(find.text('Atlas'), findsOneWidget);
+    // Topics have nothing for it, but a note outside the filter does.
+    await tester.tap(find.text('Topics'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nothing mentions “zebra”'), findsOneWidget);
+    expect(find.text('1 note outside this filter'), findsOneWidget);
+    expect(find.text('The chat can look for what you meant.'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, 'Ask in the chat'), findsOneWidget);
+    // The button clears the filter, keeping the search and its result.
+    await tester.tap(find.widgetWithText(FilledButton, 'Show all notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('Atlas'), findsOneWidget);
+    expect(find.text('Books'), findsNothing);
+    expect(
+      tester.widget<TextField>(find.byKey(const Key('notes-search'))).controller!.text,
+      'zebra',
+    );
+  });
+
   testWidgets('notes: a related note opens on its own page (#802)', (tester) async {
     phone(tester);
     final harness = Harness();

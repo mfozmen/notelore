@@ -334,6 +334,10 @@ class _NotesScreenState extends State<NotesScreen> {
     ];
     final searching = _search.text.trim().isNotEmpty;
     final notes = searching ? session.findNotes(_search.text, filtered) : filtered;
+    // The same search, without the filter: a hint that the filter hides it (#864).
+    final outside = searching && notes.isEmpty
+        ? session.findNotes(_search.text, all)
+        : const <NoteInfo>[];
     return Column(
       children: [
         if (wide) _listHeader(context, all),
@@ -371,13 +375,30 @@ class _NotesScreenState extends State<NotesScreen> {
                         EmptyState(
                           icon: AppIcons.searchEmpty,
                           title: s.noNoteMentions(_search.text.trim()),
-                          hint: s.chatCanLook,
+                          hint: outside.isEmpty
+                              ? s.chatCanLook
+                              : s.notesOutsideFilter(outside.length),
                           actions: [
-                            FilledButton(
-                              // Lands in the composer like a share, which also opens the chat.
-                              onPressed: () => session.receiveSharedText(_search.text.trim()),
-                              child: Text(s.askInChat),
-                            ),
+                            if (outside.isNotEmpty)
+                              FilledButton(
+                                onPressed: () => setState(
+                                  () => session
+                                    ..notesKind = null
+                                    ..notesTag = null,
+                                ),
+                                child: Text(s.showAllNotes),
+                              ),
+                            if (outside.isEmpty)
+                              FilledButton(
+                                // Lands in the composer like a share, which also opens the chat.
+                                onPressed: () => session.receiveSharedText(_search.text.trim()),
+                                child: Text(s.askInChat),
+                              )
+                            else
+                              OutlinedButton(
+                                onPressed: () => session.receiveSharedText(_search.text.trim()),
+                                child: Text(s.askInChat),
+                              ),
                           ],
                         )
                       else
