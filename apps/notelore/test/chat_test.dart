@@ -95,6 +95,29 @@ void main() {
     expect(edge.colors, [Colors.white, Colors.white, Colors.transparent]);
   });
 
+  testWidgets('the orb is 44 dp in its 48 dp slot; its button still takes 48 (#888)', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: noteloreTheme(Brightness.light),
+        home: Center(
+          child: Orb(IconButton(icon: const Icon(AppIcons.send), onPressed: () {})),
+        ),
+      ),
+    );
+    final slot = tester.getRect(find.byType(Orb));
+    expect(slot.size, const Size.square(48));
+    final mask = find.descendant(of: find.byType(Orb), matching: find.byType(ShaderMask));
+    expect(tester.getRect(mask), slot.deflate(2));
+    // The button's ink and focus ring follow the orb; its target stays 48.
+    final ink = find.descendant(of: find.byType(Orb), matching: find.byType(InkWell));
+    expect(tester.getRect(ink), slot.deflate(2));
+    expect(tester.getSize(find.byType(IconButton)), const Size.square(48));
+  });
+
   group('write receipts (#791)', () {
     Harness atlas(List<Object> answers) {
       final harness = Harness(answers: answers);
@@ -634,16 +657,16 @@ void main() {
       find.ancestor(of: find.byIcon(AppIcons.check), matching: find.byType(PopupMenuItem<String>)),
       findsOneWidget,
     );
-    final band = tester.widget<Ink>(find.ancestor(of: current, matching: find.byType(Ink)));
-    expect((band.decoration! as BoxDecoration).color, colors.primaryContainer);
-    expect(tester.widget<Text>(current).style!.color, colors.onPrimaryContainer);
+    // No band behind the current one (#888): the check in the accent says it.
+    expect(find.ancestor(of: current, matching: find.byType(Ink)), findsNothing);
+    expect(tester.widget<Icon>(find.byIcon(AppIcons.check)).color, colors.primary);
+    final words = tester.widget<RichText>(
+      find.descendant(of: current, matching: find.byType(RichText)),
+    );
+    expect(words.text.style!.color, colors.onSurface);
     // A screen reader hears which one is in use, not only a sighted user.
     expect(tester.getSemantics(current).flagsCollection.isSelected, Tristate.isTrue);
     expect(tester.getSemantics(find.text('model-a')).flagsCollection.isSelected, Tristate.isFalse);
-    final other = tester.widget<Ink>(
-      find.ancestor(of: find.text('model-a'), matching: find.byType(Ink)),
-    );
-    expect((other.decoration! as BoxDecoration).color, isNull);
     await tester.tap(find.text('model-a'));
     await tester.pumpAndSettle();
     expect(find.text('model-a'), findsOneWidget);

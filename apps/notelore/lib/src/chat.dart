@@ -904,28 +904,20 @@ Future<void> _showModels(BuildContext context, Session session) async {
           padding: EdgeInsets.zero,
           child: Semantics(
             selected: m == current,
-            // Ink, so the hover still shows on the current model's band.
-            child: Ink(
+            child: Container(
               height: 48,
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: Gap.m),
-              decoration: BoxDecoration(color: m == current ? colors.primaryContainer : null),
               child: Row(
                 spacing: Gap.s + Gap.xs,
                 children: [
                   SizedBox.square(
                     dimension: 20,
                     child: m == current
-                        ? Icon(AppIcons.check, size: 20, color: colors.onPrimaryContainer)
+                        ? Icon(AppIcons.check, size: 20, color: colors.primary)
                         : null,
                   ),
-                  Flexible(
-                    child: Text(
-                      readableModel(m),
-                      overflow: TextOverflow.ellipsis,
-                      style: m == current ? TextStyle(color: colors.onPrimaryContainer) : null,
-                    ),
-                  ),
+                  Flexible(child: Text(readableModel(m), overflow: TextOverflow.ellipsis)),
                 ],
               ),
             ),
@@ -1234,39 +1226,66 @@ class Orb extends StatelessWidget {
     final accent = theme.colorScheme.primary;
     final light = theme.brightness == Brightness.light;
     final pixel = MediaQuery.devicePixelRatioOf(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: .45),
-            offset: const Offset(0, 6),
-            blurRadius: 18,
-          ),
-        ],
-      ),
-      // The fill is a square cut round by a mask, not a circle path: Impeller
-      // (macOS) edges a path by multisampling, which steps on a 1x screen.
-      child: ShaderMask(
-        blendMode: BlendMode.dstIn,
-        shaderCallback: (bounds) => orbEdge(bounds.size, pixel).createShader(bounds),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              center: const Alignment(-0.3, -0.4),
-              radius: 0.95,
-              stops: const [0, .55, 1],
-              colors: light
-                  ? [
-                      const Color(0xFFFED7AA),
-                      theme.extension<NoteloreTokens>()!.bright,
-                      const Color(0xFF7C2D12),
-                    ]
-                  : [const Color(0xFFFFF1E6), accent, Color.lerp(accent, Colors.black, .55)!],
+    // A 44 dp orb in a 48 dp slot, clear of the field's focus ring; the button
+    // on it draws its ink at the orb's size but keeps its 48 dp target.
+    const orb = Size.square(44);
+    return SizedBox.square(
+      dimension: 48,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox.fromSize(
+            size: orb,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: accent.withValues(alpha: .45),
+                    offset: const Offset(0, 6),
+                    blurRadius: 18,
+                  ),
+                ],
+              ),
+              // The fill is a square cut round by a mask, not a circle path: Impeller
+              // (macOS) edges a path by multisampling, which steps on a 1x screen.
+              child: ShaderMask(
+                blendMode: BlendMode.dstIn,
+                shaderCallback: (bounds) => orbEdge(bounds.size, pixel).createShader(bounds),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: const Alignment(-0.3, -0.4),
+                      radius: 0.95,
+                      stops: const [0, .55, 1],
+                      colors: light
+                          ? [
+                              const Color(0xFFFED7AA),
+                              theme.extension<NoteloreTokens>()!.bright,
+                              const Color(0xFF7C2D12),
+                            ]
+                          : [
+                              const Color(0xFFFFF1E6),
+                              accent,
+                              Color.lerp(accent, Colors.black, .55)!,
+                            ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
-          child: child,
-        ),
+          IconButtonTheme(
+            data: IconButtonThemeData(
+              style: const ButtonStyle(
+                minimumSize: WidgetStatePropertyAll(orb),
+                fixedSize: WidgetStatePropertyAll(orb),
+                tapTargetSize: MaterialTapTargetSize.padded,
+              ).merge(IconButtonTheme.of(context).style),
+            ),
+            child: child,
+          ),
+        ],
       ),
     );
   }

@@ -1,4 +1,7 @@
+import 'dart:ui' show CheckedState;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/icons.dart';
@@ -225,6 +228,45 @@ kind: topic
     final box = tester.getCenter(find.byType(Checkbox).first);
     await tester.tapAt(Offset(Gap.m + 22, box.dy + 20));
     expect(tapped, [2]);
+  });
+
+  testWidgets('todos: the whole row toggles, on its text or its empty space (#888)', (
+    tester,
+  ) async {
+    final tapped = <(int, bool)>[];
+    await show(tester, _mopsos, onTodo: (number, _, done) => tapped.add((number, done)));
+    await tester.tap(find.text('Add Drive backup'));
+    final row = tester.getRect(find.text('Write the README'));
+    // Between the text's end and the date.
+    await tester.tapAt(Offset(row.right + 40, row.center.dy));
+    await tester.tap(find.text('Set up CI'));
+    expect(tapped, [(2, true), (3, true), (1, false)]);
+  });
+
+  testWidgets('todos: a screen reader hears one checked toggle per row (#888)', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await show(tester, _mopsos, onTodo: (_, _, _) {});
+    final node = tester.getSemantics(find.text('Set up CI'));
+    final data = node.getSemanticsData();
+    expect(data.flagsCollection.isChecked, CheckedState.isTrue);
+    expect(data.hasAction(SemanticsAction.tap), isTrue);
+    // The row's tap is the checkbox's, not a second control beside it.
+    expect(node.parent!.getSemanticsData().hasAction(SemanticsAction.tap), isFalse);
+    // Nor a second stop for the keyboard.
+    expect(
+      tester
+          .widget<InkWell>(
+            find.ancestor(of: find.text('Set up CI'), matching: find.byType(InkWell)),
+          )
+          .canRequestFocus,
+      isFalse,
+    );
+    semantics.dispose();
+  });
+
+  testWidgets('todos: read-only ones are no buttons (#888)', (tester) async {
+    await show(tester, _mopsos);
+    expect(find.ancestor(of: find.text('Set up CI'), matching: find.byType(InkWell)), findsNothing);
   });
 
   testWidgets('the page ends with room above the system bar (#852)', (tester) async {

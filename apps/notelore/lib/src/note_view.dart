@@ -442,20 +442,33 @@ class NoteView extends StatelessWidget {
   Widget _todoRow(ThemeData theme, int number, Todo todo, DateTime day) {
     final colors = theme.colorScheme;
     final late = !todo.done && todo.date.isBefore(day);
+    final row = _row(
+      mark: _todoMark(colors, number, todo, late: late),
+      // The Checkbox's 48 dp box centres its 18 dp square.
+      inset: onTodo == null ? 0 : 15,
+      text: _markdown(
+        todo.text,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: todo.done ? colors.onSurfaceVariant : null,
+          decoration: todo.done ? TextDecoration.lineThrough : null,
+        ),
+      ),
+      date: _todoDate(theme, todo, late: late),
+    );
     return MergeSemantics(
-      child: _row(
-        mark: _todoMark(colors, number, todo, late: late),
-        // The Checkbox's 48 dp box centres its 18 dp square.
-        inset: onTodo == null ? 0 : 15,
-        text: _markdown(
-          todo.text,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: todo.done ? colors.onSurfaceVariant : null,
-            decoration: todo.done ? TextDecoration.lineThrough : null,
+      child: switch (onTodo) {
+        // The checkbox already is the row's one toggle for a screen reader.
+        final onTodo? => Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            excludeFromSemantics: true,
+            canRequestFocus: false,
+            onTap: () => onTodo(number, todo.text, !todo.done),
+            child: row,
           ),
         ),
-        date: _todoDate(theme, todo, late: late),
-      ),
+        null => row,
+      },
     );
   }
 
