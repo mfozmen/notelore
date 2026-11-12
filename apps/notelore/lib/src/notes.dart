@@ -367,52 +367,63 @@ class _NotesScreenState extends State<NotesScreen> {
           child: _refreshable(
             notes.isEmpty
                 // Right under the field, where the eye is after typing.
-                ? ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, 0),
-                    children: [
-                      if (searching)
-                        EmptyState(
-                          icon: AppIcons.searchEmpty,
-                          title: s.noNoteMentions(_search.text.trim()),
-                          hint: outside.isEmpty
-                              ? s.chatCanLook
-                              : s.notesOutsideFilter(outside.length),
-                          actions: [
-                            if (outside.isNotEmpty)
-                              FilledButton(
-                                onPressed: () => setState(
-                                  () => session
-                                    ..notesKind = null
-                                    ..notesTag = null,
-                                ),
-                                child: Text(s.showAllNotes),
-                              ),
-                            if (outside.isEmpty)
-                              FilledButton(
-                                // Lands in the composer like a share, which also opens the chat.
-                                onPressed: () => session.receiveSharedText(_search.text.trim()),
-                                child: Text(s.askInChat),
-                              )
-                            else
-                              OutlinedButton(
-                                onPressed: () => session.receiveSharedText(_search.text.trim()),
-                                child: Text(s.askInChat),
-                              ),
-                          ],
-                        )
-                      else
-                        Text(
-                          s.noFilteredNotes,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: colors.onSurfaceVariant),
-                        ),
-                    ],
-                  )
+                ? _nothingFound(outside, searching: searching, hintColor: colors.onSurfaceVariant)
                 // Coming up only lists notes in `all`, so it follows the filters too.
                 : _shown(context, notes, wide: wide, all: filtered),
           ),
         ),
+      ],
+    );
+  }
+
+  /// The list when nothing is shown: no search result, or nothing under the
+  /// filter. With a chip on, [outside] is the same search over every note (#864).
+  Widget _nothingFound(
+    List<NoteInfo> outside, {
+    required bool searching,
+    required Color hintColor,
+  }) {
+    final s = widget.session.strings;
+    final session = widget.session;
+    final query = _search.text.trim();
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(Gap.m, Gap.l, Gap.m, 0),
+      children: [
+        if (searching)
+          EmptyState(
+            icon: AppIcons.searchEmpty,
+            title: s.noNoteMentions(query),
+            hint: outside.isEmpty ? s.chatCanLook : s.notesOutsideFilter(outside.length),
+            actions: [
+              if (outside.isNotEmpty)
+                FilledButton(
+                  onPressed: () => setState(
+                    () => session
+                      ..notesKind = null
+                      ..notesTag = null,
+                  ),
+                  child: Text(s.showAllNotes),
+                ),
+              if (outside.isEmpty)
+                FilledButton(
+                  // Lands in the composer like a share, which also opens the chat.
+                  onPressed: () => session.receiveSharedText(query),
+                  child: Text(s.askInChat),
+                )
+              else
+                OutlinedButton(
+                  onPressed: () => session.receiveSharedText(query),
+                  child: Text(s.askInChat),
+                ),
+            ],
+          )
+        else
+          Text(
+            s.noFilteredNotes,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: hintColor),
+          ),
       ],
     );
   }
