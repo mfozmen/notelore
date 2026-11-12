@@ -524,6 +524,10 @@ abstract class Strings {
   String get chatCanLook;
   String get askInChat;
 
+  /// A search that found nothing under the chosen filter, and the button back.
+  String notesOutsideFilter(int count);
+  String get showAllNotes;
+
   // The Notes list's filter chips (#793).
   String get filterAll;
   String get filterProjects;
@@ -1542,6 +1546,11 @@ class EnglishStrings extends Strings {
   String get chatCanLook => 'The chat can look for what you meant.';
   @override
   String get askInChat => 'Ask in the chat';
+  @override
+  String notesOutsideFilter(int count) =>
+      count == 1 ? '1 note outside this filter' : '$count notes outside this filter';
+  @override
+  String get showAllNotes => 'Show all notes';
   @override
   String get filterAll => 'All';
   @override
@@ -2793,6 +2802,10 @@ class TurkishStrings extends Strings {
   String get chatCanLook => 'Ne demek istediğini sohbet arayabilir.';
   @override
   String get askInChat => 'Sohbette sor';
+  @override
+  String notesOutsideFilter(int count) => 'Bu filtre dışında $count not var';
+  @override
+  String get showAllNotes => 'Tüm notları göster';
   @override
   String get filterAll => 'Tümü';
   @override

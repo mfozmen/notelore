@@ -468,6 +468,8 @@ void main() {
       'searchNotes': s.searchNotes,
       'clearSearch': s.clearSearch,
       'noNoteMentions': s.noNoteMentions('x'),
+      'notesOutsideFilter': s.notesOutsideFilter(2),
+      'showAllNotes': s.showAllNotes,
       'chatCanLook': s.chatCanLook,
       'askInChat': s.askInChat,
       'filterAll': s.filterAll,
