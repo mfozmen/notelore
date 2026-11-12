@@ -839,7 +839,7 @@ void failureTests() {
         'one short sentence',
         '[[Yes]] [[No]]',
         '<attached file=',
-        'archive only after',
+        'that is the confirmation',
       ]) {
         expect(slim, contains(rule));
       }

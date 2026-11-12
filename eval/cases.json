@@ -676,6 +676,47 @@
      ]
     }
    }
+  },
+  {
+   "id": "correction-tr-wrong-note",
+   "kind": "correction",
+   "lang": "tr",
+   "history": [
+    {
+     "role": "user",
+     "content": "invent.ai'da AWS credentiallarını yenilemek için gereken komut aws-prod"
+    },
+    {
+     "role": "assistant",
+     "content": "Database erişimleri notuna ekledim."
+    }
+   ],
+   "message": "Yanlış yere yazdın: database erişimi değil, AWS servislerine login olabilmek için alias. AWS erişimi notuna taşı.",
+   "notes": {
+    "topics/database-erisimleri.md": "---\ntitle: Database erişimleri\nkind: topic\ncreated: 2026-10-10\nupdated: 2026-10-18\ntags: [aws]\n---\n# Database erişimleri\n\n## Notlar\n- 2026-10-18: invent.ai'da AWS credentiallarını yenilemek için gereken komut aws-prod.\n",
+    "topics/aws-erisimi.md": "---\ntitle: AWS erişimi\nkind: topic\ncreated: 2026-09-30\nupdated: 2026-10-02\ntags: [aws]\n---\n# AWS erişimi\n\n## Notlar\n- 2026-09-30: AWS hesabı iki adımlı doğrulama ile korunuyor.\n"
+   },
+   "expect": {
+    "tools": [
+     "move_entry"
+    ],
+    "tools_not": [
+     "merge_notes"
+    ],
+    "answer_not": [
+     "ister misin",
+     "arşivlememi"
+    ],
+    "notes": {
+     "^topics/aws-erisimi\\.md$": [
+      "aws-prod"
+     ],
+     "^topics/database-erisimleri\\.md$": [],
+     "^_archive/[^/]+/entries/topics/database-erisimleri\\.md$": [
+      "aws-prod"
+     ]
+    }
+   }
   }
  ]
 }
