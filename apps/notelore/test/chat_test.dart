@@ -4,6 +4,7 @@ import 'dart:math' show min;
 import 'dart:ui' show Tristate;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:flutter/semantics.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -93,6 +94,81 @@ void main() {
     expect(edge.radius, 24.25 / 48);
     expect(edge.stops, [0, 23.75 / 24.25, 1]);
     expect(edge.colors, [Colors.white, Colors.white, Colors.transparent]);
+  });
+
+  testWidgets('nothing of the orb shows beside its rim, on a part pixel too (#890)', (
+    tester,
+  ) async {
+    const ground = Color(0xFF101010);
+    for (final dpr in [1.0, 2.0]) {
+      tester.view.devicePixelRatio = dpr;
+      addTearDown(tester.view.reset);
+      final boundary = GlobalKey();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: noteloreTheme(Brightness.dark),
+          home: Align(
+            alignment: Alignment.topLeft,
+            child: RepaintBoundary(
+              key: boundary,
+              child: const ColoredBox(
+                color: ground,
+                // A part-pixel offset, as the orb gets in a real layout.
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(10.3, 10, 9.7, 10),
+                  child: Orb(SizedBox.square(dimension: 48)),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      final render = boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      final (width, height, bytes) = (await tester.runAsync(() async {
+        final image = await render.toImage(pixelRatio: dpr);
+        return (image.width, image.height, (await image.toByteData())!);
+      }))!;
+      // The 44 dp orb's centre, in device pixels.
+      final centre = (10.3 + 24) * dpr;
+      final reach = (22 + .5) * dpr + .5;
+      for (var y = 0; y < height; y++) {
+        for (var x = 0; x < width; x++) {
+          if ((x + .5 - centre).abs() <= reach) continue;
+          final at = (y * width + x) * 4;
+          expect(
+            [bytes.getUint8(at), bytes.getUint8(at + 1), bytes.getUint8(at + 2)],
+            [0x10, 0x10, 0x10],
+            reason: 'pixel ($x, $y) at ${dpr}x',
+          );
+        }
+      }
+    }
+  });
+
+  testWidgets('the orb is 44 dp in its 48 dp slot; its button still takes 48 (#888)', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: noteloreTheme(Brightness.light),
+        home: Center(
+          child: Orb(IconButton(icon: const Icon(AppIcons.send), onPressed: () {})),
+        ),
+      ),
+    );
+    final slot = tester.getRect(find.byType(Orb));
+    expect(slot.size, const Size.square(48));
+    final mask = find.descendant(of: find.byType(Orb), matching: find.byType(ShaderMask));
+    // The mask reaches 2 dp past the fill it cuts round (#890).
+    expect(tester.getRect(mask), slot);
+    final fill = find.descendant(of: mask, matching: find.byType(DecoratedBox));
+    expect(tester.getRect(fill), slot.deflate(2));
+    // The button's ink and focus ring follow the orb; its target stays 48.
+    final ink = find.descendant(of: find.byType(Orb), matching: find.byType(InkWell));
+    expect(tester.getRect(ink), slot.deflate(2));
+    expect(tester.getSize(find.byType(IconButton)), const Size.square(48));
   });
 
   group('write receipts (#791)', () {
@@ -634,16 +710,16 @@ void main() {
       find.ancestor(of: find.byIcon(AppIcons.check), matching: find.byType(PopupMenuItem<String>)),
       findsOneWidget,
     );
-    final band = tester.widget<Ink>(find.ancestor(of: current, matching: find.byType(Ink)));
-    expect((band.decoration! as BoxDecoration).color, colors.primaryContainer);
-    expect(tester.widget<Text>(current).style!.color, colors.onPrimaryContainer);
+    // No band behind the current one (#888): the check in the accent says it.
+    expect(find.ancestor(of: current, matching: find.byType(Ink)), findsNothing);
+    expect(tester.widget<Icon>(find.byIcon(AppIcons.check)).color, colors.primary);
+    final words = tester.widget<RichText>(
+      find.descendant(of: current, matching: find.byType(RichText)),
+    );
+    expect(words.text.style!.color, colors.onSurface);
     // A screen reader hears which one is in use, not only a sighted user.
     expect(tester.getSemantics(current).flagsCollection.isSelected, Tristate.isTrue);
     expect(tester.getSemantics(find.text('model-a')).flagsCollection.isSelected, Tristate.isFalse);
-    final other = tester.widget<Ink>(
-      find.ancestor(of: find.text('model-a'), matching: find.byType(Ink)),
-    );
-    expect((other.decoration! as BoxDecoration).color, isNull);
     await tester.tap(find.text('model-a'));
     await tester.pumpAndSettle();
     expect(find.text('model-a'), findsOneWidget);

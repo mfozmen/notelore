@@ -264,8 +264,17 @@ void main() {
 
   test('the tokens a scheme has no role for: decision card, night glow, mono label', () {
     final kil = noteloreTheme(Brightness.light).extension<NoteloreTokens>()!;
-    expect(kil.hot.colors, const [Color(0xFFC2410C), Color(0xFF9A3412)]);
-    expect(kil.hotValue, Colors.white);
+    expect(kil.hot.colors, const [Color(0xFF9A3412), Color(0xFF6B2310)]);
+    expect(
+      [kil.hotLabel, kil.hotValue, kil.hotReason, kil.hotSource, kil.hotBorder],
+      const [
+        Color(0xFFF4C19E),
+        Colors.white,
+        Color(0xFFFAD9C2),
+        Color(0xFFEEC3A9),
+        Color(0xFF5A1D0B),
+      ],
+    );
     expect(kil.glow, isNull); // only the night has one
     expect(kil.mineBorder, const Color(0xFFEFC4A2));
     expect(kil.bright, const Color(0xFFEA580C));

@@ -227,15 +227,15 @@ NoteloreTokens _tokens(ColorScheme colors) {
           hot: const LinearGradient(
             begin: _hotFrom,
             end: _hotTo,
-            colors: [Color(0xFFC2410C), Color(0xFF9A3412)],
+            colors: [Color(0xFF9A3412), Color(0xFF6B2310)],
           ),
-          // White on the fill's light end is only 5.2:1, so every step stays near white.
-          hotLabel: const Color(0xFFFFEDDD),
+          // The label and source keep 4.5:1 on the fill's lighter end too.
+          hotLabel: const Color(0xFFF4C19E),
           hotValue: Colors.white,
-          hotReason: const Color(0xFFFFF1E6),
-          hotSource: const Color(0xFFFCEEE2),
+          hotReason: const Color(0xFFFAD9C2),
+          hotSource: const Color(0xFFEEC3A9),
           hotLink: const Color(0xFFFFF5D6),
-          hotBorder: const Color(0xFF7C2D12),
+          hotBorder: const Color(0xFF5A1D0B),
           glow: null,
           mineBorder: const Color(0xFFEFC4A2),
           bright: const Color(0xFFEA580C),
