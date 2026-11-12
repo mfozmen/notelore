@@ -108,6 +108,44 @@ void main() {
     expect(receipts(), isEmpty);
   });
 
+  test('move_entry moves the one entry the user corrected to the right note (#887)', () {
+    call('create_note', {'kind': 'topic', 'title': 'Database erişimleri'});
+    call('add_note_entry', {
+      'slug': 'database-erisimleri',
+      'text': 'AWS credentialları için komut aws-prod.',
+    });
+    call('create_note', {'kind': 'topic', 'title': 'AWS erişimi'});
+    // Nothing to move: the error says what to do, and nothing changes.
+    expect(
+      call('move_entry', {'from': 'database-erisimleri', 'to': 'aws-erisimi', 'text': 'staging'}),
+      startsWith("Error: No note entry of 'database-erisimleri' mentions 'staging'"),
+    );
+    final moved = call('move_entry', {
+      'from': 'database-erisimleri',
+      'to': 'aws-erisimi',
+      'text': 'aws-prod',
+    }) as Map;
+    expect(moved['moved_to'], 'topics/aws-erisimi.md');
+    expect(moved['archived_to'], startsWith('_archive/'));
+    expect(moved['entry'], 'AWS credentialları için komut aws-prod.');
+    final target = File(p.join(box.root, 'topics', 'aws-erisimi.md')).readAsStringSync();
+    expect(target, contains('aws-prod'));
+    final source = File(p.join(box.root, 'topics', 'database-erisimleri.md')).readAsStringSync();
+    expect(source, isNot(contains('aws-prod')));
+    final archived = Directory(p.join(box.root, '_archive'))
+        .listSync(recursive: true)
+        .whereType<File>()
+        .single;
+    expect(archived.readAsStringSync(), contains('aws-prod'));
+    // Two entries mention it: the error asks for more of the entry, nothing changes.
+    call('add_note_entry', {'slug': 'database-erisimleri', 'text': 'aws-prod staging'});
+    call('add_note_entry', {'slug': 'database-erisimleri', 'text': 'aws-prod production'});
+    expect(
+      call('move_entry', {'from': 'database-erisimleri', 'to': 'aws-erisimi', 'text': 'aws-prod'}),
+      startsWith("Error: 2 entries of 'database-erisimleri' mention 'aws-prod'"),
+    );
+  });
+
   test('sources cite the current decisions the decision tools found, at most 3 (#792)', () {
     List<String> sources() => [
       for (final s in box.sources())
@@ -176,6 +214,7 @@ void main() {
       'search_notes',
       'find_stale_notes',
       'archive',
+      'move_entry',
       'related_notes',
       'merge_notes',
       'recategorize',

@@ -1177,6 +1177,26 @@ NEW_BESIDE = [
     ("tr", "Arkadaşlara Hediyeler", "Okumak istediğim kitap: Kürk Mantolu Madonna.", r"^topics/[^/]*(kitap|okuma)[^/]*\.md$", "Kürk Mantolu"),
 ]
 
+# A correction of where the last filing went (v11, #887): the entry the
+# assistant just wrote to the wrong note is moved to the note the user names,
+# in the same turn and without asking. (lang, wrong note, right note, a line
+# already in the right note, the entry filed wrongly, the first message, what
+# the assistant said it filed, the correction, a word the right note keeps)
+CORRECTIONS = [
+    ("en", "Server Details", "Cloud Login", "Cloud access needs two-factor sign-in.",
+     "The build server login alias is deploy-key.",
+     "Server details: the build server login alias is deploy-key.",
+     "Filed it in Server Details.",
+     "Wrong note: that is not server details, it is the alias for logging in to the cloud. "
+     "Move it to Cloud Login.", "deploy-key"),
+    ("tr", "Sunucu Bilgileri", "Bulut Girişi", "Buluta giriş iki adımlı doğrulama ile yapılıyor.",
+     "Derleme sunucusuna giriş için kullanılan alias deploy-key.",
+     "Sunucu bilgileri: derleme sunucusuna giriş için kullanılan alias deploy-key.",
+     "Sunucu Bilgileri notuna ekledim.",
+     "Yanlış yere yazdın: bu sunucu bilgisi değil, buluta giriş için alias. "
+     "Bulut Girişi notuna taşı.", "deploy-key"),
+]
+
 def cases(rng, t=None):
     """The cases [t]'s tables make (this module's by default; the held-out set
     passes its own, #599)."""
@@ -1308,6 +1328,20 @@ def cases(rng, t=None):
             notes[p] = note(title, kind, lang)
             expect = {"tools": [tool], "tools_not": ABOUT_ME_TOOLS, "notes": {f"^{re.escape(p)}$": [word]}}
         add(f"aboutme-not-{i}", "about-me", lang, notes, msg, expect)
+    for i, (lang, wrong, right, seed, filed, said, reply, msg, word) in enumerate(getattr(t, "CORRECTIONS", ())):
+        wp, rp = path("topic", wrong), path("topic", right)
+        notes = {
+            wp: note(wrong, "topic", lang, notes=[filed]),
+            rp: note(right, "topic", lang, notes=[seed]),
+        }
+        add(f"correct-{i}", "correction", lang, notes, msg, {
+            "tools": ["move_entry"],
+            "notes": {f"^{re.escape(rp)}$": [word], f"^{re.escape(wp)}$": [], "^_archive/": [word]},
+        })
+        out[-1]["history"] = [
+            {"role": "user", "content": said},
+            {"role": "assistant", "content": reply},
+        ]
 
     # Every workspace holds other notes too, so a case is passed by choosing the
     # right note, not by writing to the only one there (v1 learned that).

@@ -26,6 +26,9 @@
 /// - `find_stale_notes()`: cleanup candidates with 1-based entry numbers.
 /// - `archive(slug, entries?, kind?)`: moves numbered entries per section, or the
 ///   whole file when `entries` is omitted, under `_archive/`.
+/// - `move_entry(from, to, text, from_kind?, to_kind?)`: the one note entry of `from`
+///   that mentions `text`, appended to `to` and moved under `_archive/`:
+///   `{moved_to, archived_to, entry}`.
 /// - `related_notes(title, about?)`: notes in either category a new note may belong
 ///   with: `[{slug, kind, title, shares_title_words, matching_lines, open_todos?}]`,
 ///   best first.
@@ -352,6 +355,22 @@ final toolRegistry = List<NoteTool>.unmodifiable([
     activity: Activity.writing,
     slimDescription:
         'Move entries (by section and 1-based number) or the whole note to the archive.',
+  ),
+  NoteTool(
+    Tool(
+      'move_entry',
+      'Move one entry to another note when the user says what you filed was not it or '
+          'belongs in another note ("not X, it\'s Y"): from, to, and a few words of the '
+          'entry. No asking.',
+      _schema(
+        ['from', 'to', 'text'],
+        {'from': _slug, 'to': _slug, 'text': _string, 'from_kind': _kind, 'to_kind': _kind},
+      ),
+    ),
+    (t, a) =>
+        t._moveEntry(a['from'], a['to'], a['text'], a.optional('from_kind'), a.optional('to_kind')),
+    activity: Activity.writing,
+    slimDescription: 'Move one entry to another note when the user says you filed it wrong.',
   ),
   NoteTool(
     Tool(
@@ -1005,6 +1024,43 @@ class Toolbox {
     if (whole) _moved(path, target);
     _wrote(whole ? target : path);
     return {'archived_to': _rel(target)};
+  }
+
+  /// The one notes entry of [from] that mentions [text], appended to [to] and
+  /// moved under the archive: the user said the entry belongs in [to] (#887).
+  Map<String, Object?> _moveEntry(
+    String from,
+    String to,
+    String text,
+    String? fromKind,
+    String? toKind,
+  ) {
+    final fromPath = _path(from, fromKind);
+    final toPath = _path(to, toKind);
+    final entries = notes.readNote(fromPath).section('notes')?.entries.whereType<Entry>().toList();
+    final wanted = text.trim().toLowerCase();
+    final matches = [
+      for (final entry in entries ?? const <Entry>[])
+        if (entry.text.toLowerCase().contains(wanted)) entry,
+    ];
+    if (matches.isEmpty) {
+      throw StateError("No note entry of '$from' mentions '$text'; read_note it first.");
+    }
+    if (matches.length > 1) {
+      throw StateError("${matches.length} entries of '$from' mention '$text'; pass more of it.");
+    }
+    final entry = matches.single;
+    final number = entries!.indexOf(entry) + 1;
+    final archived = notes.archiveEntries(root, fromPath, {
+      'notes': [number],
+    }, today: today);
+    notes.addEntry(toPath, entry.text, today: today);
+    index
+      ..markChanged(fromPath)
+      ..markChanged(toPath);
+    _wrote(fromPath);
+    _wrote(toPath);
+    return {'moved_to': _rel(toPath), 'archived_to': _rel(archived), 'entry': entry.text};
   }
 }
 
