@@ -2710,6 +2710,13 @@ void main() {
       tester.widget<TextField>(find.byKey(const Key('notes-search'))).controller!.text,
       'zebra',
     );
+    // Back under a chip that hides it: the chat stays one tap away, with the words.
+    await tester.tap(find.text('Topics'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Ask in the chat'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ChatScreen), findsOneWidget);
+    expect(tester.widget<TextField>(find.byKey(const Key('message'))).controller!.text, 'zebra');
   });
 
   testWidgets('notes: a related note opens on its own page (#802)', (tester) async {
