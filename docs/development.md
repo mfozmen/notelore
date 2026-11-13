@@ -6,6 +6,7 @@ Requires [Flutter](https://docs.flutter.dev/get-started/install) (the version pi
 |---|---|
 | `packages/notelore_core` | pure Dart: note format, store, search index, sync, Drive, providers, agent |
 | `apps/notelore` | the Flutter app: Android, iOS, Windows, macOS |
+| `apps/catalog` | the design catalog (Widgetbook) on fake data: [Design catalog](#design-catalog) |
 | `apps/notelore/android/wear` | the Wear OS watch app, native Kotlin: [`wear-os.md`](wear-os.md) |
 | `spec/fixtures` | the frozen format and merge contract from the original Python implementation |
 
@@ -41,6 +42,25 @@ openssl pkey -in update-key.pem -pubout -outform DER | tail -c 32 | base64   # t
 - The release workflow stops before tagging when either is missing or they are not a pair, and checks the pair again before it signs. Changing the key strands the apps that pin the old one: they no longer update themselves, and need the new version installed by hand. On Windows the setup runs silently and restarts Notelore; on macOS the new app replaces the old one, which is put back if that fails halfway; on Android the system installer opens and the user taps Install.
 
 The old command line (`notelore-<version>-*.zip`, v0.2.0 and earlier) is retired; the app reads the same `~/Notelore` folder.
+
+## Design catalog
+
+`apps/catalog` is a [Widgetbook](https://docs.widgetbook.io) app that shows the design language in one place: the rules page (Kil and Orman colours, the three faces, spacing, the orb, the soft card, Phosphor weights), the components, and the main screens. Its knobs switch Kil and Orman, text at 1x, 1.5x and 2x, and the Galaxy S23 Ultra (412x915), a small phone (360x640) and a 1280-wide desktop.
+
+The screens run on a made-up session (`apps/catalog/lib/fake.dart`): temp folders, invented notes, an in-memory keystore and a scripted model, never the real notes, keys or network. It stays in the repo, with no public hosting.
+
+```bash
+cd apps/catalog && flutter run -d windows
+```
+
+Its tests also hold the goldens: every main screen at 412x915, 360x640 and 1280 wide, light and dark, text at 1x and 2x, with the bundled fonts. They compare on Linux only (other systems rasterise fonts a little differently) and skip elsewhere; a failure uploads the diff images as the `golden-diffs` artifact. Render them anew only on purpose, with the reason in the PR: `flutter test --update-goldens` on Linux, or run the Flutter workflow by hand with `update_goldens` and commit its `goldens-linux` artifact into `apps/catalog/test/goldens/`.
+
+```bash
+gh workflow run flutter.yml --ref <branch> -f update_goldens=true
+gh run download <run id> -n goldens-linux -D apps/catalog/test/goldens
+```
+
+Only Windows has its runner committed; for macOS or a phone, add one locally first with `flutter create --platforms=macos .` (or `android`) and leave it uncommitted. CI analyses and tests the catalog, but it is outside the 100% coverage gate: it is a viewer for code that is already covered in `apps/notelore`, and its own tests check that every screen builds.
 
 ## App icon
 

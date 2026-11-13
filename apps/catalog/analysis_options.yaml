@@ -1,0 +1,10 @@
+analyzer:
+  exclude:
+    - build/**
+    - windows/**
+include: ../../analysis_options.yaml
+
+linter:
+  rules:
+    # The catalog shows the app's own widgets, which all live under its lib/src.
+    implementation_imports: false

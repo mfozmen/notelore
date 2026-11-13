@@ -23,6 +23,7 @@ dart format .                                     # format (page width 100, anal
 dart analyze --fatal-infos                        # strict analysis
 (cd packages/notelore_core && dart run coverage:test_with_coverage)   # core tests + lcov
 (cd apps/notelore && flutter test --coverage)                         # app tests + lcov
+(cd apps/catalog && flutter test)                                     # design catalog (Widgetbook); `flutter run -d windows` opens it
 (cd packages/notelore_core && dart test -t live)                       # live provider tests (keys in env, opt-in)
 dart run tool/coverage_gate.dart packages/notelore_core/coverage/lcov.info apps/notelore/coverage/lcov.info
 python tool/check_comments.py origin/main...HEAD   # narrative comments this branch adds (commentie; CI warns, --strict fails)
@@ -41,6 +42,7 @@ A monorepo and a Dart pub workspace. Every device syncs the same notes through t
 ```
 packages/notelore_core/   pure Dart, no Flutter: everything that is not UI
 apps/notelore/            the Flutter app: Android, iOS, Windows, macOS
+apps/catalog/             the design catalog (Widgetbook) on fake data; outside the coverage gate
 spec/fixtures/            the frozen cross-implementation contract (see Testing)
 tool/                     the coverage gate
 ```
@@ -142,6 +144,8 @@ At runtime, the agent answers in the language the user writes in, and writes not
 - **Branches:** one branch per feature/fix, `<type>/<slug>` (e.g. `feat/note-format-parser`), merged via PR with summary, context and test plan. `main` is protected by a repository ruleset: every change goes through a PR (docs too), the Flutter, CI script, SonarCloud and AI review checks must pass, and force-push and deletion are blocked. The only bypass is the release deploy key (`RELEASE_DEPLOY_KEY`), which the manual release workflow uses to push its version commit and tag.
 - **Releases:** manual (`gh workflow run release.yml`). Python Semantic Release (configured in `releaserc.toml`) bumps both pubspec versions from the Conventional Commits; the workflow builds and attaches the app for Windows, macOS and Android with SHA-256 files and their signatures.
 - **UI work uses the design skills:** before changing how anything looks (a screen, a component, spacing, colour, copy on screen), invoke `ui-ux-pro-max` and, where installed, `mobile-app-ui-design`; for layout code, `flutter-build-responsive-layout` and `flutter-fix-layout-issues` (in `.claude/skills/`). Check the result against them, and put before/after off-screen renders (golden renders in a test, never desktop captures) in the PR.
+  - A UI PR updates the design catalog (`apps/catalog`) and its goldens (`apps/catalog/test/goldens_test.dart`) in the same PR. Goldens compare on Linux only; render them anew on purpose, with `flutter test --update-goldens` on Linux or the Flutter workflow run by hand with `update_goldens` (its `goldens-linux` artifact), never on Windows or macOS, and give the reason in the PR. A failing golden uploads its diff images as the `golden-diffs` artifact.
+  - The renders are checked against the design at phone size (412x915 and 360x640), not only on the desktop.
 - **README stays current:** any user-visible change updates `README.md` in the same PR.
 - **Review agents:** `.claude/agents/ui-reviewer.md` (renders screens off-screen and judges them against the design skills) after a UI change, and `.claude/agents/security-reviewer.md` (OWASP MASVS plus Notelore's own risks) on changes to auth, providers, sync, the updater, the app lock, manifests, dependencies or workflows. Their findings, like the CI reviews', are settled in the same PR: fixed, or, when the author disagrees, argued on the PR until reviewer and author agree. A finding becomes its own issue only when it is outside the PR's scope, and the review says why.
 - **Review fallback:** when Claude cannot run (quota, auth, outage), `ai-review.yml` reviews the same range through OpenCode Go (`OPENCODE_API_KEY`). The fallback is a plain HTTP review of the diff, not an agent; its comments carry the same `REVIEWED-HEAD` / `REVIEW-VERDICT` (code) and `SECURITY-REVIEWED-HEAD` / `SECURITY-VERDICT` (security) contract.

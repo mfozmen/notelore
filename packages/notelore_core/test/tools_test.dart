@@ -617,6 +617,31 @@ void main() {
     );
   });
 
+  test('the index drops an archived or retagged note at once, not at the next scan (#893)', () {
+    call('create_note', {
+      'kind': 'topic',
+      'title': 'Cat',
+      'tags': ['kedi'],
+    });
+    call('create_note', {
+      'kind': 'topic',
+      'title': 'Dog',
+      'tags': ['kopek'],
+    });
+    List<String> tags() => [for (final n in box.index.listNotes()) ...n.tags];
+    box.index.rebuild(); // warm: the next rebuild only refreshes what was marked
+    expect(tags(), unorderedEquals(['kedi', 'kopek']));
+    call('archive', {'slug': 'cat'});
+    box.index.rebuild();
+    expect([for (final n in box.index.listNotes()) n.slug], ['dog']);
+    call('recategorize', {
+      'slug': 'dog',
+      'remove_tags': ['kopek'],
+    });
+    box.index.rebuild();
+    expect(tags(), isEmpty);
+  });
+
   test('a file the store cannot read is an error message', () {
     call('create_note', {'kind': 'project', 'title': 'Mopsos'});
     File(p.join(box.root, 'projects', 'mopsos.md')).writeAsBytesSync([0xFF, 0xFE, 0x20]);

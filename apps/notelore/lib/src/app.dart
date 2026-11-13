@@ -188,9 +188,12 @@ class _NoteloreAppState extends State<NoteloreApp> with WidgetsBindingObserver {
 }
 
 class Home extends StatefulWidget {
-  const Home(this.session, {this.updater, this.exitApp = exit, super.key});
+  const Home(this.session, {this.tab = 0, this.updater, this.exitApp = exit, super.key});
 
   final Session session;
+
+  /// The tab it opens on: chat, notes, calendar, about me, then Settings (wide only).
+  final int tab;
   final Updater? updater;
   final void Function(int code) exitApp;
 
@@ -199,7 +202,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> with WidgetsBindingObserver {
-  var _tab = 0;
+  late var _tab = widget.tab;
 
   /// The note a receipt in the chat opens in the Notes reader, on a wide window.
   NoteInfo? _shown;

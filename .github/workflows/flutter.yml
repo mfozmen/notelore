@@ -10,6 +10,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      update_goldens:
+        description: Render the catalog's goldens anew on Linux and upload them (commit them with a reason)
+        type: boolean
+        default: false
 
 concurrency:
   group: flutter-${{ github.event.pull_request.number || github.ref }}
@@ -77,6 +82,33 @@ jobs:
         run: |
           dart test tool/coverage_gate_test.dart
           dart run tool/coverage_gate.dart packages/notelore_core/coverage/lcov.info apps/notelore/coverage/lcov.info
+      # The design catalog is outside the coverage gate (tool/coverage_gate.dart says why).
+      # Its goldens compare on Linux only; elsewhere they skip themselves.
+      - name: Catalog tests and goldens
+        working-directory: apps/catalog
+        shell: bash
+        env:
+          UPDATE_GOLDENS: ${{ inputs.update_goldens }}
+        run: |
+          if [ "$UPDATE_GOLDENS" = true ] && [ "$RUNNER_OS" = Linux ]; then
+            flutter test --update-goldens
+          else
+            flutter test
+          fi
+      - name: Golden diffs
+        if: failure() && runner.os == 'Linux'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: golden-diffs
+          path: apps/catalog/test/failures/
+          if-no-files-found: ignore
+      - name: Updated goldens
+        if: inputs.update_goldens && runner.os == 'Linux'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: goldens-linux
+          path: apps/catalog/test/goldens/
+          if-no-files-found: error
 
   android:
     name: Flutter Android APK

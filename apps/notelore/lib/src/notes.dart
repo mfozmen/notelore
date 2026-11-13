@@ -317,6 +317,10 @@ class _NotesScreenState extends State<NotesScreen> {
   Widget _list(BuildContext context, List<NoteInfo> all, {required bool wide}) {
     final s = widget.session.strings;
     final colors = Theme.of(context).colorScheme;
+    // A tag no note carries any more (archived, retagged) is cleared, not kept as an empty filter.
+    if (!all.any((note) => note.tags.contains(widget.session.notesTag))) {
+      widget.session.notesTag = null;
+    }
     if (all.isEmpty) {
       return Column(
         children: [
@@ -428,8 +432,8 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
-  /// All, the two kinds, then the eight most used tags (and the chosen one,
-  /// even when no note carries it any more); one kind and one tag at a time.
+  /// All, the two kinds, then the eight most used tags and the chosen one.
+  /// One kind and one tag at a time.
   Widget _filters(BuildContext context, List<NoteInfo> all) {
     final s = widget.session.strings;
     final session = widget.session;

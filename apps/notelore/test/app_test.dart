@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
+import 'package:notelore/src/calendar.dart';
 import 'package:notelore/src/chat.dart';
 import 'package:notelore/src/empty_state.dart';
 import 'package:notelore/src/icons.dart';
@@ -119,6 +120,21 @@ List<String> shownExamples(WidgetTester tester, Strings strings) => [
 ];
 
 void main() {
+  testWidgets('Home opens on the tab it is given (the design catalog, #817)', (tester) async {
+    phone(tester);
+    final session = Harness().session();
+    await tester.runAsync(() async {
+      await session.load();
+      await session.connect(providerSpecs[1], 'sk');
+    });
+    addTearDown(() => tester.pumpWidget(const SizedBox()));
+    await tester.pumpWidget(
+      MaterialApp(theme: noteloreTheme(Brightness.light), home: Home(session, tab: 2)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(CalendarScreen), findsOneWidget);
+  });
+
   testWidgets('opening shows progress, then the setup screen', (tester) async {
     phone(tester);
     final harness = Harness();
@@ -3154,6 +3170,50 @@ void main() {
     expect(find.widgetWithText(ListTile, 'Note 8'), findsNothing);
     final chosen = find.widgetWithText(FilterChip, '#t9', skipOffstage: false);
     expect(tester.widget<FilterChip>(chosen).selected, isTrue);
+  });
+
+  testWidgets('notes: a chosen tag whose last note goes falls back to All (#893)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final root = harness.paths.notes.path;
+    createNote(root, 'topic', 'Cat', tags: ['kedi'], today: today);
+    final dog = createNote(root, 'topic', 'Dog', tags: ['kopek'], today: today);
+    createNote(root, 'topic', 'Books', today: today);
+    await tester.tap(tab('Notes'));
+    await tester.pumpAndSettle();
+    Finder chip(String label) => find.widgetWithText(FilterChip, label, skipOffstage: false);
+    Finder note(String title) => find.widgetWithText(ListTile, title);
+    Future<void> pick(String label) async {
+      await tester.ensureVisible(chip(label));
+      await tester.tap(chip(label));
+      await tester.pumpAndSettle();
+    }
+
+    await pick('#kedi');
+    expect(note('Books'), findsNothing);
+    // The assistant archives the only #kedi note.
+    await session.deleteNote(session.listNotes().firstWhere((n) => n.title == 'Cat'));
+    await tester.pumpAndSettle();
+    expect(chip('#kedi'), findsNothing);
+    expect(tester.widget<FilterChip>(chip('All')).selected, isTrue);
+    expect(session.notesTag, isNull);
+    expect(note('Books'), findsOneWidget);
+    // Deleted for good from the archive: still gone.
+    await session.deleteArchived(session.listArchived().single);
+    await tester.pumpAndSettle();
+    expect(chip('#kedi'), findsNothing);
+    // Recategorized out of its only tag (the same note, untagged): the same.
+    await pick('#kopek');
+    File(dog).deleteSync();
+    createNote(root, 'topic', 'Dog', today: today);
+    session.index.markChanged(dog);
+    session.notifyListeners();
+    await tester.pumpAndSettle();
+    expect(chip('#kopek'), findsNothing);
+    expect(tester.widget<FilterChip>(chip('All')).selected, isTrue);
+    expect(note('Dog'), findsOneWidget);
   });
 
   testWidgets('notes: on Sunday the week looks back over Coming up, and closes (#804)', (

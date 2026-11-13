@@ -283,6 +283,31 @@ kind: topic
     expect(tapped, [(2, true), (3, true), (1, false)]);
   });
 
+  testWidgets('todos: one without a date is the same row, after the dated ones (#901)', (
+    tester,
+  ) async {
+    final tapped = <(int, bool)>[];
+    await show(tester, '''---
+title: Cat
+kind: topic
+---
+# Cat
+
+## Todo
+- [ ] Buy cat food
+- [ ] 2026-10-25: Book the vet
+- [ ] Brush the cat
+''', onTodo: (number, _, done) => tapped.add((number, done)));
+    expect(find.byType(Checkbox), findsNWidgets(3));
+    double top(String text) => tester.getTopLeft(find.text(text, findRichText: true)).dy;
+    double left(String text) => tester.getTopLeft(find.text(text, findRichText: true)).dx;
+    expect(top('Buy cat food'), greaterThan(top('Book the vet')));
+    expect(top('Brush the cat'), greaterThan(top('Buy cat food')));
+    expect(left('Buy cat food'), left('Book the vet'));
+    await tester.tap(find.text('Buy cat food', findRichText: true));
+    expect(tapped, [(1, true)]);
+  });
+
   testWidgets('todos: a screen reader hears one checked toggle per row (#888)', (tester) async {
     final semantics = tester.ensureSemantics();
     await show(tester, _mopsos, onTodo: (_, _, _) {});
