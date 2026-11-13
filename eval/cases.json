@@ -315,6 +315,178 @@
    }
   },
   {
+   "id": "todo-tr-need",
+   "kind": "todo",
+   "lang": "tr",
+   "message": "kedime kedi maması almam lazım",
+   "expect": {
+    "tools": [
+     "add_todo"
+    ],
+    "tools_not": [
+     "add_note_entry"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "mama"
+     ]
+    }
+   }
+  },
+  {
+   "id": "todo-tr-need-2",
+   "kind": "todo",
+   "lang": "tr",
+   "message": "faturayı ödemem gerek",
+   "expect": {
+    "tools": [
+     "add_todo"
+    ],
+    "tools_not": [
+     "add_note_entry"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "fatura"
+     ]
+    }
+   }
+  },
+  {
+   "id": "todo-en-need",
+   "kind": "todo",
+   "lang": "en",
+   "message": "I need to call the plumber",
+   "expect": {
+    "tools": [
+     "add_todo"
+    ],
+    "tools_not": [
+     "add_note_entry"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "plumber"
+     ]
+    }
+   }
+  },
+  {
+   "id": "todo-tr-need-3",
+   "kind": "todo",
+   "lang": "tr",
+   "message": "Unutmadan pasaportumu yenilemem gerek.",
+   "expect": {
+    "tools": [
+     "add_todo"
+    ],
+    "tools_not": [
+     "add_note_entry"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "pasaport"
+     ]
+    }
+   }
+  },
+  {
+   "id": "todo-en-need-2",
+   "kind": "todo",
+   "lang": "en",
+   "message": "I have to renew my car insurance.",
+   "expect": {
+    "tools": [
+     "add_todo"
+    ],
+    "tools_not": [
+     "add_note_entry"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "insurance"
+     ]
+    }
+   }
+  },
+  {
+   "id": "todo-tr-need-4",
+   "kind": "todo",
+   "lang": "tr",
+   "message": "Kombinin bakımını yaptırmam gerekiyor.",
+   "expect": {
+    "tools": [
+     "add_todo"
+    ],
+    "tools_not": [
+     "add_note_entry"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "kombi"
+     ]
+    }
+   }
+  },
+  {
+   "id": "file-tr-fact",
+   "kind": "filing",
+   "lang": "tr",
+   "message": "kedi maması fiyatları arttı",
+   "expect": {
+    "tools": [
+     "add_note_entry"
+    ],
+    "tools_not": [
+     "add_todo"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "mama"
+     ]
+    }
+   }
+  },
+  {
+   "id": "file-en-past",
+   "kind": "filing",
+   "lang": "en",
+   "message": "I bought cat food yesterday.",
+   "expect": {
+    "tools": [
+     "add_note_entry"
+    ],
+    "tools_not": [
+     "add_todo"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "cat food"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-tr-appt",
+   "kind": "reminder",
+   "lang": "tr",
+   "message": "Perşembe 15:00'te kedimin veteriner randevusu var",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "tools_not": [
+     "add_todo"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2026-10-22 15:00",
+      "veteriner"
+     ]
+    }
+   }
+  },
+  {
    "id": "done-en-1",
    "kind": "todo-done",
    "lang": "en",

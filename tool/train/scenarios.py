@@ -1019,6 +1019,53 @@ ON_NOTE = [
 ]
 
 
+# An undated need is a todo, never an entry (#892); a fact or a past event about
+# the same thing stays an entry, and a dated appointment a reminder.
+# (lang, title, kind, an entry it holds, [(message, case kind, tool, word kept)])
+NEEDS = [
+    ("tr", "Kedim Tarçın", "topic", "Tarçın kuru mama yiyor.", [
+        ("Tarçın'a tırmalama tahtası almam lazım.", "todo", "add_todo", "tırmalama"),
+        ("Tarçın'ın aşı karnesi çekmecede duruyor.", "filing", "add_note_entry", "karne"),
+        ("Dün Tarçın'a yeni kum aldım.", "filing", "add_note_entry", "kum"),
+        ("Salı 11'de Tarçın'ın veteriner randevusu var.", "reminder", "add_reminder", "2026-10-20 11:00"),
+    ]),
+    ("tr", "Ev Giderleri", "topic", "Kira her ayın başında ödeniyor.", [
+        ("Su faturasını ödemem gerek.", "todo", "add_todo", "su"),
+        ("Unutmadan internet sözleşmesini yenilemem lazım.", "todo", "add_todo", "internet"),
+        ("Doğalgaz faturası bu ay 1.800 TL geldi.", "filing", "add_note_entry", "1.800"),
+    ]),
+    ("tr", "Araba Bakımı", "topic", "Araba dizel, 2019 model.", [
+        ("Arabanın muayenesini yaptırmam gerekiyor.", "todo", "add_todo", "muayene"),
+        ("Geçen hafta arabanın yağını değiştirttim.", "filing", "add_note_entry", "yağ"),
+        ("Perşembe 9'da arabayı servise bırakacağım.", "reminder", "add_reminder", "2026-10-22 09:00"),
+    ]),
+    ("tr", "Sağlık Takibi", "topic", "Yılda bir check-up yaptırıyorum.", [
+        ("Göz doktorundan randevu almam lazım.", "todo", "add_todo", "göz"),
+        ("Kan tahlili sonuçlarım normal çıktı.", "filing", "add_note_entry", "tahlil"),
+    ]),
+    ("en", "Dog Biscuit", "topic", "Biscuit eats grain-free kibble.", [
+        ("I need to buy a new lead for Biscuit.", "todo", "add_todo", "lead"),
+        ("Biscuit's flea treatment prices went up.", "filing", "add_note_entry", "flea"),
+        ("Took Biscuit to the groomer yesterday.", "filing", "add_note_entry", "groomer"),
+        ("Biscuit has a vet appointment on Friday at 4.", "reminder", "add_reminder", "2026-10-23 16:00"),
+    ]),
+    ("en", "Flat Admin", "topic", "Rent goes out on the first of the month.", [
+        ("I have to pay the council tax.", "todo", "add_todo", "council"),
+        ("Don't let me forget, I need to renew the contents insurance.", "todo", "add_todo", "insurance"),
+        ("The electricity bill was 90 pounds this month.", "filing", "add_note_entry", "90"),
+    ]),
+    ("en", "Bike Upkeep", "topic", "The bike is a steel tourer.", [
+        ("I should get the brakes on the bike adjusted.", "todo", "add_todo", "brakes"),
+        ("Replaced the bike chain last weekend.", "filing", "add_note_entry", "chain"),
+    ]),
+    ("en", "Garden Chores", "topic", "The lawn is mown every other week.", [
+        ("I need to call the tree surgeon about the oak.", "todo", "add_todo", "tree surgeon"),
+        ("The apple tree had a great crop this year.", "filing", "add_note_entry", "apple"),
+        ("The gardener comes on Wednesday at 8.", "reminder", "add_reminder", "2026-10-21 08:00"),
+    ]),
+]
+
+
 # About me (v10, #604): neither v8's nor v9's data has an about-me turn. Both
 # models remember a new fact but call remember_about_me where a listed one
 # changes, gains a detail or is already there, so updates and known facts weigh
@@ -1291,6 +1338,13 @@ def cases(rng, t=None):
             expect = ({"answer": ["?"]} if tool is None else
                       {"tools": [tool], "notes": {f"^{re.escape(p)}$": [word] if word else []}})
             add(f"contrast-{slug(title)}-{i}", case_kind, lang, notes, msg, expect)
+    for lang, title, kind, entry, messages in getattr(t, "NEEDS", ()):
+        p = path(kind, title)
+        notes = {p: note(title, kind, lang, notes=[entry])}
+        for i, (msg, case_kind, tool, word) in enumerate(messages):
+            add(f"need-{slug(title)}-{i}", case_kind, lang, notes, msg,
+                {"tools": [tool], "tools_not": ["add_note_entry" if tool == "add_todo" else "add_todo"],
+                 "notes": {f"^{re.escape(p)}$": [word]}})
     # A message in one language about a note in the other (#599).
     for prefix, rows in (("cross", t.CROSS), ("note", t.ON_NOTE)):
         for i, (lang, title, kind, msg, case_kind, tool, word) in enumerate(rows):

@@ -73,6 +73,11 @@ for c in about:
         check(f"{c['id']} may keep a history copy", history in c["expect"]["notes"], True)
     if c["id"].startswith("aboutme-move-"):
         check(f"{c['id']} may archive the entry and update", (archive in c["expect"]["notes"], tools), (True, []))
+needs = [c for c in generated if c["id"].startswith("need-")]
+check("an undated need is a todo, never an entry",
+      all(c["expect"]["tools_not"] == ["add_note_entry"] for c in needs if c["kind"] == "todo"), True)
+check("every need set has an entry or reminder to tell it from",
+      {c["kind"] for c in needs}, {"todo", "filing", "reminder"})
 check("a new list beside a list of another kind", sum(c["id"].startswith("newlist-other-") for c in generated), 12)
 
 if failures:
