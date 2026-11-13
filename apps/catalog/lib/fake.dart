@@ -138,9 +138,9 @@ const fakeChat = [
   ),
 ];
 
-/// The catalog's one folder, emptied at start so runs leave no pile behind. A
-/// second catalog still running holds it open (Windows refuses the delete);
-/// that one gets a folder of its own.
+/// The catalog's one folder, emptied at start so runs leave no pile behind.
+/// While another catalog holds it open, Windows refuses the delete, so this
+/// one gets a folder of its own.
 Directory _catalogFolder() {
   final dir = Directory(p.join(Directory.systemTemp.path, 'notelore_catalog'));
   try {
