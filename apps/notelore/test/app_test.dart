@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/app.dart';
+import 'package:notelore/src/calendar.dart';
 import 'package:notelore/src/chat.dart';
 import 'package:notelore/src/empty_state.dart';
 import 'package:notelore/src/icons.dart';
@@ -119,6 +120,21 @@ List<String> shownExamples(WidgetTester tester, Strings strings) => [
 ];
 
 void main() {
+  testWidgets('Home opens on the tab it is given (the design catalog, #817)', (tester) async {
+    phone(tester);
+    final session = Harness().session();
+    await tester.runAsync(() async {
+      await session.load();
+      await session.connect(providerSpecs[1], 'sk');
+    });
+    addTearDown(() => tester.pumpWidget(const SizedBox()));
+    await tester.pumpWidget(
+      MaterialApp(theme: noteloreTheme(Brightness.light), home: Home(session, tab: 2)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(CalendarScreen), findsOneWidget);
+  });
+
   testWidgets('opening shows progress, then the setup screen', (tester) async {
     phone(tester);
     final harness = Harness();

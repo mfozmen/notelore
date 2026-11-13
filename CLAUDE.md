@@ -23,6 +23,7 @@ dart format .                                     # format (page width 100, anal
 dart analyze --fatal-infos                        # strict analysis
 (cd packages/notelore_core && dart run coverage:test_with_coverage)   # core tests + lcov
 (cd apps/notelore && flutter test --coverage)                         # app tests + lcov
+(cd apps/catalog && flutter test)                                     # design catalog (Widgetbook); `flutter run -d windows` opens it
 (cd packages/notelore_core && dart test -t live)                       # live provider tests (keys in env, opt-in)
 dart run tool/coverage_gate.dart packages/notelore_core/coverage/lcov.info apps/notelore/coverage/lcov.info
 python tool/check_comments.py origin/main...HEAD   # narrative comments this branch adds (commentie; CI warns, --strict fails)
@@ -41,6 +42,7 @@ A monorepo and a Dart pub workspace. Every device syncs the same notes through t
 ```
 packages/notelore_core/   pure Dart, no Flutter: everything that is not UI
 apps/notelore/            the Flutter app: Android, iOS, Windows, macOS
+apps/catalog/             the design catalog (Widgetbook) on fake data; outside the coverage gate
 spec/fixtures/            the frozen cross-implementation contract (see Testing)
 tool/                     the coverage gate
 ```
