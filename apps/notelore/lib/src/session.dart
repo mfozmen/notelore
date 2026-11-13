@@ -16,7 +16,7 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show PlatformException, rootBundle;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:notelore_core/notelore_core.dart';
@@ -388,6 +388,19 @@ class Session extends ChangeNotifier {
       return keepAttachment(paths.notes.path, name, bytes, today: today);
     } on FileSystemException {
       return null;
+    }
+  }
+
+  /// Opens the kept original [link] names (relative to the notes folder, or
+  /// absolute); a link out of the attachments opens nothing, nor does a file
+  /// the system has no app or share sheet for (the tap's future is dropped).
+  Future<void> openAttachment(String link) async {
+    final file = attachmentFile(paths.notes.path, link);
+    if (file == null) return;
+    try {
+      await exchange.open(file);
+    } on PlatformException {
+      return;
     }
   }
 

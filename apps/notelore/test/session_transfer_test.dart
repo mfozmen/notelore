@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/transfer.dart';
@@ -32,6 +33,26 @@ void main() {
     expect(latin1.decode(harness.share.contents['notelore-notes.pdf']!), startsWith('%PDF'));
     harness.share.status = ShareResultStatus.dismissed;
     expect(await session.exportNotes([mopsos], ExportFormat.html), isFalse);
+  });
+
+  test('a kept attachment opens; a link out of the attachments opens nothing (#845)', () async {
+    final harness = Harness();
+    final session = harness.session();
+    final root = harness.paths.notes.path;
+    final rel = session.keepOriginal('plan.pdf', [7])!;
+    File(p.join(root, 'secret.md'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('x');
+    await session.openAttachment('../secret.md');
+    await session.openAttachment('secret.md');
+    expect(harness.share.shared, isEmpty);
+    await session.openAttachment(rel);
+    expect(harness.share.contents, {
+      'plan.pdf': [7],
+    });
+    harness.share.failure = PlatformException(code: 'no-activity');
+    await session.openAttachment(rel); // no share sheet: nothing, and no crash
+    expect(harness.share.shared, hasLength(1));
   });
 
   test('import: new notes come in, taken names get a number, nothing is overwritten', () async {

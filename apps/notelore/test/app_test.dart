@@ -1186,6 +1186,9 @@ void main() {
     expect(find.bySemanticsLabel('File: plan.txt'), findsOneWidget);
     expect(find.textContaining('Ship in May'), findsNothing); // not the whole file
     expect(find.text('Filed under Mopsos.'), findsOneWidget);
+    await tester.tap(find.text('plan.txt')); // no original kept: nothing to open (#845)
+    await tester.pumpAndSettle();
+    expect(harness.share.shared, isEmpty);
     expect(tester.widget<TextField>(find.byKey(const Key('message'))).controller!.text, isEmpty);
     // Called off: nothing happens.
     harness.files.picked = [];
@@ -1333,6 +1336,10 @@ void main() {
         ),
       ),
     );
+    // A tap opens the kept original (#845).
+    await tester.tap(find.text('report.pdf'));
+    await settleUntil(tester, () => harness.share.contents.isNotEmpty); // real IO
+    expect(harness.share.contents['report.pdf'], pdf);
     // Two of the same name, from two folders: each links its own original.
     harness.provider.answers.add('Saved.');
     harness.files.picked = [

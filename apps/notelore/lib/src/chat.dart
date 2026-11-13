@@ -86,7 +86,7 @@ class _ChatScreenState extends State<ChatScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) => _live = null);
       return;
     }
-    final (:text, :answers, files: _, images: _) = _shown(line);
+    final (:text, :answers, files: _, images: _, originals: _) = _shown(line);
     final message = [
       plainText(text),
       if (answers.isNotEmpty) session.strings.suggestedAnswers(answers.join(', ')),
@@ -694,6 +694,7 @@ class _Lines extends StatelessWidget {
         s,
         newest: newest.contains(index - 1),
         open: open,
+        openFile: session.openAttachment,
         today: today,
       );
     }
@@ -703,6 +704,7 @@ class _Lines extends StatelessWidget {
       s,
       newest: newest.contains(index),
       open: open,
+      openFile: session.openAttachment,
       today: today,
       // The line a turn just added is read out once; the history stays quiet.
       live: index == 0 && lines[0] == live,
@@ -1717,6 +1719,7 @@ class _Bubble extends StatelessWidget {
     this.line,
     this.strings, {
     required this.open,
+    required this.openFile,
     required this.today,
     this.newest = false,
     this.live = false,
@@ -1730,6 +1733,9 @@ class _Bubble extends StatelessWidget {
 
   /// Opens the note one of the answer's cards names.
   final _OpenNote open;
+
+  /// Opens a file sent with the message, by its kept original's path.
+  final ValueChanged<String> openFile;
 
   /// For the year a card's date leaves out.
   final DateTime today;
@@ -1783,7 +1789,7 @@ class _Bubble extends StatelessWidget {
       ChatRole.pending => (colors.surfaceContainerLow, colors.onSurface, colors.outlineVariant),
       ChatRole.assistant || ChatRole.error => (null, colors.onSurface, null),
     };
-    final (:text, :answers, :files, :images) = _shown(line);
+    final (:text, :answers, :files, :images, :originals) = _shown(line);
     // The theme tint disappears on the tinted bubbles; they get their own tone.
     final Color? selection = switch (line.role) {
       ChatRole.user || ChatRole.pending => _contrastingSelection(background!, foreground),
@@ -1796,6 +1802,8 @@ class _Bubble extends StatelessWidget {
           text,
           files: files,
           images: images,
+          originals: originals,
+          openFile: openFile,
           color: foreground,
           strings: strings,
           markdown: line.role == ChatRole.assistant,
@@ -2200,15 +2208,20 @@ class _Receipt extends StatelessWidget {
 
 /// What [line] shows: an answer without its suggested answers' line, a
 /// message without the text of the files attached to it, only their names.
-({String text, List<String> answers, List<String> files, List<String> images}) _shown(
-  ChatLine line,
-) {
+({
+  String text,
+  List<String> answers,
+  List<String> files,
+  List<String> images,
+  Map<String, String> originals,
+})
+_shown(ChatLine line) {
   if (line.role == ChatRole.assistant) {
     final (:text, :answers) = suggestedAnswers(line.text);
-    return (text: text, answers: answers, files: const [], images: const []);
+    return (text: text, answers: answers, files: const [], images: const [], originals: const {});
   }
-  final (:text, :files, :images) = attachedFiles(line.text);
-  return (text: text, answers: const [], files: files, images: images);
+  final (:text, :files, :images, :originals) = attachedFiles(line.text);
+  return (text: text, answers: const [], files: files, images: images, originals: originals);
 }
 
 /// A bubble's words, and under them a line for each file and image sent with
@@ -2218,6 +2231,8 @@ class _BubbleText extends StatelessWidget {
     this.text, {
     required this.files,
     required this.images,
+    required this.originals,
+    required this.openFile,
     required this.color,
     required this.strings,
     required this.markdown,
@@ -2227,12 +2242,21 @@ class _BubbleText extends StatelessWidget {
   final String text;
   final List<String> files;
   final List<String> images;
+
+  /// The kept original of each file or image that has one: those open on a tap.
+  final Map<String, String> originals;
+  final ValueChanged<String> openFile;
   final Color color;
   final Strings strings;
   final Color? selectionColor;
 
   /// An answer is Markdown (#305): shown formatted. The user's words are shown as typed.
   final bool markdown;
+
+  VoidCallback? _opener(String name) => switch (originals[name]) {
+    final original? => () => openFile(original),
+    null => null,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -2252,9 +2276,10 @@ class _BubbleText extends StatelessWidget {
       spacing: Gap.xs,
       children: [
         if (text.isNotEmpty) words,
-        for (final name in files) _AttachmentLine(name, AppIcons.note, s.attachedFile(name), style),
+        for (final name in files)
+          _AttachmentLine(name, AppIcons.note, s.attachedFile(name), style, onTap: _opener(name)),
         for (final name in images)
-          _AttachmentLine(name, AppIcons.image, s.attachedImage(name), style),
+          _AttachmentLine(name, AppIcons.image, s.attachedImage(name), style, onTap: _opener(name)),
       ],
     );
   }
@@ -2506,34 +2531,53 @@ class _ListCard extends StatelessWidget {
 
 /// One file sent with a message: a kind's icon and its name on one line; the
 /// whole name in the tooltip (a long press) and for screen readers ([label]).
+/// With [onTap] (its original was kept) it is a button that opens the file.
 class _AttachmentLine extends StatelessWidget {
-  const _AttachmentLine(this.name, this.icon, this.label, this.style);
+  const _AttachmentLine(this.name, this.icon, this.label, this.style, {this.onTap});
 
   final String name;
   final IconData icon;
   final String label;
   final TextStyle style;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    // Its own node: a selection area above it must not merge the label away.
-    container: true,
-    label: label,
-    excludeSemantics: true,
-    child: Tooltip(
-      message: name,
+  Widget build(BuildContext context) {
+    // Every line as tall as a tap target, so lines that open and lines that
+    // do not keep one rhythm; the underline says which open.
+    final row = ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 48),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         spacing: Gap.xs,
         children: [
           Icon(icon, size: 18, color: style.color),
           Flexible(
-            child: Text(name, style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
+            child: Text(
+              name,
+              style: onTap == null ? style : style.copyWith(decoration: TextDecoration.underline),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
-    ),
-  );
+    );
+    return Semantics(
+      // Its own node: a selection area above it must not merge the label away.
+      container: true,
+      button: onTap != null,
+      label: label,
+      excludeSemantics: true,
+      onTap: onTap,
+      child: Tooltip(
+        message: name,
+        child: onTap == null
+            ? row
+            : InkWell(onTap: onTap, borderRadius: BorderRadius.circular(Gap.s), child: row),
+      ),
+    );
+  }
 }
 
 /// Asks what the answer should have been; null when cancelled, else the words

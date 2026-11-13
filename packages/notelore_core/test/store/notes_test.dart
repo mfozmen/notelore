@@ -716,6 +716,36 @@ void main() {
         'attachments/2026-10-18/con-note.wav',
       );
     });
+
+    test('a kept original opens by its link; nothing outside the attachments does (#845)', () {
+      final rel = keepAttachment(root, 'plan.pdf', [1], today: d(2026, 10, 18));
+      final kept = File(p.joinAll([root, ...rel.split('/')])).resolveSymbolicLinksSync();
+      expect(attachmentFile(root, rel), kept);
+      // A note links it from its own folder.
+      expect(attachmentFile(root, p.join(root, 'projects', '..', rel)), kept);
+      File(p.join(root, 'secret.md')).writeAsStringSync('x');
+      for (final escape in [
+        '../secret.md',
+        'secret.md',
+        'attachments/../secret.md',
+        p.join(root, 'secret.md'),
+        'attachments/2026-10-18/missing.pdf',
+        'attachments/2026-10-18', // a folder, not a file
+        'attachments',
+        // Synced in, of a type no original is: opening it would run it.
+        for (final name in ['x.exe', 'x.lnk', 'x.terminal', 'x']) 'attachments/2026-10-18/$name',
+      ]) {
+        if (escape.contains('/x')) File(p.join(root, escape)).writeAsStringSync('x');
+        expect(attachmentFile(root, escape), isNull, reason: escape);
+      }
+    });
+
+    test('a link inside the attachments that leads out of them opens nothing (#845)', () {
+      keepAttachment(root, 'plan.pdf', [1], today: d(2026, 10, 18));
+      final outside = File(p.join(tempDir(), 'outside.pdf'))..writeAsStringSync('x');
+      Link(p.join(root, 'attachments', '2026-10-18', 'out.pdf')).createSync(outside.path);
+      expect(attachmentFile(root, 'attachments/2026-10-18/out.pdf'), isNull);
+    });
   });
 
   group('merge (#229)', () {

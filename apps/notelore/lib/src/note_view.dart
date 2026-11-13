@@ -112,6 +112,7 @@ class _WritableNoteViewState extends State<WritableNoteView> {
     onTodo: (number, text, done) => unawaited(_toggle(number, text, done)),
     related: widget.onOpen == null ? const [] : widget.session.relatedNotes(widget.note),
     onOpen: widget.onOpen,
+    onFile: widget.session.openAttachment,
   );
 }
 
@@ -130,6 +131,7 @@ class NoteView extends StatelessWidget {
     this.onTodo,
     this.related = const [],
     this.onOpen,
+    this.onFile,
     super.key,
   });
 
@@ -141,6 +143,19 @@ class NoteView extends StatelessWidget {
   final String folder;
   final Strings strings;
   final DateTime today;
+
+  /// Opens a file the note links by a relative path (a kept original), given
+  /// its path resolved against [folder]; the opener checks where it leads.
+  final ValueChanged<String>? onFile;
+
+  void _link(String? href) {
+    final uri = Uri.tryParse(href ?? '');
+    if (uri != null && !uri.hasScheme && uri.path.isNotEmpty) {
+      onFile?.call(p.join(folder, Uri.decodeComponent(uri.path)));
+    } else {
+      openWebLink(href);
+    }
+  }
 
   /// Called with a todo's number in the note and its new done state; without
   /// it (the archive), todos are marks, not controls.
@@ -156,7 +171,7 @@ class NoteView extends StatelessWidget {
         data: withoutFrontMatter(source),
         selectable: true,
         padding: const EdgeInsets.all(Gap.m),
-        onTapLink: (_, href, _) => openWebLink(href),
+        onTapLink: (_, href, _) => _link(href),
         imageBuilder: _image,
         styleSheet: _sheet(Theme.of(context)),
       );
@@ -230,7 +245,7 @@ class NoteView extends StatelessWidget {
   Widget _markdown(String text, {TextStyle? style, Color? link}) => Builder(
     builder: (context) => MarkdownBody(
       data: text,
-      onTapLink: (_, href, _) => openWebLink(href),
+      onTapLink: (_, href, _) => _link(href),
       imageBuilder: _image,
       styleSheet: _sheet(Theme.of(context)).copyWith(
         p: style,
