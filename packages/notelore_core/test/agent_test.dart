@@ -475,6 +475,15 @@ void main() {
     expect(slimSystemPrompt(today), isNot(contains('search the web')));
   });
 
+  test('an undated need is a todo, not an entry (#892)', () {
+    // "kedime kedi maması almam lazım" was filed as a note entry.
+    for (final prompt in [systemPrompt(today), slimSystemPrompt(today)]) {
+      expect(prompt, contains('with no day'));
+      expect(prompt, contains('is a todo: add_todo'));
+      expect(prompt, contains('almam lazım'));
+    }
+  });
+
   test('after a tool error the model fixes the call and goes on, in the user language', () {
     // v3: a failed related_notes ended in English, naming the tool, asking the
     // user what to do (#474).
