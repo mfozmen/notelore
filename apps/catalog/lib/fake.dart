@@ -138,11 +138,18 @@ const fakeChat = [
   ),
 ];
 
-/// A ready session on [root] (a new temp folder when null): connected to the
-/// scripted model, with the fake notes on disk and, when [chat], the fake
-/// conversation already in the chat.
+/// The catalog's one folder: emptied at each start, so runs leave no pile behind.
+Directory _catalogFolder() {
+  final dir = Directory(p.join(Directory.systemTemp.path, 'notelore_catalog'));
+  if (dir.existsSync()) dir.deleteSync(recursive: true);
+  return dir;
+}
+
+/// A ready session on [root] (the catalog's temp folder when null): connected
+/// to the scripted model, with the fake notes on disk and, when [chat], the
+/// fake conversation already in the chat.
 Future<Session> fakeSession({Directory? root, bool chat = true}) async {
-  final dir = root ?? Directory.systemTemp.createTempSync('notelore_catalog_');
+  final dir = root ?? _catalogFolder();
   for (final MapEntry(:key, :value) in _notes.entries) {
     File(p.join(dir.path, 'notes', key))
       ..createSync(recursive: true)
