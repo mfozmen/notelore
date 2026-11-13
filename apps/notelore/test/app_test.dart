@@ -3110,6 +3110,50 @@ void main() {
     expect(tester.widget<FilterChip>(chosen).selected, isTrue);
   });
 
+  testWidgets('notes: a chosen tag whose last note goes falls back to All (#893)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final root = harness.paths.notes.path;
+    createNote(root, 'topic', 'Cat', tags: ['kedi'], today: today);
+    final dog = createNote(root, 'topic', 'Dog', tags: ['kopek'], today: today);
+    createNote(root, 'topic', 'Books', today: today);
+    await tester.tap(tab('Notes'));
+    await tester.pumpAndSettle();
+    Finder chip(String label) => find.widgetWithText(FilterChip, label, skipOffstage: false);
+    Finder note(String title) => find.widgetWithText(ListTile, title);
+    Future<void> pick(String label) async {
+      await tester.ensureVisible(chip(label));
+      await tester.tap(chip(label));
+      await tester.pumpAndSettle();
+    }
+
+    await pick('#kedi');
+    expect(note('Books'), findsNothing);
+    // The assistant archives the only #kedi note.
+    await session.deleteNote(session.listNotes().firstWhere((n) => n.title == 'Cat'));
+    await tester.pumpAndSettle();
+    expect(chip('#kedi'), findsNothing);
+    expect(tester.widget<FilterChip>(chip('All')).selected, isTrue);
+    expect(session.notesTag, isNull);
+    expect(note('Books'), findsOneWidget);
+    // Deleted for good from the archive: still gone.
+    await session.deleteArchived(session.listArchived().single);
+    await tester.pumpAndSettle();
+    expect(chip('#kedi'), findsNothing);
+    // Recategorized out of its only tag (the same note, untagged): the same.
+    await pick('#kopek');
+    File(dog).deleteSync();
+    createNote(root, 'topic', 'Dog', today: today);
+    session.index.markChanged(dog);
+    session.notifyListeners();
+    await tester.pumpAndSettle();
+    expect(chip('#kopek'), findsNothing);
+    expect(tester.widget<FilterChip>(chip('All')).selected, isTrue);
+    expect(note('Dog'), findsOneWidget);
+  });
+
   testWidgets('notes: on Sunday the week looks back over Coming up, and closes (#804)', (
     tester,
   ) async {
