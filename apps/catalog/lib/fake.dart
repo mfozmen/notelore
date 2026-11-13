@@ -138,11 +138,17 @@ const fakeChat = [
   ),
 ];
 
-/// The catalog's one folder: emptied at each start, so runs leave no pile behind.
+/// The catalog's one folder, emptied at start so runs leave no pile behind.
+/// While another catalog holds it open, Windows refuses the delete, so this
+/// one gets a folder of its own.
 Directory _catalogFolder() {
   final dir = Directory(p.join(Directory.systemTemp.path, 'notelore_catalog'));
-  if (dir.existsSync()) dir.deleteSync(recursive: true);
-  return dir;
+  try {
+    if (dir.existsSync()) dir.deleteSync(recursive: true);
+    return dir;
+  } on FileSystemException {
+    return Directory.systemTemp.createTempSync('notelore_catalog_');
+  }
 }
 
 /// A ready session on [root] (the catalog's temp folder when null): connected
