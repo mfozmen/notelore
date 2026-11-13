@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:file_selector_platform_interface/file_selector_platform_interface.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -497,9 +498,11 @@ class FakeShare extends SharePlatform with MockPlatformInterfaceMixin {
   /// What each shared file held when it was handed over, by name.
   final contents = <String, List<int>>{};
   var status = ShareResultStatus.success;
+  PlatformException? failure;
 
   @override
   Future<ShareResult> share(ShareParams params) async {
+    if (failure case final failure?) throw failure;
     shared.add(params);
     for (final file in params.files ?? const <XFile>[]) {
       contents[file.name] = await file.readAsBytes();

@@ -4,6 +4,10 @@
 //
 // Exits non-zero and lists every unhit line when any report is below 100%.
 //
+// apps/catalog (the Widgetbook design catalog) has no report here on purpose:
+// it only shows widgets apps/notelore already covers, on fake data, and its own
+// tests check that every screen builds.
+//
 // Lines inside `// coverage:ignore-start` ... `// coverage:ignore-end`, or
 // ending in `// coverage:ignore-line`, do not count: only for native code that
 // `flutter test` cannot load (FFI plugins), kept thin, each with its reason.

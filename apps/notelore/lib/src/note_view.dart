@@ -15,28 +15,38 @@ import 'theme.dart';
 import 'web_link.dart';
 
 /// Opens [note], read as [text], as a page of its own with its title on top.
-void pushNote(BuildContext context, Session session, NoteInfo note, String text) {
-  final now = session.clock().toLocal();
-  Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (page) => Scaffold(
-        appBar: AppBar(leading: softBack(page), title: Text(note.title)),
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: Layout.column),
-            child: WritableNoteView(
-              session,
-              note,
-              text,
-              folder: p.dirname(notePath(session.paths.notes.path, note.kind, note.slug)),
-              strings: session.strings,
-              today: DateTime(now.year, now.month, now.day),
-            ),
+void pushNote(BuildContext context, Session session, NoteInfo note, String text) =>
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => NotePage(session, note, text)));
+
+/// [note], read as [text], as a page with its title on top.
+class NotePage extends StatelessWidget {
+  const NotePage(this.session, this.note, this.text, {super.key});
+
+  final Session session;
+  final NoteInfo note;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = session.clock().toLocal();
+    return Scaffold(
+      appBar: AppBar(leading: softBack(context), title: Text(note.title)),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: Layout.column),
+          child: WritableNoteView(
+            session,
+            note,
+            text,
+            folder: p.dirname(notePath(session.paths.notes.path, note.kind, note.slug)),
+            strings: session.strings,
+            today: DateTime(now.year, now.month, now.day),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// A note page that writes its todo checkboxes and shows the new line at once.
@@ -112,7 +122,18 @@ class _WritableNoteViewState extends State<WritableNoteView> {
     onTodo: (number, text, done) => unawaited(_toggle(number, text, done)),
     related: widget.onOpen == null ? const [] : widget.session.relatedNotes(widget.note),
     onOpen: widget.onOpen,
+    onFile: widget.session.openAttachment,
   );
+}
+
+/// [uri]'s path decoded, or null when its escapes are not UTF-8 (`%C3`):
+/// [Uri.tryParse] lets those through, and decoding them throws.
+String? _decoded(Uri uri) {
+  try {
+    return Uri.decodeComponent(uri.path);
+  } on FormatException {
+    return null;
+  }
 }
 
 /// A note as a page (#426): its title and what it is, then each known section
@@ -130,6 +151,7 @@ class NoteView extends StatelessWidget {
     this.onTodo,
     this.related = const [],
     this.onOpen,
+    this.onFile,
     super.key,
   });
 
@@ -141,6 +163,19 @@ class NoteView extends StatelessWidget {
   final String folder;
   final Strings strings;
   final DateTime today;
+
+  /// Opens a file the note links by a relative path (a kept original), given
+  /// its path resolved against [folder]; the opener checks where it leads.
+  final ValueChanged<String>? onFile;
+
+  void _link(String? href) {
+    final uri = Uri.tryParse(href ?? '');
+    if (uri != null && !uri.hasScheme && uri.path.isNotEmpty) {
+      if (_decoded(uri) case final path?) onFile?.call(p.join(folder, path));
+    } else {
+      openWebLink(href);
+    }
+  }
 
   /// Called with a todo's number in the note and its new done state; without
   /// it (the archive), todos are marks, not controls.
@@ -156,7 +191,7 @@ class NoteView extends StatelessWidget {
         data: withoutFrontMatter(source),
         selectable: true,
         padding: const EdgeInsets.all(Gap.m),
-        onTapLink: (_, href, _) => openWebLink(href),
+        onTapLink: (_, href, _) => _link(href),
         imageBuilder: _image,
         styleSheet: _sheet(Theme.of(context)),
       );
@@ -230,7 +265,7 @@ class NoteView extends StatelessWidget {
   Widget _markdown(String text, {TextStyle? style, Color? link}) => Builder(
     builder: (context) => MarkdownBody(
       data: text,
-      onTapLink: (_, href, _) => openWebLink(href),
+      onTapLink: (_, href, _) => _link(href),
       imageBuilder: _image,
       styleSheet: _sheet(Theme.of(context)).copyWith(
         p: style,
@@ -407,8 +442,10 @@ class NoteView extends StatelessWidget {
   List<Widget> _todos(BuildContext context, List<NoteEntry> entries) {
     final theme = Theme.of(context);
     final numbered = [for (final (i, entry) in entries.whereType<Todo>().indexed) (i + 1, entry)];
+    // Undated ones have no deadline: after the dated ones.
+    final undated = DateTime(9999);
     final open = numbered.where((t) => !t.$2.done).toList()
-      ..sort((a, b) => a.$2.date.compareTo(b.$2.date));
+      ..sort((a, b) => (a.$2.date ?? undated).compareTo(b.$2.date ?? undated));
     final done = numbered.where((t) => t.$2.done);
     final day = DateTime(today.year, today.month, today.day);
     return [
@@ -441,7 +478,7 @@ class NoteView extends StatelessWidget {
 
   Widget _todoRow(ThemeData theme, int number, Todo todo, DateTime day) {
     final colors = theme.colorScheme;
-    final late = !todo.done && todo.date.isBefore(day);
+    final late = !todo.done && (todo.date?.isBefore(day) ?? false);
     final row = _row(
       mark: _todoMark(colors, number, todo, late: late),
       // The Checkbox's 48 dp box centres its 18 dp square.
@@ -541,12 +578,15 @@ class NoteView extends StatelessWidget {
   }
 
   /// A late one says so, in words and in the error colour.
-  Widget _todoDate(ThemeData theme, Todo todo, {required bool late}) => Text(
-    late ? strings.overdue(_date(todo.date)) : _date(todo.date),
-    style: theme.textTheme.bodySmall?.copyWith(
-      color: late ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
+  Widget _todoDate(ThemeData theme, Todo todo, {required bool late}) => switch (todo.date) {
+    final date? => Text(
+      late ? strings.overdue(_date(date)) : _date(date),
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: late ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
+      ),
     ),
-  );
+    null => const SizedBox.shrink(),
+  };
 
   /// Newest day first, each day's entries in the order written, on a rail.
   /// A date carries no year; the year heads its days when it is not this one.
@@ -683,9 +723,10 @@ class _NoteImageState extends State<_NoteImage> {
     Widget failed(BuildContext context, _, _) =>
         _card(context, const Icon(AppIcons.brokenImage), s.imageFailed);
     if (!uri.hasScheme) {
-      final path = p.normalize(p.join(widget.folder, Uri.decodeComponent(uri.path)));
+      final decoded = _decoded(uri);
+      final path = decoded == null ? null : p.normalize(p.join(widget.folder, decoded));
       // Only inside the notes folder (the note's folder's parent): a note never probes the disk.
-      if (!p.isWithin(p.dirname(widget.folder), path)) {
+      if (path == null || !p.isWithin(p.dirname(widget.folder), path)) {
         return failed(context, null, null);
       }
       return Image.file(File(path), semanticLabel: widget.alt, errorBuilder: failed);

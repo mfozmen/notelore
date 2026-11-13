@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/soft.dart';
+import 'package:notelore/src/strings.dart';
 import 'package:notelore/src/theme.dart';
 
 import 'theme_test.dart' show contrast;
@@ -132,6 +134,54 @@ void main() {
       });
     }
   }
+
+  group('the chosen tab in the bundled face', () {
+    // The test font draws every glyph a full em wide; only the real face shows what fits.
+    setUpAll(
+      () => (FontLoader(
+        'Plus Jakarta Sans',
+      )..addFont(rootBundle.load('assets/fonts/PlusJakartaSans-SemiBold.ttf'))).load(),
+    );
+    for (final strings in <Strings>[EnglishStrings(), TurkishStrings()]) {
+      final tabs = [
+        (AppIcons.chat, AppIcons.chatActive, strings.chat),
+        (AppIcons.note, AppIcons.noteActive, strings.notes),
+        (AppIcons.calendar, AppIcons.calendarActive, strings.calendar),
+        (AppIcons.person, AppIcons.personActive, strings.aboutMeSection),
+      ];
+      for (final (selected, (_, _, label)) in tabs.indexed) {
+        testWidgets('at 2x text on a 360-point phone, "$label" shows whole when chosen', (
+          tester,
+        ) async {
+          tester.view
+            ..physicalSize = const Size(360, 640)
+            ..devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: noteloreTheme(Brightness.light),
+              home: MediaQuery.withClampedTextScaling(
+                minScaleFactor: 2,
+                maxScaleFactor: 2,
+                child: Scaffold(
+                  body: const Text('page'),
+                  bottomNavigationBar: SoftNavBar(
+                    destinations: tabs,
+                    selected: selected,
+                    onSelected: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          );
+          expect(tester.takeException(), isNull);
+          expect(tester.renderObject<RenderParagraph>(find.text(label)).didExceedMaxLines, isFalse);
+          // Only the bar's label is capped; the page keeps the person's text size.
+          expect(MediaQuery.textScalerOf(tester.element(find.text('page'))).scale(10), 20);
+        });
+      }
+    }
+  });
 
   for (final brightness in Brightness.values) {
     testWidgets('a soft round button: a filled circle in a 48-point target ($brightness)', (

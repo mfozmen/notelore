@@ -114,15 +114,18 @@ final _closing = RegExp('</(attached)', caseSensitive: false);
 String _quoted(String name) => name.replaceAll('"', "'").replaceAll(RegExp(r'[\r\n]+'), ' ');
 
 final _attached = RegExp(
-  r'<attached file="([^"]*)"(?: original="[^"]*")?>\n[\s\S]*?\n</attached>|<attached image="([^"]*)"(?: original="[^"]*")?/>',
+  r'<attached file="([^"]*)"(?: original="([^"]*)")?>\n[\s\S]*?\n</attached>|<attached image="([^"]*)"(?: original="([^"]*)")?/>',
 );
 
-/// What [message] says besides its files and images, and their names apart:
-/// what a chat shows of it.
-({String text, List<String> files, List<String> images}) attachedFiles(String message) => (
+/// What [message] says besides its files and images, their names apart, and
+/// where each kept original is (name to path): what a chat shows of it. The
+/// paths are as untrusted as the message: open them only through [attachmentFile].
+({String text, List<String> files, List<String> images, Map<String, String> originals})
+attachedFiles(String message) => (
   text: message.replaceAll(_attached, '').trim(),
   files: [for (final m in _attached.allMatches(message)) ?m[1]],
-  images: [for (final m in _attached.allMatches(message)) ?m[2]],
+  images: [for (final m in _attached.allMatches(message)) ?m[3]],
+  originals: {for (final m in _attached.allMatches(message)) (m[1] ?? m[3])!: ?(m[2] ?? m[4])},
 );
 
 final _answerLine = RegExp(r'^\s*(\[\[[^\[\]\n]*\S[^\[\]\n]*\]\]\s*)+$');

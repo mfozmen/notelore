@@ -1,6 +1,7 @@
 # Dart pub workspace (#60): one lockfile for every Dart package in the monorepo.
 #   packages/notelore_core  pure Dart core shared by every app (format, store, sync, providers, agent)
 #   apps/notelore           the Flutter app: Android, iOS, Windows, macOS
+#   apps/catalog            the design catalog (Widgetbook) on fake data, run locally only
 name: notelore_workspace
 publish_to: none
 
@@ -11,6 +12,7 @@ environment:
 workspace:
   - packages/notelore_core
   - apps/notelore
+  - apps/catalog
 
 dev_dependencies:
   test: ^1.26.0

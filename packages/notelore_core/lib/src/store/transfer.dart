@@ -106,7 +106,7 @@ OutlineLine? _line(NoteEntry entry) => switch (entry) {
   ),
   Todo(:final date, :final text, :final done) => OutlineLine(
     LineStyle.item,
-    '[${done ? 'x' : ' '}] ${isoDate(date)}: ${_flat(text)}',
+    '[${done ? 'x' : ' '}] ${date == null ? '' : '${isoDate(date)}: '}${_flat(text)}',
   ),
   Reminder(:final date, :final time, :final text) => OutlineLine(
     LineStyle.item,
