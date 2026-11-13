@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:notelore_core/src/reminders.dart';
 import 'package:notelore_core/src/store/notes.dart';
+import 'package:notelore_core/src/store/stale.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -256,4 +257,20 @@ void main() {
     expect(week.overdue.map((i) => (i.day, i.text)), [(DateTime(2026, 10, 10), 'Late one')]);
     expect((week.overdue.first.kind, week.overdue.first.slug), ('project', 'garden-shed'));
   });
+
+  test(
+    'a todo without a date has no day: not in the calendar or the week, still counted (#901)',
+    () {
+      final shed = p.join(root, 'projects', 'garden-shed.md');
+      final text = File(shed).readAsStringSync();
+      File(shed).writeAsStringSync(text.replaceFirst('## Todo\n', '## Todo\n- [ ] Buy screws\n'));
+      addTodo(shed, 'Late one', due: d(2026, 10, 10), today: d(2026, 10, 1));
+      final todos = calendarItems(root, today: DateTime(2026, 10, 19)).where((i) => i.todo);
+      expect(todos.map((i) => (i.text, i.number)), [('Late one', 2)]);
+      final week = weekItems(root, today: DateTime(2026, 10, 25, 9));
+      expect(week.overdue.map((i) => (i.text, i.number)), [('Late one', 2)]);
+      final stale = findStaleNotes(root, today: d(2026, 10, 19)).where((s) => s.section == 'todo');
+      expect(stale.map((s) => s.number), [2]);
+    },
+  );
 }

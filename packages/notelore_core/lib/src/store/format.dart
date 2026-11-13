@@ -33,6 +33,7 @@ final _reminder = RegExp(
 bool isReminderTime(String time) => RegExp('^$_time\$').hasMatch(time);
 
 final _todo = RegExp('^- \\[([ x])\\] $_date: (.*)\$', dotAll: true);
+final _undatedTodo = RegExp('^- \\[([ x])\\] (.*)\$', dotAll: true);
 
 /// `YYYY-MM-DD` of a date.
 String isoDate(DateTime date) =>
@@ -125,12 +126,17 @@ final class Entry extends NoteEntry {
 final class Todo extends NoteEntry {
   const Todo(this.date, this.text, {this.done = false});
 
-  final DateTime date;
+  /// Null when the line has none, as a hand-written `- [ ] text` has.
+  final DateTime? date;
   final String text;
   final bool done;
 
   @override
-  String render() => '- [${done ? 'x' : ' '}] ${isoDate(date)}: $text';
+  String render() =>
+      '- [${done ? 'x' : ' '}] ${switch (date) {
+        final day? => '${isoDate(day)}: ',
+        null => '',
+      }}$text';
 
   @override
   bool operator ==(Object other) =>
@@ -351,7 +357,9 @@ Entry? _entryOf(String block) {
 Todo? _todoOf(String block) {
   if (_todo.firstMatch(block) case final m?) {
     if (parseIsoDate(m[2]!) case final date?) return Todo(date, m[3]!, done: m[1] == 'x');
+    return null;
   }
+  if (_undatedTodo.firstMatch(block) case final m?) return Todo(null, m[2]!, done: m[1] == 'x');
   return null;
 }
 

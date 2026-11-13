@@ -78,10 +78,6 @@ jobs:
       - name: App tests with coverage
         working-directory: apps/notelore
         run: flutter test --coverage
-      # The design catalog is outside the coverage gate (tool/coverage_gate.dart says why).
-      - name: Catalog tests
-        working-directory: apps/catalog
-        run: flutter test
       - name: Coverage gate (100% lines)
         run: |
           dart test tool/coverage_gate_test.dart

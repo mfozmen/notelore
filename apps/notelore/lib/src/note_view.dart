@@ -417,8 +417,10 @@ class NoteView extends StatelessWidget {
   List<Widget> _todos(BuildContext context, List<NoteEntry> entries) {
     final theme = Theme.of(context);
     final numbered = [for (final (i, entry) in entries.whereType<Todo>().indexed) (i + 1, entry)];
+    // Undated ones have no deadline: after the dated ones.
+    final undated = DateTime(9999);
     final open = numbered.where((t) => !t.$2.done).toList()
-      ..sort((a, b) => a.$2.date.compareTo(b.$2.date));
+      ..sort((a, b) => (a.$2.date ?? undated).compareTo(b.$2.date ?? undated));
     final done = numbered.where((t) => t.$2.done);
     final day = DateTime(today.year, today.month, today.day);
     return [
@@ -451,7 +453,7 @@ class NoteView extends StatelessWidget {
 
   Widget _todoRow(ThemeData theme, int number, Todo todo, DateTime day) {
     final colors = theme.colorScheme;
-    final late = !todo.done && todo.date.isBefore(day);
+    final late = !todo.done && (todo.date?.isBefore(day) ?? false);
     final row = _row(
       mark: _todoMark(colors, number, todo, late: late),
       // The Checkbox's 48 dp box centres its 18 dp square.
@@ -551,12 +553,15 @@ class NoteView extends StatelessWidget {
   }
 
   /// A late one says so, in words and in the error colour.
-  Widget _todoDate(ThemeData theme, Todo todo, {required bool late}) => Text(
-    late ? strings.overdue(_date(todo.date)) : _date(todo.date),
-    style: theme.textTheme.bodySmall?.copyWith(
-      color: late ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
+  Widget _todoDate(ThemeData theme, Todo todo, {required bool late}) => switch (todo.date) {
+    final date? => Text(
+      late ? strings.overdue(_date(date)) : _date(date),
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: late ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
+      ),
     ),
-  );
+    null => const SizedBox.shrink(),
+  };
 
   /// Newest day first, each day's entries in the order written, on a rail.
   /// A date carries no year; the year heads its days when it is not this one.
