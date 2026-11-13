@@ -14,6 +14,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 enum ExportFormat {
   /// The note file itself: complete, and importable again.
@@ -167,6 +168,16 @@ class Exchange {
       File(_free(folder, file.name)).writeAsBytesSync(file.bytes);
     }
     return true;
+  }
+
+  /// Opens the file at [path] with the system: a phone's share sheet (Android
+  /// lets no other app read a `file://` path), the default app on a desktop.
+  Future<void> open(String path) async {
+    if (mobile) {
+      await _share.share(ShareParams(files: [XFile(path)]));
+    } else {
+      await launchUrl(Uri.file(path));
+    }
   }
 
   /// [name] in [folder], numbered if a file already has it: never over one.

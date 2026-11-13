@@ -10,6 +10,10 @@ import 'package:notelore/src/section_label.dart';
 import 'package:notelore/src/strings.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore_core/notelore_core.dart';
+import 'package:path/path.dart' as p;
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+
+import 'support.dart' show FakeLauncher;
 
 const _mopsos = '''---
 title: Mopsos
@@ -48,6 +52,7 @@ Future<void> show(
   void Function(int number, String text, bool done)? onTodo,
   List<NoteInfo> related = const [],
   ValueChanged<NoteInfo>? onOpen,
+  ValueChanged<String>? onFile,
 }) async {
   // Tall enough that the whole note is laid out.
   tester.view.physicalSize = const Size(800, 4000);
@@ -65,6 +70,7 @@ Future<void> show(
           onTodo: onTodo,
           related: related,
           onOpen: onOpen,
+          onFile: onFile,
         ),
       ),
     ),
@@ -73,6 +79,40 @@ Future<void> show(
 }
 
 void main() {
+  testWidgets('a link to a kept file opens it; a web link opens the browser (#845)', (
+    tester,
+  ) async {
+    final launcher = FakeLauncher();
+    UrlLauncherPlatform.instance = launcher;
+    final files = <String>[];
+    await show(
+      tester,
+      '---\ntitle: Plan\n---\n# Plan\n\n## Notes\n'
+      '- 2026-10-02: The plan: [plan pdf](../attachments/2026-10-02/plan%20v2.pdf).\n',
+      onFile: files.add,
+    );
+    final entry = tester.widget<MarkdownBody>(find.byType(MarkdownBody).last);
+    entry.onTapLink!('plan pdf', '../attachments/2026-10-02/plan%20v2.pdf', '');
+    expect(files, [p.join('/notes/projects', '../attachments/2026-10-02/plan v2.pdf')]);
+    entry.onTapLink!('site', 'https://a.test/x', '');
+    entry.onTapLink!('anchor', '#top', ''); // no file, no web address: nothing
+    entry.onTapLink!('bad', 'a%C3.pdf', ''); // not UTF-8 once decoded: nothing, no throw
+    expect(launcher.opened, ['https://a.test/x']);
+    expect(files, hasLength(1));
+    // A file that is not a note opens its links the same way.
+    await show(tester, '# Page\n\n[plan](../attachments/a.pdf)\n', onFile: files.add);
+    tester.widget<Markdown>(find.byType(Markdown)).onTapLink!('plan', '../attachments/a.pdf', '');
+    expect(files.last, p.join('/notes/projects', '../attachments/a.pdf'));
+  });
+
+  testWidgets('an image whose path is not UTF-8 once decoded shows as failed (#845)', (
+    tester,
+  ) async {
+    await show(tester, '# Page\n\n![x](../attachments/a%C3.png)\n');
+    expect(tester.takeException(), isNull);
+    expect(find.textContaining("Couldn't load"), findsOneWidget);
+  });
+
   testWidgets('a note reads as a page: title, kind and tags, when it changed (#426)', (
     tester,
   ) async {

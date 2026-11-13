@@ -83,6 +83,32 @@ String keepAttachment(String root, String name, List<int> bytes, {DateTime? toda
   }
 }
 
+/// What a kept original can be (a PDF, an image, a recording); a synced file of
+/// any other type (`.exe`, `.lnk`, `.terminal`) would run when opened.
+const _openable = {
+  '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.heic', '.bmp', //
+  '.wav', '.mp3', '.m4a', '.m4b', '.ogg', '.opus', '.flac', '.aac',
+};
+
+/// The kept original [link] names, as a real path, or null when it is not a
+/// file inside the attachments folder of a type an original can be. [link] is
+/// relative to [root] or absolute; it comes from a note or a chat message, so
+/// `..`, other folders and symlinks leading out are refused.
+String? attachmentFile(String root, String link) {
+  bool openable(String path) => _openable.contains(p.extension(path).toLowerCase());
+  final folder = p.join(root, attachmentsFolder);
+  final path = p.normalize(p.join(root, link));
+  if (!p.isWithin(folder, path) || !openable(path)) return null;
+  try {
+    final real = File(path).resolveSymbolicLinksSync();
+    final within = p.isWithin(Directory(folder).resolveSymbolicLinksSync(), real);
+    // The type of what opens, not of the link's name (report.pdf -> x.exe).
+    return within && openable(real) && FileSystemEntity.isFileSync(real) ? real : null;
+  } on FileSystemException {
+    return null;
+  }
+}
+
 String notePath(String root, String kind, String slug) {
   final folder = kinds[kind];
   if (folder == null) {

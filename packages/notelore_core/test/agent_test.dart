@@ -326,6 +326,7 @@ void main() {
     );
     expect(attachedFiles(message).files, ['memo.m4a']);
     expect(attachedFiles(message).text, 'memo');
+    expect(attachedFiles(message).originals, {'memo.m4a': 'attachments/2026-10-18/memo.m4a'});
   });
 
   test('an image kept on the device says where, for the note to link it (#534)', () {
@@ -345,6 +346,7 @@ void main() {
     expect(shown.text, 'what is it');
     expect(shown.images, ['photo.png']);
     expect(shown.files, isEmpty);
+    expect(shown.originals, {'photo.png': 'attachments/2026-10-22/photo.png'});
   });
 
   test('an attached image is named in the message; its picture goes as a block (#278)', () {
@@ -363,6 +365,7 @@ void main() {
     expect(shown.text, 'what is it');
     expect(shown.files, ['a.txt']);
     expect(shown.images, ["receipt '1'.png"]); // apart: the chat shows them as images
+    expect(shown.originals, isEmpty); // nothing kept: nothing to open
   });
 
   test('a question ends with its likely answers in double brackets (#210)', () {

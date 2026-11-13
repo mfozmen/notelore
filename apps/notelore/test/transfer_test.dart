@@ -7,6 +7,7 @@ import 'package:notelore/src/transfer.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'main_test.dart' show FakeFolders;
 import 'support.dart';
@@ -104,6 +105,23 @@ void main() {
       expect(File(p.join(folder.path, 'mopsos (2).md')).readAsStringSync(), 'hi');
       expect(File(p.join(folder.path, 'topic.md')).readAsStringSync(), 't');
     });
+
+    test(
+      'a kept file opens: a phone shares it, a desktop opens it in its own app (#845)',
+      () async {
+        final launcher = FakeLauncher();
+        UrlLauncherPlatform.instance = launcher;
+        final kept = File(p.join(harness.scratch.path, 'plan.pdf'))..writeAsBytesSync([1, 2]);
+        await exchange(mobile: true).open(kept.path);
+        expect(harness.share.contents, {
+          'plan.pdf': [1, 2],
+        });
+        expect(launcher.opened, isEmpty);
+        await exchange(mobile: false).open(kept.path);
+        expect(launcher.opened, ['${Uri.file(kept.path)}']);
+        expect(harness.share.shared, hasLength(1));
+      },
+    );
 
     test('by default the files wait for the share sheet in the app\'s temp folder', () async {
       PathProviderPlatform.instance = FakeFolders(harness.scratch.path);

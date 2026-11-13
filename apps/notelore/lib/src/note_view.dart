@@ -122,7 +122,18 @@ class _WritableNoteViewState extends State<WritableNoteView> {
     onTodo: (number, text, done) => unawaited(_toggle(number, text, done)),
     related: widget.onOpen == null ? const [] : widget.session.relatedNotes(widget.note),
     onOpen: widget.onOpen,
+    onFile: widget.session.openAttachment,
   );
+}
+
+/// [uri]'s path decoded, or null when its escapes are not UTF-8 (`%C3`):
+/// [Uri.tryParse] lets those through, and decoding them throws.
+String? _decoded(Uri uri) {
+  try {
+    return Uri.decodeComponent(uri.path);
+  } on FormatException {
+    return null;
+  }
 }
 
 /// A note as a page (#426): its title and what it is, then each known section
@@ -140,6 +151,7 @@ class NoteView extends StatelessWidget {
     this.onTodo,
     this.related = const [],
     this.onOpen,
+    this.onFile,
     super.key,
   });
 
@@ -151,6 +163,19 @@ class NoteView extends StatelessWidget {
   final String folder;
   final Strings strings;
   final DateTime today;
+
+  /// Opens a file the note links by a relative path (a kept original), given
+  /// its path resolved against [folder]; the opener checks where it leads.
+  final ValueChanged<String>? onFile;
+
+  void _link(String? href) {
+    final uri = Uri.tryParse(href ?? '');
+    if (uri != null && !uri.hasScheme && uri.path.isNotEmpty) {
+      if (_decoded(uri) case final path?) onFile?.call(p.join(folder, path));
+    } else {
+      openWebLink(href);
+    }
+  }
 
   /// Called with a todo's number in the note and its new done state; without
   /// it (the archive), todos are marks, not controls.
@@ -166,7 +191,7 @@ class NoteView extends StatelessWidget {
         data: withoutFrontMatter(source),
         selectable: true,
         padding: const EdgeInsets.all(Gap.m),
-        onTapLink: (_, href, _) => openWebLink(href),
+        onTapLink: (_, href, _) => _link(href),
         imageBuilder: _image,
         styleSheet: _sheet(Theme.of(context)),
       );
@@ -240,7 +265,7 @@ class NoteView extends StatelessWidget {
   Widget _markdown(String text, {TextStyle? style, Color? link}) => Builder(
     builder: (context) => MarkdownBody(
       data: text,
-      onTapLink: (_, href, _) => openWebLink(href),
+      onTapLink: (_, href, _) => _link(href),
       imageBuilder: _image,
       styleSheet: _sheet(Theme.of(context)).copyWith(
         p: style,
@@ -698,9 +723,10 @@ class _NoteImageState extends State<_NoteImage> {
     Widget failed(BuildContext context, _, _) =>
         _card(context, const Icon(AppIcons.brokenImage), s.imageFailed);
     if (!uri.hasScheme) {
-      final path = p.normalize(p.join(widget.folder, Uri.decodeComponent(uri.path)));
+      final decoded = _decoded(uri);
+      final path = decoded == null ? null : p.normalize(p.join(widget.folder, decoded));
       // Only inside the notes folder (the note's folder's parent): a note never probes the disk.
-      if (!p.isWithin(p.dirname(widget.folder), path)) {
+      if (path == null || !p.isWithin(p.dirname(widget.folder), path)) {
         return failed(context, null, null);
       }
       return Image.file(File(path), semanticLabel: widget.alt, errorBuilder: failed);
