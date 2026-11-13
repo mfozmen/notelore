@@ -57,4 +57,18 @@ void main() {
   test('the reference covers every fixture', () {
     expect(reference.keys.toList(), fixtureBytes().keys.toList());
   });
+
+  test('an undated todo goes past the reference on purpose: no fixture has one', () {
+    // The Python reference read `- [ ] text` as a raw line; Notelore reads it as a todo
+    // (docs/note-format.md). A fixture with one would no longer match parsed.json.
+    for (final MapEntry(key: name, value: raw) in fixtureBytes().entries) {
+      final todos = [
+        for (final s in parse(utf8.decode(raw)).sections) ...s.entries.whereType<Todo>(),
+      ];
+      expect(todos.where((t) => t.date == null), isEmpty, reason: name);
+    }
+    final note = parse('---\ntitle: N\n---\n# N\n\n## Todo\n- [ ] Buy a padlock\n');
+    final undated = note.sections.single.entries.single;
+    expect(undated, isA<Todo>().having((t) => t.date, 'date', isNull));
+  });
 }
