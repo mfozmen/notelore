@@ -276,7 +276,9 @@ Iterable<DayItem> _dayItems(Note note, String kind, String slug, DateTime from) 
   for (final entry in note.section('todo')?.entries ?? const <NoteEntry>[]) {
     if (entry case final Todo todo) {
       number++;
-      if (!todo.done) yield item(todo.date, null, todo.text, todo: true, number: number);
+      if (todo case Todo(done: false, :final date?)) {
+        yield item(date, null, todo.text, todo: true, number: number);
+      }
     }
   }
 }
@@ -296,8 +298,10 @@ Iterable<DayItem> _dayItems(Note note, String kind, String slug, DateTime from) 
   List<DayItem> sorted(Iterable<DayItem> items) => items.toList()..sort(_byDay);
   return (
     decided: sorted(notes.expand((found) => _standingDecisions(found, inWeek))),
-    done: sorted(notes.expand((found) => _todos(found, (t) => t.done && inWeek(t.date)))),
-    overdue: sorted(notes.expand((found) => _todos(found, (t) => !t.done && t.date.isBefore(day)))),
+    done: sorted(notes.expand((found) => _todos(found, (t, date) => t.done && inWeek(date)))),
+    overdue: sorted(
+      notes.expand((found) => _todos(found, (t, date) => !t.done && date.isBefore(day))),
+    ),
   );
 }
 
@@ -332,12 +336,14 @@ Iterable<DayItem> _standingDecisions(_Found found, bool Function(DateTime) inWee
 }
 
 /// The todos of [found] that pass [keep], with their number in the section.
-Iterable<DayItem> _todos(_Found found, bool Function(Todo) keep) sync* {
+Iterable<DayItem> _todos(_Found found, bool Function(Todo, DateTime date) keep) sync* {
   var number = 0;
   for (final entry in found.note.section('todo')?.entries ?? const <NoteEntry>[]) {
     if (entry case final Todo todo) {
       number++;
-      if (keep(todo)) yield _weekItem(found, todo.date, todo.text, todo: true, number: number);
+      if (todo.date case final date? when keep(todo, date)) {
+        yield _weekItem(found, date, todo.text, todo: true, number: number);
+      }
     }
   }
 }

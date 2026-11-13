@@ -154,6 +154,19 @@ void main() {
     expect(serialize(note), text);
   });
 
+  test('a todo written without a date is still a todo (#901)', () {
+    const text =
+        '---\ntitle: T\n---\n# T\n'
+        '## Todo\n- [ ] Buy cat food\n- [x] Call the vet\n- [ ] 2026-13-45: bad month\n';
+    final note = parse(text);
+    expect(note.section('todo')!.entries, [
+      const Todo(null, 'Buy cat food'),
+      const Todo(null, 'Call the vet', done: true),
+      const Raw('- [ ] 2026-13-45: bad month'),
+    ]);
+    expect(serialize(note), text);
+  });
+
   test('dates are ASCII digits only, like the Python reference', () {
     const arabicIndic = '٢٠٢٦-٠٩-٣٠'; // 2026-09-30
     final note = parse('---\ntitle: T\n---\n# T\n## Notes\n- $arabicIndic: x\n');

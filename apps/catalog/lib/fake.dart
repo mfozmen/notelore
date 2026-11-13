@@ -54,6 +54,7 @@ tags: [home, diy]
 ## Todo
 - [ ] 2026-10-02: Order the stainless screws
 - [ ] 2026-10-10: Paint the door sage green
+- [ ] Buy a padlock
 - [x] 2026-09-20: Level the ground
 
 ## Reminders

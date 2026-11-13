@@ -38,7 +38,7 @@ Map<String, Object?> _entry(NoteEntry e) => switch (e) {
     'superseded': e.superseded == null ? null : isoDate(e.superseded!),
   },
   Entry() => {'type': 'entry', 'date': isoDate(e.date), 'text': e.text},
-  Todo() => {'type': 'todo', 'date': isoDate(e.date), 'text': e.text, 'done': e.done},
+  Todo() => {'type': 'todo', 'date': isoDate(e.date!), 'text': e.text, 'done': e.done},
   Reminder() => {'type': 'reminder', 'date': isoDate(e.date), 'time': e.time, 'text': e.text},
   Raw() => {'type': 'raw', 'text': e.text},
 };

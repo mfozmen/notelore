@@ -85,7 +85,7 @@ List<Stale> _staleEntries(Note note, String slug, String kind, DateTime today, i
       final date = switch (entry) {
         Decision(:final superseded?) when today.difference(superseded).inDays > decisionDays =>
           superseded,
-        Todo(done: false, :final date) when date.isBefore(today) => date,
+        Todo(done: false, :final date?) when date.isBefore(today) => date,
         _ => null,
       };
       if (date != null) found.add(Stale(slug, kind, reason, key, number, date));

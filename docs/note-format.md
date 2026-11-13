@@ -93,7 +93,10 @@ Text can wrap to indented continuation lines. The LLM writes a clean, self-conta
 ```
 - [ ] <date>: <text>          # date = due date if given, otherwise creation date
 - [x] <date>: <text>
+- [ ] <text>                  # hand-written, no date: still a todo, with no day
 ```
+
+Notelore always writes the date. A todo written by hand without one is read as a todo all the same: it can be ticked, and it stays out of the calendar, the week and the overdue list, since it has no day.
 
 ### Reminder entries
 
