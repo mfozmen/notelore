@@ -15,28 +15,38 @@ import 'theme.dart';
 import 'web_link.dart';
 
 /// Opens [note], read as [text], as a page of its own with its title on top.
-void pushNote(BuildContext context, Session session, NoteInfo note, String text) {
-  final now = session.clock().toLocal();
-  Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (page) => Scaffold(
-        appBar: AppBar(leading: softBack(page), title: Text(note.title)),
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: Layout.column),
-            child: WritableNoteView(
-              session,
-              note,
-              text,
-              folder: p.dirname(notePath(session.paths.notes.path, note.kind, note.slug)),
-              strings: session.strings,
-              today: DateTime(now.year, now.month, now.day),
-            ),
+void pushNote(BuildContext context, Session session, NoteInfo note, String text) =>
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => NotePage(session, note, text)));
+
+/// [note], read as [text], as a page with its title on top.
+class NotePage extends StatelessWidget {
+  const NotePage(this.session, this.note, this.text, {super.key});
+
+  final Session session;
+  final NoteInfo note;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = session.clock().toLocal();
+    return Scaffold(
+      appBar: AppBar(leading: softBack(context), title: Text(note.title)),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: Layout.column),
+          child: WritableNoteView(
+            session,
+            note,
+            text,
+            folder: p.dirname(notePath(session.paths.notes.path, note.kind, note.slug)),
+            strings: session.strings,
+            today: DateTime(now.year, now.month, now.day),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// A note page that writes its todo checkboxes and shows the new line at once.
