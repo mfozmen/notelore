@@ -95,15 +95,15 @@ const _openable = {
 /// relative to [root] or absolute; it comes from a note or a chat message, so
 /// `..`, other folders and symlinks leading out are refused.
 String? attachmentFile(String root, String link) {
+  bool openable(String path) => _openable.contains(p.extension(path).toLowerCase());
   final folder = p.join(root, attachmentsFolder);
   final path = p.normalize(p.join(root, link));
-  if (!p.isWithin(folder, path) || !_openable.contains(p.extension(path).toLowerCase())) {
-    return null;
-  }
+  if (!p.isWithin(folder, path) || !openable(path)) return null;
   try {
     final real = File(path).resolveSymbolicLinksSync();
     final within = p.isWithin(Directory(folder).resolveSymbolicLinksSync(), real);
-    return within && FileSystemEntity.isFileSync(real) ? real : null;
+    // The type of what opens, not of the link's name (report.pdf -> x.exe).
+    return within && openable(real) && FileSystemEntity.isFileSync(real) ? real : null;
   } on FileSystemException {
     return null;
   }

@@ -116,6 +116,16 @@ class _WritableNoteViewState extends State<WritableNoteView> {
   );
 }
 
+/// [uri]'s path decoded, or null when its escapes are not UTF-8 (`%C3`):
+/// [Uri.tryParse] lets those through, and decoding them throws.
+String? _decoded(Uri uri) {
+  try {
+    return Uri.decodeComponent(uri.path);
+  } on FormatException {
+    return null;
+  }
+}
+
 /// A note as a page (#426): its title and what it is, then each known section
 /// in its own form: decisions as cards, todos as checkboxes, notes as a dated
 /// timeline. The file stays plain Markdown; only the reading changes. A file
@@ -151,7 +161,7 @@ class NoteView extends StatelessWidget {
   void _link(String? href) {
     final uri = Uri.tryParse(href ?? '');
     if (uri != null && !uri.hasScheme && uri.path.isNotEmpty) {
-      onFile?.call(p.join(folder, Uri.decodeComponent(uri.path)));
+      if (_decoded(uri) case final path?) onFile?.call(p.join(folder, path));
     } else {
       openWebLink(href);
     }
@@ -698,9 +708,10 @@ class _NoteImageState extends State<_NoteImage> {
     Widget failed(BuildContext context, _, _) =>
         _card(context, const Icon(AppIcons.brokenImage), s.imageFailed);
     if (!uri.hasScheme) {
-      final path = p.normalize(p.join(widget.folder, Uri.decodeComponent(uri.path)));
+      final decoded = _decoded(uri);
+      final path = decoded == null ? null : p.normalize(p.join(widget.folder, decoded));
       // Only inside the notes folder (the note's folder's parent): a note never probes the disk.
-      if (!p.isWithin(p.dirname(widget.folder), path)) {
+      if (path == null || !p.isWithin(p.dirname(widget.folder), path)) {
         return failed(context, null, null);
       }
       return Image.file(File(path), semanticLabel: widget.alt, errorBuilder: failed);

@@ -745,6 +745,10 @@ void main() {
       final outside = File(p.join(tempDir(), 'outside.pdf'))..writeAsStringSync('x');
       Link(p.join(root, 'attachments', '2026-10-18', 'out.pdf')).createSync(outside.path);
       expect(attachmentFile(root, 'attachments/2026-10-18/out.pdf'), isNull);
+      // A link named like an original, to a file inside that is of another type.
+      final exe = File(p.join(root, 'attachments', '2026-10-18', 'x.exe'))..writeAsStringSync('x');
+      Link(p.join(root, 'attachments', '2026-10-18', 'report.pdf')).createSync(exe.path);
+      expect(attachmentFile(root, 'attachments/2026-10-18/report.pdf'), isNull);
     });
   });
 

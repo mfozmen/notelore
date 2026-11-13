@@ -96,12 +96,21 @@ void main() {
     expect(files, [p.join('/notes/projects', '../attachments/2026-10-02/plan v2.pdf')]);
     entry.onTapLink!('site', 'https://a.test/x', '');
     entry.onTapLink!('anchor', '#top', ''); // no file, no web address: nothing
+    entry.onTapLink!('bad', 'a%C3.pdf', ''); // not UTF-8 once decoded: nothing, no throw
     expect(launcher.opened, ['https://a.test/x']);
     expect(files, hasLength(1));
     // A file that is not a note opens its links the same way.
     await show(tester, '# Page\n\n[plan](../attachments/a.pdf)\n', onFile: files.add);
     tester.widget<Markdown>(find.byType(Markdown)).onTapLink!('plan', '../attachments/a.pdf', '');
     expect(files.last, p.join('/notes/projects', '../attachments/a.pdf'));
+  });
+
+  testWidgets('an image whose path is not UTF-8 once decoded shows as failed (#845)', (
+    tester,
+  ) async {
+    await show(tester, '# Page\n\n![x](../attachments/a%C3.png)\n');
+    expect(tester.takeException(), isNull);
+    expect(find.textContaining("Couldn't load"), findsOneWidget);
   });
 
   testWidgets('a note reads as a page: title, kind and tags, when it changed (#426)', (
