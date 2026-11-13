@@ -60,6 +60,11 @@ class SoftNavBar extends StatelessWidget {
   /// The chosen tab's orb: nearly the bar's height.
   static const double orb = 46;
 
+  /// The chosen tab's largest text scale, so its label fits whole on a 360-point
+  /// phone in every language ("Hakkımda" is cut from 1.4). Only the label is
+  /// capped; the page keeps the person's text size.
+  static const double labelScale = 1.3;
+
   /// The fade over the bar, where the page scrolls out of sight.
   static const double fade = 24;
 
@@ -155,13 +160,16 @@ class _Tab extends StatelessWidget {
                   children: [
                     AppIcons.duo(chosen, size: 22, color: colors.onPrimary),
                     Flexible(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: colors.onPrimary,
-                          fontWeight: FontWeight.w600,
+                      child: MediaQuery.withClampedTextScaling(
+                        maxScaleFactor: SoftNavBar.labelScale,
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: colors.onPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
