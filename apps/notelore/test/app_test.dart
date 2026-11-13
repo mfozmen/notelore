@@ -1359,6 +1359,45 @@ void main() {
     );
   });
 
+  testWidgets('chat: a kept file opens from a 48 dp target; the lines stay as tight (#845)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness();
+    final session = await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    final pdf = session.keepOriginal('report.pdf', [1])!;
+    final png = session.keepOriginal('receipt.png', [2])!;
+    session.transcript.add((
+      role: ChatRole.user,
+      text: withAttachments(
+        'Budget',
+        [(name: 'report.pdf', text: 'y'), (name: 'plan.txt', text: 'x')],
+        images: ['receipt.png'],
+        originals: {'report.pdf': pdf, 'receipt.png': png},
+      ),
+      cards: const <AnswerCard>[],
+    ));
+    session.notifyListeners();
+    await tester.pumpAndSettle();
+    double top(String name) => tester.getTopLeft(find.text(name)).dy;
+    final pitch = top('plan.txt') - top('report.pdf');
+    // An opening line is laid out as tall as a plain one, as before.
+    expect(top('receipt.png') - top('plan.txt'), pitch);
+    expect(pitch, lessThan(32));
+    final report = tester.getCenter(find.text('report.pdf'));
+    // 23 dp below its middle (over plan.txt's line) still opens it.
+    await tester.tapAt(report + const Offset(0, 23));
+    await settleUntil(tester, () => harness.share.contents.isNotEmpty); // real IO
+    expect(harness.share.contents.keys, ['report.pdf']);
+    await tester.tapAt(report - const Offset(0, 23));
+    await settleUntil(tester, () => harness.share.shared.length == 2);
+    expect(p.basename(harness.share.shared.last.files!.single.path), 'report.pdf');
+    // The last line reaches down into the bubble's edge.
+    await tester.tapAt(tester.getCenter(find.text('receipt.png')) + const Offset(0, 12));
+    await settleUntil(tester, () => harness.share.contents.containsKey('receipt.png'));
+  });
+
   testWidgets('chat: the newest answer can be told wrong, kept for training, undone (#753)', (
     tester,
   ) async {

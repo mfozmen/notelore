@@ -14,6 +14,8 @@ import 'package:flutter/gestures.dart'
         kLongPressTimeout,
         kTouchSlop;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart'
+    show BoxHitTestEntry, BoxHitTestResult, FlexParentData, RenderFlex, RenderProxyBox;
 import 'package:flutter/semantics.dart' show CustomSemanticsAction, SemanticsRole, SemanticsService;
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
@@ -2270,7 +2272,7 @@ class _BubbleText extends StatelessWidget {
           );
     if (files.isEmpty && images.isEmpty) return words;
     final s = strings;
-    return Column(
+    return _ReachColumn(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       spacing: Gap.xs,
@@ -2543,27 +2545,22 @@ class _AttachmentLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Every line as tall as a tap target, so lines that open and lines that
-    // do not keep one rhythm; the underline says which open.
-    final row = ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 48),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        spacing: Gap.xs,
-        children: [
-          Icon(icon, size: 18, color: style.color),
-          Flexible(
-            child: Text(
-              name,
-              style: onTap == null ? style : style.copyWith(decoration: TextDecoration.underline),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+    final row = Row(
+      mainAxisSize: MainAxisSize.min,
+      spacing: Gap.xs,
+      children: [
+        Icon(icon, size: 18, color: style.color),
+        Flexible(
+          child: Text(
+            name,
+            style: onTap == null ? style : style.copyWith(decoration: TextDecoration.underline),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        ],
-      ),
+        ),
+      ],
     );
-    return Semantics(
+    final line = Semantics(
       // Its own node: a selection area above it must not merge the label away.
       container: true,
       button: onTap != null,
@@ -2577,6 +2574,81 @@ class _AttachmentLine extends StatelessWidget {
             : InkWell(onTap: onTap, borderRadius: BorderRadius.circular(Gap.s), child: row),
       ),
     );
+    return onTap == null ? line : _Reach(child: line);
+  }
+}
+
+/// The height a line that opens is hit-tested at.
+const _target = 48.0;
+
+/// [child] hit-tested as if it were [_target] tall, centred on itself, while it
+/// is laid out at its own height: the lines stay as tight as they look. The
+/// reach past its edges only works inside a [_ReachColumn].
+class _Reach extends SingleChildRenderObjectWidget {
+  const _Reach({required super.child});
+
+  @override
+  RenderObject createRenderObject(BuildContext context) => _RenderReach();
+}
+
+class _RenderReach extends RenderProxyBox {
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    final extra = max(0.0, (_target - size.height) / 2);
+    if (position.dx < 0 ||
+        position.dx >= size.width ||
+        position.dy < -extra ||
+        position.dy >= size.height + extra) {
+      return false;
+    }
+    // The widgets inside take only points within their own size.
+    final inside = Offset(position.dx, position.dy.clamp(0, size.height - 0.01));
+    if (!hitTestChildren(result, position: inside)) return false;
+    result.add(BoxHitTestEntry(this, position));
+    return true;
+  }
+}
+
+/// A column whose [_Reach] children are tried first, and also past its own
+/// edges, so a line that opens wins over the plain line its reach overlaps.
+class _ReachColumn extends Column {
+  const _ReachColumn({super.crossAxisAlignment, super.mainAxisSize, super.spacing, super.children});
+
+  @override
+  RenderFlex createRenderObject(BuildContext context) => _RenderReachColumn(
+    direction: direction,
+    mainAxisSize: mainAxisSize,
+    crossAxisAlignment: crossAxisAlignment,
+    spacing: spacing,
+    textDirection: getEffectiveTextDirection(context),
+  );
+}
+
+class _RenderReachColumn extends RenderFlex {
+  _RenderReachColumn({
+    super.direction,
+    super.mainAxisSize,
+    super.crossAxisAlignment,
+    super.spacing,
+    super.textDirection,
+  });
+
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    for (var child = lastChild; child != null; child = childBefore(child)) {
+      if (child is! _RenderReach) continue;
+      final reach = child;
+      final hit = result.addWithPaintOffset(
+        offset: (reach.parentData! as FlexParentData).offset,
+        position: position,
+        hitTest: (BoxHitTestResult result, Offset at) => reach.hitTest(result, position: at),
+      );
+      if (hit) {
+        result.add(BoxHitTestEntry(this, position));
+        return true;
+      }
+    }
+    return super.hitTest(result, position: position);
   }
 }
 
