@@ -40,6 +40,10 @@ const tool = Tool('read_note', 'Read a note', {
 });
 
 void main() {
+  test('a reply cut at the cap says so in words the user can act on (#908)', () {
+    expect('${const ReplyTooLong()}', contains('too long'));
+  });
+
   test('a reply closes the same for every provider (#664)', () {
     const call = {
       'type': 'tool_use',

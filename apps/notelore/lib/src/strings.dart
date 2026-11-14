@@ -3139,6 +3139,8 @@ class TurkishStrings extends Strings {
     'The model sent no answer. Try again.': 'Model cevap vermedi. Yeniden dene.',
     'I stopped after too many tool calls in a row. Please rephrase the request.':
         'Arka arkaya çok fazla araç çağrısı oldu, durdum. İsteği başka türlü söyler misin?',
+    'The answer ran on too long, so I stopped it. Please try again.':
+        'Cevap fazla uzadı, durdurdum. Lütfen yeniden dene.',
   };
 
   @override
