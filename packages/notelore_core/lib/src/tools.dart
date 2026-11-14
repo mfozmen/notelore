@@ -12,7 +12,8 @@
 ///   when asked again.
 /// - `add_note_entry(slug, text, kind?)`: appends a dated entry under Notes; the
 ///   result names each open todo of the note the entry shares a word with.
-/// - `add_todo(slug, text, due?, kind?)` / `complete_todo(slug, number, kind?)`.
+/// - `add_todo(slug, text, due?, kind?)` / `complete_todo(slug, number, kind?)`; a todo
+///   that repeats an open one is not added, the result says how to tick that one.
 /// - `add_reminder(slug, at, text, kind?)`: `at` is `YYYY-MM-DD` or `YYYY-MM-DD HH:MM`;
 ///   appended under Reminders, which the app turns into notifications.
 /// - `record_decision(slug, topic, value, reason?, kind?)`: supersedes the active
@@ -193,11 +194,7 @@ final toolRegistry = List<NoteTool>.unmodifiable([
       'Add an open todo; due is the due date if the user gave one.',
       _schema(['slug', 'text'], {'slug': _slug, 'text': _string, 'due': _date, 'kind': _kind}),
     ),
-    (t, a) => t._write(
-      t._path(a['slug'], a.kind),
-      (path) =>
-          notes.addTodo(path, a['text'], due: Toolbox._due(a.optional('due')), today: t.today),
-    ),
+    (t, a) => t._addTodo(t._path(a['slug'], a.kind), a['text'], Toolbox._due(a.optional('due'))),
     activity: Activity.writing,
     slimDescription: 'Add an open todo; due if the user gave a date.',
   ),
@@ -898,6 +895,16 @@ class Toolbox {
     ].join('; ');
   }
 
+  /// Not added when it repeats an open todo: a small model turns "Kahve
+  /// makinesini sipariş ettim" into that todo again instead of ticking it.
+  String _addTodo(String path, String text, DateTime? due) {
+    final slug = p.basenameWithoutExtension(path);
+    for (final (number, todo) in _openTodos(path)) {
+      if (_repeats(text, todo, slug)) return 'not added: it is already ${_tick(slug, number)}';
+    }
+    return _write(path, (path) => notes.addTodo(path, text, due: due, today: today));
+  }
+
   /// The note, then a line per open todo saying how to tick it: a small model
   /// does not keep that rule from the prompt (#601).
   String _readNote(String path) {
@@ -1083,6 +1090,19 @@ const _common = {'that', 'this', 'with', 'from', 'have', 'been', 'were', 'will',
 /// Whether two words share a stem: their first four letters, which holds across
 /// Turkish suffixes and English endings ("koliler"/"koli", "panels"/"panel").
 bool _sameStem(String a, String b) => a.substring(0, 4) == b.substring(0, 4);
+
+/// Whether [text] says [todo] of note [slug] again: every word of the todo, at
+/// least two, and at most one word more besides the note's title ("sipariş et" /
+/// "sipariş etmek").
+bool _repeats(String text, String todo, String slug) {
+  final said = _words(text);
+  final open = _words(todo);
+  final title = _words(slug.replaceAll('-', ' '));
+  bool among(String w, List<String> words) => words.any((o) => _sameStem(w, o));
+  return open.length >= 2 &&
+      open.every((w) => among(w, said)) &&
+      said.where((w) => !among(w, open) && !among(w, title)).length <= 1;
+}
 
 /// The open todos of the note at [path], numbered as complete_todo counts them.
 List<(int, String)> _openTodos(String path) {

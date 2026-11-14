@@ -380,6 +380,29 @@ void main() {
     expect(call('add_note_entry', {'slug': 'ev-tasima', 'text': 'Dolabı komşuya verdim.'}), 'ok');
   });
 
+  test('a todo that repeats an open one is not added, and says how to tick it (#892)', () {
+    call('create_note', {'kind': 'project', 'title': 'Kafe Açılışı', 'lang': 'tr'});
+    call('add_todo', {'slug': 'kafe-acilisi', 'text': 'Kahve makinesini sipariş et'});
+    expect(
+      call('add_todo', {'slug': 'kafe-acilisi', 'text': 'Kahve makinesini sipariş etmek'}),
+      'not added: it is already open todo 1 of kafe-acilisi; when the user says it is done: '
+      'complete_todo({"slug":"kafe-acilisi","number":1})',
+    );
+    // The note's own title words are no new words.
+    call('create_note', {'kind': 'project', 'title': 'Home Studio'});
+    call('add_todo', {'slug': 'home-studio', 'text': 'Buy acoustic panels'});
+    expect(
+      call('add_todo', {'slug': 'home-studio', 'text': 'Buy acoustic panels for the home studio'}),
+      startsWith('not added: it is already open todo 1 of home-studio'),
+    );
+    // More than one new word, or a todo of one word, is a todo of its own.
+    call('add_todo', {'slug': 'kafe-acilisi', 'text': 'Kahve makinesini tamir için servisi ara'});
+    call('add_todo', {'slug': 'kafe-acilisi', 'text': 'Boyacıyı ara'});
+    call('add_todo', {'slug': 'kafe-acilisi', 'text': 'Boyacıyı ara'});
+    final text = call('read_note', {'slug': 'kafe-acilisi'})! as String;
+    expect('- [ ] '.allMatches(text).length, 4);
+  });
+
   test('results carry the rule where it applies: how to tick an open todo, record a choice', () {
     call('create_note', {'kind': 'project', 'title': 'Ev Tadilatı', 'lang': 'tr'});
     call('add_todo', {'slug': 'ev-tadilati', 'text': 'Boyacıyı ara'});

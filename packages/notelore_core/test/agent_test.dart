@@ -482,7 +482,7 @@ void main() {
     // "kedime kedi maması almam lazım" was filed as a note entry.
     for (final prompt in [systemPrompt(today), slimSystemPrompt(today)]) {
       expect(prompt, contains('with no day'));
-      expect(prompt, contains('is a todo: add_todo'));
+      expect(prompt, matches(RegExp(r'is a todo: add_todo.*(not an|never a note) entry')));
       expect(prompt, contains('almam lazım'));
     }
   });
