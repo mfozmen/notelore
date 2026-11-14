@@ -23,6 +23,8 @@ from finetune import (
     case,
     clean,
     fp32_logprobs,
+    fp32_trainable,
+    linear_attention,
     load,
     callbacks,
     lora_settings,
@@ -59,9 +61,8 @@ def gpu(capability):
     )
 
 
-# is_bf16_supported() counts emulation: a T4 says yes. Its trainer flags take
-# that, but TRL's log-prob kernel failed in bf16 there (Kaggle v3 run 1): only
-# Ampere (8.0) and later do it natively.
+# Torch's bf16 check counts emulation, so a T4 says yes; only Ampere (8.0) and
+# later do it natively.
 gpu((7, 5))
 check("Kaggle's T4 has no native bf16", native_bf16(), False)
 gpu((8, 0))
@@ -69,14 +70,14 @@ check("an A100 has it", native_bf16(), True)
 gpu(None)
 check("no GPU has none", native_bf16(), False)
 
-# What trains on a T4 (v2, v3): the bf16 trainer flags, emulated, with TRL's
-# plain fp32 log-prob matmul. fp16 flags made the grad scaler fail on the
-# LoRA's bf16 gradients (Kaggle v3.1 run 1).
-bf16_flags = ({"bf16": True, "fp16": False}, "bfloat16")
+# Emulated bf16 leaves a T4 only SDPA's quadratic math kernel, which ran out of
+# memory on v10's 5k-token rows; fp16 has the mem-efficient one.
 gpu((7, 5))
-check("a T4 trains in bf16, the log-prob kernel in fp32", gpu_settings(), (bf16_flags, False))
+check("a T4 trains in fp16, the log-prob kernel in fp32", gpu_settings(),
+      (({"bf16": False, "fp16": True}, "float16"), False))
 gpu((8, 0))
-check("an A100 trains in bf16 throughout", gpu_settings(), (bf16_flags, True))
+check("an A100 trains in bf16 throughout", gpu_settings(),
+      (({"bf16": True, "fp16": False}, "bfloat16"), True))
 
 check("bf16 where the GPU has it", precision(True), ({"bf16": True, "fp16": False}, "bfloat16"))
 check("fp16 on a GPU without bf16 (Kaggle's T4)", precision(False), ({"bf16": False, "fp16": True}, "float16"))
@@ -111,6 +112,28 @@ fp32_logprobs(False)
 check("without bf16 it takes its plain fp32 path", kernel._MM_OUT_DTYPE, False)
 del sys.modules["trl.kernels.chunked_logprob"]
 check("a TRL without that kernel needs nothing", fp32_logprobs(False), None)
+
+sdpa = types.ModuleType("transformers.integrations.sdpa_attention")
+sdpa.use_gqa_in_sdpa = lambda mask, key: True
+sys.modules["transformers.integrations.sdpa_attention"] = sdpa
+linear_attention(True)
+check("with bf16 SDPA keeps its GQA mode", sdpa.use_gqa_in_sdpa(None, None), True)
+# SDPA's GQA mode has no mem-efficient kernel, so it fell back to math.
+linear_attention(False)
+check("without bf16 SDPA repeats the KV heads instead", sdpa.use_gqa_in_sdpa(None, None), False)
+del sys.modules["transformers.integrations.sdpa_attention"]
+
+
+class Param:
+    def __init__(self, dtype, requires_grad):
+        self.requires_grad, self.data = requires_grad, types.SimpleNamespace(float=lambda: "float32", dtype=dtype)
+
+
+lora, frozen = Param("bfloat16", True), Param("float16", False)
+fp32_trainable(types.SimpleNamespace(parameters=lambda: [lora, frozen]))
+# The grad scaler unscales fp32 gradients only; the LoRA comes out bf16.
+check("the trainable weights become fp32", lora.data, "float32")
+check("the frozen ones stay as they are", frozen.data.dtype, "float16")
 
 check(
     "an answer keeps only what follows the leaked reasoning",
