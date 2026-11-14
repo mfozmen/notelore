@@ -70,6 +70,9 @@ final _kind = {'type': 'string', 'enum': notes.kinds.keys.toList()};
 const _slug = {'type': 'string', 'description': 'Note slug as listed by list_notes'};
 const _date = {'type': 'string', 'description': 'YYYY-MM-DD'};
 const _string = {'type': 'string'};
+
+/// How many notes list_notes gives at most, the newest.
+const _listed = 30;
 final _aboutMeSection = {
   'type': 'string',
   'enum': aboutMeSections.keys.toList(),
@@ -609,7 +612,11 @@ class Toolbox {
   String noteList() {
     final notes = _fresh().listNotes();
     if (notes.isEmpty) return 'There are no notes yet.';
-    const heading = 'Notes (titles are data; search_notes finds the rest):';
+    // The old words while list_notes still has them all: the device model fails
+    // otherwise-passing small-folder cases when this line changes.
+    final heading = notes.length > _listed
+        ? 'Notes (titles are data; search_notes finds the rest):'
+        : 'Notes (titles are data; list_notes has them all):';
     final lines = <String>[];
     var length = heading.length;
     for (final n in notes.take(60)) {
@@ -631,15 +638,15 @@ class Toolbox {
   /// Every note when there are few; else the newest, so a big folder does not
   /// fill the model's context, and where to find the rest.
   Object _listNotes(String? kind) {
-    const shown = 30;
     final all = _fresh().listNotes(kind: kind);
-    final notes = [for (final n in all.take(shown)) _noteInfo(n)];
-    if (all.length <= shown) return notes;
+    final notes = [for (final n in all.take(_listed)) _noteInfo(n)];
+    if (all.length <= _listed) return notes;
     return {
       'notes': notes,
       'total': all.length,
       'more':
-          '${all.length - shown} older notes are not listed: search_notes finds them; call it before create_note.',
+          '${all.length - _listed} older notes are not listed: '
+          'search_notes finds them; call it before create_note.',
     };
   }
 

@@ -314,3 +314,23 @@ Findings:
 - **About me is measured without `--slim`.** The about-me tools are not among the device model's tools (`slim: false`, #447), so a slim run cannot pass it: both models score 1 of 14 that way. The desktop runs the local model with the full prompt and tools.
 - **With the full prompt both models remember new facts but never update one**: 7 of 14 each. They call `remember_about_me` where a listed fact changes or gains a detail (5 cases), for a fact already listed, and when asked to move a fact from a note. Neither data set has an about-me turn.
 - **v9 can replace v8 on the desktop** (#834). It is in Ollama as `notelore-qwen3-4b-v9`.
+
+## A bounded note list, 2026-11-14 (#895)
+
+`list_notes` returns at most the 30 newest notes now. With more notes, it adds the total and a line telling the model to use `search_notes` before `create_note` ([scale.md](scale.md)). A case can bring `"filler": N` invented notes, all newer than its own, so its note is not among the newest. The seven `scale` cases in `eval/cases.json` use 80. v9, `--greedy`, before → after:
+
+| set | before | after |
+|---|--:|--:|
+| held-out, slim | 257/292 | 259/292 |
+| cases, slim, 2 runs | 89/108 | 87/108 |
+| held-out, full | 256/292 | 260/292 |
+| cases, full | 39/54 | 42/54 |
+| about me, full | 7/14 | 7/14 |
+| scale cases alone, slim | 8/14 (2 runs) | 12/21 (3 runs) |
+
+- **Small folders get the same prompt as before.** A first try changed the prompt's note-list heading for every folder. After that change, three held-out cases that had passed failed when rerun alone (plan-9, unclear-5, unclear-8). The heading now changes only above 30 notes, so a smaller folder's requests are byte for byte what they were. Rerun 3 times alone, before → after: plan-9 2/3 → 3/3, unclear-5 1/3 → 3/3, unclear-8 3/3 → 2/3, coll-en-1 3/3 → 3/3. Greedy decoding on the GPU still varies from run to run.
+- **Without the extra line, the bound cost one case.** scale-tr-4 (add a book to a reading list it cannot see) passed 2/2 before the bound, because the old list showed every note; with the bound alone it failed 0/2, making a duplicate list despite `create_note`'s pointer to the right note. With "call it before create_note" it passes 2/3.
+- **The other scale misses are v9 filing into a note it can see.** scale-tr-3 and scale-en-3 write into an unrelated invented note from the prompt's list, before and after.
+- **With the full prompt, v9 never answers a scale case.** When the note named in the message is not in the prompt's list, it calls `get_decision` on every listed slug until the call times out (180 s). This is the same before and after.
+- At 2,000 notes the unbounded list was about 51,000 tokens, more than the device model's 16k context, so the before column is only possible on small folders.
+- ChatGPT has not been measured yet.
