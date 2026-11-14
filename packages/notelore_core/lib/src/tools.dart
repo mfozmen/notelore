@@ -638,7 +638,8 @@ class Toolbox {
     return {
       'notes': notes,
       'total': all.length,
-      'more': '${all.length - shown} older notes are not listed: find them with search_notes.',
+      'more':
+          '${all.length - shown} older notes are not listed: search_notes finds them; call it before create_note.',
     };
   }
 

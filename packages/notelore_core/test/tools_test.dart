@@ -273,7 +273,10 @@ void main() {
         ...notes.keys.take(30),
       ]);
       expect(listed['total'], 80);
-      expect(listed['more'], '50 older notes are not listed: find them with search_notes.');
+      expect(
+        listed['more'],
+        '50 older notes are not listed: search_notes finds them; call it before create_note.',
+      );
 
       final topics = notes.keys.where((path) => path.startsWith('topics/')).length;
       final onlyTopics = call('list_notes', {'kind': 'topic'})! as Map;
