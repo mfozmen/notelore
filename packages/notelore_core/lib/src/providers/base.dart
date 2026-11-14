@@ -227,6 +227,20 @@ final class TokenUsage {
   final int output;
 }
 
+/// The most a local model (Ollama, the device) may write in one reply, so a
+/// model stuck repeating itself stops. Above the longest real reply traced:
+/// a stock qwen3:4b leaks up to ~5,600 tokens of reasoning before answering.
+const maxReplyTokens = 8192;
+
+/// The model's reply ran into [maxReplyTokens]: the turn fails, so the
+/// runaway text and any half-written tool call are neither shown nor run.
+class ReplyTooLong implements Exception {
+  const ReplyTooLong();
+
+  @override
+  String toString() => 'The answer ran on too long, so I stopped it. Please try again.';
+}
+
 final class AgentResponse {
   const AgentResponse(this.content, this.stopReason, {this.usage});
 

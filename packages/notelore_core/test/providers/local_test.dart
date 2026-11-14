@@ -128,4 +128,26 @@ void main() {
     ]);
     expect(reply.usage, isNull);
   });
+
+  test('a reply the device cut at its cap fails the turn, tool call and all (#908)', () async {
+    final engine = FakeEngine([
+      {
+        'message': {
+          'content': 'hatırlatma hatırlatma hatırlatma',
+          'tool_calls': [
+            {
+              'function': {'name': 'add_note_entry', 'arguments': <String, Object?>{}},
+            },
+          ],
+        },
+        'done_reason': 'length',
+      },
+    ]);
+    await expectLater(
+      LocalProvider('m', engine).turn('', [
+        {'role': 'user', 'content': 'remind me'},
+      ], _tools),
+      throwsA(isA<ReplyTooLong>()),
+    );
+  });
 }

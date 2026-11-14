@@ -47,7 +47,7 @@ class OllamaProvider implements LlmProvider {
         // Ollama may load a model with a huge default context that spills off
         // the GPU, and Qwen3 thinks at length unless told not to: both made a
         // 4B model take minutes per turn on a laptop (#326).
-        'options': {'num_ctx': 16384, 'temperature': ?temperature},
+        'options': {'num_ctx': 16384, 'num_predict': maxReplyTokens, 'temperature': ?temperature},
         'think': false,
         if (tools.isNotEmpty) 'tools': functionTools(tools),
       },
@@ -102,6 +102,7 @@ Object? _answer(Object? content) {
 }
 
 AgentResponse fromOllama(Map<String, Object?> answer) {
+  if (answer['done_reason'] == 'length') throw const ReplyTooLong();
   final message = answer['message'] as Map<String, Object?>?;
   if (message == null) return const AgentResponse([], 'end_turn');
   final blocks = <Block>[
