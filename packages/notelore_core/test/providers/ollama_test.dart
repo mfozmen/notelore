@@ -1,3 +1,4 @@
+import 'package:notelore_core/src/providers/base.dart';
 import 'package:notelore_core/src/providers/ollama.dart';
 import 'package:test/test.dart';
 
@@ -109,7 +110,7 @@ void main() {
     expect(body['stream'], isFalse);
     expect(body['model'], 'llama-x');
     // Small enough to stay on a laptop GPU, and no long hidden thinking (#326).
-    expect(body['options'], {'num_ctx': 16384});
+    expect(body['options'], {'num_ctx': 16384, 'num_predict': maxReplyTokens});
     expect(body['think'], isFalse);
     expect((body['messages']! as List).first, {'role': 'system', 'content': 'be brief'});
     expect(((body['tools']! as List).first as Map)['function'], containsPair('name', 'read_note'));
@@ -136,7 +137,11 @@ void main() {
       await provider.turn('', [
         {'role': 'user', 'content': 'hi'},
       ], []);
-      expect((api.last['body']! as Map)['options'], {'num_ctx': 16384, 'temperature': 0});
+      expect((api.last['body']! as Map)['options'], {
+        'num_ctx': 16384,
+        'num_predict': maxReplyTokens,
+        'temperature': 0,
+      });
     },
   );
 
@@ -153,5 +158,60 @@ void main() {
       }).usage,
       isNull,
     );
+  });
+
+  group('a model stuck repeating itself (#908)', () {
+    /// Ollama for a model that never ends its reply: it stops only at the
+    /// request's num_predict, as Ollama does, and says so in done_reason.
+    Future<Object?> runaway(
+      String method,
+      String url, {
+      Map<String, String> headers = const {},
+      Object? body,
+      required Duration timeout,
+    }) async {
+      final options = (body! as Map)['options'] as Map;
+      final cap = options['num_predict'] as int?;
+      if (cap == null) throw StateError('no cap: this reply would never end');
+      return {
+        'message': {
+          'content': List.filled(cap, 'hatırlatma').join(' '),
+          'tool_calls': [
+            {
+              'function': {
+                'name': 'add_note',
+                'arguments': {'text': 'cut'},
+              },
+            },
+          ],
+        },
+        'done_reason': 'length',
+        'eval_count': cap,
+      };
+    }
+
+    test('stops at the cap and fails the turn instead of keeping the text', () async {
+      final provider = OllamaProvider('v10', host: 'http://box:1', transport: runaway);
+      await expectLater(
+        provider.turn(
+          '',
+          [
+            {'role': 'user', 'content': 'remind me'},
+          ],
+          [tool],
+        ),
+        throwsA(isA<ReplyTooLong>()),
+      );
+    });
+
+    test('a reply that ends on its own is kept', () {
+      final done = fromOllama({
+        'message': {'content': 'Saved.'},
+        'done_reason': 'stop',
+      });
+      expect(done.content, [
+        {'type': 'text', 'text': 'Saved.'},
+      ]);
+    });
   });
 }
