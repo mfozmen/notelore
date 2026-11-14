@@ -336,5 +336,13 @@ Findings:
 
 - **v10 is not better than v9.** It gains on collection (+4 held-out in both modes) and on about me (+1: it now updates `aboutme-en-update` instead of adding a second fact). It loses on plan and on the slim question cases: `q-tr-1` and `q-tr-5` call `get_decision` in both runs. The total is down everywhere but about me.
 - **v10 can fall into a repetition loop.** On `rem-tr-1` ("5 dakika sonra bana kitap okumayı hatırlat") with the full prompt, it calls `add_reminder` correctly. After the tool returns, its reply is "5 dakika sonra kitap okumayı hatırlatma hatırlatma hatırlatma…" and never ends: the runner was at 59k tokens when it was killed. This happens every time, greedy. v9 answers the same case in 2.6 s, and the slim prompt does not trigger it. Nothing caps a local model's reply, so a loop hangs the chat (#908).
-- **The cause is not settled.** The data and the precision changed together. v9's data trained with v10's fp16 recipe tells them apart.
+- **The data causes the loop, not fp16.** v9's data trained with v10's fp16 recipe (v9fp16: 232 steps, validation 0.445 → 0.349, the same curve as v9 in bf16) has no timeout in any run. Replaying v10's looping turn with the reply capped at 400 tokens, v9fp16 answers in 36 tokens and v9 in 34, while v10 hits the cap. The 93 about-me turns are the only full-prompt turns in v10's data, and the loop shows only under the full prompt.
+
+| | Held-out, slim | Held-out, full | Cases × 2, slim | Cases, full | About me |
+|---|---|---|---|---|---|
+| v9 (bf16) | 257 | 256 | 81/94 | 39/47 | 7 |
+| v9fp16 | 253 | 256 | 78/94 | 41/47 | 7 |
+| v10 | 255 | 255 | 77/94 | 38/47 | 8 |
+
+- **fp16 costs nothing measurable.** With the full prompt v9fp16 equals v9 (held-out) or beats it (cases +2). It is a little lower slim (−4 held-out, −3 cases), within what two runs of one recipe differ by.
 - **v9 stays the desktop model.** v10 is in Ollama as `notelore-qwen3-4b-v10`, for comparison only.
