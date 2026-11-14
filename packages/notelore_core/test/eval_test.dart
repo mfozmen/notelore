@@ -540,6 +540,27 @@ void main() {
     ]);
   });
 
+  test(
+    'a case may add invented notes, newer than its own, so its note is far down (#895)',
+    () async {
+      final crowded = _case({
+        'id': 'q-filler',
+        'kind': 'question',
+        'lang': 'en',
+        'notes': {'projects/mopsos.md': _mopsos},
+        'filler': 60,
+        'message': 'How often is the hit rate calculated?',
+        'expect': {
+          'answer': ['weekly'],
+        },
+      });
+      final result = await runCase(crowded, ScriptedProvider([text('Weekly.')]));
+      expect(result.passed, isTrue, reason: '${result.problems}');
+      expect(result.noteList, contains('garden-irrigation'));
+      expect(result.noteList, isNot(contains('mopsos')));
+    },
+  );
+
   test('an answer is checked for its facts; a question must not write', () async {
     final question = _case({
       'id': 'q-1',

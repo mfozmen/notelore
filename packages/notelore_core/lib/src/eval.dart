@@ -19,6 +19,7 @@ import 'i18n.dart' show answerLanguage;
 import 'providers/base.dart';
 import 'providers/ollama.dart';
 import 'providers/openai.dart';
+import 'sample_notes.dart';
 import 'store/index.dart';
 import 'tools.dart';
 
@@ -74,6 +75,7 @@ class EvalCase {
           {...(turn as Map).cast<String, Object?>()},
       ],
       notes = ((json['notes'] as Map?) ?? shared).cast<String, String>(),
+      filler = json['filler'] as int? ?? 0,
       failFirstCall = json['fail_first_call'] == true,
       search = (json['search'] as List?)?.cast<String>(),
       expect = Expectation.fromJson((json['expect']! as Map).cast());
@@ -89,6 +91,10 @@ class EvalCase {
 
   /// Relative path (`/`) -> note text, written before the turn.
   final Map<String, String> notes;
+
+  /// How many invented notes go beside [notes], all updated in the twelve days
+  /// before the eval's day, so the case's own notes are not among the newest.
+  final int filler;
 
   /// The turn's first tool call gets an error: the model must fix it and go
   /// on, in the user's language, never hand the error to the user (#474).
@@ -250,7 +256,14 @@ Future<EvalResult> runCase(
   final index = NoteIndex(p.join(dir.path, 'state', 'index.sqlite'), root);
   final watch = Stopwatch()..start();
   try {
-    _write(root, evalCase.notes);
+    _write(root, {
+      ...sampleNotes(
+        evalCase.filler,
+        newest: evalToday.subtract(const Duration(days: 1)),
+        days: 12,
+      ),
+      ...evalCase.notes,
+    });
     final before = _files(root);
     final agent = Agent(
       until ?? provider,

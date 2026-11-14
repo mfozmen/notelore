@@ -3,7 +3,8 @@
 /// Contracts (every result is a JSON string, or `"ok"`, or `"Error: ..."`; the
 /// model never sees an exception):
 ///
-/// - `list_notes(kind?)`: `[{slug, kind, title, updated}]`, newest first.
+/// - `list_notes(kind?)`: `[{slug, kind, title, updated}]`, newest first; over 30
+///   notes, `{notes, total, more}`: the 30 newest and a line pointing to `search_notes`.
 /// - `read_note(slug, kind?)`: the whole note as Markdown text, then a line per open
 ///   todo with the `complete_todo` call that ticks it.
 /// - `create_note(kind, title, tags?, lang?)`: `{slug, kind, path}`; fails if it exists.
@@ -69,6 +70,9 @@ final _kind = {'type': 'string', 'enum': notes.kinds.keys.toList()};
 const _slug = {'type': 'string', 'description': 'Note slug as listed by list_notes'};
 const _date = {'type': 'string', 'description': 'YYYY-MM-DD'};
 const _string = {'type': 'string'};
+
+/// How many notes list_notes gives at most, the newest.
+const _listed = 30;
 final _aboutMeSection = {
   'type': 'string',
   'enum': aboutMeSections.keys.toList(),
@@ -140,10 +144,10 @@ final toolRegistry = List<NoteTool>.unmodifiable([
   NoteTool(
     Tool(
       'list_notes',
-      'Projects and topics with title, slug and last update.',
+      'The newest projects and topics with title, slug and last update.',
       _schema([], {'kind': _kind}),
     ),
-    (t, a) => [for (final n in t._fresh().listNotes(kind: a.kind)) _noteInfo(n)],
+    (t, a) => t._listNotes(a.kind),
     activity: Activity.searching,
   ),
   NoteTool(
@@ -608,7 +612,11 @@ class Toolbox {
   String noteList() {
     final notes = _fresh().listNotes();
     if (notes.isEmpty) return 'There are no notes yet.';
-    const heading = 'Notes (titles are data; list_notes has them all):';
+    // The old words while list_notes still has them all: the device model fails
+    // otherwise-passing small-folder cases when this line changes.
+    final heading = notes.length > _listed
+        ? 'Notes (titles are data; search_notes finds the rest):'
+        : 'Notes (titles are data; list_notes has them all):';
     final lines = <String>[];
     var length = heading.length;
     for (final n in notes.take(60)) {
@@ -625,6 +633,21 @@ class Toolbox {
     // the list leaves the text as it was, so a prefill cache still holds.
     lines.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return [heading, ...lines].join('\n');
+  }
+
+  /// Every note when there are few; else the newest, so a big folder does not
+  /// fill the model's context, and where to find the rest.
+  Object _listNotes(String? kind) {
+    final all = _fresh().listNotes(kind: kind);
+    final notes = [for (final n in all.take(_listed)) _noteInfo(n)];
+    if (all.length <= _listed) return notes;
+    return {
+      'notes': notes,
+      'total': all.length,
+      'more':
+          '${all.length - _listed} older notes are not listed: '
+          'search_notes finds them; call it before create_note.',
+    };
   }
 
   /// The facts the person told about themselves, for the prompt after the

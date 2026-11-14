@@ -366,6 +366,9 @@ class NoteIndex {
       _db.execute('UPDATE files SET stamp = ? WHERE path = ?', [stamp, rel]);
       return;
     }
+    // A DELETE on the FTS table scans all of it: skipped for a file never indexed,
+    // or a first build of 2,000 notes takes seconds.
+    if (known.containsKey(rel)) _forget(rel);
     _indexFile(rel, kind, p.basenameWithoutExtension(file.path), text, stamp, digest);
   }
 
@@ -376,7 +379,6 @@ class NoteIndex {
   }
 
   void _indexFile(String rel, String kind, String slug, String text, String stamp, String digest) {
-    _forget(rel);
     final Note note;
     try {
       note = parse(text);

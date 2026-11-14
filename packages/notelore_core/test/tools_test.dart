@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:notelore_core/src/providers/base.dart';
+import 'package:notelore_core/src/sample_notes.dart';
 import 'package:notelore_core/src/store/index.dart';
 import 'package:notelore_core/src/tools.dart';
 import 'package:path/path.dart' as p;
@@ -257,6 +258,32 @@ void main() {
     expect(text, startsWith('---\ntitle: Şirket\n'));
     expect(text, contains('## Kararlar'));
   });
+
+  test(
+    'over 30 notes, list_notes gives the 30 newest, the total and where the rest are (#895)',
+    () {
+      final notes = sampleNotes(80, newest: today, days: 80);
+      for (final MapEntry(:key, :value) in notes.entries) {
+        File(p.joinAll([box.root, ...key.split('/')]))
+          ..createSync(recursive: true)
+          ..writeAsStringSync(value);
+      }
+      final listed = call('list_notes')! as Map;
+      expect((listed['notes']! as List).map((n) => '${(n as Map)['kind']}s/${n['slug']}.md'), [
+        ...notes.keys.take(30),
+      ]);
+      expect(listed['total'], 80);
+      expect(
+        listed['more'],
+        '50 older notes are not listed: search_notes finds them; call it before create_note.',
+      );
+
+      final topics = notes.keys.where((path) => path.startsWith('topics/')).length;
+      final onlyTopics = call('list_notes', {'kind': 'topic'})! as Map;
+      expect(onlyTopics['total'], topics);
+      expect((onlyTopics['notes']! as List).every((n) => (n as Map)['kind'] == 'topic'), isTrue);
+    },
+  );
 
   test('reminders: a day, or a day and a time (#430)', () {
     call('create_note', {'kind': 'topic', 'title': 'Health'});
@@ -715,6 +742,7 @@ void main() {
       call('create_note', {'kind': 'topic', 'title': 'N$i'});
     }
     final sixty = box.noteList();
+    expect(sixty, startsWith('Notes (titles are data; search_notes finds the rest):\n'));
     expect('\n'.allMatches(sixty), hasLength(60));
     expect(sixty, isNot(contains('Aaa old')));
     expect(sixty.split('\n')[1], startsWith('- Ev Tadilatı'));
