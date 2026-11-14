@@ -717,6 +717,105 @@
      ]
     }
    }
+  },
+  {
+   "id": "scale-en-1",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "Which database does Mopsos use?",
+   "expect": {
+    "answer": [
+     "SQLite"
+    ]
+   }
+  },
+  {
+   "id": "scale-tr-1",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Mutfak tezgahı için ne karar vermiştik?",
+   "expect": {
+    "answer": [
+     "Granit"
+    ]
+   }
+  },
+  {
+   "id": "scale-tr-2",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Muhasebecinin aylık ücreti ne kadardı?",
+   "expect": {
+    "answer": [
+     "2.500"
+    ]
+   }
+  },
+  {
+   "id": "scale-en-2",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "For Mopsos: predictions are now also logged to a CSV file.",
+   "expect": {
+    "tools_not": [
+     "complete_todo"
+    ],
+    "notes": {
+     "^projects/mopsos\\.md$": [
+      "CSV"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-tr-3",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Şirket kuruluşu için noterden randevu alındı.",
+   "expect": {
+    "tools_not": [
+     "complete_todo"
+    ],
+    "notes": {
+     "^topics/sirket-kurulusu\\.md$": [
+      "noter"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-tr-4",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Şu an Tutunamayanlar'ı okuyorum.",
+   "expect": {
+    "notes": {
+     "^topics/okumakta-oldugum-kitaplar\\.md$": [
+      "Tutunamayanlar"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-en-3",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "Mopsos: I set up the Drive backup.",
+   "expect": {
+    "tools": [
+     "complete_todo"
+    ],
+    "notes": {
+     "^projects/mopsos\\.md$": []
+    }
+   }
   }
  ]
 }
