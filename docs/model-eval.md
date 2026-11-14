@@ -314,3 +314,27 @@ Findings:
 - **About me is measured without `--slim`.** The about-me tools are not among the device model's tools (`slim: false`, #447), so a slim run cannot pass it: both models score 1 of 14 that way. The desktop runs the local model with the full prompt and tools.
 - **With the full prompt both models remember new facts but never update one**: 7 of 14 each. They call `remember_about_me` where a listed fact changes or gains a detail (5 cases), for a fact already listed, and when asked to move a fact from a note. Neither data set has an about-me turn.
 - **v9 can replace v8 on the desktop** (#834). It is in Ollama as `notelore-qwen3-4b-v9`.
+
+## Fine-tune v10, a negative result, 2026-11-14 (#604)
+
+**Setup**
+- v10 data: 2,164 turns, v9's plus 100 new ones: 93 about-me turns (update, already known, forget, move to or from a note, facts that are not about the user) and 7 more for new lists (`newlist-*`). The about-me turns use the full prompt and tools, since slim mode has no about-me tools. All the other turns are slim.
+- v9's recipe: rank 16, one epoch, the loss on the answer alone, learning rate 2e-4. One session on Kaggle's T4, 244 steps. The validation loss fell from 0.432 to 0.333 at step 240, which is the adapter kept.
+- The precision changed too (#907). The about-me turns are about 4.9k tokens, against 3.1k at most before. In the T4's emulated bf16, attention has only the math kernel, whose memory grows with the square of the length, and the first run ran out of memory. v10 trained in fp16 with the LoRA in fp32. v9 trained in emulated bf16.
+- Q4_K_M, greedy, the same code for both models (ffc21f8). The cases are measured slim (two runs) and with the full prompt (one run).
+
+| | Held-out (292), slim | Held-out, full | 47 cases × 2, slim | 47 cases, full | About me (14), full |
+|---|---|---|---|---|---|
+| **v9** | **257 (88.0%)** | **256 (87.7%)** | **81/94 (86%)** | **39/47 (83%)** | 7 (50%) |
+| v10 | 255 (87.3%) | 255 (87.3%) | 77/94 (82%) | 38/47 (81%) | **8 (57%)** |
+
+The full-prompt cases first scored 33/47. Nine of the failures were timeouts on the last nine cases in a row. One of them, `rem-tr-1`, loops (below), and the other eight queued behind its runner and timed out. Run alone, five of those eight pass, so the table gives 38.
+
+Held-out by kind, v9 → v10. Slim: collection 54 → 58/73, chat 13 → 15/15; plan 14 → 11/15, and filing, new note, question, todo and unclear one lower each. Full: collection 57 → 61/73, decision, new note and recovery one higher each; plan 13 → 10/15, reminder 14 → 12/15, unclear 12 → 10/15, todo one lower.
+
+Findings:
+
+- **v10 is not better than v9.** It gains on collection (+4 held-out in both modes) and on about me (+1: it now updates `aboutme-en-update` instead of adding a second fact). It loses on plan and on the slim question cases: `q-tr-1` and `q-tr-5` call `get_decision` in both runs. The total is down everywhere but about me.
+- **v10 can fall into a repetition loop.** On `rem-tr-1` ("5 dakika sonra bana kitap okumayı hatırlat") with the full prompt, it calls `add_reminder` correctly. After the tool returns, its reply is "5 dakika sonra kitap okumayı hatırlatma hatırlatma hatırlatma…" and never ends: the runner was at 59k tokens when it was killed. This happens every time, greedy. v9 answers the same case in 2.6 s, and the slim prompt does not trigger it. Nothing caps a local model's reply, so a loop hangs the chat (#908).
+- **The cause is not settled.** The data and the precision changed together. v9's data trained with v10's fp16 recipe tells them apart.
+- **v9 stays the desktop model.** v10 is in Ollama as `notelore-qwen3-4b-v10`, for comparison only.
