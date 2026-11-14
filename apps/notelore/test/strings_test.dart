@@ -74,6 +74,7 @@ void main() {
       'No answer in time, so I stopped. Please try again.',
       'The model sent no answer. Try again.',
       'I stopped after too many tool calls in a row. Please rephrase the request.',
+      '${const ReplyTooLong()}',
     ];
     for (final text in produced) {
       expect(tr.core(text), isNot(text), reason: text);

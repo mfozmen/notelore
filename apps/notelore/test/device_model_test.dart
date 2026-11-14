@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:llamadart/llamadart.dart';
 import 'package:notelore/src/device_model.dart';
+import 'package:notelore_core/notelore_core.dart';
 
 void main() {
   test('the model is one pinned, checksummed file (#328)', () {
@@ -17,6 +18,7 @@ void main() {
     expect(deviceSampling.topK, 20);
     expect(deviceSampling.minP, 0);
     expect(deviceSampling.penalty, 1); // none: tool calls repeat slugs and keys
+    expect(deviceSampling.maxTokens, maxReplyTokens); // a looping model stops (#908)
     expect(
       describeSampling(deviceSampling),
       'temp 0.7, top-p 0.8, top-k 20, min-p 0.0, penalty 1.0',
@@ -193,4 +195,42 @@ void main() {
       'message': {'content': 'Hi.', 'tool_calls': <Object?>[]},
     });
   });
+
+  test('a reply cut at the cap reaches the provider as cut, and fails the turn (#908)', () async {
+    final cut = fromLlama(
+      LlamaCompletion(
+        text: List.filled(deviceSampling.maxTokens, 'hatırlatma').join(' '),
+        finishReason: LlamaFinishReason.length,
+      ),
+    );
+    expect(cut['done_reason'], 'length');
+    await expectLater(
+      LocalProvider('m', _Answers(cut)).turn('', [
+        {'role': 'user', 'content': 'remind me'},
+      ], const []),
+      throwsA(isA<ReplyTooLong>()),
+    );
+    expect(
+      fromLlama(const LlamaCompletion(text: 'Hi.', finishReason: LlamaFinishReason.stop)),
+      containsPair('done_reason', 'stop'),
+    );
+  });
+}
+
+class _Answers implements LocalEngine {
+  _Answers(this.answer);
+
+  final Map<String, Object?> answer;
+
+  @override
+  Future<Map<String, Object?>> chat(
+    List<Map<String, Object?>> messages,
+    List<Map<String, Object?>> tools,
+  ) async => answer;
+
+  @override
+  Future<void> prefill(String system, List<Map<String, Object?>> tools) async {}
+
+  @override
+  Future<void> dispose() async {}
 }

@@ -6,6 +6,7 @@ library;
 import 'dart:convert';
 
 import 'package:llamadart/llamadart.dart';
+import 'package:notelore_core/notelore_core.dart' show maxReplyTokens;
 
 import 'whisper_model.dart' show ModelFile;
 
@@ -27,7 +28,13 @@ const deviceModelFiles = [
 /// How the device model samples: as Ollama's Modelfile, which every eval
 /// measured (Qwen's recommended values). llamadart's defaults differ, and its
 /// repeat penalty works against tool calls, which repeat slugs and JSON keys.
-const deviceSampling = GenerationParams(temp: 0.7, topP: 0.8, topK: 20, penalty: 1);
+const deviceSampling = GenerationParams(
+  temp: 0.7,
+  topP: 0.8,
+  topK: 20,
+  penalty: 1,
+  maxTokens: maxReplyTokens,
+);
 
 /// [params] in one line, for the probe's log.
 String describeSampling(GenerationParams params) =>
@@ -144,6 +151,7 @@ Map<String, Object?> fromLlama(LlamaCompletion completion) => {
         },
     ],
   },
+  'done_reason': ?completion.finishReason?.wireValue,
   if (completion.usage case final usage?) ...{
     'prompt_eval_count': usage.promptTokens,
     'eval_count': usage.completionTokens,

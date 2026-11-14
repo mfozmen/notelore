@@ -30,11 +30,13 @@ export 'src/providers/base.dart'
         ProviderAccess,
         ProviderId,
         ProviderSpec,
+        ReplyTooLong,
         TokenUsage,
         Tool,
         findProvider,
         imageBlock,
         imageType,
+        maxReplyTokens,
         providerSpecs;
 export 'src/providers/chatgpt.dart'
     show BearerToken, ChatGptProvider, PlanLimitReached, chatGptUsageUrl, listChatGptModels;
