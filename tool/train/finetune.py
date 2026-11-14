@@ -200,10 +200,11 @@ def native_bf16():
 
 def gpu_settings():
     """The trainer's precision, and whether the GPU has bf16 natively. A T4
-    trains with the bf16 flags (emulated): with fp16 ones the grad scaler fails
-    on the LoRA's bf16 gradients (Kaggle v3.1 run 1). Only TRL's log-prob
-    kernel needs native bf16, so it keys on that ([fp32_logprobs])."""
-    return precision(torch.cuda.is_bf16_supported()), native_bf16()
+    trains in fp16: in its emulated bf16 SDPA has only the math kernel, whose
+    memory grows with the square of the length (v10's 5k-token rows ran out).
+    fp16 needs [linear_attention] and [fp32_trainable] too."""
+    native = native_bf16()
+    return precision(native), native
 
 
 def precision(bf16):
@@ -223,6 +224,23 @@ def fp32_logprobs(native):
     except ImportError:  # an older TRL, without that kernel
         return
     kernel._MM_OUT_DTYPE = False
+
+
+def linear_attention(native):
+    """Without native bf16, SDPA repeats the KV heads rather than take its GQA
+    mode, which has no mem-efficient kernel and fell back to the math one."""
+    if native:
+        return
+    sdpa = importlib.import_module("transformers.integrations.sdpa_attention")
+    sdpa.use_gqa_in_sdpa = lambda *args, **kwargs: False
+
+
+def fp32_trainable(model):
+    """The trainable weights (the LoRA, which comes out bf16) in fp32: the fp16
+    grad scaler unscales fp32 gradients only (Kaggle v3.1 run 1)."""
+    for param in model.parameters():
+        if param.requires_grad:
+            param.data = param.data.float()
 
 
 def load(base, dtype):
@@ -269,6 +287,7 @@ def train(
     print(f"{len(kept)} training turns, {len(held)} held out for the validation loss")
     (flags, dtype), native = gpu_settings()
     fp32_logprobs(native)
+    linear_attention(native)
     model = load(base, dtype)
     trainer = SFTTrainer(
         model=model,
@@ -279,6 +298,8 @@ def train(
         args=SFTConfig(**trainer_args(out, epochs, flags, learning_rate, eval_every)),
         callbacks=callbacks(max_hours),
     )
+    if flags["fp16"]:
+        fp32_trainable(trainer.model)
     # resume: on from the latest checkpoint in <out>/lora, schedule and all.
     trainer.train(resume_from_checkpoint=resume or None)
     print("\n".join(losses(trainer.state.log_history)))
@@ -323,6 +344,7 @@ def dpo(base, sft, data, out, epochs=1):
     print(f"{len(kept)} training pairs, {len(held)} held out ({len(rows) - len(rendered)} not cut)")
     (flags, dtype), native = gpu_settings()
     fp32_logprobs(native)
+    linear_attention(native)
     model = PeftModel.from_pretrained(load(base, dtype), sft, is_trainable=True)
     settings = {k: v for k, v in trainer_args(out, epochs, flags).items() if k != "dataset_text_field"}
     trainer = DPOTrainer(
@@ -333,6 +355,8 @@ def dpo(base, sft, data, out, epochs=1):
         args=DPOConfig(**{**settings, **DPO_SETTINGS}, beta=DPO_BETA),
         callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
     )
+    if flags["fp16"]:
+        fp32_trainable(trainer.model)
     trainer.train()
     print("\n".join(losses(trainer.state.log_history)))
     trainer.save_model(str(Path(out) / "lora"))
