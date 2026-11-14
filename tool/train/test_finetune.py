@@ -61,8 +61,8 @@ def gpu(capability):
     )
 
 
-# is_bf16_supported() counts emulation: a T4 says yes, but only Ampere (8.0)
-# and later do it natively.
+# Torch's bf16 check counts emulation, so a T4 says yes; only Ampere (8.0) and
+# later do it natively.
 gpu((7, 5))
 check("Kaggle's T4 has no native bf16", native_bf16(), False)
 gpu((8, 0))

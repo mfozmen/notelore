@@ -201,7 +201,7 @@ def native_bf16():
 def gpu_settings():
     """The trainer's precision, and whether the GPU has bf16 natively. A T4
     trains in fp16: in its emulated bf16 SDPA has only the math kernel, whose
-    memory grows with the square of the length (v10's 5k-token rows ran out).
+    memory grows with the square of the length (the 5k-token rows of v10 ran out).
     fp16 needs [linear_attention] and [fp32_trainable] too."""
     native = native_bf16()
     return precision(native), native
