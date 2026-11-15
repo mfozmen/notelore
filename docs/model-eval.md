@@ -367,6 +367,29 @@ Findings:
 - At 2,000 notes the unbounded list was about 51,000 tokens, more than the device model's 16k context, so the before column is only possible on small folders.
 - ChatGPT has not been measured yet.
 
+## Fine-tune v11, 2026-11-15 (#604)
+
+**Setup**
+- v11 data: 2,464 turns, re-prompted at e71e53a. 2,071 slim turns (v10's), the 93 about-me turns with the full prompt, and 300 of v9's turns with the full prompt too: every reminder (74) and plan (52) turn, 80 questions and 94 spread over the other kinds. In v10 the about-me turns were the only full-prompt turns, and the loop showed only under the full prompt.
+- v9's recipe in fp16 (#907): rank 16, one epoch, the loss on the answer alone, learning rate 2e-4. One session on Kaggle's T4, 278 steps. The validation loss fell from 0.420 to 0.314 at the last step, which is the adapter kept.
+- Q4_K_M, greedy, the same code for both models (e71e53a). v9 was measured again there.
+
+| | Held-out (292), slim | Held-out, full | 47 cases × 2, slim | 47 cases, full | About me (14), full |
+|---|---|---|---|---|---|
+| v9 | 257 (88.0%) | **256 (87.7%)** | 81/94 (86%) | 39/47 (83%) | 7 (50%) |
+| **v11** | 257 (88.0%) | 255 (87.3%) | **84/94 (89%)** | **41/47 (87%)** | **9 (64%)** |
+
+Held-out by kind, v9 → v11. Slim: collection 54 → 59/73, chat 13 → 15/15; filing 31 → 29/36, unclear 15 → 13/15, and recovery, todo and todo-done one lower each. Full: collection 57 → 59/73, todo-done 16 → 18/20, new note one higher; unclear 12 → 9/15, and recovery, reminder and todo one lower each.
+
+On the cases, slim over both runs: collection 13 → 20/20; question 20 → 18/20 and todo-done 4 → 2/4. With the full prompt, v11 passes `coll-tr-3`, `coll-en-4`, `coll-en-5` and `q-en-3` and fails `coll-en-3` and `coll-tr-empty`.
+
+Findings:
+
+- **v11 does not loop.** No full-prompt run timed out. Replaying v10's looping turn (`rem-tr-1`, after the tool result) with the reply capped at 400 tokens, v11 answers in 34 tokens, like v9. Run alone, `rem-tr-1`, `rem-en-1`, `rem-tr-title` and `plan-en-1` all end on their own for both models, in 26 to 60 tokens. (`plan-tr-search` needs web search and is not run by the eval.)
+- **v11 keeps v10's gains without its losses.** Collection is up in every set, and about me is 9 of 14: it now updates `aboutme-en-update` and `aboutme-en-change-age` instead of adding a second fact. The plan losses of v10 are gone (held-out plan equal to v9 in both modes).
+- **Unclear is v11's weak kind.** With the full prompt it asks in 9 of 15 held-out cases against v9's 12, and acts instead. The slim prompt shows it less (13 against 15).
+- **v11 is the best model so far on the cases and on about me, and equal on the held-out set.** It is in Ollama as `notelore-qwen3-4b-v11`.
+
 ## The prompt's note list chosen by the message, 2026-11-15 (#914)
 
 The system prompt lists the newest notes, so a message about an older note gets no slug for it unless the model calls `search_notes`. `eval --note-list=<order>:<n>` picks the list another way, to compare: `matches` lists the notes the index search finds for the message, best first; `mixed` tops those up with the newest; `newest:<n>` keeps today's order at another size. A folder of at most `n` notes keeps today's list. Six new `scale` cases (filler 80) name an old note only by its words: scale-en-4, scale-en-5, scale-en-6, scale-tr-5, scale-tr-6, scale-tr-7.
