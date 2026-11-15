@@ -406,7 +406,7 @@ On v9 (`notelore-qwen3-4b-v9`, Ollama, `--greedy`), `eval/cases.json`, all 61 ca
 | mixed:20 | 98/120 | 18/26 | 52/60 | 11/13 |
 | mixed:30 | 100/120 | 20/26 | 50/60 | 9/13 |
 
-The cases that are not `scale` passed and failed the same in every row. Topping the matches up with the newest notes only dilutes them, so the app now uses `matches:20` (`defaultNotes`); `--note-list=newest` gives the old list.
+The cases that are not `scale` passed and failed the same in every row. Topping the matches up with the newest notes only dilutes them, so the app now uses `matches:20` (`defaultNotes`); `--note-list=newest` gives the old list. Over 20 notes the list holds only what the search finds, so it can be shorter than 20, down to the heading alone; the model then calls `search_notes` or `list_notes`. Each row is `dart run notelore_core:notelore_dev eval --provider=ollama --model=notelore-qwen3-4b-v9 --greedy --cases=eval/cases.json --note-list=<list>`, with `--slim --runs=2` for the slim column.
 
 One case broke: scale-tr-1 ("Mutfak tezgahı için ne karar vermiştik?") with the full prompt. The model saw the right note in the list and called `get_decision` with a guessed topic ("tezgah"), got a bare miss and gave up; with the newest list it had searched instead. A miss now names the note's current decision topics, and scale-tr-1 passes.
 

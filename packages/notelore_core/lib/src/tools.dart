@@ -664,6 +664,7 @@ class Toolbox {
     final byKey = {for (final n in notes) (n.kind, n.slug): n};
     final found = {for (final h in index.search(message)) (h.kind, h.slug)};
     return [
+      // A hit missing from listNotes (a held note) stays out of the prompt.
       for (final key in found) ?byKey[key],
       if (mixed) ...notes.where((n) => !found.contains((n.kind, n.slug))),
     ];

@@ -569,7 +569,8 @@ void main() {
         noteList: (order: NoteListOrder.mixed, size: 20),
       );
       expect(matched.noteList, contains('mopsos'));
-      expect('\n'.allMatches(matched.noteList), hasLength(20));
+      // The heading, then the 20 the size allows of the case's 61 notes.
+      expect(matched.noteList.split('\n').skip(1), hasLength(20));
     },
   );
 

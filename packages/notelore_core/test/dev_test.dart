@@ -306,7 +306,7 @@ void main() {
           'notes': {
             'topics/glacier-trip.md':
                 '---\ntitle: Glacier Trip\nkind: topic\ncreated: 2020-01-02\n'
-                'updated: 2020-01-02\n---\n# Glacier Trip\n\n## \notes\n- 2020-01-02: Crampons.\n',
+                'updated: 2020-01-02\n---\n# Glacier Trip\n\n## Notes\n- 2020-01-02: Crampons.\n',
           },
           'message': 'What did I pack for the glacier?',
           'expect': <String, Object?>{},
