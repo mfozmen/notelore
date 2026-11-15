@@ -306,6 +306,10 @@ void main() {
       'ok',
     );
     expect(
+      call('add_reminder', {'slug': 'health', 'at': '2026-11-20', 'text': 'Pay', 'repeat': 'once'}),
+      'ok',
+    );
+    expect(
       call('add_reminder', {
         'slug': 'health',
         'at': '2026-11-23 19:00',
@@ -322,6 +326,7 @@ void main() {
         '- 2026-10-27: Call back\n'
         '- 2026-10-28 18:00-20:15: Dinner\n'
         '- 2026-11-18 09:00 (monthly): Rent\n'
+        '- 2026-11-20: Pay\n'
         '- 2026-11-23 19:00 (weekly): Gym\n',
       ),
     );
@@ -346,7 +351,7 @@ void main() {
         'text': 'x',
         'repeat': 'hourly',
       }),
-      "Error: repeat must be one of daily, weekly, monthly, yearly, got 'hourly'.",
+      "Error: repeat must be one of once, daily, weekly, monthly, yearly, got 'hourly'.",
     );
   });
 
@@ -1061,8 +1066,12 @@ void schemaTests() {
   test("a reminder's repeat offers every repeat and is left out for a one-time one (#917)", () {
     final reminder = noteTools.firstWhere((t) => t.name == 'add_reminder');
     final repeat = (reminder.inputSchema['properties']! as Map)['repeat'] as Map;
-    expect(repeat['enum'], ['daily', 'weekly', 'monthly', 'yearly']);
-    expect(repeat['description'], allOf(contains('Omit'), contains('one-time')));
+    // A route that fills every argument needs a one-time value to pick (#917).
+    expect(repeat['enum'], ['once', 'daily', 'weekly', 'monthly', 'yearly']);
+    expect(
+      repeat['description'],
+      allOf(contains('once'), contains('one-time'), contains('default')),
+    );
     expect(reminder.inputSchema['required'], isNot(contains('repeat')));
   });
 
