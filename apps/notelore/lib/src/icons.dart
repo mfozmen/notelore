@@ -82,6 +82,7 @@ abstract final class AppIcons {
   static const pinOn = IconData(0xe3e2, fontFamily: _fill);
   static const privacy = IconData(0xe40c, fontFamily: _regular);
   static const refresh = IconData(0xe036, fontFamily: _regular);
+  static const repeat = IconData(0xe3f6, fontFamily: _regular);
   static const replay = IconData(0xe038, fontFamily: _regular);
   static const restore = IconData(0xe038, fontFamily: _regular);
   static const schedule = IconData(0xe19a, fontFamily: _regular);

@@ -550,8 +550,9 @@ class NoteView extends StatelessWidget {
         '${isoDate(today)} '
         '${today.hour.toString().padLeft(2, '0')}:${today.minute.toString().padLeft(2, '0')}';
     final sorted = [...reminders]..sort((a, b) => key(a).compareTo(key(b)));
-    final coming = sorted.where((r) => key(r).compareTo(now) >= 0);
-    final past = sorted.where((r) => key(r).compareTo(now) < 0);
+    bool passed(Reminder r) => r.repeat == null && key(r).compareTo(now) < 0;
+    final coming = sorted.where((r) => !passed(r));
+    final past = sorted.where(passed);
     return [
       for (final (reminder, passed) in [
         for (final r in coming) (r, false),
@@ -559,7 +560,9 @@ class NoteView extends StatelessWidget {
       ])
         _row(
           mark: Icon(
-            passed ? AppIcons.history : AppIcons.notifications,
+            passed
+                ? AppIcons.history
+                : (reminder.repeat == null ? AppIcons.notifications : AppIcons.repeat),
             size: 18,
             color: passed ? colors.outline : colors.primary,
           ),
@@ -570,7 +573,11 @@ class NoteView extends StatelessWidget {
             ),
           ),
           date: Text(() {
-            final when = [_date(reminder.date), ?reminder.time].join(' · ');
+            final when = [
+              _date(reminder.date),
+              ?reminder.time,
+              if (reminder.repeat case final repeat?) strings.repeats(repeat),
+            ].join(' · ');
             return passed ? strings.reminderPassed(when) : when;
           }(), style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
         ),

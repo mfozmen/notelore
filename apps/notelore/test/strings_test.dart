@@ -572,6 +572,7 @@ void main() {
       'supersededOn': s.supersededOn('d'),
       'overdue': s.overdue('d'),
       'reminderPassed': s.reminderPassed('d'),
+      'repeats': Repeat.values.map(s.repeats).join(','),
       'reminders': s.reminders,
       'howRemindersArrive': s.howRemindersArrive,
       'remindersOff': s.remindersOff,

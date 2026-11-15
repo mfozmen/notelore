@@ -366,8 +366,9 @@ Iterable<DayItem> _reminderItems(
 ) sync* {
   final range = _range(reminder);
   for (final at in _occurrences(reminder, from)) {
-    if (!at.isBefore(from))
+    if (!at.isBefore(from)) {
       yield item(at, range, reminder.text, todo: false, repeat: reminder.repeat);
+    }
   }
 }
 

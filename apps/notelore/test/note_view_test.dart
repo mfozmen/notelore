@@ -394,6 +394,25 @@ kind: topic
     expect(find.text('not a reminder, as written'), findsOneWidget);
   });
 
+  testWidgets('reminders: a repeating one says how it repeats and never passes (#919)', (
+    tester,
+  ) async {
+    await show(tester, '''---
+title: Gym
+kind: topic
+---
+# Gym
+
+## Reminders
+- 2026-10-05 19:00 (weekly): Gym
+- 2026-10-02 (yearly): Mum's birthday
+''');
+    expect(find.text('5 Oct · 19:00 · Weekly'), findsOneWidget);
+    expect(find.text('2 Oct · Yearly'), findsOneWidget);
+    expect(find.textContaining('Passed'), findsNothing);
+    expect(find.byIcon(AppIcons.repeat), findsNWidgets(2));
+  });
+
   testWidgets('notes: a timeline, newest first, its words formatted (#426)', (tester) async {
     await show(tester, _mopsos);
     final crypto = tester.getTopLeft(find.textContaining('Considered adding crypto')).dy;

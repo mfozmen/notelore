@@ -482,6 +482,9 @@ abstract class Strings {
   String overdue(String date);
   String reminderPassed(String date);
 
+  /// How a repeating reminder comes again, short enough for a date column.
+  String repeats(Repeat repeat);
+
   // Reminders as this device's notifications (#431).
   String get reminders;
   String get howRemindersArrive;
@@ -1472,6 +1475,13 @@ class EnglishStrings extends Strings {
   String overdue(String date) => 'Overdue, $date';
   @override
   String reminderPassed(String date) => 'Passed, $date';
+  @override
+  String repeats(Repeat repeat) => switch (repeat) {
+    Repeat.daily => 'Daily',
+    Repeat.weekly => 'Weekly',
+    Repeat.monthly => 'Monthly',
+    Repeat.yearly => 'Yearly',
+  };
   @override
   String get reminders => 'Reminders';
   @override
@@ -2728,6 +2738,13 @@ class TurkishStrings extends Strings {
   String overdue(String date) => 'Gecikti, $date';
   @override
   String reminderPassed(String date) => 'Geçti, $date';
+  @override
+  String repeats(Repeat repeat) => switch (repeat) {
+    Repeat.daily => 'Her gün',
+    Repeat.weekly => 'Her hafta',
+    Repeat.monthly => 'Her ay',
+    Repeat.yearly => 'Her yıl',
+  };
   @override
   String get reminders => 'Hatırlatıcılar';
   @override

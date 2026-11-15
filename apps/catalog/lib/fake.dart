@@ -59,6 +59,7 @@ tags: [home, diy]
 
 ## Reminders
 - 2026-10-03 10:00: Timber delivery, keep the gate open
+- 2026-10-01 18:00 (weekly): Water the seedlings
 ''',
   'projects/lisbon-trip.md': '''
 ---
