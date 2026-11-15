@@ -421,3 +421,22 @@ With both changes, on v9, against #913's numbers:
 | about me, full | 7/14 | 7/14 |
 
 Four held-out cases failed in this run and passed in #913's. Rerun alone three times each: dec-yuksek-lisans-basvurusu, newlist-2 and unclear-10 fail every time on `main` at 750ca7a too, with and without the `get_decision` change; newlist-first-6 passes every time on all three. So none of the four comes from this change: it is drift between whole-set runs.
+
+## Reminders repeat as asked, once by default, 2026-11-15 (#919, #917)
+
+`add_reminder`'s `repeat` was `enum ["monthly"]`. On ChatGPT, "Yarın kahve siparişi vereceğim." became a monthly reminder (#917). Now `repeat` is `enum ["once", "daily", "weekly", "monthly", "yearly"]`, `once` being the default. A first try described `repeat` as "omit for a one-time reminder". It made the coffee plan `daily` on ChatGPT: on that route the model fills every argument (`kind` too), so without a one-time value it picks some repeat. The prompt's monthly line now names every repeat and says anything else is `repeat: once`.
+
+New cases in `eval/cases.json`, written before the change: `rem-{tr,en}-{daily,weekly,monthly,yearly}`; `rem-tr-once` and `rem-en-once`, the coffee message, which pass with a dated todo or a one-time reminder and fail on any repeat; and `rem-tr-fix-once`, the "Düzelt o zaman." after a wrong monthly reminder, which expects a one-time reminder on the same day.
+
+**ChatGPT** (`--provider=chatgpt --model=gpt-6.1-terra`, full prompt), before is `main` at d138cb1 with the new cases:
+
+| set | before | after |
+|---|--:|--:|
+| cases (72) | 62 (86%) | **70 (97%)** |
+| reminder cases (14) | 5 | 13 |
+| held-out (292) | 264 (90%) | **268 (92%)** |
+| held-out reminder (15) | 13 | 15 |
+
+- After the change, the six daily, weekly and yearly cases and both coffee cases pass. The monthly cases passed before too.
+- `rem-tr-fix-once` fails before and after. The model reads the note and then says it cannot change or remove a reminder. No tool edits a reminder, so this needs a tool of its own, not a repeat value.
+- Six held-out cases passed before and failed in the after run. Each was rerun alone three times on each side (before → after): coll-hediye-listesi-1-0 2/3 → 3/3, cross-14 0/3 → 0/3, file-ev-tasima-1 1/3 → 3/3, file-saglik-kontrolleri 3/3 → 2/3, todo-ev-tasima 2/3 → 3/3, todo-bike-commute-1 3/3 → 1/3. todo-bike-commute-1 got five more runs on each side, 2/5 → 1/5. Every failure on both sides is the same todo saved without the word "brakes", and the turn never calls `add_reminder`. So it is drift between runs, not this change.
