@@ -137,7 +137,7 @@ class MainActivity : FlutterFragmentActivity() {
                     result.notImplemented()
                 }
             }
-        // A model copied over adb (device_native.dart, #920); from Android 11 only no other app can write there.
+        // A model copied over adb (device_native.dart, #920): from Android 11, no other app can write there.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "io.github.mfozmen.notelore/models")
             .setMethodCallHandler { call, result ->
                 if (call.method == "dir") {

@@ -45,14 +45,14 @@ The old command line (`notelore-<version>-*.zip`, v0.2.0 and earlier) is retired
 
 ## Trying your own model file on a device
 
-The model on the device runs a `.gguf` file you copied there in place of the pinned download, so a fine-tune can be tried without publishing its weights. Notelore uses the newest-named `.gguf` in the folder (a plain name: letters, digits, `.`, `-` and `_`), checks only that it starts like a GGUF file (no checksum: you put it there), never downloads the pinned model while it runs, and never deletes it. *Settings → Model* names the file; *Use the downloaded model* goes back to the pinned one for that file name (the file stays; a file of another name is used again). A file that is not GGUF is skipped, Settings says so, and the pinned model runs. Feedback reports name the file.
+The model on the device runs a `.gguf` file you copied there in place of the pinned download, so a fine-tune can be tried without publishing its weights. Notelore uses the newest-named `.gguf` in the folder (a plain name: letters, digits, `.`, `-` and `_`), checks only that it starts like a GGUF file (no checksum: you put it there), never downloads the pinned model while it runs, and never deletes it. *Settings → Model* names the file; *Use the downloaded model* goes back to the pinned one while that file is the newest-named, even if older copies are there (the file stays; a newer-named copy is used again). A file that is not GGUF is skipped, Settings says so, and the pinned model runs. Feedback reports name the file.
 
 On Android 11 or newer (the folder is the app's own, which `adb` may write to and no other app can; older Android is not offered). Open Notelore once first, so the folder exists, then:
 
 ```bash
 adb shell mkdir -p /sdcard/Android/data/io.github.mfozmen.notelore/files/models
 adb push notelore-qwen3-4b-v11.gguf /sdcard/Android/data/io.github.mfozmen.notelore/files/models/
-adb shell am force-stop io.github.mfozmen.notelore   # it is picked up at the next start
+adb shell am force-stop io.github.mfozmen.notelore   # read at the next start, so open it after the push ends
 ```
 
 On Windows or macOS, copy it into `models/device/local/` in the app's state folder (with `NOTELORE_HOME`, under its `state/`), then restart Notelore.
