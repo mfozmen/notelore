@@ -23,11 +23,14 @@ final _entry = RegExp('^- $_date: (.*)\$', dotAll: true);
 // A reminder's time of day, 00:00 to 23:59: the parser and the writer go by this one pattern.
 const _time = '([01][0-9]|2[0-3]):([0-5][0-9])';
 // The time and an optional end are optional; an hour or minute that cannot be
-// one keeps the line Raw.
+// one, or an unknown repeat, keeps the line Raw.
 final _reminder = RegExp(
-  '^- $_date(?: $_time(?:-$_time)?)?( \\(monthly\\))?: (.*)\$',
+  '^- $_date(?: $_time(?:-$_time)?)?(?: \\((${Repeat.values.map((r) => r.name).join('|')})\\))?: (.*)\$',
   dotAll: true,
 );
+
+/// How a reminder comes again, written by its name: `(weekly)`.
+enum Repeat { daily, weekly, monthly, yearly }
 
 /// Whether [time] is a reminder's time of day as the format writes it (`HH:MM`).
 bool isReminderTime(String time) => RegExp('^$_time\$').hasMatch(time);
@@ -148,15 +151,15 @@ final class Todo extends NoteEntry {
 
 /// Something to be reminded of on [date], at [time] (`HH:MM`, local) if it has
 /// one, and its [end] when the user gave it or it could be estimated. A
-/// [monthly] reminder comes again on that day each month.
+/// [repeat] one comes again, from [date] on.
 final class Reminder extends NoteEntry {
-  const Reminder(this.date, this.text, {this.time, this.end, this.monthly = false});
+  const Reminder(this.date, this.text, {this.time, this.end, this.repeat});
 
   final DateTime date;
   final String text;
   final String? time;
   final String? end;
-  final bool monthly;
+  final Repeat? repeat;
 
   @override
   String render() {
@@ -165,7 +168,11 @@ final class Reminder extends NoteEntry {
       clock = ' $time';
       if (end != null) clock += '-$end';
     }
-    return '- ${isoDate(date)}$clock${monthly ? ' (monthly)' : ''}: $text';
+    final again = switch (repeat) {
+      final repeat? => ' (${repeat.name})',
+      null => '',
+    };
+    return '- ${isoDate(date)}$clock$again: $text';
   }
 
   @override
@@ -175,10 +182,10 @@ final class Reminder extends NoteEntry {
       other.text == text &&
       other.time == time &&
       other.end == end &&
-      other.monthly == monthly;
+      other.repeat == repeat;
 
   @override
-  int get hashCode => Object.hash(date, text, time, end, monthly);
+  int get hashCode => Object.hash(date, text, time, end, repeat);
 }
 
 /// A sensible default length for a reminder, from the kind of thing it names.
@@ -367,9 +374,9 @@ Reminder? _reminderOf(String block) {
   if (_reminder.firstMatch(block) case final m?) {
     final time = m[2] == null ? null : '${m[2]}:${m[3]}';
     final end = m[4] == null ? null : '${m[4]}:${m[5]}';
-    final monthly = m[6] != null;
+    final repeat = m[6] == null ? null : Repeat.values.byName(m[6]!);
     if (parseIsoDate(m[1]!) case final date?) {
-      return Reminder(date, m[7]!, time: time, end: end, monthly: monthly);
+      return Reminder(date, m[7]!, time: time, end: end, repeat: repeat);
     }
   }
   return null;

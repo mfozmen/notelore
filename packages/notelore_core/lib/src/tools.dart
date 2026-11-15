@@ -262,17 +262,22 @@ final toolRegistry = List<NoteTool>.unmodifiable([
           },
           'repeat': {
             'type': 'string',
-            'enum': ['monthly'],
-            'description': 'monthly for a commitment that repeats every month',
+            'enum': [for (final repeat in Repeat.values) repeat.name],
+            'description':
+                'Omit for a one-time reminder (the default). Only when the user asks for a '
+                'repeat: daily, weekly (on that weekday), monthly (on that day), yearly',
           },
           'kind': _kind,
         },
       ),
     ),
     (t, a) => t._write(t._path(a['slug'], a.kind), (path) {
-      final repeat = a.optional('repeat');
-      if (repeat != null && repeat != 'monthly') {
-        throw FormatException("repeat must be 'monthly', got '$repeat'.");
+      final name = a.optional('repeat');
+      final repeat = Repeat.values.asNameMap()[name];
+      if (name != null && repeat == null) {
+        throw FormatException(
+          'repeat must be one of ${Repeat.values.map((r) => r.name).join(', ')}, got \'$name\'.',
+        );
       }
       final (date, time, end) = Toolbox._at(a['at']);
       notes.addReminder(
@@ -281,7 +286,7 @@ final toolRegistry = List<NoteTool>.unmodifiable([
         date,
         time: time,
         end: end,
-        monthly: repeat == 'monthly',
+        repeat: repeat,
         today: t.today,
       );
     }),

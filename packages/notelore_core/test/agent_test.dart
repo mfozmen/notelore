@@ -516,7 +516,7 @@ void main() {
     expect(prompt, contains('"5 dakika sonra"'));
     expect(prompt, contains('a clock time'));
     expect(prompt, contains('HH:MM-HH:MM'));
-    expect(prompt, contains('repeat: monthly'));
+    expect(prompt, contains('repeat: daily, weekly, monthly or yearly'));
     // Without one, the device's clock: the minute, not only the day.
     expect(systemPrompt(), contains('It is now ${isoDate(DateTime.now())} '));
   });
@@ -837,7 +837,7 @@ void failureTests() {
         'add_reminder',
         'Never refuse',
         'HH:MM-HH:MM',
-        'repeat: monthly',
+        'repeat: daily, weekly, monthly or yearly',
         '"deyta beys"',
         'one short sentence',
         '[[Yes]] [[No]]',

@@ -78,6 +78,7 @@ export 'src/store/format.dart'
         NotANote,
         Raw,
         Reminder,
+        Repeat,
         Section,
         Todo,
         isoDate,

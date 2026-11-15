@@ -306,13 +306,23 @@ void main() {
       'ok',
     );
     expect(
+      call('add_reminder', {
+        'slug': 'health',
+        'at': '2026-11-23 19:00',
+        'text': 'Gym',
+        'repeat': 'weekly',
+      }),
+      'ok',
+    );
+    expect(
       call('read_note', {'slug': 'health'}),
       endsWith(
         '## Reminders\n'
         '- 2026-10-20 10:00: Dentist\n'
         '- 2026-10-27: Call back\n'
         '- 2026-10-28 18:00-20:15: Dinner\n'
-        '- 2026-11-18 09:00 (monthly): Rent\n',
+        '- 2026-11-18 09:00 (monthly): Rent\n'
+        '- 2026-11-23 19:00 (weekly): Gym\n',
       ),
     );
     for (final at in ['tomorrow', '2026-10-20T10:00', '2026-02-30']) {
@@ -334,9 +344,9 @@ void main() {
         'slug': 'health',
         'at': '2026-10-20 10:00',
         'text': 'x',
-        'repeat': 'weekly',
+        'repeat': 'hourly',
       }),
-      "Error: repeat must be 'monthly', got 'weekly'.",
+      "Error: repeat must be one of daily, weekly, monthly, yearly, got 'hourly'.",
     );
   });
 
@@ -1046,6 +1056,14 @@ void schemaTests() {
       text['description'],
       allOf(contains('short'), contains("event's own name"), contains('no date or time')),
     );
+  });
+
+  test("a reminder's repeat offers every repeat and is left out for a one-time one (#917)", () {
+    final reminder = noteTools.firstWhere((t) => t.name == 'add_reminder');
+    final repeat = (reminder.inputSchema['properties']! as Map)['repeat'] as Map;
+    expect(repeat['enum'], ['daily', 'weekly', 'monthly', 'yearly']);
+    expect(repeat['description'], allOf(contains('Omit'), contains('one-time')));
+    expect(reminder.inputSchema['required'], isNot(contains('repeat')));
   });
 
   test('the slim tools leave out what a phone rarely needs, in fewer words (#447)', () {

@@ -104,10 +104,13 @@ Notelore always writes the date. A todo written by hand without one is read as a
 - <date>: <text>
 - <date> <HH:MM>: <text>             # a time of day, 24-hour, local time
 - <date> <HH:MM>-<HH:MM>: <text>     # with the end the user gave or a sensible one
+- <date> <HH:MM> (daily): <text>     # repeats every day
+- <date> <HH:MM> (weekly): <text>    # repeats on that weekday each week
 - <date> <HH:MM> (monthly): <text>   # repeats on that day each month
+- <date> <HH:MM> (yearly): <text>    # repeats on that day and month each year
 ```
 
-A new note has Decisions, Notes and Todo; the Reminders section is added at the end of the file with its first reminder (`add_reminder`). The app turns reminders into notifications. A reminder whose time is not a real one (`25:00`, `9:30`) is kept verbatim like any other unparsable line. The end may be one the user gave or one the app estimated from the kind of event; an end earlier than the start means the next day. A `(monthly)` reminder repeats on that day each month; a month without that day (the 31st in February) is skipped.
+A new note has Decisions, Notes and Todo; the Reminders section is added at the end of the file with its first reminder (`add_reminder`). The app turns reminders into notifications. A reminder whose time is not a real one (`25:00`, `9:30`) is kept verbatim like any other unparsable line. The end may be one the user gave or one the app estimated from the kind of event; an end earlier than the start means the next day. A reminder without a repeat comes once. A repeat comes after the date, with or without a time (`- <date> (yearly): <text>`), and the reminder comes again from its date on: `(daily)` every day, `(weekly)` on the date's weekday, `(monthly)` on the date's day each month, `(yearly)` on its day and month each year. A month without that day (the 31st in February) is skipped, so a yearly reminder on 29 February comes only in leap years. Any other word in the brackets keeps the line verbatim, like any unparsable line.
 
 ### Parser guarantees
 

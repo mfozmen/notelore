@@ -64,10 +64,10 @@ DueReminder _due(Reminder reminder, String rel, DateTime at, String note) =>
     DueReminder(_id(reminder, rel, at), at, note, _flat(reminder.text), end: _end(reminder, at));
 
 int _id(Reminder reminder, String rel, DateTime at) =>
-    stableId('$rel\n${reminder.render()}${reminder.monthly ? '\n${isoDate(at)}' : ''}');
+    stableId('$rel\n${reminder.render()}${reminder.repeat == null ? '' : '\n${isoDate(at)}'}');
 
 /// The reminder a notification with [id] rang for, and its note; null when no
-/// note has it any more (edited or synced away since). A monthly one's turns
+/// note has it any more (edited or synced away since). A repeating one's turns
 /// of the last two months count, for an action taken late.
 ({String path, String rel, Note note, Reminder reminder})? _rung(
   String root,
@@ -92,7 +92,7 @@ int _id(Reminder reminder, String rel, DateTime at) =>
 }
 
 /// A notification's Snooze 1 hour (#801): the reminder moves to an hour after
-/// [now], keeping its length; a monthly one keeps its series and gets this
+/// [now], keeping its length; a repeating one keeps its series and gets this
 /// turn once more beside it. The reminder the device should schedule, or null
 /// when no note has it any more.
 DueReminder? snoozeReminder(String root, int id, {required DateTime now, DateTime? today}) {
@@ -109,7 +109,7 @@ DueReminder? snoozeReminder(String root, int id, {required DateTime now, DateTim
     time: _clock(at),
     end: end == null ? null : _clock(at.add(end)),
   );
-  moveReminder(path, reminder, moved, keep: reminder.monthly, today: today);
+  moveReminder(path, reminder, moved, keep: reminder.repeat != null, today: today);
   return _due(moved, rel, at, note.title);
 }
 
@@ -153,33 +153,33 @@ DateTime _at(Reminder reminder) {
   return DateTime(day.year, day.month, day.day, hour, minute);
 }
 
-/// The next twelve monthly turns of a monthly reminder, or the one date of a
-/// plain one. A month without the day (the 31st in February) is skipped.
+/// A repeating reminder's turns after [now], for a year from the first of
+/// them, or the one date of a plain one. A month without the day (the 31st in
+/// February, 29 February in most years) is skipped.
 Iterable<DateTime> _occurrences(Reminder reminder, DateTime now) sync* {
   final first = _at(reminder);
-  if (!reminder.monthly) {
+  final repeat = reminder.repeat;
+  if (repeat == null) {
     yield first;
     return;
   }
-  var year = first.isAfter(now) ? first.year : now.year;
-  var month = first.isAfter(now) ? first.month : now.month;
-  var found = 0;
-  while (found < 12) {
-    final at = DateTime(year, month, first.day, first.hour, first.minute);
-    if (_inMonth(at, month) && at.isAfter(now)) {
-      yield at;
-      found++;
-    }
-    if (month == 12) {
-      month = 1;
-      year++;
-    } else {
-      month++;
-    }
+  final from = first.isAfter(now) ? first : now;
+  final until = DateTime(from.year + 1, from.month, from.day, from.hour, from.minute);
+  for (var n = 0; ; n++) {
+    final at = _turn(repeat, first, n);
+    if (at.isAfter(until)) return;
+    // DateTime rolls a day the month lacks over into the next month.
+    final missing = repeat.index >= Repeat.monthly.index && at.day != first.day;
+    if (at.isAfter(now) && !missing) yield at;
   }
 }
 
-bool _inMonth(DateTime at, int month) => at.month == month;
+DateTime _turn(Repeat repeat, DateTime first, int n) => switch (repeat) {
+  Repeat.daily => DateTime(first.year, first.month, first.day + n, first.hour, first.minute),
+  Repeat.weekly => DateTime(first.year, first.month, first.day + 7 * n, first.hour, first.minute),
+  Repeat.monthly => DateTime(first.year, first.month + n, first.day, first.hour, first.minute),
+  Repeat.yearly => DateTime(first.year + n, first.month, first.day, first.hour, first.minute),
+};
 
 DateTime? _end(Reminder reminder, DateTime start) {
   final end = reminder.end;
@@ -220,6 +220,7 @@ final class DayItem {
     required this.slug,
     required this.todo,
     this.number = 0,
+    this.repeat,
   });
 
   /// The local date, at midnight.
@@ -238,6 +239,9 @@ final class DayItem {
   /// For a todo, its number in the note's Todo section (1-based), as
   /// [completeTodo] and [reopenTodo] take it; 0 for a reminder.
   final int number;
+
+  /// How a reminder comes again; null for a plain one or a todo.
+  final Repeat? repeat;
 }
 
 /// The reminders from [today] on and every open todo under [root], by day and
@@ -256,17 +260,24 @@ List<DayItem> calendarItems(String root, {required DateTime today}) {
 
 /// [note]'s reminders from [from] on and its open todos.
 Iterable<DayItem> _dayItems(Note note, String kind, String slug, DateTime from) sync* {
-  DayItem item(DateTime date, String? time, String text, {required bool todo, int number = 0}) =>
-      DayItem(
-        day: DateTime(date.year, date.month, date.day),
-        time: time,
-        text: _flat(text),
-        note: note.title,
-        kind: kind,
-        slug: slug,
-        todo: todo,
-        number: number,
-      );
+  DayItem item(
+    DateTime date,
+    String? time,
+    String text, {
+    required bool todo,
+    int number = 0,
+    Repeat? repeat,
+  }) => DayItem(
+    day: DateTime(date.year, date.month, date.day),
+    time: time,
+    text: _flat(text),
+    note: note.title,
+    kind: kind,
+    slug: slug,
+    todo: todo,
+    number: number,
+    repeat: repeat,
+  );
   for (final entry in note.section('reminders')?.entries ?? const <NoteEntry>[]) {
     if (entry case final Reminder reminder) {
       yield* _reminderItems(reminder, item, from);
@@ -350,12 +361,13 @@ Iterable<DayItem> _todos(_Found found, bool Function(Todo, DateTime date) keep) 
 
 Iterable<DayItem> _reminderItems(
   Reminder reminder,
-  DayItem Function(DateTime, String?, String, {required bool todo}) item,
+  DayItem Function(DateTime, String?, String, {required bool todo, Repeat? repeat}) item,
   DateTime from,
 ) sync* {
   final range = _range(reminder);
   for (final at in _occurrences(reminder, from)) {
-    if (!at.isBefore(from)) yield item(at, range, reminder.text, todo: false);
+    if (!at.isBefore(from))
+      yield item(at, range, reminder.text, todo: false, repeat: reminder.repeat);
   }
 }
 
