@@ -877,7 +877,7 @@ class Session extends ChangeNotifier {
   /// How often messages that wait are tried again by themselves.
   final Duration retryEvery;
 
-  /// The periodic timer that tries them; tests tick it by hand.
+  /// The periodic timer behind retries and auto-sync; tests tick it by hand.
   final Timer Function(Duration period, void Function(Timer) onTick) every;
 
   /// Tests pin it; the app uses the local date.
@@ -1774,7 +1774,8 @@ class Session extends ChangeNotifier {
   /// come in without asking. A tick is skipped while a sync or a chat turn runs.
   void startAutoSync({Duration every = const Duration(minutes: 3)}) {
     _autoSync?.cancel();
-    _autoSync = Timer.periodic(every, (_) => syncIfIdle());
+    // The injected timer, so tests drive the tick instead of waiting on it (#905).
+    _autoSync = this.every(every, (_) => syncIfIdle());
   }
 
   /// A background sync, unless one is already running or queued or a chat
