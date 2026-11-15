@@ -1063,7 +1063,7 @@ void schemaTests() {
     );
   });
 
-  test("a reminder's repeat offers every repeat and is left out for a one-time one (#917)", () {
+  test("a reminder's repeat offers every repeat and once, the default (#917)", () {
     final reminder = noteTools.firstWhere((t) => t.name == 'add_reminder');
     final repeat = (reminder.inputSchema['properties']! as Map)['repeat'] as Map;
     // A route that fills every argument needs a one-time value to pick (#917).

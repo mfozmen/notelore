@@ -526,11 +526,12 @@ final toolRegistry = List<NoteTool>.unmodifiable([
   ),
 ]);
 
-/// [schema] without the slug's description, said again in nearly every tool;
-/// the words that carry a format (a date, a time, entries) stay.
 // The ChatGPT route fills every argument, so a one-time reminder needs a value of its own.
 const _once = 'once';
 final _repeats = [_once, for (final repeat in Repeat.values) repeat.name];
+
+/// [schema] without the slug's description, said again in nearly every tool;
+/// the words that carry a format (a date, a time, entries) stay.
 
 Map<String, Object?> _bare(Map<String, Object?> schema) => {
   ...schema,
