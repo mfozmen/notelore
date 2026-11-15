@@ -108,7 +108,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         actions: [OutlinedButton(onPressed: widget.toChat, child: Text(s.goToChat))],
       );
     }
-    // What is coming lists a repeating reminder at its next turn only; the grid marks them all.
+    // What is coming lists a repeating reminder at its next turn only; the grid marks every coming turn.
     final listed = <(String, String, String, String?)>{};
     return _Agenda(
       s,
@@ -426,7 +426,7 @@ class _Agenda extends StatelessWidget {
   String _heading(DateTime day) {
     if (day == today) return s.today;
     if (day == today.add(const Duration(days: 1))) return s.tomorrow;
-    return s.dayHeading(day);
+    return s.dayHeading(day, year: day.year != today.year);
   }
 
   @override

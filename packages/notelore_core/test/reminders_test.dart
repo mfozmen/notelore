@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:notelore_core/src/reminders.dart';
-import 'package:notelore_core/src/store/format.dart' show Repeat;
+import 'package:notelore_core/src/store/format.dart' show Reminder, Repeat;
 import 'package:notelore_core/src/store/notes.dart';
 import 'package:notelore_core/src/store/stale.dart';
 import 'package:path/path.dart' as p;
@@ -121,6 +121,14 @@ void main() {
     expect(items.first.repeat, Repeat.weekly);
     // A year of turns from the first, so the month grid marks every one.
     expect(items, hasLength(53));
+  });
+
+  test("a reminder's next turn: a series' coming one, a plain one's own date (#919)", () {
+    final weekly = Reminder(d(2026, 10, 5), 'Gym', time: '19:00', repeat: Repeat.weekly);
+    expect(nextTurn(weekly, now), DateTime(2026, 10, 19, 19));
+    expect(nextTurn(Reminder(d(2026, 10, 2), 'Old'), now), DateTime(2026, 10, 2, 9));
+    final leap = Reminder(d(2024, 2, 29), 'Leap day', repeat: Repeat.yearly);
+    expect(nextTurn(leap, now), isNull);
   });
 
   test('a yearly reminder on 29 February comes only in leap years (#919)', () {

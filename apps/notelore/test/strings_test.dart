@@ -573,6 +573,7 @@ void main() {
       'overdue': s.overdue('d'),
       'reminderPassed': s.reminderPassed('d'),
       'repeats': Repeat.values.map(s.repeats).join(','),
+      'dayHeadingYear': s.dayHeading(DateTime(2027, 10, 2), year: true),
       'reminders': s.reminders,
       'howRemindersArrive': s.howRemindersArrive,
       'remindersOff': s.remindersOff,

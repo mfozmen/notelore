@@ -60,6 +60,7 @@ export 'src/reminders.dart'
         DueReminder,
         calendarItems,
         maxScheduledReminders,
+        nextTurn,
         reminderDone,
         snoozeReminder,
         upcomingReminders,

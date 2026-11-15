@@ -469,7 +469,8 @@ abstract class Strings {
   String monthYear(DateTime month) => '${monthNames[month.month - 1]} ${month.year}';
 
   /// A day's heading: "Sunday, 25 October" / "25 Ekim Pazar".
-  String dayHeading(DateTime day);
+  /// A day's heading, with its [year] when asked.
+  String dayHeading(DateTime day, {bool year = false});
   String get showAll;
   String get calendarExample;
   String get goToChat;
@@ -1434,8 +1435,9 @@ class EnglishStrings extends Strings {
   @override
   String get nextMonth => 'Next month';
   @override
-  String dayHeading(DateTime day) =>
-      '${weekdayNames[day.weekday - 1]}, ${day.day} ${monthNames[day.month - 1]}';
+  String dayHeading(DateTime day, {bool year = false}) =>
+      '${weekdayNames[day.weekday - 1]}, ${day.day} ${monthNames[day.month - 1]}'
+      '${year ? ' ${day.year}' : ''}';
   @override
   String get showAll => 'Show all';
   @override
@@ -2690,8 +2692,9 @@ class TurkishStrings extends Strings {
   @override
   String get nextMonth => 'Sonraki ay';
   @override
-  String dayHeading(DateTime day) =>
-      '${day.day} ${monthNames[day.month - 1]} ${weekdayNames[day.weekday - 1]}';
+  String dayHeading(DateTime day, {bool year = false}) =>
+      '${day.day} ${monthNames[day.month - 1]}${year ? ' ${day.year}' : ''} '
+      '${weekdayNames[day.weekday - 1]}';
   @override
   String get showAll => 'Tümünü göster';
   @override

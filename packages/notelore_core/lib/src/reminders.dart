@@ -153,6 +153,10 @@ DateTime _at(Reminder reminder) {
   return DateTime(day.year, day.month, day.day, hour, minute);
 }
 
+/// When [reminder] comes next after [now]: a plain one's own moment, even
+/// past; null for a series with no turn in the coming year.
+DateTime? nextTurn(Reminder reminder, DateTime now) => _occurrences(reminder, now).firstOrNull;
+
 /// A repeating reminder's turns after [now], for a year from the first of
 /// them, or the one date of a plain one. A month without the day (the 31st in
 /// February, 29 February in most years) is skipped.

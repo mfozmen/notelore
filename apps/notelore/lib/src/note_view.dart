@@ -517,27 +517,47 @@ class NoteView extends StatelessWidget {
     double inset = 0,
     required Widget text,
     required Widget date,
-  }) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      SizedBox(
-        width: 18 + Gap.s,
-        height: 48,
-        child: OverflowBox(
-          alignment: Alignment.centerLeft,
-          minWidth: 0,
-          minHeight: 0,
-          maxWidth: 48,
-          maxHeight: 48,
-          child: Transform.translate(offset: Offset(-inset, 0), child: mark),
-        ),
-      ),
-      Expanded(
-        child: Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: text),
-      ),
-      const SizedBox(width: Gap.s),
-      Padding(padding: const EdgeInsets.only(top: 12), child: date),
-    ],
+  }) => Builder(
+    builder: (context) {
+      // Beside the words at large text, the date would leave them a letter a line.
+      final under = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 18 + Gap.s,
+            height: 48,
+            child: OverflowBox(
+              alignment: Alignment.centerLeft,
+              minWidth: 0,
+              minHeight: 0,
+              maxWidth: 48,
+              maxHeight: 48,
+              child: Transform.translate(offset: Offset(-inset, 0), child: mark),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: under
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        text,
+                        const SizedBox(height: Gap.xs),
+                        date,
+                      ],
+                    )
+                  : text,
+            ),
+          ),
+          if (!under) ...[
+            const SizedBox(width: Gap.s),
+            Padding(padding: const EdgeInsets.only(top: 12), child: date),
+          ],
+        ],
+      );
+    },
   );
 
   /// Coming ones by day and time, past ones after them, saying so in words
@@ -545,7 +565,9 @@ class NoteView extends StatelessWidget {
   List<Widget> _reminders(BuildContext context, List<Reminder> reminders) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    String key(Reminder r) => '${isoDate(r.date)} ${r.time ?? '24:00'}';
+    // A series shows and sorts by its coming turn.
+    DateTime shown(Reminder r) => r.repeat == null ? r.date : nextTurn(r, today) ?? r.date;
+    String key(Reminder r) => '${isoDate(shown(r))} ${r.time ?? '24:00'}';
     final now =
         '${isoDate(today)} '
         '${today.hour.toString().padLeft(2, '0')}:${today.minute.toString().padLeft(2, '0')}';
@@ -574,7 +596,7 @@ class NoteView extends StatelessWidget {
           ),
           date: Text(() {
             final when = [
-              _date(reminder.date),
+              _date(shown(reminder)),
               ?reminder.time,
               if (reminder.repeat case final repeat?) strings.repeats(repeat),
             ].join(' · ');
