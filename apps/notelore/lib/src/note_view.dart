@@ -564,7 +564,6 @@ class NoteView extends StatelessWidget {
   /// and with their own icon. A reminder with no time counts until its day ends.
   List<Widget> _reminders(BuildContext context, List<Reminder> reminders) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
     // A series shows and sorts by its coming turn.
     DateTime shown(Reminder r) => r.repeat == null ? r.date : nextTurn(r, today) ?? r.date;
     String key(Reminder r) => '${isoDate(shown(r))} ${r.time ?? '24:00'}';
@@ -576,34 +575,35 @@ class NoteView extends StatelessWidget {
     final coming = sorted.where((r) => !passed(r));
     final past = sorted.where(passed);
     return [
-      for (final (reminder, passed) in [
-        for (final r in coming) (r, false),
-        for (final r in past.toList().reversed) (r, true),
-      ])
-        _row(
-          mark: Icon(
-            passed
-                ? AppIcons.history
-                : (reminder.repeat == null ? AppIcons.notifications : AppIcons.repeat),
-            size: 18,
-            color: passed ? colors.outline : colors.primary,
-          ),
-          text: _markdown(
-            reminder.text.replaceAll('\n  ', '\n'),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: passed ? colors.onSurfaceVariant : null,
-            ),
-          ),
-          date: Text(() {
-            final when = [
-              _date(shown(reminder)),
-              ?reminder.time,
-              if (reminder.repeat case final repeat?) strings.repeats(repeat),
-            ].join(' · ');
-            return passed ? strings.reminderPassed(when) : when;
-          }(), style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
-        ),
+      for (final r in coming) _reminderRow(theme, r, shown(r), passed: false),
+      for (final r in past.toList().reversed) _reminderRow(theme, r, shown(r), passed: true),
     ];
+  }
+
+  Widget _reminderRow(ThemeData theme, Reminder reminder, DateTime day, {required bool passed}) {
+    final colors = theme.colorScheme;
+    final when = [
+      _date(day),
+      ?reminder.time,
+      if (reminder.repeat case final repeat?) strings.repeats(repeat),
+    ].join(' · ');
+    final IconData icon;
+    if (passed) {
+      icon = AppIcons.history;
+    } else {
+      icon = reminder.repeat == null ? AppIcons.notifications : AppIcons.repeat;
+    }
+    return _row(
+      mark: Icon(icon, size: 18, color: passed ? colors.outline : colors.primary),
+      text: _markdown(
+        reminder.text.replaceAll('\n  ', '\n'),
+        style: theme.textTheme.bodyMedium?.copyWith(color: passed ? colors.onSurfaceVariant : null),
+      ),
+      date: Text(
+        passed ? strings.reminderPassed(when) : when,
+        style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+      ),
+    );
   }
 
   /// A late one says so, in words and in the error colour.
