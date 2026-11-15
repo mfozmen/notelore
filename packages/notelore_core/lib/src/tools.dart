@@ -1012,7 +1012,15 @@ class Toolbox {
   Object _getDecision(String slug, String topic, String? kind) {
     final real = _realSlug(slug, kind); // and the same "pass kind" message as every other tool
     final decision = _fresh().getDecision(real, topic, kind: kind);
-    if (decision == null) return "No active decision for '$topic' in '$slug'.";
+    if (decision == null) {
+      // The model guesses topic names; the real ones let it retry instead of giving up.
+      final current = {
+        for (final d in _fresh().decisionHistory(real, kind: kind))
+          if (d.superseded == null) d.topic,
+      };
+      final miss = "No active decision for '$topic' in '$slug'.";
+      return current.isEmpty ? miss : '$miss Its current decisions: ${current.join(', ')}.';
+    }
     _cite(real, kind, decision);
     return _decision(decision);
   }

@@ -342,6 +342,10 @@ void main() {
 
   test('entries, todos and decisions', () {
     call('create_note', {'kind': 'project', 'title': 'Mopsos'});
+    expect(
+      call('get_decision', {'slug': 'mopsos', 'topic': 'database'}),
+      "No active decision for 'database' in 'mopsos'.",
+    );
     expect(call('add_note_entry', {'slug': 'mopsos', 'text': 'Weekly hit rate.'}), 'ok');
     expect(call('add_todo', {'slug': 'mopsos', 'text': 'Set up CI'}), 'ok');
     expect(call('add_todo', {'slug': 'mopsos', 'text': 'Backup', 'due': '2026-10-15'}), 'ok');
@@ -368,7 +372,7 @@ void main() {
     });
     expect(
       call('get_decision', {'slug': 'mopsos', 'topic': 'hosting'}),
-      "No active decision for 'hosting' in 'mopsos'.",
+      "No active decision for 'hosting' in 'mopsos'. Its current decisions: database.",
     );
     final history = call('decision_history', {'slug': 'mopsos'})! as List;
     expect(history.map((d) => ((d as Map)['value'], d['superseded'])), [
