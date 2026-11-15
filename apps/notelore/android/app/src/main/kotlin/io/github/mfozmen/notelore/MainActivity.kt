@@ -137,6 +137,17 @@ class MainActivity : FlutterFragmentActivity() {
                     result.notImplemented()
                 }
             }
+        // A model copied over adb (device_native.dart, #920); from Android 11 only no other app can write there.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "io.github.mfozmen.notelore/models")
+            .setMethodCallHandler { call, result ->
+                if (call.method == "dir") {
+                    result.success(
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) getExternalFilesDir("models")?.path else null,
+                    )
+                } else {
+                    result.notImplemented()
+                }
+            }
         // The watch app (watch_link.dart): messages both ways over the Wearable Data Layer.
         val watch = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "io.github.mfozmen.notelore/watch")
         watch.setMethodCallHandler { call, result ->

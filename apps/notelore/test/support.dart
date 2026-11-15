@@ -252,6 +252,7 @@ class Harness {
     bool reminders = true,
     bool calendar = true,
     bool? deviceModels,
+    String? localModelDir,
     bool testSpace = false,
     Directory? realNotes,
   }) {
@@ -261,6 +262,7 @@ class Harness {
       realNotes: realNotes,
       deviceModels: deviceModels ?? this.deviceModels,
       deviceFiles: deviceFiles,
+      localModelDir: localModelDir,
       meteredNetwork: () async => metered,
       makeDeviceEngine: (path) {
         enginePaths.add(path);

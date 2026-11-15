@@ -561,7 +561,12 @@ class _ConnectionsState extends State<_Connections> {
                 _ => const SoftRadio(selected: false),
               },
               title: Text(s.providerName(spec)),
-              subtitle: Text(s.groupHeading(spec.group)),
+              subtitle: Text(switch (session) {
+                _ when spec.access != ProviderAccess.deviceFile => s.groupHeading(spec.group),
+                Session(localModel: final file?) => s.copiedModel(file),
+                Session(localModelBroken: final file?) => s.copiedModelBroken(file),
+                _ => s.groupHeading(spec.group),
+              }),
               selected: spec == session.spec,
               onTap: spec == session.spec || _switching != null ? null : () => _switch(spec),
               trailing: IconButton(
@@ -600,6 +605,15 @@ class _ConnectionsState extends State<_Connections> {
               subtitle: Text(s.usingChatGptPlan),
               onTap: () =>
                   launchUrl(Uri.parse(chatGptUsageUrl), mode: LaunchMode.externalApplication),
+            ),
+          ),
+        if (session.localModel != null)
+          TallTile(
+            child: ListTile(
+              leading: const Icon(AppIcons.download),
+              title: Text(s.useDownloadedModel),
+              subtitle: Text(s.copiedModelStays),
+              onTap: session.stopLocalModel,
             ),
           ),
         Padding(
