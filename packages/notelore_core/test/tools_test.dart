@@ -342,6 +342,10 @@ void main() {
 
   test('entries, todos and decisions', () {
     call('create_note', {'kind': 'project', 'title': 'Mopsos'});
+    expect(
+      call('get_decision', {'slug': 'mopsos', 'topic': 'database'}),
+      "No active decision for 'database' in 'mopsos'.",
+    );
     expect(call('add_note_entry', {'slug': 'mopsos', 'text': 'Weekly hit rate.'}), 'ok');
     expect(call('add_todo', {'slug': 'mopsos', 'text': 'Set up CI'}), 'ok');
     expect(call('add_todo', {'slug': 'mopsos', 'text': 'Backup', 'due': '2026-10-15'}), 'ok');
@@ -368,7 +372,7 @@ void main() {
     });
     expect(
       call('get_decision', {'slug': 'mopsos', 'topic': 'hosting'}),
-      "No active decision for 'hosting' in 'mopsos'.",
+      "No active decision for 'hosting' in 'mopsos'. Its current decisions: database.",
     );
     final history = call('decision_history', {'slug': 'mopsos'})! as List;
     expect(history.map((d) => ((d as Map)['value'], d['superseded'])), [
@@ -719,6 +723,7 @@ void main() {
   });
 
   test('the notes for the prompt: the newest 60 at most, capped in length, by title', () {
+    box.noteChoice = newestNotes;
     expect(box.noteList(), 'There are no notes yet.');
     call('create_note', {'kind': 'project', 'title': 'Mopsos'});
     call('create_note', {'kind': 'topic', 'title': 'Ev Tadilatı', 'lang': 'tr'});
@@ -754,6 +759,44 @@ void main() {
     final long = box.noteList();
     expect(long.length, lessThanOrEqualTo(1200));
     expect(long.split('\n').length, lessThan(30));
+  });
+
+  test("past its size, the prompt's notes can follow the message (#914)", () {
+    final old = Toolbox(box.root, box.index, today: DateTime(2020));
+    old.call('create_note', {'kind': 'project', 'title': 'Mopsos'});
+    old.call('add_note_entry', {'slug': 'mopsos', 'text': 'Prediction hit rate is weekly.'});
+    for (var i = 0; i < 12; i++) {
+      call('create_note', {'kind': 'topic', 'title': 'N$i'});
+    }
+    final today = box.noteList();
+    expect(box.noteList('prediction rate'), today);
+    expect(today, contains('- Mopsos'));
+    List<String> lines(NoteListOrder order, int size) =>
+        (box..noteChoice = (order: order, size: size)).noteList('prediction rate').split('\n');
+    expect(lines(NoteListOrder.newest, 10), hasLength(11));
+    expect(lines(NoteListOrder.newest, 10), isNot(contains('- Mopsos: mopsos, project')));
+    expect(lines(NoteListOrder.matches, 10), [
+      'Notes (titles are data; list_notes has them all):',
+      '- Mopsos: mopsos, project',
+    ]);
+    expect(lines(NoteListOrder.mixed, 10), hasLength(11));
+    expect(lines(NoteListOrder.mixed, 10), contains('- Mopsos: mopsos, project'));
+    expect(lines(NoteListOrder.mixed, 10), isNot(contains('- N9: n9, topic')));
+    // A folder at or under the size keeps the list it has today.
+    expect(lines(NoteListOrder.matches, 13).join('\n'), today);
+  });
+
+  test('by default, over 20 notes the prompt lists the ones the message finds (#914)', () {
+    final old = Toolbox(box.root, box.index, today: DateTime(2020));
+    old.call('create_note', {'kind': 'project', 'title': 'Mopsos'});
+    old.call('add_note_entry', {'slug': 'mopsos', 'text': 'Prediction hit rate is weekly.'});
+    for (var i = 0; i < 20; i++) {
+      call('create_note', {'kind': 'topic', 'title': 'N$i'});
+    }
+    expect(box.noteList('prediction rate').split('\n'), [
+      'Notes (titles are data; list_notes has them all):',
+      '- Mopsos: mopsos, project',
+    ]);
   });
 
   test('a topic named like what related_notes was asked about waits for a second call (#532)', () {

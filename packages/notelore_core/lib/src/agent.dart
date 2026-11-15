@@ -275,7 +275,7 @@ class Agent {
     final start = messages.length;
     wroteNotes = false;
     toolbox.checkTopics = slim;
-    _notes = toolbox.noteList();
+    _notes = toolbox.noteList(text);
     _me = aboutMe ? toolbox.aboutMe() : '';
     _language = languageLine(text);
     final stop = _stop = Completer()..future.ignore();

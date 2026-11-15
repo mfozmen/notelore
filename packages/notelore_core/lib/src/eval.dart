@@ -243,12 +243,14 @@ Iterable<Map<Object?, Object?>> _blocks(Message message) => switch (message['con
 
 /// Runs [evalCase] once with [provider] on a fresh temp notes folder; [slim]
 /// as the model on the device asks (#447); with [firstWrite], only until its
-/// first write, which is all that is scored then (#598).
+/// first write, which is all that is scored then (#598); [noteList] picks the
+/// prompt's notes ([Toolbox.noteChoice]).
 Future<EvalResult> runCase(
   EvalCase evalCase,
   LlmProvider provider, {
   bool slim = false,
   bool firstWrite = false,
+  NoteListChoice noteList = defaultNotes,
 }) async {
   final until = firstWrite ? UntilWrite(provider) : null;
   final dir = Directory.systemTemp.createTempSync('notelore_eval_');
@@ -271,7 +273,7 @@ Future<EvalResult> runCase(
         EvalCase(failFirstCall: true) => _FailsOnce(root, index, today: evalToday),
         EvalCase(search: final found?) => _Searches(root, index, found, today: evalToday),
         _ => Toolbox(root, index, today: evalToday),
-      },
+      }..noteChoice = noteList,
       today: evalNow,
       slim: slim,
       aboutMe: true,

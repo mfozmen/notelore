@@ -295,6 +295,48 @@ void main() {
     expect('$out', contains('--greedy works with --provider=ollama or opencode only'));
   });
 
+  test('eval --note-list=mixed:20: the prompt lists the notes the message names (#914)', () async {
+    File(p.join(temp.path, 'cases.json')).writeAsStringSync(
+      jsonEncode([
+        {
+          'id': 'old',
+          'kind': 'question',
+          'lang': 'en',
+          'filler': 40,
+          'notes': {
+            'topics/glacier-trip.md':
+                '---\ntitle: Glacier Trip\nkind: topic\ncreated: 2020-01-02\n'
+                'updated: 2020-01-02\n---\n# Glacier Trip\n\n## Notes\n- 2020-01-02: Crampons.\n',
+          },
+          'message': 'What did I pack for the glacier?',
+          'expect': <String, Object?>{},
+        },
+      ]),
+    );
+    final systems = <String>[];
+    final ollama = MockClient((request) async {
+      final messages = (jsonDecode(request.body) as Map)['messages'] as List;
+      systems.add((messages.first as Map)['content'] as String);
+      return http.Response(
+        jsonEncode({
+          'message': {'role': 'assistant', 'content': 'Crampons.'},
+          'done': true,
+        }),
+        200,
+      );
+    });
+    final args = ['eval', '--provider=ollama', '--model=m', '--cases=cases.json'];
+    expect(await run([...args, '--note-list=newest'], client: ollama), 0);
+    expect(systems.last, isNot(contains('glacier-trip')));
+    expect(await run(args, client: ollama), 0);
+    expect(systems.last, contains('glacier-trip'));
+    expect(await run([...args, '--note-list=mixed:20'], client: ollama), 0);
+    expect(systems.last, contains('glacier-trip'));
+    for (final bad in ['mixed', 'mixed:0', 'all:20', 'matches:x']) {
+      expect(await run([...args, '--note-list=$bad']), 64, reason: bad);
+    }
+  });
+
   test(
     'eval --first-write --parallel=2: each case to its first write, two at once (#598)',
     () async {

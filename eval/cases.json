@@ -816,6 +816,88 @@
      "^projects/mopsos\\.md$": []
     }
    }
+  },
+  {
+   "id": "scale-en-4",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "Which frontend did we pick for the prediction app?",
+   "expect": {
+    "answer": [
+     "React"
+    ]
+   }
+  },
+  {
+   "id": "scale-en-5",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "How often is the hit rate calculated?",
+   "expect": {
+    "answer": [
+     "Sunday"
+    ]
+   }
+  },
+  {
+   "id": "scale-en-6",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "Another one for my reading list: Piranesi by Susanna Clarke.",
+   "expect": {
+    "notes": {
+     "^topics/books-to-read\\.md$": [
+      "Piranesi"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-tr-5",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Granit tezgahın ölçüsünü almak için usta perşembe geliyor.",
+   "expect": {
+    "tools_not": [
+     "complete_todo"
+    ],
+    "notes": {
+     "^projects/ev-tadilati\\.md$": [
+      "usta"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-tr-6",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Vergi levhasını indirdim.",
+   "expect": {
+    "tools": [
+     "complete_todo"
+    ],
+    "notes": {
+     "^topics/sirket-kurulusu\\.md$": []
+    }
+   }
+  },
+  {
+   "id": "scale-tr-7",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Elektrikçiyi ne için arayacaktım?",
+   "expect": {
+    "answer": [
+     "priz"
+    ]
+   }
   }
  ]
 }
