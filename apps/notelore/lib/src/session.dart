@@ -318,8 +318,9 @@ class Session extends ChangeNotifier {
     await _exclusive(() async {
       await device.free();
       await _scanLocal();
-      if (spec case final spec? when spec.access == ProviderAccess.deviceFile) {
-        _use(spec, '', model!);
+      if ((spec, model) case (final spec?, final model?)
+          when spec.access == ProviderAccess.deviceFile) {
+        _use(spec, '', model);
       }
     });
     notifyListeners();
