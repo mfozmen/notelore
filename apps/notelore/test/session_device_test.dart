@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore_core/notelore_core.dart';
+import 'package:path/path.dart' as p;
 
 import 'support.dart';
 
@@ -71,7 +72,7 @@ void main() {
     await session.disconnect(device);
     expect(harness.deviceEngine.disposed, 1);
     expect(session.deviceModel.ready, isFalse);
-    expect(Directory(session.deviceModel.dir).existsSync(), isFalse);
+    expect(Directory(session.deviceModel.dir).listSync(), isEmpty);
   });
 
   test('removed while it downloads: the download ends first, then nothing is left', () async {
@@ -85,7 +86,7 @@ void main() {
     served.complete('model bytes');
     await Future.wait([downloading, again, removing]);
     expect(session.deviceModel.ready, isFalse);
-    expect(Directory(session.deviceModel.dir).existsSync(), isFalse);
+    expect(Directory(session.deviceModel.dir).listSync(), isEmpty);
     expect(session.deviceProgress, isNull);
     expect(session.deviceProblem, isNull); // it finished, then went: no failure to show
   });
@@ -360,6 +361,127 @@ void main() {
       await again.load();
       await pumpEventQueue();
       expect(again.deviceUpdate, isNull);
+    });
+  });
+
+  group('a model file copied onto the device (#920)', () {
+    const url = 'https://models.test/q.gguf';
+
+    /// Copies [name] with [bytes] into the folder the person pushes models to.
+    File copy(Session session, String name, [String bytes = 'GGUF tuned']) =>
+        File(p.join(session.deviceModel.dir, 'local', name))
+          ..createSync(recursive: true)
+          ..writeAsStringSync(bytes);
+
+    test('the newest-named file wins: no download, the chat runs on it', () async {
+      final harness = Harness()..metered = false;
+      final session = harness.session(deviceModels: true);
+      copy(session, 'tuned-v10.gguf');
+      final v11 = copy(session, 'tuned-v11.gguf');
+      copy(session, 'notes.txt');
+      copy(session, 'zz plain name only.gguf');
+      await session.load();
+      await pumpEventQueue();
+      expect(session.localModel, 'tuned-v11.gguf');
+      expect(session.deviceModelHere, isTrue);
+      expect(session.deviceUpdate, isNull); // the pinned model is not fetched
+      expect(session.deviceUpdating, isNull);
+      await session.connect(findProvider('device'), '');
+      harness.deviceEngine.answers.add({
+        'message': {'content': 'Tuned.'},
+      });
+      await session.send('hi');
+      expect(session.transcript.last.text, 'Tuned.');
+      expect(harness.enginePaths.single, v11.path);
+      expect(session.deviceModel.ready, isFalse);
+    });
+
+    test('the old-file cleanup and a removal leave it alone', () async {
+      final harness = Harness();
+      final session = harness.session(deviceModels: true);
+      harness.pages[url] = 'model bytes';
+      await session.downloadDeviceModel();
+      final tuned = copy(session, 'tuned.gguf');
+      final again = harness.session(deviceModels: true);
+      await again.load();
+      await pumpEventQueue();
+      await again.deviceUpdating;
+      expect(tuned.existsSync(), isTrue);
+      await again.connect(findProvider('device'), '');
+      await again.disconnect(findProvider('device'));
+      expect(tuned.existsSync(), isTrue);
+      expect(again.deviceModel.ready, isFalse); // the downloaded one goes
+    });
+
+    test('a file that is not GGUF falls back to the pinned model and says so', () async {
+      final harness = Harness();
+      final session = harness.session(deviceModels: true);
+      harness.pages[url] = 'model bytes';
+      await session.downloadDeviceModel();
+      copy(session, 'broken.gguf', 'not a model');
+      final again = harness.session(deviceModels: true);
+      await again.load();
+      expect(again.localModel, isNull);
+      expect(again.localModelBroken, 'broken.gguf');
+      await again.connect(findProvider('device'), '');
+      harness.deviceEngine.answers.add({
+        'message': {'content': 'Stock.'},
+      });
+      await again.send('hi');
+      expect(harness.enginePaths.single, again.deviceModel.path('q.gguf'));
+    });
+
+    test('feedback names the copied file', () async {
+      final harness = Harness();
+      final session = harness.session(deviceModels: true);
+      copy(session, 'tuned.gguf');
+      await session.load();
+      await session.connect(findProvider('device'), '');
+      harness.deviceEngine.answers.add({
+        'message': {'content': 'Tuned.'},
+      });
+      await session.send('hi');
+      final rel = await session.reportGood();
+      final text = File(p.joinAll([harness.paths.notes.path, ...rel.split('/')]))
+          .readAsStringSync();
+      expect(text, contains('- Model: device qwen3-4b-instruct-2507 (tuned.gguf)\n'));
+    });
+
+    test('stopped: the pinned model runs, the file stays, a newer copy is used again', () async {
+      final harness = Harness();
+      final session = harness.session(deviceModels: true);
+      harness.pages[url] = 'model bytes';
+      await session.downloadDeviceModel();
+      final tuned = copy(session, 'tuned.gguf');
+      await session.load();
+      await session.connect(findProvider('device'), '');
+      await session.stopLocalModel();
+      expect(session.localModel, isNull);
+      expect(session.localModelBroken, isNull);
+      expect(tuned.existsSync(), isTrue);
+      harness.deviceEngine.answers.add({
+        'message': {'content': 'Stock.'},
+      });
+      await session.send('hi');
+      expect(harness.enginePaths, [tuned.path, session.deviceModel.path('q.gguf')]);
+      // Remembered on this device; another file is a new choice.
+      final again = harness.session(deviceModels: true);
+      await again.load();
+      expect(again.localModel, isNull);
+      copy(again, 'tuned2.gguf');
+      final third = harness.session(deviceModels: true);
+      await third.load();
+      expect(third.localModel, 'tuned2.gguf');
+    });
+
+    test('Android hands over its own folder', () async {
+      final harness = Harness();
+      final folder = Directory.systemTemp.createTempSync('copied');
+      addTearDown(() => folder.deleteSync(recursive: true));
+      File(p.join(folder.path, 'tuned.gguf')).writeAsStringSync('GGUF tuned');
+      final session = harness.session(deviceModels: true, localModelDir: folder.path);
+      await session.load();
+      expect(session.localModel, 'tuned.gguf');
     });
   });
 }

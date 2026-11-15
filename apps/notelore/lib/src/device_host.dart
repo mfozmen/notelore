@@ -23,7 +23,7 @@ class DeviceModelHost extends ChangeNotifier {
   /// The model's files in this device's state, downloaded on request.
   final WhisperModel model;
 
-  /// The model file the engine loads, asked when it loads.
+  /// The model file's path the engine loads, asked when it loads.
   final String Function() file;
   final LocalEngine Function(String path) makeEngine;
 
@@ -47,7 +47,7 @@ class DeviceModelHost extends ChangeNotifier {
 
   /// A provider for [chosenModel] on the one engine.
   LocalProvider provider(String chosenModel) {
-    final engine = _engine ??= makeEngine(model.path(file()));
+    final engine = _engine ??= makeEngine(file());
     return _provider = LocalProvider(chosenModel, engine);
   }
 

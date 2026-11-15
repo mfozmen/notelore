@@ -141,14 +141,14 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
       _keyFocus.requestFocus(); // brings the field into view, keyboard up
       return;
     }
-    if (_spec.access == ProviderAccess.deviceFile && !widget.session.deviceModel.ready) {
+    if (_spec.access == ProviderAccess.deviceFile && !widget.session.deviceModelHere) {
       final session = widget.session;
       // Back stays open: minutes of downloading must never look like a hang.
       // The download goes on in the session; leaving only skips the connect.
       setState(() => _problem = null);
       await session.downloadDeviceModel();
       if (!mounted || _step != _Step.connect || _spec.access != ProviderAccess.deviceFile) return;
-      if (!session.deviceModel.ready) {
+      if (!session.deviceModelHere) {
         final problem = session.deviceProblem ?? DownloadProblem.failed;
         return setState(() => _problem = session.strings.deviceDownloadFailed(problem));
       }
@@ -210,7 +210,7 @@ class _ProviderWizardState extends State<ProviderWizard> with WidgetsBindingObse
   // OpenAI's wording for its sign-in button; the model on the device downloads first.
   String _connectLabel(Strings s) => switch (_spec.id) {
     ProviderId.chatgpt => s.continueWithChatGpt,
-    ProviderId.device when !widget.session.deviceModel.ready =>
+    ProviderId.device when !widget.session.deviceModelHere =>
       _problem == null ? s.downloadAndConnect : s.resumeDownload,
     ProviderId.anthropic ||
     ProviderId.openai ||
@@ -1030,7 +1030,7 @@ class _DeviceDownload extends StatelessWidget {
         spacing: Gap.s,
         children: [
           Text(
-            session.deviceModel.ready ? s.deviceModelHere : s.deviceDownloadNote,
+            session.deviceModelHere ? s.deviceModelHere : s.deviceDownloadNote,
             style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
           if (progress != null) ...[
