@@ -39,7 +39,7 @@ import 'tools.dart';
 const _usage =
     'usage: notelore_dev signin | models | chat [--provider=<name>] [--model=<id>] <message>'
     ' | eval [--provider=<name>] [--model=<id>] [--cases=<file>] [--slim] [--greedy] [--runs=<n>]'
-    ' [--first-write] [--parallel=<n>]'
+    ' [--first-write] [--parallel=<n>] [--note-list=<order>:<n>]'
     ' | distill [--provider=<name>] [--model=<id>] [--cases=<file>] [--out=<file>] [--slim]'
     ' [--samples=<k>] [--keep-failed=<file>]'
     ' | reprompt --in=<file> --out=<file> [--slim]'
@@ -48,6 +48,7 @@ const _usage =
     ' --greedy: temperature 0, on ollama or opencode; --runs: the set n times, eval only;'
     ' --first-write: each turn only to its first write, scored with what it wanted;'
     ' --parallel: n cases at once, as many as OLLAMA_NUM_PARALLEL;'
+    ' --note-list: newest, or newest|matches|mixed:<n>, how the prompt picks its notes;'
     ' --provider=opencode: an OpenCode Go model, key NOTELORE_OPENCODE_API_KEY in the'
     ' environment or <state>/dev-secrets.json)';
 
@@ -79,7 +80,8 @@ String traceName(DateTime time) {
 bool _valid(String? command, String message, _Plan plan) {
   final evalOnly = plan.runs > 1 || plan.firstWrite;
   final distillOnly = plan.samples > 1 || plan.keepsFailed;
-  return plan.runs >= 1 &&
+  return plan.noteList != null &&
+      plan.runs >= 1 &&
       plan.parallel >= 1 &&
       plan.samples >= 1 &&
       switch (command) {
@@ -290,7 +292,8 @@ class _Plan {
       runs = 1,
       parallel = 1,
       samples = 1,
-      keepsFailed = false;
+      keepsFailed = false,
+      noteList = newestNotes;
 
   /// From the command line; a count that is no number is 0, so it is refused.
   _Plan.parse(List<String> args, Map<String, String> options)
@@ -299,7 +302,8 @@ class _Plan {
       runs = int.tryParse(options['runs'] ?? '1') ?? 0,
       parallel = int.tryParse(options['parallel'] ?? '1') ?? 0,
       samples = int.tryParse(options['samples'] ?? '1') ?? 0,
-      keepsFailed = options.containsKey('keep-failed');
+      keepsFailed = options.containsKey('keep-failed'),
+      noteList = _noteList(options['note-list']);
 
   final bool slim;
   final bool firstWrite;
@@ -311,7 +315,23 @@ class _Plan {
 
   /// Distill writes its failed turns to a file of their own (#607).
   final bool keepsFailed;
+
+  /// How the prompt's notes are chosen (#914); null when the option is no choice.
+  final NoteListChoice? noteList;
 }
+
+/// `newest`, or `newest|matches|mixed:<n>`; null for anything else.
+NoteListChoice? _noteList(String? option) => switch (option?.split(':')) {
+  null || ['newest'] => newestNotes,
+  [final name, final count] => switch ((
+    NoteListOrder.values.asNameMap()[name],
+    int.tryParse(count),
+  )) {
+    (final order?, final size?) when size > 0 => (order: order, size: size),
+    _ => null,
+  },
+  _ => null,
+};
 
 /// [path] under [directory], or null when none was given.
 File? _file(Directory directory, String? path) =>
@@ -336,7 +356,13 @@ Future<List<EvalResult>> _runOnce(
     results.addAll(
       await Future.wait([
         for (final evalCase in batch)
-          runCase(evalCase, provider, slim: plan.slim, firstWrite: plan.firstWrite).then((r) {
+          runCase(
+            evalCase,
+            provider,
+            slim: plan.slim,
+            firstWrite: plan.firstWrite,
+            noteList: plan.noteList!,
+          ).then((r) {
             final verdict = r.passed ? 'ok  ' : 'FAIL';
             out.writeln('$verdict ${evalCase.id} (${r.took.inMilliseconds} ms) ${r.tools}');
             ended(r);

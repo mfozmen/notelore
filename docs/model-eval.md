@@ -366,3 +366,11 @@ Findings:
 - **With the full prompt, v9 never answers a scale case.** When the note named in the message is not in the prompt's list, it calls `get_decision` on every listed slug until the call times out (180 s). This is the same before and after.
 - At 2,000 notes the unbounded list was about 51,000 tokens, more than the device model's 16k context, so the before column is only possible on small folders.
 - ChatGPT has not been measured yet.
+
+## The prompt's note list chosen by the message, 2026-11-15 (#914)
+
+The system prompt lists the newest notes, so a message about an older note gets no slug for it unless the model calls `search_notes`. `eval --note-list=<order>:<n>` picks the list another way, for the eval only (the app keeps the newest): `matches` lists the notes the index search finds for the message, best first; `mixed` tops those up with the newest; `newest:<n>` keeps today's order at another size. A folder of at most `n` notes keeps today's list. Six new `scale` cases (filler 80) name an old note only by its words: scale-en-4, scale-en-5, scale-en-6, scale-tr-5, scale-tr-6, scale-tr-7.
+
+Without a model, on the 13 `scale` cases: the newest list holds the target note in none; `matches` and `mixed` at 10, 20 and 30 hold it in 12. The miss is scale-tr-4 ("Tutunamayanlar'ı okuyorum"), whose words share no stem with "Okumakta Olduğum Kitaplar". At 30, the 1,200-character cap keeps 27 to 29 of them.
+
+Measurement on v9 is pending.

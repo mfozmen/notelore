@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:notelore_core/src/agent.dart' show languageLine, slimSystemPrompt, systemPrompt;
 import 'package:notelore_core/src/eval.dart';
 import 'package:notelore_core/src/providers/base.dart' show Message;
-import 'package:notelore_core/src/tools.dart' show noteTools, slimTools;
+import 'package:notelore_core/src/tools.dart' show NoteListOrder, noteTools, slimTools;
 import 'package:test/test.dart';
 
 import 'agent_test.dart' show ScriptedProvider, text, toolUse;
@@ -558,6 +558,14 @@ void main() {
       expect(result.passed, isTrue, reason: '${result.problems}');
       expect(result.noteList, contains('garden-irrigation'));
       expect(result.noteList, isNot(contains('mopsos')));
+      // Chosen by the message (#914), the old note is listed.
+      final matched = await runCase(
+        crowded,
+        ScriptedProvider([text('Weekly.')]),
+        noteList: (order: NoteListOrder.mixed, size: 20),
+      );
+      expect(matched.noteList, contains('mopsos'));
+      expect('\n'.allMatches(matched.noteList), hasLength(20));
     },
   );
 

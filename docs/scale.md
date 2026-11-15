@@ -33,7 +33,8 @@ Before it, the first build took 713 / 3,523 / 11,211 ms and `list_notes` was
 - **listNotes**, **relatedTo**: the index queries behind the Notes list and a
   note page's related notes.
 - **system prompt tokens**: the slim prompt plus the note list at its end,
-  which is capped at 60 notes and 1,200 characters, so it does not grow.
+  which is capped at 60 notes and 1,200 characters, so it does not grow. The
+  eval can choose it by the message instead (`--note-list`, [model-eval.md](model-eval.md)).
 
 ## What the numbers changed
 
