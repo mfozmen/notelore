@@ -326,8 +326,10 @@ void main() {
       );
     });
     final args = ['eval', '--provider=ollama', '--model=m', '--cases=cases.json'];
-    expect(await run(args, client: ollama), 0);
+    expect(await run([...args, '--note-list=newest'], client: ollama), 0);
     expect(systems.last, isNot(contains('glacier-trip')));
+    expect(await run(args, client: ollama), 0);
+    expect(systems.last, contains('glacier-trip'));
     expect(await run([...args, '--note-list=mixed:20'], client: ollama), 0);
     expect(systems.last, contains('glacier-trip'));
     for (final bad in ['mixed', 'mixed:0', 'all:20', 'matches:x']) {

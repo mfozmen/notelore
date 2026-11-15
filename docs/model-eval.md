@@ -369,8 +369,32 @@ Findings:
 
 ## The prompt's note list chosen by the message, 2026-11-15 (#914)
 
-The system prompt lists the newest notes, so a message about an older note gets no slug for it unless the model calls `search_notes`. `eval --note-list=<order>:<n>` picks the list another way, for the eval only (the app keeps the newest): `matches` lists the notes the index search finds for the message, best first; `mixed` tops those up with the newest; `newest:<n>` keeps today's order at another size. A folder of at most `n` notes keeps today's list. Six new `scale` cases (filler 80) name an old note only by its words: scale-en-4, scale-en-5, scale-en-6, scale-tr-5, scale-tr-6, scale-tr-7.
+The system prompt lists the newest notes, so a message about an older note gets no slug for it unless the model calls `search_notes`. `eval --note-list=<order>:<n>` picks the list another way, to compare: `matches` lists the notes the index search finds for the message, best first; `mixed` tops those up with the newest; `newest:<n>` keeps today's order at another size. A folder of at most `n` notes keeps today's list. Six new `scale` cases (filler 80) name an old note only by its words: scale-en-4, scale-en-5, scale-en-6, scale-tr-5, scale-tr-6, scale-tr-7.
 
 Without a model, on the 13 `scale` cases: the newest list holds the target note in none; `matches` and `mixed` at 10, 20 and 30 hold it in 12. The miss is scale-tr-4 ("Tutunamayanlar'ı okuyorum"), whose words share no stem with "Okumakta Olduğum Kitaplar". At 30, the 1,200-character cap keeps 27 to 29 of them.
 
-Measurement on v9 is pending.
+On v9 (`notelore-qwen3-4b-v9`, Ollama, `--greedy`), `eval/cases.json`, all 61 cases (the other sets have at most 8 notes a case, so their prompt does not change):
+
+| list | cases slim, 2 runs | scale of those | cases full | scale of those |
+|---|--:|--:|--:|--:|
+| newest (before) | 94/120 | 14/26 | 47/60 | 6/13 |
+| matches:20 | 103/120 | 23/26 | 52/60 | 11/13 |
+| mixed:10 | 100/120 | 20/26 | 51/60 | 10/13 |
+| mixed:20 | 98/120 | 18/26 | 52/60 | 11/13 |
+| mixed:30 | 100/120 | 20/26 | 50/60 | 9/13 |
+
+The cases that are not `scale` passed and failed the same in every row. Topping the matches up with the newest notes only dilutes them, so the app now uses `matches:20` (`defaultNotes`); `--note-list=newest` gives the old list.
+
+One case broke: scale-tr-1 ("Mutfak tezgahı için ne karar vermiştik?") with the full prompt. The model saw the right note in the list and called `get_decision` with a guessed topic ("tezgah"), got a bare miss and gave up; with the newest list it had searched instead. A miss now names the note's current decision topics, and scale-tr-1 passes.
+
+With both changes, on v9, against #913's numbers:
+
+| set | #913 | now |
+|---|--:|--:|
+| held-out slim | 259/292 | 259/292 |
+| held-out full | 260/292 | 256/292 |
+| cases slim, 2 runs | 87/108 | 101/120 |
+| cases full | 42/54 | 53/60 |
+| about me, full | 7/14 | 7/14 |
+
+Four held-out cases failed in this run and passed in #913's. Rerun alone three times each: dec-yuksek-lisans-basvurusu, newlist-2 and unclear-10 fail every time on `main` at 750ca7a too, with and without the `get_decision` change; newlist-first-6 passes every time on all three. So none of the four comes from this change: it is drift between whole-set runs.

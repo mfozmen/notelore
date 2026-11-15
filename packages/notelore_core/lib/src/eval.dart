@@ -250,7 +250,7 @@ Future<EvalResult> runCase(
   LlmProvider provider, {
   bool slim = false,
   bool firstWrite = false,
-  NoteListChoice noteList = newestNotes,
+  NoteListChoice noteList = defaultNotes,
 }) async {
   final until = firstWrite ? UntilWrite(provider) : null;
   final dir = Directory.systemTemp.createTempSync('notelore_eval_');

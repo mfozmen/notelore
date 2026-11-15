@@ -81,8 +81,12 @@ enum NoteListOrder { newest, matches, mixed }
 
 typedef NoteListChoice = ({NoteListOrder order, int size});
 
-/// Today's list: the newest 60.
+/// The list before #914: the newest 60.
 const NoteListChoice newestNotes = (order: NoteListOrder.newest, size: 60);
+
+/// The app's list: the notes the message finds, which beat the newest on the
+/// eval (#914); a folder of 20 or fewer lists them all.
+const NoteListChoice defaultNotes = (order: NoteListOrder.matches, size: 20);
 
 final _aboutMeSection = {
   'type': 'string',
@@ -618,8 +622,8 @@ class Toolbox {
   /// Removes a file; tests make it fail as a held file does on Windows.
   final void Function(File file) delete;
 
-  /// How [noteList] chooses; the app keeps [newestNotes].
-  NoteListChoice noteChoice = newestNotes;
+  /// How [noteList] chooses.
+  NoteListChoice noteChoice = defaultNotes;
 
   /// The notes for the end of the system prompt, so the model has their slugs
   /// without a list_notes call: chosen by [noteChoice] for [message], at most

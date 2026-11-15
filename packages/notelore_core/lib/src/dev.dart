@@ -48,7 +48,8 @@ const _usage =
     ' --greedy: temperature 0, on ollama or opencode; --runs: the set n times, eval only;'
     ' --first-write: each turn only to its first write, scored with what it wanted;'
     ' --parallel: n cases at once, as many as OLLAMA_NUM_PARALLEL;'
-    ' --note-list: newest, or newest|matches|mixed:<n>, how the prompt picks its notes;'
+    ' --note-list: newest (the old 60), or newest|matches|mixed:<n>, how the prompt picks its notes;'
+    ' default matches:20;'
     ' --provider=opencode: an OpenCode Go model, key NOTELORE_OPENCODE_API_KEY in the'
     ' environment or <state>/dev-secrets.json)';
 
@@ -293,7 +294,7 @@ class _Plan {
       parallel = 1,
       samples = 1,
       keepsFailed = false,
-      noteList = newestNotes;
+      noteList = defaultNotes;
 
   /// From the command line; a count that is no number is 0, so it is refused.
   _Plan.parse(List<String> args, Map<String, String> options)
@@ -322,7 +323,8 @@ class _Plan {
 
 /// `newest`, or `newest|matches|mixed:<n>`; null for anything else.
 NoteListChoice? _noteList(String? option) => switch (option?.split(':')) {
-  null || ['newest'] => newestNotes,
+  null => defaultNotes,
+  ['newest'] => newestNotes,
   [final name, final count] => switch ((
     NoteListOrder.values.asNameMap()[name],
     int.tryParse(count),

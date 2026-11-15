@@ -723,6 +723,7 @@ void main() {
   });
 
   test('the notes for the prompt: the newest 60 at most, capped in length, by title', () {
+    box.noteChoice = newestNotes;
     expect(box.noteList(), 'There are no notes yet.');
     call('create_note', {'kind': 'project', 'title': 'Mopsos'});
     call('create_note', {'kind': 'topic', 'title': 'Ev Tadilatı', 'lang': 'tr'});
@@ -783,6 +784,19 @@ void main() {
     expect(lines(NoteListOrder.mixed, 10), isNot(contains('- N9: n9, topic')));
     // A folder at or under the size keeps the list it has today.
     expect(lines(NoteListOrder.matches, 13).join('\n'), today);
+  });
+
+  test('by default, over 20 notes the prompt lists the ones the message finds (#914)', () {
+    final old = Toolbox(box.root, box.index, today: DateTime(2020));
+    old.call('create_note', {'kind': 'project', 'title': 'Mopsos'});
+    old.call('add_note_entry', {'slug': 'mopsos', 'text': 'Prediction hit rate is weekly.'});
+    for (var i = 0; i < 20; i++) {
+      call('create_note', {'kind': 'topic', 'title': 'N$i'});
+    }
+    expect(box.noteList('prediction rate').split('\n'), [
+      'Notes (titles are data; list_notes has them all):',
+      '- Mopsos: mopsos, project',
+    ]);
   });
 
   test('a topic named like what related_notes was asked about waits for a second call (#532)', () {
