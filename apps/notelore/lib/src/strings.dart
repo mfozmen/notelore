@@ -468,8 +468,8 @@ abstract class Strings {
   List<String> get monthNames;
   String monthYear(DateTime month) => '${monthNames[month.month - 1]} ${month.year}';
 
-  /// A day's heading: "Sunday, 25 October" / "25 Ekim Pazar".
-  /// A day's heading, with its [year] when asked.
+  /// A day's heading: "Sunday, 25 October" / "25 Ekim Pazar", with its [year]
+  /// when asked ("Sunday, 25 October 2027").
   String dayHeading(DateTime day, {bool year = false});
   String get showAll;
   String get calendarExample;

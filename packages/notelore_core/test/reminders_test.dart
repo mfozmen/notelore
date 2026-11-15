@@ -129,6 +129,17 @@ void main() {
     expect(nextTurn(Reminder(d(2026, 10, 2), 'Old'), now), DateTime(2026, 10, 2, 9));
     final leap = Reminder(d(2024, 2, 29), 'Leap day', repeat: Repeat.yearly);
     expect(nextTurn(leap, now), isNull);
+    // A series years old starts near now, and lands on the same turn.
+    final old = {
+      Repeat.daily: DateTime(2026, 10, 19, 22),
+      Repeat.weekly: DateTime(2026, 10, 24, 22),
+      Repeat.monthly: DateTime(2026, 10, 20, 22),
+      Repeat.yearly: DateTime(2027, 1, 20, 22),
+    };
+    for (final MapEntry(key: repeat, value: next) in old.entries) {
+      final reminder = Reminder(d(2001, 1, 20), 'Old', time: '22:00', repeat: repeat);
+      expect(nextTurn(reminder, now), next, reason: repeat.name);
+    }
   });
 
   test('a yearly reminder on 29 February comes only in leap years (#919)', () {

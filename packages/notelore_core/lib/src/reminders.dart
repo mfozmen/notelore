@@ -5,6 +5,7 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' show max;
 
 import 'package:path/path.dart' as p;
 
@@ -169,7 +170,7 @@ Iterable<DateTime> _occurrences(Reminder reminder, DateTime now) sync* {
   }
   final from = first.isAfter(now) ? first : now;
   final until = DateTime(from.year + 1, from.month, from.day, from.hour, from.minute);
-  for (var n = 0; ; n++) {
+  for (var n = max(0, _turnsBefore(repeat, first, now)); ; n++) {
     final at = _turn(repeat, first, n);
     if (at.isAfter(until)) return;
     // DateTime rolls a day the month lacks over into the next month.
@@ -177,6 +178,15 @@ Iterable<DateTime> _occurrences(Reminder reminder, DateTime now) sync* {
     if (at.isAfter(now) && !missing) yield at;
   }
 }
+
+/// At most the number of turns between [first] and [now], so an old series
+/// does not step through every past day; one less covers a DST hour.
+int _turnsBefore(Repeat repeat, DateTime first, DateTime now) => switch (repeat) {
+  Repeat.daily => now.difference(first).inDays - 1,
+  Repeat.weekly => now.difference(first).inDays ~/ 7 - 1,
+  Repeat.monthly => (now.year - first.year) * 12 + now.month - first.month - 1,
+  Repeat.yearly => now.year - first.year - 1,
+};
 
 DateTime _turn(Repeat repeat, DateTime first, int n) => switch (repeat) {
   Repeat.daily => DateTime(first.year, first.month, first.day + n, first.hour, first.minute),
