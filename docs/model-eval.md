@@ -422,21 +422,58 @@ With both changes, on v9, against #913's numbers:
 
 Four held-out cases failed in this run and passed in #913's. Rerun alone three times each: dec-yuksek-lisans-basvurusu, newlist-2 and unclear-10 fail every time on `main` at 750ca7a too, with and without the `get_decision` change; newlist-first-6 passes every time on all three. So none of the four comes from this change: it is drift between whole-set runs.
 
-## Reminders repeat as asked, once by default, 2026-11-15 (#919, #917)
+## Reminders repeat as asked, once by default, 2026-11-16 (#919, #917)
 
-`add_reminder`'s `repeat` was `enum ["monthly"]`. On ChatGPT, "Yarın kahve siparişi vereceğim." became a monthly reminder (#917). Now `repeat` is `enum ["once", "daily", "weekly", "monthly", "yearly"]`, `once` being the default. A first try described `repeat` as "omit for a one-time reminder". It made the coffee plan `daily` on ChatGPT: on that route the model fills every argument (`kind` too), so without a one-time value it picks some repeat. The prompt's monthly line now names every repeat and says anything else is `repeat: once`.
+`add_reminder`'s `repeat` was `enum ["monthly"]`. On ChatGPT, "Yarın kahve siparişi vereceğim." became a monthly reminder (#917). Now `repeat` is `enum ["once", "daily", "weekly", "monthly", "yearly"]`, with `once` the default. The prompt keeps its monthly sentence word for word and adds after it: one that repeats every day, week or year has daily, weekly or yearly, and any other reminder is `repeat: once`.
 
-New cases in `eval/cases.json`, written before the change: `rem-{tr,en}-{daily,weekly,monthly,yearly}`; `rem-tr-once` and `rem-en-once`, the coffee message, which pass with a dated todo or a one-time reminder and fail on any repeat; and `rem-tr-fix-once`, the "Düzelt o zaman." after a wrong monthly reminder, which expects a one-time reminder on the same day.
+Two earlier tries failed:
+- **`repeat` described as "omit for a one-time reminder".** The coffee plan became `daily` on ChatGPT. That route fills every argument (`kind` too), so with no one-time value it picks some repeat.
+- **The monthly line rewritten with examples ("every Monday", "every year on 3 March").** On v9 and v11 it moved plan and reminder dates a day early: "Saturday at 8" became Friday 2026-10-23. Keeping the trained sentence as it was brought rem-5, rem-9 and cross-3 back.
 
-**ChatGPT** (`--provider=chatgpt --model=gpt-6.1-terra`, full prompt), before is `main` at d138cb1 with the new cases:
+New cases in `eval/cases.json`, written before the change:
+- `rem-{tr,en}-{daily,weekly,monthly,yearly}`.
+- `rem-tr-once` and `rem-en-once`, the coffee message. They pass with a dated todo or a one-time reminder and fail on any repeat.
+- `rem-tr-fix-once`, "Düzelt o zaman." after a wrong monthly reminder. It expects a one-time reminder on the same day.
+
+Before is `main` at d138cb1 with the new cases; after is fd21f13. Each side ran from a binary built once (`dart build cli`), so neither moved while the other was measured.
+
+**ChatGPT** (`--provider=chatgpt --model=gpt-6.1-terra`, full prompt):
 
 | set | before | after |
 |---|--:|--:|
 | cases (72) | 62 (86%) | **70 (97%)** |
 | reminder cases (14) | 5 | 13 |
-| held-out (292) | 264 (90%) | **268 (92%)** |
-| held-out reminder (15) | 13 | 15 |
+| held-out (292) | **264 (90%)** | 261 (89%) |
 
-- After the change, the six daily, weekly and yearly cases and both coffee cases pass. The monthly cases passed before too.
-- `rem-tr-fix-once` fails before and after. The model reads the note and then says it cannot change or remove a reminder. No tool edits a reminder, so this needs a tool of its own, not a repeat value.
-- Six held-out cases passed before and failed in the after run. Each was rerun alone three times on each side (before → after): coll-hediye-listesi-1-0 2/3 → 3/3, cross-14 0/3 → 0/3, file-ev-tasima-1 1/3 → 3/3, file-saglik-kontrolleri 3/3 → 2/3, todo-ev-tasima 2/3 → 3/3, todo-bike-commute-1 3/3 → 1/3. todo-bike-commute-1 got five more runs on each side, 2/5 → 1/5. Every failure on both sides is the same todo saved without the word "brakes", and the turn never calls `add_reminder`. So it is drift between runs, not this change.
+- No case that passed before fails after. The six daily, weekly and yearly cases and both coffee cases now pass.
+- `rem-tr-fix-once` fails before and after. The model reads the note, then says it cannot change or remove a reminder. No tool edits a reminder, so this needs a tool of its own, not a repeat value.
+- Held-out: the cases that passed before and failed after were rerun alone, three times on each side (before → after).
+  - cross-11 3/3 → 3/3, todo-yuksek-lisans-basvurusu 2/3 → 3/3, todo-bike-commute 0/3 → 1/3, coll-hediye-listesi-1-0 2/3 → 3/3, file-ev-tasima-1 1/3 → 3/3, todo-ev-tasima 2/3 → 3/3, cross-14 0/3 → 0/3. All drift.
+  - file-saglik-kontrolleri went 3/3 → 2/3 in two separate batches. It files a todo and never calls `add_reminder`.
+
+**v11 and v9** (Ollama, `--greedy`):
+
+| set | v11 before | v11 after | v9 before | v9 after |
+|---|--:|--:|--:|--:|
+| held-out, slim | 261 | 259 | 260 | 258 |
+| held-out, full | 262 | 262 | **256** | 250 |
+| cases × 2, slim (142) | 116 | **120** | 105 | **112** |
+| cases, full (71) | 55 | 56 | **55** | 52 |
+| about me, full (14) | 9 | 9 | 7 | 7 |
+| reminder cases, slim (28) | 14 | 18 | 10 | 14 |
+| reminder cases, full (14) | 8 | 10 | 5 | 6 |
+
+(`plan-tr-search` needs web search, so the local runs have 71 cases.)
+
+Greedy runs still differ between batches. A case can pass in one subset and fail in another on the same binary, likely because Ollama reuses the prompt prefix of the case before. So each case that passed before and failed after was rerun in a file of its own, in a fresh process, three times on each side (before → after):
+
+- **Same or better alone:** v11 full mixed-tr-1 0/3 → 3/3; v11 slim file-language-exchange 0/3 → 3/3, scale-tr-4 3/3 → 3/3; v9 full q-en-3 3/3 → 3/3; v9 slim newlist-first-6 3/3 → 3/3, scale-tr-3 0/3 → 0/3.
+- **Worse every time:**
+  - v11 slim mixed-tr-1 3/3 → 0/3 (files Vizontele into a new music note) and newlist-0 2/3 → 0/3. coll-en-3 is 1/3 → 0/3 with the full prompt.
+  - v9 full plan-4 and plan-9 3/3 → 0/3: the plan's date is a day early again (the F1 race on Saturday the 24th written as Friday the 23rd).
+  - v9 full done-kafe-acilisi-0 3/3 → 0/3: adds a todo for the done task instead of ticking it.
+  - v9 full scale-tr-6 3/3 → 0/3.
+
+So on the device models this change does not meet "nothing that passed may fail". The new repeats and the coffee cases gain 4 reminder cases slim on both models. But v9 with the full prompt loses three held-out reminder or plan turns to the day-early slip, and both models lose a few non-reminder turns.
+
+The device prompt and tools are part of what v9 and v11 were trained on. Any change to the reminder text moves their date arithmetic, and keeping the old sentence only reduced that. The next fine-tune, with turns on the new `repeat` values in its data, is where this should settle. Until then, the choice is between shipping the schema to every provider or keeping the old one for the device model.
