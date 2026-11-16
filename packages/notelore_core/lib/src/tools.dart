@@ -1227,6 +1227,7 @@ class Toolbox {
 /// The one of [reminders] whose line mentions [words]; an error says why not.
 Reminder _oneReminder(Iterable<Reminder> reminders, String slug, String words) {
   final wanted = words.trim().toLowerCase();
+  if (wanted.isEmpty) throw StateError('Pass a few words of the reminder.');
   final matches = reminders.where((r) => r.render().toLowerCase().contains(wanted)).toList();
   if (matches.length == 1) return matches.single;
   if (matches.length > 1) {

@@ -209,6 +209,10 @@ void main() {
         "Error: 2 reminders of 'alisveris' mention '2026-10'; pass more of it.",
       );
       expect(
+        call('remove_reminder', {'slug': 'alisveris', 'reminder': ' '}),
+        'Error: Pass a few words of the reminder.',
+      );
+      expect(
         call('change_reminder', {'slug': 'alisveris', 'reminder': 'kahve'}),
         'Error: Nothing to change: pass at, text or repeat.',
       );
