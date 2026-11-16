@@ -829,17 +829,17 @@
     },
     {
      "role": "assistant",
-     "content": "I added a reminder for the tyre change appointment on Wednesday 21 October at 09:00 to your Car Maintenance note."
+     "content": "I added a reminder for the tyre change appointment on Wednesday 21 October at 09:00 to your Scooter Upkeep note."
     }
    ],
    "message": "The garage cancelled, remove that reminder.",
    "notes": {
-    "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-10-01\nupdated: 2026-10-18\ntags: [car]\n---\n# Car Maintenance\n\n## Notes\n- 2026-10-02: The next service is at 60,000 km.\n\n## Reminders\n- 2026-10-21 09:00: Tyre change appointment\n- 2026-10-25: Renew the car insurance\n"
+    "topics/scooter-upkeep.md": "---\ntitle: Scooter Upkeep\nkind: topic\ncreated: 2026-10-01\nupdated: 2026-10-18\ntags: [scooter]\n---\n# Scooter Upkeep\n\n## Notes\n- 2026-10-02: The scooter is serviced every 3,000 km.\n\n## Reminders\n- 2026-10-21 09:00: Tyre change appointment\n- 2026-10-25: Renew the scooter insurance\n"
    },
    "expect": {
     "notes": {
-     "^topics/car-maintenance\\.md$": [
-      "2026-10-25: Renew the car insurance"
+     "^topics/scooter-upkeep\\.md$": [
+      "2026-10-25: Renew the scooter insurance"
      ],
      "^_archive/": [
       "Tyre change"
