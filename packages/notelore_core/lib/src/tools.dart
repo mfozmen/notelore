@@ -1193,23 +1193,7 @@ class Toolbox {
     final entries = [
       ...?notes.readNote(path).section('reminders')?.entries.where((e) => e is! Raw),
     ];
-    final reminders = entries.whereType<Reminder>();
-    final wanted = words.trim().toLowerCase();
-    final matches = [
-      for (final reminder in reminders)
-        if (reminder.render().toLowerCase().contains(wanted)) reminder,
-    ];
-    if (matches.isEmpty) {
-      final listed = [for (final r in reminders) r.render().substring(2)];
-      throw StateError(
-        "No reminder of '$slug' mentions '$words'. "
-        '${listed.isEmpty ? 'It has no reminders.' : 'Its reminders: ${listed.join('; ')}'}',
-      );
-    }
-    if (matches.length > 1) {
-      throw StateError("${matches.length} reminders of '$slug' mention '$words'; pass more of it.");
-    }
-    final old = matches.single;
+    final old = _oneReminder(entries.whereType<Reminder>(), slug, words);
     var now = old;
     if (change != null) {
       final at = change.optional('at');
@@ -1238,6 +1222,21 @@ class Toolbox {
     _wrote(path);
     return {'reminder': now.render(), 'archived_to': _rel(archived)};
   }
+}
+
+/// The one of [reminders] whose line mentions [words]; an error says why not.
+Reminder _oneReminder(Iterable<Reminder> reminders, String slug, String words) {
+  final wanted = words.trim().toLowerCase();
+  final matches = reminders.where((r) => r.render().toLowerCase().contains(wanted)).toList();
+  if (matches.length == 1) return matches.single;
+  if (matches.length > 1) {
+    throw StateError("${matches.length} reminders of '$slug' mention '$words'; pass more of it.");
+  }
+  final listed = [for (final r in reminders) r.render().substring(2)];
+  throw StateError(
+    "No reminder of '$slug' mentions '$words'. "
+    '${listed.isEmpty ? 'It has no reminders.' : 'Its reminders: ${listed.join('; ')}'}',
+  );
 }
 
 /// The letter pairs of [text] transliterated as a slug, separators dropped.
