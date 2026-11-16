@@ -112,6 +112,7 @@ class Session extends ChangeNotifier {
     this.localModels = true,
     this.deviceModels = false,
     this.deviceFiles = deviceModelFiles,
+    this.localModelDir,
     this.makeDeviceEngine = nativeDeviceEngine,
     this.meteredNetwork = _unknownCost,
     this.retryEvery = const Duration(minutes: 1),
@@ -257,10 +258,74 @@ class Session extends ChangeNotifier {
     ];
   }
 
+  /// The path the engine loads: a copied file first, then an old one until the pinned one is here.
   String get _deviceFile => switch (_oldDeviceFiles.where((f) => f.path.endsWith('.gguf'))) {
-    final old when old.isNotEmpty && !deviceModel.ready => p.basename(old.first.path),
-    _ => deviceFiles.first.name,
+    _ when localModel != null => p.join(_localDir, localModel),
+    final old when old.isNotEmpty && !deviceModel.ready => old.first.path,
+    _ => deviceModel.path(deviceFiles.first.name),
   };
+
+  /// Where the person copies a model file of their own (#920): Android's
+  /// external files folder, which `adb push` reaches; else beside the pinned one.
+  final String? localModelDir;
+  late final String _localDir = localModelDir ?? p.join(deviceModel.dir, 'local');
+
+  /// The copied file the device model runs, by name; null when none is used.
+  String? localModel;
+
+  /// A copied file that does not open as GGUF: the pinned model runs instead.
+  String? localModelBroken;
+
+  /// The copied file the person stopped using here; a file of another name is used again.
+  String? localModelOff;
+
+  /// A folder the app cannot read must not stop it from opening: then no copied file is used.
+  Future<void> _scanLocal() async {
+    final (used, broken) = await Future.sync(_findLocal).catchError((Object _) => _none);
+    localModel = used;
+    localModelBroken = broken;
+  }
+
+  static const (String?, String?) _none = (null, null);
+
+  /// The newest-named file, used or broken. No checksum: the person put it
+  /// there, but it must start like a GGUF file. A plain name only, as it is
+  /// shown and written into feedback.
+  (String?, String?) _findLocal() {
+    final dir = Directory(_localDir);
+    if (!dir.existsSync()) return _none;
+    final names = [
+      for (final file in dir.listSync().whereType<File>())
+        if (RegExp(r'^[\w.-]+\.gguf$').hasMatch(p.basename(file.path))) p.basename(file.path),
+    ]..sort();
+    if (names.isEmpty || names.last == localModelOff) return _none;
+    final head = File(p.join(_localDir, names.last)).openSync();
+    try {
+      final gguf = ascii.decode(head.readSync(4), allowInvalid: true) == 'GGUF';
+      return gguf ? (names.last, null) : (null, names.last);
+    } finally {
+      head.closeSync();
+    }
+  }
+
+  /// The model file is here, downloaded or copied.
+  bool get deviceModelHere => deviceModel.ready || localModel != null;
+
+  /// Back to the pinned model; the copied file stays where the person put it.
+  Future<void> stopLocalModel() async {
+    localModelOff = localModel;
+    _saveUi();
+    await _exclusive(() async {
+      await device.free();
+      await _scanLocal();
+      if ((spec, model) case (final spec?, final model?)
+          when spec.access == ProviderAccess.deviceFile) {
+        _use(spec, '', model);
+      }
+    });
+    notifyListeners();
+    await _checkDeviceModel();
+  }
 
   /// A file Windows still holds (antivirus, an indexer) stays: the next start tries again.
   Future<void> _dropOldDeviceFiles() => Future.wait([
@@ -279,6 +344,7 @@ class Session extends ChangeNotifier {
   /// known) the person is asked first.
   Future<void> _checkDeviceModel() async {
     if (deviceModel.ready) return deviceUpdating = _dropOldDeviceFiles();
+    if (localModel != null) return;
     if (spec?.access != ProviderAccess.deviceFile) return;
     if (await meteredNetwork() == false) return updateDeviceModel();
     deviceUpdate = DeviceUpdate.ask;
@@ -589,7 +655,7 @@ class Session extends ChangeNotifier {
     final rel = reported = saveFeedback(
       (realNotes ?? paths.notes).path,
       _agent!.messages,
-      model: '${spec!.name} $model',
+      model: '${spec!.name} $model${_runsLocal ? ' ($localModel)' : ''}',
       expected: expected,
       verdict: verdict,
       space: testSpace ? 'test' : null,
@@ -604,6 +670,8 @@ class Session extends ChangeNotifier {
     notifyListeners();
     return rel;
   });
+
+  bool get _runsLocal => spec?.access == ProviderAccess.deviceFile && localModel != null;
 
   /// The newest answer's report, until it is taken back or the next message goes.
   String? reported;
@@ -735,6 +803,7 @@ class Session extends ChangeNotifier {
           if (!quickShortcut) 'quickShortcut': false,
           if (reminderCenter.calendarNudged) 'calendarNudged': true,
           'lookBackClosed': ?lookBackClosed,
+          'localModelOff': ?localModelOff,
         }),
       );
     } on FileSystemException {
@@ -771,6 +840,10 @@ class Session extends ChangeNotifier {
         final String day => day,
         _ => null,
       };
+      localModelOff = switch (saved['localModelOff']) {
+        final String name => name,
+        _ => null,
+      };
     } on Exception {
       // none saved yet, or damaged: the device's language
     }
@@ -804,7 +877,7 @@ class Session extends ChangeNotifier {
   /// How often messages that wait are tried again by themselves.
   final Duration retryEvery;
 
-  /// The periodic timer that tries them; tests tick it by hand.
+  /// The periodic timer behind retries and auto-sync; tests tick it by hand.
   final Timer Function(Duration period, void Function(Timer) onTick) every;
 
   /// Tests pin it; the app uses the local date.
@@ -1007,6 +1080,7 @@ class Session extends ChangeNotifier {
   Future<void> load() async {
     await lock.load();
     _loadLanguage();
+    await _scanLocal();
     // Whisper comes by itself, in the background: not with the app, so that
     // updates stay small.
     if (!whisper.ready) unawaited(downloadWhisper());
@@ -1104,7 +1178,9 @@ class Session extends ChangeNotifier {
       await device.downloading;
       await device.free();
       final dir = Directory(deviceModel.dir);
-      if (dir.existsSync()) dir.deleteSync(recursive: true);
+      for (final entry in dir.existsSync() ? dir.listSync() : const <FileSystemEntity>[]) {
+        if (!p.equals(entry.path, _localDir)) entry.deleteSync(recursive: true);
+      }
     }
     if (this.spec?.name == spec.name) _forgetProvider();
     notifyListeners();
@@ -1151,7 +1227,7 @@ class Session extends ChangeNotifier {
       switch (spec.access) {
         // Its one model, once its file is here; nothing to ask a server.
         ProviderAccess.deviceFile
-            when !deviceModel.ready && _deviceFile == deviceFiles.first.name =>
+            when !deviceModel.ready && _deviceFile == deviceModel.path(deviceFiles.first.name) =>
           throw const TransientValidationError('Download the model first'),
         ProviderAccess.deviceFile => [spec.defaultModel],
         ProviderAccess.apiKey ||
@@ -1698,7 +1774,8 @@ class Session extends ChangeNotifier {
   /// come in without asking. A tick is skipped while a sync or a chat turn runs.
   void startAutoSync({Duration every = const Duration(minutes: 3)}) {
     _autoSync?.cancel();
-    _autoSync = Timer.periodic(every, (_) => syncIfIdle());
+    // The injected timer, so tests drive the tick instead of waiting on it (#905).
+    _autoSync = this.every(every, (_) => syncIfIdle());
   }
 
   /// A background sync, unless one is already running or queued or a chat

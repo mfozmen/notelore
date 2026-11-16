@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'package:notelore/src/setup.dart';
 import 'package:notelore/src/soft.dart';
 import 'package:notelore/src/theme.dart';
 import 'package:notelore_core/notelore_core.dart';
+import 'package:path/path.dart' as p;
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'app_test.dart' show choose, phone, pumpApp;
@@ -511,6 +513,26 @@ void main() {
     expect(session.spec?.name, 'device');
     expect(find.text('Step 3 of 3'), findsOneWidget);
     expect(find.textContaining('Hello from this phone.'), findsOneWidget);
+  });
+
+  testWidgets('on this device: a copied model file connects without a download (#920)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness()..deviceModels = true;
+    File(p.join(harness.paths.state.path, 'models', 'device', 'local', 'tuned.gguf'))
+      ..createSync(recursive: true)
+      ..writeAsStringSync('GGUF tuned');
+    harness.deviceEngine.answers.add({
+      'message': {'content': 'Hello from the tuned model.'},
+    });
+    final session = await pumpApp(tester, harness);
+    await choose(tester, 'On this device (Qwen3 4B)');
+    expect(find.text('The model is on this device. No key is needed.'), findsOneWidget);
+    await tester.tap(find.text('Connect'));
+    await settleUntil(tester, () => session.ready);
+    expect(session.deviceModel.ready, isFalse);
+    expect(find.textContaining('Hello from the tuned model.'), findsOneWidget);
   });
 
   testWidgets('on this device: a download that fails says so and stays on Connect', (tester) async {

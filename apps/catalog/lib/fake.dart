@@ -15,6 +15,21 @@ import 'package:path/path.dart' as p;
 /// The day every fake note and screen is dated from, so renders never drift.
 final fakeToday = DateTime.utc(2026, 9, 30);
 
+/// The model on the device, never loaded: the catalog only shows its row.
+class _IdleEngine implements LocalEngine {
+  @override
+  Future<Map<String, Object?>> chat(
+    List<Map<String, Object?>> messages,
+    List<Map<String, Object?>> tools,
+  ) async => const {};
+
+  @override
+  Future<void> prefill(String system, List<Map<String, Object?>> tools) async {}
+
+  @override
+  Future<void> dispose() async {}
+}
+
 /// Answers in order, then says it is ready.
 class ScriptedModel implements LlmProvider {
   ScriptedModel(this.answers);
@@ -167,6 +182,10 @@ Future<Session> fakeSession({Directory? root, bool chat = true}) async {
   // ignore: invalid_use_of_visible_for_testing_member
   FlutterSecureStorage.setMockInitialValues({});
   final scripted = ScriptedModel([for (final (_, answer) in fakeChat) answer]);
+  // A model file copied onto the device (#920), so Settings shows its row.
+  File(p.join(dir.path, 'state', 'models', 'device', 'local', 'notelore-tuned.gguf'))
+    ..createSync(recursive: true)
+    ..writeAsStringSync('GGUF');
   final session = Session(
     NotelorePaths(
       notes: Directory(p.join(dir.path, 'notes')),
@@ -181,9 +200,12 @@ Future<Session> fakeSession({Directory? root, bool chat = true}) async {
     resolve: (_) async => [InternetAddress.loopbackIPv4],
     listMicrophones: () async => const [],
     localModels: false,
+    deviceModels: true,
+    makeDeviceEngine: (_) => _IdleEngine(),
     offThread: <R>(work) async => work(),
   );
   await session.load();
+  await session.connect(providerSpecs.firstWhere((s) => s.id == ProviderId.device), '');
   await session.connect(providerSpecs.firstWhere((s) => s.id == ProviderId.anthropic), 'fake');
   if (chat) {
     for (final (question, _) in fakeChat) {

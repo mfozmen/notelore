@@ -101,6 +101,8 @@ Future<Session> openSession({
       dartVersion: Platform.version,
       meminfo: Platform.isAndroid ? readMeminfo() : null,
     ),
+    // A model file copied over adb (#920); the desktop keeps it in its state.
+    localModelDir: await copiedModelsDir(),
     meteredNetwork: connectionMetered, // a new device model asks first on mobile data (#767)
     systemLanguage: PlatformDispatcher.instance.locale.languageCode,
     timing: keySpace == 'notelore-dev' ? debugPrint : null, // #232: development runs only

@@ -114,6 +114,10 @@ abstract class Strings {
   String get gotIt;
   String get usingChatGptPlan;
   String get manageUsage;
+  String copiedModel(String file);
+  String copiedModelBroken(String file);
+  String get useDownloadedModel;
+  String get copiedModelStays;
 
   // Chat.
   String get askSomething;
@@ -720,6 +724,15 @@ class EnglishStrings extends Strings {
   String get usingChatGptPlan => 'Using ChatGPT plan';
   @override
   String get manageUsage => 'Manage usage';
+  @override
+  String copiedModel(String file) => '$file (copied to this device)';
+  @override
+  String copiedModelBroken(String file) =>
+      '$file did not open as a model. The downloaded one runs instead.';
+  @override
+  String get useDownloadedModel => 'Use the downloaded model';
+  @override
+  String get copiedModelStays => 'The copied file stays on this device.';
   @override
   String get languageCode => 'en';
   @override
@@ -1923,6 +1936,15 @@ class TurkishStrings extends Strings {
   String get usingChatGptPlan => 'ChatGPT planı kullanılıyor';
   @override
   String get manageUsage => 'Kullanımı yönet';
+  @override
+  String copiedModel(String file) => '$file (bu cihaza kopyalandı)';
+  @override
+  String copiedModelBroken(String file) =>
+      '$file model olarak açılmadı. Yerine indirilen model çalışıyor.';
+  @override
+  String get useDownloadedModel => 'İndirilen modeli kullan';
+  @override
+  String get copiedModelStays => 'Kopyalanan dosya bu cihazda kalır.';
   @override
   String get languageCode => 'tr';
   @override
