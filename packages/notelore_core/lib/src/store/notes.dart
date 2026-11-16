@@ -366,7 +366,7 @@ void addReminder(
   DateTime date, {
   String? time,
   String? end,
-  bool monthly = false,
+  Repeat? repeat,
   DateTime? today,
 }) {
   if (time != null && !isReminderTime(time)) {
@@ -379,12 +379,12 @@ void addReminder(
     final minutes = estimateReminderDuration(text);
     if (minutes > 15) end = _endAfter(time, minutes);
   }
-  final reminder = Reminder(date, _text(text), time: time, end: end, monthly: monthly);
+  final reminder = Reminder(date, _text(text), time: time, end: end, repeat: repeat);
   updateNote(path, (note) => _append(_section(note, 'reminders'), reminder), today: today);
 }
 
 /// Puts [to] in place of the reminder [from] (#801), or right after it when
-/// [keep], as snoozing one turn of a monthly reminder does.
+/// [keep], as snoozing one turn of a repeating reminder does.
 void moveReminder(String path, Reminder from, Reminder to, {bool keep = false, DateTime? today}) {
   updateNote(path, (note) {
     final entries = _section(note, 'reminders').entries;

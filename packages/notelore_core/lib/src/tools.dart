@@ -262,18 +262,21 @@ final toolRegistry = List<NoteTool>.unmodifiable([
           },
           'repeat': {
             'type': 'string',
-            'enum': ['monthly'],
-            'description': 'monthly for a commitment that repeats every month',
+            'enum': _repeats,
+            'description':
+                'once for a one-time reminder (the default). Only when the user asks for a '
+                'repeat: daily, weekly (on that weekday), monthly (on that day), yearly',
           },
           'kind': _kind,
         },
       ),
     ),
     (t, a) => t._write(t._path(a['slug'], a.kind), (path) {
-      final repeat = a.optional('repeat');
-      if (repeat != null && repeat != 'monthly') {
-        throw FormatException("repeat must be 'monthly', got '$repeat'.");
+      final name = a.optional('repeat') ?? _once;
+      if (!_repeats.contains(name)) {
+        throw FormatException("repeat must be one of ${_repeats.join(', ')}, got '$name'.");
       }
+      final repeat = Repeat.values.asNameMap()[name];
       final (date, time, end) = Toolbox._at(a['at']);
       notes.addReminder(
         path,
@@ -281,7 +284,7 @@ final toolRegistry = List<NoteTool>.unmodifiable([
         date,
         time: time,
         end: end,
-        monthly: repeat == 'monthly',
+        repeat: repeat,
         today: t.today,
       );
     }),
@@ -522,6 +525,10 @@ final toolRegistry = List<NoteTool>.unmodifiable([
     personal: true,
   ),
 ]);
+
+// The ChatGPT route fills every argument, so a one-time reminder needs a value of its own.
+const _once = 'once';
+final _repeats = [_once, for (final repeat in Repeat.values) repeat.name];
 
 /// [schema] without the slug's description, said again in nearly every tool;
 /// the words that carry a format (a date, a time, entries) stay.

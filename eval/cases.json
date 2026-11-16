@@ -558,6 +558,210 @@
    }
   },
   {
+   "id": "rem-tr-daily",
+   "kind": "reminder",
+   "lang": "tr",
+   "message": "Her gün saat 22:00'de ilacımı almamı hatırlat.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "22:00 (daily)",
+      "ilaç"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-en-daily",
+   "kind": "reminder",
+   "lang": "en",
+   "message": "Remind me every day at 8 am to water the balcony plants.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "08:00 (daily)",
+      "water"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-tr-weekly",
+   "kind": "reminder",
+   "lang": "tr",
+   "message": "Her pazartesi akşam 7'de spora gitmemi hatırlat.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2026-10-19 19:00 (weekly)",
+      "spor"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-en-weekly",
+   "kind": "reminder",
+   "lang": "en",
+   "message": "Remind me every Friday at 5 pm to send the Mopsos status report.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2026-10-23 17:00 (weekly)",
+      "report"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-tr-monthly",
+   "kind": "reminder",
+   "lang": "tr",
+   "message": "Her ayın 5'inde aidatı ödememi hatırlat.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2026-11-05",
+      "(monthly)",
+      "aidat"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-en-monthly",
+   "kind": "reminder",
+   "lang": "en",
+   "message": "Remind me on the 1st of every month to pay the gym membership.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2026-11-01",
+      "(monthly)",
+      "gym"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-tr-yearly",
+   "kind": "reminder",
+   "lang": "tr",
+   "message": "Her yıl 3 Mart'ta annemin doğum gününü hatırlat.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2027-03-03",
+      "(yearly)",
+      "doğum"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-en-yearly",
+   "kind": "reminder",
+   "lang": "en",
+   "message": "Remind me every year on 12 June about our wedding anniversary.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2027-06-12",
+      "(yearly)",
+      "anniversary"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-tr-once",
+   "kind": "reminder",
+   "lang": "tr",
+   "message": "Yarın kahve siparişi vereceğim.",
+   "expect": {
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2026-10-19",
+      "kahve"
+     ]
+    },
+    "lines_not": [
+     "\\((daily|weekly|monthly|yearly)\\)"
+    ]
+   }
+  },
+  {
+   "id": "rem-en-once",
+   "kind": "reminder",
+   "lang": "en",
+   "message": "I'll order coffee beans tomorrow.",
+   "expect": {
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2026-10-19",
+      "coffee"
+     ]
+    },
+    "lines_not": [
+     "\\((daily|weekly|monthly|yearly)\\)"
+    ]
+   }
+  },
+  {
+   "id": "rem-tr-fix-once",
+   "kind": "reminder",
+   "lang": "tr",
+   "history": [
+    {
+     "role": "user",
+     "content": "Yarın kahve siparişi vereceğim."
+    },
+    {
+     "role": "assistant",
+     "content": "Alışveriş notuna 19 Ekim için kahve siparişi hatırlatıcısı ekledim; yanlışlıkla her ay tekrarlanacak şekilde oluşturuldu."
+    }
+   ],
+   "message": "Düzelt o zaman.",
+   "notes": {
+    "topics/alisveris.md": "---\ntitle: Alışveriş\nkind: topic\ncreated: 2026-10-01\nupdated: 2026-10-18\ntags: [alışveriş]\n---\n# Alışveriş\n\n## Notlar\n- 2026-10-01: Market listesi haftalık yapılıyor.\n\n## Hatırlatıcılar\n- 2026-10-19 (monthly): Kahve siparişi\n"
+   },
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^topics/alisveris\\.md$": [
+      "2026-10-19: Kahve"
+     ],
+     "^_archive/": []
+    }
+   }
+  },
+  {
    "id": "coll-tr-empty",
    "kind": "collection",
    "lang": "tr",

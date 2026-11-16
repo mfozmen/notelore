@@ -394,6 +394,52 @@ kind: topic
     expect(find.text('not a reminder, as written'), findsOneWidget);
   });
 
+  testWidgets('reminders: a repeating one says how it repeats and never passes (#919)', (
+    tester,
+  ) async {
+    await show(tester, '''---
+title: Gym
+kind: topic
+---
+# Gym
+
+## Reminders
+- 2026-10-05 19:00 (weekly): Gym
+- 2026-10-02 (yearly): Mum's birthday
+''');
+    // At its next turn, and in that order: the birthday is next year.
+    expect(find.text('19 Oct · 19:00 · Weekly'), findsOneWidget);
+    expect(find.text('2 Oct 2027 · Yearly'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('Gym').last).dy,
+      lessThan(tester.getTopLeft(find.text("Mum's birthday")).dy),
+    );
+    expect(find.textContaining('Passed'), findsNothing);
+    expect(find.byIcon(AppIcons.repeat), findsNWidgets(2));
+  });
+
+  testWidgets('reminders: at large text the date goes under the words, not beside (#919)', (
+    tester,
+  ) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await show(tester, '''---
+title: Gym
+kind: topic
+---
+# Gym
+
+## Reminders
+- 2026-10-05 19:00 (weekly): Gym with Deniz
+''');
+    tester.view.physicalSize = const Size(360, 640);
+    await tester.pumpAndSettle();
+    final words = tester.getRect(find.text('Gym with Deniz'));
+    final date = tester.getRect(find.text('19 Oct · 19:00 · Weekly'));
+    expect(date.top, greaterThanOrEqualTo(words.bottom));
+    expect(date.left, words.left);
+  });
+
   testWidgets('notes: a timeline, newest first, its words formatted (#426)', (tester) async {
     await show(tester, _mopsos);
     final crypto = tester.getTopLeft(find.textContaining('Considered adding crypto')).dy;

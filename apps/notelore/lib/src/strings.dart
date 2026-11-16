@@ -472,8 +472,9 @@ abstract class Strings {
   List<String> get monthNames;
   String monthYear(DateTime month) => '${monthNames[month.month - 1]} ${month.year}';
 
-  /// A day's heading: "Sunday, 25 October" / "25 Ekim Pazar".
-  String dayHeading(DateTime day);
+  /// A day's heading: "Sunday, 25 October" / "25 Ekim Pazar", with its [year]
+  /// when asked ("Sunday, 25 October 2027").
+  String dayHeading(DateTime day, {bool year = false});
   String get showAll;
   String get calendarExample;
   String get goToChat;
@@ -485,6 +486,9 @@ abstract class Strings {
   String supersededOn(String date);
   String overdue(String date);
   String reminderPassed(String date);
+
+  /// How a repeating reminder comes again, short enough for a date column.
+  String repeats(Repeat repeat);
 
   // Reminders as this device's notifications (#431).
   String get reminders;
@@ -1444,8 +1448,9 @@ class EnglishStrings extends Strings {
   @override
   String get nextMonth => 'Next month';
   @override
-  String dayHeading(DateTime day) =>
-      '${weekdayNames[day.weekday - 1]}, ${day.day} ${monthNames[day.month - 1]}';
+  String dayHeading(DateTime day, {bool year = false}) =>
+      '${weekdayNames[day.weekday - 1]}, ${day.day} ${monthNames[day.month - 1]}'
+      '${year ? ' ${day.year}' : ''}';
   @override
   String get showAll => 'Show all';
   @override
@@ -1485,6 +1490,13 @@ class EnglishStrings extends Strings {
   String overdue(String date) => 'Overdue, $date';
   @override
   String reminderPassed(String date) => 'Passed, $date';
+  @override
+  String repeats(Repeat repeat) => switch (repeat) {
+    Repeat.daily => 'Daily',
+    Repeat.weekly => 'Weekly',
+    Repeat.monthly => 'Monthly',
+    Repeat.yearly => 'Yearly',
+  };
   @override
   String get reminders => 'Reminders';
   @override
@@ -2702,8 +2714,9 @@ class TurkishStrings extends Strings {
   @override
   String get nextMonth => 'Sonraki ay';
   @override
-  String dayHeading(DateTime day) =>
-      '${day.day} ${monthNames[day.month - 1]} ${weekdayNames[day.weekday - 1]}';
+  String dayHeading(DateTime day, {bool year = false}) =>
+      '${day.day} ${monthNames[day.month - 1]}${year ? ' ${day.year}' : ''} '
+      '${weekdayNames[day.weekday - 1]}';
   @override
   String get showAll => 'Tümünü göster';
   @override
@@ -2750,6 +2763,13 @@ class TurkishStrings extends Strings {
   String overdue(String date) => 'Gecikti, $date';
   @override
   String reminderPassed(String date) => 'Geçti, $date';
+  @override
+  String repeats(Repeat repeat) => switch (repeat) {
+    Repeat.daily => 'Her gün',
+    Repeat.weekly => 'Her hafta',
+    Repeat.monthly => 'Her ay',
+    Repeat.yearly => 'Her yıl',
+  };
   @override
   String get reminders => 'Hatırlatıcılar';
   @override

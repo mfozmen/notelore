@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:notelore_core/src/reminders.dart';
+import 'package:notelore_core/src/store/format.dart' show Reminder, Repeat;
 import 'package:notelore_core/src/store/notes.dart';
 import 'package:notelore_core/src/store/stale.dart';
 import 'package:path/path.dart' as p;
@@ -69,7 +70,7 @@ void main() {
       'Rent',
       d(2026, 10, 18),
       time: '09:00',
-      monthly: true,
+      repeat: Repeat.monthly,
       today: d(2026, 10, 1),
     );
     addReminder(
@@ -77,7 +78,7 @@ void main() {
       'Last day',
       d(2027, 1, 31),
       time: '09:00',
-      monthly: true,
+      repeat: Repeat.monthly,
       today: d(2026, 10, 1),
     );
     final due = upcomingReminders(root, now: now).where((r) => r.note == 'Monthly').toList();
@@ -105,6 +106,72 @@ void main() {
       calendarItems(root, today: DateTime(2026, 10, 19)).where((i) => i.text == 'Past'),
       isEmpty,
     );
+  });
+
+  test('a weekly reminder comes on its weekday, across a month end (#919)', () {
+    final gym = createNote(root, 'topic', 'Gym', today: d(2026, 10, 1));
+    addReminder(gym, 'Gym', d(2026, 10, 26), time: '19:00', repeat: Repeat.weekly);
+    final due = upcomingReminders(root, now: now).where((r) => r.text == 'Gym').map((r) => r.at);
+    expect(due.take(3), [
+      DateTime(2026, 10, 26, 19),
+      DateTime(2026, 11, 2, 19),
+      DateTime(2026, 11, 9, 19),
+    ]);
+    final items = calendarItems(root, today: DateTime(2026, 10, 19)).where((i) => i.text == 'Gym');
+    expect(items.first.repeat, Repeat.weekly);
+    // A year of turns from the first, so the month grid marks every one.
+    expect(items, hasLength(53));
+  });
+
+  test("a reminder's next turn: a series' coming one, a plain one's own date (#919)", () {
+    final weekly = Reminder(d(2026, 10, 5), 'Gym', time: '19:00', repeat: Repeat.weekly);
+    expect(nextTurn(weekly, now), DateTime(2026, 10, 19, 19));
+    expect(nextTurn(Reminder(d(2026, 10, 2), 'Old'), now), DateTime(2026, 10, 2, 9));
+    final leap = Reminder(d(2024, 2, 29), 'Leap day', repeat: Repeat.yearly);
+    expect(nextTurn(leap, now), isNull);
+    // A series years old starts near now, and lands on the same turn.
+    final old = {
+      Repeat.daily: DateTime(2026, 10, 19, 22),
+      Repeat.weekly: DateTime(2026, 10, 24, 22),
+      Repeat.monthly: DateTime(2026, 10, 20, 22),
+      Repeat.yearly: DateTime(2027, 1, 20, 22),
+    };
+    for (final MapEntry(key: repeat, value: next) in old.entries) {
+      final reminder = Reminder(d(2001, 1, 20), 'Old', time: '22:00', repeat: repeat);
+      expect(nextTurn(reminder, now), next, reason: repeat.name);
+    }
+  });
+
+  test('a yearly reminder on 29 February comes only in leap years (#919)', () {
+    final leap = createNote(root, 'topic', 'Leap', today: d(2026, 10, 1));
+    addReminder(leap, 'Leap day', d(2024, 2, 29), repeat: Repeat.yearly);
+    addReminder(leap, 'Birthday', d(2026, 3, 3), repeat: Repeat.yearly);
+    List<DateTime> days(String text, DateTime today) => [
+      for (final i in calendarItems(root, today: today))
+        if (i.text == text) i.day,
+    ];
+    expect(days('Leap day', DateTime(2026, 10, 19)), isEmpty);
+    expect(days('Leap day', DateTime(2027, 6, 1)), [DateTime(2028, 2, 29)]);
+    expect(days('Birthday', DateTime(2026, 10, 19)), [DateTime(2027, 3, 3)]);
+  });
+
+  test('a daily reminder comes every day, its end past midnight on the next (#919)', () {
+    final notes = createNote(root, 'topic', 'Pills', today: d(2026, 10, 1));
+    addReminder(notes, 'Pill', d(2026, 10, 1), time: '22:00', end: '01:00', repeat: Repeat.daily);
+    final due = upcomingReminders(root, now: now).where((r) => r.text == 'Pill').take(2);
+    expect(due.map((r) => (r.at, r.end)), [
+      (DateTime(2026, 10, 19, 22), DateTime(2026, 10, 20, 1)),
+      (DateTime(2026, 10, 20, 22), DateTime(2026, 10, 21, 1)),
+    ]);
+    expect(due.map((r) => r.id).toSet(), hasLength(2));
+    // A reminder dated in the future starts its year of turns there.
+    addReminder(notes, 'Later', d(2028, 1, 1), repeat: Repeat.daily);
+    final later = calendarItems(
+      root,
+      today: DateTime(2026, 10, 19),
+    ).where((i) => i.text == 'Later');
+    expect(later.first.day, DateTime(2028, 1, 1));
+    expect(later.where((i) => i.repeat == null), isEmpty);
   });
 
   test('an id stays the same for the same reminder and differs for another', () {
@@ -200,7 +267,7 @@ void main() {
         'Rent',
         d(2026, 9, 19),
         time: '14:30',
-        monthly: true,
+        repeat: Repeat.monthly,
         today: d(2026, 9, 1),
       );
       final id = idOf('Rent', at: DateTime(2026, 10, 19, 14));
