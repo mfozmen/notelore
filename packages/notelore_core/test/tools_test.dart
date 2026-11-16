@@ -147,6 +147,93 @@ void main() {
     );
   });
 
+  group('a wrong reminder is changed or removed, the old line archived (#925)', () {
+    String note() => File(p.join(box.root, 'topics', 'alisveris.md')).readAsStringSync();
+    String archived() =>
+        Directory(p.join(box.root, '_archive'))
+            .listSync(recursive: true)
+            .whereType<File>()
+            .single
+            .readAsStringSync();
+
+    setUp(() {
+      call('create_note', {'kind': 'topic', 'title': 'Alışveriş', 'lang': 'tr'});
+      call('add_reminder', {
+        'slug': 'alisveris',
+        'at': '2026-10-19',
+        'text': 'Kahve siparişi',
+        'repeat': 'monthly',
+      });
+      call('add_reminder', {'slug': 'alisveris', 'at': '2026-10-20 09:00', 'text': 'Market'});
+    });
+
+    test('change_reminder puts the changed one in place of the old', () {
+      final changed = call('change_reminder', {
+        'slug': 'alisveris',
+        'reminder': 'kahve',
+        'repeat': 'once',
+      }) as Map;
+      expect(changed['reminder'], '- 2026-10-19: Kahve siparişi');
+      expect(changed['archived_to'], startsWith('_archive/'));
+      expect(note(), contains('- 2026-10-20 09:00: Market\n- 2026-10-19: Kahve siparişi\n'));
+      expect(note(), isNot(contains('monthly')));
+      expect(archived(), contains('- 2026-10-19 (monthly): Kahve siparişi'));
+      expect(box.receipts().single.tools, contains('change_reminder'));
+    });
+
+    test('what change_reminder is not given stays as it was', () {
+      call('change_reminder', {'slug': 'alisveris', 'reminder': 'market', 'text': 'Pazar'});
+      expect(note(), contains('- 2026-10-20 09:00: Pazar\n'));
+      call('change_reminder', {'slug': 'alisveris', 'reminder': 'kahve', 'at': '2026-10-21 08:30'});
+      expect(note(), contains('- 2026-10-21 08:30 (monthly): Kahve siparişi\n'));
+    });
+
+    test('remove_reminder moves the one reminder to the archive', () {
+      final removed = call('remove_reminder', {'slug': 'alisveris', 'reminder': 'Market'}) as Map;
+      expect(removed['reminder'], '- 2026-10-20 09:00: Market');
+      expect(removed['archived_to'], startsWith('_archive/'));
+      expect(note(), isNot(contains('Market')));
+      expect(note(), contains('Kahve siparişi'));
+      expect(archived(), contains('- 2026-10-20 09:00: Market'));
+    });
+
+    test('a reminder not found, or not one, is an error that changes nothing', () {
+      final before = note();
+      expect(
+        call('remove_reminder', {'slug': 'alisveris', 'reminder': 'dentist'}),
+        "Error: No reminder of 'alisveris' mentions 'dentist'. Its reminders: "
+        '2026-10-19 (monthly): Kahve siparişi; 2026-10-20 09:00: Market',
+      );
+      expect(
+        call('change_reminder', {'slug': 'alisveris', 'reminder': '2026-10', 'text': 'x'}),
+        "Error: 2 reminders of 'alisveris' mention '2026-10'; pass more of it.",
+      );
+      expect(
+        call('change_reminder', {'slug': 'alisveris', 'reminder': 'kahve'}),
+        'Error: Nothing to change: pass at, text or repeat.',
+      );
+      expect(
+        call('change_reminder', {'slug': 'alisveris', 'reminder': 'kahve', 'repeat': 'hourly'}),
+        "Error: repeat must be one of once, daily, weekly, monthly, yearly, got 'hourly'.",
+      );
+      expect(
+        call('change_reminder', {
+          'slug': 'alisveris',
+          'reminder': 'kahve',
+          'at': '2026-10-19 25:00',
+        }),
+        'Error: a reminder time is HH:MM, 00:00 to 23:59 (got 25:00)',
+      );
+      expect(note(), before);
+      call('create_note', {'kind': 'topic', 'title': 'Empty'});
+      expect(
+        call('remove_reminder', {'slug': 'empty', 'reminder': 'x'}),
+        "Error: No reminder of 'empty' mentions 'x'. It has no reminders.",
+      );
+      expect(Directory(p.join(box.root, '_archive')).existsSync(), isFalse);
+    });
+  });
+
   test('sources cite the current decisions the decision tools found, at most 3 (#792)', () {
     List<String> sources() => [
       for (final s in box.sources())
@@ -209,6 +296,8 @@ void main() {
       'add_todo',
       'complete_todo',
       'add_reminder',
+      'change_reminder',
+      'remove_reminder',
       'record_decision',
       'get_decision',
       'decision_history',

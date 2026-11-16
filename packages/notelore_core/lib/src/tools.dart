@@ -16,6 +16,10 @@
 /// - `add_todo(slug, text, due?, kind?)` / `complete_todo(slug, number, kind?)`.
 /// - `add_reminder(slug, at, text, kind?)`: `at` is `YYYY-MM-DD` or `YYYY-MM-DD HH:MM`;
 ///   appended under Reminders, which the app turns into notifications.
+/// - `change_reminder(slug, reminder, at?, text?, repeat?, kind?)` /
+///   `remove_reminder(slug, reminder, kind?)`: the one reminder whose line mentions
+///   `reminder`, moved under `_archive/`; a change adds it back with what it gives:
+///   `{reminder, archived_to}`.
 /// - `record_decision(slug, topic, value, reason?, kind?)`: supersedes the active
 ///   decision for `topic` in the same write.
 /// - `get_decision(slug, topic, kind?)`: the current decision, deterministic.
@@ -272,11 +276,7 @@ final toolRegistry = List<NoteTool>.unmodifiable([
       ),
     ),
     (t, a) => t._write(t._path(a['slug'], a.kind), (path) {
-      final name = a.optional('repeat') ?? _once;
-      if (!_repeats.contains(name)) {
-        throw FormatException("repeat must be one of ${_repeats.join(', ')}, got '$name'.");
-      }
-      final repeat = Repeat.values.asNameMap()[name];
+      final repeat = Toolbox._repeat(a.optional('repeat') ?? _once);
       final (date, time, end) = Toolbox._at(a['at']);
       notes.addReminder(
         path,
@@ -290,6 +290,43 @@ final toolRegistry = List<NoteTool>.unmodifiable([
     }),
     activity: Activity.writing,
     slimDescription: 'Add a reminder for a day, or a day and a time, in the note it belongs to.',
+  ),
+  NoteTool(
+    Tool(
+      'change_reminder',
+      'Change one reminder when the user corrects it ("fix it", "make it 10", "only once"): '
+          'a few words of it, and only what changes. No asking.',
+      _schema(
+        ['slug', 'reminder'],
+        {
+          'slug': _slug,
+          'reminder': {'type': 'string', 'description': 'a few words of the reminder'},
+          'at': {'type': 'string', 'description': 'the new day and time, as add_reminder takes'},
+          'text': {'type': 'string', 'description': 'the new title'},
+          'repeat': {'type': 'string', 'enum': _repeats},
+          'kind': _kind,
+        },
+      ),
+    ),
+    (t, a) => t._changeReminder(a['slug'], a.kind, a['reminder'], a),
+    activity: Activity.writing,
+    slimDescription: 'Change one reminder the user corrects: a few words of it, only what changes.',
+  ),
+  NoteTool(
+    Tool(
+      'remove_reminder',
+      'Remove one reminder the user no longer wants: a few words of it. No asking.',
+      _schema(
+        ['slug', 'reminder'],
+        {
+          'slug': _slug,
+          'reminder': {'type': 'string', 'description': 'a few words of the reminder'},
+          'kind': _kind,
+        },
+      ),
+    ),
+    (t, a) => t._changeReminder(a['slug'], a.kind, a['reminder']),
+    activity: Activity.writing,
   ),
   NoteTool(
     Tool(
@@ -939,6 +976,14 @@ class Toolbox {
     return (date, match![2], match[3]);
   }
 
+  /// The [Repeat] named [name]; null for once.
+  static Repeat? _repeat(String name) {
+    if (!_repeats.contains(name)) {
+      throw FormatException("repeat must be one of ${_repeats.join(', ')}, got '$name'.");
+    }
+    return Repeat.values.asNameMap()[name];
+  }
+
   static DateTime? _due(String? due) {
     if (due == null) return null;
     final date = _isoDate.hasMatch(due) ? parseIsoDate(due) : null;
@@ -1134,6 +1179,64 @@ class Toolbox {
     _wrote(fromPath);
     _wrote(toPath);
     return {'moved_to': _rel(toPath), 'archived_to': _rel(archived), 'entry': entry.text};
+  }
+
+  /// Moves the one reminder of [slug] whose line mentions [words] under the
+  /// archive; with [change], adds it back with what [change] gives (#925).
+  Map<String, Object?> _changeReminder(
+    String slug,
+    String? kind,
+    String words, [
+    ToolArgs? change,
+  ]) {
+    final path = _path(slug, kind);
+    final entries = [
+      ...?notes.readNote(path).section('reminders')?.entries.where((e) => e is! Raw),
+    ];
+    final reminders = entries.whereType<Reminder>();
+    final wanted = words.trim().toLowerCase();
+    final matches = [
+      for (final reminder in reminders)
+        if (reminder.render().toLowerCase().contains(wanted)) reminder,
+    ];
+    if (matches.isEmpty) {
+      final listed = [for (final r in reminders) r.render().substring(2)];
+      throw StateError(
+        "No reminder of '$slug' mentions '$words'. "
+        '${listed.isEmpty ? 'It has no reminders.' : 'Its reminders: ${listed.join('; ')}'}',
+      );
+    }
+    if (matches.length > 1) {
+      throw StateError("${matches.length} reminders of '$slug' mention '$words'; pass more of it.");
+    }
+    final old = matches.single;
+    var now = old;
+    if (change != null) {
+      final at = change.optional('at');
+      final text = change.optional('text');
+      final repeat = change.optional('repeat');
+      if (at == null && text == null && repeat == null) {
+        throw StateError('Nothing to change: pass at, text or repeat.');
+      }
+      final (date, time, end) = at == null ? (old.date, old.time, old.end) : _at(at);
+      // Added before the old one is archived: a time the store refuses changes nothing.
+      notes.addReminder(
+        path,
+        text ?? old.text,
+        date,
+        time: time,
+        end: end,
+        repeat: repeat == null ? old.repeat : _repeat(repeat),
+        today: today,
+      );
+      now = notes.readNote(path).section('reminders')!.entries.whereType<Reminder>().last;
+    }
+    final archived = notes.archiveEntries(root, path, {
+      'reminders': [entries.indexOf(old) + 1],
+    }, today: today);
+    index.markChanged(path);
+    _wrote(path);
+    return {'reminder': now.render(), 'archived_to': _rel(archived)};
   }
 }
 
