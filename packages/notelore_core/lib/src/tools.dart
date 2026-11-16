@@ -1196,9 +1196,11 @@ class Toolbox {
     final old = _oneReminder(entries.whereType<Reminder>(), slug, words);
     var now = old;
     if (change != null) {
-      final at = change.optional('at');
-      final text = change.optional('text');
-      final repeat = change.optional('repeat');
+      // The ChatGPT route fills every argument: an empty one keeps what was there.
+      String? given(String key) => (change.optional(key) ?? '').trim().isEmpty ? null : change[key];
+      final at = given('at');
+      final text = given('text');
+      final repeat = given('repeat');
       if (at == null && text == null && repeat == null) {
         throw StateError('Nothing to change: pass at, text or repeat.');
       }

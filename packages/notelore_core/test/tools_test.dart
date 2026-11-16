@@ -186,6 +186,15 @@ void main() {
       expect(note(), contains('- 2026-10-20 09:00: Pazar\n'));
       call('change_reminder', {'slug': 'alisveris', 'reminder': 'kahve', 'at': '2026-10-21 08:30'});
       expect(note(), contains('- 2026-10-21 08:30 (monthly): Kahve siparişi\n'));
+      // The ChatGPT route fills every argument; an empty one is not given.
+      call('change_reminder', {
+        'slug': 'alisveris',
+        'reminder': 'kahve',
+        'at': '',
+        'text': '',
+        'repeat': 'once',
+      });
+      expect(note(), contains('- 2026-10-21 08:30: Kahve siparişi\n'));
     });
 
     test('remove_reminder moves the one reminder to the archive', () {
