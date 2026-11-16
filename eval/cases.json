@@ -750,14 +750,100 @@
     "topics/alisveris.md": "---\ntitle: Alışveriş\nkind: topic\ncreated: 2026-10-01\nupdated: 2026-10-18\ntags: [alışveriş]\n---\n# Alışveriş\n\n## Notlar\n- 2026-10-01: Market listesi haftalık yapılıyor.\n\n## Hatırlatıcılar\n- 2026-10-19 (monthly): Kahve siparişi\n"
    },
    "expect": {
-    "tools": [
-     "add_reminder"
-    ],
     "notes": {
      "^topics/alisveris\\.md$": [
       "2026-10-19: Kahve"
      ],
-     "^_archive/": []
+     "^_archive/": [
+      "2026-10-19 (monthly): Kahve"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-en-fix-once",
+   "kind": "reminder",
+   "lang": "en",
+   "history": [
+    {
+     "role": "user",
+     "content": "I'll order coffee beans tomorrow."
+    },
+    {
+     "role": "assistant",
+     "content": "I added a reminder to order coffee beans on 19 October to your Shopping note; by mistake it repeats every month."
+    }
+   ],
+   "message": "Fix it then.",
+   "notes": {
+    "topics/shopping.md": "---\ntitle: Shopping\nkind: topic\ncreated: 2026-10-01\nupdated: 2026-10-18\ntags: [shopping]\n---\n# Shopping\n\n## Notes\n- 2026-10-01: The grocery list is made weekly.\n\n## Reminders\n- 2026-10-19 (monthly): Order coffee beans\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/shopping\\.md$": [
+      "2026-10-19: Order coffee"
+     ],
+     "^_archive/": [
+      "2026-10-19 (monthly): Order coffee"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-tr-remove",
+   "kind": "reminder",
+   "lang": "tr",
+   "history": [
+    {
+     "role": "user",
+     "content": "Salı 10'da diş hekimi randevumu hatırlat."
+    },
+    {
+     "role": "assistant",
+     "content": "Sağlık notuna 20 Ekim Salı 10:00 için diş hekimi randevusu hatırlatıcısı ekledim."
+    }
+   ],
+   "message": "Randevu iptal oldu, o hatırlatıcıyı sil.",
+   "notes": {
+    "topics/saglik.md": "---\ntitle: Sağlık\nkind: topic\ncreated: 2026-10-01\nupdated: 2026-10-18\ntags: [sağlık]\n---\n# Sağlık\n\n## Notlar\n- 2026-10-02: Yıllık kontroller Ekim'de yapılıyor.\n\n## Hatırlatıcılar\n- 2026-10-20 10:00: Diş hekimi randevusu\n- 2026-10-30: Göz kontrolü\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/saglik\\.md$": [
+      "2026-10-30: Göz kontrolü"
+     ],
+     "^_archive/": [
+      "Diş hekimi"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-en-remove",
+   "kind": "reminder",
+   "lang": "en",
+   "history": [
+    {
+     "role": "user",
+     "content": "Remind me on Wednesday at 9 about the tyre change appointment."
+    },
+    {
+     "role": "assistant",
+     "content": "I added a reminder for the tyre change appointment on Wednesday 21 October at 09:00 to your Car Maintenance note."
+    }
+   ],
+   "message": "The garage cancelled, remove that reminder.",
+   "notes": {
+    "topics/car-maintenance.md": "---\ntitle: Car Maintenance\nkind: topic\ncreated: 2026-10-01\nupdated: 2026-10-18\ntags: [car]\n---\n# Car Maintenance\n\n## Notes\n- 2026-10-02: The next service is at 60,000 km.\n\n## Reminders\n- 2026-10-21 09:00: Tyre change appointment\n- 2026-10-25: Renew the car insurance\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/car-maintenance\\.md$": [
+      "2026-10-25: Renew the car insurance"
+     ],
+     "^_archive/": [
+      "Tyre change"
+     ]
     }
    }
   },
