@@ -1093,11 +1093,19 @@ class _RemindersCard extends StatelessWidget {
         value: session.brief,
         onChanged: (on) => session.setBrief(on: on),
       ),
+      // A row like the switches, not an action button: those fix a problem.
       if (session.brief)
-        _action(AppIcons.schedule, s.briefTime('${two(at.hour)}:${two(at.minute)}'), () async {
-          final picked = await showTimePicker(context: context, initialTime: at);
-          if (picked != null) await session.setBrief(at: picked.hour * 60 + picked.minute);
-        }),
+        TallTile(
+          child: ListTile(
+            leading: const Icon(AppIcons.schedule),
+            title: Text(s.briefTime('${two(at.hour)}:${two(at.minute)}')),
+            trailing: const Icon(AppIcons.chevronRight),
+            onTap: () async {
+              final picked = await showTimePicker(context: context, initialTime: at);
+              if (picked != null) await session.setBrief(at: picked.hour * 60 + picked.minute);
+            },
+          ),
+        ),
     ];
   }
 
