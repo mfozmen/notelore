@@ -477,3 +477,46 @@ Greedy runs still differ between batches. A case can pass in one subset and fail
 So on the device models this change does not meet "nothing that passed may fail". The new repeats and the coffee cases gain 4 reminder cases slim on both models. But v9 with the full prompt loses three held-out reminder or plan turns to the day-early slip, and both models lose a few non-reminder turns.
 
 The device prompt and tools are part of what v9 and v11 were trained on. Any change to the reminder text moves their date arithmetic, and keeping the old sentence only reduced that. The next fine-tune, with turns on the new `repeat` values in its data, is where this should settle. Until then, the choice is between shipping the schema to every provider or keeping the old one for the device model.
+
+## Change or remove one reminder, 2026-11-17 (#925)
+
+After a wrong reminder, "Düzelt o zaman." had no tool to call. The model archived entries or said it could not change a reminder. Two tools fix that: `change_reminder(slug, reminder, at?, text?, repeat?)` and `remove_reminder(slug, reminder)`. Each finds the one reminder whose line mentions `reminder` (a few words) and moves the old line under `_archive/`. A change first adds the reminder back with only what changed, and an empty argument keeps what was there, since the ChatGPT route fills every argument. The prompts are unchanged.
+
+Cases in `eval/cases.json`, written before the change:
+- `rem-tr-fix-once` now also wants the monthly line in the archive. Before, add_reminder alone passed and left the wrong line in the note.
+- `rem-en-fix-once`, its English twin.
+- `rem-tr-remove` and `rem-en-remove`: "remove that reminder" right after setting one. The other reminder must stay, and the removed one must be in the archive. `archive` with the reminder's number passes these too.
+
+Before is `main` at 2526ea9 with the new cases; after is 8c78e12. Each side ran from a binary built once (`dart build cli`).
+
+**ChatGPT** (`--provider=chatgpt --model=gpt-6.1-terra`, full prompt):
+
+| set | before | after |
+|---|--:|--:|
+| cases (75) | 71 | **74** |
+| the four new cases | 2 | **4** |
+| held-out (292) | **268** | 265 |
+
+- Cases: the two fix cases now pass with one `change_reminder` call, and the removes with one `remove_reminder` call instead of `read_note` and `archive`. No case that passed before fails after. `plan-tr-search` fails on both sides.
+- Held-out: the 9 cases that passed before and failed after were rerun alone, three times on each side (before → after). coll-birthday-present-ideas-2-0 1/3 → 1/3, newlist-6 0/3 → 0/3, todo-bike-commute 1/3 → 2/3, todo-ev-tasima-1 2/3 → 2/3, todo-family-reunion 1/3 → 2/3, todo-family-reunion-1 0/3 → 3/3. Then rem-12 6/9 → 6/9 and cross-14 3/9 → 1/9. All drift.
+  - todo-book-club went 9/12 → 4/12. Each failing run calls `add_todo` with `"due": ""`, which the tool refuses, and the turn then may or may not recover. The trap exists on both sides; #927 makes an empty `due` mean no date.
+
+**v11** (Ollama, `--greedy`):
+
+| set | before | after |
+|---|--:|--:|
+| held-out, slim | 259 | 260 |
+| held-out, full | **259** | 257 |
+| cases × 2, slim (148) | 120 | **130** |
+| cases, full (74) | 56 | **59** |
+| about me, full (14) | **9** | 8 |
+| reminder cases, slim (34) | 18 | 26 |
+| reminder cases, full (17) | 10 | 12 |
+
+- New cases, slim (2 runs each): rem-tr-fix-once 0 → 2, both removes 2 → 2 (`archive` before, `remove_reminder` after), rem-en-fix-once 0 → 0. v11 calls `change_reminder` without `repeat`, so the monthly repeat stays.
+- Each case that passed before and failed after was rerun alone, three times on each side (before → after):
+  - **Drift:** cross-3 3/3 → 3/3, twin-reading-now-0 3/3 → 3/3, aboutme-en-change-age 0/3 → 0/3, rem-11 slim 3/3 → 2/3, q-tr-1 slim 3/3 → 2/3, newlist-2 3/3 → 2/3.
+  - **Worse every time, slim:** file-yuksek-lisans-basvurusu-0, newlist-5 and newlist-7, each 3/3 → 0/3.
+  - **Worse every time, full:** coll-okuma-listem-1-0, dec-kafe-acilisi, file-side-business, rem-9 and scale-tr-5, each 3/3 → 0/3. newlist-0 went 1/3 → 0/3.
+
+So as with #921, ChatGPT meets "nothing that passed may fail" and v11 does not. Two more tools in its list move a few turns that have nothing to do with reminders, though the totals rise (slim cases +10, full +3). The choice for the device model is between shipping the tools to it now, or leaving them out of its slim list (`slim: false`) until a fine-tune has turns on them. Then its slim prompt and tools stay byte for byte as before, and a correction on the phone still has no tool.
