@@ -1071,10 +1071,35 @@ class _RemindersCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: Gap.s),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [..._status(context), if (session.calendarAvailable) _calendarSwitch(context)],
+        children: [
+          ..._status(context),
+          if (session.calendarAvailable) _calendarSwitch(context),
+          if (session.briefAvailable) ..._brief(context),
+        ],
       ),
     ),
   );
+
+  /// The morning brief (#918): its switch, and its time once it is on.
+  List<Widget> _brief(BuildContext context) {
+    final s = session.strings;
+    final at = TimeOfDay(hour: session.briefAt ~/ 60, minute: session.briefAt % 60);
+    String two(int n) => n.toString().padLeft(2, '0');
+    return [
+      SoftSwitchTile(
+        secondary: const Icon(AppIcons.lightMode),
+        title: Text(s.morningBrief),
+        subtitle: Text(s.morningBriefHint),
+        value: session.brief,
+        onChanged: (on) => session.setBrief(on: on),
+      ),
+      if (session.brief)
+        _action(AppIcons.schedule, s.briefTime('${two(at.hour)}:${two(at.minute)}'), () async {
+          final picked = await showTimePicker(context: context, initialTime: at);
+          if (picked != null) await session.setBrief(at: picked.hour * 60 + picked.minute);
+        }),
+    ];
+  }
 
   /// The state row, only when this device still needs something: its own
   /// Google sign-in, or notifications that are blocked (#515).

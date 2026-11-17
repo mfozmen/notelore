@@ -28,6 +28,9 @@ abstract interface class ReminderNotifier {
 
   Future<void> schedule(DueReminder reminder, ReminderActions actions);
   Future<void> cancel(int id);
+
+  /// What a tap on the morning brief does (#918): the app opens its calendar on today.
+  abstract void Function()? openToday;
 }
 
 /// Schedules exactly [due]: a reminder already scheduled stays as it is, one
@@ -64,6 +67,7 @@ String reminderPayload(DueReminder reminder, ReminderActions actions) => jsonEnc
   'text': reminder.text,
   'done': actions.done,
   'snooze': actions.snooze,
+  if (reminder.brief) 'brief': true,
 });
 
 /// What a Windows toast's button hands back: the payload with its [action],
@@ -93,6 +97,8 @@ Future<void> actOnReminder(
             'snooze': final String snooze,
           } &&
           final carried) {
+    // A brief has no buttons, so whatever came is a tap; Windows hands the payload back as the action.
+    if (carried['brief'] == true) return device.openToday?.call();
     switch (carried['action'] ?? action) {
       case doneAction:
         reminderDone(notes, id, now: now);

@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:notelore/src/reminder_notifier.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
@@ -28,6 +29,30 @@ class _IdleEngine implements LocalEngine {
 
   @override
   Future<void> dispose() async {}
+}
+
+/// Notifications that are allowed and never shown, so Settings has its Reminders.
+class _QuietReminders implements ReminderNotifier {
+  final _pending = <int>{};
+
+  @override
+  void Function()? openToday;
+
+  @override
+  Future<bool> isAllowed() async => true;
+
+  @override
+  Future<bool> ask() async => true;
+
+  @override
+  Future<Set<int>> ids() async => {..._pending};
+
+  @override
+  Future<void> schedule(DueReminder reminder, ReminderActions actions) async =>
+      _pending.add(reminder.id);
+
+  @override
+  Future<void> cancel(int id) async => _pending.remove(id);
 }
 
 /// Answers in order, then says it is ready.
@@ -203,8 +228,10 @@ Future<Session> fakeSession({Directory? root, bool chat = true}) async {
     deviceModels: true,
     makeDeviceEngine: (_) => _IdleEngine(),
     offThread: <R>(work) async => work(),
+    reminders: _QuietReminders(),
   );
   await session.load();
+  await session.setBrief(on: true);
   await session.connect(providerSpecs.firstWhere((s) => s.id == ProviderId.device), '');
   await session.connect(providerSpecs.firstWhere((s) => s.id == ProviderId.anthropic), 'fake');
   if (chat) {

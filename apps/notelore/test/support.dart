@@ -656,6 +656,9 @@ class FakeReminders implements ReminderNotifier {
     cancelled.add(id);
     pending.remove(id);
   }
+
+  @override
+  void Function()? openToday;
 }
 
 /// llama.cpp on the device, scripted: what it was asked, what it answers.

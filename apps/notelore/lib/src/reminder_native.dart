@@ -74,6 +74,9 @@ class PluginNotifier implements ReminderNotifier {
 
   static const _category = 'reminder';
 
+  @override
+  void Function()? openToday;
+
   void _respond(NotificationResponse response) =>
       unawaited(actOnReminder(this, response.actionId, response.payload, now: DateTime.now()));
 
@@ -113,6 +116,8 @@ class PluginNotifier implements ReminderNotifier {
     // Exactly at its minute where the user allows exact alarms; otherwise
     // Android may deliver it a little later.
     final exact = await _android?.canScheduleExactNotifications() ?? true;
+    // The morning brief only opens the calendar: no Done or Snooze, and all its lines show.
+    final brief = reminder.brief;
     await _plugin.zonedSchedule(
       id: reminder.id,
       title: reminder.note,
@@ -129,20 +134,25 @@ class PluginNotifier implements ReminderNotifier {
           priority: Priority.high,
           // A lock screen set to hide sensitive content hides it (#431).
           visibility: NotificationVisibility.private,
+          styleInformation: brief ? BigTextStyleInformation(reminder.text) : null,
           // Handled in the background, without opening the app or its lock.
-          actions: [
-            AndroidNotificationAction(doneAction, actions.done),
-            AndroidNotificationAction(snoozeAction, actions.snooze),
-          ],
+          actions: brief
+              ? null
+              : [
+                  AndroidNotificationAction(doneAction, actions.done),
+                  AndroidNotificationAction(snoozeAction, actions.snooze),
+                ],
         ),
-        macOS: const DarwinNotificationDetails(categoryIdentifier: _category),
+        macOS: DarwinNotificationDetails(categoryIdentifier: brief ? null : _category),
         windows: WindowsNotificationDetails(
           actions: [
-            WindowsAction(content: actions.done, arguments: actionArguments(payload, doneAction)),
-            WindowsAction(
-              content: actions.snooze,
-              arguments: actionArguments(payload, snoozeAction),
-            ),
+            if (!brief) ...[
+              WindowsAction(content: actions.done, arguments: actionArguments(payload, doneAction)),
+              WindowsAction(
+                content: actions.snooze,
+                arguments: actionArguments(payload, snoozeAction),
+              ),
+            ],
           ],
         ),
       ),

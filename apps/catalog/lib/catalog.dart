@@ -65,6 +65,8 @@ final catalogScreens = <String, Widget Function(BuildContext context, Session se
       ? Home(session, tab: 4)
       : SettingsScreen(session),
   'Model settings': (_, session) => SettingsScreen(session, section: SettingsSection.model),
+  'Reminder settings': (_, session) =>
+      SettingsScreen(session, section: SettingsSection.reminders),
 };
 
 NoteInfo _shed(Session session) =>

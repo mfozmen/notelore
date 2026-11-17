@@ -225,6 +225,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     _seenSharedDraft = widget.session.sharedDraftVersion;
+    // The app started from a tap on the morning brief.
+    if (widget.session.calendarToday) _takeToday();
     WidgetsBinding.instance.addObserver(this);
     widget.session.addListener(_showSharedDraft);
     widget.session.startAutoSync();
@@ -243,6 +245,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   }
 
   void _showSharedDraft() {
+    if (widget.session.calendarToday) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      setState(_takeToday);
+    }
     if (widget.session.quickOpen case final open?) {
       // A tap on the home-screen widget (#799): its screen comes to the front and takes it.
       Navigator.of(context).popUntil((route) => route.isFirst);
@@ -253,6 +259,15 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     _seenSharedDraft = widget.session.sharedDraftVersion;
     if (_tab != 0) setState(() => _tab = 0);
   }
+
+  /// The calendar, anew so it shows today's month (#918).
+  void _takeToday() {
+    widget.session.calendarToday = false;
+    _tab = 2;
+    _calendar++;
+  }
+
+  var _calendar = 0;
 
   /// OpenAI's first sign-in confirmation for plan usage, shown once per device.
   Future<void> _welcomePlan() async {
@@ -429,7 +444,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       }),
     ),
     1 => NotesScreen(widget.session, open: _shown, toChat: () => setState(() => _tab = 0)),
-    2 => CalendarScreen(widget.session, toChat: () => setState(() => _tab = 0)),
+    2 => CalendarScreen(
+      widget.session,
+      key: ValueKey(_calendar),
+      toChat: () => setState(() => _tab = 0),
+    ),
     3 => Builder(
       builder: (context) => AboutMeScreen(
         widget.session,

@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'support/files.dart';
+import 'support/spec.dart';
 
 DateTime d(int y, int m, int day) => DateTime.utc(y, m, day);
 
@@ -340,4 +341,56 @@ void main() {
       expect(stale.map((s) => s.number), [2]);
     },
   );
+
+  group('the morning brief (#918)', () {
+    test("a day's reminders and todos due on it, and the open todos before it", () {
+      final shed = p.join(root, 'projects', 'garden-shed.md');
+      addTodo(shed, 'Paint the door', due: d(2026, 10, 20), today: d(2026, 10, 1));
+      addTodo(shed, 'Late one', due: d(2026, 10, 10), today: d(2026, 10, 1));
+      addTodo(shed, 'Done late', due: d(2026, 10, 11), today: d(2026, 10, 1));
+      completeTodo(shed, 3, today: d(2026, 10, 2));
+      final home = createNote(root, 'topic', 'Home', today: d(2026, 10, 1));
+      addReminder(
+        home,
+        'Rent',
+        d(2026, 9, 21),
+        time: '08:30',
+        repeat: Repeat.monthly,
+        today: d(2026, 10, 1),
+      );
+      final briefs = morningBriefs(root, from: DateTime(2026, 10, 20));
+      final (:day, :due, :overdue) = briefs.first;
+      expect(day, DateTime(2026, 10, 20));
+      expect(due.map((i) => (i.time, i.text, i.todo)), [
+        (null, 'Paint the door', true),
+        ('10:00', 'Dentist', false),
+      ]);
+      expect(overdue.map((i) => (i.day, i.text)), [(DateTime(2026, 10, 10), 'Late one')]);
+      // Every day of the week ahead has the late todo, so every one has a brief.
+      expect(briefs.map((b) => b.day), [for (var n = 0; n < 7; n++) DateTime(2026, 10, 20 + n)]);
+      expect(briefs[1].due.map((i) => (i.time, i.text)), [
+        (null, 'Order the timber'),
+        ('08:30', 'Rent'),
+      ]);
+      expect(briefs[2].due, isEmpty);
+      expect(briefs[2].overdue.map((i) => i.text), ['Late one', 'Paint the door']);
+    });
+
+    test('a day with nothing due and nothing late has no brief', () {
+      expect(morningBriefs(root, from: DateTime(2026, 10, 22)), isEmpty);
+      expect(morningBriefs(p.join(tempDir(), 'none'), from: DateTime(2026, 10, 20)), isEmpty);
+    });
+
+    test('a note in Turkish counts the same', () {
+      final tr = p.join(tempDir(), 'notlar');
+      final file = File(p.join(tr, 'topics', 'dis-tedavisi.md'))..createSync(recursive: true);
+      file.writeAsBytesSync(
+        File(p.join(specFixtures().path, 'hatirlaticilar.md')).readAsBytesSync(),
+      );
+      addTodo(file.path, 'Faturayı öde', due: d(2026, 10, 18), today: d(2026, 10, 1));
+      final [brief, ...] = morningBriefs(tr, from: DateTime(2026, 10, 20));
+      expect(brief.due.map((i) => (i.time, i.text)), [('10:00', 'Dişçi randevusu')]);
+      expect(brief.overdue.map((i) => i.text), ['Faturayı öde']);
+    });
+  });
 }
