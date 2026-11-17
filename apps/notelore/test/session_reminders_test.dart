@@ -153,4 +153,91 @@ void main() {
     await session.refreshReminders();
     expect(session.remindersAllowed, isNull);
   });
+
+  group('the morning brief (#918)', () {
+    // 09:00 on 30 April: today's 08:00 has passed, so the first brief is tomorrow's.
+    DateTime clock() => DateTime(2099, 4, 30, 9);
+
+    Harness withNotes({String language = 'en'}) {
+      final harness = Harness();
+      remindIn(harness, 'Health', 'Dentist');
+      final health = p.join(harness.paths.notes.path, 'topics', 'health.md');
+      addTodo(health, 'Pay rent', due: DateTime.utc(2099, 4, 29), today: today);
+      return harness;
+    }
+
+    List<DueReminder> briefs(Harness harness) => [
+      for (final r in harness.reminders.scheduled)
+        if (r.brief && harness.reminders.pending.containsKey(r.id)) r,
+    ];
+
+    test('off by default; on, a brief each morning of the week at 08:00', () async {
+      final harness = withNotes();
+      final session = harness.session(clock: clock);
+      await session.load();
+      expect((session.brief, session.briefAt), (false, 8 * 60));
+      expect(harness.reminders.scheduled.where((r) => r.brief), isEmpty);
+      await session.setBrief(on: true);
+      final week = briefs(harness);
+      expect(week.map((r) => r.at), [for (var d = 1; d <= 7; d++) DateTime(2099, 5, d, 8)]);
+      expect((week.first.note, week.first.text), ('Today', '10:00 Dentist\nOverdue: Pay rent'));
+      expect(week[1].text, 'Overdue: Pay rent');
+      // The reminder itself still rings at its own time.
+      expect(harness.reminders.pending.values, contains('Dentist'));
+    });
+
+    test('a new time moves the briefs, and both persist on this device', () async {
+      final harness = withNotes();
+      final session = harness.session(clock: clock);
+      await session.load();
+      await session.setBrief(on: true);
+      await session.setBrief(at: 10 * 60);
+      // 10:00 has not come yet today: today has one too.
+      expect(briefs(harness).map((r) => r.at).first, DateTime(2099, 4, 30, 10));
+      expect(briefs(harness), hasLength(7));
+      final again = harness.session(clock: clock);
+      await again.load();
+      expect((again.brief, again.briefAt), (true, 10 * 60));
+    });
+
+    test('off cancels every brief; a free week has none', () async {
+      final harness = withNotes();
+      final session = harness.session(clock: clock);
+      await session.load();
+      await session.setBrief(on: true);
+      await session.setBrief(on: false);
+      expect(briefs(harness), isEmpty);
+      expect(harness.reminders.pending.values, ['Dentist']);
+      final free = Harness();
+      final quiet = free.session(clock: clock);
+      await quiet.load();
+      await quiet.setBrief(on: true);
+      expect(free.reminders.scheduled, isEmpty);
+    });
+
+    test("in the user's language, and with the app lock on, none of the notes' words", () async {
+      final harness = withNotes();
+      final session = harness.session(clock: clock, systemLanguage: 'tr');
+      await session.load();
+      await session.setBrief(on: true);
+      expect(
+        (briefs(harness).first.note, briefs(harness).first.text),
+        ('Bugün', '10:00 Dentist\nGecikmiş: Pay rent'),
+      );
+      await session.lock.set('2580');
+      await pumpEventQueue();
+      expect(briefs(harness).first.text, 'Sabah özetin hazır.');
+      expect(briefs(harness).first.note, 'Notelore');
+    });
+
+    test('a tap on it asks for the calendar on today', () async {
+      final harness = withNotes();
+      final session = harness.session(clock: clock);
+      await session.load();
+      var heard = 0;
+      session.addListener(() => heard++);
+      harness.reminders.openToday!();
+      expect((session.calendarToday, heard), (true, 1));
+    });
+  });
 }

@@ -173,7 +173,22 @@ class Session extends ChangeNotifier {
     actionLabels: () => (done: strings.reminderDone, snooze: strings.reminderSnooze),
     save: _saveUi,
     share: _touch,
+    strings: () => strings,
+    openToday: () {
+      calendarToday = true;
+      notifyListeners();
+    },
   )..addListener(notifyListeners);
+
+  /// A tap on the morning brief asked for the calendar on today (#918), until
+  /// the home screen takes it.
+  var calendarToday = false;
+  bool get brief => reminderCenter.brief;
+  int get briefAt => reminderCenter.briefAt;
+  Future<void> setBrief({bool? on, int? at}) => reminderCenter.setBrief(on: on, at: at);
+
+  /// The morning brief needs this device's own notifications.
+  bool get briefAvailable => reminders != null;
 
   bool? get remindersAllowed => reminderCenter.remindersAllowed;
   bool get calendar => reminderCenter.calendar;
@@ -802,6 +817,8 @@ class Session extends ChangeNotifier {
           if (chatTextStep != chatTextDefault) 'chatTextStep': chatTextStep,
           if (!quickShortcut) 'quickShortcut': false,
           if (reminderCenter.calendarNudged) 'calendarNudged': true,
+          if (brief) 'brief': true,
+          if (briefAt != 8 * 60) 'briefAt': briefAt,
           'lookBackClosed': ?lookBackClosed,
           'localModelOff': ?localModelOff,
         }),
@@ -822,7 +839,13 @@ class Session extends ChangeNotifier {
       aboutMeToCloud = shared.aboutMeToCloud ?? true;
       calendar = shared.calendar ?? false;
       calendarId = shared.calendarId;
-      reminderCenter.calendarNudged = saved['calendarNudged'] == true;
+      reminderCenter
+        ..calendarNudged = saved['calendarNudged'] == true
+        ..brief = saved['brief'] == true
+        ..briefAt = switch (saved['briefAt']) {
+          final int at when at >= 0 && at < 24 * 60 => at,
+          _ => 8 * 60,
+        };
       reminderCenter.dropCalendars
         ..clear()
         ..addAll((saved['dropCalendars'] as List? ?? const []).whereType<String>());

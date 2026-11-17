@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'reminder_notifier.dart';
+import 'strings.dart';
 
 /// What went wrong with Google Calendar (#432): its sign-in, a write the next
 /// refresh tries again, or access the person removed on Google's side.
@@ -27,7 +28,14 @@ class ReminderCenter extends ChangeNotifier {
     required this.actionLabels,
     required this.save,
     required this.share,
-  });
+    required this.strings,
+    required void Function() openToday,
+  }) {
+    reminders?.openToday = openToday;
+  }
+
+  /// The words of the morning brief, in the user's language.
+  final Strings Function() strings;
 
   /// The notes folder the reminders are read from.
   final String root;
@@ -55,6 +63,19 @@ class ReminderCenter extends ChangeNotifier {
 
   /// Whether Notelore may notify on this device; null where it cannot at all.
   bool? remindersAllowed;
+
+  /// The morning brief (#918) on this device, and its minute of the day.
+  var brief = false;
+  var briefAt = 8 * 60;
+
+  /// Settings' brief switch and time: remembered here, scheduled at once.
+  Future<void> setBrief({bool? on, int? at}) async {
+    brief = on ?? brief;
+    briefAt = at ?? briefAt;
+    save();
+    // Just turned on: the moment to ask for notifications, as after a turn.
+    await refreshReminders(ask: on ?? false);
+  }
 
   /// Google Calendar reminds, on every device, instead of this device's
   /// notifications. Shared through Drive, so no device reminds twice.
@@ -144,6 +165,7 @@ class ReminderCenter extends ChangeNotifier {
     if (private) {
       due = [for (final r in due) DueReminder(r.id, r.at, 'Notelore', hiddenText())];
     }
+    final briefs = brief ? await _briefs(now, private: private) : const <DueReminder>[];
     final anew = private != _scheduledPrivately;
     _scheduledPrivately = private;
     // Google Calendar reminds where this device holds its grant: this device
@@ -151,12 +173,12 @@ class ReminderCenter extends ChangeNotifier {
     // the calendar on), or in a build that cannot reach it, this device keeps
     // reminding; signed in later, the same pass cancels its own.
     final viaCalendar = calendar && await _holdsCalendar();
-    await _remindOnDevice(viaCalendar ? const [] : due, ask: ask, anew: anew);
+    await _remindOnDevice([if (!viaCalendar) ...due, ...briefs], ask: ask, anew: anew);
     // A grant gone on Google's side shows only now: this device, which just
     // cancelled its own, reminds again in this same pass.
     if (viaCalendar && !await _remindInCalendar(due, now)) {
       // It may never have asked for notifications: the calendar reminded until now.
-      await _remindOnDevice(due, ask: ask, anew: false);
+      await _remindOnDevice([...due, ...briefs], ask: ask, anew: false);
     }
     final known = _knownDue;
     _knownDue = {for (final r in due) r.id};
@@ -172,6 +194,27 @@ class ReminderCenter extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// The morning briefs of the coming week, each at [briefAt] of its day, the
+  /// first today while that time is still to come. Each is this device's own,
+  /// never sent to Google Calendar.
+  Future<List<DueReminder>> _briefs(DateTime now, {required bool private}) async {
+    final notes = root;
+    DateTime at(DateTime day) =>
+        DateTime(day.year, day.month, day.day, briefAt ~/ 60, briefAt % 60);
+    final from = at(now).isAfter(now) ? now : now.add(const Duration(days: 1));
+    final s = strings();
+    return [
+      for (final day in await offThread(() => morningBriefs(notes, from: from)))
+        if (private)
+          _brief(at(day.day), 'Notelore', s.briefHidden)
+        else
+          _brief(at(day.day), s.briefTitle, _briefText(day, s)),
+    ];
+  }
+
+  DueReminder _brief(DateTime at, String title, String text) =>
+      DueReminder(stableId('brief\n${at.toIso8601String()}\n$text'), at, title, text, brief: true);
 
   /// Whether this device holds the calendar grant, kept in [calendarHere]
   /// for Settings. A keystore that cannot tell keeps what was known, so a
@@ -334,3 +377,9 @@ class ReminderCenter extends ChangeNotifier {
     return remindersAllowed ?? false;
   }
 }
+
+/// A brief's lines: what is due that day, a reminder with its time, then what is late.
+String _briefText(MorningBrief brief, Strings s) => [
+  for (final item in brief.due) item.time == null ? item.text : '${item.time} ${item.text}',
+  for (final item in brief.overdue) s.briefOverdue(item.text),
+].join('\n');

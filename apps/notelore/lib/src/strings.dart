@@ -500,6 +500,14 @@ abstract class Strings {
   String get reminderDone;
   String get reminderSnooze;
 
+  // The morning brief (#918).
+  String get morningBrief;
+  String get morningBriefHint;
+  String briefTime(String time);
+  String get briefTitle;
+  String briefOverdue(String text);
+  String get briefHidden;
+
   // Reminders through Google Calendar (#432).
   String get addToCalendar;
   String get addToCalendarHint;
@@ -1516,6 +1524,18 @@ class EnglishStrings extends Strings {
   String get reminderDone => 'Done';
   @override
   String get reminderSnooze => 'Snooze 1 hour';
+  @override
+  String get morningBrief => 'Morning brief';
+  @override
+  String get morningBriefHint => "Today's reminders and todos, each morning on this device.";
+  @override
+  String briefTime(String time) => 'Every day at $time';
+  @override
+  String get briefTitle => 'Today';
+  @override
+  String briefOverdue(String text) => 'Overdue: $text';
+  @override
+  String get briefHidden => 'Your morning brief is ready.';
   @override
   String get addToCalendar => 'Add to Google Calendar';
   @override
@@ -2791,6 +2811,18 @@ class TurkishStrings extends Strings {
   String get reminderDone => 'Bitti';
   @override
   String get reminderSnooze => '1 saat ertele';
+  @override
+  String get morningBrief => 'Sabah özeti';
+  @override
+  String get morningBriefHint => 'Günün hatırlatıcıları ve yapılacakları, her sabah bu cihazda.';
+  @override
+  String briefTime(String time) => 'Her gün $time';
+  @override
+  String get briefTitle => 'Bugün';
+  @override
+  String briefOverdue(String text) => 'Gecikmiş: $text';
+  @override
+  String get briefHidden => 'Sabah özetin hazır.';
   @override
   String get addToCalendar => "Google Takvim'e ekle";
   @override

@@ -21,7 +21,7 @@ const _morning = 9;
 
 /// One reminder to notify of: at [at] (local), from the note titled [note].
 final class DueReminder {
-  const DueReminder(this.id, this.at, this.note, this.text, {this.end});
+  const DueReminder(this.id, this.at, this.note, this.text, {this.end, this.brief = false});
 
   /// Stable for the same reminder in the same note: the platform's id for it.
   final int id;
@@ -31,6 +31,9 @@ final class DueReminder {
 
   /// When the user gave an end, or the kind of event made one worth keeping.
   final DateTime? end;
+
+  /// The morning brief (#918), not a reminder of a note: it has no Done or Snooze.
+  final bool brief;
 }
 
 /// Every reminder in the notes under [root] still to come after [now], the
@@ -270,6 +273,29 @@ List<DayItem> calendarItems(String root, {required DateTime today}) {
           ..._dayItems(note, kind, p.basenameWithoutExtension(file.path), from),
   ];
   return items..sort(_byDay);
+}
+
+/// How many mornings ahead get a brief, so it still comes on days the app is
+/// not opened.
+const briefDays = 7;
+
+/// One morning's brief (#918): the reminders and todos due on [day], and the
+/// open todos dated before it.
+typedef MorningBrief = ({DateTime day, List<DayItem> due, List<DayItem> overdue});
+
+/// The briefs of the [briefDays] days from [from] under [root], from the same
+/// items as the calendar; a day with nothing due and nothing late has none.
+List<MorningBrief> morningBriefs(String root, {required DateTime from}) {
+  final first = DateTime(from.year, from.month, from.day);
+  final items = calendarItems(root, today: first);
+  final briefs = <MorningBrief>[];
+  for (var n = 0; n < briefDays; n++) {
+    final day = DateTime(first.year, first.month, first.day + n);
+    final due = items.where((i) => i.day == day).toList();
+    final overdue = items.where((i) => i.todo && i.day.isBefore(day)).toList();
+    if (due.isNotEmpty || overdue.isNotEmpty) briefs.add((day: day, due: due, overdue: overdue));
+  }
+  return briefs;
 }
 
 /// [note]'s reminders from [from] on and its open todos.

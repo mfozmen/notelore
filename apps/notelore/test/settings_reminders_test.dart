@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/calendar.dart' show CalendarScreen;
 import 'package:notelore_core/notelore_core.dart'
     show HttpError, NotSignedIn, SignInFailed, addReminder, createNote;
 
@@ -236,5 +237,47 @@ void main() {
     await openSettings(tester, 'Reminders');
     expect(find.textContaining("Notelore's access to Google Calendar was removed"), findsOneWidget);
     expect(find.text('Sign in to Google Calendar'), findsOneWidget);
+  });
+
+  testWidgets('settings: the morning brief is off; on, its time shows and can change (#918)', (
+    tester,
+  ) async {
+    phone(tester);
+    final session = await pumpApp(tester, Harness());
+    await connect(tester, key: 'k');
+    await openReminders(tester);
+    expect(find.text('Morning brief'), findsOneWidget);
+    expect(find.text('Every day at 08:00'), findsNothing);
+    await tester.tap(find.text('Morning brief'));
+    await tester.pumpAndSettle();
+    expect(session.brief, isTrue);
+    await tester.tap(find.text('Every day at 08:00'));
+    await tester.pumpAndSettle();
+    // Typed in, the clock's other way to pick a time.
+    await tester.tap(find.byIcon(Icons.keyboard_outlined));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '7');
+    await tester.enterText(find.byType(TextField).last, '30');
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect(session.briefAt, 7 * 60 + 30);
+    expect(find.text('Every day at 07:30'), findsOneWidget);
+    // Cancelled, the time stays.
+    await tester.tap(find.text('Every day at 07:30'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(session.briefAt, 7 * 60 + 30);
+  });
+
+  testWidgets('a tap on the morning brief opens the calendar on today (#918)', (tester) async {
+    phone(tester);
+    final harness = Harness();
+    await pumpApp(tester, harness);
+    await connect(tester, key: 'k');
+    await openReminders(tester);
+    harness.reminders.openToday!();
+    await tester.pumpAndSettle();
+    expect(find.byType(CalendarScreen), findsOneWidget);
   });
 }

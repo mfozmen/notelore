@@ -58,11 +58,14 @@ export 'src/reminders.dart'
     show
         DayItem,
         DueReminder,
+        MorningBrief,
         calendarItems,
         maxScheduledReminders,
+        morningBriefs,
         nextTurn,
         reminderDone,
         snoozeReminder,
+        stableId,
         upcomingReminders,
         weekItems;
 export 'src/secret.dart' show defaultIterations, hashSecret, verifySecret;
