@@ -295,19 +295,6 @@ PLANS = [
     ("en", "On Friday I'm going to the book fair.", "2026-10-23"),
     ("en", "I'll watch the cup final on 30 October.", "2026-10-30"),
     ("en", "Wednesday at 19:30 I'm going to a jazz night.", "2026-10-21 19:30"),
-    # v12: weekdays, which #921's prompt change moved a day early.
-    ("en", "Saturday I'm going to watch the rugby final.", "2026-10-24"),
-    ("en", "On Monday I'm taking the car in for its service.", "2026-10-19"),
-    ("en", "Friday night I'll see the new play at the Lyric.", "2026-10-23"),
-    ("en", "Tuesday at 18:30 I have a climbing session.", "2026-10-20 18:30"),
-    ("en", "Thursday I'm visiting my aunt in Leeds.", "2026-10-22"),
-    ("en", "Next Sunday I'm running a 10k.", "2026-10-25"),
-    ("tr", "Cumartesi günü voleybol maçına gideceğim.", "2026-10-24"),
-    ("tr", "Salı saat 19'da pilates dersim var.", "2026-10-20 19:00"),
-    ("tr", "Cuma akşamı sinemaya gideceğim.", "2026-10-23"),
-    ("tr", "Çarşamba günü Bursa'ya gideceğim.", "2026-10-21"),
-    ("tr", "Pazartesi öğlen dişçiye gideceğim.", "2026-10-19"),
-    ("tr", "Pazar sabah 10'da bisiklet turuna katılacağım.", "2026-10-25 10:00"),
 ]
 
 REMINDERS = [
@@ -941,6 +928,22 @@ NEW_LISTS += [
 PLANS += [
     ("tr", "Perşembe sabah 5'te havalimanına çıkacağım, Atina uçuşum var.", "2026-10-22 05:00"),
     ("en", "Saturday at 6 I'm leaving for the airport, my flight to Lisbon is at nine.", "2026-10-24 06:00"),
+]
+
+# v12: weekdays, which #921's prompt change moved a day early.
+PLANS += [
+    ("en", "Saturday I'm going to watch the rugby final.", "2026-10-24"),
+    ("en", "On Monday I'm taking the car in for its service.", "2026-10-19"),
+    ("en", "Friday night I'll see the new play at the Lyric.", "2026-10-23"),
+    ("en", "Tuesday at 18:30 I have a climbing session.", "2026-10-20 18:30"),
+    ("en", "Thursday I'm visiting my aunt in Leeds.", "2026-10-22"),
+    ("en", "Next Sunday I'm running a 10k.", "2026-10-25"),
+    ("tr", "Cumartesi günü voleybol maçına gideceğim.", "2026-10-24"),
+    ("tr", "Salı saat 19'da pilates dersim var.", "2026-10-20 19:00"),
+    ("tr", "Cuma akşamı sinemaya gideceğim.", "2026-10-23"),
+    ("tr", "Çarşamba günü Bursa'ya gideceğim.", "2026-10-21"),
+    ("tr", "Pazartesi öğlen dişçiye gideceğim.", "2026-10-19"),
+    ("tr", "Pazar sabah 10'da bisiklet turuna katılacağım.", "2026-10-25 10:00"),
 ]
 
 REMINDERS += [
