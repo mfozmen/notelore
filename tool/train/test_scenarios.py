@@ -3,6 +3,7 @@
     python3 tool/train/test_scenarios.py
 """
 
+import json
 import random
 import re
 import sys
@@ -94,6 +95,13 @@ for prefix, tool in (("rem-fix-", "change_reminder"), ("rem-remove-", "remove_re
 fixed_once = [c for c in generated if c["id"].startswith("rem-fix-") and
               any(f.endswith(": ") for fs in c["expect"]["notes"].values() for f in fs)]
 check("a repeating reminder is fixed to once", len(fixed_once) >= 6, True)
+
+# Earlier training rows carry these ids, so an id never changes its message
+# (a row added mid-table renumbers the rest); a new id is added to the file.
+pinned = json.loads((Path(__file__).resolve().parent / "scenario-ids.json").read_text(encoding="utf-8"))
+messages = {c["id"]: c["message"] for c in generated}
+check("every pinned id keeps its message", sorted(i for i, m in pinned.items() if messages.get(i) != m), [])
+check("every id is pinned", sorted(set(messages) - set(pinned)), [])
 
 if failures:
     sys.exit(f"{failures} failed")
