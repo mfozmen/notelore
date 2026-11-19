@@ -73,7 +73,27 @@ for c in about:
         check(f"{c['id']} may keep a history copy", history in c["expect"]["notes"], True)
     if c["id"].startswith("aboutme-move-"):
         check(f"{c['id']} may archive the entry and update", (archive in c["expect"]["notes"], tools), (True, []))
-check("a new list beside a list of another kind", sum(c["id"].startswith("newlist-other-") for c in generated), 12)
+check("a new list beside a list of another kind", sum(c["id"].startswith("newlist-other-") for c in generated), 22)
+
+# Reminders (v12): every repeat value, a correction through change_reminder and
+# a removal through remove_reminder, the old line kept under _archive.
+repeats = [c for c in generated if c["id"].startswith("rem-repeat-")]
+for value in ("daily", "weekly", "monthly", "yearly"):
+    check(f"a {value} reminder is asked", any(f"({value})" in f for c in repeats
+          for fs in c["expect"]["notes"].values() for f in fs), True)
+once = [c for c in repeats if all("(" not in f for fs in c["expect"]["notes"].values() for f in fs)]
+check("one-time reminders are asked too", len(once) >= 8, True)
+check("a one-time reminder is written without a repeat", all(
+    f.endswith(": ") for c in once for fs in c["expect"]["notes"].values() for f in fs[:1]), True)
+for prefix, tool in (("rem-fix-", "change_reminder"), ("rem-remove-", "remove_reminder")):
+    rows = [c for c in generated if c["id"].startswith(prefix)]
+    check(f"there are {prefix} cases", len(rows) >= 10, True)
+    for c in rows:
+        check(f"{c['id']} calls {tool} and archives the old line",
+              (c["expect"]["tools"], "^_archive/" in c["expect"]["notes"], bool(c.get("history"))), ([tool], True, True))
+fixed_once = [c for c in generated if c["id"].startswith("rem-fix-") and
+              any(f.endswith(": ") for fs in c["expect"]["notes"].values() for f in fs)]
+check("a repeating reminder is fixed to once", len(fixed_once) >= 6, True)
 
 if failures:
     sys.exit(f"{failures} failed")

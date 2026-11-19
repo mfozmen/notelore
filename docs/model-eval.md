@@ -520,3 +520,48 @@ Before is `main` at 2526ea9 with the new cases; after is 8c78e12. Each side ran 
   - **Worse every time, full:** coll-okuma-listem-1-0, dec-kafe-acilisi, file-side-business, rem-9 and scale-tr-5, each 3/3 → 0/3. newlist-0 went 1/3 → 0/3.
 
 So as with #921, ChatGPT meets "nothing that passed may fail" and v11 does not. Two more tools in its list move a few turns that have nothing to do with reminders, though the totals rise (slim cases +10, full +3). The choice for the device model is between shipping the tools to it now, or leaving them out of its slim list (`slim: false`) until a fine-tune has turns on them. Then its slim prompt and tools stay byte for byte as before, and a correction on the phone still has no tool.
+
+## Fine-tune v12, 2026-11-19 (#604)
+
+v11 was trained before #921 and #925 changed the device prompt and tools. v12 trains on today's prompt and on the new reminder tools.
+
+**Setup**
+- v12 data: 2,641 turns, all re-prompted at 822e576.
+  - v11's 2,464 turns, less three copies of one turn that filed a weekly lesson as a monthly reminder.
+  - 180 new turns from glm-5.3 (OpenCode Go), 100 slim and 80 with the full prompt, on 115 new scenarios (`scenarios.py` v12):
+    - 63 reminder scenarios. 33 repeat as asked, every value, and 10 of those are one-time reminders, `once` said or not. 18 correct a reminder just set, through `change_reminder`: 10 turn a repeating one into a one-time one, 4 move its day or time, 4 make it repeat. 12 remove one through `remove_reminder`, with the other reminders kept.
+    - 52 contrast scenarios for what v11 lost: 12 plans on a weekday; four projects with five messages each (a done task, a new task, a decision, a filing and a vague message); 10 new lists beside a list of another kind; 10 more vague messages.
+  - The teacher passed 58 and 52 of the reminder scenarios (slim, full) and 42 and 28 of the contrast ones. With the full prompt it often made a note twice for a new list, and those turns were dropped as tool errors.
+  - Every `add_reminder` call without `repeat` now has `repeat: once` (282 calls), as the prompt says and as glm-5.3 writes it.
+- v11's recipe in fp16: rank 16, one epoch, the loss on the answer alone, learning rate 2e-4. One session on Kaggle's T4, 297 steps in 6.9 hours. The validation loss fell from 0.406 at step 40 to 0.285 at the last step, which is the adapter kept.
+- Q4_K_M, greedy, both models at 822e576, each eval from one binary built once (`dart build cli`).
+
+| | Held-out (292), slim | Held-out, full | 74 cases × 2, slim | 74 cases, full | About me (14), full |
+|---|---|---|---|---|---|
+| v11 | 261 (89.4%) | 257 (88.0%) | **130/148 (88%)** | 58 (78%) | 8 (57%) |
+| **v12** | **264 (90.4%)** | **266 (91.1%)** | 126/148 (85%) | **60 (81%)** | 8 (57%) |
+
+Held-out by kind, v11 → v12. Slim: collection 58 → 59/73, reminder 14 → 15/15, todo 18 → 19/19, unclear 13 → 14/15; filing 30 → 29/36. Full: collection 57 → 61/73, decision 16 → 18/18, reminder 12 → 15/15, todo-done 17 → 18/20, todo and chat one higher each; unclear 14 → 12/15, filing 30 → 29/36.
+
+Every case that flipped between the models was rerun in a file of its own, three times on each model, each run a fresh process (v11 → v12):
+
+- **The v11 losses of #921 and #925.**
+  - Fixed: newlist-5 slim 0/3 → 3/3, newlist-7 slim 1/3 → 3/3; dec-kafe-acilisi, rem-9, coll-en-3 and rem-en-fix-once with the full prompt, each 0/3 → 3/3; scale-tr-5 full 2/3 → 3/3.
+  - Still failing on both: mixed-tr-1, newlist-0 and file-yuksek-lisans-basvurusu-0 slim, and scale-tr-6 full, each 0/3 → 0/3.
+  - Passing on both: plan-4, plan-9, done-kafe-acilisi-0 and file-side-business full, 3/3 → 3/3. The day-early slip and the missed tick were v9's.
+  - Not settled: coll-okuma-listem-1-0 full went 0/3 → 0/3 in one batch of reruns and 0/3 → 3/3 in the next, and v11's rem-en-fix-once slim went 3/3 and 0/3. Even alone, a greedy run depends on what the server ran before.
+- **v12 better every time** (0/3 → 3/3): slim rem-8, unclear-12, newlist-1, newlist-first-7, cross-11, rem-en-once and plan-en-1; full dec-ev-tasima-1, chat-11, rem-2, rem-8, newlist-2, newlist-7, cross-3, q-tr-5 and rem-en-daily; scale-tr-7 full 0/3 → 2/3.
+- **v12 worse every time** (3/3 → 0/3):
+  - A repeating reminder on a day of the month that has passed is written in this month or in the wrong month: rem-en-monthly slim and full ("the 1st of every month" became 2026-10-01 or 2026-01-01) and rem-tr-monthly full ("her ayın 5'inde" became 2026-10-23). rem-en-yearly ("every year on 12 June") fails on both, 1/3 → 0/3, written as 2026-12-12.
+  - The answer in the wrong language: coll-en-1 full and cross-5 slim answer an English message in Turkish.
+  - Slim unclear-5, newlist-first-0, newlist-first-3, mixed-tr-0, cross-12 and q-tr-1; full unclear-5.
+- **Drift:** coll-tr-empty slim 3/3 → 3/3, cross-5 and cross-8 full 3/3 → 3/3, unclear-2 full 1/3 → 3/3; scale-tr-5 slim, newlist-first-7 full and unclear-en-1 full 0/3 on both.
+
+Findings:
+
+- **v12 is better than v11 on four of the five sets.** Held-out +3 slim and +9 full, full-prompt cases +2, about me equal. Alone, 21 case-and-mode pairs pass every time on v12 and never on v11; 12 go the other way.
+- **The new reminder tools work.** v12 corrects a reminder with one `change_reminder` call that sets `repeat`, where v11 called it twice and left the repeat, and removes one with a single `remove_reminder` where v11 called it three times. Held-out reminder is 15/15 in both modes.
+- **The cost is monthly dates.** v11's data had one monthly scenario (the 1st, so November) in six turns. v12 added four whose day is still to come this month (the 20th to the 30th, eight turns) and two that roll over (four turns), and now keeps the month for a day that has passed. The next round needs more rows that roll over: early days of the month, and yearly dates whose month has passed.
+- **Unclear with the full prompt is lower again** (14 → 12/15 held-out), though above v11's 9/15 at e71e53a. The 20 vague contrast turns did not hold it.
+- **v12 does not loop.** Replaying v10's looping turn capped at 400 tokens, v12 answers in 36 tokens. Every reminder and plan case of the loop check, and the four fix and remove cases, end on their own in 18 to 55 tokens.
+- v12 is in Ollama as `notelore-qwen3-4b-v12`. The app's device model is unchanged.
