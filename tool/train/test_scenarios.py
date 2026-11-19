@@ -96,6 +96,21 @@ fixed_once = [c for c in generated if c["id"].startswith("rem-fix-") and
               any(f.endswith(": ") for fs in c["expect"]["notes"].values() for f in fs)]
 check("a repeating reminder is fixed to once", len(fixed_once) >= 6, True)
 
+# v12 kept this month for a monthly day that had passed ("the 1st" became
+# 2026-10-01): a day already past rolls into November, a yearly date into 2027.
+for lang in ("en", "tr"):
+    rows = [r for r in scenarios.REPEATS if r[0] == lang]
+    monthly = [r[4] for r in rows if r[5] == "monthly"]
+    yearly = [r[4] for r in rows if r[5] == "yearly"]
+    check(f"{lang} monthly days that rolled over outnumber those ahead",
+          sum(a.startswith("2026-11") for a in monthly) > sum(a.startswith("2026-10") for a in monthly), True)
+    check(f"{lang} yearly dates in 2027 outnumber those ahead in 2026",
+          sum(a.startswith("2027") for a in yearly) > sum(a.startswith("2026") for a in yearly), True)
+check("the 1st of every month is asked in both languages",
+      [any(r[0] == lang and r[5] == "monthly" and r[4].startswith("2026-11-01") and re.search(pattern, r[3])
+           for r in scenarios.REPEATS) for lang, pattern in (("en", r"1st of (every|each) month"), ("tr", r"ayın 1'inde"))],
+      [True, True])
+
 # Earlier training rows carry these ids, so an id never changes its message
 # (a row added mid-table renumbers the rest); a new id is added to the file.
 pinned = json.loads((Path(__file__).resolve().parent / "scenario-ids.json").read_text(encoding="utf-8"))
