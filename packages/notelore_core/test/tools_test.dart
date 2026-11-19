@@ -457,6 +457,21 @@ void main() {
     );
   });
 
+  test('a blank optional argument is not given, as the ChatGPT route sends it (#927)', () {
+    call('create_note', {'kind': 'topic', 'title': 'Book Club'});
+    // The route fills every argument: "due": "" is no date, not a bad one.
+    expect(
+      call('add_todo', {'slug': 'book-club', 'text': 'Make a reading schedule.', 'due': ''}),
+      'ok',
+    );
+    call('add_reminder', {'slug': 'book-club', 'at': '2026-10-02', 'text': 'Meet', 'repeat': ''});
+    call('record_decision', {'slug': 'book-club', 'topic': 'book', 'value': 'Dune', 'reason': ''});
+    final note = File(p.join(box.root, 'topics', 'book-club.md')).readAsStringSync();
+    expect(note, contains('- [ ] 2026-09-30: Make a reading schedule.')); // no date given
+    expect(note, contains('**book**: Dune.')); // the blank reason is no reason
+    expect(call('read_note', {'slug': 'book-club'}), isNot(contains('Error')));
+  });
+
   test('entries, todos and decisions', () {
     call('create_note', {'kind': 'project', 'title': 'Mopsos'});
     expect(

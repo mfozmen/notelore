@@ -121,7 +121,14 @@ enum Activity {
 /// A tool's arguments, already checked against its schema.
 extension type const ToolArgs(Map<String, Object?> _args) {
   String operator [](String key) => _args[key]! as String;
-  String? optional(String key) => _args[key] as String?;
+
+  /// A string argument that was left out; a blank one counts as left out too,
+  /// since a route that fills every argument sends "" (#927).
+  String? optional(String key) => switch (_args[key]) {
+    final String text when text.trim().isEmpty => null,
+    final String text => text,
+    _ => null,
+  };
   String? get kind => optional('kind');
   int number(String key) => _args[key]! as int;
   bool flag(String key) => _args[key]! as bool;
