@@ -597,7 +597,7 @@ Every flipped case was rerun alone, three times on each model (v12 → v12b):
   - Also file-yuksek-lisans-basvurusu-0, newlist-4, coll-tr-empty and scale-tr-6 slim, and newlist-4, newlist-6 and aboutme-tr-move-from-note full.
 - **v12b worse every time** (3/3 → 0/3):
   - Weekday dates: plan-2, plan-9, rem-8 and rem-en-once slim; plan-14, rem-tr-weekly, rem-tr-once and rem-en-once full. "Salı" became Monday 2026-10-19; "Thursday at 20:00" became today, 2026-10-18 20:00.
-  - Filing and collections: done-kafe-acilisi-0, file-side-business (both modes), file-language-exchange, mixed-en-3 and mixed-tr-3 (both modes), new-10, q-tr-5, plan-en-1 (no reminder) and scale-tr-3 slim; coll-okuma-listem-1-0, dec-ev-tasima-1 and cross-3 full.
+  - Filing and collections: rem-11 slim (into a new note), done-kafe-acilisi-0, file-side-business (both modes), file-language-exchange, mixed-en-3 and mixed-tr-3 (both modes), new-10, q-tr-5, plan-en-1 (no reminder) and scale-tr-3 slim; coll-okuma-listem-1-0, dec-ev-tasima-1 and cross-3 full.
 - **Drift or both failing:** coll-hediye-listesi-0-0 and plan-1 slim, newlist-6 and newlist-first-0 slim 3/3 on both; unclear-13 slim 0/3 on both; scale-tr-4 slim 3/3 → 1/3; plan-1 full 1/3 → 0/3; new-10 full 3/3 → 2/3; cross-5, cross-8 and unclear-2 full 1–2/3 → 3/3.
 
 Findings:
