@@ -349,6 +349,37 @@ REPEATS = [
     ("tr", "Okul Toplantısı", "topic", "Salı akşam 7'de veli toplantısını hatırlat.", "2026-10-20 19:00", "once", "veli"),
     ("tr", "Kargo Takibi", "topic", "Cuma günü kargoyu almayı hatırlat.", "2026-10-23", "once", "kargo"),
     ("tr", "Fotoğraf Kursu", "project", "Yarın 17'de kamerayı şarj etmemi hatırlat, sadece bir kez.", "2026-10-19 17:00", "once", "şarj"),
+    # A day of the month or year already past on the 18th of October rolls over.
+    ("en", "Internet Bill", "topic", "Remind me on the 1st of every month to pay the internet bill.", "2026-11-01", "monthly", "internet"),
+    ("en", "Landlord", "topic", "On the 1st of each month at 9, remind me to send the rent to my landlord.", "2026-11-01 09:00", "monthly", "rent"),
+    ("en", "Laptop Backups", "topic", "Remind me every month on the 3rd to back up my laptop.", "2026-11-03", "monthly", "back up"),
+    ("en", "Cactus Care", "topic", "Remind me on the 10th of every month to water the cactus.", "2026-11-10", "monthly", "cactus"),
+    ("en", "Credit Card", "topic", "Every month on the 15th, remind me to check the credit card statement.", "2026-11-15", "monthly", "statement"),
+    ("en", "Contact Lenses", "topic", "Remind me on the 7th of each month to order contact lenses.", "2026-11-07", "monthly", "lens"),
+    ("en", "Phone Bill", "topic", "Remind me on the 22nd of every month to pay the phone bill.", "2026-10-22", "monthly", "phone"),
+    ("en", "Transit Card", "topic", "Remind me on the 19th of each month to top up the transit card.", "2026-10-19", "monthly", "transit"),
+    ("en", "Nanny", "topic", "Every month on the 27th, remind me to pay the nanny.", "2026-10-27", "monthly", "nanny"),
+    ("tr", "İnternet Faturası", "topic", "Her ayın 1'inde internet faturasını ödememi hatırlat.", "2026-11-01", "monthly", "internet"),
+    ("tr", "Kredi Kartı", "topic", "Her ayın 1'inde sabah 10'da kredi kartı ekstresine bakmamı hatırlat.", "2026-11-01 10:00", "monthly", "ekstre"),
+    ("tr", "Bilgisayar Yedeği", "topic", "Her ayın 3'ünde bilgisayarı yedeklememi hatırlat.", "2026-11-03", "monthly", "yedek"),
+    ("tr", "Kaktüsler", "topic", "Her ayın 10'unda kaktüsleri sulamamı hatırlat.", "2026-11-10", "monthly", "kaktüs"),
+    ("tr", "Doğalgaz", "topic", "Her ayın 15'inde doğalgaz faturasını ödememi hatırlat.", "2026-11-15", "monthly", "doğalgaz"),
+    ("tr", "Lens Siparişi", "topic", "Her ayın 8'inde lens siparişi vermemi hatırlat.", "2026-11-08", "monthly", "lens"),
+    ("tr", "Telefon Faturası", "topic", "Her ayın 24'ünde telefon faturasını ödememi hatırlat.", "2026-10-24", "monthly", "telefon"),
+    ("tr", "Ulaşım Kartı", "topic", "Her ayın 19'unda ulaşım kartına para yüklememi hatırlat.", "2026-10-19", "monthly", "kart"),
+    ("tr", "Bakıcı", "topic", "Her ayın 27'sinde bakıcının ücretini ödememi hatırlat.", "2026-10-27", "monthly", "bakıcı"),
+    ("en", "Website Domain", "topic", "Remind me every year on 12 March to renew the domain.", "2027-03-12", "yearly", "domain"),
+    ("en", "Parking Permit", "topic", "Every year on 1 January remind me to renew the parking permit.", "2027-01-01", "yearly", "parking"),
+    ("en", "Birthdays", "topic", "Remind me every year on 20 August about Leo's birthday.", "2027-08-20", "yearly", "Leo"),
+    ("en", "Tax Return", "topic", "Remind me every year on 30 September to file the tax return.", "2027-09-30", "yearly", "tax"),
+    ("en", "Grandpa", "topic", "Remind me every year on 25 December to call grandpa.", "2026-12-25", "yearly", "grandpa"),
+    ("en", "Chimney", "topic", "Every year on 6 December, remind me to book the chimney sweep.", "2026-12-06", "yearly", "chimney"),
+    ("tr", "Alan Adı", "topic", "Her yıl 12 Nisan'da alan adını yenilememi hatırlat.", "2027-04-12", "yearly", "alan adı"),
+    ("tr", "Su Sayacı", "topic", "Her yıl 1 Ocak'ta su sayacını okumamı hatırlat.", "2027-01-01", "yearly", "sayaç"),
+    ("tr", "Selin", "topic", "Her yıl 23 Temmuz'da Selin'in doğum gününü hatırlat.", "2027-07-23", "yearly", "Selin"),
+    ("tr", "Kasko", "topic", "Her yıl 15 Eylül'de kasko yenilemesini hatırlat.", "2027-09-15", "yearly", "kasko"),
+    ("tr", "Kira Artışı", "topic", "Her yıl 20 Kasım'da kira artışını hatırlat.", "2026-11-20", "yearly", "kira"),
+    ("tr", "Baca Temizliği", "topic", "Her yıl 4 Aralık'ta baca temizliğini hatırlat.", "2026-12-04", "yearly", "baca"),
 ]
 
 # A reminder corrected right after it was set (v12, #925): one change_reminder
@@ -749,6 +780,9 @@ UNCLEAR += [
     ("en", "Log this."), ("en", "That goes in too."),
     ("tr", "Bunu da yaz."), ("tr", "Aynısını bunun için de yap."), ("tr", "Şunu hallet."),
     ("tr", "O da girsin."), ("tr", "Şunu da girer misin?"),
+    # v12b: a done-like word with nothing named still asks which one.
+    ("en", "Check that one off."), ("en", "Cross it out."), ("en", "Mark the other one done."),
+    ("tr", "Onu tamamla."), ("tr", "Şunu bitti yap."), ("tr", "Onu da kapat."),
 ]
 
 PLANS += [
@@ -1018,6 +1052,12 @@ FIRST_OF_KIND += [
     ("tr", "Dinlenecek podcast: Bir Şehir Bir Hikâye.", r"^topics/[^/]*podcast[^/]*\.md$", "Bir Şehir"),
     ("tr", "Gidilecek restoran: Kadıköy'de Lokanta Nar.", r"^topics/[^/]*(restoran|lokanta)[^/]*\.md$", "Lokanta Nar"),
     ("tr", "Dinlemek istediğim albüm: Gece Yolcuları.", r"^topics/[^/]*(album|muzik)[^/]*\.md$", "Gece Yolcuları"),
+    ("en", "I'm rereading Jane Eyre this week.", r"^topics/[^/]*book[^/]*\.md$", "Jane Eyre"),
+    ("en", "Started Anna Karenina on the plane.", r"^topics/[^/]*book[^/]*\.md$", "Anna Karenina"),
+    ("en", "I'd love to see Iceland one day.", r"^topics/[^/]*(place|visit|travel)[^/]*\.md$", "Iceland"),
+    ("en", "One day I want to go to Kyoto in spring.", r"^topics/[^/]*(place|visit|travel)[^/]*\.md$", "Kyoto"),
+    ("tr", "Bir gün Kapadokya'ya gitmek istiyorum.", r"^topics/[^/]*(gez|yer)[^/]*\.md$", "Kapadokya"),
+    ("tr", "Şu sıralar İnce Memed'i okuyorum.", r"^topics/[^/]*kitap[^/]*\.md$", "İnce Memed"),
 ]
 
 MIXED_LISTS += [
@@ -1178,6 +1218,15 @@ CROSS += [
     ("tr", "Podcasts to Try", "topic", "Denenecek podcast: Serial.", "collection", "add_note_entry", "Serial"),
     ("tr", "Board Games to Buy", "topic", "Alınacak kutu oyunu: Codenames.", "collection", "add_note_entry", "Codenames"),
     ("tr", "Restaurants to Try", "topic", "Gidilecek restoran: Lokanta 1741.", "collection", "add_note_entry", "1741"),
+    # v12b: an English message about a Turkish note is answered in English.
+    ("en", "Köpeğimiz Pamuk", "topic", "Pamuk had her rabies vaccine today.", "filing", "add_note_entry", "vaccine"),
+    ("en", "Akvaryum", "topic", "The aquarium heater was replaced today.", "filing", "add_note_entry", "heater"),
+    ("en", "Araba", "topic", "The car's winter tyres are on now.", "filing", "add_note_entry", "winter"),
+    ("en", "Ev Kredisi", "topic", "The mortgage rate dropped to 2.9 percent.", "filing", "add_note_entry", "2.9"),
+    ("en", "Denenecek Şaraplar", "topic", "Wine to try: a Kalecik Karası from Ankara.", "collection", "add_note_entry", "Kalecik"),
+    ("en", "İzlenecek Diziler", "topic", "Series to watch: The Bear.", "collection", "add_note_entry", "The Bear"),
+    ("en", "Denenecek Tarifler", "topic", "Recipe to try: red lentil soup with mint.", "collection", "add_note_entry", "lentil"),
+    ("en", "Sokak Kütüphanesi", "project", "Street library: add a todo to paint the door blue.", "todo", "add_todo", "door"),
 ]
 
 # Rows shaped like CROSS; some are cross-language on purpose, like CROSS itself: a decision said without "we
