@@ -565,3 +565,46 @@ Findings:
 - **Unclear with the full prompt is lower again** (14 → 12/15 held-out), though above v11's 9/15 at e71e53a. The 20 vague contrast turns did not hold it.
 - **v12 does not loop.** Replaying v10's looping turn capped at 400 tokens, v12 answers in 36 tokens. Every reminder and plan case of the loop check, and the four fix and remove cases, end on their own in 18 to 55 tokens.
 - v12 is in Ollama as `notelore-qwen3-4b-v12`. The app's device model is unchanged.
+
+## Fine-tune v12b, 2026-11-20 (#604)
+
+v12 wrote a monthly reminder whose day had passed in the current month ("the 1st of every month" became 2026-10-01). v12b changes only the data.
+
+**Setup**
+- **Why v12 kept the month.** Before v12, the data had one monthly scenario: rem-25, "Ayın 1'inde", which rolls into November. v12 added four monthly rows whose day was still ahead in October and only two that roll over.
+- **v12b data:** 2,717 turns, v12's 2,641 plus 76 new ones from glm-5.3 at 822e576 (38 slim, 38 full prompt), on 50 new scenarios:
+  - 30 monthly and yearly reminders. Per language, 6 monthly days that have passed (the 1st twice, the 3rd, 7th or 8th, 10th, 15th) against 3 still ahead, and 4 yearly dates that roll into 2027 against 2 still in 2026. Both "on the 1st of every month" and "her ayın 1'inde" are included. The teacher passed 29 slim and 28 full.
+  - 8 English messages about Turkish notes; 7 of them passed in each mode.
+  - 6 vague "done" messages. Most failed: the teacher ticked a todo in another note.
+  - 6 first lists of their kind; 1 passed.
+- **`test_scenarios.py` now pins every scenario id to its message** (`tool/train/scenario-ids.json`). A row added mid-table renumbers the rows after it, which happened to v12's plans. The pin starts from main as it is. Nine ids already carry other messages than they had in earlier training files, from older PRs.
+- **Training:** v12's recipe, one Kaggle session, 306 steps. The validation loss fell from 0.422 to 0.310 at the last step. The held-out tenth now includes some of the new rows, so 0.310 cannot be compared with v12's 0.285.
+- **Eval:** Q4_K_M, greedy, the same 822e576 binary as v12. Main has moved to 0f7f74c with docs and tool changes only, so v12's numbers above stand. Ollama ran nothing else during the evals or the reruns.
+
+| | Held-out (292), slim | Held-out, full | 74 cases × 2, slim | 74 cases, full | About me (14), full |
+|---|---|---|---|---|---|
+| v11 | 261 | 257 | **130/148** | 58 | 8 |
+| **v12** | **264** | **266** | 126/148 | **60** | 8 |
+| v12b | 262 | 263 | 125/148 | **60** | **9** |
+
+Held-out by kind, v12 → v12b. Slim: collection 59 → 63/73; plan 14 → 11/15, reminder 15 → 13/15. Full: unclear 12 → 13/15; plan 14 → 12/15, and decision, new note and todo-done one lower each.
+
+Every flipped case was rerun alone, three times on each model (v12 → v12b):
+
+- **v12b better every time** (0/3 → 3/3):
+  - Monthly and yearly dates: rem-en-monthly slim and full, rem-tr-yearly slim.
+  - The other v12 losses: unclear-5 slim, coll-en-1 full (now answered in English), cross-12 and cross-13 slim, newlist-first-1, newlist-first-2 and newlist-first-3 slim, newlist-first-7 full, mixed-tr-0 slim, unclear-en-1 full.
+  - Also file-yuksek-lisans-basvurusu-0, newlist-4, coll-tr-empty and scale-tr-6 slim, and newlist-4, newlist-6 and aboutme-tr-move-from-note full.
+- **v12b worse every time** (3/3 → 0/3):
+  - Weekday dates: plan-2, plan-9, rem-8 and rem-en-once slim; plan-14, rem-tr-weekly, rem-tr-once and rem-en-once full. "Salı" became Monday 2026-10-19; "Thursday at 20:00" became today, 2026-10-18 20:00.
+  - Filing and collections: done-kafe-acilisi-0, file-side-business (both modes), file-language-exchange, mixed-en-3 and mixed-tr-3 (both modes), new-10, q-tr-5, plan-en-1 (no reminder) and scale-tr-3 slim; coll-okuma-listem-1-0, dec-ev-tasima-1 and cross-3 full.
+- **Drift or both failing:** coll-hediye-listesi-0-0 and plan-1 slim, newlist-6 and newlist-first-0 slim 3/3 on both; unclear-13 slim 0/3 on both; scale-tr-4 slim 3/3 → 1/3; plan-1 full 1/3 → 0/3; new-10 full 3/3 → 2/3; cross-5, cross-8 and unclear-2 full 1–2/3 → 3/3.
+
+Findings:
+
+- **v12b fixes what it was trained for**: monthly days that have passed, the answer's language, vague messages, and first lists of their kind.
+- **It breaks weekday dates.** The 30 new rows are all monthly or yearly. After them, a plain weekday plan or reminder moves a day early or lands on today. That is 8 case-and-mode pairs that v12 passes every time. Held-out plan falls in both modes.
+- **v12b does not replace v12.** It loses 2–3 held-out cases in each mode and one slim case pair, and gains one about-me case. Alone, 20 pairs go 0/3 → 3/3 and 24 go the other way.
+- **For the next round:** keep the rollover rows, and add as many weekday and "tomorrow" reminders and plans beside them, so one kind of date does not outweigh the other.
+- **No loop.** v10's looping turn ends in 16 tokens. The loop check's reminder, fix and remove cases end on their own in 16 to 39 tokens; plan-en-1 now fails there (no reminder) but also ends.
+- v12b is in Ollama as `notelore-qwen3-4b-v12b`. The app's device model is unchanged.
