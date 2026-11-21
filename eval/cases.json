@@ -1188,6 +1188,272 @@
      "priz"
     ]
    }
+  },
+  {
+   "id": "scale-meaning-tr-dish",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Hünkâr beğendiyi bu sefer süt yerine kaymakla denedim, daha da güzel oldu.",
+   "notes": {
+    "topics/ev-yemekleri.md": "---\ntitle: Ev Yemekleri\nkind: topic\ncreated: 2026-08-20\nupdated: 2026-09-02\ntags: [mutfak]\n---\n# Ev Yemekleri\n\n## Notlar\n- 2026-08-20: Mercimek çorbası: kırmızı mercimek, soğan, havuç, 40 dakikada pişiyor.\n- 2026-09-02: Fırında levrek: limon ve defne yaprağıyla, 200 derecede 25 dakika.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/ev-yemekleri\\.md$": [
+      "kaymak"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-tr-relative",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Halam Nermin'in doğum günü 14 Mart'ta.",
+   "notes": {
+    "topics/akrabalar.md": "---\ntitle: Akrabalar\nkind: topic\ncreated: 2026-08-11\nupdated: 2026-09-05\ntags: [insanlar]\n---\n# Akrabalar\n\n## Notlar\n- 2026-08-11: Dayım Kemal Bursa'da oturuyor, bayramlarda aranmayı seviyor.\n- 2026-09-05: Kuzenim Selin ekimde evleniyor.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/akrabalar\\.md$": [
+      "14 Mart"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-tr-symptom",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Son günlerde sabahları başım ağrıyor.",
+   "notes": {
+    "topics/saglik-takibi.md": "---\ntitle: Sağlık Takibi\nkind: topic\ncreated: 2026-08-14\nupdated: 2026-09-09\ntags: [beden]\n---\n# Sağlık Takibi\n\n## Notlar\n- 2026-08-14: Tansiyon 12/8 ölçüldü, normal.\n- 2026-09-09: Kan tahlili yapıldı; D vitamini düşük çıktı, takviye başlandı.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/saglik-takibi\\.md$": [
+      "ağrı"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-tr-brand",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Arçelik'in bulaşık makinesi indirime girmiş, 18.000 TL.",
+   "notes": {
+    "topics/beyaz-esya.md": "---\ntitle: Beyaz Eşya\nkind: topic\ncreated: 2026-08-25\nupdated: 2026-09-12\ntags: [alım]\n---\n# Beyaz Eşya\n\n## Notlar\n- 2026-08-25: Buzdolabı en az 500 litre olsun, sessiz model.\n- 2026-09-12: Fırın ankastre olsun.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/beyaz-esya\\.md$": [
+      "Arçelik"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-tr-film",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Dün akşam Babam ve Oğlum'u izledim, çok duygulandım.",
+   "notes": {
+    "topics/sinema-gunlugu.md": "---\ntitle: Sinema Günlüğü\nkind: topic\ncreated: 2026-08-30\nupdated: 2026-09-14\ntags: [eğlence]\n---\n# Sinema Günlüğü\n\n## Notlar\n- 2026-08-30: Kış Uykusu: uzun ama değdi, 4/5.\n- 2026-09-14: Ağustos Böceği: sıkıcıydı, 2/5.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/sinema-gunlugu\\.md$": [
+      "Babam ve Oğlum"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-tr-pet",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Kedinin karma aşısı 3 Kasım'da.",
+   "notes": {
+    "topics/evcil-hayvan-sagligi.md": "---\ntitle: Evcil Hayvan Sağlığı\nkind: topic\ncreated: 2026-08-18\nupdated: 2026-09-07\ntags: [ev]\n---\n# Evcil Hayvan Sağlığı\n\n## Notlar\n- 2026-08-18: Kısırlaştırma sonrası kontrol yapıldı, 4,2 kilo.\n- 2026-09-07: Mama markası değişti: tahılsız.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/evcil-hayvan-sagligi\\.md$": [
+      "aşı"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-tr-licence",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Ehliyetimi ne zaman yenilemem gerekiyor?",
+   "notes": {
+    "topics/resmi-belgeler.md": "---\ntitle: Resmi Belgeler\nkind: topic\ncreated: 2026-08-03\nupdated: 2026-09-01\ntags: [evrak]\n---\n# Resmi Belgeler\n\n## Notlar\n- 2026-08-03: Sürücü belgesinin geçerliliği 2027-04-30 tarihine kadar.\n- 2026-09-01: Pasaport 2031'de doluyor.\n"
+   },
+   "expect": {
+    "answer": [
+     "2027"
+    ]
+   }
+  },
+  {
+   "id": "scale-meaning-tr-blood",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Kan grubum neydi?",
+   "notes": {
+    "topics/tibbi-bilgiler.md": "---\ntitle: Tıbbi Bilgiler\nkind: topic\ncreated: 2026-08-08\nupdated: 2026-08-08\ntags: [beden]\n---\n# Tıbbi Bilgiler\n\n## Notlar\n- 2026-08-08: 0 Rh pozitif; kimlik kartında da yazılı.\n- 2026-08-08: Penisiline alerjim var.\n"
+   },
+   "expect": {
+    "answer": [
+     "0 Rh"
+    ]
+   }
+  },
+  {
+   "id": "scale-meaning-en-dish",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "Made chicken tikka masala tonight; marinating it overnight made a big difference.",
+   "notes": {
+    "topics/kitchen-notebook.md": "---\ntitle: Kitchen Notebook\nkind: topic\ncreated: 2026-08-20\nupdated: 2026-09-02\ntags: [kitchen]\n---\n# Kitchen Notebook\n\n## Notes\n- 2026-08-20: Lentil soup: red lentils, onion, carrot, 40 minutes.\n- 2026-09-02: Baked salmon with lemon and dill, 200 degrees for 15 minutes.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/kitchen-notebook\\.md$": [
+      "tikka"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-en-relative",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "My nephew Leo turns seven on 3 May.",
+   "notes": {
+    "topics/extended-family.md": "---\ntitle: Extended Family\nkind: topic\ncreated: 2026-08-11\nupdated: 2026-09-05\ntags: [people]\n---\n# Extended Family\n\n## Notes\n- 2026-08-11: Aunt Maria lives in Porto; she likes a call on Sundays.\n- 2026-09-05: Cousin Tom is getting married in October.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/extended-family\\.md$": [
+      "Leo"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-en-symptom",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "My lower back has been aching since Tuesday.",
+   "notes": {
+    "topics/health-log.md": "---\ntitle: Health Log\nkind: topic\ncreated: 2026-08-14\nupdated: 2026-09-09\ntags: [body]\n---\n# Health Log\n\n## Notes\n- 2026-08-14: Blood pressure 120/80 at the pharmacy.\n- 2026-09-09: Vitamin D was low; started supplements.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/health-log\\.md$": [
+      "back"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-en-brand",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "The Dyson V15 is on sale for 499 euros.",
+   "notes": {
+    "topics/appliance-wishlist.md": "---\ntitle: Appliance Wishlist\nkind: topic\ncreated: 2026-08-25\nupdated: 2026-09-12\ntags: [buying]\n---\n# Appliance Wishlist\n\n## Notes\n- 2026-08-25: Air fryer: at least 5 litres, dishwasher-safe basket.\n- 2026-09-12: A quiet fridge, under 40 dB.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/appliance-wishlist\\.md$": [
+      "Dyson"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-en-film",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "Watched Paris, Texas last night, slow but beautiful.",
+   "notes": {
+    "topics/film-diary.md": "---\ntitle: Film Diary\nkind: topic\ncreated: 2026-08-30\nupdated: 2026-09-14\ntags: [fun]\n---\n# Film Diary\n\n## Notes\n- 2026-08-30: Arrival: 5 out of 5, the linguistics part was great.\n- 2026-09-14: Drive My Car: long, worth it, 4/5.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/film-diary\\.md$": [
+      "Paris, Texas"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-en-pet",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "The cat's booster jab is due on 3 November.",
+   "notes": {
+    "topics/vet-visits.md": "---\ntitle: Vet Visits\nkind: topic\ncreated: 2026-08-18\nupdated: 2026-09-07\ntags: [home]\n---\n# Vet Visits\n\n## Notes\n- 2026-08-18: Spayed in June, check-up fine, 4.2 kg.\n- 2026-09-07: Switched to grain-free food.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/vet-visits\\.md$": [
+      "booster"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-en-blood",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "What's my blood type?",
+   "notes": {
+    "topics/medical-card.md": "---\ntitle: Medical Card\nkind: topic\ncreated: 2026-08-08\nupdated: 2026-08-08\ntags: [body]\n---\n# Medical Card\n\n## Notes\n- 2026-08-08: 0 Rh positive; also on my ID card.\n- 2026-08-08: Allergic to penicillin.\n"
+   },
+   "expect": {
+    "answer": [
+     "0 Rh"
+    ]
+   }
+  },
+  {
+   "id": "scale-meaning-en-book",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "Just started Pachinko by Min Jin Lee.",
+   "notes": {
+    "topics/books-in-progress.md": "---\ntitle: Books in Progress\nkind: topic\ncreated: 2026-09-03\nupdated: 2026-09-03\ntags: [reading]\n---\n# Books in Progress\n\n## Notes\n- 2026-09-03: Middlemarch by George Eliot, slow going.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/books-in-progress\\.md$": [
+      "Pachinko"
+     ]
+    }
+   }
   }
  ]
 }

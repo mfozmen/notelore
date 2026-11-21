@@ -337,6 +337,40 @@ void main() {
     }
   });
 
+  test('reach: which crowded cases get their note into the prompt, no model (#929)', () async {
+    String note(String title) =>
+        '---\ntitle: $title\nkind: topic\ncreated: 2020-01-02\n'
+        'updated: 2020-01-02\n---\n# $title\n\n## Notes\n- 2020-01-02: Crampons.\n';
+    Map<String, Object?> question(String id, String message, {int filler = 40}) => {
+      'id': id,
+      'kind': 'scale',
+      'lang': 'en',
+      'filler': filler,
+      'notes': {'topics/glacier-trip.md': note('Glacier Trip')},
+      'message': message,
+      'expect': {
+        'answer': ['Crampons'],
+      },
+    };
+    File(p.join(temp.path, 'cases.json')).writeAsStringSync(
+      jsonEncode([
+        question('named', 'What did I pack for the glacier?'),
+        question('unnamed', 'Which spikes go on my boots?'),
+        question('small', 'Which spikes go on my boots?', filler: 0),
+        {...question('no-target', 'hi'), 'expect': <String, Object?>{}},
+      ]),
+    );
+    expect(await run(['reach', '--cases=cases.json']), 0);
+    expect('$out', contains('hit  named'));
+    expect('$out', contains('MISS unnamed topics/glacier-trip.md'));
+    expect('$out', isNot(contains('small')));
+    expect('$out', isNot(contains('no-target')));
+    expect('$out', contains('1/2 reach the prompt (matches:20)'));
+    expect(await run(['reach', '--cases=cases.json', '--note-list=newest']), 0);
+    expect('$out', contains('0/2 reach the prompt (newest:60)'));
+    expect(await run(['reach', '--runs=2', '--cases=cases.json']), 64);
+  });
+
   test(
     'eval --first-write --parallel=2: each case to its first write, two at once (#598)',
     () async {

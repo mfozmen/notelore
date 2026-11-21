@@ -7,6 +7,8 @@
 ///     notelore_dev chat [--provider=chatgpt] [--model=<id>] <message...>
 ///     notelore_dev eval [--provider=…] [--model=…] [--cases=eval/cases.json]
 ///                                      the model eval (#325), on temp notes
+///     notelore_dev reach [--cases=…] [--note-list=…]
+///                                      which crowded cases' notes reach the prompt, no model (#929)
 ///     notelore_dev distill [--provider=…] [--model=…] [--cases=…] [--out=train.jsonl]
 ///                                      a teacher's passing turns as training data (#327)
 ///
@@ -42,6 +44,7 @@ const _usage =
     ' [--first-write] [--parallel=<n>] [--note-list=<order>:<n>]'
     ' | distill [--provider=<name>] [--model=<id>] [--cases=<file>] [--out=<file>] [--slim]'
     ' [--samples=<k>] [--keep-failed=<file>]'
+    ' | reach [--cases=<file>] [--note-list=<order>:<n>]'
     ' | reprompt --in=<file> --out=<file> [--slim]'
     ' | feedback (good and bad reports by model, from <notes>/.notelore/feedback)'
     ' (--slim: the prompt and tools of the model on the device;'
@@ -89,7 +92,7 @@ bool _valid(String? command, String message, _Plan plan) {
         'chat' => message.isNotEmpty && !evalOnly && !distillOnly,
         'eval' => !distillOnly,
         'distill' => !evalOnly,
-        'signin' || 'models' || 'reprompt' || 'feedback' => !evalOnly && !distillOnly,
+        'signin' || 'models' || 'reprompt' || 'feedback' || 'reach' => !evalOnly && !distillOnly,
         _ => false,
       };
 }
@@ -166,8 +169,10 @@ Future<int> runDev(
           out,
           slim: slim,
         );
+      case 'reach':
+        _reach(_cases(currentDirectory, options), plan.noteList!, out);
       case 'eval' || 'distill':
-        final cases = File(p.join(currentDirectory.path, options['cases'] ?? 'eval/cases.json'));
+        final cases = _cases(currentDirectory, options);
         final keep = command == 'distill'
             ? File(p.join(currentDirectory.path, options['out'] ?? 'train.jsonl'))
             : null;
@@ -198,6 +203,26 @@ Future<int> runDev(
     out.writeln('Trace: ${traceFile.path}');
     traced.close();
   }
+}
+
+/// The cases file the options name, `eval/cases.json` by default.
+File _cases(Directory directory, Map<String, String> options) =>
+    File(p.join(directory.path, options['cases'] ?? 'eval/cases.json'));
+
+/// For each case with filler notes and a target, whether [choice]'s note list
+/// holds it; the others list every note. Then how many did.
+void _reach(File cases, NoteListChoice choice, StringSink out) {
+  final crowded = [
+    for (final c in loadCases(cases.readAsStringSync()))
+      if (c.filler > 0 && targetNotes(c).isNotEmpty) c,
+  ];
+  var hits = 0;
+  for (final c in crowded) {
+    final hit = reachesPrompt(c, noteList: choice);
+    if (hit) hits++;
+    out.writeln(hit ? 'hit  ${c.id}' : 'MISS ${c.id} ${targetNotes(c).join(' ')}');
+  }
+  out.writeln('$hits/${crowded.length} reach the prompt (${choice.order.name}:${choice.size})');
 }
 
 /// Every example of [from] with today's prompt and tools ([slim] or full),
