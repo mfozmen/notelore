@@ -88,6 +88,8 @@ void main() {
       keys: const _BrokenDelete(),
       validate: (spec, key) async => <String>[],
       makeProvider: (spec, key, {model, planToken, webSearch = false}) => harness.provider,
+      meaningFiles: const [], // never the real download
+      makeMeaning: (_, _) => null,
     );
     addTearDown(session.dispose);
     expect(await session.meteredNetwork(), isNull); // a connection's cost unknown: asked (#767)
@@ -153,6 +155,8 @@ void main() {
       harness.paths,
       validate: (spec, key) => calls++ == 0 ? Future.value(['a']) : answer.future,
       makeProvider: (spec, key, {model, planToken, webSearch = false}) => harness.provider,
+      meaningFiles: const [], // never the real download
+      makeMeaning: (_, _) => null,
     );
     addTearDown(session.dispose);
     await session.connect(findProvider('anthropic'), 'k');
@@ -1604,6 +1608,8 @@ void main() {
       keySpace: 'notelore-dev',
       validate: (spec, key) async => <String>[],
       makeProvider: (spec, key, {model, planToken, webSearch = false}) => harness.provider,
+      meaningFiles: const [], // never the real download
+      makeMeaning: (_, _) => null,
     );
     addTearDown(dev.dispose);
     await dev.connect(findProvider('anthropic'), 'dev-key');

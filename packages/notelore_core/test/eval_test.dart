@@ -605,7 +605,7 @@ void main() {
     expect(targetNotes(withExpect({})), isEmpty);
   });
 
-  test('reachesPrompt: whether the prompt lists the target, without a model (#929)', () {
+  test('reachesPrompt: whether the prompt lists the target, without a model (#929)', () async {
     final crowded = _case({
       'id': 'q-filler',
       'kind': 'scale',
@@ -617,8 +617,8 @@ void main() {
         'answer': ['weekly'],
       },
     });
-    expect(reachesPrompt(crowded), isTrue);
-    expect(reachesPrompt(crowded, noteList: newestNotes), isFalse);
+    expect(await reachesPrompt(crowded), isTrue);
+    expect(await reachesPrompt(crowded, noteList: newestNotes), isFalse);
   });
 
   test('an answer is checked for its facts; a question must not write', () async {
