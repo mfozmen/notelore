@@ -27,6 +27,7 @@ import 'package:path/path.dart' as p;
 import 'agent.dart';
 import 'eval.dart';
 import 'meaning.dart';
+import 'meaning_native.dart';
 import 'paths.dart';
 import 'providers/base.dart';
 import 'providers/chatgpt.dart';
@@ -109,7 +110,6 @@ Future<int> runDev(
   required Future<void> Function(Uri url) openBrowser,
   required http.Client client,
   DateTime Function() now = DateTime.now,
-  Embedder Function(String dir, String? library)? loadMeaning,
 }) async {
   if ((environment['NOTELORE_HOME'] ?? '').isEmpty) {
     out.writeln('Set NOTELORE_HOME (e.g. .dev-home): notelore_dev never touches the real notes.');
@@ -156,12 +156,6 @@ Future<int> runDev(
   );
   // API keys from the environment, or else from the dev secrets file.
   final keys = _keys(stored(), environment);
-  // multilingual-e5 from a folder, for the note list (#929); native, so the
-  // command line hands in how to load it.
-  Embedder? meaning() => switch (options['meaning']) {
-    final dir? => loadMeaning!(p.join(currentDirectory.path, dir), options['ort']),
-    null => null,
-  };
 
   try {
     switch (command) {
@@ -180,7 +174,8 @@ Future<int> runDev(
           slim: slim,
         );
       case 'reach':
-        await _reach(_cases(currentDirectory, options), plan, meaning(), out);
+        plan.meaning = _meaning(currentDirectory, options);
+        await _reach(_cases(currentDirectory, options), plan, out);
       case 'eval' || 'distill':
         final cases = _cases(currentDirectory, options);
         final keep = command == 'distill'
@@ -199,8 +194,7 @@ Future<int> runDev(
           out,
           keep: keep,
           failed: _file(currentDirectory, options['keep-failed']),
-          plan: plan,
-          meaning: meaning(),
+          plan: plan..meaning = _meaning(currentDirectory, options),
           search: _searches(options['provider'] ?? 'chatgpt'),
         );
       default:
@@ -216,14 +210,30 @@ Future<int> runDev(
   }
 }
 
+/// How eval and reach open multilingual-e5 from a folder (#929); tests put a
+/// fake here, as the real one is native.
+Embedder Function(String dir, String? library) loadMeaning = _nativeE5;
+
+// coverage:ignore-start
+Embedder _nativeE5(String dir, String? library) => loadE5(dir, openOnnxRuntime(library));
+// coverage:ignore-end
+
+/// e5 from the folder `--meaning` names, on the onnxruntime `--ort` names.
+Embedder? _meaning(Directory directory, Map<String, String> options) =>
+    switch (options['meaning']) {
+      final dir? => loadMeaning(p.join(directory.path, dir), options['ort']),
+      null => null,
+    };
+
 /// The cases file the options name, `eval/cases.json` by default.
 File _cases(Directory directory, Map<String, String> options) =>
     File(p.join(directory.path, options['cases'] ?? 'eval/cases.json'));
 
 /// For each case with filler notes and a target, whether [plan]'s note list
-/// holds it, with [meaning] when given; the others list every note. Then how
-/// many did.
-Future<void> _reach(File cases, _Plan plan, Embedder? meaning, StringSink out) async {
+/// holds it, with its e5 vectors when given; the others list every note. Then
+/// how many did.
+Future<void> _reach(File cases, _Plan plan, StringSink out) async {
+  final meaning = plan.meaning;
   final choice = plan.noteList!;
   final crowded = [
     for (final c in loadCases(cases.readAsStringSync()))
@@ -293,8 +303,7 @@ Future<void> _eval(
   File? keep,
   File? failed,
   bool search = false,
-  _Plan plan = const _Plan(),
-  Embedder? meaning,
+  required _Plan plan,
 }) async {
   if (!cases.existsSync()) throw StateError('no cases file at ${cases.path}');
   final provider = await open();
@@ -311,7 +320,7 @@ Future<void> _eval(
   final outcomes = <Set<TrainingIssue>?>[];
   for (var run = 0; run < plan.runs; run++) {
     everyRun.add(
-      await _runOnce(runnable, provider, plan, meaning, out, (result) {
+      await _runOnce(runnable, provider, plan, out, (result) {
         if (keep != null) outcomes.add(_keepTurn(result, keep, done!, seen, failed));
       }),
     );
@@ -327,16 +336,6 @@ Future<void> _eval(
 /// [firstWrite] (#598), [runs] times, [parallel] cases at once, each case
 /// [samples] times.
 class _Plan {
-  const _Plan()
-    : slim = false,
-      firstWrite = false,
-      runs = 1,
-      parallel = 1,
-      samples = 1,
-      keepsFailed = false,
-      noteList = defaultNotes,
-      nearest = 8;
-
   /// From the command line; a count that is no number is 0, so it is refused.
   _Plan.parse(List<String> args, Map<String, String> options)
     : slim = args.contains('--slim'),
@@ -364,6 +363,9 @@ class _Plan {
 
   /// Places in it kept for the notes nearest the message (#929).
   final int nearest;
+
+  /// multilingual-e5, when `--meaning` names its folder (#929).
+  Embedder? meaning;
 }
 
 /// `newest`, or `newest|matches|mixed:<n>`; null for anything else.
@@ -390,7 +392,6 @@ Future<List<EvalResult>> _runOnce(
   List<EvalCase> cases,
   LlmProvider provider,
   _Plan plan,
-  Embedder? meaning,
   StringSink out,
   void Function(EvalResult result) ended,
 ) async {
@@ -410,7 +411,7 @@ Future<List<EvalResult>> _runOnce(
             slim: plan.slim,
             firstWrite: plan.firstWrite,
             noteList: plan.noteList!,
-            meaning: meaning,
+            meaning: plan.meaning,
             nearest: plan.nearest,
           ).then((r) {
             final verdict = r.passed ? 'ok  ' : 'FAIL';

@@ -71,14 +71,16 @@ class Unigram {
     final piece = List<int>.filled(chars.length + 1, 0);
     for (var start = 0; start < chars.length; start++) {
       if (best[start] == double.negativeInfinity) continue;
-      var known = false;
-      for (var end = start + 1; end <= min(chars.length, start + _longest); end++) {
-        final id = _ids[String.fromCharCodes(chars, start, end)];
-        if (id == null) continue;
-        if (end == start + 1) known = true;
+      final known = [
+        for (var end = start + 1; end <= min(chars.length, start + _longest); end++)
+          if (_ids[String.fromCharCodes(chars, start, end)] case final id?) (end, id),
+      ];
+      for (final (end, id) in known) {
         _relax(best, from, piece, start, end, id, _scores[id]);
       }
-      if (!known) _relax(best, from, piece, start, start + 1, _unk, _unkScore);
+      if (known.firstOrNull?.$1 != start + 1) {
+        _relax(best, from, piece, start, start + 1, _unk, _unkScore);
+      }
     }
     final out = <int>[];
     for (var end = chars.length; end > 0; end = from[end]) {
