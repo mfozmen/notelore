@@ -574,6 +574,53 @@ void main() {
     },
   );
 
+  test('a case targets the notes its expectation names, else those holding the answer', () {
+    final notes = {'projects/mopsos.md': _mopsos, 'topics/futbol.md': _futbol};
+    EvalCase withExpect(Map<String, Object?> expect) => _case({
+      'id': 't',
+      'kind': 'scale',
+      'lang': 'en',
+      'notes': notes,
+      'message': 'm',
+      'expect': expect,
+    });
+    expect(
+      targetNotes(
+        withExpect({
+          'notes': {
+            r'^projects/mopsos\.md$': ['x'],
+          },
+        }),
+      ),
+      ['projects/mopsos.md'],
+    );
+    expect(
+      targetNotes(
+        withExpect({
+          'answer': ['WEEKLY'],
+        }),
+      ),
+      ['projects/mopsos.md'],
+    );
+    expect(targetNotes(withExpect({})), isEmpty);
+  });
+
+  test('reachesPrompt: whether the prompt lists the target, without a model (#929)', () {
+    final crowded = _case({
+      'id': 'q-filler',
+      'kind': 'scale',
+      'lang': 'en',
+      'notes': {'projects/mopsos.md': _mopsos},
+      'filler': 60,
+      'message': 'How often is the hit rate calculated?',
+      'expect': {
+        'answer': ['weekly'],
+      },
+    });
+    expect(reachesPrompt(crowded), isTrue);
+    expect(reachesPrompt(crowded, noteList: newestNotes), isFalse);
+  });
+
   test('an answer is checked for its facts; a question must not write', () async {
     final question = _case({
       'id': 'q-1',

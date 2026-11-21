@@ -258,14 +258,7 @@ Future<EvalResult> runCase(
   final index = NoteIndex(p.join(dir.path, 'state', 'index.sqlite'), root);
   final watch = Stopwatch()..start();
   try {
-    _write(root, {
-      ...sampleNotes(
-        evalCase.filler,
-        newest: evalToday.subtract(const Duration(days: 1)),
-        days: 12,
-      ),
-      ...evalCase.notes,
-    });
+    _writeCase(root, evalCase);
     final before = _files(root);
     final agent = Agent(
       until ?? provider,
@@ -316,6 +309,43 @@ Future<EvalResult> runCase(
       action: _action(tools, stoppedAt, answer),
       noteList: agent.noteList,
     );
+  } finally {
+    index.close();
+    dir.deleteSync(recursive: true);
+  }
+}
+
+/// The case's own notes a turn must find: those its expectation may change,
+/// else those holding every fact the answer needs; empty when neither.
+List<String> targetNotes(EvalCase evalCase) {
+  final patterns = [for (final pattern in evalCase.expect.notes.keys) RegExp(pattern)];
+  final named = [
+    for (final path in evalCase.notes.keys)
+      if (patterns.any((pattern) => pattern.hasMatch(path))) path,
+  ];
+  if (named.isNotEmpty || evalCase.expect.answer.isEmpty) return named;
+  return [
+    for (final MapEntry(key: path, value: text) in evalCase.notes.entries)
+      if (evalCase.expect.answer.every((fact) => _has(text, fact))) path,
+  ];
+}
+
+/// Whether the prompt's note list for [evalCase]'s message, chosen by
+/// [noteList], holds every [targetNotes] slug: the search half of a turn,
+/// measured without a model (#929).
+bool reachesPrompt(EvalCase evalCase, {NoteListChoice noteList = defaultNotes}) {
+  final dir = Directory.systemTemp.createTempSync('notelore_reach_');
+  final root = p.join(dir.path, 'notes');
+  final index = NoteIndex(p.join(dir.path, 'state', 'index.sqlite'), root);
+  try {
+    _writeCase(root, evalCase);
+    final listed = (Toolbox(
+      root,
+      index,
+      today: evalToday,
+    )..noteChoice = noteList).noteList(evalCase.message);
+    return targetNotes(evalCase)
+        .every((path) => listed.contains(': ${p.url.basenameWithoutExtension(path)}, '));
   } finally {
     index.close();
     dir.deleteSync(recursive: true);
@@ -373,6 +403,12 @@ void _write(String root, Map<String, String> notes) {
       ..writeAsStringSync(value);
   }
 }
+
+/// [evalCase]'s notes and its filler, newer than them, under [root].
+void _writeCase(String root, EvalCase evalCase) => _write(root, {
+  ...sampleNotes(evalCase.filler, newest: evalToday.subtract(const Duration(days: 1)), days: 12),
+  ...evalCase.notes,
+});
 
 /// The paths added, removed or changed, sorted.
 List<String> _changed(Map<String, String> before, Map<String, String> after) => {
