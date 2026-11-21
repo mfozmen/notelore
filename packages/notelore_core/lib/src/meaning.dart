@@ -71,10 +71,7 @@ class Unigram {
     final piece = List<int>.filled(chars.length + 1, 0);
     for (var start = 0; start < chars.length; start++) {
       if (best[start] == double.negativeInfinity) continue;
-      final known = [
-        for (var end = start + 1; end <= min(chars.length, start + _longest); end++)
-          if (_ids[String.fromCharCodes(chars, start, end)] case final id?) (end, id),
-      ];
+      final known = _pieces(chars, start);
       for (final (end, id) in known) {
         _relax(best, from, piece, start, end, id, _scores[id]);
       }
@@ -89,6 +86,12 @@ class Unigram {
     }
     return out.reversed.toList();
   }
+
+  /// The vocabulary's pieces that start at [start], shortest first, as (end, id).
+  List<(int, int)> _pieces(List<int> chars, int start) => [
+    for (var end = start + 1; end <= min(chars.length, start + _longest); end++)
+      if (_ids[String.fromCharCodes(chars, start, end)] case final id?) (end, id),
+  ];
 
   static void _relax(
     List<double> best,

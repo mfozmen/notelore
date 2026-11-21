@@ -109,6 +109,7 @@ class _Session {
     });
   }
 
+  // Never released: one session lives as long as the isolate that runs it.
   late final Pointer<Pointer<Void>> _api;
   late final _P _env;
   late final _P _session;
