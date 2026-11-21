@@ -608,3 +608,67 @@ Findings:
 - **For the next round:** keep the rollover rows, and add as many weekday and "tomorrow" reminders and plans beside them, so one kind of date does not outweigh the other.
 - **No loop.** v10's looping turn ends in 16 tokens. The loop check's reminder, fix and remove cases end on their own in 16 to 39 tokens; plan-en-1 now fails there (no reminder) but also ends.
 - v12b is in Ollama as `notelore-qwen3-4b-v12b`. The app's device model is unchanged.
+
+## Fine-tune v12c, 2026-11-21 (#604)
+
+v12b fixed monthly dates but moved weekday dates. v12c keeps v12b's rows and adds weekday and relative-day reminders beside them. Only the data changed.
+
+**Setup**
+- **Why v12b lost filings.** The kinds were not skewed: 1 of v12b's 76 new turns calls `create_note`, against 219 of v12's 2,641. But every lost filing or collection case went into a new note named after the message's subject: "candles-sold-at-the-market" instead of side-business, "dolomites-trip" instead of trip-ideas, "video-calls" instead of language-exchange. Each failed 3/3 alone, so it was not drift. All 63 repeat-reminder rows of v12 and v12b go into a near-empty note named after their subject ("Internet Bill" for "pay the internet bill"), and v12b doubled them. The likely lesson the model took: a message's subject is a note's title.
+- **v12c data:** 2,777 turns, v12b's 2,717 plus 60 new ones from glm-5.3, on a binary built at 42be43c (with #931):
+  - 41 one-time reminders on a weekday or a relative day (21 slim, 20 full), from 26 scenarios: "Salı", "Thursday at 20:00", "yarın", "next Monday", "bu cumartesi", "öbür gün", "in three days".
+    - A weekday rolls to the coming week. Sunday is today when its time is still ahead (18:00, 21:00) and next week when it has passed (09:00).
+    - They go into five broad notes per language (Home Admin, Family Logistics, Work Week…), never into one named after the reminder.
+    - Per language, these rows and the earlier daily, weekly and one-time ones now outnumber the monthly and yearly ones: 25 and 24 against 20.
+  - 11 vague "done" messages (6 slim, 5 full) in a workspace of three projects with two open todos each, so the right answer is a question. In v12b the teacher had ticked a todo in a random note instead.
+  - 8 first lists of their kind (5 slim, 3 full), with `--samples=3`. glm-5.3 passes a `description` argument that `create_note` refuses, then retries, and the distill drops a turn with a tool error. That is a teacher habit, not a fault in the scenario.
+  - Balance tests for all of this, written before the rows.
+- **Training:** v12's recipe, one Kaggle session, 313 steps in 7.8 hours. The validation loss fell from 0.475 to 0.352 at the last step. The held-out tenth shifted again with the new rows, so this cannot be compared with v12's figures.
+- **Eval:** all three models at 42be43c, from one binary. #931 changed how a blank argument is read, so v12 and v11 were measured again.
+  - `notelore-qwen3-4b-v11` had been removed from Ollama. It was rebuilt from its own GGUF and Modelfile and has the same id as before (6244d628d5cf).
+  - Ollama ran no other model and no other eval process while these ran.
+
+| | Held-out (292), slim | Held-out, full | 74 cases × 2, slim | 74 cases, full | About me (14), full |
+|---|---|---|---|---|---|
+| v11 (on the phone) | 258 | 256 | 130/148 | 58 | 8 |
+| v12 | **263** | **265** | 125/148 | 59 | 8 |
+| **v12c** | 262 | 261 | **132/148** | **61** | **11** |
+
+Held-out by kind, v12 → v12c. Slim: filing 29 → 33/36, collection 59 → 60/73; unclear 13 → 11/15, and decision, new note, plan and reminder one lower each. Full: collection 60 → 61/73, filing 29 → 30/36, plan 13 → 14/15; decision 18 → 16/18, reminder 15 → 13/15, and chat, todo-done and unclear one lower each.
+
+On the cases, reminders went from 26/34 (v11) and 22/34 (v12) to 30/34 slim, and from 11 and 12 to 13/17 full.
+
+The 85 cases that flipped against either model were rerun alone, three times on each of the three models.
+
+| v12c against | better every time (0/3 → 3/3) | worse every time (3/3 → 0/3) |
+|---|---|---|
+| v11 | 28 | 20 |
+| v12 | 23 | 22 |
+
+- **Better than both, every time:**
+  - About me: aboutme-en-change-age, aboutme-tr-merge-spouse, aboutme-tr-move-from-note.
+  - Ticking a done todo: done-book-club-1, both modes.
+  - Reminders and plans: rem-tr-yearly (both modes), plan-en-1 full.
+  - Filing and lists: file-yuksek-lisans-basvurusu-0, newlist-4 and newlist-first-2, recover-novels-on-my-list.
+  - Against v12 also rem-en-monthly (both modes), rem-en-yearly and rem-en-once slim, coll-en-1 full (in English), cross-5 and cross-12 slim. Against v11 also rem-en-fix-once and rem-en-daily.
+- **Worse than both, every time:**
+  - Ticking a done todo: cross-6 slim, cross-9 full.
+  - Decisions filed as plain entries: dec-ev-tasima full, dec-ev-tasima-1 slim.
+  - mixed-tr-3 in both modes (a new place list), file-family-reunion-0 full, recover-documentaries-to-watch full.
+  - Dates: plan-12 slim ("Cuma akşamı" written as Thursday the 22nd) and rem-9 full ("2 saat sonra" written as 14:02).
+  - scale-tr-3 slim, unclear-7 slim.
+- **Worse than v12 only:** rem-8 in both modes (the right day, but "14'te" dropped), rem-tr-weekly full, file-side-business full, newlist-7 slim, chat-11 full, cross-3 full, unclear-10 full, scale-tr-4 full.
+- **Worse than v11 only:** unclear-5 and unclear-en-1 full, newlist-first-7 full, rem-tr-monthly full, scale-tr-6 full, cross-8 full, cross-9 slim. v12 fails all of these too.
+
+Findings:
+
+- **v12c is ahead of v11, the phone's model, on all five sets**: held-out +4 slim and +5 full, cases +2 slim and +3 full, about me +3. Alone, 28 pairs pass every time on v12c and never on v11, against 20 the other way.
+- **Against v12 it is about even.**
+  - On the held-out set v12 is ahead by 1 slim and 4 full.
+  - On the cases v12c is ahead by 7 slim and 2 full, mostly reminders, and on about me by 3.
+  - Alone, the pairs split 23 to 22.
+- **The weekday rows helped but did not settle dates.** Weekday plans and reminders recover against v12b on the cases (reminder 30/34 slim). But a few Turkish weekday and relative-hour cases still go wrong: plan-12 is a day early, rem-8 loses its time, and rem-9 gets "2 saat sonra" wrong.
+- **What filing the broad notes recovered:** held-out filing slim 29 → 33/36. mixed-tr-3 still makes a new list.
+- **Ticks and decisions are v12c's soft spots**: four cross-language or scale done messages, and two decisions filed as entries.
+- **No loop.** v10's looping turn ends in 35 tokens. Every reminder, plan, fix and remove case of the loop check ends on its own in 16 to 56 tokens. The one "still generating" flag in this run was on v12's rem-en-remove, whose replay ended in 18 tokens, as it did in v12's own check, so I read it as a false alarm.
+- v12c is in Ollama as `notelore-qwen3-4b-v12c`. The app's device model is unchanged.
