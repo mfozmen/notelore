@@ -111,6 +111,26 @@ check("the 1st of every month is asked in both languages",
            for r in scenarios.REPEATS) for lang, pattern in (("en", r"1st of (every|each) month"), ("tr", r"ayın 1'inde"))],
       [True, True])
 
+# v12b's rollover rows moved weekday dates a day early: weekday and relative
+# days, in broad notes, at least match the monthly and yearly ones.
+for lang in ("en", "tr"):
+    repeats = [r for r in scenarios.REPEATS if r[0] == lang]
+    dated = [r for r in scenarios.DATED if r[0] == lang]
+    days = sum(r[5] in ("once", "daily", "weekly") for r in repeats) + len(dated)
+    check(f"{lang} weekday and relative days match the monthly and yearly ones",
+          days >= sum(r[5] in ("monthly", "yearly") for r in repeats), True)
+    check(f"{lang} has Sunday later today and Sunday next week",
+          (any(r[5].startswith("2026-10-18 ") for r in dated), any(r[5].startswith("2026-10-25") for r in dated)),
+          (True, True))
+    check(f"{lang} has days earlier in the week rolling to the coming one",
+          sum("2026-10-19" <= r[5][:10] <= "2026-10-24" for r in dated) >= 8, True)
+    check(f"{lang} dated rows go into broad notes, never one named after the reminder",
+          all(r[1].split()[0].lower() not in r[3].lower() for r in dated), True)
+vague = [c for c in generated if c["id"].startswith("vague-done-")]
+check("vague done messages see several open todos and must ask",
+      (len(vague) >= 6, all(c["expect"] == {"answer": ["?"], "tools_not": ["complete_todo"]} for c in vague),
+       all(sum("- [ ] " in t for t in c["notes"].values()) >= 3 for c in vague)), (True, True, True))
+
 # Earlier training rows carry these ids, so an id never changes its message
 # (a row added mid-table renumbers the rest); a new id is added to the file.
 pinned = json.loads((Path(__file__).resolve().parent / "scenario-ids.json").read_text(encoding="utf-8"))

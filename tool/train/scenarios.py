@@ -382,6 +382,60 @@ REPEATS = [
     ("tr", "Baca Temizliği", "topic", "Her yıl 4 Aralık'ta baca temizliğini hatırlat.", "2026-12-04", "yearly", "baca"),
 ]
 
+# One-time reminders on a weekday or a relative day (v12c), in broad notes
+# whose title is not the reminder's subject, from Sunday 2026-10-18 14:00.
+# A weekday rolls to the coming week; Sunday is today when its time is still
+# ahead, else next week. (lang, note title, kind, message, a word, "YYYY-MM-DD[ HH:MM]"); BROAD holds each note's line.
+BROAD = {
+    "Home Admin": "The boiler service is due in spring.", "Family Logistics": "Ana has swimming on weekdays.",
+    "Weekly Errands": "The market is open until six.", "Work Week": "Stand-up is at 9:30 every day.",
+    "Clinic Visits": "The clinic closes at five.",
+    "Ev İdaresi": "Kombi bakımı baharda yapılacak.", "Aile Düzeni": "Elif hafta içi yüzmeye gidiyor.",
+    "Haftalık İşler": "Pazar yeri altıya kadar açık.", "İş Haftası": "Toplantılar her gün 9.30'da.",
+    "Klinik Randevuları": "Klinik beşte kapanıyor.",
+}
+DATED = [
+    ("en", "Home Admin", "topic", "Remind me on Tuesday at 10 to call the insurer.", "insurer", "2026-10-20 10:00"),
+    ("en", "Family Logistics", "topic", "Thursday at 20:00 I have parents' evening at school.", "parents", "2026-10-22 20:00"),
+    ("en", "Weekly Errands", "topic", "Remind me tomorrow at 7:45 to take the bins out.", "bins", "2026-10-19 07:45"),
+    ("en", "Work Week", "topic", "Next Monday at 9, remind me to send the invoice.", "invoice", "2026-10-19 09:00"),
+    ("en", "Family Logistics", "topic", "Remind me this Saturday to buy a birthday card for Ana.", "card", "2026-10-24"),
+    ("en", "Clinic Visits", "topic", "Remind me on Wednesday to renew the prescription.", "prescription", "2026-10-21"),
+    ("en", "Weekly Errands", "topic", "Remind me tonight at 21:00 to charge the bike lights.", "light", "2026-10-18 21:00"),
+    ("en", "Home Admin", "topic", "Remind me on Sunday at 9 to water the garden.", "garden", "2026-10-25 09:00"),
+    ("en", "Home Admin", "topic", "Remind me in three days to follow up with the plumber.", "plumber", "2026-10-21"),
+    ("en", "Work Week", "topic", "Friday at 16:30, remind me about the team retro.", "retro", "2026-10-23 16:30"),
+    ("en", "Weekly Errands", "topic", "Remind me the day after tomorrow to pick up the dry cleaning.", "dry cleaning", "2026-10-20"),
+    ("en", "Clinic Visits", "topic", "Monday at 8:15 remind me to book the eye test.", "eye", "2026-10-19 08:15"),
+    ("en", "Family Logistics", "topic", "Remind me on Sunday at 18:00 to pack the kids' school bags.", "bag", "2026-10-18 18:00"),
+    ("tr", "Ev İdaresi", "topic", "Salı 11'de sigortacıyı aramamı hatırlat.", "sigorta", "2026-10-20 11:00"),
+    ("tr", "Aile Düzeni", "topic", "Perşembe saat 20'de veli toplantısı var, hatırlat.", "veli", "2026-10-22 20:00"),
+    ("tr", "Haftalık İşler", "topic", "Yarın sabah 8'de çöpleri çıkarmamı hatırlat.", "çöp", "2026-10-19 08:00"),
+    ("tr", "İş Haftası", "topic", "Pazartesi 9'da faturayı göndermemi hatırlat.", "fatura", "2026-10-19 09:00"),
+    ("tr", "Aile Düzeni", "topic", "Bu cumartesi Elif'e doğum günü kartı almamı hatırlat.", "kart", "2026-10-24"),
+    ("tr", "Klinik Randevuları", "topic", "Çarşamba reçeteyi yenilememi hatırlat.", "reçete", "2026-10-21"),
+    ("tr", "Haftalık İşler", "topic", "Bu akşam 21'de bisiklet ışıklarını şarj etmemi hatırlat.", "ışık", "2026-10-18 21:00"),
+    ("tr", "Ev İdaresi", "topic", "Pazar sabah 9'da bahçeyi sulamamı hatırlat.", "bahçe", "2026-10-25 09:00"),
+    ("tr", "Ev İdaresi", "topic", "Üç gün sonra tesisatçıyı aramamı hatırlat.", "tesisatçı", "2026-10-21"),
+    ("tr", "İş Haftası", "topic", "Cuma 16.30'da ekip değerlendirmesini hatırlat.", "değerlendirme", "2026-10-23 16:30"),
+    ("tr", "Haftalık İşler", "topic", "Öbür gün kuru temizlemeyi almamı hatırlat.", "temizleme", "2026-10-20"),
+    ("tr", "Klinik Randevuları", "topic", "Pazartesi 8.15'te göz muayenesi için randevu almamı hatırlat.", "göz", "2026-10-19 08:15"),
+    ("tr", "Aile Düzeni", "topic", "Pazar akşam 6'da çocukların okul çantasını hazırlamamı hatırlat.", "çanta", "2026-10-18 18:00"),
+]
+
+# "Done" with nothing named, while several open todos could be meant (v12c):
+# the answer asks which one. (lang, message); the projects come per language.
+VAGUE_DONE_PROJECTS = {
+    "en": [("Garage Clear-Out", ["Sell the old bike", "Book a skip"]), ("Spring Party", ["Order the cake", "Send the invites"]),
+           ("Shed Roof", ["Buy roofing felt", "Ask Sam for the ladder"])],
+    "tr": [("Bodrum Temizliği", ["Eski bisikleti sat", "Hurdacıyı ara"]), ("Bahar Şenliği", ["Pastayı sipariş et", "Davetiyeleri gönder"]),
+           ("Kulübe Çatısı", ["Çatı keçesi al", "Merdiveni Ali'den iste"])],
+}
+VAGUE_DONE = [
+    ("en", "Done with it."), ("en", "Tick that one."), ("en", "That's finished now."),
+    ("tr", "Onu hallettim, işaretle."), ("tr", "Bitti o."), ("tr", "Şunu kapat artık."),
+]
+
 # A reminder corrected right after it was set (v12, #925): one change_reminder
 # call with only what changes. (lang, title, kind, the wrong line, first
 # message, the reply, the correction, what the note then holds, a word of the old line)
@@ -1543,6 +1597,15 @@ def cases(rng, t=None):
         if once:
             expect["lines_not"] = [r"\((daily|weekly|monthly|yearly)\)"]
         add(f"rem-repeat-{i}", "reminder", lang, {p: note(title, kind, lang)}, msg, expect)
+    for i, (lang, title, kind, msg, word, at) in enumerate(getattr(t, "DATED", ())):
+        p = path(kind, title)
+        add(f"rem-day-{i}", "reminder", lang, {p: note(title, kind, lang, notes=[t.BROAD[title]])}, msg,
+            {"tools": ["add_reminder"], "notes": {f"^{re.escape(p)}$": [f"{at}: ", word]},
+             "lines_not": [r"\((daily|weekly|monthly|yearly)\)"]})
+    for i, (lang, msg) in enumerate(getattr(t, "VAGUE_DONE", ())):
+        notes = {path("project", title): note(title, "project", lang, todos=todos)
+                 for title, todos in t.VAGUE_DONE_PROJECTS[lang]}
+        add(f"vague-done-{i}", "unclear", lang, notes, msg, {"answer": ["?"], "tools_not": ["complete_todo"]})
     for i, (lang, title, kind, wrong, said, reply, msg, now, old) in enumerate(getattr(t, "FIXES", ())):
         p = path(kind, title)
         add(f"rem-fix-{i}", "reminder", lang, {p: note(title, kind, lang, reminders=[wrong])}, msg,
