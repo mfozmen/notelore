@@ -283,8 +283,8 @@ class Session extends ChangeNotifier {
     await catchUpMeaning();
   }
 
-  /// Gives the notes without a current vector one, off the screen's thread;
-  /// a call while a pass runs joins it.
+  /// Gives the notes without a current vector one, off the screen's thread.
+  /// A call while a pass runs joins it.
   Future<void> catchUpMeaning() => _embedding ??= _embed().whenComplete(() => _embedding = null);
 
   Future<void> _embed() async {

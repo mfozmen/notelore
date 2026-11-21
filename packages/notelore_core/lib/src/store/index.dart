@@ -528,8 +528,8 @@ class NoteIndex {
     [path, hash, vector.buffer.asUint8List(vector.offsetInBytes, vector.lengthInBytes)],
   );
 
-  /// The notes nearest [query] (unit vectors: the dot product), best first;
-  /// a note changed since its vector was made is left out until it has one.
+  /// The notes nearest [query], best first, by the dot product of unit vectors.
+  /// A note whose text no longer matches its vector is left out until it gets one.
   List<(String, String)> nearest(Float32List query, {int limit = 20}) {
     final scored = [
       for (final row in _db.select(
