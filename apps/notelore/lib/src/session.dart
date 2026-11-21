@@ -268,6 +268,8 @@ class Session extends ChangeNotifier {
   Future<void> _startMeaning() async {
     try {
       if (!meaningModel.ready) {
+        // Never by itself on mobile data or an unknown connection: the next start tries again.
+        if (await meteredNetwork() != false) return;
         final client = httpClient();
         try {
           await meaningModel.download(client: client, onProgress: (_) {});
@@ -275,7 +277,12 @@ class Session extends ChangeNotifier {
           client.close();
         }
       }
-      _meaning = makeMeaning(meaningModel.dir, ortLibrary(meaningModel.dir));
+      final (dir, files) = (meaningModel.dir, meaningFiles);
+      final (ok, library) = await offThread(
+        () => intact(dir, files) ? (true, ortLibrary(dir)) : (false, null),
+      );
+      if (!ok) return;
+      _meaning = makeMeaning(dir, library);
     } on Object catch (error) {
       if (kDebugMode) debugPrint('Meaning model unavailable: $error');
       return;

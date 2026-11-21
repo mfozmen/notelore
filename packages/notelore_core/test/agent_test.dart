@@ -84,11 +84,17 @@ void main() {
     final listed = _Listing(box.root, box.index);
     final vector = Float32List.fromList([1, 0]);
     listed.meaning = (message) async => message == 'fails' ? throw StateError('no model') : vector;
-    final agent = Agent(ScriptedProvider([text('a'), text('b')]), listed, today: today);
+    final agent = Agent(ScriptedProvider([text('a'), text('b'), text('c')]), listed, today: today);
     await agent.ask('which book');
     expect(listed.near, vector);
     // A model that fails leaves the list to the words.
     await agent.ask('fails');
+    expect(listed.near, isNull);
+    // One that does not answer in time does too.
+    listed
+      ..meaning = ((_) => Completer<Float32List?>().future)
+      ..meaningWait = const Duration(milliseconds: 10);
+    await agent.ask('slow');
     expect(listed.near, isNull);
   });
 

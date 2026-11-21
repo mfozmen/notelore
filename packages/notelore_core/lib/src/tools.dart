@@ -685,6 +685,9 @@ class Toolbox {
   /// message's vector, after the best word matches.
   int nearestSlots = 8;
 
+  /// How long a turn waits for the message's vector before it lists by words.
+  Duration meaningWait = const Duration(seconds: 2);
+
   /// The notes for the end of the system prompt, so the model has their slugs
   /// without a list_notes call: chosen by [noteChoice] for [message] and its
   /// vector [near], at most 60, and about 350 tokens.

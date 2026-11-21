@@ -8,6 +8,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
 import 'whisper_model.dart';
@@ -19,6 +20,7 @@ const _e5 =
 const ortWheel = 'onnxruntime-1.22.1-macos.whl';
 const _ortInWheel = 'onnxruntime/capi/libonnxruntime.1.22.1.dylib';
 const _ortLibrary = 'libonnxruntime.dylib';
+const _ortSha256 = '637c0aed2688fe886ea69adbb260bbad8af9bdd40ea45b879f692d0bd0c1e459';
 
 const _files = [
   ModelFile(
@@ -45,20 +47,65 @@ const _ort = ModelFile(
 /// What this device downloads.
 List<ModelFile> meaningFilesFor({required bool macOS}) => [..._files, if (macOS) _ort];
 
-/// The onnxruntime library to load from [dir]: taken out of a downloaded
-/// wheel the first time; null where the app ships its own.
-String? ortLibrary(String dir) {
-  final library = p.join(dir, _ortLibrary);
-  if (File(library).existsSync()) return library;
+/// Whether each of [files] in [dir] is the one pinned. One that is not is
+/// deleted, so the next start downloads it again. Checked before every load:
+/// another program running as the person could have swapped it.
+bool intact(String dir, List<ModelFile> files) {
+  var ok = true;
+  for (final pinned in files) {
+    final file = File(p.join(dir, pinned.name));
+    if (!file.existsSync()) {
+      ok = false;
+    } else if (_sha256(file) != pinned.sha256) {
+      file.deleteSync();
+      ok = false;
+    }
+  }
+  return ok;
+}
+
+/// The onnxruntime library to load from [dir], checked against [sha]: taken
+/// out of the downloaded wheel when it is missing or not the pinned one; null
+/// where the app ships its own.
+String? ortLibrary(String dir, {String sha = _ortSha256}) {
+  final library = File(p.join(dir, _ortLibrary));
+  if (library.existsSync() && _sha256(library) == sha) return library.path;
   final wheel = File(p.join(dir, ortWheel));
   if (!wheel.existsSync()) return null;
   final entry = ZipDecoder().decodeBytes(wheel.readAsBytesSync()).findFile(_ortInWheel);
-  if (entry == null) return null;
+  final bytes = entry == null ? null : Uint8List.fromList(entry.content as List<int>);
+  if (bytes == null || '${sha256.convert(bytes)}' != sha) return null;
   // Written aside, then renamed: a half-written library is never loaded.
-  File('$library.part')
-    ..writeAsBytesSync(Uint8List.fromList(entry.content as List<int>))
-    ..renameSync(library);
-  return library;
+  File('${library.path}.part')
+    ..writeAsBytesSync(bytes)
+    ..renameSync(library.path);
+  return library.path;
+}
+
+/// [file]'s SHA-256, read a chunk at a time: the model is 118 MB.
+String _sha256(File file) {
+  final digest = _Digest();
+  final hashing = sha256.startChunkedConversion(digest);
+  final open = file.openSync();
+  try {
+    for (var chunk = open.readSync(1 << 20); chunk.isNotEmpty; chunk = open.readSync(1 << 20)) {
+      hashing.add(chunk);
+    }
+  } finally {
+    open.closeSync();
+  }
+  hashing.close();
+  return '${digest.value}';
+}
+
+class _Digest implements Sink<Digest> {
+  Digest? value;
+
+  @override
+  void add(Digest data) => value = data;
+
+  @override
+  void close() {}
 }
 
 /// The e5 model as the session uses it, off the screen's thread.

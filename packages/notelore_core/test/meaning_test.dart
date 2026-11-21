@@ -63,6 +63,7 @@ void main() {
 
     test('cuts at the model length, keeping </s>', () {
       expect(tokenizer.encode('hello world hello', max: 3), [0, 5, 2]);
+      expect(tokenizer.encode('hello ' * 10000, max: 3), [0, 5, 2]);
     });
   });
 

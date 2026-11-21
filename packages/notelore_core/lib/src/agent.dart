@@ -223,7 +223,7 @@ class Agent {
   /// list then follows the words alone.
   Future<Float32List?> _meaning(String text) async {
     try {
-      return await toolbox.meaning?.call(text);
+      return await toolbox.meaning?.call(text).timeout(toolbox.meaningWait);
     } on Object {
       return null;
     }

@@ -5,17 +5,26 @@
 library;
 
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:notelore_core/notelore_core.dart' show Embedder, loadE5, openOnnxRuntime;
+import 'package:path/path.dart' as p;
 
 import 'meaning_model.dart';
 
 // coverage:ignore-start
 
 /// e5 from [dir], on onnxruntime at [library] or the one the app ships.
-MeaningModel nativeMeaning(String dir, String? library) => _IsolateMeaning(dir, library);
+MeaningModel nativeMeaning(String dir, String? library) => _IsolateMeaning(
+  dir,
+  // By its full path on Windows: a bare name would also find System32's copy.
+  library ??
+      (Platform.isWindows
+          ? p.join(p.dirname(Platform.resolvedExecutable), 'onnxruntime.dll')
+          : null),
+);
 
 class _IsolateMeaning implements MeaningModel {
   _IsolateMeaning(this.dir, this.library);

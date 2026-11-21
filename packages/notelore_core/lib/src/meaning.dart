@@ -50,8 +50,10 @@ class Unigram {
   List<int> encode(String text, {int max = 512}) {
     // shortcut: NFKC and this cleanup stand in for the vocabulary's precompiled
     // nmt_nfkc map; they differ on rare characters such as zero-width spaces.
+    // A token is rarely over 16 characters: the rest of a long note would be cut anyway.
+    final head = text.length > max * 16 ? text.substring(0, max * 16) : text;
     final clean = unorm
-        .nfkc(text)
+        .nfkc(head)
         .replaceAll(RegExp(r'\s'), ' ')
         .replaceAll(RegExp(r'\p{Cc}', unicode: true), '')
         .replaceAll(RegExp(' {2,}'), ' ');

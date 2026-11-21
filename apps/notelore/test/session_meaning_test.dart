@@ -52,6 +52,7 @@ void main() {
     final meaning = FakeMeaning();
     final harness = Harness(answers: ['Added.'])
       ..meaning = meaning
+      ..metered = false
       ..modelPage = 'model bytes'
       ..meaningFiles = [
         ModelFile(
@@ -111,9 +112,41 @@ void main() {
     expect(meaning.embedded.single, startsWith('# Reading'));
   });
 
+  test(
+    'on mobile data or an unknown connection it waits; a swapped file is never opened',
+    () async {
+      final file = ModelFile(
+        'e5.onnx',
+        'https://models.test/e5.onnx',
+        sha256.convert(utf8.encode('model bytes')).toString(),
+        11,
+      );
+      final harness = Harness(answers: ['Hi.'])
+        ..meaning = FakeMeaning()
+        ..modelPage = 'model bytes'
+        ..meaningFiles = [file];
+      final session = harness.session();
+      await session.connect(findProvider('anthropic'), 'sk-ant-1');
+      await settled(session);
+      expect(session.meaningModel.ready, isFalse);
+      expect(harness.meaningOpened, isEmpty);
+
+      // Here, but not the pinned bytes: deleted, not opened.
+      File(session.meaningModel.path('e5.onnx'))
+        ..createSync(recursive: true)
+        ..writeAsStringSync('other bytes');
+      final again = harness.session();
+      await again.connect(findProvider('anthropic'), 'sk-ant-1');
+      await settled(again);
+      expect(harness.meaningOpened, isEmpty);
+      expect(File(session.meaningModel.path('e5.onnx')).existsSync(), isFalse);
+    },
+  );
+
   test('without the model, or when it fails, the note list follows the words', () async {
     // The download fails: nothing is opened, and the turn still runs.
     final harness = Harness(answers: ['Hi.', 'Hi again.'])
+      ..metered = false
       ..meaningFiles = [const ModelFile('e5.onnx', 'https://models.test/e5.onnx', 'x', 11)];
     final session = harness.session();
     await session.connect(findProvider('anthropic'), 'sk-ant-1');
