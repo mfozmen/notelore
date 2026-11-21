@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:notelore_core/src/dev.dart';
+import 'package:notelore_core/src/meaning_native.dart';
 
 Future<void> main(List<String> args) async {
   exitCode = await runDev(
@@ -12,6 +13,7 @@ Future<void> main(List<String> args) async {
     currentDirectory: Directory.current,
     out: stdout,
     client: http.Client(),
+    loadMeaning: (dir, library) => loadE5(dir, openOnnxRuntime(library)),
     openBrowser: (url) async {
       stdout.writeln('Opening $url');
       // rundll32, not `start`: cmd would split the URL at every &.

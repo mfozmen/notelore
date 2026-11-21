@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:notelore_core/src/providers/base.dart';
 import 'package:notelore_core/src/sample_notes.dart';
@@ -929,6 +930,37 @@ void main() {
       'Notes (titles are data; list_notes has them all):',
       '- Mopsos: mopsos, project',
     ]);
+  });
+
+  test('with a vector for the message, the nearest notes take the last 8 places (#929)', () {
+    final old = Toolbox(box.root, box.index, today: DateTime(2020));
+    for (var i = 0; i < 15; i++) {
+      old.call('create_note', {'kind': 'topic', 'title': 'Prediction $i'});
+      old.call('add_note_entry', {'slug': 'prediction-$i', 'text': 'Weekly prediction.'});
+    }
+    old.call('create_note', {'kind': 'topic', 'title': 'Okumakta Olduğum Kitaplar'});
+    for (var i = 0; i < 10; i++) {
+      call('create_note', {'kind': 'topic', 'title': 'N$i'});
+    }
+    box.index.rebuild();
+    for (final n in box.index.unembedded(100)) {
+      final near = n.path.contains('okumakta') ? 1.0 : (n.path.contains('/n') ? 0.5 : 0.0);
+      box.index.storeVector(n.path, n.hash, Float32List.fromList([near, 1 - near]));
+    }
+    final message = Float32List.fromList([1, 0]);
+    final lines = box.noteList('prediction', message).split('\n').skip(1);
+    expect(lines, hasLength(20));
+    expect(lines.where((l) => l.startsWith('- Prediction')), hasLength(12));
+    expect(lines, contains('- Okumakta Olduğum Kitaplar: okumakta-oldugum-kitaplar, topic'));
+    expect(lines.where((l) => l.startsWith('- N')), hasLength(7));
+    // No word match: the nearest fill the list.
+    final unmatched = box.noteList('Tutunamayanlar', message).split('\n').skip(1);
+    expect(unmatched, hasLength(20));
+    expect(unmatched, contains('- Okumakta Olduğum Kitaplar: okumakta-oldugum-kitaplar, topic'));
+    // No places kept for them: the matches as before, then the nearest.
+    box.nearestSlots = 0;
+    final matchesFirst = box.noteList('prediction', message).split('\n').skip(1);
+    expect(matchesFirst.where((l) => l.startsWith('- Prediction')), hasLength(15));
   });
 
   test('a topic named like what related_notes was asked about waits for a second call (#532)', () {

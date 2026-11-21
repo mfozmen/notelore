@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:notelore_core/src/store/format.dart';
 import 'package:notelore_core/src/store/index.dart';
@@ -664,6 +665,50 @@ void main() {
           .putIfAbsent(path, () => StreamController<FileSystemEvent>.broadcast(sync: true))
           .stream,
     );
+  });
+
+  test('vectors: kept per note text, nearest first, gone with the note (#929)', () {
+    final index = NoteIndex(db, root)..rebuild();
+    addTearDown(index.close);
+    // Gone since the index saw it: an empty text, not an error.
+    File(p.join(root, 'topics', 'odd-date.md')).deleteSync();
+    final pending = index.unembedded(10);
+    expect(pending.firstWhere((n) => n.path == 'topics/odd-date.md').text, '');
+    expect(
+      pending.map((n) => n.path),
+      unorderedEquals(['projects/mopsos.md', 'topics/sirket-kurulusu.md', 'topics/odd-date.md']),
+    );
+    final mopsos = pending.firstWhere((n) => n.path == 'projects/mopsos.md');
+    expect(mopsos.text, startsWith('# Mopsos\n'));
+    expect(index.nearest(Float32List.fromList([1, 0])), isEmpty);
+    for (final n in pending) {
+      final v = switch (n.path) {
+        'projects/mopsos.md' => [0.6, 0.8],
+        'topics/sirket-kurulusu.md' => [1.0, 0.0],
+        _ => [0.0, 1.0],
+      };
+      index.storeVector(n.path, n.hash, Float32List.fromList(v));
+    }
+    expect(index.unembedded(10), isEmpty);
+    expect(index.nearest(Float32List.fromList([1, 0])), [
+      ('topic', 'sirket-kurulusu'),
+      ('project', 'mopsos'),
+      ('topic', 'odd-date'),
+    ]);
+    expect(index.nearest(Float32List.fromList([1, 0]), limit: 1), [('topic', 'sirket-kurulusu')]);
+    // A changed note waits for a new vector; until then it is not near anything.
+    File(p.join(root, 'topics', 'sirket-kurulusu.md'))
+        .writeAsStringSync('\n- 2026-09-30: changed\n', mode: FileMode.append);
+    index
+      ..invalidateAll()
+      ..rebuild();
+    expect(index.unembedded(10).map((n) => n.path), ['topics/sirket-kurulusu.md']);
+    expect(index.nearest(Float32List.fromList([1, 0])).first, ('project', 'mopsos'));
+    File(p.join(root, 'projects', 'mopsos.md')).deleteSync();
+    index
+      ..invalidateAll()
+      ..rebuild();
+    expect(index.nearest(Float32List.fromList([1, 0])), isEmpty);
   });
 
   test('values compare by value', () {

@@ -10,6 +10,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
@@ -25,6 +26,7 @@ CREATE TABLE files(
     stamp TEXT, hash TEXT, pinned INTEGER, tags TEXT, excerpt TEXT, open_todos INTEGER);
 CREATE TABLE decisions(path TEXT, date TEXT, topic TEXT, text TEXT, superseded TEXT);
 CREATE INDEX decisions_by_topic ON decisions(path, topic);
+CREATE TABLE vectors(path TEXT PRIMARY KEY, hash TEXT, vec BLOB);
 ''';
 const _ftsTable =
     'CREATE VIRTUAL TABLE content USING fts5('
@@ -33,7 +35,7 @@ const _plainTable =
     'CREATE TABLE content(slug, title, section, text, kind, path, superseded, folded);';
 // Bump when the tables change; the FTS flag is part of it because the content
 // table has a different shape per backend. A mismatch drops and recreates everything.
-const _schemaVersion = 3;
+const _schemaVersion = 4;
 
 bool fts5Available(Database db) {
   try {
@@ -182,7 +184,7 @@ class NoteIndex {
       if (_db.userVersion != version) {
         _db
           ..execute(
-            'DROP TABLE IF EXISTS files; DROP TABLE IF EXISTS decisions;'
+            'DROP TABLE IF EXISTS files; DROP TABLE IF EXISTS decisions; DROP TABLE IF EXISTS vectors;'
             'DROP TABLE IF EXISTS content;$_schema${fts ? _ftsTable : _plainTable}',
           )
           ..userVersion = version;
@@ -373,7 +375,7 @@ class NoteIndex {
   }
 
   void _forget(String rel) {
-    for (final table in ['files', 'decisions', 'content']) {
+    for (final table in ['files', 'decisions', 'content', 'vectors']) {
       _db.execute('DELETE FROM $table WHERE path = ?', [rel]);
     }
   }
@@ -494,6 +496,64 @@ class NoteIndex {
         openTodos: row.columnAt(7) as int? ?? 0,
       ),
   ];
+
+  /// Up to [limit] notes whose text has no vector yet (#929), with that text
+  /// without its front matter. A note that cannot be read is an empty text, so
+  /// it is not asked for again and again.
+  List<({String path, String hash, String text})> unembedded(int limit) => [
+    for (final row in _db.select(
+      'SELECT f.path, f.hash FROM files f LEFT JOIN vectors v ON v.path = f.path AND v.hash = f.hash'
+      ' WHERE f.title IS NOT NULL AND v.path IS NULL ORDER BY f.path LIMIT ?',
+      [limit],
+    ))
+      (
+        path: row.columnAt(0) as String,
+        hash: row.columnAt(1) as String,
+        text: _body(row.columnAt(0) as String),
+      ),
+  ];
+
+  String _body(String rel) {
+    try {
+      final text = File(p.joinAll([root, ...rel.split('/')])).readAsStringSync();
+      return text.replaceFirst(RegExp(r'^---\n.*?\n---\n', dotAll: true), '');
+    } on FileSystemException {
+      return '';
+    }
+  }
+
+  /// [vector] for the note at [path] as it was at [hash].
+  void storeVector(String path, String hash, Float32List vector) => _db.execute(
+    'INSERT OR REPLACE INTO vectors VALUES (?, ?, ?)',
+    [path, hash, vector.buffer.asUint8List(vector.offsetInBytes, vector.lengthInBytes)],
+  );
+
+  /// The notes nearest [query] (unit vectors: the dot product), best first;
+  /// a note changed since its vector was made is left out until it has one.
+  List<(String, String)> nearest(Float32List query, {int limit = 20}) {
+    final scored = [
+      for (final row in _db.select(
+        'SELECT f.kind, f.slug, v.vec FROM files f JOIN vectors v ON v.path = f.path AND v.hash = f.hash'
+        ' WHERE f.title IS NOT NULL',
+      ))
+        (
+          row.columnAt(0) as String,
+          row.columnAt(1) as String,
+          _dot(query, row.columnAt(2) as Uint8List),
+        ),
+    ]..sort((a, b) => b.$3.compareTo(a.$3));
+    return [for (final (kind, slug, _) in scored.take(limit)) (kind, slug)];
+  }
+
+  static double _dot(Float32List query, Uint8List blob) {
+    // A copy: a blob's bytes need not sit on a 4-byte boundary.
+    final vector = Float32List.view(Uint8List.fromList(blob).buffer);
+    var sum = 0.0;
+    for (var i = 0; i < min(query.length, vector.length); i++) {
+      sum += query[i] * vector[i];
+    }
+    return sum;
+  }
 
   /// The one file for [slug]; a slug present as both project and topic needs [kind].
   String? _path(String slug, String? kind) {

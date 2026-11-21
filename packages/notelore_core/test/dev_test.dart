@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:notelore_core/src/dev.dart';
+import 'package:notelore_core/src/meaning.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -34,6 +36,7 @@ void main() {
     Map<String, String>? environment,
     List<Uri>? opened,
     DateTime Function()? now,
+    Embedder Function(String dir, String? library)? meaning,
   }) => runDev(
     args,
     environment: environment ?? {'NOTELORE_HOME': 'home'},
@@ -42,6 +45,7 @@ void main() {
     openBrowser: (url) async => opened?.add(url),
     client: client ?? MockClient((_) async => http.Response('', 500)),
     now: now ?? DateTime.now,
+    loadMeaning: meaning,
   );
 
   String home(String rel) => p.join(temp.path, 'home', rel);
@@ -369,6 +373,25 @@ void main() {
     expect(await run(['reach', '--cases=cases.json', '--note-list=newest']), 0);
     expect('$out', contains('0/2 reach the prompt (newest:60)'));
     expect(await run(['reach', '--runs=2', '--cases=cases.json']), 64);
+    expect(await run(['reach', '--nearest=x', '--cases=cases.json']), 64);
+    // With the note vectors, the spikes find the glacier note too.
+    final loaded = <(String, String?)>[];
+    Embedder spikes(String dir, String? library) {
+      loaded.add((dir, library));
+      return Embedder(
+        (text) => [if (RegExp('glacier|spike', caseSensitive: false).hasMatch(text)) 1 else 0],
+        (ids) => Float32List.fromList([ids.single.toDouble(), 1 - ids.single.toDouble()]),
+        dim: 2,
+      );
+    }
+
+    expect(
+      await run(['reach', '--cases=cases.json', '--meaning=e5', '--ort=ort.dll'], meaning: spikes),
+      0,
+    );
+    expect('$out', contains('hit  unnamed'));
+    expect('$out', contains('2/2 reach the prompt (matches:20, 8 nearest)'));
+    expect(loaded.single, (p.join(temp.path, 'e5'), 'ort.dll'));
   });
 
   test(

@@ -7,7 +7,7 @@
 ///     notelore_dev chat [--provider=chatgpt] [--model=<id>] <message...>
 ///     notelore_dev eval [--provider=…] [--model=…] [--cases=eval/cases.json]
 ///                                      the model eval (#325), on temp notes
-///     notelore_dev reach [--cases=…] [--note-list=…]
+///     notelore_dev reach [--cases=…] [--note-list=…] [--meaning=<dir>] [--ort=<lib>] [--nearest=<n>]
 ///                                      which crowded cases' notes reach the prompt, no model (#929)
 ///     notelore_dev distill [--provider=…] [--model=…] [--cases=…] [--out=train.jsonl]
 ///                                      a teacher's passing turns as training data (#327)
@@ -26,6 +26,7 @@ import 'package:path/path.dart' as p;
 
 import 'agent.dart';
 import 'eval.dart';
+import 'meaning.dart';
 import 'paths.dart';
 import 'providers/base.dart';
 import 'providers/chatgpt.dart';
@@ -45,6 +46,7 @@ const _usage =
     ' | distill [--provider=<name>] [--model=<id>] [--cases=<file>] [--out=<file>] [--slim]'
     ' [--samples=<k>] [--keep-failed=<file>]'
     ' | reach [--cases=<file>] [--note-list=<order>:<n>]'
+    ' (eval and reach: [--meaning=<e5 folder>] [--ort=<onnxruntime library>] [--nearest=<n>])'
     ' | reprompt --in=<file> --out=<file> [--slim]'
     ' | feedback (good and bad reports by model, from <notes>/.notelore/feedback)'
     ' (--slim: the prompt and tools of the model on the device;'
@@ -85,6 +87,7 @@ bool _valid(String? command, String message, _Plan plan) {
   final evalOnly = plan.runs > 1 || plan.firstWrite;
   final distillOnly = plan.samples > 1 || plan.keepsFailed;
   return plan.noteList != null &&
+      plan.nearest >= 0 &&
       plan.runs >= 1 &&
       plan.parallel >= 1 &&
       plan.samples >= 1 &&
@@ -106,6 +109,7 @@ Future<int> runDev(
   required Future<void> Function(Uri url) openBrowser,
   required http.Client client,
   DateTime Function() now = DateTime.now,
+  Embedder Function(String dir, String? library)? loadMeaning,
 }) async {
   if ((environment['NOTELORE_HOME'] ?? '').isEmpty) {
     out.writeln('Set NOTELORE_HOME (e.g. .dev-home): notelore_dev never touches the real notes.');
@@ -152,6 +156,12 @@ Future<int> runDev(
   );
   // API keys from the environment, or else from the dev secrets file.
   final keys = _keys(stored(), environment);
+  // multilingual-e5 from a folder, for the note list (#929); native, so the
+  // command line hands in how to load it.
+  Embedder? meaning() => switch (options['meaning']) {
+    final dir? => loadMeaning!(p.join(currentDirectory.path, dir), options['ort']),
+    null => null,
+  };
 
   try {
     switch (command) {
@@ -170,7 +180,7 @@ Future<int> runDev(
           slim: slim,
         );
       case 'reach':
-        _reach(_cases(currentDirectory, options), plan.noteList!, out);
+        await _reach(_cases(currentDirectory, options), plan, meaning(), out);
       case 'eval' || 'distill':
         final cases = _cases(currentDirectory, options);
         final keep = command == 'distill'
@@ -190,6 +200,7 @@ Future<int> runDev(
           keep: keep,
           failed: _file(currentDirectory, options['keep-failed']),
           plan: plan,
+          meaning: meaning(),
           search: _searches(options['provider'] ?? 'chatgpt'),
         );
       default:
@@ -209,20 +220,23 @@ Future<int> runDev(
 File _cases(Directory directory, Map<String, String> options) =>
     File(p.join(directory.path, options['cases'] ?? 'eval/cases.json'));
 
-/// For each case with filler notes and a target, whether [choice]'s note list
-/// holds it; the others list every note. Then how many did.
-void _reach(File cases, NoteListChoice choice, StringSink out) {
+/// For each case with filler notes and a target, whether [plan]'s note list
+/// holds it, with [meaning] when given; the others list every note. Then how
+/// many did.
+Future<void> _reach(File cases, _Plan plan, Embedder? meaning, StringSink out) async {
+  final choice = plan.noteList!;
   final crowded = [
     for (final c in loadCases(cases.readAsStringSync()))
       if (c.filler > 0 && targetNotes(c).isNotEmpty) c,
   ];
   var hits = 0;
   for (final c in crowded) {
-    final hit = reachesPrompt(c, noteList: choice);
+    final hit = await reachesPrompt(c, noteList: choice, meaning: meaning, nearest: plan.nearest);
     if (hit) hits++;
     out.writeln(hit ? 'hit  ${c.id}' : 'MISS ${c.id} ${targetNotes(c).join(' ')}');
   }
-  out.writeln('$hits/${crowded.length} reach the prompt (${choice.order.name}:${choice.size})');
+  final how = meaning == null ? '' : ', ${plan.nearest} nearest';
+  out.writeln('$hits/${crowded.length} reach the prompt (${choice.order.name}:${choice.size}$how)');
 }
 
 /// Every example of [from] with today's prompt and tools ([slim] or full),
@@ -280,6 +294,7 @@ Future<void> _eval(
   File? failed,
   bool search = false,
   _Plan plan = const _Plan(),
+  Embedder? meaning,
 }) async {
   if (!cases.existsSync()) throw StateError('no cases file at ${cases.path}');
   final provider = await open();
@@ -296,7 +311,7 @@ Future<void> _eval(
   final outcomes = <Set<TrainingIssue>?>[];
   for (var run = 0; run < plan.runs; run++) {
     everyRun.add(
-      await _runOnce(runnable, provider, plan, out, (result) {
+      await _runOnce(runnable, provider, plan, meaning, out, (result) {
         if (keep != null) outcomes.add(_keepTurn(result, keep, done!, seen, failed));
       }),
     );
@@ -319,7 +334,8 @@ class _Plan {
       parallel = 1,
       samples = 1,
       keepsFailed = false,
-      noteList = defaultNotes;
+      noteList = defaultNotes,
+      nearest = 8;
 
   /// From the command line; a count that is no number is 0, so it is refused.
   _Plan.parse(List<String> args, Map<String, String> options)
@@ -329,7 +345,8 @@ class _Plan {
       parallel = int.tryParse(options['parallel'] ?? '1') ?? 0,
       samples = int.tryParse(options['samples'] ?? '1') ?? 0,
       keepsFailed = options.containsKey('keep-failed'),
-      noteList = _noteList(options['note-list']);
+      noteList = _noteList(options['note-list']),
+      nearest = int.tryParse(options['nearest'] ?? '8') ?? -1;
 
   final bool slim;
   final bool firstWrite;
@@ -344,6 +361,9 @@ class _Plan {
 
   /// How the prompt's notes are chosen (#914); null when the option is no choice.
   final NoteListChoice? noteList;
+
+  /// Places in it kept for the notes nearest the message (#929).
+  final int nearest;
 }
 
 /// `newest`, or `newest|matches|mixed:<n>`; null for anything else.
@@ -370,6 +390,7 @@ Future<List<EvalResult>> _runOnce(
   List<EvalCase> cases,
   LlmProvider provider,
   _Plan plan,
+  Embedder? meaning,
   StringSink out,
   void Function(EvalResult result) ended,
 ) async {
@@ -389,6 +410,8 @@ Future<List<EvalResult>> _runOnce(
             slim: plan.slim,
             firstWrite: plan.firstWrite,
             noteList: plan.noteList!,
+            meaning: meaning,
+            nearest: plan.nearest,
           ).then((r) {
             final verdict = r.passed ? 'ok  ' : 'FAIL';
             out.writeln('$verdict ${evalCase.id} (${r.took.inMilliseconds} ms) ${r.tools}');
