@@ -658,7 +658,7 @@ The 85 cases that flipped against either model were rerun alone, three times on 
   - Dates: plan-12 slim ("Cuma akşamı" written as Thursday the 22nd) and rem-9 full ("2 saat sonra" written as 14:02).
   - scale-tr-3 slim, unclear-7 slim.
 - **Worse than v12 only:** rem-8 in both modes (the right day, but "14'te" dropped), rem-tr-weekly full, file-side-business full, newlist-7 slim, chat-11 full, cross-3 full, unclear-10 full, scale-tr-4 full.
-- **Worse than v11 only:** unclear-5 and unclear-en-1 full, newlist-first-7 full, rem-tr-monthly full, scale-tr-6 full, cross-8 full, cross-9 slim. v12 fails all of these too.
+- **Worse than v11 only:** unclear-5 and unclear-en-1 full, newlist-first-7 full, rem-tr-monthly full, scale-tr-6 full, cross-9 slim; cross-8 full and scale-tr-4 slim, where v12 passes 2/3 and 1/3. v12 fails the others too.
 
 Findings:
 
