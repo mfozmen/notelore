@@ -953,11 +953,11 @@ void main() {
     expect(lines.where((l) => l.startsWith('- Prediction')), hasLength(12));
     expect(lines, contains('- Okumakta Olduğum Kitaplar: okumakta-oldugum-kitaplar, topic'));
     expect(lines.where((l) => l.startsWith('- N')), hasLength(7));
-    // No word match: the nearest fill the list.
+    // Few or no word matches: still 8 nearest at most, so they cannot bury a match.
     final unmatched = box.noteList('Tutunamayanlar', message).split('\n').skip(1);
-    expect(unmatched, hasLength(20));
+    expect(unmatched, hasLength(8));
     expect(unmatched, contains('- Okumakta Olduğum Kitaplar: okumakta-oldugum-kitaplar, topic'));
-    // No places kept for them: the matches as before, then the nearest.
+    // No places kept for them: the matches as before.
     box.nearestSlots = 0;
     final matchesFirst = box.noteList('prediction', message).split('\n').skip(1);
     expect(matchesFirst.where((l) => l.startsWith('- Prediction')), hasLength(15));

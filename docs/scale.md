@@ -203,11 +203,14 @@ model run from Dart on sherpa-onnx's `onnxruntime.dll`):
 
 | filler | words only | words + 8 nearest |
 |---|--:|--:|
-| 80 | 12/29 | 28/29 |
+| 80 | 12/29 | 27/29 |
 | 2,000 | 12/29 | 22/29 |
 
-- At 80 filler notes, keeping 4, 8 or 12 places for the vectors all reach
-  28/29. The one miss is scale-meaning-tr-dish, as in the spike.
+- At 80 filler notes the misses are scale-meaning-tr-dish and
+  scale-meaning-tr-symptom; 12 places reach 28/29. The nearest never take more
+  than their 8 places, even when the words match few notes: filling the list
+  with them buried the one word match in scale-en-4, and the device model
+  then failed it.
 - At 2,000, the 8 kept places find 9 of the 16 new cases, where the spike's
   "matches, then vectors" found none past the 20 word matches.
 
@@ -243,10 +246,25 @@ prompt). "Before" is the same binary without `--meaning`:
   file-book-club-1 passed every time on both sides, and newlist-6 failed once
   on each side, so the differences are drift.
 
+**Device model** (Ollama, greedy, `tool/eval_meaning.sh`), cases (90) passed:
+
+| model | prompt | before | after |
+|---|---|--:|--:|
+| v11 | slim | 66 | 72 |
+| v11 | full | 59 | 63 |
+| v12c | slim | 67 | **76** |
+| v12c | full | 61 | **68** |
+
+- The held-out set is the same before and after for both models and prompts
+  (v11 260 and 256, v12c 262 and 261 of 292).
+- **Newly failing:** scale-en-4 on every model and prompt. With the vectors its
+  one word match, Mopsos, shares the list with 7 unrelated notes, and the model
+  guesses a slug ("prediction-app") and stops; a trial that named Mopsos first
+  in the unknown-slug error changed nothing. scale-meaning-tr-symptom on v11
+  slim is the reach miss above. q-tr-5 passed 3 of 3 alone on both sides, and
+  archive-en-1, rerun alone, failed on both sides: drift.
+
 **Pending:**
-- The device model (Ollama, v11 and v12c, slim and full) needs the GPU and has
-  not been run. `tool/eval_meaning.sh <ollama model> <e5 folder> <onnxruntime
-  library>` runs every set without and with the vectors.
 - The phone was not measured: no phone was attached. Embedding time on
   Android, and loading onnxruntime there and on macOS, are not yet tried on a
   device.

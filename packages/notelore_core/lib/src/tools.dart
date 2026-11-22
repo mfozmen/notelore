@@ -735,7 +735,7 @@ class Toolbox {
     final matches = [for (final h in index.search(message)) (h.kind, h.slug)];
     final found = {
       ...matches.take(max(0, size - nearestSlots)),
-      if (near != null) ...index.nearest(near, limit: size),
+      if (near != null) ...index.nearest(near, limit: nearestSlots),
       ...matches,
     };
     return [
