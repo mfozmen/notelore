@@ -131,6 +131,24 @@ check("vague done messages see several open todos and must ask",
       (len(vague) >= 6, all(c["expect"] == {"answer": ["?"], "tools_not": ["complete_todo"]} for c in vague),
        all(sum("- [ ] " in t for t in c["notes"].values()) >= 3 for c in vague)), (True, True, True))
 
+# v13: v12c's soft spots, each with enough rows to count.
+scale = [c for c in generated if c["id"].startswith("scale-")]
+words = lambda text: set(re.findall(r"\w{4,}", scenarios.norm(text)))
+check("scale cases hide their note among 40+ others, no title word in the message",
+      (len(scale) >= 16, all(c.get("filler", 0) >= 40 for c in scale),
+       all(not words(title) & words(msg) for _, title, _, _, _, msg, _, _ in scenarios.SCALE)),
+      (True, True, True))
+langs = {title: lang for lang, title, *_ in scenarios.PROJECTS}
+cross_done = [r for r in scenarios.CROSS if r[4] == "todo-done" and langs.get(r[1], r[0]) != r[0]]
+check("cross-language done messages in both directions",
+      [sum(r[0] == lang for r in cross_done) >= 5 for lang in ("en", "tr")], [True, True])
+decided = [c for c in generated if c["id"].startswith("dec-said-")]
+check("Turkish decisions said as 'we chose' expect record_decision",
+      (sum(c["lang"] == "tr" for c in decided) >= 8, all(c["expect"]["tools"] == ["record_decision"] for c in decided)),
+      (True, True))
+hours = [r for r in scenarios.DATED if r[0] == "tr" and re.search(r"saat sonra", r[3])]
+check("Turkish reminders in some hours", len(hours) >= 4, True)
+
 # Earlier training rows carry these ids, so an id never changes its message
 # (a row added mid-table renumbers the rest); a new id is added to the file.
 pinned = json.loads((Path(__file__).resolve().parent / "scenario-ids.json").read_text(encoding="utf-8"))

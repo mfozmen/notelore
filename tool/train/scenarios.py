@@ -1459,6 +1459,129 @@ ABOUT_ME_NOT = [
     ("en", {"work": ["I'm a freelance translator."]}, None, "I have asthma, by the way.", None, "?"),
 ]
 
+# v13 (#604): v12c's soft spots.
+# Over 20 notes, a note the message reaches only by meaning (#929): no title
+# word in the message, so the model must use the listed note, not guess a slug.
+# (lang, title, kind, notes, decisions, message, tool or None for a question, word).
+SCALE_FILLER = 80
+SCALE = [
+    ("en", "Allotment Plot", "topic", ["Our plot is number 14 on Elm Lane.", "We grow leeks and runner beans."], [],
+     "Which number is my vegetable patch?", None, "14"),
+    ("en", "Neighbour Contacts", "topic", ["Mrs Patel at number 9 keeps our spare key.", "Tom across the road has a ladder."], [],
+     "Who has our spare key?", None, "Patel"),
+    ("en", "Medication Schedule", "topic", ["Ibuprofen only after meals."], [],
+     "The doctor says to take the antihistamine at night from now on.", "add_note_entry", "antihistamine"),
+    ("en", "Concert Diary", "topic", ["Saw Radiohead in Berlin in 2019."], [],
+     "Saw Arctic Monkeys at Wembley last night, the sound was huge.", "add_note_entry", "Arctic"),
+    ("en", "Wine Cellar", "topic", ["Rioja Reserva goes with lamb.", "Two bottles of Barolo for a special day."], [],
+     "Which red did I say goes with lamb?", None, "Rioja"),
+    ("en", "Recipe Box App", "project", [], [("backend", "Firebase"), ("design", "Figma")],
+     "What did we choose to store data for the cooking app?", None, "Firebase"),
+    ("en", "Tide Tracker", "project", ["The surf spots come from a public API."], [("map library", "Leaflet")],
+     "Which map library does the surfing app use?", None, "Leaflet"),
+    ("en", "Bread Shop Launch", "project", ["The shop opens in March."], [("oven", "Rational")],
+     "For the bakery: the flour supplier delivers on Tuesdays.", "add_note_entry", "Tuesday"),
+    ("tr", "Bağ Evi", "project", ["Ev Şirince'de."], [("çatı", "Kiremit")],
+     "Köydeki ev için çatıda ne seçmiştik?", None, "Kiremit"),
+    ("tr", "Otopark Bulucu", "project", ["İlk sürüm İzmir'de denenecek."], [("harita", "Mapbox")],
+     "Park yeri uygulamasında hangi haritayı kullanıyoruz?", None, "Mapbox"),
+    ("tr", "İlaç Takvimi", "topic", ["Demir hapı sabah aç karnına."], [],
+     "Doktor D vitaminini haftada bire indirdi.", "add_note_entry", "vitamin"),
+    ("tr", "Komşular", "topic", ["Yedek anahtar 5 numarada Ayten Hanım'da.", "Karşı dairede Mehmet Bey'in merdiveni var."], [],
+     "Evin yedek anahtarı kimdeydi?", None, "Ayten"),
+    ("tr", "Konser Günlüğü", "topic", ["2019'da Harbiye'de Duman'ı izledim."], [],
+     "Dün akşam Sezen Aksu'yu dinledim, muhteşemdi.", "add_note_entry", "Sezen"),
+    ("tr", "Bostan", "topic", ["Parsel numarası 22.", "Domates ve biber ekili."], [],
+     "Sebze bahçesindeki yerimin numarası kaçtı?", None, "22"),
+    ("tr", "Fırın Dükkanı Açılışı", "project", ["Dükkan martta açılıyor."], [("fırın", "Rational")],
+     "Pastane için un tedarikçisi salı günleri getiriyor.", "add_note_entry", "salı"),
+    ("tr", "Mahzen", "topic", ["Kuzu etinin yanına Öküzgözü iyi gider."], [],
+     "Kuzu etinin yanına hangi kırmızıyı demiştim?", None, "Öküzgözü"),
+]
+
+# A todo done, said in the other language than its note (v12c ticked these less).
+CROSS += [
+    ("en", "Kahve Dükkanı", "project", "Coffee shop: I read through the lease.", "todo-done", "complete_todo", None),
+    ("en", "Yoga Stüdyosu", "project", "The yoga mats are ordered.", "todo-done", "complete_todo", None),
+    ("en", "Ehliyet Kursu", "project", "Got the medical report for my driving course.", "todo-done", "complete_todo", None),
+    ("en", "Arıcılık", "project", "Bought the veil and gloves for the bees.", "todo-done", "complete_todo", None),
+    ("en", "Satranç Turnuvası", "project", "All the chess clocks are collected for the tournament.", "todo-done", "complete_todo", None),
+    ("tr", "Boat Restoration", "project", "Teknenin güvertesini zımparaladım.", "todo-done", "complete_todo", None),
+    ("tr", "Charity Run", "project", "Yardım koşusu için parkı ayırttım, o iş tamam.", "todo-done", "complete_todo", None),
+    ("tr", "Board Game Design", "project", "Oyunun prototipini bastırdım.", "todo-done", "complete_todo", None),
+    ("tr", "Home Office", "project", "Çalışma odasına ağ kablosunu çektim.", "todo-done", "complete_todo", None),
+    ("tr", "Woodworking Bench", "project", "Tezgahın üstünü düzledim, o iş bitti.", "todo-done", "complete_todo", None),
+]
+
+# A choice said as "we chose / settled on", never a plain entry. (lang, title, kind, message, word).
+DECIDED = [
+    ("tr", "Kahve Dükkanı", "project", "Kahve dükkanı için makinede La Marzocco'da karar kıldık, dayanıklı.", "Marzocco"),
+    ("tr", "Yoga Stüdyosu", "project", "Stüdyonun zemini için mantar kaplamayı seçtik, kaymıyor.", "mantar"),
+    ("tr", "Köy Evi Onarımı", "project", "Köy evinin çatısında Marsilya kiremidi kullanacağız, ona karar verdik.", "Marsilya"),
+    ("tr", "Satranç Turnuvası", "project", "Turnuvayı İsviçre sistemiyle oynatacağız, öyle anlaştık.", "İsviçre"),
+    ("tr", "Arıcılık", "project", "Arıcılıkta Kafkas arısında karar kıldım, daha sakin.", "Kafkas"),
+    ("tr", "Mahalle Pazarı", "project", "Mahalle pazarını cumartesi kurmaya karar verdik.", "cumartesi"),
+    ("tr", "Ehliyet Kursu", "project", "Ehliyet için Yıldız Sürücü Kursu'nu seçtim, eve yakın.", "Yıldız"),
+    ("tr", "Sokak Kütüphanesi", "project", "Kütüphane kutusunda ahşap yerine metali tercih ettik, yağmura dayanıklı.", "metal"),
+    ("tr", "Düğün Hazırlığı", "project", "Düğünde müzik için canlı grup tuttuk, DJ olmayacak.", "canlı"),
+    ("en", "Garden Shed", "project", "We went with a felt roof for the shed, it's cheaper.", "felt"),
+    ("en", "Charity Run", "project", "For the charity run we settled on a 5 km route.", "5 km"),
+    ("en", "Home Office", "project", "Decided on a standing desk for the home office.", "standing"),
+]
+
+# Turkish hours from now and weekday times (v12c wrote "2 saat sonra" as 14:02 and dropped "14'te").
+DATED += [
+    ("tr", "Ev İdaresi", "topic", "Çarşamba 15'te kombiciyi aramamı hatırlat.", "kombi", "2026-10-21 15:00"),
+    ("tr", "İş Haftası", "topic", "3 saat sonra sunumu göndermemi hatırlat.", "sunum", "2026-10-18 17:00"),
+    ("tr", "Haftalık İşler", "topic", "Yarım saat sonra çamaşırları asmamı hatırlat.", "çamaşır", "2026-10-18 14:30"),
+    ("tr", "Aile Düzeni", "topic", "Cumartesi 13'te Elif'i kursa bırakmamı hatırlat.", "kurs", "2026-10-24 13:00"),
+    ("tr", "Klinik Randevuları", "topic", "Perşembe sabah 10'da tahlil sonuçlarını sormamı hatırlat.", "tahlil", "2026-10-22 10:00"),
+    ("tr", "Ev İdaresi", "topic", "Yarın öğlen 12'de elektrik faturasını ödememi hatırlat.", "elektrik", "2026-10-19 12:00"),
+    ("tr", "İş Haftası", "topic", "Salı akşam 7'de müşteriye dönmemi hatırlat.", "müşteri", "2026-10-20 19:00"),
+    ("tr", "Haftalık İşler", "topic", "1 saat sonra fırını kapatmamı hatırlat.", "fırın", "2026-10-18 15:00"),
+    ("tr", "Aile Düzeni", "topic", "Cuma 17.45'te Can'ı okuldan almamı hatırlat.", "okul", "2026-10-23 17:45"),
+    ("tr", "Klinik Randevuları", "topic", "4 saat sonra ilacımı almamı hatırlat.", "ilaç", "2026-10-18 18:00"),
+    ("tr", "Ev İdaresi", "topic", "5 saat sonra çamaşır makinesini boşaltmamı hatırlat.", "makine", "2026-10-18 19:00"),
+    ("en", "Work Week", "topic", "Remind me in 3 hours to send the slides.", "slides", "2026-10-18 17:00"),
+    ("en", "Weekly Errands", "topic", "Remind me on Wednesday at 3 pm to collect the parcel.", "parcel", "2026-10-21 15:00"),
+    ("en", "Family Logistics", "topic", "Saturday at 1 pm remind me to drop Ana at her lesson.", "lesson", "2026-10-24 13:00"),
+    ("en", "Clinic Visits", "topic", "In half an hour remind me to take my tablet.", "tablet", "2026-10-18 14:30"),
+]
+
+# A weekday with a part of the day and no hour is the whole day (v12c put "Cuma akşamı" on Thursday).
+PLANS += [
+    ("tr", "Cuma gecesi sinemaya gideceğim.", "2026-10-23"),
+    ("tr", "Perşembe öğleden sonra dişçiye gideceğim.", "2026-10-22"),
+    ("tr", "Çarşamba akşamı halı sahada maç yapacağız.", "2026-10-21"),
+    ("tr", "Cumartesi öğlen anneannemlere gideceğim.", "2026-10-24"),
+    ("tr", "Salı sabahı erkenden İstanbul'a gideceğim.", "2026-10-20"),
+    ("tr", "Pazartesi akşam 8'de basketbol antrenmanım var.", "2026-10-19 20:00"),
+    ("tr", "Gelecek cuma düğüne gideceğiz.", "2026-10-23"),
+    ("en", "Friday night I'm seeing a play.", "2026-10-23"),
+    ("en", "Thursday afternoon I have the dentist.", "2026-10-22"),
+    ("en", "Monday at 8 pm I've got basketball.", "2026-10-19 20:00"),
+]
+
+# A place to go, among lists of other kinds (v12c opened a new list for one).
+MIXED_LISTS += [
+    ("tr", {"places": "Görmek İstediğim Yerler", "books": "Rafımdaki Kitaplar", "films": "Film Arşivim", "recipes": "Tatlı Tarifleri"}, [
+        ("Gitmek istediğim bir yer daha: Mardin.", "places", "Mardin"),
+        ("Bir gün mutlaka Kapadokya'yı görmeliyim.", "places", "Kapadokya"),
+        ("Gezilecekler arasına Safranbolu da girsin.", "places", "Safranbolu"),
+        ("Rafa bir kitap daha: Saatleri Ayarlama Enstitüsü.", "books", "Saatleri"),
+        ("İzlemek istediğim film: Kış Uykusu.", "films", "Kış Uykusu"),
+        ("Denemek istediğim tatlı: güllaç.", "recipes", "güllaç"),
+    ]),
+    ("en", {"places": "Places I Dream Of", "books": "Shelf of Novels", "films": "Movie Shelf", "recipes": "Baking Recipes"}, [
+        ("One more place I want to go: Lisbon.", "places", "Lisbon"),
+        ("Someday I have to see the Faroe Islands.", "places", "Faroe"),
+        ("Add Kyoto to where I'd like to travel.", "places", "Kyoto"),
+        ("Novel for the shelf: Stoner by John Williams.", "books", "Stoner"),
+        ("Movie I want to see: Past Lives.", "films", "Past Lives"),
+        ("Bake next: lemon drizzle cake.", "recipes", "lemon"),
+    ]),
+]
+
 ABOUT_ME_TOOLS = ["remember_about_me", "update_about_me", "forget_about_me"]
 SECTIONS = {"work": ("Work", "İş"), "home": ("Home", "Ev"), "family": ("Family", "Aile"),
             "health": ("Health", "Sağlık"), "other": ("Other", "Diğer")}
@@ -1616,6 +1739,15 @@ def cases(rng, t=None):
         add(f"rem-remove-{i}", "reminder", lang, {p: note(title, kind, lang, reminders=[gone, kept])}, msg,
             {"tools": ["remove_reminder"], "notes": {f"^{re.escape(p)}$": [kept], "^_archive/": [word]}})
         out[-1]["history"] = [{"role": "user", "content": said}, {"role": "assistant", "content": reply}]
+    for i, (lang, title, kind, msg, word) in enumerate(getattr(t, "DECIDED", ())):
+        p = path(kind, title)
+        add(f"dec-said-{i}", "decision", lang, {p: written[p]}, msg,
+            {"tools": ["record_decision"], "notes": {f"^{re.escape(p)}$": [word]}})
+    for i, (lang, title, kind, nts, decs, msg, tool, word) in enumerate(getattr(t, "SCALE", ())):
+        p = path(kind, title)
+        add(f"scale-{slug(title)}", "scale", lang, {p: note(title, kind, lang, notes=nts, decisions=decs)}, msg,
+            {"answer": [word]} if tool is None else {"notes": {f"^{re.escape(p)}$": [word]}})
+        out[-1]["filler"] = t.SCALE_FILLER
     for i, (lang, msg) in enumerate(t.UNCLEAR):
         add(f"unclear-{i}", "unclear", lang, {}, msg, {"answer": ["?"]})
     for i, (lang, msg, pattern, item) in enumerate(t.NEW_LISTS):
