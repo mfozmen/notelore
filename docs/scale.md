@@ -264,7 +264,8 @@ prompt). "Before" is the same binary without `--meaning`:
   slim is the reach miss above. q-tr-5 passed 3 of 3 alone on both sides, and
   archive-en-1, rerun alone, failed on both sides: drift.
 
-**Pending:**
-- The phone was not measured: no phone was attached. Embedding time on
-  Android, and loading onnxruntime there and on macOS, are not yet tried on a
-  device.
+**Phone** (Galaxy S23 Ultra, profile build, sherpa-onnx's onnxruntime): the
+model loads, and the first query with the load takes 732 ms; later queries
+3 to 4 ms; 50 notes of 648 characters 2.5 s (about 50 ms a note).
+
+**Pending:** loading onnxruntime on macOS is not yet tried on a device.
