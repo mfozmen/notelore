@@ -162,3 +162,110 @@ a big folder; that split is the first thing to measure when A is built, with
 `reach` and then the eval and held-out set before and after, as the issue's
 plan says. These numbers came from a throwaway Python script (onnxruntime 1.32,
 not committed) run on the notes `reach` writes.
+
+### Built (#929)
+
+Option A, multilingual-e5-small int8. The maintainer chose to download it for
+everyone, on the phone and the desktop, without asking.
+
+- **Model.** The app downloads it by itself once set up: the model (118 MB)
+  and its tokenizer (17 MB) from a pinned Hugging Face commit, resumable, into
+  `models/e5-small` in the state folder.
+  - It waits for a connection that does not cost by the byte, as a new device
+    model does.
+  - Each file is checked against its SHA-256 when it arrives and before every
+    load, so a file swapped in by another program is deleted, not run.
+- **onnxruntime.** The app loads the copy sherpa-onnx already ships on Android
+  (`libonnxruntime.so`) and Windows (`onnxruntime.dll`). On macOS, sherpa-onnx
+  links onnxruntime into its own library and does not export it, so a Mac also
+  downloads onnxruntime's own PyPI wheel (1.22.1, universal2, 34 MB, pinned and
+  checked) and unpacks `libonnxruntime.dylib` from it.
+- **Code.** `meaning.dart` (core) holds the tokenizer, a SentencePiece unigram
+  model read from `tokenizer.json`, and the e5 pooling.
+  - On the 139 texts of the cases (notes and messages), plus edge cases, the
+    tokenizer gives the same token ids as Hugging Face's `tokenizers` for every
+    text but one, which has a zero-width space.
+  - `meaning_native.dart` is a thin binding to onnxruntime's C API, outside the
+    coverage gate.
+  - The app runs the model in a background isolate.
+- **Vectors.** Vectors are a table in the SQLite index, keyed by each note's
+  hash. The app embeds the notes without a current vector after setup, after a
+  turn that writes, and after a sync. Deleting the index rebuilds them from
+  the notes.
+- **The note list.** A turn waits at most 2 s for the message's vector. With
+  more than 20 notes, the list in the prompt keeps its
+  best 12 word matches and gives the other 8 places to the notes nearest the
+  message (`Toolbox.nearestSlots`). Until the model is there, or when it
+  fails, the list is chosen by words, as before.
+
+Whether the target reaches the prompt (`reach`, this Windows desktop, the
+model run from Dart on sherpa-onnx's `onnxruntime.dll`):
+
+| filler | words only | words + 8 nearest |
+|---|--:|--:|
+| 80 | 12/29 | 27/29 |
+| 2,000 | 12/29 | 22/29 |
+
+- At 80 filler notes the misses are scale-meaning-tr-dish and
+  scale-meaning-tr-symptom; 12 places reach 28/29. The nearest never take more
+  than their 8 places, even when the words match few notes: filling the list
+  with them buried the one word match in scale-en-4, and the device model
+  then failed it.
+- At 2,000, the 8 kept places find 9 of the 16 new cases, where the spike's
+  "matches, then vectors" found none past the 20 word matches.
+
+```bash
+NOTELORE_HOME=.dev-home dart run notelore_core:notelore_dev reach --cases=eval/cases.json --meaning=<e5 folder> --ort=<onnxruntime library> --nearest=8
+```
+
+**ChatGPT** (`--provider=chatgpt --model=gpt-6.1-terra --parallel=4`, full
+prompt). "Before" is the same binary without `--meaning`:
+
+| set | before | after |
+|---|--:|--:|
+| cases (91) | 77 (85%) | **85 (93%)** |
+| scale cases (29) | 17 | 25 |
+| held-out (292) | 269 (92%) | 270 (92%) |
+
+- **Cases that newly pass:** scale-meaning-en-brand, -en-dish, -en-pet,
+  -en-symptom, -tr-blood, -tr-film, -tr-licence and -tr-pet, plus recover-tr-1.
+- **Case that newly failed:** rem-en-yearly, which has 5 notes, so its prompt
+  is the same with and without the vectors. Rerun 3 times on each side, it
+  passed every time on both, and so did recover-tr-1. Both were drift between
+  whole-set runs.
+- **Scale cases that still fail with the vectors:**
+  - Both relative cases: the model files a relative's birthday in About me
+    instead of the family note.
+  - scale-meaning-tr-symptom.
+  - scale-meaning-en-blood: the answer gives the blood group without the exact
+    "0 Rh" the case expects.
+- **Held-out:** every held-out case has at most 8 notes, so its prompt
+  is the same on both sides, and the vectors change nothing. Five cases
+  differed between the two whole-set runs: three passed only after, two only
+  before. Rerun 3 times on each side, the two that failed after:
+  file-book-club-1 passed every time on both sides, and newlist-6 failed once
+  on each side, so the differences are drift.
+
+**Device model** (Ollama, greedy, `tool/eval_meaning.sh`), cases (90) passed:
+
+| model | prompt | before | after |
+|---|---|--:|--:|
+| v11 | slim | 66 | 72 |
+| v11 | full | 59 | 63 |
+| v12c | slim | 67 | **76** |
+| v12c | full | 61 | **68** |
+
+- The held-out set is the same before and after for both models and prompts
+  (v11 260 and 256, v12c 262 and 261 of 292).
+- **Newly failing:** scale-en-4 on every model and prompt. With the vectors its
+  one word match, Mopsos, shares the list with 7 unrelated notes, and the model
+  guesses a slug ("prediction-app") and stops; a trial that named Mopsos first
+  in the unknown-slug error changed nothing. scale-meaning-tr-symptom on v11
+  slim is the reach miss above. q-tr-5 passed 3 of 3 alone on both sides, and
+  archive-en-1, rerun alone, failed on both sides: drift.
+
+**Phone** (Galaxy S23 Ultra, profile build, sherpa-onnx's onnxruntime): the
+model loads, and the first query with the load takes 732 ms; later queries
+3 to 4 ms; 50 notes of 648 characters 2.5 s (about 50 ms a note).
+
+**Pending:** loading onnxruntime on macOS is not yet tried on a device.

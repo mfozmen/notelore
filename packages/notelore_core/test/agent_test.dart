@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:notelore_core/src/agent.dart';
 import 'package:notelore_core/src/providers/base.dart';
@@ -77,6 +78,24 @@ void main() {
       {'type': 'text', 'text': 'what is this'},
       {'type': 'text', 'text': '(An image was shown here.)'},
     ]);
+  });
+
+  test("the message's vector, when there is one, goes to the note list (#929)", () async {
+    final listed = _Listing(box.root, box.index);
+    final vector = Float32List.fromList([1, 0]);
+    listed.meaning = (message) async => message == 'fails' ? throw StateError('no model') : vector;
+    final agent = Agent(ScriptedProvider([text('a'), text('b'), text('c')]), listed, today: today);
+    await agent.ask('which book');
+    expect(listed.near, vector);
+    // A model that fails leaves the list to the words.
+    await agent.ask('fails');
+    expect(listed.near, isNull);
+    // One that does not answer in time does too.
+    listed
+      ..meaning = ((_) => Completer<Float32List?>().future)
+      ..meaningWait = const Duration(milliseconds: 10);
+    await agent.ask('slow');
+    expect(listed.near, isNull);
   });
 
   test('a plain answer keeps the history', () async {
@@ -935,4 +954,16 @@ void failureTests() {
       },
     );
   });
+}
+
+class _Listing extends Toolbox {
+  _Listing(super.root, super.index);
+
+  Float32List? near;
+
+  @override
+  String noteList([String message = '', Float32List? near]) {
+    this.near = near;
+    return super.noteList(message, near);
+  }
 }

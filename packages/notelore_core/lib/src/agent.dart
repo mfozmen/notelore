@@ -3,6 +3,7 @@
 library;
 
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'i18n.dart' show messageLanguage;
 import 'providers/base.dart';
@@ -218,6 +219,16 @@ class Agent {
   /// [Toolbox.aboutMe] as the turn began, or nothing when [aboutMe] is off.
   var _me = '';
 
+  /// [text] as the toolbox's vector, or none when the model fails: the note
+  /// list then follows the words alone.
+  Future<Float32List?> _meaning(String text) async {
+    try {
+      return await toolbox.meaning?.call(text).timeout(toolbox.meaningWait);
+    } on Object {
+      return null;
+    }
+  }
+
   /// [Toolbox.noteList] as the turn began, so it stays the same within a turn.
   var _notes = '';
 
@@ -275,7 +286,7 @@ class Agent {
     final start = messages.length;
     wroteNotes = false;
     toolbox.checkTopics = slim;
-    _notes = toolbox.noteList(text);
+    _notes = toolbox.noteList(text, await _meaning(text));
     _me = aboutMe ? toolbox.aboutMe() : '';
     _language = languageLine(text);
     final stop = _stop = Completer()..future.ignore();

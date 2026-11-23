@@ -58,6 +58,7 @@ library;
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' show max;
+import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
@@ -676,10 +677,21 @@ class Toolbox {
   /// How [noteList] chooses.
   NoteListChoice noteChoice = defaultNotes;
 
+  /// The message as a vector for [noteList] (#929); null until the model is
+  /// on the device, and then the list is chosen by words alone.
+  Future<Float32List?> Function(String message)? meaning;
+
+  /// How many of a chosen list's places are kept for the notes nearest the
+  /// message's vector, after the best word matches.
+  int nearestSlots = 8;
+
+  /// How long a turn waits for the message's vector before it lists by words.
+  Duration meaningWait = const Duration(seconds: 2);
+
   /// The notes for the end of the system prompt, so the model has their slugs
-  /// without a list_notes call: chosen by [noteChoice] for [message], at most
-  /// 60, and about 350 tokens.
-  String noteList([String message = '']) {
+  /// without a list_notes call: chosen by [noteChoice] for [message] and its
+  /// vector [near], at most 60, and about 350 tokens.
+  String noteList([String message = '', Float32List? near]) {
     final notes = _fresh().listNotes();
     if (notes.isEmpty) return 'There are no notes yet.';
     // The old words while list_notes still has them all: the device model fails
@@ -692,7 +704,7 @@ class Toolbox {
     final (:order, :size) = noteChoice;
     final chosen = order == NoteListOrder.newest || notes.length <= size
         ? notes
-        : _byMessage(notes, message, mixed: order == NoteListOrder.mixed);
+        : _byMessage(notes, message, size, near, mixed: order == NoteListOrder.mixed);
     for (final n in chosen.take(size)) {
       // A title comes from the model or a synced file: one line, so it cannot
       // pose as more of the system prompt.
@@ -709,11 +721,23 @@ class Toolbox {
     return [heading, ...lines].join('\n');
   }
 
-  /// The notes the index finds for [message], best first, then with [mixed]
-  /// the rest of [notes] in their order.
-  List<NoteInfo> _byMessage(List<NoteInfo> notes, String message, {required bool mixed}) {
+  /// The notes the index finds for [message], best first, the [nearestSlots]
+  /// nearest [near] in the last of [size] places, then with [mixed] the rest
+  /// of [notes] in their order.
+  List<NoteInfo> _byMessage(
+    List<NoteInfo> notes,
+    String message,
+    int size,
+    Float32List? near, {
+    required bool mixed,
+  }) {
     final byKey = {for (final n in notes) (n.kind, n.slug): n};
-    final found = {for (final h in index.search(message)) (h.kind, h.slug)};
+    final matches = [for (final h in index.search(message)) (h.kind, h.slug)];
+    final found = {
+      ...matches.take(max(0, size - nearestSlots)),
+      if (near != null) ...index.nearest(near, limit: nearestSlots),
+      ...matches,
+    };
     return [
       // A hit missing from listNotes (a held note) stays out of the prompt.
       for (final key in found) ?byKey[key],
