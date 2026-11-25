@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notelore/src/empty_state.dart';
+import 'package:notelore/src/icons.dart';
 import 'package:notelore/src/note_view.dart';
 import 'package:notelore/src/scroll_fade.dart';
 import 'package:notelore/src/soft.dart';
@@ -57,6 +58,28 @@ void main() {
     expect(find.byType(NoteView), findsOneWidget);
     expect(find.text('Health'), findsWidgets);
   });
+
+  testWidgets(
+    'calendar: a repeating reminder is marked, listed once, on every day it comes (#919)',
+    (tester) async {
+      phone(tester);
+      final harness = await withPlans(tester);
+      final gym = createNote(harness.paths.notes.path, 'topic', 'Gym', today: day(1));
+      addReminder(gym, 'Gym', day(19), time: '19:00', repeat: Repeat.weekly, today: day(1));
+      addReminder(gym, 'Birthday', day(2), repeat: Repeat.yearly, today: day(1));
+      await tester.tap(tab('Calendar'));
+      await tester.pumpAndSettle();
+      expect(find.text('Gym'), findsOneWidget);
+      expect(find.text('19:00 · Weekly · Gym'), findsOneWidget);
+      expect(find.byIcon(AppIcons.repeat), findsNWidgets(2));
+      // Next year's day says its year, under this year's month.
+      expect(find.text('SATURDAY, 2 OCTOBER 2027'), findsOneWidget);
+      expect(find.byIcon(AppIcons.alarm), findsOneWidget); // the dentist, once
+      await tester.tap(find.bySemanticsLabel('Monday, 26 October'));
+      await tester.pumpAndSettle();
+      expect(find.text('Gym'), findsOneWidget);
+    },
+  );
 
   testWidgets('calendar: a todo checkbox completes it and it leaves the list (#512)', (
     tester,

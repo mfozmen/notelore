@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:notelore_core/src/agent.dart' show languageLine, slimSystemPrompt, systemPrompt;
 import 'package:notelore_core/src/eval.dart';
 import 'package:notelore_core/src/providers/base.dart' show Message;
-import 'package:notelore_core/src/tools.dart' show noteTools, slimTools;
+import 'package:notelore_core/src/tools.dart' show NoteListOrder, newestNotes, noteTools, slimTools;
 import 'package:test/test.dart';
 
 import 'agent_test.dart' show ScriptedProvider, text, toolUse;
@@ -538,6 +538,87 @@ void main() {
       'wrote topics/hit-rate.md, which it should not have',
       r'no changed note matching ^projects/mopsos\.md$ contains "daily"',
     ]);
+  });
+
+  test(
+    'a case may add invented notes, newer than its own, so its note is far down (#895)',
+    () async {
+      final crowded = _case({
+        'id': 'q-filler',
+        'kind': 'question',
+        'lang': 'en',
+        'notes': {'projects/mopsos.md': _mopsos},
+        'filler': 60,
+        'message': 'How often is the hit rate calculated?',
+        'expect': {
+          'answer': ['weekly'],
+        },
+      });
+      final result = await runCase(
+        crowded,
+        ScriptedProvider([text('Weekly.')]),
+        noteList: newestNotes,
+      );
+      expect(result.passed, isTrue, reason: '${result.problems}');
+      expect(result.noteList, contains('garden-irrigation'));
+      expect(result.noteList, isNot(contains('mopsos')));
+      // Chosen by the message (#914), the old note is listed.
+      final matched = await runCase(
+        crowded,
+        ScriptedProvider([text('Weekly.')]),
+        noteList: (order: NoteListOrder.mixed, size: 20),
+      );
+      expect(matched.noteList, contains('mopsos'));
+      // The heading, then the 20 the size allows of the case's 61 notes.
+      expect(matched.noteList.split('\n').skip(1), hasLength(20));
+    },
+  );
+
+  test('a case targets the notes its expectation names, else those holding the answer', () {
+    final notes = {'projects/mopsos.md': _mopsos, 'topics/futbol.md': _futbol};
+    EvalCase withExpect(Map<String, Object?> expect) => _case({
+      'id': 't',
+      'kind': 'scale',
+      'lang': 'en',
+      'notes': notes,
+      'message': 'm',
+      'expect': expect,
+    });
+    expect(
+      targetNotes(
+        withExpect({
+          'notes': {
+            r'^projects/mopsos\.md$': ['x'],
+          },
+        }),
+      ),
+      ['projects/mopsos.md'],
+    );
+    expect(
+      targetNotes(
+        withExpect({
+          'answer': ['WEEKLY'],
+        }),
+      ),
+      ['projects/mopsos.md'],
+    );
+    expect(targetNotes(withExpect({})), isEmpty);
+  });
+
+  test('reachesPrompt: whether the prompt lists the target, without a model (#929)', () async {
+    final crowded = _case({
+      'id': 'q-filler',
+      'kind': 'scale',
+      'lang': 'en',
+      'notes': {'projects/mopsos.md': _mopsos},
+      'filler': 60,
+      'message': 'How often is the hit rate calculated?',
+      'expect': {
+        'answer': ['weekly'],
+      },
+    });
+    expect(await reachesPrompt(crowded), isTrue);
+    expect(await reachesPrompt(crowded, noteList: newestNotes), isFalse);
   });
 
   test('an answer is checked for its facts; a question must not write', () async {

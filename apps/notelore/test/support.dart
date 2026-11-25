@@ -15,6 +15,7 @@ import 'package:http/testing.dart';
 import 'package:notelore/src/device_auth.dart';
 import 'package:notelore/src/drive_auth.dart' show Awake;
 import 'package:notelore/src/icons.dart';
+import 'package:notelore/src/meaning_model.dart';
 import 'package:notelore/src/reminder_notifier.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore/src/transfer.dart';
@@ -196,6 +197,14 @@ class Harness {
     ),
   ];
 
+  /// The meaning model's files (#929): none by default, so it is ready at once
+  /// and [meaning] (null: it cannot run) is all a test sees of it.
+  var meaningFiles = <ModelFile>[];
+  MeaningModel? meaning;
+
+  /// The folder and onnxruntime library each meaning model was opened with.
+  final meaningOpened = <(String, String?)>[];
+
   /// The model that runs on the device (#328): one small file served by [pages].
   static final deviceFiles = [
     ModelFile(
@@ -252,6 +261,7 @@ class Harness {
     bool reminders = true,
     bool calendar = true,
     bool? deviceModels,
+    String? localModelDir,
     bool testSpace = false,
     Directory? realNotes,
   }) {
@@ -261,6 +271,7 @@ class Harness {
       realNotes: realNotes,
       deviceModels: deviceModels ?? this.deviceModels,
       deviceFiles: deviceFiles,
+      localModelDir: localModelDir,
       meteredNetwork: () async => metered,
       makeDeviceEngine: (path) {
         enginePaths.add(path);
@@ -279,6 +290,11 @@ class Harness {
       speech: speech,
       voice: voice,
       whisperFiles: whisperFiles,
+      meaningFiles: meaningFiles,
+      makeMeaning: (dir, library) {
+        meaningOpened.add((dir, library));
+        return meaning;
+      },
       httpClient: _models,
       // Every name is on the public web: tests never ask real DNS.
       resolve: (_) async => [InternetAddress('93.184.216.34')],
@@ -654,6 +670,9 @@ class FakeReminders implements ReminderNotifier {
     cancelled.add(id);
     pending.remove(id);
   }
+
+  @override
+  void Function()? openToday;
 }
 
 /// llama.cpp on the device, scripted: what it was asked, what it answers.

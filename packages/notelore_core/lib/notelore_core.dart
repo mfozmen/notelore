@@ -17,6 +17,8 @@ export 'src/agent.dart'
 export 'src/i18n.dart' show aboutMeSections, sectionHeading, sectionHeadings, sectionKey;
 export 'src/links.dart'
     show LinkUnreadable, Resolve, WebPage, linksIn, readPage, trimmedLink, withLinkedPages;
+export 'src/meaning.dart' show Embedder, embedPending;
+export 'src/meaning_native.dart' show loadE5, openOnnxRuntime;
 export 'src/oauth.dart'
     show MissingDriveGrant, NoChatGptPlan, NotSignedIn, OAuthSignIn, PartialGrant, SignInFailed;
 export 'src/paths.dart' show NotelorePaths;
@@ -58,10 +60,14 @@ export 'src/reminders.dart'
     show
         DayItem,
         DueReminder,
+        MorningBrief,
         calendarItems,
         maxScheduledReminders,
+        morningBriefs,
+        nextTurn,
         reminderDone,
         snoozeReminder,
+        stableId,
         upcomingReminders,
         weekItems;
 export 'src/secret.dart' show defaultIterations, hashSecret, verifySecret;
@@ -78,6 +84,7 @@ export 'src/store/format.dart'
         NotANote,
         Raw,
         Reminder,
+        Repeat,
         Section,
         Todo,
         isoDate,

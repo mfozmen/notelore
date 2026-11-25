@@ -8,12 +8,52 @@ import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:notelore/src/reminder_notifier.dart';
 import 'package:notelore/src/session.dart';
 import 'package:notelore_core/notelore_core.dart';
 import 'package:path/path.dart' as p;
 
 /// The day every fake note and screen is dated from, so renders never drift.
 final fakeToday = DateTime.utc(2026, 9, 30);
+
+/// The model on the device, never loaded: the catalog only shows its row.
+class _IdleEngine implements LocalEngine {
+  @override
+  Future<Map<String, Object?>> chat(
+    List<Map<String, Object?>> messages,
+    List<Map<String, Object?>> tools,
+  ) async => const {};
+
+  @override
+  Future<void> prefill(String system, List<Map<String, Object?>> tools) async {}
+
+  @override
+  Future<void> dispose() async {}
+}
+
+/// Notifications that are allowed and never shown, so Settings has its Reminders.
+class _QuietReminders implements ReminderNotifier {
+  final _pending = <int>{};
+
+  @override
+  void Function()? openToday;
+
+  @override
+  Future<bool> isAllowed() async => true;
+
+  @override
+  Future<bool> ask() async => true;
+
+  @override
+  Future<Set<int>> ids() async => {..._pending};
+
+  @override
+  Future<void> schedule(DueReminder reminder, ReminderActions actions) async =>
+      _pending.add(reminder.id);
+
+  @override
+  Future<void> cancel(int id) async => _pending.remove(id);
+}
 
 /// Answers in order, then says it is ready.
 class ScriptedModel implements LlmProvider {
@@ -59,6 +99,7 @@ tags: [home, diy]
 
 ## Reminders
 - 2026-10-03 10:00: Timber delivery, keep the gate open
+- 2026-10-01 18:00 (weekly): Water the seedlings
 ''',
   'projects/lisbon-trip.md': '''
 ---
@@ -166,6 +207,10 @@ Future<Session> fakeSession({Directory? root, bool chat = true}) async {
   // ignore: invalid_use_of_visible_for_testing_member
   FlutterSecureStorage.setMockInitialValues({});
   final scripted = ScriptedModel([for (final (_, answer) in fakeChat) answer]);
+  // A model file copied onto the device (#920), so Settings shows its row.
+  File(p.join(dir.path, 'state', 'models', 'device', 'local', 'notelore-tuned.gguf'))
+    ..createSync(recursive: true)
+    ..writeAsStringSync('GGUF');
   final session = Session(
     NotelorePaths(
       notes: Directory(p.join(dir.path, 'notes')),
@@ -180,9 +225,14 @@ Future<Session> fakeSession({Directory? root, bool chat = true}) async {
     resolve: (_) async => [InternetAddress.loopbackIPv4],
     listMicrophones: () async => const [],
     localModels: false,
+    deviceModels: true,
+    makeDeviceEngine: (_) => _IdleEngine(),
     offThread: <R>(work) async => work(),
+    reminders: _QuietReminders(),
   );
   await session.load();
+  await session.setBrief(on: true);
+  await session.connect(providerSpecs.firstWhere((s) => s.id == ProviderId.device), '');
   await session.connect(providerSpecs.firstWhere((s) => s.id == ProviderId.anthropic), 'fake');
   if (chat) {
     for (final (question, _) in fakeChat) {

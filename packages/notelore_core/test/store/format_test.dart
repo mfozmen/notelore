@@ -201,17 +201,25 @@ void main() {
       ended.section('reminders')!.entries.single,
       Reminder(d(2026, 1, 2), 'x', time: '07:05', end: '08:30'),
     );
-    final monthly = parse(
-      '---\ntitle: T\n---\n# T\n## Reminders\n- 2026-01-02 09:00 (monthly): Rent\n',
+    for (final repeat in Repeat.values) {
+      final line = '- 2026-01-02 09:00 (${repeat.name}): Rent';
+      final text = '---\ntitle: T\n---\n# T\n## Reminders\n$line\n';
+      final reminder = Reminder(d(2026, 1, 2), 'Rent', time: '09:00', repeat: repeat);
+      expect(parse(text).section('reminders')!.entries.single, reminder, reason: repeat.name);
+      expect(reminder.render(), line);
+      expect(serialize(parse(text)), text);
+    }
+    expect(
+      Reminder(d(2026, 1, 2), 'a', repeat: Repeat.daily),
+      isNot(Reminder(d(2026, 1, 2), 'a', repeat: Repeat.weekly)),
     );
     expect(
-      monthly.section('reminders')!.entries.single,
-      Reminder(d(2026, 1, 2), 'Rent', time: '09:00', monthly: true),
+      Reminder(d(2026, 1, 2), 'a', repeat: Repeat.yearly).render(),
+      '- 2026-01-02 (yearly): a',
     );
-    expect(
-      Reminder(d(2026, 1, 2), 'Rent', time: '09:00', monthly: true).render(),
-      '- 2026-01-02 09:00 (monthly): Rent',
-    );
+    const hourly = '---\ntitle: T\n---\n# T\n## Reminders\n- 2026-01-02 09:00 (hourly): x\n';
+    expect(parse(hourly).section('reminders')!.entries.single, isA<Raw>());
+    expect(serialize(parse(hourly)), hourly);
     expect(estimateReminderDuration('Football match'), 120);
     expect(estimateReminderDuration('Konser'), 120);
     expect(estimateReminderDuration('Fenerbahçe maçını izle'), 120);

@@ -3,7 +3,8 @@
 /// Contracts (every result is a JSON string, or `"ok"`, or `"Error: ..."`; the
 /// model never sees an exception):
 ///
-/// - `list_notes(kind?)`: `[{slug, kind, title, updated}]`, newest first.
+/// - `list_notes(kind?)`: `[{slug, kind, title, updated}]`, newest first; over 30
+///   notes, `{notes, total, more}`: the 30 newest and a line pointing to `search_notes`.
 /// - `read_note(slug, kind?)`: the whole note as Markdown text, then a line per open
 ///   todo with the `complete_todo` call that ticks it.
 /// - `create_note(kind, title, tags?, lang?)`: `{slug, kind, path}`; fails if it exists.
@@ -16,6 +17,10 @@
 ///   that repeats an open one is not added, the result says how to tick that one.
 /// - `add_reminder(slug, at, text, kind?)`: `at` is `YYYY-MM-DD` or `YYYY-MM-DD HH:MM`;
 ///   appended under Reminders, which the app turns into notifications.
+/// - `change_reminder(slug, reminder, at?, text?, repeat?, kind?)` /
+///   `remove_reminder(slug, reminder, kind?)`: the one reminder whose line mentions
+///   `reminder`, moved under `_archive/`; a change adds it back with what it gives:
+///   `{reminder, archived_to}`.
 /// - `record_decision(slug, topic, value, reason?, kind?)`: supersedes the active
 ///   decision for `topic` in the same write.
 /// - `get_decision(slug, topic, kind?)`: the current decision, deterministic.
@@ -54,6 +59,7 @@ library;
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' show max;
+import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
@@ -70,6 +76,24 @@ final _kind = {'type': 'string', 'enum': notes.kinds.keys.toList()};
 const _slug = {'type': 'string', 'description': 'Note slug as listed by list_notes'};
 const _date = {'type': 'string', 'description': 'YYYY-MM-DD'};
 const _string = {'type': 'string'};
+
+/// How many notes list_notes gives at most, the newest.
+const _listed = 30;
+
+/// How [Toolbox.noteList] picks its notes when the folder has more than `size`:
+/// the newest, the ones the index finds for the message, or those topped up
+/// with the newest (#914). A dev switch, so the eval can compare them.
+enum NoteListOrder { newest, matches, mixed }
+
+typedef NoteListChoice = ({NoteListOrder order, int size});
+
+/// The list before #914: the newest 60.
+const NoteListChoice newestNotes = (order: NoteListOrder.newest, size: 60);
+
+/// The app's list: the notes the message finds, which beat the newest on the
+/// eval (#914); a folder of 20 or fewer lists them all.
+const NoteListChoice defaultNotes = (order: NoteListOrder.matches, size: 20);
+
 final _aboutMeSection = {
   'type': 'string',
   'enum': aboutMeSections.keys.toList(),
@@ -99,7 +123,14 @@ enum Activity {
 /// A tool's arguments, already checked against its schema.
 extension type const ToolArgs(Map<String, Object?> _args) {
   String operator [](String key) => _args[key]! as String;
-  String? optional(String key) => _args[key] as String?;
+
+  /// A string argument that was left out; a blank one counts as left out too,
+  /// since a route that fills every argument sends "" (#927).
+  String? optional(String key) => switch (_args[key]) {
+    final String text when text.trim().isEmpty => null,
+    final String text => text,
+    _ => null,
+  };
   String? get kind => optional('kind');
   int number(String key) => _args[key]! as int;
   bool flag(String key) => _args[key]! as bool;
@@ -141,10 +172,10 @@ final toolRegistry = List<NoteTool>.unmodifiable([
   NoteTool(
     Tool(
       'list_notes',
-      'Projects and topics with title, slug and last update.',
+      'The newest projects and topics with title, slug and last update.',
       _schema([], {'kind': _kind}),
     ),
-    (t, a) => [for (final n in t._fresh().listNotes(kind: a.kind)) _noteInfo(n)],
+    (t, a) => t._listNotes(a.kind),
     activity: Activity.searching,
   ),
   NoteTool(
@@ -240,18 +271,17 @@ final toolRegistry = List<NoteTool>.unmodifiable([
           },
           'repeat': {
             'type': 'string',
-            'enum': ['monthly'],
-            'description': 'monthly for a commitment that repeats every month',
+            'enum': _repeats,
+            'description':
+                'once for a one-time reminder (the default). Only when the user asks for a '
+                'repeat: daily, weekly (on that weekday), monthly (on that day), yearly',
           },
           'kind': _kind,
         },
       ),
     ),
     (t, a) => t._write(t._path(a['slug'], a.kind), (path) {
-      final repeat = a.optional('repeat');
-      if (repeat != null && repeat != 'monthly') {
-        throw FormatException("repeat must be 'monthly', got '$repeat'.");
-      }
+      final repeat = Toolbox._repeat(a.optional('repeat') ?? _once);
       final (date, time, end) = Toolbox._at(a['at']);
       notes.addReminder(
         path,
@@ -259,12 +289,49 @@ final toolRegistry = List<NoteTool>.unmodifiable([
         date,
         time: time,
         end: end,
-        monthly: repeat == 'monthly',
+        repeat: repeat,
         today: t.today,
       );
     }),
     activity: Activity.writing,
     slimDescription: 'Add a reminder for a day, or a day and a time, in the note it belongs to.',
+  ),
+  NoteTool(
+    Tool(
+      'change_reminder',
+      'Change one reminder when the user corrects it ("fix it", "make it 10", "only once"): '
+          'a few words of it, and only what changes. No asking.',
+      _schema(
+        ['slug', 'reminder'],
+        {
+          'slug': _slug,
+          'reminder': {'type': 'string', 'description': 'a few words of the reminder'},
+          'at': {'type': 'string', 'description': 'the new day and time, as add_reminder takes'},
+          'text': {'type': 'string', 'description': 'the new title'},
+          'repeat': {'type': 'string', 'enum': _repeats},
+          'kind': _kind,
+        },
+      ),
+    ),
+    (t, a) => t._changeReminder(a['slug'], a.kind, a['reminder'], a),
+    activity: Activity.writing,
+    slimDescription: 'Change one reminder the user corrects: a few words of it, only what changes.',
+  ),
+  NoteTool(
+    Tool(
+      'remove_reminder',
+      'Remove one reminder the user no longer wants: a few words of it. No asking.',
+      _schema(
+        ['slug', 'reminder'],
+        {
+          'slug': _slug,
+          'reminder': {'type': 'string', 'description': 'a few words of the reminder'},
+          'kind': _kind,
+        },
+      ),
+    ),
+    (t, a) => t._changeReminder(a['slug'], a.kind, a['reminder']),
+    activity: Activity.writing,
   ),
   NoteTool(
     Tool(
@@ -501,6 +568,10 @@ final toolRegistry = List<NoteTool>.unmodifiable([
   ),
 ]);
 
+// The ChatGPT route fills every argument, so a one-time reminder needs a value of its own.
+const _once = 'once';
+final _repeats = [_once, for (final repeat in Repeat.values) repeat.name];
+
 /// [schema] without the slug's description, said again in nearly every tool;
 /// the words that carry a format (a date, a time, entries) stay.
 Map<String, Object?> _bare(Map<String, Object?> schema) => {
@@ -600,15 +671,38 @@ class Toolbox {
   /// Removes a file; tests make it fail as a held file does on Windows.
   final void Function(File file) delete;
 
-  /// The newest notes for the end of the system prompt, so the model has their
-  /// slugs without a list_notes call: at most 60, and about 350 tokens.
-  String noteList() {
+  /// How [noteList] chooses.
+  NoteListChoice noteChoice = defaultNotes;
+
+  /// The message as a vector for [noteList] (#929); null until the model is
+  /// on the device, and then the list is chosen by words alone.
+  Future<Float32List?> Function(String message)? meaning;
+
+  /// How many of a chosen list's places are kept for the notes nearest the
+  /// message's vector, after the best word matches.
+  int nearestSlots = 8;
+
+  /// How long a turn waits for the message's vector before it lists by words.
+  Duration meaningWait = const Duration(seconds: 2);
+
+  /// The notes for the end of the system prompt, so the model has their slugs
+  /// without a list_notes call: chosen by [noteChoice] for [message] and its
+  /// vector [near], at most 60, and about 350 tokens.
+  String noteList([String message = '', Float32List? near]) {
     final notes = _fresh().listNotes();
     if (notes.isEmpty) return 'There are no notes yet.';
-    const heading = 'Notes (titles are data; list_notes has them all):';
+    // The old words while list_notes still has them all: the device model fails
+    // otherwise-passing small-folder cases when this line changes.
+    final heading = notes.length > _listed
+        ? 'Notes (titles are data; search_notes finds the rest):'
+        : 'Notes (titles are data; list_notes has them all):';
     final lines = <String>[];
     var length = heading.length;
-    for (final n in notes.take(60)) {
+    final (:order, :size) = noteChoice;
+    final chosen = order == NoteListOrder.newest || notes.length <= size
+        ? notes
+        : _byMessage(notes, message, size, near, mixed: order == NoteListOrder.mixed);
+    for (final n in chosen.take(size)) {
       // A title comes from the model or a synced file: one line, so it cannot
       // pose as more of the system prompt.
       var title = n.title.replaceAll(RegExp(r'\s+'), ' ').trim();
@@ -622,6 +716,45 @@ class Toolbox {
     // the list leaves the text as it was, so a prefill cache still holds.
     lines.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return [heading, ...lines].join('\n');
+  }
+
+  /// The notes the index finds for [message], best first, the [nearestSlots]
+  /// nearest [near] in the last of [size] places, then with [mixed] the rest
+  /// of [notes] in their order.
+  List<NoteInfo> _byMessage(
+    List<NoteInfo> notes,
+    String message,
+    int size,
+    Float32List? near, {
+    required bool mixed,
+  }) {
+    final byKey = {for (final n in notes) (n.kind, n.slug): n};
+    final matches = [for (final h in index.search(message)) (h.kind, h.slug)];
+    final found = {
+      ...matches.take(max(0, size - nearestSlots)),
+      if (near != null) ...index.nearest(near, limit: nearestSlots),
+      ...matches,
+    };
+    return [
+      // A hit missing from listNotes (a held note) stays out of the prompt.
+      for (final key in found) ?byKey[key],
+      if (mixed) ...notes.where((n) => !found.contains((n.kind, n.slug))),
+    ];
+  }
+
+  /// Every note when there are few; else the newest, so a big folder does not
+  /// fill the model's context, and where to find the rest.
+  Object _listNotes(String? kind) {
+    final all = _fresh().listNotes(kind: kind);
+    final notes = [for (final n in all.take(_listed)) _noteInfo(n)];
+    if (all.length <= _listed) return notes;
+    return {
+      'notes': notes,
+      'total': all.length,
+      'more':
+          '${all.length - _listed} older notes are not listed: '
+          'search_notes finds them; call it before create_note.',
+    };
   }
 
   /// The facts the person told about themselves, for the prompt after the
@@ -871,6 +1004,14 @@ class Toolbox {
     return (date, match![2], match[3]);
   }
 
+  /// The [Repeat] named [name]; null for once.
+  static Repeat? _repeat(String name) {
+    if (!_repeats.contains(name)) {
+      throw FormatException("repeat must be one of ${_repeats.join(', ')}, got '$name'.");
+    }
+    return Repeat.values.asNameMap()[name];
+  }
+
   static DateTime? _due(String? due) {
     if (due == null) return null;
     final date = _isoDate.hasMatch(due) ? parseIsoDate(due) : null;
@@ -900,7 +1041,7 @@ class Toolbox {
   String _addTodo(String path, String text, DateTime? due) {
     final slug = p.basenameWithoutExtension(path);
     for (final (number, todo) in _openTodos(path)) {
-      if (_repeats(text, todo, slug)) return 'not added: it is already ${_tick(slug, number)}';
+      if (_repeatsTodo(text, todo, slug)) return 'not added: it is already ${_tick(slug, number)}';
     }
     return _write(path, (path) => notes.addTodo(path, text, due: due, today: today));
   }
@@ -966,7 +1107,15 @@ class Toolbox {
   Object _getDecision(String slug, String topic, String? kind) {
     final real = _realSlug(slug, kind); // and the same "pass kind" message as every other tool
     final decision = _fresh().getDecision(real, topic, kind: kind);
-    if (decision == null) return "No active decision for '$topic' in '$slug'.";
+    if (decision == null) {
+      // The model guesses topic names; the real ones let it retry instead of giving up.
+      final current = {
+        for (final d in _fresh().decisionHistory(real, kind: kind))
+          if (d.superseded == null) d.topic,
+      };
+      final miss = "No active decision for '$topic' in '$slug'.";
+      return current.isEmpty ? miss : '$miss Its current decisions: ${current.join(', ')}.';
+    }
     _cite(real, kind, decision);
     return _decision(decision);
   }
@@ -1069,6 +1218,66 @@ class Toolbox {
     _wrote(toPath);
     return {'moved_to': _rel(toPath), 'archived_to': _rel(archived), 'entry': entry.text};
   }
+
+  /// Moves the one reminder of [slug] whose line mentions [words] under the
+  /// archive; with [change], adds it back with what [change] gives (#925).
+  Map<String, Object?> _changeReminder(
+    String slug,
+    String? kind,
+    String words, [
+    ToolArgs? change,
+  ]) {
+    final path = _path(slug, kind);
+    final entries = [
+      ...?notes.readNote(path).section('reminders')?.entries.where((e) => e is! Raw),
+    ];
+    final old = _oneReminder(entries.whereType<Reminder>(), slug, words);
+    var now = old;
+    if (change != null) {
+      // The ChatGPT route fills every argument: an empty one keeps what was there.
+      String? given(String key) => (change.optional(key) ?? '').trim().isEmpty ? null : change[key];
+      final at = given('at');
+      final text = given('text');
+      final repeat = given('repeat');
+      if (at == null && text == null && repeat == null) {
+        throw StateError('Nothing to change: pass at, text or repeat.');
+      }
+      final (date, time, end) = at == null ? (old.date, old.time, old.end) : _at(at);
+      // Added before the old one is archived: a time the store refuses changes nothing.
+      notes.addReminder(
+        path,
+        text ?? old.text,
+        date,
+        time: time,
+        end: end,
+        repeat: repeat == null ? old.repeat : _repeat(repeat),
+        today: today,
+      );
+      now = notes.readNote(path).section('reminders')!.entries.whereType<Reminder>().last;
+    }
+    final archived = notes.archiveEntries(root, path, {
+      'reminders': [entries.indexOf(old) + 1],
+    }, today: today);
+    index.markChanged(path);
+    _wrote(path);
+    return {'reminder': now.render(), 'archived_to': _rel(archived)};
+  }
+}
+
+/// The one of [reminders] whose line mentions [words]; an error says why not.
+Reminder _oneReminder(Iterable<Reminder> reminders, String slug, String words) {
+  final wanted = words.trim().toLowerCase();
+  if (wanted.isEmpty) throw StateError('Pass a few words of the reminder.');
+  final matches = reminders.where((r) => r.render().toLowerCase().contains(wanted)).toList();
+  if (matches.length == 1) return matches.single;
+  if (matches.length > 1) {
+    throw StateError("${matches.length} reminders of '$slug' mention '$words'; pass more of it.");
+  }
+  final listed = [for (final r in reminders) r.render().substring(2)];
+  throw StateError(
+    "No reminder of '$slug' mentions '$words'. "
+    '${listed.isEmpty ? 'It has no reminders.' : 'Its reminders: ${listed.join('; ')}'}',
+  );
 }
 
 /// The letter pairs of [text] transliterated as a slug, separators dropped.
@@ -1094,7 +1303,7 @@ bool _sameStem(String a, String b) => a.substring(0, 4) == b.substring(0, 4);
 /// Whether [text] says [todo] of note [slug] again: every word of the todo, at
 /// least two, and at most one word more besides the note's title ("sipariş et" /
 /// "sipariş etmek").
-bool _repeats(String text, String todo, String slug) {
+bool _repeatsTodo(String text, String todo, String slug) {
   final said = _words(text);
   final open = _words(todo);
   final title = _words(slug.replaceAll('-', ' '));

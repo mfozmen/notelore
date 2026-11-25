@@ -557,50 +557,55 @@ void main() {
 }
 
 void autoSyncTests() {
-  // Real time with short ticks: the session's futures run on the real clock.
-  // Waiting polls until a deadline, so a slow runner only makes it slower.
   const every = Duration(milliseconds: 20);
   const remoteNote = 'REMOTE';
 
-  Future<bool> appears(File file) async {
-    final deadline = DateTime.now().add(const Duration(seconds: 10));
-    while (DateTime.now().isBefore(deadline)) {
-      if (file.existsSync()) return true;
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-    }
-    return false;
+  /// A session whose auto-sync timer the test fires by hand: no wall-clock
+  /// waiting, so a loaded machine cannot make it late (#905).
+  (_ManualTicker, Session) autoSync(Harness harness, {bool owned = true}) {
+    final ticker = _ManualTicker();
+    final session = harness.session(
+      owned: owned,
+      every: (period, onTick) {
+        ticker.onTick = onTick;
+        return ticker;
+      },
+    );
+    return (ticker, session);
   }
-
-  Future<void> ticks([int count = 10]) => Future<void>.delayed(every * count);
 
   test("while the app is open it pulls other devices' notes on its own", () async {
     final harness = Harness(auth: FakeAuth()..granted = true);
-    final session = harness.session();
+    final (ticker, session) = autoSync(harness);
     await session.load();
     await session.syncDone;
     session.startAutoSync(every: every);
     harness.remote.texts['topics/r.md'] = remoteNote; // written on another device
-    expect(await appears(File(p.join(harness.paths.notes.path, 'topics', 'r.md'))), isTrue);
+    ticker.fire();
+    await session.syncDone;
+    expect(File(p.join(harness.paths.notes.path, 'topics', 'r.md')).existsSync(), isTrue);
     session.stopAutoSync();
   });
 
   test('no automatic sync while disconnected, busy or closed', () async {
     final harness = Harness(auth: FakeAuth());
-    final session = harness.session(owned: false);
+    final (ticker, session) = autoSync(harness, owned: false);
     session.startAutoSync(every: every);
-    await ticks();
+    ticker.fire();
+    await session.syncDone;
     expect(session.syncStatus, isNull); // not connected: nothing ran
     await session.connectDrive();
     session.busy = true; // a chat turn is running
     harness.remote.texts['topics/s.md'] = remoteNote;
-    await ticks();
+    ticker.fire();
     await session.syncDone;
     final pulled = File(p.join(harness.paths.notes.path, 'topics', 's.md'));
     expect(pulled.existsSync(), isFalse);
     session
       ..busy = false
       ..dispose(); // stops the timer too
-    await ticks();
+    ticker.fire();
+    await session.syncDone;
     expect(pulled.existsSync(), isFalse); // no tick after dispose
   });
 
@@ -617,4 +622,23 @@ void autoSyncTests() {
     await second;
     expect(session.syncing, isFalse);
   });
+}
+
+/// A periodic timer that fires only when the test says so (#905).
+class _ManualTicker implements Timer {
+  void Function(Timer)? onTick;
+  var _cancelled = false;
+
+  void fire() {
+    if (!_cancelled) onTick?.call(this);
+  }
+
+  @override
+  void cancel() => _cancelled = true;
+
+  @override
+  bool get isActive => !_cancelled;
+
+  @override
+  int get tick => 0;
 }

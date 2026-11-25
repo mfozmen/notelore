@@ -33,9 +33,10 @@ HEADINGS = {
     "en": ("Decisions", "Notes", "Todo"),
     "tr": ("Kararlar", "Notlar", "Yapılacaklar"),
 }
+REMINDERS_HEADING = {"en": "Reminders", "tr": "Hatırlatıcılar"}
 
 
-def note(title, kind, lang, notes=(), decisions=(), todos=()):
+def note(title, kind, lang, notes=(), decisions=(), todos=(), reminders=()):
     """A note in the Notelore format: front matter, then the known sections."""
     dec, nts, todo = HEADINGS[lang]
     parts = [
@@ -47,6 +48,8 @@ def note(title, kind, lang, notes=(), decisions=(), todos=()):
         parts.append(f"\n## {nts}\n" + "".join(f"- 2026-09-15: {n}\n" for n in notes))
     if todos:
         parts.append(f"\n## {todo}\n" + "".join(f"- [ ] 2026-10-20: {t}\n" for t in todos))
+    if reminders:
+        parts.append(f"\n## {REMINDERS_HEADING[lang]}\n" + "".join(f"- {r}\n" for r in reminders))
     return "".join(parts)
 
 
@@ -309,6 +312,250 @@ REMINDERS = [
     ("tr", "Araba", "topic", "Araba için 2 saat sonra lastikçiyi aramamı hatırlat.", "2026-10-18 16:00", "lastik"),
 ]
 
+# Reminders that repeat as asked, once by default (v12, #921), from 2026-10-18
+# 14:00, a Sunday. (lang, note title, kind, message, "YYYY-MM-DD[ HH:MM]",
+# repeat, a word of the reminder). A one-time reminder is written "<at>: ".
+REPEATS = [
+    ("en", "Morning Routine", "topic", "Remind me every morning at 7:30 to take my vitamins.", "2026-10-19 07:30", "daily", "vitamin"),
+    ("en", "Fish Tank", "topic", "Remind me every evening at 8 to feed the fish.", "2026-10-18 20:00", "daily", "fish"),
+    ("en", "Language Practice", "topic", "Every day at 9 pm, remind me to do my Spanish flashcards.", "2026-10-18 21:00", "daily", "flashcard"),
+    ("tr", "Sabah Rutini", "topic", "Her sabah 7'de su içmemi hatırlat.", "2026-10-19 07:00", "daily", "su"),
+    ("tr", "Bitkilerim", "topic", "Her akşam 21'de saksılara bakmamı hatırlat.", "2026-10-18 21:00", "daily", "saksı"),
+    ("tr", "Kuşumuz Limon", "topic", "Limon'a her gün saat 9'da yem vermemi hatırlat.", "2026-10-19 09:00", "daily", "yem"),
+    ("en", "Running Club", "project", "Remind me every Tuesday at 19:00 about running club.", "2026-10-20 19:00", "weekly", "run"),
+    ("en", "Recycling", "topic", "Remind me every Wednesday at 7 to put out the recycling bins.", "2026-10-21 07:00", "weekly", "bin"),
+    ("en", "Team Newsletter", "project", "Team newsletter: remind me every Thursday at 3 pm to collect the updates.", "2026-10-22 15:00", "weekly", "update"),
+    ("en", "Family Calls", "topic", "Remind me every Sunday at 11 to call grandma.", "2026-10-25 11:00", "weekly", "grandma"),
+    ("tr", "Pazar Alışverişi", "topic", "Her cumartesi sabah 9'da pazara gitmeyi hatırlat.", "2026-10-24 09:00", "weekly", "pazar"),
+    ("tr", "Haftalık Rapor", "project", "Haftalık rapor için her cuma 16'da raporu göndermemi hatırlat.", "2026-10-23 16:00", "weekly", "rapor"),
+    ("tr", "Yüzme Dersleri", "project", "Her perşembe akşam 6'da yüzme çantasını hazırlamamı hatırlat.", "2026-10-22 18:00", "weekly", "çanta"),
+    ("en", "Household Bills", "topic", "Remind me on the first day of each month to pay the water bill.", "2026-11-01", "monthly", "water"),
+    ("en", "Car Upkeep", "topic", "Remind me every month on the 25th to check the tyre pressure.", "2026-10-25", "monthly", "tyre"),
+    ("en", "Savings Plan", "topic", "On the 28th of each month, remind me to move money to savings.", "2026-10-28", "monthly", "saving"),
+    ("tr", "Aylık Ödemeler", "topic", "Her ayın 12'sinde site aidatını yatırmamı hatırlat.", "2026-11-12", "monthly", "aidat"),
+    ("tr", "Kumbara", "topic", "Her ayın 20'sinde kumbaraya para atmamı hatırlat.", "2026-10-20", "monthly", "kumbara"),
+    ("tr", "Su Filtresi", "topic", "Her ayın 30'unda su filtresini değiştirmemi hatırlat.", "2026-10-30", "monthly", "filtre"),
+    ("en", "Family Dinners", "topic", "Remind me every year on 2 April to book a table for Mum's birthday dinner.", "2027-04-02", "yearly", "table"),
+    ("en", "Flat Insurance", "topic", "Every year on 3 December remind me to renew the flat insurance.", "2026-12-03", "yearly", "insurance"),
+    ("tr", "Doğum Günleri", "topic", "Her yıl 21 Haziran'da Deniz'in doğum gününü hatırlat.", "2027-06-21", "yearly", "Deniz"),
+    ("tr", "Araç Muayenesi", "topic", "Her yıl 29 Ekim'de araç muayenesini hatırlat.", "2026-10-29", "yearly", "muayene"),
+    ("en", "Bike Repair", "project", "Just once: remind me on Thursday at 11 to pick up the bike from the shop.", "2026-10-22 11:00", "once", "bike"),
+    ("en", "Passport Renewal", "project", "Remind me on Saturday at 10 to bring the passport photos.", "2026-10-24 10:00", "once", "photo"),
+    ("en", "Dentist", "topic", "Remind me on Wednesday at 4 pm about the dentist.", "2026-10-21 16:00", "once", "dentist"),
+    ("en", "Library Books", "topic", "Remind me on Friday to return the library books.", "2026-10-23", "once", "return"),
+    ("en", "Best Man Speech", "project", "Remind me tomorrow at 6 pm to rehearse the speech, only this once.", "2026-10-19 18:00", "once", "speech"),
+    ("tr", "Taşınma", "project", "Bir kereliğine, cumartesi 9'da nakliyeciyi aramamı hatırlat.", "2026-10-24 09:00", "once", "nakliye"),
+    ("tr", "Vergi İşleri", "topic", "Perşembe 14'te muhasebeciye uğramamı hatırlat.", "2026-10-22 14:00", "once", "muhasebe"),
+    ("tr", "Okul Toplantısı", "topic", "Salı akşam 7'de veli toplantısını hatırlat.", "2026-10-20 19:00", "once", "veli"),
+    ("tr", "Kargo Takibi", "topic", "Cuma günü kargoyu almayı hatırlat.", "2026-10-23", "once", "kargo"),
+    ("tr", "Fotoğraf Kursu", "project", "Yarın 17'de kamerayı şarj etmemi hatırlat, sadece bir kez.", "2026-10-19 17:00", "once", "şarj"),
+    # A day of the month or year already past on the 18th of October rolls over.
+    ("en", "Internet Bill", "topic", "Remind me on the 1st of every month to pay the internet bill.", "2026-11-01", "monthly", "internet"),
+    ("en", "Landlord", "topic", "On the 1st of each month at 9, remind me to send the rent to my landlord.", "2026-11-01 09:00", "monthly", "rent"),
+    ("en", "Laptop Backups", "topic", "Remind me every month on the 3rd to back up my laptop.", "2026-11-03", "monthly", "back up"),
+    ("en", "Cactus Care", "topic", "Remind me on the 10th of every month to water the cactus.", "2026-11-10", "monthly", "cactus"),
+    ("en", "Credit Card", "topic", "Every month on the 15th, remind me to check the credit card statement.", "2026-11-15", "monthly", "statement"),
+    ("en", "Contact Lenses", "topic", "Remind me on the 7th of each month to order contact lenses.", "2026-11-07", "monthly", "lens"),
+    ("en", "Phone Bill", "topic", "Remind me on the 22nd of every month to pay the phone bill.", "2026-10-22", "monthly", "phone"),
+    ("en", "Transit Card", "topic", "Remind me on the 19th of each month to top up the transit card.", "2026-10-19", "monthly", "transit"),
+    ("en", "Nanny", "topic", "Every month on the 27th, remind me to pay the nanny.", "2026-10-27", "monthly", "nanny"),
+    ("tr", "İnternet Faturası", "topic", "Her ayın 1'inde internet faturasını ödememi hatırlat.", "2026-11-01", "monthly", "internet"),
+    ("tr", "Kredi Kartı", "topic", "Her ayın 1'inde sabah 10'da kredi kartı ekstresine bakmamı hatırlat.", "2026-11-01 10:00", "monthly", "ekstre"),
+    ("tr", "Bilgisayar Yedeği", "topic", "Her ayın 3'ünde bilgisayarı yedeklememi hatırlat.", "2026-11-03", "monthly", "yedek"),
+    ("tr", "Kaktüsler", "topic", "Her ayın 10'unda kaktüsleri sulamamı hatırlat.", "2026-11-10", "monthly", "kaktüs"),
+    ("tr", "Doğalgaz", "topic", "Her ayın 15'inde doğalgaz faturasını ödememi hatırlat.", "2026-11-15", "monthly", "doğalgaz"),
+    ("tr", "Lens Siparişi", "topic", "Her ayın 8'inde lens siparişi vermemi hatırlat.", "2026-11-08", "monthly", "lens"),
+    ("tr", "Telefon Faturası", "topic", "Her ayın 24'ünde telefon faturasını ödememi hatırlat.", "2026-10-24", "monthly", "telefon"),
+    ("tr", "Ulaşım Kartı", "topic", "Her ayın 19'unda ulaşım kartına para yüklememi hatırlat.", "2026-10-19", "monthly", "kart"),
+    ("tr", "Bakıcı", "topic", "Her ayın 27'sinde bakıcının ücretini ödememi hatırlat.", "2026-10-27", "monthly", "bakıcı"),
+    ("en", "Website Domain", "topic", "Remind me every year on 12 March to renew the domain.", "2027-03-12", "yearly", "domain"),
+    ("en", "Parking Permit", "topic", "Every year on 1 January remind me to renew the parking permit.", "2027-01-01", "yearly", "parking"),
+    ("en", "Birthdays", "topic", "Remind me every year on 20 August about Leo's birthday.", "2027-08-20", "yearly", "Leo"),
+    ("en", "Tax Return", "topic", "Remind me every year on 30 September to file the tax return.", "2027-09-30", "yearly", "tax"),
+    ("en", "Grandpa", "topic", "Remind me every year on 25 December to call grandpa.", "2026-12-25", "yearly", "grandpa"),
+    ("en", "Chimney", "topic", "Every year on 6 December, remind me to book the chimney sweep.", "2026-12-06", "yearly", "chimney"),
+    ("tr", "Alan Adı", "topic", "Her yıl 12 Nisan'da alan adını yenilememi hatırlat.", "2027-04-12", "yearly", "alan adı"),
+    ("tr", "Su Sayacı", "topic", "Her yıl 1 Ocak'ta su sayacını okumamı hatırlat.", "2027-01-01", "yearly", "sayaç"),
+    ("tr", "Selin", "topic", "Her yıl 23 Temmuz'da Selin'in doğum gününü hatırlat.", "2027-07-23", "yearly", "Selin"),
+    ("tr", "Kasko", "topic", "Her yıl 15 Eylül'de kasko yenilemesini hatırlat.", "2027-09-15", "yearly", "kasko"),
+    ("tr", "Kira Artışı", "topic", "Her yıl 20 Kasım'da kira artışını hatırlat.", "2026-11-20", "yearly", "kira"),
+    ("tr", "Baca Temizliği", "topic", "Her yıl 4 Aralık'ta baca temizliğini hatırlat.", "2026-12-04", "yearly", "baca"),
+]
+
+# One-time reminders on a weekday or a relative day (v12c), in broad notes
+# whose title is not the reminder's subject, from Sunday 2026-10-18 14:00.
+# A weekday rolls to the coming week; Sunday is today when its time is still
+# ahead, else next week. (lang, note title, kind, message, a word, "YYYY-MM-DD[ HH:MM]"); BROAD holds each note's line.
+BROAD = {
+    "Home Admin": "The boiler service is due in spring.", "Family Logistics": "Ana has swimming on weekdays.",
+    "Weekly Errands": "The market is open until six.", "Work Week": "Stand-up is at 9:30 every day.",
+    "Clinic Visits": "The clinic closes at five.",
+    "Ev İdaresi": "Kombi bakımı baharda yapılacak.", "Aile Düzeni": "Elif hafta içi yüzmeye gidiyor.",
+    "Haftalık İşler": "Pazar yeri altıya kadar açık.", "İş Haftası": "Toplantılar her gün 9.30'da.",
+    "Klinik Randevuları": "Klinik beşte kapanıyor.",
+}
+DATED = [
+    ("en", "Home Admin", "topic", "Remind me on Tuesday at 10 to call the insurer.", "insurer", "2026-10-20 10:00"),
+    ("en", "Family Logistics", "topic", "Thursday at 20:00 I have parents' evening at school.", "parents", "2026-10-22 20:00"),
+    ("en", "Weekly Errands", "topic", "Remind me tomorrow at 7:45 to take the bins out.", "bins", "2026-10-19 07:45"),
+    ("en", "Work Week", "topic", "Next Monday at 9, remind me to send the invoice.", "invoice", "2026-10-19 09:00"),
+    ("en", "Family Logistics", "topic", "Remind me this Saturday to buy a birthday card for Ana.", "card", "2026-10-24"),
+    ("en", "Clinic Visits", "topic", "Remind me on Wednesday to renew the prescription.", "prescription", "2026-10-21"),
+    ("en", "Weekly Errands", "topic", "Remind me tonight at 21:00 to charge the bike lights.", "light", "2026-10-18 21:00"),
+    ("en", "Home Admin", "topic", "Remind me on Sunday at 9 to water the garden.", "garden", "2026-10-25 09:00"),
+    ("en", "Home Admin", "topic", "Remind me in three days to follow up with the plumber.", "plumber", "2026-10-21"),
+    ("en", "Work Week", "topic", "Friday at 16:30, remind me about the team retro.", "retro", "2026-10-23 16:30"),
+    ("en", "Weekly Errands", "topic", "Remind me the day after tomorrow to pick up the dry cleaning.", "dry cleaning", "2026-10-20"),
+    ("en", "Clinic Visits", "topic", "Monday at 8:15 remind me to book the eye test.", "eye", "2026-10-19 08:15"),
+    ("en", "Family Logistics", "topic", "Remind me on Sunday at 18:00 to pack the kids' school bags.", "bag", "2026-10-18 18:00"),
+    ("tr", "Ev İdaresi", "topic", "Salı 11'de sigortacıyı aramamı hatırlat.", "sigorta", "2026-10-20 11:00"),
+    ("tr", "Aile Düzeni", "topic", "Perşembe saat 20'de veli toplantısı var, hatırlat.", "veli", "2026-10-22 20:00"),
+    ("tr", "Haftalık İşler", "topic", "Yarın sabah 8'de çöpleri çıkarmamı hatırlat.", "çöp", "2026-10-19 08:00"),
+    ("tr", "İş Haftası", "topic", "Pazartesi 9'da faturayı göndermemi hatırlat.", "fatura", "2026-10-19 09:00"),
+    ("tr", "Aile Düzeni", "topic", "Bu cumartesi Elif'e doğum günü kartı almamı hatırlat.", "kart", "2026-10-24"),
+    ("tr", "Klinik Randevuları", "topic", "Çarşamba reçeteyi yenilememi hatırlat.", "reçete", "2026-10-21"),
+    ("tr", "Haftalık İşler", "topic", "Bu akşam 21'de bisiklet ışıklarını şarj etmemi hatırlat.", "ışık", "2026-10-18 21:00"),
+    ("tr", "Ev İdaresi", "topic", "Pazar sabah 9'da bahçeyi sulamamı hatırlat.", "bahçe", "2026-10-25 09:00"),
+    ("tr", "Ev İdaresi", "topic", "Üç gün sonra tesisatçıyı aramamı hatırlat.", "tesisatçı", "2026-10-21"),
+    ("tr", "İş Haftası", "topic", "Cuma 16.30'da ekip değerlendirmesini hatırlat.", "değerlendirme", "2026-10-23 16:30"),
+    ("tr", "Haftalık İşler", "topic", "Öbür gün kuru temizlemeyi almamı hatırlat.", "temizleme", "2026-10-20"),
+    ("tr", "Klinik Randevuları", "topic", "Pazartesi 8.15'te göz muayenesi için randevu almamı hatırlat.", "göz", "2026-10-19 08:15"),
+    ("tr", "Aile Düzeni", "topic", "Pazar akşam 6'da çocukların okul çantasını hazırlamamı hatırlat.", "çanta", "2026-10-18 18:00"),
+]
+
+# "Done" with nothing named, while several open todos could be meant (v12c):
+# the answer asks which one. (lang, message); the projects come per language.
+VAGUE_DONE_PROJECTS = {
+    "en": [("Garage Clear-Out", ["Sell the old bike", "Book a skip"]), ("Spring Party", ["Order the cake", "Send the invites"]),
+           ("Shed Roof", ["Buy roofing felt", "Ask Sam for the ladder"])],
+    "tr": [("Bodrum Temizliği", ["Eski bisikleti sat", "Hurdacıyı ara"]), ("Bahar Şenliği", ["Pastayı sipariş et", "Davetiyeleri gönder"]),
+           ("Kulübe Çatısı", ["Çatı keçesi al", "Merdiveni Ali'den iste"])],
+}
+VAGUE_DONE = [
+    ("en", "Done with it."), ("en", "Tick that one."), ("en", "That's finished now."),
+    ("tr", "Onu hallettim, işaretle."), ("tr", "Bitti o."), ("tr", "Şunu kapat artık."),
+]
+
+# A reminder corrected right after it was set (v12, #925): one change_reminder
+# call with only what changes. (lang, title, kind, the wrong line, first
+# message, the reply, the correction, what the note then holds, a word of the old line)
+FIXES = [
+    ("en", "Gym Membership", "topic", "2026-10-21 (monthly): Cancel the gym trial",
+     "Remind me on Wednesday to cancel the gym trial.",
+     "I added a reminder on 21 October to cancel the gym trial; it repeats every month.",
+     "That's wrong, it's only once.", "2026-10-21: ", "(monthly)"),
+    ("en", "Concert Tickets", "topic", "2026-10-22 10:00 (weekly): Buy the concert tickets",
+     "Remind me Thursday at 10 to buy the concert tickets.",
+     "Done: a weekly reminder on Thursdays at 10:00 to buy the concert tickets.",
+     "No, not every week, just this Thursday.", "2026-10-22 10:00: ", "(weekly)"),
+    ("en", "Boiler Service", "topic", "2026-10-26 (yearly): Boiler service visit",
+     "The boiler service is next Monday.",
+     "I set a yearly reminder for the boiler service on 26 October.",
+     "Make it a one-time reminder.", "2026-10-26: ", "(yearly)"),
+    ("en", "School Trip", "topic", "2026-10-20 08:00 (daily): Pack lunch for the school trip",
+     "Remind me Tuesday at 8 to pack lunch for the school trip.",
+     "I added a daily reminder at 08:00 from 20 October to pack lunch for the school trip.",
+     "It's just for that one day, fix it.", "2026-10-20 08:00: ", "(daily)"),
+    ("en", "Car Wash", "topic", "2026-10-24 (monthly): Wash the car",
+     "Remind me Saturday to wash the car.",
+     "I set a monthly reminder to wash the car from Saturday 24 October.",
+     "Correct it, I only meant this Saturday.", "2026-10-24: ", "(monthly)"),
+    ("tr", "Noter İşlemleri", "topic", "2026-10-23 (monthly): Notere imza",
+     "Cuma notere imzaya gideceğim.",
+     "23 Ekim için noter hatırlatıcısı ekledim; her ay tekrarlıyor.",
+     "Her ay değil, tek seferlik o.", "2026-10-23: ", "(monthly)"),
+    ("tr", "Kombi Bakımı", "topic", "2026-10-21 11:00 (weekly): Kombi bakımı",
+     "Çarşamba 11'de kombi bakımı gelecek, hatırlat.",
+     "Her çarşamba 11:00 için kombi bakımı hatırlatıcısı kurdum.",
+     "Yanlış olmuş, sadece bu çarşamba.", "2026-10-21 11:00: ", "(weekly)"),
+    ("tr", "Bayram Ziyareti", "topic", "2026-10-25 (yearly): Halamlara ziyaret",
+     "Pazar günü halamlara gideceğiz.",
+     "25 Ekim için her yıl tekrarlayan bir ziyaret hatırlatıcısı ekledim.",
+     "Bir kerelik olsun, düzeltir misin?", "2026-10-25: ", "(yearly)"),
+    ("tr", "Fatura Takibi", "topic", "2026-10-19 09:00 (daily): Elektrik faturasını öde",
+     "Yarın 9'da elektrik faturasını ödemeyi hatırlat.",
+     "Her gün 09:00'da elektrik faturası hatırlatıcısı ekledim.",
+     "Her gün değil, bir kere yeter.", "2026-10-19 09:00: ", "(daily)"),
+    ("tr", "Tamirci", "topic", "2026-10-22 (monthly): Arabayı tamirciden al",
+     "Perşembe arabayı tamirciden alacağım.",
+     "22 Ekim için her ay tekrarlayan bir hatırlatıcı ekledim.",
+     "Tek sefer olacaktı, düzelt.", "2026-10-22: ", "(monthly)"),
+    ("en", "Vet Visit", "topic", "2026-10-21 09:00: Take Biscuit to the vet",
+     "Remind me Wednesday at 9 to take Biscuit to the vet.",
+     "I added a reminder on Wednesday 21 October at 09:00 to take Biscuit to the vet.",
+     "Make it 10 instead.", "2026-10-21 10:00: ", "09:00"),
+    ("en", "Book Club Meeting", "topic", "2026-10-22 19:00: Book club at Mira's",
+     "Remind me about book club on Thursday at 7 pm.",
+     "Reminder set for Thursday 22 October at 19:00: book club at Mira's.",
+     "Sorry, it moved to Friday, same time.", "2026-10-23 19:00: ", "2026-10-22"),
+    ("tr", "Kuaför", "topic", "2026-10-20 15:00: Kuaför randevusu",
+     "Salı 15'te kuaför randevum var, hatırlat.",
+     "20 Ekim Salı 15:00 için kuaför hatırlatıcısı ekledim.",
+     "Saat 16:30'a kaydı, düzelt.", "2026-10-20 16:30: ", "15:00"),
+    ("tr", "Bahçe Sulama", "topic", "2026-10-24 08:00: Bahçeyi sula",
+     "Cumartesi 8'de bahçeyi sulamayı hatırlat.",
+     "24 Ekim Cumartesi 08:00 için bahçe sulama hatırlatıcısı ekledim.",
+     "Pazar gününe al, saat aynı.", "2026-10-25 08:00: ", "2026-10-24"),
+    ("en", "Plant Care", "topic", "2026-10-19: Water the ferns",
+     "Remind me tomorrow to water the ferns.",
+     "I added a reminder for tomorrow, 19 October, to water the ferns.",
+     "Actually make that every week.", "2026-10-19 (weekly)", "Water the ferns"),
+    ("en", "Rent", "topic", "2026-11-01: Pay the rent",
+     "Remind me on 1 November to pay the rent.",
+     "I added a one-time reminder on 1 November to pay the rent.",
+     "It should repeat every month.", "2026-11-01 (monthly)", "Pay the rent"),
+    ("tr", "Spor Salonu", "topic", "2026-10-19 07:00: Spora git",
+     "Yarın sabah 7'de spora gitmeyi hatırlat.",
+     "19 Ekim 07:00 için spor hatırlatıcısı ekledim.",
+     "Bunu her gün yap.", "2026-10-19 07:00 (daily)", "Spora git"),
+    ("tr", "Babamın Doğum Günü", "topic", "2026-11-12: Babamın doğum günü",
+     "12 Kasım babamın doğum günü, hatırlat.",
+     "12 Kasım için babanın doğum günü hatırlatıcısı ekledim.",
+     "Her yıl tekrarlasın.", "2026-11-12 (yearly)", "doğum günü"),
+]
+
+# A reminder the user no longer wants (v12, #925): remove_reminder, the other
+# kept. (lang, title, kind, the removed line, a kept line, first message,
+# the reply, the request, a word of the removed line)
+REMOVES = [
+    ("en", "Doctor Visits", "topic", "2026-10-21 09:30: Physio appointment", "2026-11-04: Eye test",
+     "Remind me Wednesday at 9:30 about the physio.", "I added a reminder for the physio on Wednesday 21 October at 09:30.",
+     "No physio this week after all, delete that reminder.", "Physio"),
+    ("en", "Weekend Plans", "topic", "2026-10-24 12:00: Lunch with Sam", "2026-10-25 10:00: Farmers market",
+     "Remind me Saturday at noon about lunch with Sam.", "Reminder added: lunch with Sam on Saturday 24 October at 12:00.",
+     "Sam can't make it, remove the lunch reminder.", "Sam"),
+    ("en", "Work Travel", "topic", "2026-10-27 06:00: Taxi to the airport", "2026-10-30: Expense report",
+     "Remind me next Tuesday at 6 am about the taxi to the airport.", "I added a reminder on Tuesday 27 October at 06:00 for the airport taxi.",
+     "The trip is off. Get rid of the taxi reminder.", "Taxi"),
+    ("en", "Kids Activities", "topic", "2026-10-22 16:00 (weekly): Piano lesson", "2026-10-24 09:00: Football match",
+     "Remind me every Thursday at 4 about the piano lesson.", "Weekly reminder set: piano lesson on Thursdays at 16:00.",
+     "She stopped piano, remove that reminder.", "Piano"),
+    ("en", "Subscriptions", "topic", "2026-11-03 (monthly): Pay the streaming plan", "2026-11-10 (monthly): Phone bill",
+     "Remind me on the 3rd of each month to pay the streaming plan.", "I added a monthly reminder on the 3rd for the streaming plan.",
+     "I cancelled that plan, so drop its reminder.", "streaming"),
+    ("en", "Garden Jobs", "topic", "2026-10-20: Cover the dahlias", "2026-10-31: Plant tulip bulbs",
+     "Remind me Tuesday to cover the dahlias.", "I added a reminder on Tuesday 20 October to cover the dahlias.",
+     "Already did it, you can remove that reminder.", "dahlias"),
+    ("tr", "Sağlık Randevuları", "topic", "2026-10-22 10:00: Fizik tedavi", "2026-11-06: Göz muayenesi",
+     "Perşembe 10'da fizik tedaviyi hatırlat.", "22 Ekim Perşembe 10:00 için fizik tedavi hatırlatıcısı ekledim.",
+     "Fizik tedaviye gitmeyeceğim, hatırlatıcısını kaldır.", "Fizik"),
+    ("tr", "Hafta Sonu", "topic", "2026-10-24 13:00: Ece ile öğle yemeği", "2026-10-25 11:00: Kahvaltı",
+     "Cumartesi 13'te Ece ile yemeği hatırlat.", "24 Ekim Cumartesi 13:00 için Ece ile öğle yemeği hatırlatıcısı ekledim.",
+     "Ece gelemiyor, yemek hatırlatıcısını sil.", "Ece"),
+    ("tr", "İş Seyahati", "topic", "2026-10-28 05:30: Havalimanı servisi", "2026-10-31: Masraf formu",
+     "Çarşamba 5:30'da havalimanı servisini hatırlat.", "28 Ekim Çarşamba 05:30 için havalimanı servisi hatırlatıcısı ekledim.",
+     "Seyahat iptal, servis hatırlatıcısını kaldırır mısın?", "servis"),
+    ("tr", "Çocukların Kursları", "topic", "2026-10-21 17:00 (weekly): Gitar dersi", "2026-10-24 10:00: Satranç turnuvası",
+     "Her çarşamba 17'de gitar dersini hatırlat.", "Her çarşamba 17:00 için gitar dersi hatırlatıcısı kurdum.",
+     "Gitarı bıraktı, o hatırlatıcıyı sil.", "Gitar"),
+    ("tr", "Abonelikler", "topic", "2026-11-07 (monthly): Müzik aboneliği", "2026-11-15 (monthly): İnternet faturası",
+     "Her ayın 7'sinde müzik aboneliğini hatırlat.", "Her ayın 7'si için müzik aboneliği hatırlatıcısı ekledim.",
+     "Aboneliği iptal ettim, hatırlatıcısını da kaldır.", "Müzik"),
+    ("tr", "Balkon İşleri", "topic", "2026-10-20: Saksıları içeri al", "2026-11-01: Lale soğanı ek",
+     "Salı saksıları içeri almayı hatırlat.", "20 Ekim Salı için saksıları içeri alma hatırlatıcısı ekledim.",
+     "Bugün hallettim, o hatırlatıcıyı silebilirsin.", "Saksı"),
+]
+
 # Other notes every case's workspace gets beside its own, like the eval's shared notes.
 DISTRACTORS = 4
 
@@ -430,6 +677,35 @@ CONTRAST = [
         ("Klima için yıllık bakım anlaşması yaptık, daha ucuz.", "decision", "record_decision", "bakım"),
         ("Klima: gece modunda çok sessiz çalışıyor.", "filing", "add_note_entry", "sessiz"),
         ("Bunu klimaya yaz.", "unclear", None, None),
+    ]),
+    # v12: a done task against a new one, a need that is no todo, and a vague one.
+    ("en", "Community Garden", "project", ["Twelve plots, shared tools."], [("compost", "Hot bin")], ["Order the tool shed"], [
+        ("I ordered the tool shed for the community garden.", "todo-done", "complete_todo", None),
+        ("Community garden: we still need to order a water butt.", "todo", "add_todo", "butt"),
+        ("Community garden: we went with raised beds of larch, they last longer.", "decision", "record_decision", "larch"),
+        ("Community garden: three new families asked for a plot.", "filing", "add_note_entry", "families"),
+        ("Note that for the garden.", "unclear", None, None),
+    ]),
+    ("en", "Podcast Studio", "project", ["We record in the spare room."], [("microphone", "Dynamic mic")], ["Buy acoustic foam"], [
+        ("Bought the acoustic foam for the studio.", "todo-done", "complete_todo", None),
+        ("Podcast studio: add a todo to get a pop filter.", "todo", "add_todo", "pop filter"),
+        ("Podcast studio: we picked Reaper for editing, it is cheap.", "decision", "record_decision", "Reaper"),
+        ("Podcast studio: the room needs two more panels on the back wall.", "filing", "add_note_entry", "panels"),
+        ("Save that one for the studio.", "unclear", None, None),
+    ]),
+    ("tr", "Pastane Projesi", "project", ["Pastane Kadıköy'de olacak."], [("fırın", "Konveksiyonlu fırın")], ["Vitrin dolabını sipariş et"], [
+        ("Vitrin dolabını sipariş ettim.", "todo-done", "complete_todo", None),
+        ("Pastane için yapılacak: tabela yaptır.", "todo", "add_todo", "tabela"),
+        ("Pastane projesi: un için yerel değirmeni seçtik, daha taze.", "decision", "record_decision", "değirmen"),
+        ("Pastane projesi: iki usta pastacı gerekiyor.", "filing", "add_note_entry", "pastacı"),
+        ("Onu pastaneye not et.", "unclear", None, None),
+    ]),
+    ("tr", "Düğün Organizasyonu", "project", ["Düğün Haziran'da olacak."], [("mekan", "Bahçe salonu")], ["Davetiyeleri bastır"], [
+        ("Davetiyeleri bastırdım.", "todo-done", "complete_todo", None),
+        ("Düğün için yapılacak: fotoğrafçı bul.", "todo", "add_todo", "fotoğrafçı"),
+        ("Düğün organizasyonu: pasta için limonlu seçtik, hafif olsun diye.", "decision", "record_decision", "limonlu"),
+        ("Düğün organizasyonu: üç masa daha gerekiyor.", "filing", "add_note_entry", "masa"),
+        ("Şunu düğüne ekle işte.", "unclear", None, None),
     ]),
 ]
 
@@ -554,6 +830,13 @@ UNCLEAR += [
     ("tr", "Bunu öbür tarafa al."), ("tr", "Aynısını yine yaz."), ("tr", "Tarihini değiştir."),
     ("tr", "Onu listeye koy."), ("tr", "Geçen seferki gibi kaydet."), ("tr", "İkincisini ekle."),
     ("tr", "Onunkine yaz."), ("tr", "Şu notu düzelt."),
+    ("en", "Put it with the others."), ("en", "Do the same for this one."), ("en", "Use the other one."),
+    ("en", "Log this."), ("en", "That goes in too."),
+    ("tr", "Bunu da yaz."), ("tr", "Aynısını bunun için de yap."), ("tr", "Şunu hallet."),
+    ("tr", "O da girsin."), ("tr", "Şunu da girer misin?"),
+    # v12b: a done-like word with nothing named still asks which one.
+    ("en", "Check that one off."), ("en", "Cross it out."), ("en", "Mark the other one done."),
+    ("tr", "Onu tamamla."), ("tr", "Şunu bitti yap."), ("tr", "Onu da kapat."),
 ]
 
 PLANS += [
@@ -735,6 +1018,22 @@ PLANS += [
     ("en", "Saturday at 6 I'm leaving for the airport, my flight to Lisbon is at nine.", "2026-10-24 06:00"),
 ]
 
+# v12: weekdays, which #921's prompt change moved a day early.
+PLANS += [
+    ("en", "Saturday I'm going to watch the rugby final.", "2026-10-24"),
+    ("en", "On Monday I'm taking the car in for its service.", "2026-10-19"),
+    ("en", "Friday night I'll see the new play at the Lyric.", "2026-10-23"),
+    ("en", "Tuesday at 18:30 I have a climbing session.", "2026-10-20 18:30"),
+    ("en", "Thursday I'm visiting my aunt in Leeds.", "2026-10-22"),
+    ("en", "Next Sunday I'm running a 10k.", "2026-10-25"),
+    ("tr", "Cumartesi günü voleybol maçına gideceğim.", "2026-10-24"),
+    ("tr", "Salı saat 19'da pilates dersim var.", "2026-10-20 19:00"),
+    ("tr", "Cuma akşamı sinemaya gideceğim.", "2026-10-23"),
+    ("tr", "Çarşamba günü Bursa'ya gideceğim.", "2026-10-21"),
+    ("tr", "Pazartesi öğlen dişçiye gideceğim.", "2026-10-19"),
+    ("tr", "Pazar sabah 10'da bisiklet turuna katılacağım.", "2026-10-25 10:00"),
+]
+
 REMINDERS += [
     ("tr", "Resmi İşlemler", "topic", "Pazartesi sabah 8'de nüfus müdürlüğünü aramamı hatırlat.", "2026-10-19 08:00", "nüfus"),
     ("tr", "Ortak Masraflar", "topic", "Ayın 1'inde kirayı bölüştürmeyi hatırlat.", "2026-11-01", "kira"),
@@ -807,6 +1106,12 @@ FIRST_OF_KIND += [
     ("tr", "Dinlenecek podcast: Bir Şehir Bir Hikâye.", r"^topics/[^/]*podcast[^/]*\.md$", "Bir Şehir"),
     ("tr", "Gidilecek restoran: Kadıköy'de Lokanta Nar.", r"^topics/[^/]*(restoran|lokanta)[^/]*\.md$", "Lokanta Nar"),
     ("tr", "Dinlemek istediğim albüm: Gece Yolcuları.", r"^topics/[^/]*(album|muzik)[^/]*\.md$", "Gece Yolcuları"),
+    ("en", "I'm rereading Jane Eyre this week.", r"^topics/[^/]*book[^/]*\.md$", "Jane Eyre"),
+    ("en", "Started Anna Karenina on the plane.", r"^topics/[^/]*book[^/]*\.md$", "Anna Karenina"),
+    ("en", "I'd love to see Iceland one day.", r"^topics/[^/]*(place|visit|travel)[^/]*\.md$", "Iceland"),
+    ("en", "One day I want to go to Kyoto in spring.", r"^topics/[^/]*(place|visit|travel)[^/]*\.md$", "Kyoto"),
+    ("tr", "Bir gün Kapadokya'ya gitmek istiyorum.", r"^topics/[^/]*(gez|yer)[^/]*\.md$", "Kapadokya"),
+    ("tr", "Şu sıralar İnce Memed'i okuyorum.", r"^topics/[^/]*kitap[^/]*\.md$", "İnce Memed"),
 ]
 
 MIXED_LISTS += [
@@ -967,6 +1272,15 @@ CROSS += [
     ("tr", "Podcasts to Try", "topic", "Denenecek podcast: Serial.", "collection", "add_note_entry", "Serial"),
     ("tr", "Board Games to Buy", "topic", "Alınacak kutu oyunu: Codenames.", "collection", "add_note_entry", "Codenames"),
     ("tr", "Restaurants to Try", "topic", "Gidilecek restoran: Lokanta 1741.", "collection", "add_note_entry", "1741"),
+    # v12b: an English message about a Turkish note is answered in English.
+    ("en", "Köpeğimiz Pamuk", "topic", "Pamuk had her rabies vaccine today.", "filing", "add_note_entry", "vaccine"),
+    ("en", "Akvaryum", "topic", "The aquarium heater was replaced today.", "filing", "add_note_entry", "heater"),
+    ("en", "Araba", "topic", "The car's winter tyres are on now.", "filing", "add_note_entry", "winter"),
+    ("en", "Ev Kredisi", "topic", "The mortgage rate dropped to 2.9 percent.", "filing", "add_note_entry", "2.9"),
+    ("en", "Denenecek Şaraplar", "topic", "Wine to try: a Kalecik Karası from Ankara.", "collection", "add_note_entry", "Kalecik"),
+    ("en", "İzlenecek Diziler", "topic", "Series to watch: The Bear.", "collection", "add_note_entry", "The Bear"),
+    ("en", "Denenecek Tarifler", "topic", "Recipe to try: red lentil soup with mint.", "collection", "add_note_entry", "lentil"),
+    ("en", "Sokak Kütüphanesi", "project", "Street library: add a todo to paint the door blue.", "todo", "add_todo", "door"),
 ]
 
 # Rows shaped like CROSS; some are cross-language on purpose, like CROSS itself: a decision said without "we
@@ -1222,6 +1536,16 @@ NEW_BESIDE = [
     ("tr", "Gitmek İstediğim Şehirler", "Dinlemek istediğim podcast: Medyascope Kültür.", r"^topics/[^/]*podcast[^/]*\.md$", "Medyascope"),
     ("tr", "Akşam Yemeği Tarifleri", "Alınacak kutu oyunu: Azul.", r"^topics/[^/]*oyun[^/]*\.md$", "Azul"),
     ("tr", "Arkadaşlara Hediyeler", "Okumak istediğim kitap: Kürk Mantolu Madonna.", r"^topics/[^/]*(kitap|okuma)[^/]*\.md$", "Kürk Mantolu"),
+    ("en", "Weekend Film Picks", "Video game I want to play: Hollow Knight.", r"^topics/[^/]*game[^/]*\.md$", "Hollow Knight"),
+    ("en", "Dinner Recipes", "Picture book for my niece: The Gruffalo.", r"^topics/[^/]*(book|read)[^/]*\.md$", "Gruffalo"),
+    ("en", "Novels for the Summer", "Restaurant to try: the new ramen bar on Quay Street.", r"^topics/[^/]*restaurant[^/]*\.md$", "ramen"),
+    ("en", "Gifts for Friends", "Album to listen to: Hounds of Love by Kate Bush.", r"^topics/[^/]*(album|music)[^/]*\.md$", "Hounds of Love"),
+    ("en", "Trips I Want to Take", "Series to watch: Severance.", r"^topics/[^/]*(series|show|watch)[^/]*\.md$", "Severance"),
+    ("tr", "Hafta Sonu Filmleri", "Oynamak istediğim bilgisayar oyunu: Celeste.", r"^topics/[^/]*oyun[^/]*\.md$", "Celeste"),
+    ("tr", "Akşam Yemeği Tarifleri", "Yeğenime alınacak çocuk kitabı: Küçük Prens.", r"^topics/[^/]*(kitap|okuma)[^/]*\.md$", "Küçük Prens"),
+    ("tr", "Yaz İçin Romanlar", "Gidilecek restoran: Karaköy'deki balıkçı.", r"^topics/[^/]*restoran[^/]*\.md$", "balıkçı"),
+    ("tr", "Arkadaşlara Hediyeler", "Dinlenecek albüm: Sezen Aksu'nun Gülümse'si.", r"^topics/[^/]*(album|muzik)[^/]*\.md$", "Gülümse"),
+    ("tr", "Gitmek İstediğim Şehirler", "İzlenecek dizi: Masum.", r"^topics/[^/]*(dizi|izlenecek)[^/]*\.md$", "Masum"),
 ]
 
 # A correction of where the last filing went (v11, #887): the entry the
@@ -1313,6 +1637,32 @@ def cases(rng, t=None):
         p = path(kind, title)
         add(f"rem-{i}", "reminder", lang, {p: written[p]}, msg,
             {"tools": ["add_reminder"], "notes": {f"^{re.escape(p)}$": [at, word]}})
+    for i, (lang, title, kind, msg, at, repeat, word) in enumerate(getattr(t, "REPEATS", ())):
+        p = path(kind, title)
+        once = repeat == "once"
+        expect = {"tools": ["add_reminder"], "notes": {f"^{re.escape(p)}$": [f"{at}: " if once else f"{at} ({repeat})", word]}}
+        if once:
+            expect["lines_not"] = [r"\((daily|weekly|monthly|yearly)\)"]
+        add(f"rem-repeat-{i}", "reminder", lang, {p: note(title, kind, lang)}, msg, expect)
+    for i, (lang, title, kind, msg, word, at) in enumerate(getattr(t, "DATED", ())):
+        p = path(kind, title)
+        add(f"rem-day-{i}", "reminder", lang, {p: note(title, kind, lang, notes=[t.BROAD[title]])}, msg,
+            {"tools": ["add_reminder"], "notes": {f"^{re.escape(p)}$": [f"{at}: ", word]},
+             "lines_not": [r"\((daily|weekly|monthly|yearly)\)"]})
+    for i, (lang, msg) in enumerate(getattr(t, "VAGUE_DONE", ())):
+        notes = {path("project", title): note(title, "project", lang, todos=todos)
+                 for title, todos in t.VAGUE_DONE_PROJECTS[lang]}
+        add(f"vague-done-{i}", "unclear", lang, notes, msg, {"answer": ["?"], "tools_not": ["complete_todo"]})
+    for i, (lang, title, kind, wrong, said, reply, msg, now, old) in enumerate(getattr(t, "FIXES", ())):
+        p = path(kind, title)
+        add(f"rem-fix-{i}", "reminder", lang, {p: note(title, kind, lang, reminders=[wrong])}, msg,
+            {"tools": ["change_reminder"], "notes": {f"^{re.escape(p)}$": [now], "^_archive/": [old]}})
+        out[-1]["history"] = [{"role": "user", "content": said}, {"role": "assistant", "content": reply}]
+    for i, (lang, title, kind, gone, kept, said, reply, msg, word) in enumerate(getattr(t, "REMOVES", ())):
+        p = path(kind, title)
+        add(f"rem-remove-{i}", "reminder", lang, {p: note(title, kind, lang, reminders=[gone, kept])}, msg,
+            {"tools": ["remove_reminder"], "notes": {f"^{re.escape(p)}$": [kept], "^_archive/": [word]}})
+        out[-1]["history"] = [{"role": "user", "content": said}, {"role": "assistant", "content": reply}]
     for i, (lang, msg) in enumerate(t.UNCLEAR):
         add(f"unclear-{i}", "unclear", lang, {}, msg, {"answer": ["?"]})
     for i, (lang, msg, pattern, item) in enumerate(t.NEW_LISTS):

@@ -32,6 +32,8 @@ import 'device_host.dart';
 import 'device_model.dart';
 import 'device_native.dart';
 import 'lock_state.dart';
+import 'meaning_model.dart';
+import 'meaning_native.dart';
 import 'pdf_native.dart';
 import 'prefs.dart';
 import 'quick_widget.dart' show QuickOpen;
@@ -102,6 +104,8 @@ class Session extends ChangeNotifier {
     this._speech,
     this._voice,
     this.whisperFiles = whisperSmall,
+    List<ModelFile>? meaningFiles,
+    this.makeMeaning = nativeMeaning,
     this.httpClient = http.Client.new,
     this.resolve = InternetAddress.lookup,
     this.makeWhisper = nativeWhisper,
@@ -112,6 +116,7 @@ class Session extends ChangeNotifier {
     this.localModels = true,
     this.deviceModels = false,
     this.deviceFiles = deviceModelFiles,
+    this.localModelDir,
     this.makeDeviceEngine = nativeDeviceEngine,
     this.meteredNetwork = _unknownCost,
     this.retryEvery = const Duration(minutes: 1),
@@ -127,6 +132,7 @@ class Session extends ChangeNotifier {
     this.testSpace = false,
     this.realNotes,
   }) : clock = clock ?? DateTime.timestamp,
+       meaningFiles = meaningFiles ?? meaningFilesFor(macOS: Platform.isMacOS),
        deviceAuth = deviceAuth ?? LocalDeviceAuth(),
        // Time that only moves forward; a given clock stands in for it, unless told apart.
        uptime = uptime ?? _uptimeOf(clock),
@@ -172,7 +178,22 @@ class Session extends ChangeNotifier {
     actionLabels: () => (done: strings.reminderDone, snooze: strings.reminderSnooze),
     save: _saveUi,
     share: _touch,
+    strings: () => strings,
+    openToday: () {
+      calendarToday = true;
+      notifyListeners();
+    },
   )..addListener(notifyListeners);
+
+  /// A tap on the morning brief asked for the calendar on today (#918), until
+  /// the home screen takes it.
+  var calendarToday = false;
+  bool get brief => reminderCenter.brief;
+  int get briefAt => reminderCenter.briefAt;
+  Future<void> setBrief({bool? on, int? at}) => reminderCenter.setBrief(on: on, at: at);
+
+  /// The morning brief needs this device's own notifications.
+  bool get briefAvailable => reminders != null;
 
   bool? get remindersAllowed => reminderCenter.remindersAllowed;
   bool get calendar => reminderCenter.calendar;
@@ -230,6 +251,62 @@ class Session extends ChangeNotifier {
     files: whisperFiles,
   );
 
+  /// The model that finds notes by meaning (#929), downloaded by itself once
+  /// set up: its files, and how it is opened (null where it cannot run).
+  late final WhisperModel meaningModel = WhisperModel(
+    p.join(paths.state.path, 'models', 'e5-small'),
+    files: meaningFiles,
+  );
+  final List<ModelFile> meaningFiles;
+  final MeaningModel? Function(String dir, String? library) makeMeaning;
+  MeaningModel? _meaning;
+  Future<void>? _meaningStarted;
+  Future<void>? _embedding;
+
+  /// Fetches the model if it is not here, opens it and gives every note its
+  /// vector. Any failure leaves the note list to the words until the next start.
+  Future<void> _startMeaning() async {
+    try {
+      if (!meaningModel.ready) {
+        // Never by itself on mobile data or an unknown connection: the next start tries again.
+        if (await meteredNetwork() != false) return;
+        final client = httpClient();
+        try {
+          await meaningModel.download(client: client, onProgress: (_) {});
+        } finally {
+          client.close();
+        }
+      }
+      final (dir, files) = (meaningModel.dir, meaningFiles);
+      final (ok, library) = await offThread(
+        () => intact(dir, files) ? (true, ortLibrary(dir)) : (false, null),
+      );
+      if (!ok) return;
+      _meaning = makeMeaning(dir, library);
+    } on Object catch (error) {
+      if (kDebugMode) debugPrint('Meaning model unavailable: $error');
+      return;
+    }
+    await catchUpMeaning();
+  }
+
+  /// Gives the notes without a current vector one, off the screen's thread.
+  /// A call while a pass runs joins it.
+  Future<void> catchUpMeaning() => _embedding ??= _embed().whenComplete(() => _embedding = null);
+
+  Future<void> _embed() async {
+    final model = _meaning;
+    if (model == null) return;
+    try {
+      index.rebuild();
+      await embedPending(index, model.passages);
+    } on Object catch (error) {
+      if (kDebugMode) debugPrint('Embedding the notes failed: $error');
+    }
+  }
+
+  Future<Float32List?> _meaningOf(String message) async => _meaning?.query(message);
+
   /// The chat model that runs on this device (#328), downloaded on request
   /// like Whisper: checked, resumable, kept in this device's state.
   late final WhisperModel deviceModel = WhisperModel(
@@ -257,10 +334,74 @@ class Session extends ChangeNotifier {
     ];
   }
 
+  /// The path the engine loads: a copied file first, then an old one until the pinned one is here.
   String get _deviceFile => switch (_oldDeviceFiles.where((f) => f.path.endsWith('.gguf'))) {
-    final old when old.isNotEmpty && !deviceModel.ready => p.basename(old.first.path),
-    _ => deviceFiles.first.name,
+    _ when localModel != null => p.join(_localDir, localModel),
+    final old when old.isNotEmpty && !deviceModel.ready => old.first.path,
+    _ => deviceModel.path(deviceFiles.first.name),
   };
+
+  /// Where the person copies a model file of their own (#920): Android's
+  /// external files folder, which `adb push` reaches; else beside the pinned one.
+  final String? localModelDir;
+  late final String _localDir = localModelDir ?? p.join(deviceModel.dir, 'local');
+
+  /// The copied file the device model runs, by name; null when none is used.
+  String? localModel;
+
+  /// A copied file that does not open as GGUF: the pinned model runs instead.
+  String? localModelBroken;
+
+  /// The copied file the person stopped using here; a file of another name is used again.
+  String? localModelOff;
+
+  /// A folder the app cannot read must not stop it from opening: then no copied file is used.
+  Future<void> _scanLocal() async {
+    final (used, broken) = await Future.sync(_findLocal).catchError((Object _) => _none);
+    localModel = used;
+    localModelBroken = broken;
+  }
+
+  static const (String?, String?) _none = (null, null);
+
+  /// The newest-named file, used or broken. No checksum: the person put it
+  /// there, but it must start like a GGUF file. A plain name only, as it is
+  /// shown and written into feedback.
+  (String?, String?) _findLocal() {
+    final dir = Directory(_localDir);
+    if (!dir.existsSync()) return _none;
+    final names = [
+      for (final file in dir.listSync().whereType<File>())
+        if (RegExp(r'^[\w.-]+\.gguf$').hasMatch(p.basename(file.path))) p.basename(file.path),
+    ]..sort();
+    if (names.isEmpty || names.last == localModelOff) return _none;
+    final head = File(p.join(_localDir, names.last)).openSync();
+    try {
+      final gguf = ascii.decode(head.readSync(4), allowInvalid: true) == 'GGUF';
+      return gguf ? (names.last, null) : (null, names.last);
+    } finally {
+      head.closeSync();
+    }
+  }
+
+  /// The model file is here, downloaded or copied.
+  bool get deviceModelHere => deviceModel.ready || localModel != null;
+
+  /// Back to the pinned model; the copied file stays where the person put it.
+  Future<void> stopLocalModel() async {
+    localModelOff = localModel;
+    _saveUi();
+    await _exclusive(() async {
+      await device.free();
+      await _scanLocal();
+      if ((spec, model) case (final spec?, final model?)
+          when spec.access == ProviderAccess.deviceFile) {
+        _use(spec, '', model);
+      }
+    });
+    notifyListeners();
+    await _checkDeviceModel();
+  }
 
   /// A file Windows still holds (antivirus, an indexer) stays: the next start tries again.
   Future<void> _dropOldDeviceFiles() => Future.wait([
@@ -279,6 +420,7 @@ class Session extends ChangeNotifier {
   /// known) the person is asked first.
   Future<void> _checkDeviceModel() async {
     if (deviceModel.ready) return deviceUpdating = _dropOldDeviceFiles();
+    if (localModel != null) return;
     if (spec?.access != ProviderAccess.deviceFile) return;
     if (await meteredNetwork() == false) return updateDeviceModel();
     deviceUpdate = DeviceUpdate.ask;
@@ -589,7 +731,7 @@ class Session extends ChangeNotifier {
     final rel = reported = saveFeedback(
       (realNotes ?? paths.notes).path,
       _agent!.messages,
-      model: '${spec!.name} $model',
+      model: '${spec!.name} $model${_runsLocal ? ' ($localModel)' : ''}',
       expected: expected,
       verdict: verdict,
       space: testSpace ? 'test' : null,
@@ -604,6 +746,8 @@ class Session extends ChangeNotifier {
     notifyListeners();
     return rel;
   });
+
+  bool get _runsLocal => spec?.access == ProviderAccess.deviceFile && localModel != null;
 
   /// The newest answer's report, until it is taken back or the next message goes.
   String? reported;
@@ -734,7 +878,10 @@ class Session extends ChangeNotifier {
           if (chatTextStep != chatTextDefault) 'chatTextStep': chatTextStep,
           if (!quickShortcut) 'quickShortcut': false,
           if (reminderCenter.calendarNudged) 'calendarNudged': true,
+          if (brief) 'brief': true,
+          if (briefAt != 8 * 60) 'briefAt': briefAt,
           'lookBackClosed': ?lookBackClosed,
+          'localModelOff': ?localModelOff,
         }),
       );
     } on FileSystemException {
@@ -753,7 +900,13 @@ class Session extends ChangeNotifier {
       aboutMeToCloud = shared.aboutMeToCloud ?? true;
       calendar = shared.calendar ?? false;
       calendarId = shared.calendarId;
-      reminderCenter.calendarNudged = saved['calendarNudged'] == true;
+      reminderCenter
+        ..calendarNudged = saved['calendarNudged'] == true
+        ..brief = saved['brief'] == true
+        ..briefAt = switch (saved['briefAt']) {
+          final int at when at >= 0 && at < 24 * 60 => at,
+          _ => 8 * 60,
+        };
       reminderCenter.dropCalendars
         ..clear()
         ..addAll((saved['dropCalendars'] as List? ?? const []).whereType<String>());
@@ -769,6 +922,10 @@ class Session extends ChangeNotifier {
       };
       lookBackClosed = switch (saved['lookBackClosed']) {
         final String day => day,
+        _ => null,
+      };
+      localModelOff = switch (saved['localModelOff']) {
+        final String name => name,
         _ => null,
       };
     } on Exception {
@@ -804,7 +961,7 @@ class Session extends ChangeNotifier {
   /// How often messages that wait are tried again by themselves.
   final Duration retryEvery;
 
-  /// The periodic timer that tries them; tests tick it by hand.
+  /// The periodic timer behind retries and auto-sync; tests tick it by hand.
   final Timer Function(Duration period, void Function(Timer) onTick) every;
 
   /// Tests pin it; the app uses the local date.
@@ -1007,6 +1164,7 @@ class Session extends ChangeNotifier {
   Future<void> load() async {
     await lock.load();
     _loadLanguage();
+    await _scanLocal();
     // Whisper comes by itself, in the background: not with the app, so that
     // updates stay small.
     if (!whisper.ready) unawaited(downloadWhisper());
@@ -1104,7 +1262,9 @@ class Session extends ChangeNotifier {
       await device.downloading;
       await device.free();
       final dir = Directory(deviceModel.dir);
-      if (dir.existsSync()) dir.deleteSync(recursive: true);
+      for (final entry in dir.existsSync() ? dir.listSync() : const <FileSystemEntity>[]) {
+        if (!p.equals(entry.path, _localDir)) entry.deleteSync(recursive: true);
+      }
     }
     if (this.spec?.name == spec.name) _forgetProvider();
     notifyListeners();
@@ -1151,7 +1311,7 @@ class Session extends ChangeNotifier {
       switch (spec.access) {
         // Its one model, once its file is here; nothing to ask a server.
         ProviderAccess.deviceFile
-            when !deviceModel.ready && _deviceFile == deviceFiles.first.name =>
+            when !deviceModel.ready && _deviceFile == deviceModel.path(deviceFiles.first.name) =>
           throw const TransientValidationError('Download the model first'),
         ProviderAccess.deviceFile => [spec.defaultModel],
         ProviderAccess.apiKey ||
@@ -1293,7 +1453,8 @@ class Session extends ChangeNotifier {
     spec = chosen;
     model = chosenModel;
     if (chosen.access != ProviderAccess.deviceFile) unawaited(device.free());
-    final toolbox = Toolbox(paths.notes.path, index, today: today);
+    final toolbox = Toolbox(paths.notes.path, index, today: today)..meaning = _meaningOf;
+    _meaningStarted ??= _startMeaning();
     _provider = MeteredProvider(_providerFor(chosen, key, chosenModel), chosen.name, usage);
     final me = aboutMeToCloud || onThisMachine(chosen, chosenModel);
     // A model switch keeps the conversation (logout has already dropped it), except
@@ -1450,7 +1611,10 @@ class Session extends ChangeNotifier {
       );
       // Seen only once answered: a failed turn's notice goes out again.
       _lastNotes = _noteTitles(); // the agent's own changes included
-      if (asked.wroteNotes) await refreshReminders();
+      if (asked.wroteNotes) {
+        await refreshReminders();
+        unawaited(catchUpMeaning());
+      }
     } on Exception catch (error) {
       failed = !_stopped; // the person's own Stop is no error
       // The failed turn was taken back: what it had taken goes out again.
@@ -1698,7 +1862,8 @@ class Session extends ChangeNotifier {
   /// come in without asking. A tick is skipped while a sync or a chat turn runs.
   void startAutoSync({Duration every = const Duration(minutes: 3)}) {
     _autoSync?.cancel();
-    _autoSync = Timer.periodic(every, (_) => syncIfIdle());
+    // The injected timer, so tests drive the tick instead of waiting on it (#905).
+    _autoSync = this.every(every, (_) => syncIfIdle());
   }
 
   /// A background sync, unless one is already running or queued or a chat
@@ -1834,6 +1999,7 @@ class Session extends ChangeNotifier {
         completed = true;
         await _syncSettings(_remote!);
         await refreshReminders(ask: false); // the notes' and the shared setting's
+        unawaited(catchUpMeaning()); // notes Drive brought
         syncStatus = _syncSummary(report, resolver);
         lastSynced = clock().toUtc();
         syncFailed = false;

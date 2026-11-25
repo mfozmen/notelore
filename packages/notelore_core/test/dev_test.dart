@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:notelore_core/src/dev.dart';
+import 'package:notelore_core/src/meaning.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -293,6 +295,99 @@ void main() {
       1,
     );
     expect('$out', contains('--greedy works with --provider=ollama or opencode only'));
+  });
+
+  test('eval --note-list=mixed:20: the prompt lists the notes the message names (#914)', () async {
+    File(p.join(temp.path, 'cases.json')).writeAsStringSync(
+      jsonEncode([
+        {
+          'id': 'old',
+          'kind': 'question',
+          'lang': 'en',
+          'filler': 40,
+          'notes': {
+            'topics/glacier-trip.md':
+                '---\ntitle: Glacier Trip\nkind: topic\ncreated: 2020-01-02\n'
+                'updated: 2020-01-02\n---\n# Glacier Trip\n\n## Notes\n- 2020-01-02: Crampons.\n',
+          },
+          'message': 'What did I pack for the glacier?',
+          'expect': <String, Object?>{},
+        },
+      ]),
+    );
+    final systems = <String>[];
+    final ollama = MockClient((request) async {
+      final messages = (jsonDecode(request.body) as Map)['messages'] as List;
+      systems.add((messages.first as Map)['content'] as String);
+      return http.Response(
+        jsonEncode({
+          'message': {'role': 'assistant', 'content': 'Crampons.'},
+          'done': true,
+        }),
+        200,
+      );
+    });
+    final args = ['eval', '--provider=ollama', '--model=m', '--cases=cases.json'];
+    expect(await run([...args, '--note-list=newest'], client: ollama), 0);
+    expect(systems.last, isNot(contains('glacier-trip')));
+    expect(await run(args, client: ollama), 0);
+    expect(systems.last, contains('glacier-trip'));
+    expect(await run([...args, '--note-list=mixed:20'], client: ollama), 0);
+    expect(systems.last, contains('glacier-trip'));
+    for (final bad in ['mixed', 'mixed:0', 'all:20', 'matches:x']) {
+      expect(await run([...args, '--note-list=$bad']), 64, reason: bad);
+    }
+  });
+
+  test('reach: which crowded cases get their note into the prompt, no model (#929)', () async {
+    String note(String title) =>
+        '---\ntitle: $title\nkind: topic\ncreated: 2020-01-02\n'
+        'updated: 2020-01-02\n---\n# $title\n\n## Notes\n- 2020-01-02: Crampons.\n';
+    Map<String, Object?> question(String id, String message, {int filler = 40}) => {
+      'id': id,
+      'kind': 'scale',
+      'lang': 'en',
+      'filler': filler,
+      'notes': {'topics/glacier-trip.md': note('Glacier Trip')},
+      'message': message,
+      'expect': {
+        'answer': ['Crampons'],
+      },
+    };
+    File(p.join(temp.path, 'cases.json')).writeAsStringSync(
+      jsonEncode([
+        question('named', 'What did I pack for the glacier?'),
+        question('unnamed', 'Which spikes go on my boots?'),
+        question('small', 'Which spikes go on my boots?', filler: 0),
+        {...question('no-target', 'hi'), 'expect': <String, Object?>{}},
+      ]),
+    );
+    expect(await run(['reach', '--cases=cases.json']), 0);
+    expect('$out', contains('hit  named'));
+    expect('$out', contains('MISS unnamed topics/glacier-trip.md'));
+    expect('$out', isNot(contains('small')));
+    expect('$out', isNot(contains('no-target')));
+    expect('$out', contains('1/2 reach the prompt (matches:20)'));
+    expect(await run(['reach', '--cases=cases.json', '--note-list=newest']), 0);
+    expect('$out', contains('0/2 reach the prompt (newest:60)'));
+    expect(await run(['reach', '--runs=2', '--cases=cases.json']), 64);
+    expect(await run(['reach', '--nearest=x', '--cases=cases.json']), 64);
+    // With the note vectors, the spikes find the glacier note too.
+    final loaded = <(String, String?)>[];
+    final native = loadMeaning;
+    addTearDown(() => loadMeaning = native);
+    loadMeaning = (String dir, String? library) {
+      loaded.add((dir, library));
+      return Embedder(
+        (text) => [if (RegExp('glacier|spike', caseSensitive: false).hasMatch(text)) 1 else 0],
+        (ids) => Float32List.fromList([ids.single.toDouble(), 1 - ids.single.toDouble()]),
+        dim: 2,
+      );
+    };
+    expect(await run(['reach', '--cases=cases.json', '--meaning=e5', '--ort=ort.dll']), 0);
+    expect('$out', contains('hit  unnamed'));
+    expect('$out', contains('2/2 reach the prompt (matches:20, 8 nearest)'));
+    expect(loaded.single, (p.join(temp.path, 'e5'), 'ort.dll'));
   });
 
   test(

@@ -114,6 +114,10 @@ abstract class Strings {
   String get gotIt;
   String get usingChatGptPlan;
   String get manageUsage;
+  String copiedModel(String file);
+  String copiedModelBroken(String file);
+  String get useDownloadedModel;
+  String get copiedModelStays;
 
   // Chat.
   String get askSomething;
@@ -468,8 +472,9 @@ abstract class Strings {
   List<String> get monthNames;
   String monthYear(DateTime month) => '${monthNames[month.month - 1]} ${month.year}';
 
-  /// A day's heading: "Sunday, 25 October" / "25 Ekim Pazar".
-  String dayHeading(DateTime day);
+  /// A day's heading: "Sunday, 25 October" / "25 Ekim Pazar", with its [year]
+  /// when asked ("Sunday, 25 October 2027").
+  String dayHeading(DateTime day, {bool year = false});
   String get showAll;
   String get calendarExample;
   String get goToChat;
@@ -482,6 +487,9 @@ abstract class Strings {
   String overdue(String date);
   String reminderPassed(String date);
 
+  /// How a repeating reminder comes again, short enough for a date column.
+  String repeats(Repeat repeat);
+
   // Reminders as this device's notifications (#431).
   String get reminders;
   String get howRemindersArrive;
@@ -491,6 +499,14 @@ abstract class Strings {
   String get reminderHidden;
   String get reminderDone;
   String get reminderSnooze;
+
+  // The morning brief (#918).
+  String get morningBrief;
+  String get morningBriefHint;
+  String briefTime(String time);
+  String get briefTitle;
+  String briefOverdue(String text);
+  String get briefHidden;
 
   // Reminders through Google Calendar (#432).
   String get addToCalendar;
@@ -716,6 +732,15 @@ class EnglishStrings extends Strings {
   String get usingChatGptPlan => 'Using ChatGPT plan';
   @override
   String get manageUsage => 'Manage usage';
+  @override
+  String copiedModel(String file) => '$file (copied to this device)';
+  @override
+  String copiedModelBroken(String file) =>
+      '$file did not open as a model. The downloaded one runs instead.';
+  @override
+  String get useDownloadedModel => 'Use the downloaded model';
+  @override
+  String get copiedModelStays => 'The copied file stays on this device.';
   @override
   String get languageCode => 'en';
   @override
@@ -1189,6 +1214,8 @@ class EnglishStrings extends Strings {
     'add_todo': 'Todo added',
     'complete_todo': 'Todo done',
     'add_reminder': 'Reminder added',
+    'change_reminder': 'Reminder changed',
+    'remove_reminder': 'Reminder removed',
     'record_decision': 'Decision added',
     'merge_notes': 'Notes merged',
     'recategorize': 'Kind changed',
@@ -1431,8 +1458,9 @@ class EnglishStrings extends Strings {
   @override
   String get nextMonth => 'Next month';
   @override
-  String dayHeading(DateTime day) =>
-      '${weekdayNames[day.weekday - 1]}, ${day.day} ${monthNames[day.month - 1]}';
+  String dayHeading(DateTime day, {bool year = false}) =>
+      '${weekdayNames[day.weekday - 1]}, ${day.day} ${monthNames[day.month - 1]}'
+      '${year ? ' ${day.year}' : ''}';
   @override
   String get showAll => 'Show all';
   @override
@@ -1473,6 +1501,13 @@ class EnglishStrings extends Strings {
   @override
   String reminderPassed(String date) => 'Passed, $date';
   @override
+  String repeats(Repeat repeat) => switch (repeat) {
+    Repeat.daily => 'Daily',
+    Repeat.weekly => 'Weekly',
+    Repeat.monthly => 'Monthly',
+    Repeat.yearly => 'Yearly',
+  };
+  @override
   String get reminders => 'Reminders';
   @override
   String get howRemindersArrive => 'How reminders arrive';
@@ -1489,6 +1524,18 @@ class EnglishStrings extends Strings {
   String get reminderDone => 'Done';
   @override
   String get reminderSnooze => 'Snooze 1 hour';
+  @override
+  String get morningBrief => 'Morning brief';
+  @override
+  String get morningBriefHint => "Today's reminders and todos, each morning on this device.";
+  @override
+  String briefTime(String time) => 'Every day at $time';
+  @override
+  String get briefTitle => 'Today';
+  @override
+  String briefOverdue(String text) => 'Overdue: $text';
+  @override
+  String get briefHidden => 'Your morning brief is ready.';
   @override
   String get addToCalendar => 'Add to Google Calendar';
   @override
@@ -1911,6 +1958,15 @@ class TurkishStrings extends Strings {
   String get usingChatGptPlan => 'ChatGPT planı kullanılıyor';
   @override
   String get manageUsage => 'Kullanımı yönet';
+  @override
+  String copiedModel(String file) => '$file (bu cihaza kopyalandı)';
+  @override
+  String copiedModelBroken(String file) =>
+      '$file model olarak açılmadı. Yerine indirilen model çalışıyor.';
+  @override
+  String get useDownloadedModel => 'İndirilen modeli kullan';
+  @override
+  String get copiedModelStays => 'Kopyalanan dosya bu cihazda kalır.';
   @override
   String get languageCode => 'tr';
   @override
@@ -2448,6 +2504,8 @@ class TurkishStrings extends Strings {
     'add_todo': 'Yapılacak eklendi',
     'complete_todo': 'Yapılacak bitti',
     'add_reminder': 'Hatırlatıcı eklendi',
+    'change_reminder': 'Hatırlatıcı değişti',
+    'remove_reminder': 'Hatırlatıcı kaldırıldı',
     'record_decision': 'Karar eklendi',
     'merge_notes': 'Notlar birleştirildi',
     'recategorize': 'Türü değişti',
@@ -2680,8 +2738,9 @@ class TurkishStrings extends Strings {
   @override
   String get nextMonth => 'Sonraki ay';
   @override
-  String dayHeading(DateTime day) =>
-      '${day.day} ${monthNames[day.month - 1]} ${weekdayNames[day.weekday - 1]}';
+  String dayHeading(DateTime day, {bool year = false}) =>
+      '${day.day} ${monthNames[day.month - 1]}${year ? ' ${day.year}' : ''} '
+      '${weekdayNames[day.weekday - 1]}';
   @override
   String get showAll => 'Tümünü göster';
   @override
@@ -2729,6 +2788,13 @@ class TurkishStrings extends Strings {
   @override
   String reminderPassed(String date) => 'Geçti, $date';
   @override
+  String repeats(Repeat repeat) => switch (repeat) {
+    Repeat.daily => 'Her gün',
+    Repeat.weekly => 'Her hafta',
+    Repeat.monthly => 'Her ay',
+    Repeat.yearly => 'Her yıl',
+  };
+  @override
   String get reminders => 'Hatırlatıcılar';
   @override
   String get howRemindersArrive => 'Hatırlatıcılar nasıl gelir';
@@ -2745,6 +2811,18 @@ class TurkishStrings extends Strings {
   String get reminderDone => 'Bitti';
   @override
   String get reminderSnooze => '1 saat ertele';
+  @override
+  String get morningBrief => 'Sabah özeti';
+  @override
+  String get morningBriefHint => 'Günün hatırlatıcıları ve yapılacakları, her sabah bu cihazda.';
+  @override
+  String briefTime(String time) => 'Her gün $time';
+  @override
+  String get briefTitle => 'Bugün';
+  @override
+  String briefOverdue(String text) => 'Gecikmiş: $text';
+  @override
+  String get briefHidden => 'Sabah özetin hazır.';
   @override
   String get addToCalendar => "Google Takvim'e ekle";
   @override

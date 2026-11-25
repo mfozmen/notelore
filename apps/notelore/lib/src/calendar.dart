@@ -108,11 +108,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
         actions: [OutlinedButton(onPressed: widget.toChat, child: Text(s.goToChat))],
       );
     }
+    // What is coming lists a repeating reminder at its next turn only; the grid marks every coming turn.
+    final listed = <(String, String, String, String?)>{};
     return _Agenda(
       s,
       items: [
         for (final i in items)
-          if (_picked == null || i.day == _picked) i,
+          if (_picked == null
+              ? i.repeat == null || listed.add((i.kind, i.slug, i.text, i.time))
+              : i.day == _picked)
+            i,
       ],
       today: today,
       picked: _picked,
@@ -421,7 +426,7 @@ class _Agenda extends StatelessWidget {
   String _heading(DateTime day) {
     if (day == today) return s.today;
     if (day == today.add(const Duration(days: 1))) return s.tomorrow;
-    return s.dayHeading(day);
+    return s.dayHeading(day, year: day.year != today.year);
   }
 
   @override
@@ -515,6 +520,7 @@ class _Item extends StatelessWidget {
     final when = [
       ?item.time,
       if (late) underOverdue ? date : s.overdue(date),
+      if (item.repeat case final repeat?) s.repeats(repeat),
       item.note,
     ].join(' · ');
     final theme = Theme.of(context);
@@ -531,7 +537,11 @@ class _Item extends StatelessWidget {
                   side: BorderSide(color: late ? colors.error : colors.primary, width: 2),
                   onChanged: (_) => toggle(item),
                 )
-              : Icon(AppIcons.alarm, size: 20, color: late ? colors.error : colors.primary),
+              : Icon(
+                  item.repeat == null ? AppIcons.alarm : AppIcons.repeat,
+                  size: 20,
+                  color: late ? colors.error : colors.primary,
+                ),
         ),
       ),
       title: Text(

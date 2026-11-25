@@ -10,15 +10,18 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
 import 'package:path/path.dart' as p;
 
 import 'agent.dart';
 import 'i18n.dart' show answerLanguage;
+import 'meaning.dart';
 import 'providers/base.dart';
 import 'providers/ollama.dart';
 import 'providers/openai.dart';
+import 'sample_notes.dart';
 import 'store/index.dart';
 import 'tools.dart';
 
@@ -74,6 +77,7 @@ class EvalCase {
           {...(turn as Map).cast<String, Object?>()},
       ],
       notes = ((json['notes'] as Map?) ?? shared).cast<String, String>(),
+      filler = json['filler'] as int? ?? 0,
       failFirstCall = json['fail_first_call'] == true,
       search = (json['search'] as List?)?.cast<String>(),
       expect = Expectation.fromJson((json['expect']! as Map).cast());
@@ -89,6 +93,10 @@ class EvalCase {
 
   /// Relative path (`/`) -> note text, written before the turn.
   final Map<String, String> notes;
+
+  /// How many invented notes go beside [notes], all updated in the twelve days
+  /// before the eval's day, so the case's own notes are not among the newest.
+  final int filler;
 
   /// The turn's first tool call gets an error: the model must fix it and go
   /// on, in the user's language, never hand the error to the user (#474).
@@ -237,12 +245,17 @@ Iterable<Map<Object?, Object?>> _blocks(Message message) => switch (message['con
 
 /// Runs [evalCase] once with [provider] on a fresh temp notes folder; [slim]
 /// as the model on the device asks (#447); with [firstWrite], only until its
-/// first write, which is all that is scored then (#598).
+/// first write, which is all that is scored then (#598); [noteList] picks the
+/// prompt's notes ([Toolbox.noteChoice]), with the nearest of [meaning]'s
+/// vectors in [nearest] of its places when given (#929).
 Future<EvalResult> runCase(
   EvalCase evalCase,
   LlmProvider provider, {
   bool slim = false,
   bool firstWrite = false,
+  NoteListChoice noteList = defaultNotes,
+  Embedder? meaning,
+  int nearest = 8,
 }) async {
   final until = firstWrite ? UntilWrite(provider) : null;
   final dir = Directory.systemTemp.createTempSync('notelore_eval_');
@@ -250,19 +263,16 @@ Future<EvalResult> runCase(
   final index = NoteIndex(p.join(dir.path, 'state', 'index.sqlite'), root);
   final watch = Stopwatch()..start();
   try {
-    _write(root, evalCase.notes);
+    _writeCase(root, evalCase);
     final before = _files(root);
-    final agent = Agent(
-      until ?? provider,
-      switch (evalCase) {
-        EvalCase(failFirstCall: true) => _FailsOnce(root, index, today: evalToday),
-        EvalCase(search: final found?) => _Searches(root, index, found, today: evalToday),
-        _ => Toolbox(root, index, today: evalToday),
-      },
-      today: evalNow,
-      slim: slim,
-      aboutMe: true,
-    )..messages.addAll(evalCase.history);
+    final toolbox = switch (evalCase) {
+      EvalCase(failFirstCall: true) => _FailsOnce(root, index, today: evalToday),
+      EvalCase(search: final found?) => _Searches(root, index, found, today: evalToday),
+      _ => Toolbox(root, index, today: evalToday),
+    };
+    await _useMeaning(toolbox..noteChoice = noteList, meaning, nearest);
+    final agent = Agent(until ?? provider, toolbox, today: evalNow, slim: slim, aboutMe: true)
+      ..messages.addAll(evalCase.history);
     var answer = '';
     final problems = <String>[];
     try {
@@ -305,6 +315,63 @@ Future<EvalResult> runCase(
     index.close();
     dir.deleteSync(recursive: true);
   }
+}
+
+/// The case's own notes a turn must find: those its expectation may change,
+/// else those holding every fact the answer needs; empty when neither.
+List<String> targetNotes(EvalCase evalCase) {
+  final patterns = [for (final pattern in evalCase.expect.notes.keys) RegExp(pattern)];
+  final named = [
+    for (final path in evalCase.notes.keys)
+      if (patterns.any((pattern) => pattern.hasMatch(path))) path,
+  ];
+  if (named.isNotEmpty || evalCase.expect.answer.isEmpty) return named;
+  return [
+    for (final MapEntry(key: path, value: text) in evalCase.notes.entries)
+      if (evalCase.expect.answer.every((fact) => _has(text, fact))) path,
+  ];
+}
+
+/// Whether the prompt's note list for [evalCase]'s message, chosen by
+/// [noteList], holds every [targetNotes] slug: the search half of a turn,
+/// measured without a model (#929), and with [meaning] as [runCase] has it.
+Future<bool> reachesPrompt(
+  EvalCase evalCase, {
+  NoteListChoice noteList = defaultNotes,
+  Embedder? meaning,
+  int nearest = 8,
+}) async {
+  final dir = Directory.systemTemp.createTempSync('notelore_reach_');
+  final root = p.join(dir.path, 'notes');
+  final index = NoteIndex(p.join(dir.path, 'state', 'index.sqlite'), root);
+  try {
+    _writeCase(root, evalCase);
+    final toolbox = Toolbox(root, index, today: evalToday)..noteChoice = noteList;
+    await _useMeaning(toolbox, meaning, nearest);
+    final message = evalCase.message;
+    final listed = toolbox.noteList(message, await toolbox.meaning?.call(message));
+    return targetNotes(evalCase)
+        .every((path) => listed.contains(': ${p.url.basenameWithoutExtension(path)}, '));
+  } finally {
+    index.close();
+    dir.deleteSync(recursive: true);
+  }
+}
+
+/// Each note's vector, by its text: the filler is the same in every case.
+final _passages = <String, Float32List>{};
+
+/// Gives [toolbox]'s notes their [meaning] vectors and the message's.
+Future<void> _useMeaning(Toolbox toolbox, Embedder? meaning, int nearest) async {
+  if (meaning == null) return;
+  toolbox
+    ..nearestSlots = nearest
+    ..meaning = (message) async => meaning.query(message);
+  toolbox.index.rebuild();
+  await embedPending(
+    toolbox.index,
+    (texts) async => [for (final text in texts) _passages[text] ??= meaning.passage(text)],
+  );
 }
 
 /// A toolbox whose first call fails, as one would on a bad argument.
@@ -358,6 +425,12 @@ void _write(String root, Map<String, String> notes) {
       ..writeAsStringSync(value);
   }
 }
+
+/// [evalCase]'s notes and its filler, newer than them, under [root].
+void _writeCase(String root, EvalCase evalCase) => _write(root, {
+  ...sampleNotes(evalCase.filler, newest: evalToday.subtract(const Duration(days: 1)), days: 12),
+  ...evalCase.notes,
+});
 
 /// The paths added, removed or changed, sorted.
 List<String> _changed(Map<String, String> before, Map<String, String> after) => {

@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:notelore_core/src/providers/base.dart';
+import 'package:notelore_core/src/sample_notes.dart';
 import 'package:notelore_core/src/store/index.dart';
 import 'package:notelore_core/src/tools.dart';
 import 'package:path/path.dart' as p;
@@ -146,6 +148,106 @@ void main() {
     );
   });
 
+  group('a wrong reminder is changed or removed, the old line archived (#925)', () {
+    String note() => File(p.join(box.root, 'topics', 'alisveris.md')).readAsStringSync();
+    String archived() =>
+        Directory(p.join(box.root, '_archive'))
+            .listSync(recursive: true)
+            .whereType<File>()
+            .single
+            .readAsStringSync();
+
+    setUp(() {
+      call('create_note', {'kind': 'topic', 'title': 'Alışveriş', 'lang': 'tr'});
+      call('add_reminder', {
+        'slug': 'alisveris',
+        'at': '2026-10-19',
+        'text': 'Kahve siparişi',
+        'repeat': 'monthly',
+      });
+      call('add_reminder', {'slug': 'alisveris', 'at': '2026-10-20 09:00', 'text': 'Market'});
+    });
+
+    test('change_reminder puts the changed one in place of the old', () {
+      final changed = call('change_reminder', {
+        'slug': 'alisveris',
+        'reminder': 'kahve',
+        'repeat': 'once',
+      }) as Map;
+      expect(changed['reminder'], '- 2026-10-19: Kahve siparişi');
+      expect(changed['archived_to'], startsWith('_archive/'));
+      expect(note(), contains('- 2026-10-20 09:00: Market\n- 2026-10-19: Kahve siparişi\n'));
+      expect(note(), isNot(contains('monthly')));
+      expect(archived(), contains('- 2026-10-19 (monthly): Kahve siparişi'));
+      expect(box.receipts().single.tools, contains('change_reminder'));
+    });
+
+    test('what change_reminder is not given stays as it was', () {
+      call('change_reminder', {'slug': 'alisveris', 'reminder': 'market', 'text': 'Pazar'});
+      expect(note(), contains('- 2026-10-20 09:00: Pazar\n'));
+      call('change_reminder', {'slug': 'alisveris', 'reminder': 'kahve', 'at': '2026-10-21 08:30'});
+      expect(note(), contains('- 2026-10-21 08:30 (monthly): Kahve siparişi\n'));
+      // The ChatGPT route fills every argument; an empty one is not given.
+      call('change_reminder', {
+        'slug': 'alisveris',
+        'reminder': 'kahve',
+        'at': '',
+        'text': '',
+        'repeat': 'once',
+      });
+      expect(note(), contains('- 2026-10-21 08:30: Kahve siparişi\n'));
+    });
+
+    test('remove_reminder moves the one reminder to the archive', () {
+      final removed = call('remove_reminder', {'slug': 'alisveris', 'reminder': 'Market'}) as Map;
+      expect(removed['reminder'], '- 2026-10-20 09:00: Market');
+      expect(removed['archived_to'], startsWith('_archive/'));
+      expect(note(), isNot(contains('Market')));
+      expect(note(), contains('Kahve siparişi'));
+      expect(archived(), contains('- 2026-10-20 09:00: Market'));
+    });
+
+    test('a reminder not found, or not one, is an error that changes nothing', () {
+      final before = note();
+      expect(
+        call('remove_reminder', {'slug': 'alisveris', 'reminder': 'dentist'}),
+        "Error: No reminder of 'alisveris' mentions 'dentist'. Its reminders: "
+        '2026-10-19 (monthly): Kahve siparişi; 2026-10-20 09:00: Market',
+      );
+      expect(
+        call('change_reminder', {'slug': 'alisveris', 'reminder': '2026-10', 'text': 'x'}),
+        "Error: 2 reminders of 'alisveris' mention '2026-10'; pass more of it.",
+      );
+      expect(
+        call('remove_reminder', {'slug': 'alisveris', 'reminder': ' '}),
+        'Error: Pass a few words of the reminder.',
+      );
+      expect(
+        call('change_reminder', {'slug': 'alisveris', 'reminder': 'kahve'}),
+        'Error: Nothing to change: pass at, text or repeat.',
+      );
+      expect(
+        call('change_reminder', {'slug': 'alisveris', 'reminder': 'kahve', 'repeat': 'hourly'}),
+        "Error: repeat must be one of once, daily, weekly, monthly, yearly, got 'hourly'.",
+      );
+      expect(
+        call('change_reminder', {
+          'slug': 'alisveris',
+          'reminder': 'kahve',
+          'at': '2026-10-19 25:00',
+        }),
+        'Error: a reminder time is HH:MM, 00:00 to 23:59 (got 25:00)',
+      );
+      expect(note(), before);
+      call('create_note', {'kind': 'topic', 'title': 'Empty'});
+      expect(
+        call('remove_reminder', {'slug': 'empty', 'reminder': 'x'}),
+        "Error: No reminder of 'empty' mentions 'x'. It has no reminders.",
+      );
+      expect(Directory(p.join(box.root, '_archive')).existsSync(), isFalse);
+    });
+  });
+
   test('sources cite the current decisions the decision tools found, at most 3 (#792)', () {
     List<String> sources() => [
       for (final s in box.sources())
@@ -208,6 +310,8 @@ void main() {
       'add_todo',
       'complete_todo',
       'add_reminder',
+      'change_reminder',
+      'remove_reminder',
       'record_decision',
       'get_decision',
       'decision_history',
@@ -258,6 +362,32 @@ void main() {
     expect(text, contains('## Kararlar'));
   });
 
+  test(
+    'over 30 notes, list_notes gives the 30 newest, the total and where the rest are (#895)',
+    () {
+      final notes = sampleNotes(80, newest: today, days: 80);
+      for (final MapEntry(:key, :value) in notes.entries) {
+        File(p.joinAll([box.root, ...key.split('/')]))
+          ..createSync(recursive: true)
+          ..writeAsStringSync(value);
+      }
+      final listed = call('list_notes')! as Map;
+      expect((listed['notes']! as List).map((n) => '${(n as Map)['kind']}s/${n['slug']}.md'), [
+        ...notes.keys.take(30),
+      ]);
+      expect(listed['total'], 80);
+      expect(
+        listed['more'],
+        '50 older notes are not listed: search_notes finds them; call it before create_note.',
+      );
+
+      final topics = notes.keys.where((path) => path.startsWith('topics/')).length;
+      final onlyTopics = call('list_notes', {'kind': 'topic'})! as Map;
+      expect(onlyTopics['total'], topics);
+      expect((onlyTopics['notes']! as List).every((n) => (n as Map)['kind'] == 'topic'), isTrue);
+    },
+  );
+
   test('reminders: a day, or a day and a time (#430)', () {
     call('create_note', {'kind': 'topic', 'title': 'Health'});
     expect(
@@ -279,13 +409,28 @@ void main() {
       'ok',
     );
     expect(
+      call('add_reminder', {'slug': 'health', 'at': '2026-11-20', 'text': 'Pay', 'repeat': 'once'}),
+      'ok',
+    );
+    expect(
+      call('add_reminder', {
+        'slug': 'health',
+        'at': '2026-11-23 19:00',
+        'text': 'Gym',
+        'repeat': 'weekly',
+      }),
+      'ok',
+    );
+    expect(
       call('read_note', {'slug': 'health'}),
       endsWith(
         '## Reminders\n'
         '- 2026-10-20 10:00: Dentist\n'
         '- 2026-10-27: Call back\n'
         '- 2026-10-28 18:00-20:15: Dinner\n'
-        '- 2026-11-18 09:00 (monthly): Rent\n',
+        '- 2026-11-18 09:00 (monthly): Rent\n'
+        '- 2026-11-20: Pay\n'
+        '- 2026-11-23 19:00 (weekly): Gym\n',
       ),
     );
     for (final at in ['tomorrow', '2026-10-20T10:00', '2026-02-30']) {
@@ -307,14 +452,33 @@ void main() {
         'slug': 'health',
         'at': '2026-10-20 10:00',
         'text': 'x',
-        'repeat': 'weekly',
+        'repeat': 'hourly',
       }),
-      "Error: repeat must be 'monthly', got 'weekly'.",
+      "Error: repeat must be one of once, daily, weekly, monthly, yearly, got 'hourly'.",
     );
+  });
+
+  test('a blank optional argument is not given, as the ChatGPT route sends it (#927)', () {
+    call('create_note', {'kind': 'topic', 'title': 'Book Club'});
+    // The route fills every argument: "due": "" is no date, not a bad one.
+    expect(
+      call('add_todo', {'slug': 'book-club', 'text': 'Make a reading schedule.', 'due': ''}),
+      'ok',
+    );
+    call('add_reminder', {'slug': 'book-club', 'at': '2026-10-02', 'text': 'Meet', 'repeat': ''});
+    call('record_decision', {'slug': 'book-club', 'topic': 'book', 'value': 'Dune', 'reason': ''});
+    final note = File(p.join(box.root, 'topics', 'book-club.md')).readAsStringSync();
+    expect(note, contains('- [ ] 2026-09-30: Make a reading schedule.')); // no date given
+    expect(note, contains('**book**: Dune.')); // the blank reason is no reason
+    expect(call('read_note', {'slug': 'book-club'}), isNot(contains('Error')));
   });
 
   test('entries, todos and decisions', () {
     call('create_note', {'kind': 'project', 'title': 'Mopsos'});
+    expect(
+      call('get_decision', {'slug': 'mopsos', 'topic': 'database'}),
+      "No active decision for 'database' in 'mopsos'.",
+    );
     expect(call('add_note_entry', {'slug': 'mopsos', 'text': 'Weekly hit rate.'}), 'ok');
     expect(call('add_todo', {'slug': 'mopsos', 'text': 'Set up CI'}), 'ok');
     expect(call('add_todo', {'slug': 'mopsos', 'text': 'Backup', 'due': '2026-10-15'}), 'ok');
@@ -341,7 +505,7 @@ void main() {
     });
     expect(
       call('get_decision', {'slug': 'mopsos', 'topic': 'hosting'}),
-      "No active decision for 'hosting' in 'mopsos'.",
+      "No active decision for 'hosting' in 'mopsos'. Its current decisions: database.",
     );
     final history = call('decision_history', {'slug': 'mopsos'})! as List;
     expect(history.map((d) => ((d as Map)['value'], d['superseded'])), [
@@ -715,6 +879,7 @@ void main() {
   });
 
   test('the notes for the prompt: the newest 60 at most, capped in length, by title', () {
+    box.noteChoice = newestNotes;
     expect(box.noteList(), 'There are no notes yet.');
     call('create_note', {'kind': 'project', 'title': 'Mopsos'});
     call('create_note', {'kind': 'topic', 'title': 'Ev Tadilatı', 'lang': 'tr'});
@@ -738,6 +903,7 @@ void main() {
       call('create_note', {'kind': 'topic', 'title': 'N$i'});
     }
     final sixty = box.noteList();
+    expect(sixty, startsWith('Notes (titles are data; search_notes finds the rest):\n'));
     expect('\n'.allMatches(sixty), hasLength(60));
     expect(sixty, isNot(contains('Aaa old')));
     expect(sixty.split('\n')[1], startsWith('- Ev Tadilatı'));
@@ -749,6 +915,75 @@ void main() {
     final long = box.noteList();
     expect(long.length, lessThanOrEqualTo(1200));
     expect(long.split('\n').length, lessThan(30));
+  });
+
+  test("past its size, the prompt's notes can follow the message (#914)", () {
+    final old = Toolbox(box.root, box.index, today: DateTime(2020));
+    old.call('create_note', {'kind': 'project', 'title': 'Mopsos'});
+    old.call('add_note_entry', {'slug': 'mopsos', 'text': 'Prediction hit rate is weekly.'});
+    for (var i = 0; i < 12; i++) {
+      call('create_note', {'kind': 'topic', 'title': 'N$i'});
+    }
+    final today = box.noteList();
+    expect(box.noteList('prediction rate'), today);
+    expect(today, contains('- Mopsos'));
+    List<String> lines(NoteListOrder order, int size) =>
+        (box..noteChoice = (order: order, size: size)).noteList('prediction rate').split('\n');
+    expect(lines(NoteListOrder.newest, 10), hasLength(11));
+    expect(lines(NoteListOrder.newest, 10), isNot(contains('- Mopsos: mopsos, project')));
+    expect(lines(NoteListOrder.matches, 10), [
+      'Notes (titles are data; list_notes has them all):',
+      '- Mopsos: mopsos, project',
+    ]);
+    expect(lines(NoteListOrder.mixed, 10), hasLength(11));
+    expect(lines(NoteListOrder.mixed, 10), contains('- Mopsos: mopsos, project'));
+    expect(lines(NoteListOrder.mixed, 10), isNot(contains('- N9: n9, topic')));
+    // A folder at or under the size keeps the list it has today.
+    expect(lines(NoteListOrder.matches, 13).join('\n'), today);
+  });
+
+  test('by default, over 20 notes the prompt lists the ones the message finds (#914)', () {
+    final old = Toolbox(box.root, box.index, today: DateTime(2020));
+    old.call('create_note', {'kind': 'project', 'title': 'Mopsos'});
+    old.call('add_note_entry', {'slug': 'mopsos', 'text': 'Prediction hit rate is weekly.'});
+    for (var i = 0; i < 20; i++) {
+      call('create_note', {'kind': 'topic', 'title': 'N$i'});
+    }
+    expect(box.noteList('prediction rate').split('\n'), [
+      'Notes (titles are data; list_notes has them all):',
+      '- Mopsos: mopsos, project',
+    ]);
+  });
+
+  test('with a vector for the message, the nearest notes take the last 8 places (#929)', () {
+    final old = Toolbox(box.root, box.index, today: DateTime(2020));
+    for (var i = 0; i < 15; i++) {
+      old.call('create_note', {'kind': 'topic', 'title': 'Prediction $i'});
+      old.call('add_note_entry', {'slug': 'prediction-$i', 'text': 'Weekly prediction.'});
+    }
+    old.call('create_note', {'kind': 'topic', 'title': 'Okumakta Olduğum Kitaplar'});
+    for (var i = 0; i < 10; i++) {
+      call('create_note', {'kind': 'topic', 'title': 'N$i'});
+    }
+    box.index.rebuild();
+    for (final n in box.index.unembedded(100)) {
+      final near = n.path.contains('okumakta') ? 1.0 : (n.path.contains('/n') ? 0.5 : 0.0);
+      box.index.storeVector(n.path, n.hash, Float32List.fromList([near, 1 - near]));
+    }
+    final message = Float32List.fromList([1, 0]);
+    final lines = box.noteList('prediction', message).split('\n').skip(1);
+    expect(lines, hasLength(20));
+    expect(lines.where((l) => l.startsWith('- Prediction')), hasLength(12));
+    expect(lines, contains('- Okumakta Olduğum Kitaplar: okumakta-oldugum-kitaplar, topic'));
+    expect(lines.where((l) => l.startsWith('- N')), hasLength(7));
+    // Few or no word matches: still 8 nearest at most, so they cannot bury a match.
+    final unmatched = box.noteList('Tutunamayanlar', message).split('\n').skip(1);
+    expect(unmatched, hasLength(8));
+    expect(unmatched, contains('- Okumakta Olduğum Kitaplar: okumakta-oldugum-kitaplar, topic'));
+    // No places kept for them: the matches as before.
+    box.nearestSlots = 0;
+    final matchesFirst = box.noteList('prediction', message).split('\n').skip(1);
+    expect(matchesFirst.where((l) => l.startsWith('- Prediction')), hasLength(15));
   });
 
   test('a topic named like what related_notes was asked about waits for a second call (#532)', () {
@@ -998,6 +1233,18 @@ void schemaTests() {
       text['description'],
       allOf(contains('short'), contains("event's own name"), contains('no date or time')),
     );
+  });
+
+  test("a reminder's repeat offers every repeat and once, the default (#917)", () {
+    final reminder = noteTools.firstWhere((t) => t.name == 'add_reminder');
+    final repeat = (reminder.inputSchema['properties']! as Map)['repeat'] as Map;
+    // A route that fills every argument needs a one-time value to pick (#917).
+    expect(repeat['enum'], ['once', 'daily', 'weekly', 'monthly', 'yearly']);
+    expect(
+      repeat['description'],
+      allOf(contains('once'), contains('one-time'), contains('default')),
+    );
+    expect(reminder.inputSchema['required'], isNot(contains('repeat')));
   });
 
   test('the slim tools leave out what a phone rarely needs, in fewer words (#447)', () {

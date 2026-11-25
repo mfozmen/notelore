@@ -730,6 +730,296 @@
    }
   },
   {
+   "id": "rem-tr-daily",
+   "kind": "reminder",
+   "lang": "tr",
+   "message": "Her gün saat 22:00'de ilacımı almamı hatırlat.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "22:00 (daily)",
+      "ilaç"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-en-daily",
+   "kind": "reminder",
+   "lang": "en",
+   "message": "Remind me every day at 8 am to water the balcony plants.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "08:00 (daily)",
+      "water"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-tr-weekly",
+   "kind": "reminder",
+   "lang": "tr",
+   "message": "Her pazartesi akşam 7'de spora gitmemi hatırlat.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2026-10-19 19:00 (weekly)",
+      "spor"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-en-weekly",
+   "kind": "reminder",
+   "lang": "en",
+   "message": "Remind me every Friday at 5 pm to send the Mopsos status report.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2026-10-23 17:00 (weekly)",
+      "report"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-tr-monthly",
+   "kind": "reminder",
+   "lang": "tr",
+   "message": "Her ayın 5'inde aidatı ödememi hatırlat.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2026-11-05",
+      "(monthly)",
+      "aidat"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-en-monthly",
+   "kind": "reminder",
+   "lang": "en",
+   "message": "Remind me on the 1st of every month to pay the gym membership.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2026-11-01",
+      "(monthly)",
+      "gym"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-tr-yearly",
+   "kind": "reminder",
+   "lang": "tr",
+   "message": "Her yıl 3 Mart'ta annemin doğum gününü hatırlat.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2027-03-03",
+      "(yearly)",
+      "doğum"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-en-yearly",
+   "kind": "reminder",
+   "lang": "en",
+   "message": "Remind me every year on 12 June about our wedding anniversary.",
+   "expect": {
+    "tools": [
+     "add_reminder"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2027-06-12",
+      "(yearly)",
+      "anniversary"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-tr-once",
+   "kind": "reminder",
+   "lang": "tr",
+   "message": "Yarın kahve siparişi vereceğim.",
+   "expect": {
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2026-10-19",
+      "kahve"
+     ]
+    },
+    "lines_not": [
+     "\\((daily|weekly|monthly|yearly)\\)"
+    ]
+   }
+  },
+  {
+   "id": "rem-en-once",
+   "kind": "reminder",
+   "lang": "en",
+   "message": "I'll order coffee beans tomorrow.",
+   "expect": {
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "2026-10-19",
+      "coffee"
+     ]
+    },
+    "lines_not": [
+     "\\((daily|weekly|monthly|yearly)\\)"
+    ]
+   }
+  },
+  {
+   "id": "rem-tr-fix-once",
+   "kind": "reminder",
+   "lang": "tr",
+   "history": [
+    {
+     "role": "user",
+     "content": "Yarın kahve siparişi vereceğim."
+    },
+    {
+     "role": "assistant",
+     "content": "Alışveriş notuna 19 Ekim için kahve siparişi hatırlatıcısı ekledim; yanlışlıkla her ay tekrarlanacak şekilde oluşturuldu."
+    }
+   ],
+   "message": "Düzelt o zaman.",
+   "notes": {
+    "topics/alisveris.md": "---\ntitle: Alışveriş\nkind: topic\ncreated: 2026-10-01\nupdated: 2026-10-18\ntags: [alışveriş]\n---\n# Alışveriş\n\n## Notlar\n- 2026-10-01: Market listesi haftalık yapılıyor.\n\n## Hatırlatıcılar\n- 2026-10-19 (monthly): Kahve siparişi\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/alisveris\\.md$": [
+      "2026-10-19: Kahve"
+     ],
+     "^_archive/": [
+      "2026-10-19 (monthly): Kahve"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-en-fix-once",
+   "kind": "reminder",
+   "lang": "en",
+   "history": [
+    {
+     "role": "user",
+     "content": "I'll order coffee beans tomorrow."
+    },
+    {
+     "role": "assistant",
+     "content": "I added a reminder to order coffee beans on 19 October to your Shopping note; by mistake it repeats every month."
+    }
+   ],
+   "message": "Fix it then.",
+   "notes": {
+    "topics/shopping.md": "---\ntitle: Shopping\nkind: topic\ncreated: 2026-10-01\nupdated: 2026-10-18\ntags: [shopping]\n---\n# Shopping\n\n## Notes\n- 2026-10-01: The grocery list is made weekly.\n\n## Reminders\n- 2026-10-19 (monthly): Order coffee beans\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/shopping\\.md$": [
+      "2026-10-19: Order coffee"
+     ],
+     "^_archive/": [
+      "2026-10-19 (monthly): Order coffee"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-tr-remove",
+   "kind": "reminder",
+   "lang": "tr",
+   "history": [
+    {
+     "role": "user",
+     "content": "Salı 10'da diş hekimi randevumu hatırlat."
+    },
+    {
+     "role": "assistant",
+     "content": "Sağlık notuna 20 Ekim Salı 10:00 için diş hekimi randevusu hatırlatıcısı ekledim."
+    }
+   ],
+   "message": "Randevu iptal oldu, o hatırlatıcıyı sil.",
+   "notes": {
+    "topics/saglik.md": "---\ntitle: Sağlık\nkind: topic\ncreated: 2026-10-01\nupdated: 2026-10-18\ntags: [sağlık]\n---\n# Sağlık\n\n## Notlar\n- 2026-10-02: Yıllık kontroller Ekim'de yapılıyor.\n\n## Hatırlatıcılar\n- 2026-10-20 10:00: Diş hekimi randevusu\n- 2026-10-30: Göz kontrolü\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/saglik\\.md$": [
+      "2026-10-30: Göz kontrolü"
+     ],
+     "^_archive/": [
+      "Diş hekimi"
+     ]
+    }
+   }
+  },
+  {
+   "id": "rem-en-remove",
+   "kind": "reminder",
+   "lang": "en",
+   "history": [
+    {
+     "role": "user",
+     "content": "Remind me on Wednesday at 9 about the tyre change appointment."
+    },
+    {
+     "role": "assistant",
+     "content": "I added a reminder for the tyre change appointment on Wednesday 21 October at 09:00 to your Scooter Upkeep note."
+    }
+   ],
+   "message": "The garage cancelled, remove that reminder.",
+   "notes": {
+    "topics/scooter-upkeep.md": "---\ntitle: Scooter Upkeep\nkind: topic\ncreated: 2026-10-01\nupdated: 2026-10-18\ntags: [scooter]\n---\n# Scooter Upkeep\n\n## Notes\n- 2026-10-02: The scooter is serviced every 3,000 km.\n\n## Reminders\n- 2026-10-21 09:00: Tyre change appointment\n- 2026-10-25: Renew the scooter insurance\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/scooter-upkeep\\.md$": [
+      "2026-10-25: Renew the scooter insurance"
+     ],
+     "^_archive/": [
+      "Tyre change"
+     ]
+    }
+   }
+  },
+  {
    "id": "coll-tr-empty",
    "kind": "collection",
    "lang": "tr",
@@ -886,6 +1176,453 @@
      "^topics/database-erisimleri\\.md$": [],
      "^_archive/[^/]+/entries/topics/database-erisimleri\\.md$": [
       "aws-prod"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-en-1",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "Which database does Mopsos use?",
+   "expect": {
+    "answer": [
+     "SQLite"
+    ]
+   }
+  },
+  {
+   "id": "scale-tr-1",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Mutfak tezgahı için ne karar vermiştik?",
+   "expect": {
+    "answer": [
+     "Granit"
+    ]
+   }
+  },
+  {
+   "id": "scale-tr-2",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Muhasebecinin aylık ücreti ne kadardı?",
+   "expect": {
+    "answer": [
+     "2.500"
+    ]
+   }
+  },
+  {
+   "id": "scale-en-2",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "For Mopsos: predictions are now also logged to a CSV file.",
+   "expect": {
+    "tools_not": [
+     "complete_todo"
+    ],
+    "notes": {
+     "^projects/mopsos\\.md$": [
+      "CSV"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-tr-3",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Şirket kuruluşu için noterden randevu alındı.",
+   "expect": {
+    "tools_not": [
+     "complete_todo"
+    ],
+    "notes": {
+     "^topics/sirket-kurulusu\\.md$": [
+      "noter"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-tr-4",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Şu an Tutunamayanlar'ı okuyorum.",
+   "expect": {
+    "notes": {
+     "^topics/okumakta-oldugum-kitaplar\\.md$": [
+      "Tutunamayanlar"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-en-3",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "Mopsos: I set up the Drive backup.",
+   "expect": {
+    "tools": [
+     "complete_todo"
+    ],
+    "notes": {
+     "^projects/mopsos\\.md$": []
+    }
+   }
+  },
+  {
+   "id": "scale-en-4",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "Which frontend did we pick for the prediction app?",
+   "expect": {
+    "answer": [
+     "React"
+    ]
+   }
+  },
+  {
+   "id": "scale-en-5",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "How often is the hit rate calculated?",
+   "expect": {
+    "answer": [
+     "Sunday"
+    ]
+   }
+  },
+  {
+   "id": "scale-en-6",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "Another one for my reading list: Piranesi by Susanna Clarke.",
+   "expect": {
+    "notes": {
+     "^topics/books-to-read\\.md$": [
+      "Piranesi"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-tr-5",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Granit tezgahın ölçüsünü almak için usta perşembe geliyor.",
+   "expect": {
+    "tools_not": [
+     "complete_todo"
+    ],
+    "notes": {
+     "^projects/ev-tadilati\\.md$": [
+      "usta"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-tr-6",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Vergi levhasını indirdim.",
+   "expect": {
+    "tools": [
+     "complete_todo"
+    ],
+    "notes": {
+     "^topics/sirket-kurulusu\\.md$": []
+    }
+   }
+  },
+  {
+   "id": "scale-tr-7",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Elektrikçiyi ne için arayacaktım?",
+   "expect": {
+    "answer": [
+     "priz"
+    ]
+   }
+  },
+  {
+   "id": "scale-meaning-tr-dish",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Hünkâr beğendiyi bu sefer süt yerine kaymakla denedim, daha da güzel oldu.",
+   "notes": {
+    "topics/ev-yemekleri.md": "---\ntitle: Ev Yemekleri\nkind: topic\ncreated: 2026-08-20\nupdated: 2026-09-02\ntags: [mutfak]\n---\n# Ev Yemekleri\n\n## Notlar\n- 2026-08-20: Mercimek çorbası: kırmızı mercimek, soğan, havuç, 40 dakikada pişiyor.\n- 2026-09-02: Fırında levrek: limon ve defne yaprağıyla, 200 derecede 25 dakika.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/ev-yemekleri\\.md$": [
+      "kaymak"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-tr-relative",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Halam Nermin'in doğum günü 14 Mart'ta.",
+   "notes": {
+    "topics/akrabalar.md": "---\ntitle: Akrabalar\nkind: topic\ncreated: 2026-08-11\nupdated: 2026-09-05\ntags: [insanlar]\n---\n# Akrabalar\n\n## Notlar\n- 2026-08-11: Dayım Kemal Bursa'da oturuyor, bayramlarda aranmayı seviyor.\n- 2026-09-05: Kuzenim Selin ekimde evleniyor.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/akrabalar\\.md$": [
+      "14 Mart"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-tr-symptom",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Son günlerde sabahları başım ağrıyor.",
+   "notes": {
+    "topics/saglik-takibi.md": "---\ntitle: Sağlık Takibi\nkind: topic\ncreated: 2026-08-14\nupdated: 2026-09-09\ntags: [beden]\n---\n# Sağlık Takibi\n\n## Notlar\n- 2026-08-14: Tansiyon 12/8 ölçüldü, normal.\n- 2026-09-09: Kan tahlili yapıldı; D vitamini düşük çıktı, takviye başlandı.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/saglik-takibi\\.md$": [
+      "ağrı"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-tr-brand",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Arçelik'in bulaşık makinesi indirime girmiş, 18.000 TL.",
+   "notes": {
+    "topics/beyaz-esya.md": "---\ntitle: Beyaz Eşya\nkind: topic\ncreated: 2026-08-25\nupdated: 2026-09-12\ntags: [alım]\n---\n# Beyaz Eşya\n\n## Notlar\n- 2026-08-25: Buzdolabı en az 500 litre olsun, sessiz model.\n- 2026-09-12: Fırın ankastre olsun.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/beyaz-esya\\.md$": [
+      "Arçelik"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-tr-film",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Dün akşam Babam ve Oğlum'u izledim, çok duygulandım.",
+   "notes": {
+    "topics/sinema-gunlugu.md": "---\ntitle: Sinema Günlüğü\nkind: topic\ncreated: 2026-08-30\nupdated: 2026-09-14\ntags: [eğlence]\n---\n# Sinema Günlüğü\n\n## Notlar\n- 2026-08-30: Kış Uykusu: uzun ama değdi, 4/5.\n- 2026-09-14: Ağustos Böceği: sıkıcıydı, 2/5.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/sinema-gunlugu\\.md$": [
+      "Babam ve Oğlum"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-tr-pet",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Kedinin karma aşısı 3 Kasım'da.",
+   "notes": {
+    "topics/evcil-hayvan-sagligi.md": "---\ntitle: Evcil Hayvan Sağlığı\nkind: topic\ncreated: 2026-08-18\nupdated: 2026-09-07\ntags: [ev]\n---\n# Evcil Hayvan Sağlığı\n\n## Notlar\n- 2026-08-18: Kısırlaştırma sonrası kontrol yapıldı, 4,2 kilo.\n- 2026-09-07: Mama markası değişti: tahılsız.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/evcil-hayvan-sagligi\\.md$": [
+      "aşı"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-tr-licence",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Ehliyetimi ne zaman yenilemem gerekiyor?",
+   "notes": {
+    "topics/resmi-belgeler.md": "---\ntitle: Resmi Belgeler\nkind: topic\ncreated: 2026-08-03\nupdated: 2026-09-01\ntags: [evrak]\n---\n# Resmi Belgeler\n\n## Notlar\n- 2026-08-03: Sürücü belgesinin geçerliliği 2027-04-30 tarihine kadar.\n- 2026-09-01: Pasaport 2031'de doluyor.\n"
+   },
+   "expect": {
+    "answer": [
+     "2027"
+    ]
+   }
+  },
+  {
+   "id": "scale-meaning-tr-blood",
+   "kind": "scale",
+   "lang": "tr",
+   "filler": 80,
+   "message": "Kan grubum neydi?",
+   "notes": {
+    "topics/tibbi-bilgiler.md": "---\ntitle: Tıbbi Bilgiler\nkind: topic\ncreated: 2026-08-08\nupdated: 2026-08-08\ntags: [beden]\n---\n# Tıbbi Bilgiler\n\n## Notlar\n- 2026-08-08: 0 Rh pozitif; kimlik kartında da yazılı.\n- 2026-08-08: Penisiline alerjim var.\n"
+   },
+   "expect": {
+    "answer": [
+     "0 Rh"
+    ]
+   }
+  },
+  {
+   "id": "scale-meaning-en-dish",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "Made chicken tikka masala tonight; marinating it overnight made a big difference.",
+   "notes": {
+    "topics/kitchen-notebook.md": "---\ntitle: Kitchen Notebook\nkind: topic\ncreated: 2026-08-20\nupdated: 2026-09-02\ntags: [kitchen]\n---\n# Kitchen Notebook\n\n## Notes\n- 2026-08-20: Lentil soup: red lentils, onion, carrot, 40 minutes.\n- 2026-09-02: Baked salmon with lemon and dill, 200 degrees for 15 minutes.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/kitchen-notebook\\.md$": [
+      "tikka"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-en-relative",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "My nephew Leo turns seven on 3 May.",
+   "notes": {
+    "topics/extended-family.md": "---\ntitle: Extended Family\nkind: topic\ncreated: 2026-08-11\nupdated: 2026-09-05\ntags: [people]\n---\n# Extended Family\n\n## Notes\n- 2026-08-11: Aunt Maria lives in Porto; she likes a call on Sundays.\n- 2026-09-05: Cousin Tom is getting married in October.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/extended-family\\.md$": [
+      "Leo"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-en-symptom",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "My lower back has been aching since Tuesday.",
+   "notes": {
+    "topics/health-log.md": "---\ntitle: Health Log\nkind: topic\ncreated: 2026-08-14\nupdated: 2026-09-09\ntags: [body]\n---\n# Health Log\n\n## Notes\n- 2026-08-14: Blood pressure 120/80 at the pharmacy.\n- 2026-09-09: Vitamin D was low; started supplements.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/health-log\\.md$": [
+      "back"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-en-brand",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "The Dyson V15 is on sale for 499 euros.",
+   "notes": {
+    "topics/appliance-wishlist.md": "---\ntitle: Appliance Wishlist\nkind: topic\ncreated: 2026-08-25\nupdated: 2026-09-12\ntags: [buying]\n---\n# Appliance Wishlist\n\n## Notes\n- 2026-08-25: Air fryer: at least 5 litres, dishwasher-safe basket.\n- 2026-09-12: A quiet fridge, under 40 dB.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/appliance-wishlist\\.md$": [
+      "Dyson"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-en-film",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "Watched Paris, Texas last night, slow but beautiful.",
+   "notes": {
+    "topics/film-diary.md": "---\ntitle: Film Diary\nkind: topic\ncreated: 2026-08-30\nupdated: 2026-09-14\ntags: [fun]\n---\n# Film Diary\n\n## Notes\n- 2026-08-30: Arrival: 5 out of 5, the linguistics part was great.\n- 2026-09-14: Drive My Car: long, worth it, 4/5.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/film-diary\\.md$": [
+      "Paris, Texas"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-en-pet",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "The cat's booster jab is due on 3 November.",
+   "notes": {
+    "topics/vet-visits.md": "---\ntitle: Vet Visits\nkind: topic\ncreated: 2026-08-18\nupdated: 2026-09-07\ntags: [home]\n---\n# Vet Visits\n\n## Notes\n- 2026-08-18: Spayed in June, check-up fine, 4.2 kg.\n- 2026-09-07: Switched to grain-free food.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/vet-visits\\.md$": [
+      "booster"
+     ]
+    }
+   }
+  },
+  {
+   "id": "scale-meaning-en-blood",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "What's my blood type?",
+   "notes": {
+    "topics/medical-card.md": "---\ntitle: Medical Card\nkind: topic\ncreated: 2026-08-08\nupdated: 2026-08-08\ntags: [body]\n---\n# Medical Card\n\n## Notes\n- 2026-08-08: 0 Rh positive; also on my ID card.\n- 2026-08-08: Allergic to penicillin.\n"
+   },
+   "expect": {
+    "answer": [
+     "0 Rh"
+    ]
+   }
+  },
+  {
+   "id": "scale-meaning-en-book",
+   "kind": "scale",
+   "lang": "en",
+   "filler": 80,
+   "message": "Just started Pachinko by Min Jin Lee.",
+   "notes": {
+    "topics/books-in-progress.md": "---\ntitle: Books in Progress\nkind: topic\ncreated: 2026-09-03\nupdated: 2026-09-03\ntags: [reading]\n---\n# Books in Progress\n\n## Notes\n- 2026-09-03: Middlemarch by George Eliot, slow going.\n"
+   },
+   "expect": {
+    "notes": {
+     "^topics/books-in-progress\\.md$": [
+      "Pachinko"
      ]
     }
    }

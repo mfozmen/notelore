@@ -8,7 +8,7 @@ import 'package:notelore/src/note_view.dart' show NotePage;
 import 'package:notelore/src/schemes.dart';
 import 'package:notelore/src/section_label.dart';
 import 'package:notelore/src/session.dart';
-import 'package:notelore/src/settings.dart' show SettingsScreen;
+import 'package:notelore/src/settings.dart' show SettingsScreen, SettingsSection;
 import 'package:notelore/src/soft.dart';
 import 'package:notelore/src/strings.dart';
 import 'package:notelore/src/theme.dart';
@@ -64,6 +64,8 @@ final catalogScreens = <String, Widget Function(BuildContext context, Session se
   'Settings': (context, session) => MediaQuery.sizeOf(context).width >= Layout.wide
       ? Home(session, tab: 4)
       : SettingsScreen(session),
+  'Model settings': (_, session) => SettingsScreen(session, section: SettingsSection.model),
+  'Reminder settings': (_, session) => SettingsScreen(session, section: SettingsSection.reminders),
 };
 
 NoteInfo _shed(Session session) =>

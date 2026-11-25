@@ -81,5 +81,23 @@ void main() {
       expect(File(health).readAsStringSync(), before);
       expect(device.scheduled, isEmpty);
     });
+
+    test('a tap on the morning brief opens the calendar on today, nothing else (#918)', () async {
+      var opened = 0;
+      final device = FakeReminders()..openToday = () => opened++;
+      final dentist = upcomingReminders(notes, now: DateTime(2099, 4, 1)).single;
+      final brief = reminderPayload(
+        DueReminder(dentist.id, DateTime(2099, 5, 1, 8), 'Today', '10:00 Dentist', brief: true),
+        (notes: notes, done: 'Done', snooze: 'Snooze 1 hour'),
+      );
+      final before = File(health).readAsStringSync();
+      await actOnReminder(device, null, brief, now: rang);
+      await actOnReminder(device, brief, brief, now: rang); // a Windows toast's body
+      expect(opened, 2);
+      // Its id may be a reminder's: still no note changes, nothing is scheduled.
+      await actOnReminder(device, doneAction, brief, now: rang);
+      expect(File(health).readAsStringSync(), before);
+      expect(device.scheduled, isEmpty);
+    });
   });
 }

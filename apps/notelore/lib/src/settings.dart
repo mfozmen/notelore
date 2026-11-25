@@ -561,7 +561,12 @@ class _ConnectionsState extends State<_Connections> {
                 _ => const SoftRadio(selected: false),
               },
               title: Text(s.providerName(spec)),
-              subtitle: Text(s.groupHeading(spec.group)),
+              subtitle: Text(switch (session) {
+                _ when spec.access != ProviderAccess.deviceFile => s.groupHeading(spec.group),
+                Session(localModel: final file?) => s.copiedModel(file),
+                Session(localModelBroken: final file?) => s.copiedModelBroken(file),
+                _ => s.groupHeading(spec.group),
+              }),
               selected: spec == session.spec,
               onTap: spec == session.spec || _switching != null ? null : () => _switch(spec),
               trailing: IconButton(
@@ -600,6 +605,15 @@ class _ConnectionsState extends State<_Connections> {
               subtitle: Text(s.usingChatGptPlan),
               onTap: () =>
                   launchUrl(Uri.parse(chatGptUsageUrl), mode: LaunchMode.externalApplication),
+            ),
+          ),
+        if (session.localModel != null)
+          TallTile(
+            child: ListTile(
+              leading: const Icon(AppIcons.download),
+              title: Text(s.useDownloadedModel),
+              subtitle: Text(s.copiedModelStays),
+              onTap: session.stopLocalModel,
             ),
           ),
         Padding(
@@ -1057,10 +1071,43 @@ class _RemindersCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: Gap.s),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [..._status(context), if (session.calendarAvailable) _calendarSwitch(context)],
+        children: [
+          ..._status(context),
+          if (session.calendarAvailable) _calendarSwitch(context),
+          if (session.briefAvailable) ..._brief(context),
+        ],
       ),
     ),
   );
+
+  /// The morning brief (#918): its switch, and its time once it is on.
+  List<Widget> _brief(BuildContext context) {
+    final s = session.strings;
+    final at = TimeOfDay(hour: session.briefAt ~/ 60, minute: session.briefAt % 60);
+    String two(int n) => n.toString().padLeft(2, '0');
+    return [
+      SoftSwitchTile(
+        secondary: const Icon(AppIcons.lightMode),
+        title: Text(s.morningBrief),
+        subtitle: Text(s.morningBriefHint),
+        value: session.brief,
+        onChanged: (on) => session.setBrief(on: on),
+      ),
+      // A row like the switches, not an action button: those fix a problem.
+      if (session.brief)
+        TallTile(
+          child: ListTile(
+            leading: const Icon(AppIcons.schedule),
+            title: Text(s.briefTime('${two(at.hour)}:${two(at.minute)}')),
+            trailing: const Icon(AppIcons.chevronRight),
+            onTap: () async {
+              final picked = await showTimePicker(context: context, initialTime: at);
+              if (picked != null) await session.setBrief(at: picked.hour * 60 + picked.minute);
+            },
+          ),
+        ),
+    ];
+  }
 
   /// The state row, only when this device still needs something: its own
   /// Google sign-in, or notifications that are blocked (#515).

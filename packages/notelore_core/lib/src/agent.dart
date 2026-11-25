@@ -3,6 +3,7 @@
 library;
 
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'i18n.dart' show messageLanguage;
 import 'providers/base.dart';
@@ -38,7 +39,7 @@ Rules:
 - When the user asks to be reminded ("remind me on Friday at 10 to call the dentist", "yarın 9'da hatırlat", "5 dakika sonra kitap okumayı hatırlat") or names an appointment with its day, add_reminder in the note it belongs to (create a fitting note if none fits), with the day, and the time if one is said, worked out from now: a relative time ("in two hours", "5 dakika sonra") becomes a clock time. Never refuse a reminder or tell the user to set a timer: Notelore notifies them itself. A plain task with a due date is a todo, not a reminder.
 - What the user says they need to or have to do, with no day for it ("ekmek almam lazım", "unutmadan dişçiyi aramam gerek", "I have to return the library books"), is a todo: add_todo in the note it belongs to (create a fitting note if none fits), never a note entry or About me. Only a need is a todo: what will happen or what the user plans ("we'll paint the fence", "the office moves next year") is an entry, or a plan as its rule says; what the user already did is never a new todo.
 - A reminder with a time may have an end: pass `YYYY-MM-DD HH:MM-HH:MM` when the user gives an end or a duration. A match, concert or film without an end gets about two hours; say the estimated end in your answer.
-- A commitment that repeats every month ("her ayın 18'inde") is one reminder with repeat: monthly, not one per month.
+- A commitment that repeats every month ("her ayın 18'inde") is one reminder with repeat: monthly, not one per month; one that repeats every day, week or year likewise has daily, weekly or yearly. Any other reminder is repeat: once.
 - Something the user says they will go to, watch or do on a coming day ("I'll watch the derby next week", "haftaya Fenerbahçe–Galatasaray maçını izleyeceğim", "Cumartesi düğüne gideceğim") is a plan: add_reminder for it without asking first, beside any note entry. When the time is not given, look up a public event's date and time if you can search, and say in the answer what you found; otherwise remind on the best-known day for the whole day and say the time is not known.
 - archive only after the user confirmed in this conversation which entries to archive. A correction ("not that note, it's this", "yanlış nota yazdın") is that confirmation: call move_entry with the note you filed it in, the note they name and a few words of the entry; say what moved where. Ask only when the wrong entry is older than this conversation or was not written by you.
 - You take notes; you do not make conversation. After saving, say in one short sentence what you saved and in which note, then stop: no questions about feelings or opinions (how a book made the user feel, what they thought of it), no small talk, no invitation to keep talking. Ask only when filing is genuinely unclear (which note, which project), and answer questions about the notes fully. Do not narrate tool calls.
@@ -72,7 +73,7 @@ Rules:
 - When Notelore read the linked pages, file each link with its URL in the note that fits.
 - "Remind me..." or an appointment with its day: add_reminder with the day, and the time if said, worked out from now ("in 2 hours" becomes a clock time). Never refuse: Notelore notifies the user. A task with a due date is a todo.
 - A timed reminder may have an end: pass "YYYY-MM-DD HH:MM-HH:MM" for a stated end or duration. A match, concert or film without one gets about two hours; say the end.
-- A monthly commitment ("her ayın 18'inde") is one reminder with repeat: monthly.
+- A monthly commitment ("her ayın 18'inde") is one reminder with repeat: monthly; daily, weekly and yearly likewise. Otherwise repeat: once.
 - Something the user will go to, watch or do on a coming day ("haftaya maçı izleyeceğim") is a plan: add_reminder without asking first, on the best-known day, for the whole day when no time is said.
 - When the user corrects where you just filed it ("not that note, it's this", "yanlış nota yazdın", "X değil, Y"), that is the confirmation: call move_entry with the note you used, the note they name and a few words of the entry; never ask, and say what moved where. Ask only when that entry is older than this conversation or not yours.
 - After saving, say in one short sentence what you saved and in which note, then stop: no small talk. Ask only when filing is unclear; answer questions about the notes fully.
@@ -220,6 +221,16 @@ class Agent {
   /// [Toolbox.aboutMe] as the turn began, or nothing when [aboutMe] is off.
   var _me = '';
 
+  /// [text] as the toolbox's vector, or none when the model fails: the note
+  /// list then follows the words alone.
+  Future<Float32List?> _meaning(String text) async {
+    try {
+      return await toolbox.meaning?.call(text).timeout(toolbox.meaningWait);
+    } on Object {
+      return null;
+    }
+  }
+
   /// [Toolbox.noteList] as the turn began, so it stays the same within a turn.
   var _notes = '';
 
@@ -277,7 +288,7 @@ class Agent {
     final start = messages.length;
     wroteNotes = false;
     toolbox.checkTopics = slim;
-    _notes = toolbox.noteList();
+    _notes = toolbox.noteList(text, await _meaning(text));
     _me = aboutMe ? toolbox.aboutMe() : '';
     _language = languageLine(text);
     final stop = _stop = Completer()..future.ignore();

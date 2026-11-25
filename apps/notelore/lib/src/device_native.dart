@@ -5,12 +5,25 @@ library;
 
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:llamadart/llamadart.dart';
 import 'package:notelore_core/notelore_core.dart';
 
 import 'device_model.dart';
 
 // coverage:ignore-start
+/// Android's folder for a model copied over `adb push` (#920); null elsewhere and below
+/// Android 11, where any app with storage access could plant a file there.
+Future<String?> copiedModelsDir() async {
+  if (!Platform.isAndroid) return null;
+  try {
+    return await const MethodChannel('io.github.mfozmen.notelore/models')
+        .invokeMethod<String>('dir');
+  } on Object {
+    return null;
+  }
+}
+
 /// The kernel's memory figures on Android (`/proc/meminfo`), or null.
 String? readMeminfo() {
   try {

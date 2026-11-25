@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notelore/src/session.dart';
 import 'package:notelore/src/soft.dart';
 import 'package:notelore_core/notelore_core.dart';
+import 'package:path/path.dart' as p;
 
 import 'app_chatgpt_test.dart' show pumpPlanApp;
 import 'app_test.dart' show choose, connect, phone, pumpApp;
@@ -14,6 +17,18 @@ void main() {
   Future<void> openModel(WidgetTester tester) => openSettings(tester, 'Model');
 
   Finder row(String name) => find.byKey(ValueKey('connection-$name'));
+
+  /// Connects the model on the device through the wizard, its test turn answered.
+  Future<void> connectDevice(WidgetTester tester, Harness harness, Session session) async {
+    harness.deviceEngine.answers.add({
+      'message': {'content': 'Hello.'},
+    });
+    await choose(tester, 'On this device (Qwen3 4B)');
+    await tester.tap(find.textContaining('onnect').last);
+    await settleUntil(tester, () => find.text('Start').evaluate().isNotEmpty);
+    await tester.tap(find.text('Start'));
+    await tester.pumpAndSettle();
+  }
 
   testWidgets('settings: Connect is first and Remove all last (#712)', (tester) async {
     phone(tester);
@@ -25,6 +40,42 @@ void main() {
     expect(
       tester.getTopLeft(find.text('Connect another model')).dy,
       lessThan(tester.getTopLeft(find.text('Remove all models from this device')).dy),
+    );
+  });
+
+  testWidgets('settings: the device model names a copied file; stop goes back (#920)', (
+    tester,
+  ) async {
+    phone(tester);
+    final harness = Harness()..deviceModels = true;
+    final local = p.join(harness.paths.state.path, 'models', 'device', 'local');
+    File(p.join(local, 'tuned.gguf'))
+      ..createSync(recursive: true)
+      ..writeAsStringSync('GGUF tuned');
+    final session = await pumpApp(tester, harness);
+    await connectDevice(tester, harness, session);
+    await openModel(tester);
+    expect(find.text('tuned.gguf (copied to this device)'), findsOneWidget);
+    await tester.tap(find.text('Use the downloaded model'));
+    await tester.pumpAndSettle();
+    expect(session.localModel, isNull);
+    expect(find.text('Use the downloaded model'), findsNothing);
+    expect(File(p.join(local, 'tuned.gguf')).existsSync(), isTrue);
+  });
+
+  testWidgets('settings: a copied file that is not a model says so (#920)', (tester) async {
+    phone(tester);
+    final harness = Harness()..deviceModels = true;
+    harness.pages['https://models.test/q.gguf'] = 'model bytes';
+    File(p.join(harness.paths.state.path, 'models', 'device', 'local', 'broken.gguf'))
+      ..createSync(recursive: true)
+      ..writeAsStringSync('nope');
+    final session = await pumpApp(tester, harness);
+    await connectDevice(tester, harness, session);
+    await openModel(tester);
+    expect(
+      find.text('broken.gguf did not open as a model. The downloaded one runs instead.'),
+      findsOneWidget,
     );
   });
 

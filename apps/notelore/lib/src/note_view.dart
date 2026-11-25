@@ -517,64 +517,93 @@ class NoteView extends StatelessWidget {
     double inset = 0,
     required Widget text,
     required Widget date,
-  }) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      SizedBox(
-        width: 18 + Gap.s,
-        height: 48,
-        child: OverflowBox(
-          alignment: Alignment.centerLeft,
-          minWidth: 0,
-          minHeight: 0,
-          maxWidth: 48,
-          maxHeight: 48,
-          child: Transform.translate(offset: Offset(-inset, 0), child: mark),
-        ),
-      ),
-      Expanded(
-        child: Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: text),
-      ),
-      const SizedBox(width: Gap.s),
-      Padding(padding: const EdgeInsets.only(top: 12), child: date),
-    ],
+  }) => Builder(
+    builder: (context) {
+      // Beside the words at large text, the date would leave them a letter a line.
+      final under = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 18 + Gap.s,
+            height: 48,
+            child: OverflowBox(
+              alignment: Alignment.centerLeft,
+              minWidth: 0,
+              minHeight: 0,
+              maxWidth: 48,
+              maxHeight: 48,
+              child: Transform.translate(offset: Offset(-inset, 0), child: mark),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: under
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        text,
+                        const SizedBox(height: Gap.xs),
+                        date,
+                      ],
+                    )
+                  : text,
+            ),
+          ),
+          if (!under) ...[
+            const SizedBox(width: Gap.s),
+            Padding(padding: const EdgeInsets.only(top: 12), child: date),
+          ],
+        ],
+      );
+    },
   );
 
   /// Coming ones by day and time, past ones after them, saying so in words
   /// and with their own icon. A reminder with no time counts until its day ends.
   List<Widget> _reminders(BuildContext context, List<Reminder> reminders) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    String key(Reminder r) => '${isoDate(r.date)} ${r.time ?? '24:00'}';
+    // A series shows and sorts by its coming turn.
+    DateTime shown(Reminder r) => r.repeat == null ? r.date : nextTurn(r, today) ?? r.date;
+    String key(Reminder r) => '${isoDate(shown(r))} ${r.time ?? '24:00'}';
     final now =
         '${isoDate(today)} '
         '${today.hour.toString().padLeft(2, '0')}:${today.minute.toString().padLeft(2, '0')}';
     final sorted = [...reminders]..sort((a, b) => key(a).compareTo(key(b)));
-    final coming = sorted.where((r) => key(r).compareTo(now) >= 0);
-    final past = sorted.where((r) => key(r).compareTo(now) < 0);
+    bool passed(Reminder r) => r.repeat == null && key(r).compareTo(now) < 0;
+    final coming = sorted.where((r) => !passed(r));
+    final past = sorted.where(passed);
     return [
-      for (final (reminder, passed) in [
-        for (final r in coming) (r, false),
-        for (final r in past.toList().reversed) (r, true),
-      ])
-        _row(
-          mark: Icon(
-            passed ? AppIcons.history : AppIcons.notifications,
-            size: 18,
-            color: passed ? colors.outline : colors.primary,
-          ),
-          text: _markdown(
-            reminder.text.replaceAll('\n  ', '\n'),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: passed ? colors.onSurfaceVariant : null,
-            ),
-          ),
-          date: Text(() {
-            final when = [_date(reminder.date), ?reminder.time].join(' · ');
-            return passed ? strings.reminderPassed(when) : when;
-          }(), style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
-        ),
+      for (final r in coming) _reminderRow(theme, r, shown(r), passed: false),
+      for (final r in past.toList().reversed) _reminderRow(theme, r, shown(r), passed: true),
     ];
+  }
+
+  Widget _reminderRow(ThemeData theme, Reminder reminder, DateTime day, {required bool passed}) {
+    final colors = theme.colorScheme;
+    final when = [
+      _date(day),
+      ?reminder.time,
+      if (reminder.repeat case final repeat?) strings.repeats(repeat),
+    ].join(' · ');
+    final IconData icon;
+    if (passed) {
+      icon = AppIcons.history;
+    } else {
+      icon = reminder.repeat == null ? AppIcons.notifications : AppIcons.repeat;
+    }
+    return _row(
+      mark: Icon(icon, size: 18, color: passed ? colors.outline : colors.primary),
+      text: _markdown(
+        reminder.text.replaceAll('\n  ', '\n'),
+        style: theme.textTheme.bodyMedium?.copyWith(color: passed ? colors.onSurfaceVariant : null),
+      ),
+      date: Text(
+        passed ? strings.reminderPassed(when) : when,
+        style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+      ),
+    );
   }
 
   /// A late one says so, in words and in the error colour.
