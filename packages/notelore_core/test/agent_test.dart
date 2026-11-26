@@ -506,6 +506,11 @@ void main() {
     }
   });
 
+  test('what something requires is an entry, not a todo', () {
+    // ChatGPT turned "İki referans mektubu gerekiyor." into a todo.
+    expect(systemPrompt(today), contains('what something requires'));
+  });
+
   test('after a tool error the model fixes the call and goes on, in the user language', () {
     // v3: a failed related_notes ended in English, naming the tool, asking the
     // user what to do (#474).

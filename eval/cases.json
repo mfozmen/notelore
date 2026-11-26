@@ -467,6 +467,44 @@
    }
   },
   {
+   "id": "file-tr-requirement",
+   "kind": "filing",
+   "lang": "tr",
+   "message": "Pasaport başvurusu için iki vesikalık fotoğraf gerekiyor.",
+   "expect": {
+    "tools": [
+     "add_note_entry"
+    ],
+    "tools_not": [
+     "add_todo"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "fotoğraf"
+     ]
+    }
+   }
+  },
+  {
+   "id": "file-en-requirement",
+   "kind": "filing",
+   "lang": "en",
+   "message": "The visa application requires a bank statement from the last three months.",
+   "expect": {
+    "tools": [
+     "add_note_entry"
+    ],
+    "tools_not": [
+     "add_todo"
+    ],
+    "notes": {
+     "^(topics|projects)/[^/]+\\.md$": [
+      "bank statement"
+     ]
+    }
+   }
+  },
+  {
    "id": "rem-tr-appt",
    "kind": "reminder",
    "lang": "tr",
