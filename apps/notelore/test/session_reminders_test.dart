@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -60,6 +61,43 @@ void main() {
     expect(harness.reminders.asked, 1); // refused: not asked again this run
     expect(harness.reminders.pending.values, hasLength(3)); // ready for when it is allowed
   });
+
+  test('the turn answers while the system still asks about notifications (#941)', () async {
+    // macOS kept the reply until its prompt was closed.
+    final harness = Harness(answers: addsReminder('Dentist'))
+      ..reminders.allowed = false
+      ..reminders.grant = true
+      ..reminders.answering = Completer()
+      ..reminders.refuseUnallowed = true;
+    remindIn(harness, 'Health', 'Blood test');
+    final session = harness.session();
+    await session.connect(findProvider('anthropic'), 'k');
+    await session.send('remind me').timeout(const Duration(seconds: 5));
+    expect(harness.reminders.asked, 1);
+    expect(harness.reminders.pending, isEmpty); // refused until allowed
+    expect(session.remindersAllowed, isFalse);
+    harness.reminders.answering!.complete();
+    await pumpEventQueue();
+    expect(session.remindersAllowed, isTrue);
+    expect(harness.reminders.pending.values, unorderedEquals(['Blood test', 'Dentist']));
+  });
+
+  test(
+    'a system that cannot ask leaves the reminders in the notes, and the turn answers',
+    () async {
+      final harness = Harness(answers: addsReminder('Dentist'))
+        ..reminders.allowed = false
+        ..reminders.askFails = PlatformException(code: 'no');
+      remindIn(harness, 'Health', 'Blood test');
+      final session = harness.session();
+      await session.connect(findProvider('anthropic'), 'k');
+      await session.send('remind me');
+      await pumpEventQueue();
+      expect(harness.reminders.asked, 1);
+      expect(session.remindersAllowed, isFalse);
+      expect(session.transcript.last.text, isNotEmpty);
+    },
+  );
 
   test('after a sync, a changed reminder replaces the old one', () async {
     final harness = Harness(auth: FakeAuth());

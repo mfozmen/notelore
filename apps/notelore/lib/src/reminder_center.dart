@@ -242,10 +242,12 @@ class ReminderCenter extends ChangeNotifier {
     if (device == null) return;
     final wasAllowed = remindersAllowed;
     try {
-      var allowed = await device.isAllowed();
+      final allowed = await device.isAllowed();
       if (!allowed && ask && due.isNotEmpty && !_askedReminders) {
         _askedReminders = true;
-        allowed = await device.ask();
+        // Not awaited: the system's question stays open until the user
+        // answers it, and the turn that added the reminder must not wait.
+        unawaited(_askReminders(device));
       }
       remindersAllowed = allowed;
       final (:done, :snooze) = actionLabels();
@@ -255,6 +257,17 @@ class ReminderCenter extends ChangeNotifier {
     } finally {
       if (remindersAllowed != wasAllowed) notifyListeners(); // Settings shows it
     }
+  }
+
+  Future<void> _askReminders(ReminderNotifier device) async {
+    try {
+      remindersAllowed = await device.ask();
+    } on Exception {
+      return; // no notifications here: the reminders stay in the notes
+    }
+    notifyListeners(); // Settings shows it
+    // macOS may have refused to queue them while it was still asking.
+    if (remindersAllowed!) await refreshReminders(ask: false);
   }
 
   /// Writes the coming reminders as events in Notelore's calendar; only on a

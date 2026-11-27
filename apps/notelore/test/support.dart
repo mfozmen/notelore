@@ -623,6 +623,15 @@ class FakeReminders implements ReminderNotifier {
   var grant = false;
   var asked = 0;
 
+  /// When set, the system's question stays open until it completes.
+  Completer<void>? answering;
+
+  /// Thrown by ask() only: the system could not put its question.
+  Exception? askFails;
+
+  /// Like macOS, which may refuse to queue a notification before it is allowed.
+  var refuseUnallowed = false;
+
   /// Thrown by every call, like a platform that cannot notify.
   Exception? fail;
 
@@ -647,6 +656,8 @@ class FakeReminders implements ReminderNotifier {
   Future<bool> ask() async {
     _check();
     asked++;
+    if (askFails case final error?) throw error;
+    await answering?.future;
     return allowed = grant;
   }
 
@@ -659,6 +670,7 @@ class FakeReminders implements ReminderNotifier {
   @override
   Future<void> schedule(DueReminder reminder, ReminderActions actions) async {
     _check();
+    if (refuseUnallowed && !allowed) throw PlatformException(code: 'not allowed');
     scheduled.add(reminder);
     this.actions.add(actions);
     pending[reminder.id] = reminder.text;
