@@ -29,4 +29,10 @@ void main() {
     expect(messageLanguage('ok'), isNull);
     expect(answerLanguage('Kaydedildi: Ev Tadilatı.'), isNull, reason: 'the eval stays strict');
   });
+
+  test('a suffix after a typographic apostrophe is no English word (#947)', () {
+    expect(answerLanguage('Hatırlatıcıyı yarın akşam 19:00’a erteledim.'), isNull);
+    expect(answerLanguage("Hatırlatıcıyı yarın akşam 19:00'a erteledim."), isNull);
+    expect(messageLanguage('Ahmet’in doğum günü cuma'), 'tr');
+  });
 }

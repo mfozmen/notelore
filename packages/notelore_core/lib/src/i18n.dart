@@ -49,7 +49,7 @@ const _turkishWords = {
 String? answerLanguage(String answer) {
   final unquoted = answer.replaceAll(RegExp(r'"[^"]*"|“[^”]*”|`[^`]*`'), ' ');
   final words = RegExp(
-    r"[\p{L}']+",
+    r"[\p{L}'’]+", // ’ too: "19:00’a" would leave an English "a"
     unicode: true,
   ).allMatches(unquoted.toLowerCase()).map((m) => m[0]!);
   final english = words.where(_englishWords.contains).length;
