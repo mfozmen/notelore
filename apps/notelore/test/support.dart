@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
@@ -326,7 +327,17 @@ class Harness {
       ),
       // A light app-lock hash, worked out right here: tests need no isolates.
       lockIterations: 10,
-      offThread: <R>(work) async => work(),
+      offThread: <R>(work) async {
+        // Run here, but only work the real isolate could take: an unsendable
+        // capture (a Future through `this`) fails as on the device.
+        final port = RawReceivePort();
+        try {
+          port.sendPort.send(work);
+        } finally {
+          port.close();
+        }
+        return work();
+      },
       driveAuth: auth,
       localModels: localModels,
       remoteFor: (_) => remote,

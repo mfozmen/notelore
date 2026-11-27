@@ -199,19 +199,23 @@ class ReminderCenter extends ChangeNotifier {
   /// first today while that time is still to come. Each is this device's own,
   /// never sent to Google Calendar.
   Future<List<DueReminder>> _briefs(DateTime now, {required bool private}) async {
-    final notes = root;
     DateTime at(DateTime day) =>
         DateTime(day.year, day.month, day.day, briefAt ~/ 60, briefAt % 60);
     final from = at(now).isAfter(now) ? now : now.add(const Duration(days: 1));
     final s = strings();
     return [
-      for (final day in await offThread(() => morningBriefs(notes, from: from)))
+      for (final day in await _briefDays(root, from))
         if (private)
           _brief(at(day.day), 'Notelore', s.briefHidden)
         else
           _brief(at(day.day), s.briefTitle, _briefText(day, s)),
     ];
   }
+
+  // Its own function: a closure here shares its context with `at`, which holds
+  // `this`, and a Future in it cannot go to the other isolate.
+  Future<List<MorningBrief>> _briefDays(String notes, DateTime from) =>
+      offThread(() => morningBriefs(notes, from: from));
 
   DueReminder _brief(DateTime at, String title, String text) =>
       DueReminder(stableId('brief\n${at.toIso8601String()}\n$text'), at, title, text, brief: true);
